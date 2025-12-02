@@ -14,6 +14,72 @@ export type Database = {
   }
   public: {
     Tables: {
+      condominios_mapeamento: {
+        Row: {
+          created_at: string | null
+          id: string
+          logradouro_padrao: string
+          microbairro: string | null
+          nome_condominio: string
+          numero_fim: number | null
+          numero_inicio: number | null
+          padrao_construtivo: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          logradouro_padrao: string
+          microbairro?: string | null
+          nome_condominio: string
+          numero_fim?: number | null
+          numero_inicio?: number | null
+          padrao_construtivo?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          logradouro_padrao?: string
+          microbairro?: string | null
+          nome_condominio?: string
+          numero_fim?: number | null
+          numero_inicio?: number | null
+          padrao_construtivo?: string | null
+        }
+        Relationships: []
+      }
+      ia_valuation_weights: {
+        Row: {
+          created_at: string | null
+          descricao: string | null
+          id: string
+          nome_variavel: string
+          parametro: string
+          peso_valor: number
+          tipo_imovel: string
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          descricao?: string | null
+          id?: string
+          nome_variavel: string
+          parametro: string
+          peso_valor: number
+          tipo_imovel: string
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          descricao?: string | null
+          id?: string
+          nome_variavel?: string
+          parametro?: string
+          peso_valor?: number
+          tipo_imovel?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       itbi_transactions: {
         Row: {
           area_m2: number
