@@ -11,6 +11,7 @@ import Dashboard from "./pages/Dashboard";
 import Analysis from "./pages/Analysis";
 import Properties from "./pages/Properties";
 import Reports from "./pages/Reports";
+import SeedData from "./pages/SeedData";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -33,6 +34,7 @@ const App = () => (
                     <Route path="/analysis" element={<Analysis />} />
                     <Route path="/properties" element={<Properties />} />
                     <Route path="/reports" element={<Reports />} />
+                    <Route path="/seed-data" element={<SeedData />} />
                     <Route path="*" element={<NotFound />} />
                   </Routes>
                 </main>
