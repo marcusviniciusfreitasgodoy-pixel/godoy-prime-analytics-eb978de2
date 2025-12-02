@@ -3,13 +3,19 @@ import { supabase } from "@/integrations/supabase/client";
 
 export interface ValuationWeight {
   id: string;
-  nome_variavel: string;
-  parametro: string;
-  peso_valor: number;
-  tipo_imovel: "Apartamento" | "Casa" | "Ambos";
+  nome_variavel: string | null;
+  parametro: string | null;
+  peso_valor: number | null;
+  tipo_imovel: string | null;
   descricao: string | null;
-  created_at: string;
-  updated_at: string;
+  factor_key: string | null;
+  label: string | null;
+  multiplier: number | null;
+  category: string | null;
+  is_active: boolean | null;
+  order_index: number | null;
+  created_at: string | null;
+  updated_at: string | null;
 }
 
 export const useValuationWeights = () => {
@@ -19,45 +25,11 @@ export const useValuationWeights = () => {
       const { data, error } = await supabase
         .from("ia_valuation_weights")
         .select("*")
-        .order("nome_variavel");
+        .eq("is_active", true)
+        .order("order_index");
 
       if (error) throw error;
       return data as ValuationWeight[];
     },
-  });
-};
-
-export const useValuationWeightsByTipo = (tipoImovel: "Apartamento" | "Casa") => {
-  return useQuery({
-    queryKey: ["valuation-weights", "tipo", tipoImovel],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("ia_valuation_weights")
-        .select("*")
-        .in("tipo_imovel", [tipoImovel, "Ambos"])
-        .order("nome_variavel");
-
-      if (error) throw error;
-      return data as ValuationWeight[];
-    },
-    enabled: !!tipoImovel,
-  });
-};
-
-export const useValuationWeightByVariavel = (nomeVariavel: string, tipoImovel: "Apartamento" | "Casa") => {
-  return useQuery({
-    queryKey: ["valuation-weight", nomeVariavel, tipoImovel],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("ia_valuation_weights")
-        .select("*")
-        .eq("nome_variavel", nomeVariavel)
-        .in("tipo_imovel", [tipoImovel, "Ambos"])
-        .maybeSingle();
-
-      if (error) throw error;
-      return data as ValuationWeight | null;
-    },
-    enabled: !!nomeVariavel && !!tipoImovel,
   });
 };

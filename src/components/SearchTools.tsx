@@ -1,9 +1,9 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "./ui/tabs";
 import { Input } from "./ui/input";
 import { Button } from "./ui/button";
-import { Search, DollarSign, Bot, Loader2 } from "lucide-react";
+import { Search, DollarSign, Bot, Loader2, FileDown } from "lucide-react";
 import { Label } from "./ui/label";
 import {
   Select,
@@ -15,8 +15,12 @@ import {
 import { useLocationSearch, useTransactionSearch } from "@/hooks/useLocationSearch";
 import { useValuationWeights } from "@/hooks/useValuationWeights";
 import { Badge } from "./ui/badge";
+import { exportToCSV } from "@/utils/exportUtils";
+import { useToast } from "@/hooks/use-toast";
 
 export function SearchTools() {
+  const { toast } = useToast();
+  
   // Location search state
   const [locationQuery, setLocationQuery] = useState("");
   const [tipologia, setTipologia] = useState<string>("");
@@ -38,12 +42,14 @@ export function SearchTools() {
   const [valSol, setValSol] = useState("");
   const [valVista, setValVista] = useState("");
   const [valEstado, setValEstado] = useState("");
+  const [valTipologia, setValTipologia] = useState("");
   const [valuationResult, setValuationResult] = useState<{
     min: number;
     justo: number;
     max: number;
     confianca: number;
     mercado: string;
+    mercadoDescricao: string;
   } | null>(null);
 
   // Queries
@@ -68,6 +74,17 @@ export function SearchTools() {
 
   const { data: weights } = useValuationWeights();
 
+  // Map weights by factor_key for easy lookup
+  const weightsMap = useMemo(() => {
+    if (!weights) return {};
+    return weights.reduce((acc, w) => {
+      if (w.factor_key) {
+        acc[w.factor_key] = w.multiplier || 1;
+      }
+      return acc;
+    }, {} as Record<string, number>);
+  }, [weights]);
+
   const handleLocationSearch = () => {
     setSearchLocation(true);
   };
@@ -76,41 +93,108 @@ export function SearchTools() {
     setSearchTransactions(true);
   };
 
+  const exportLocationResults = () => {
+    if (!locationResult || !locationResult.transactions) {
+      toast({
+        title: "Sem dados",
+        description: "Faça uma busca primeiro para exportar os resultados.",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    const exportData = locationResult.transactions.map(t => ({
+      Logradouro: t.logradouro,
+      Numero: t.numero || '',
+      Complemento: t.complemento || '',
+      Valor_Transacao: t.valor_transacao,
+      Area_m2: t.area_m2,
+      Valor_m2: t.valor_m2,
+      Data: t.data_transacao,
+      Tipologia: t.tipologia || '',
+    }));
+    
+    exportToCSV(exportData, `transacoes_${locationQuery.replace(/\s+/g, '_')}`);
+    toast({
+      title: "Exportado com sucesso",
+      description: `${exportData.length} transações exportadas para CSV.`,
+    });
+  };
+
   const calculateValuation = () => {
     if (!valArea || !locationResult) return;
 
     const area = parseFloat(valArea);
     const basePrice = locationResult.mediana_m2;
     
-    // Apply multipliers based on weights
+    // Apply multipliers from database weights
     let multiplier = 1.0;
     
-    if (valVista === 'mar') multiplier += 0.25;
-    else if (valVista === 'verde') multiplier += 0.10;
+    // Vista
+    if (valVista === 'frente-mar' && weightsMap['VIEW_FRONT_SEA']) {
+      multiplier *= weightsMap['VIEW_FRONT_SEA'];
+    } else if (valVista === 'mar' && weightsMap['VIEW_SEA']) {
+      multiplier *= weightsMap['VIEW_SEA'];
+    } else if (valVista === 'verde' && weightsMap['VIEW_GREEN']) {
+      multiplier *= weightsMap['VIEW_GREEN'];
+    }
     
-    if (valSol === 'dia-todo') multiplier += 0.08;
-    else if (valSol === 'manha') multiplier += 0.05;
+    // Sol
+    if (valSol === 'manha' && weightsMap['SUN_MORNING']) {
+      multiplier *= weightsMap['SUN_MORNING'];
+    } else if (valSol === 'tarde' && weightsMap['SUN_AFTERNOON']) {
+      multiplier *= weightsMap['SUN_AFTERNOON'];
+    }
     
-    if (valEstado === 'novo') multiplier += 0.15;
-    else if (valEstado === 'reformado') multiplier += 0.10;
-    else if (valEstado === 'reformar') multiplier -= 0.15;
+    // Estado
+    if ((valEstado === 'novo' || valEstado === 'reformado') && weightsMap['STATE_NEW']) {
+      multiplier *= weightsMap['STATE_NEW'];
+    } else if (valEstado === 'original' && weightsMap['STATE_ORIGINAL']) {
+      multiplier *= weightsMap['STATE_ORIGINAL'];
+    } else if (valEstado === 'reformar') {
+      multiplier *= 0.85; // Deduct 15% for properties needing renovation
+    }
 
+    // Tipologia específica
+    if (valTipologia === 'cobertura') {
+      multiplier *= 1.25;
+    } else if (valTipologia === 'garden') {
+      multiplier *= 1.10;
+    } else if (valTipologia === 'flat') {
+      multiplier *= 0.90;
+    }
+
+    // Quartos e vagas (bônus adicionais)
     const quartos = parseInt(valQuartos) || 3;
-    if (quartos >= 4) multiplier += 0.05;
+    if (quartos >= 4) multiplier *= 1.05;
 
     const vagas = parseInt(valVagas) || 2;
-    if (vagas >= 3) multiplier += 0.05;
+    if (vagas >= 3) multiplier *= 1.05;
 
     const precoJusto = Math.round(basePrice * multiplier * area);
-    const precoMin = Math.round(precoJusto * 0.9);
-    const precoMax = Math.round(precoJusto * 1.15);
+    const precoMin = Math.round(precoJusto * 0.90); // -10% para liquidez
+    const precoMax = Math.round(precoJusto * 1.15); // +15% para teste de mercado
 
     // Calculate confidence based on sample size
     const confianca = Math.min(95, 50 + locationResult.total_transacoes * 3);
 
-    // Market temperature
+    // Market temperature based on liquidity and volatility
     const desvioRelativo = locationResult.desvio_padrao / locationResult.media_m2;
-    const mercado = desvioRelativo < 0.15 ? 'Estável' : desvioRelativo < 0.25 ? 'Aquecido' : 'Volátil';
+    const liquidez = locationResult.total_transacoes;
+    
+    let mercado: string;
+    let mercadoDescricao: string;
+    
+    if (liquidez > 10 && desvioRelativo < 0.20) {
+      mercado = 'Vendedor';
+      mercadoDescricao = 'Alta demanda, proprietários têm vantagem na negociação';
+    } else if (liquidez < 5 || desvioRelativo > 0.30) {
+      mercado = 'Comprador';
+      mercadoDescricao = 'Oferta elevada, compradores têm poder de barganha';
+    } else {
+      mercado = 'Equilibrado';
+      mercadoDescricao = 'Mercado estável com condições justas para ambas as partes';
+    }
 
     setValuationResult({
       min: precoMin,
@@ -118,11 +202,12 @@ export function SearchTools() {
       max: precoMax,
       confianca,
       mercado,
+      mercadoDescricao,
     });
   };
 
   return (
-    <Card>
+    <Card data-tour="search-tools">
       <CardHeader>
         <CardTitle>Ferramentas de Busca</CardTitle>
       </CardHeader>
@@ -209,14 +294,21 @@ export function SearchTools() {
               </div>
             </div>
             
-            <Button className="w-full" onClick={handleLocationSearch} disabled={locationLoading || !locationQuery}>
-              {locationLoading ? (
-                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-              ) : (
-                <Search className="h-4 w-4 mr-2" />
+            <div className="flex gap-2">
+              <Button className="flex-1" onClick={handleLocationSearch} disabled={locationLoading || !locationQuery}>
+                {locationLoading ? (
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                ) : (
+                  <Search className="h-4 w-4 mr-2" />
+                )}
+                Buscar
+              </Button>
+              {locationResult && locationResult.transactions && (
+                <Button variant="outline" onClick={exportLocationResults}>
+                  <FileDown className="h-4 w-4" />
+                </Button>
               )}
-              Buscar
-            </Button>
+            </div>
             
             {locationResult ? (
               <div className="p-4 border rounded-lg bg-muted/30 space-y-3">
@@ -233,9 +325,15 @@ export function SearchTools() {
                     <span className="text-muted-foreground">Média:</span>
                     <span className="ml-2 font-semibold">R$ {locationResult.media_m2.toLocaleString('pt-BR')}/m²</span>
                   </div>
-                  <div className="col-span-2">
-                    <span className="text-muted-foreground">Desvio Padrão:</span>
+                  <div>
+                    <span className="text-muted-foreground">Desvio:</span>
                     <span className="ml-2 font-semibold">R$ {locationResult.desvio_padrao.toLocaleString('pt-BR')}/m²</span>
+                  </div>
+                  <div>
+                    <span className="text-muted-foreground">Faixa:</span>
+                    <span className="ml-2 font-semibold">
+                      R$ {(locationResult.preco_min / 1000).toFixed(0)}k - {(locationResult.preco_max / 1000).toFixed(0)}k/m²
+                    </span>
                   </div>
                 </div>
               </div>
@@ -330,7 +428,7 @@ export function SearchTools() {
               </Button>
             </div>
             
-            <div className="grid grid-cols-3 gap-4">
+            <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="val-area">Área (m²)</Label>
                 <Input 
@@ -341,6 +439,24 @@ export function SearchTools() {
                   onChange={(e) => setValArea(e.target.value)}
                 />
               </div>
+              <div className="space-y-2">
+                <Label htmlFor="val-tipologia">Tipologia</Label>
+                <Select value={valTipologia} onValueChange={setValTipologia}>
+                  <SelectTrigger id="val-tipologia">
+                    <SelectValue placeholder="Padrão" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="apartamento">Apartamento</SelectItem>
+                    <SelectItem value="cobertura">Cobertura</SelectItem>
+                    <SelectItem value="garden">Garden</SelectItem>
+                    <SelectItem value="flat">Flat</SelectItem>
+                    <SelectItem value="casa">Casa</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            
+            <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="val-quartos">Quartos</Label>
                 <Input 
@@ -385,7 +501,8 @@ export function SearchTools() {
                     <SelectValue placeholder="Selecione" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="mar">Mar</SelectItem>
+                    <SelectItem value="frente-mar">Frente Mar</SelectItem>
+                    <SelectItem value="mar">Vista Mar</SelectItem>
                     <SelectItem value="verde">Verde</SelectItem>
                     <SelectItem value="urbana">Urbana</SelectItem>
                   </SelectContent>
@@ -403,6 +520,7 @@ export function SearchTools() {
                   <SelectItem value="novo">Novo</SelectItem>
                   <SelectItem value="reformado">Reformado</SelectItem>
                   <SelectItem value="bom">Bom Estado</SelectItem>
+                  <SelectItem value="original">Original</SelectItem>
                   <SelectItem value="reformar">A Reformar</SelectItem>
                 </SelectContent>
               </Select>
@@ -420,19 +538,26 @@ export function SearchTools() {
             {valuationResult ? (
               <div className="p-4 border rounded-lg bg-gradient-to-br from-accent/10 to-accent/5 space-y-4">
                 <div className="text-center">
-                  <p className="text-sm text-muted-foreground mb-1">Preço Sugerido</p>
+                  <p className="text-sm text-muted-foreground mb-1">Preço Justo de Mercado</p>
                   <p className="text-3xl font-bold text-accent">
                     R$ {valuationResult.justo.toLocaleString('pt-BR')}
                   </p>
-                  <p className="text-sm text-muted-foreground mt-1">
-                    Min: R$ {valuationResult.min.toLocaleString('pt-BR')} | 
-                    Max: R$ {valuationResult.max.toLocaleString('pt-BR')}
-                  </p>
+                </div>
+                <div className="grid grid-cols-2 gap-2 text-sm text-center">
+                  <div className="p-2 bg-card rounded">
+                    <p className="text-xs text-muted-foreground">Liquidez (Mín)</p>
+                    <p className="font-semibold">R$ {valuationResult.min.toLocaleString('pt-BR')}</p>
+                  </div>
+                  <div className="p-2 bg-card rounded">
+                    <p className="text-xs text-muted-foreground">Oportunidade (Máx)</p>
+                    <p className="font-semibold">R$ {valuationResult.max.toLocaleString('pt-BR')}</p>
+                  </div>
                 </div>
                 <div className="grid grid-cols-2 gap-4 text-center">
                   <div className="p-3 bg-card rounded-lg">
-                    <p className="text-xs text-muted-foreground">Mercado</p>
-                    <p className="font-semibold text-foreground">{valuationResult.mercado}</p>
+                    <p className="text-xs text-muted-foreground">Termômetro</p>
+                    <p className="font-semibold text-foreground">Mercado de {valuationResult.mercado}</p>
+                    <p className="text-xs text-muted-foreground mt-1">{valuationResult.mercadoDescricao}</p>
                   </div>
                   <div className="p-3 bg-card rounded-lg">
                     <p className="text-xs text-muted-foreground">Confiança</p>
@@ -442,9 +567,7 @@ export function SearchTools() {
               </div>
             ) : (
               <div className="p-4 border rounded-lg bg-muted/50 text-center text-sm text-muted-foreground">
-                {locationResult 
-                  ? "Preencha a área e calcule o valuation" 
-                  : "Valide a localização primeiro para obter uma avaliação"}
+                Valide a localização e insira a área para calcular
               </div>
             )}
           </TabsContent>
