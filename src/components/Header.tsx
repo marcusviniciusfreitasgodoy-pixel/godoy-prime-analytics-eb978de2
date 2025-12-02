@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 import logoSymbol from "@/assets/godoy-logo-symbol.png";
 import { useAuth } from "@/hooks/useAuth";
 import { SyncDataButton } from "./SyncDataButton";
+import { SyncITBIButton } from "./SyncITBIButton";
 
 export function Header() {
   const { signOut } = useAuth();
@@ -29,8 +30,9 @@ export function Header() {
             <span className="text-primary-foreground/60">•</span>
             <span className="font-semibold">Rio de Janeiro</span>
           </div>
+          <SyncITBIButton />
           <SyncDataButton />
-          <Button 
+          <Button
             variant="outline" 
             size="sm" 
             onClick={signOut}

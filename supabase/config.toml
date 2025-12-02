@@ -1,1 +1,4 @@
 project_id = "ldiadiezzooivgittjvj"
+
+[functions.sync-itbi-prefeitura]
+verify_jwt = false
