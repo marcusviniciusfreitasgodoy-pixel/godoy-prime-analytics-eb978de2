@@ -43,6 +43,7 @@ export function useITBITransactions() {
       const { data, error } = await supabase
         .from('itbi_transactions')
         .select('*')
+        .eq('bairro', 'BARRA DA TIJUCA')
         .order('data_transacao', { ascending: false })
         .limit(100);
 
@@ -80,6 +81,7 @@ export function useMicrobairroDetalhado() {
         .from('itbi_transactions')
         .select('logradouro, valor_m2, tipologia')
         .eq('uso', 'Residencial')
+        .eq('bairro', 'BARRA DA TIJUCA')
         .not('valor_m2', 'is', null)
         .not('logradouro', 'is', null)
         .gte('data_transacao', startDate);
@@ -164,6 +166,7 @@ export function useKPIStats() {
         .from('itbi_transactions')
         .select('valor_m2, tipologia, uso')
         .eq('uso', 'Residencial')
+        .eq('bairro', 'BARRA DA TIJUCA')
         .gte('data_transacao', startDate12Months);
 
       if (currentError) throw currentError;
@@ -173,6 +176,7 @@ export function useKPIStats() {
         .from('itbi_transactions')
         .select('valor_m2')
         .eq('uso', 'Residencial')
+        .eq('bairro', 'BARRA DA TIJUCA')
         .gte('data_transacao', startDate24Months)
         .lt('data_transacao', startDate12Months);
 

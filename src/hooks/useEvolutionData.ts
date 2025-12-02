@@ -22,6 +22,7 @@ export function useEvolutionData() {
         .from('itbi_transactions')
         .select('data_transacao, valor_m2, tipologia')
         .eq('uso', 'Residencial')
+        .eq('bairro', 'BARRA DA TIJUCA')
         .not('valor_m2', 'is', null)
         .gte('data_transacao', startDate)
         .order('data_transacao', { ascending: true });
