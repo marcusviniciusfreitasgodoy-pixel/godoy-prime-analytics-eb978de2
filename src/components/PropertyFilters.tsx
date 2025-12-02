@@ -18,9 +18,9 @@ export function PropertyFilters() {
     priceMax: filters.priceMax?.toString() || "",
     sizeMin: filters.sizeMin?.toString() || "",
     sizeMax: filters.sizeMax?.toString() || "",
-    type: filters.type || "",
-    condominio: filters.condominio || "",
-    status: filters.status || "",
+    type: filters.type || "all",
+    condominio: filters.condominio || "all",
+    status: filters.status || "all",
   });
 
   const handleApplyFilters = () => {
@@ -29,9 +29,9 @@ export function PropertyFilters() {
       priceMax: localFilters.priceMax ? Number(localFilters.priceMax) : undefined,
       sizeMin: localFilters.sizeMin ? Number(localFilters.sizeMin) : undefined,
       sizeMax: localFilters.sizeMax ? Number(localFilters.sizeMax) : undefined,
-      type: localFilters.type || undefined,
-      condominio: localFilters.condominio || undefined,
-      status: localFilters.status || undefined,
+      type: localFilters.type && localFilters.type !== "all" ? localFilters.type : undefined,
+      condominio: localFilters.condominio && localFilters.condominio !== "all" ? localFilters.condominio : undefined,
+      status: localFilters.status && localFilters.status !== "all" ? localFilters.status : undefined,
     });
   };
 
@@ -41,9 +41,9 @@ export function PropertyFilters() {
       priceMax: "",
       sizeMin: "",
       sizeMax: "",
-      type: "",
-      condominio: "",
-      status: "",
+      type: "all",
+      condominio: "all",
+      status: "all",
     });
     resetFilters();
   };
@@ -101,7 +101,7 @@ export function PropertyFilters() {
                 <SelectValue placeholder="Selecione" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">Todos</SelectItem>
+                <SelectItem value="all">Todos</SelectItem>
                 <SelectItem value="Apartamento">Apartamento</SelectItem>
                 <SelectItem value="Cobertura">Cobertura</SelectItem>
                 <SelectItem value="Casa">Casa</SelectItem>
@@ -120,7 +120,7 @@ export function PropertyFilters() {
                   <SelectValue placeholder="Todos" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">Todos</SelectItem>
+                  <SelectItem value="all">Todos</SelectItem>
                   {condominios?.map((cond) => (
                     <SelectItem key={cond.id} value={cond.nome_condominio || ""}>
                       {cond.nome_condominio}
@@ -138,7 +138,7 @@ export function PropertyFilters() {
                 <SelectValue placeholder="Todos" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">Todos</SelectItem>
+                <SelectItem value="all">Todos</SelectItem>
                 <SelectItem value="active">Ativo</SelectItem>
                 <SelectItem value="sold">Vendido</SelectItem>
                 <SelectItem value="pending">Pendente</SelectItem>
