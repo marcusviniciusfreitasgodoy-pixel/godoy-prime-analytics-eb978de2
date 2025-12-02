@@ -1,8 +1,11 @@
-import { MapPin } from "lucide-react";
+import { MapPin, LogOut } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import logoImage from "@/assets/godoy-logo.png";
+import { useAuth } from "@/hooks/useAuth";
 
 export function Header() {
+  const { signOut } = useAuth();
+
   return (
     <header className="h-20 border-b border-border bg-primary sticky top-0 z-50 shadow-lg">
       <div className="h-full px-8 flex items-center justify-between max-w-[1600px] mx-auto">
@@ -18,13 +21,22 @@ export function Header() {
           </div>
         </div>
         
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-6">
           <div className="flex items-center gap-2 text-primary-foreground/90 text-sm">
             <MapPin className="h-4 w-4 text-accent" />
             <span className="font-semibold">Barra da Tijuca</span>
             <span className="text-primary-foreground/60">•</span>
             <span className="font-semibold">Rio de Janeiro</span>
           </div>
+          <Button 
+            variant="outline" 
+            size="sm" 
+            onClick={signOut}
+            className="gap-2 border-accent/30 text-primary-foreground hover:bg-accent/10"
+          >
+            <LogOut className="h-4 w-4" />
+            Sair
+          </Button>
         </div>
       </div>
     </header>
