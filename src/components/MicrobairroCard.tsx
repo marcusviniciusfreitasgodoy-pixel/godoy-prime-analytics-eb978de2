@@ -1,0 +1,117 @@
+import { Card, CardContent } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { BarChart3, Building2, Home, TrendingUp } from "lucide-react";
+
+interface MicrobairroCardProps {
+  microbairro: string;
+  valor_m2: number;
+  total_transacoes: number;
+  valor_m2_apt: number;
+  valor_m2_casa: number;
+  rank: number;
+  trend: "high" | "stable";
+  maxTransacoes: number;
+}
+
+export function MicrobairroCard({
+  microbairro,
+  valor_m2,
+  total_transacoes,
+  valor_m2_apt,
+  valor_m2_casa,
+  rank,
+  trend,
+  maxTransacoes,
+}: MicrobairroCardProps) {
+  const liquidezPercent = (total_transacoes / maxTransacoes) * 100;
+  const isTopTier = rank <= 3;
+
+  return (
+    <Card className="hover:shadow-2xl transition-all duration-300 hover:-translate-y-1 overflow-hidden">
+      <CardContent className="p-0">
+        {/* Topo do Cartão */}
+        <div className="p-6 pb-4 border-b border-border">
+          <div className="flex items-start justify-between mb-3">
+            <div className="flex items-center gap-3">
+              <span className="text-3xl font-bold text-muted-foreground">#{rank}</span>
+              <div>
+                <h3 className="text-xl font-bold text-foreground">{microbairro}</h3>
+                {isTopTier ? (
+                  <Badge className="mt-1 bg-emerald-500/20 text-emerald-700 border-emerald-300">
+                    Alta Valorização
+                  </Badge>
+                ) : (
+                  <Badge variant="secondary" className="mt-1">
+                    Mercado Estável
+                  </Badge>
+                )}
+              </div>
+            </div>
+            <div className="text-right">
+              <p className="text-xs text-muted-foreground uppercase tracking-wide">Preço Médio</p>
+              <p className="text-2xl font-bold text-primary">
+                R$ {valor_m2.toLocaleString('pt-BR')}
+              </p>
+            </div>
+          </div>
+        </div>
+
+        {/* Barra de Liquidez */}
+        <div className="p-6 py-4 bg-muted/30">
+          <div className="flex items-center justify-between mb-2">
+            <div className="flex items-center gap-2 text-sm font-semibold text-foreground">
+              <BarChart3 className="h-4 w-4 text-accent" />
+              <span>Liquidez</span>
+            </div>
+            <span className="text-sm font-bold text-primary">{total_transacoes} vendas</span>
+          </div>
+          <div className="w-full h-2 bg-slate-100 rounded-full overflow-hidden">
+            <div
+              className="h-full bg-accent transition-all duration-500"
+              style={{ width: `${liquidezPercent}%` }}
+            />
+          </div>
+        </div>
+
+        {/* Comparativo Tipologia */}
+        <div className="p-6 pt-4">
+          <div className="grid grid-cols-2 gap-3">
+            <div className="bg-slate-50 border border-slate-200 rounded-lg p-4">
+              <div className="flex items-center gap-2 mb-2">
+                <Building2 className="h-4 w-4 text-muted-foreground" />
+                <span className="text-xs font-semibold text-muted-foreground uppercase">
+                  Apartamento
+                </span>
+              </div>
+              <p className="text-lg font-bold text-foreground">
+                R$ {valor_m2_apt.toLocaleString('pt-BR')}
+              </p>
+            </div>
+            <div className="bg-slate-50 border border-slate-200 rounded-lg p-4">
+              <div className="flex items-center gap-2 mb-2">
+                <Home className="h-4 w-4 text-muted-foreground" />
+                <span className="text-xs font-semibold text-muted-foreground uppercase">
+                  Casa
+                </span>
+              </div>
+              <p className="text-lg font-bold text-foreground">
+                R$ {valor_m2_casa.toLocaleString('pt-BR')}
+              </p>
+            </div>
+          </div>
+        </div>
+
+        {/* Rodapé */}
+        <div className="bg-[#0C2340] px-6 py-4 flex items-center justify-between">
+          <span className="text-sm font-semibold text-white/80">Tendência (12m)</span>
+          <div className="flex items-center gap-2">
+            <TrendingUp className="h-4 w-4 text-accent" />
+            <span className="text-sm font-bold text-white">
+              {trend === "high" ? "Alta Demanda" : "Estável"}
+            </span>
+          </div>
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
