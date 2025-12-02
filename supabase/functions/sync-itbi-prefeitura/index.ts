@@ -7,6 +7,7 @@ const corsHeaders = {
 };
 
 // API da Prefeitura do Rio de Janeiro - ITBI
+// Layer 8: Transações por Logradouro e Mês - Residenciais e Não Residenciais
 const PREFEITURA_API_URL = 'https://pgeo3.rio.rj.gov.br/arcgis/rest/services/Fazenda/ITBI/MapServer/8/query';
 
 interface ArcGISFeature {
@@ -14,24 +15,21 @@ interface ArcGISFeature {
 }
 
 interface ArcGISResponse {
-  features: ArcGISFeature[];
+  features?: ArcGISFeature[];
   exceededTransferLimit?: boolean;
+  error?: { code: number; message: string };
 }
 
-// Função para classificar uso (Residencial vs Comercial)
 function classificarUso(uso: string | null): 'Residencial' | 'Comercial' {
   const texto = (uso || '').toLowerCase().trim();
-  
   if (texto.includes('nao residencial') || texto.includes('não residencial') || texto.includes('comercial')) {
     return 'Comercial';
   }
   return 'Residencial';
 }
 
-// Função para classificar tipologia
 function classificarTipologia(tipologia: string | null): string {
   const tipo = (tipologia || '').toLowerCase().trim();
-  
   if (tipo.includes('apartamento') || tipo.includes('apto') || tipo.includes('flat') || tipo.includes('cobertura')) {
     return 'Apartamento';
   } else if (tipo.includes('casa') || tipo.includes('sobrado') || tipo.includes('residencia')) {
@@ -41,11 +39,9 @@ function classificarTipologia(tipologia: string | null): string {
   } else if (tipo.includes('sala') || tipo.includes('loja') || tipo.includes('escritório')) {
     return 'Comercial';
   }
-  
-  return 'Apartamento'; // Default
+  return 'Apartamento';
 }
 
-// Helper para extrair número de um valor desconhecido
 function extractNumber(value: unknown): number | null {
   if (typeof value === 'number') return value;
   if (typeof value === 'string') {
@@ -55,7 +51,6 @@ function extractNumber(value: unknown): number | null {
   return null;
 }
 
-// Helper para extrair string de um valor desconhecido
 function extractString(value: unknown): string | null {
   if (typeof value === 'string') return value.trim();
   if (typeof value === 'number') return String(value);
@@ -63,15 +58,13 @@ function extractString(value: unknown): string | null {
 }
 
 serve(async (req) => {
-  // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
-    console.log('Iniciando sincronização com API da Prefeitura...');
+    console.log('=== SINCRONIZAÇÃO ITBI ===');
 
-    // Supabase client
     const supabaseUrl = Deno.env.get('SUPABASE_URL');
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
 
@@ -81,80 +74,139 @@ serve(async (req) => {
 
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-    // Parâmetros opcionais do request
     let clearExisting = false;
-    let bairroFilter = 'BARRA DA TIJUCA';
+    let codbairro = '159'; // Barra da Tijuca
+    let fetchAll = false;
     
     try {
       const body = await req.json();
       if (body.clearExisting !== undefined) clearExisting = body.clearExisting;
-      if (body.bairro) bairroFilter = body.bairro;
+      if (body.codbairro) codbairro = body.codbairro;
+      if (body.fetchAll) fetchAll = body.fetchAll;
     } catch {
       console.log('Usando parâmetros padrão');
     }
 
-    console.log(`Buscando transações para: ${bairroFilter}`);
+    console.log(`Código bairro: ${codbairro}`);
+    console.log(`Fetch all: ${fetchAll}`);
 
-    // Buscar dados da API da Prefeitura
-    // O campo bairro tem espaços extras, então usamos LIKE com %
-    const whereClause = encodeURIComponent(`bairro LIKE '%${bairroFilter}%'`);
-    const apiUrl = `${PREFEITURA_API_URL}?where=${whereClause}&outFields=*&outSR=4326&f=json&resultRecordCount=2000`;
-    
-    console.log('Requisição para:', apiUrl);
+    // Buscar com paginação
+    let allFeatures: ArcGISFeature[] = [];
+    let offset = 0;
+    const pageSize = 2000;
+    let hasMore = true;
 
-    const response = await fetch(apiUrl);
-    
-    if (!response.ok) {
-      throw new Error(`Erro na API da Prefeitura: ${response.status} ${response.statusText}`);
+    // Usar codbairro para filtrar (mais preciso)
+    // Se fetchAll, busca tudo (1=1)
+    const whereClause = fetchAll 
+      ? '1%3D1' 
+      : encodeURIComponent(`codbairro = '${codbairro}'`);
+
+    console.log(`Query: ${fetchAll ? '1=1' : `codbairro = '${codbairro}'`}`);
+
+    while (hasMore) {
+      const apiUrl = `${PREFEITURA_API_URL}?where=${whereClause}&outFields=*&f=json&resultRecordCount=${pageSize}&resultOffset=${offset}`;
+      
+      console.log(`Offset ${offset}...`);
+
+      const response = await fetch(apiUrl, {
+        headers: { 'Accept': 'application/json', 'User-Agent': 'GodoyPrime/1.0' }
+      });
+      
+      if (!response.ok) {
+        console.error(`HTTP Error: ${response.status}`);
+        break;
+      }
+
+      const data: ArcGISResponse = await response.json();
+      
+      if (data.error) {
+        console.error('API Error:', data.error);
+        break;
+      }
+
+      if (!data.features || data.features.length === 0) {
+        console.log('Fim dos dados');
+        hasMore = false;
+      } else {
+        console.log(`Página: ${data.features.length} registros`);
+        
+        if (offset === 0 && data.features[0]) {
+          const attrs = data.features[0].attributes;
+          console.log('Exemplo:', JSON.stringify({
+            logradouro: attrs['logradouro'],
+            bairro: attrs['bairro'],
+            codbairro: attrs['codbairro'],
+            ano: attrs['ano_transação'],
+            mes: attrs['mês_transação']
+          }));
+        }
+        
+        allFeatures = allFeatures.concat(data.features);
+        
+        if (data.features.length < pageSize && !data.exceededTransferLimit) {
+          hasMore = false;
+        } else {
+          offset += pageSize;
+        }
+      }
+
+      if (offset > 200000) {
+        console.log('Limite de segurança');
+        hasMore = false;
+      }
     }
 
-    const data: ArcGISResponse = await response.json();
-    
-    if (!data.features || data.features.length === 0) {
-      console.log('Nenhuma transação encontrada na API');
+    console.log(`Total coletado: ${allFeatures.length}`);
+
+    if (allFeatures.length === 0) {
+      // Testar com query simples
+      console.log('Testando query simples...');
+      const testUrl = `${PREFEITURA_API_URL}?where=1%3D1&outFields=codbairro,bairro&f=json&resultRecordCount=5`;
+      const testResp = await fetch(testUrl, {
+        headers: { 'Accept': 'application/json', 'User-Agent': 'GodoyPrime/1.0' }
+      });
+      
+      if (testResp.ok) {
+        const testData: ArcGISResponse = await testResp.json();
+        const samples = testData.features?.slice(0, 5).map(f => ({
+          bairro: f.attributes['bairro'],
+          codbairro: f.attributes['codbairro']
+        })) || [];
+        console.log('Amostras:', JSON.stringify(samples));
+        
+        return new Response(
+          JSON.stringify({
+            success: true,
+            message: 'Nenhum registro encontrado para o código de bairro',
+            codbairro_usado: codbairro,
+            amostras_disponiveis: samples,
+            tip: 'Tente fetchAll:true para buscar todos os registros'
+          }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
       return new Response(
         JSON.stringify({
           success: true,
-          message: 'Nenhuma transação encontrada na API da Prefeitura',
+          message: 'Nenhum dado encontrado',
           transacoes_encontradas: 0,
-          transacoes_inseridas: 0,
         }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
-    console.log(`Encontradas ${data.features.length} transações na API`);
-    
-    // Log dos campos disponíveis na primeira transação
-    if (data.features[0]) {
-      console.log('Campos disponíveis:', Object.keys(data.features[0].attributes));
-      console.log('Exemplo de dados:', JSON.stringify(data.features[0].attributes).substring(0, 500));
-    }
-
-    // Limpar dados existentes se solicitado
+    // Limpar dados se solicitado
     if (clearExisting) {
       console.log('Limpando dados existentes...');
-      const { error: deleteError } = await supabase
-        .from('itbi_transactions')
-        .delete()
-        .ilike('bairro', `%${bairroFilter}%`);
-      
-      if (deleteError) {
-        console.warn('Aviso ao limpar dados:', deleteError);
-      }
+      await supabase.from('itbi_transactions').delete().neq('id', '00000000-0000-0000-0000-000000000000');
     }
 
-    // Campos da API (baseado nos logs):
-    // objectid, cl, logradouro, codbairro, bairro, total_transações, uso,
-    // principais_tipologias, média_percentual_transferido, média_área_construída,
-    // média_valor_transação, média_valor_imóvel, principal_transação_mercado,
-    // ano_transação, cd_utilizacao, mês_transação
-
-    // Transformar e inserir dados
-    const transacoes = data.features
+    // Transformar dados
+    const transacoes = allFeatures
       .filter(f => {
         const attrs = f.attributes;
-        // Filtrar transações válidas (com valor e área médios)
         const valor = extractNumber(attrs['média_valor_transação']);
         const area = extractNumber(attrs['média_área_construída']);
         return valor !== null && valor > 0 && area !== null && area > 0;
@@ -162,22 +214,20 @@ serve(async (req) => {
       .map(f => {
         const attrs = f.attributes;
         
-        // Mapear campos da API para nosso schema
         const valor = extractNumber(attrs['média_valor_transação']) ?? 0;
         const area = extractNumber(attrs['média_área_construída']) ?? 1;
         const logradouro = extractString(attrs['logradouro']) ?? 'Não informado';
-        const bairro = extractString(attrs['bairro'])?.trim() ?? bairroFilter;
+        const bairro = extractString(attrs['bairro']) ?? 'BARRA DA TIJUCA';
         const ano = extractNumber(attrs['ano_transação']);
         const mes = extractNumber(attrs['mês_transação']);
         const tipologia = extractString(attrs['principais_tipologias']);
         const uso = extractString(attrs['uso']);
 
-        // Construir data da transação a partir de ano e mês
         let dataTransacao = new Date().toISOString().split('T')[0];
         if (ano && mes) {
-          dataTransacao = `${ano}-${String(mes).padStart(2, '0')}-01`;
+          dataTransacao = `${ano}-${String(mes).padStart(2, '0')}-15`;
         } else if (ano) {
-          dataTransacao = `${ano}-01-01`;
+          dataTransacao = `${ano}-06-15`;
         }
 
         return {
@@ -194,59 +244,44 @@ serve(async (req) => {
         };
       });
 
-    console.log(`${transacoes.length} transações válidas para inserção`);
+    console.log(`Válidas: ${transacoes.length}`);
 
-    // Inserir em lotes de 100
-    const batchSize = 100;
+    // Inserir em lotes
     let totalInseridas = 0;
     let erros = 0;
+    const batchSize = 100;
 
     for (let i = 0; i < transacoes.length; i += batchSize) {
       const batch = transacoes.slice(i, i + batchSize);
-      
-      const { error: insertError } = await supabase
-        .from('itbi_transactions')
-        .insert(batch);
-
-      if (insertError) {
-        console.error(`Erro ao inserir lote ${i / batchSize + 1}:`, insertError);
+      const { error } = await supabase.from('itbi_transactions').insert(batch);
+      if (error) {
+        console.error(`Erro lote:`, error.message);
         erros++;
       } else {
         totalInseridas += batch.length;
-        console.log(`Lote ${i / batchSize + 1} inserido: ${batch.length} registros`);
       }
     }
 
     const summary = {
       success: true,
       message: 'Sincronização concluída',
-      transacoes_encontradas: data.features.length,
+      transacoes_encontradas: allFeatures.length,
       transacoes_validas: transacoes.length,
       transacoes_inseridas: totalInseridas,
-      erros: erros,
-      exceeded_transfer_limit: data.exceededTransferLimit || false,
-      timestamp: new Date().toISOString(),
+      erros,
     };
 
-    console.log('Sincronização finalizada:', summary);
+    console.log('=== FINALIZADO ===', JSON.stringify(summary));
 
-    return new Response(
-      JSON.stringify(summary),
-      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-    );
+    return new Response(JSON.stringify(summary), { 
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+    });
 
   } catch (error) {
-    console.error('Erro na sincronização:', error);
+    console.error('ERRO:', error);
     return new Response(
-      JSON.stringify({
-        success: false,
-        error: error instanceof Error ? error.message : 'Erro desconhecido',
-        timestamp: new Date().toISOString(),
-      }),
-      {
-        status: 500,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      }
+      JSON.stringify({ success: false, error: error instanceof Error ? error.message : 'Erro' }),
+      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   }
 });
