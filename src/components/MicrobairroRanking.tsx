@@ -1,5 +1,4 @@
-import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "./ui/card";
 import { useMicrobairroRanking } from "@/hooks/useITBITransactions";
 import { Skeleton } from "./ui/skeleton";
 
@@ -11,54 +10,56 @@ export function MicrobairroRanking() {
       <Card>
         <CardHeader>
           <CardTitle>Ranking por Microbairro</CardTitle>
+          <CardDescription>Mês referência:</CardDescription>
         </CardHeader>
         <CardContent>
-          <Skeleton className="h-[400px] w-full" />
+          <Skeleton className="h-[350px] w-full" />
         </CardContent>
       </Card>
     );
   }
 
+  const sortedRanking = [...(ranking || [])].sort((a, b) => 
+    (b.preco_medio_m2 || 0) - (a.preco_medio_m2 || 0)
+  );
+
+  const maxValue = Math.max(...sortedRanking.map(r => r.preco_medio_m2 || 0));
+
+  const currentMonth = new Date().toLocaleDateString('pt-BR', { month: 'short', year: 'numeric' });
+
   return (
     <Card>
-      <CardHeader>
+      <CardHeader className="pb-2">
         <CardTitle>Ranking por Microbairro</CardTitle>
+        <CardDescription>Mês referência: {currentMonth}</CardDescription>
       </CardHeader>
-      <CardContent>
-        <ResponsiveContainer width="100%" height={400}>
-          <BarChart 
-            data={ranking || []} 
-            layout="vertical"
-            margin={{ left: 100 }}
-          >
-            <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-            <XAxis 
-              type="number"
-              stroke="hsl(var(--muted-foreground))"
-              fontSize={12}
-              tickFormatter={(value) => `R$ ${(value / 1000).toFixed(0)}k`}
-            />
-            <YAxis 
-              type="category"
-              dataKey="microbairro" 
-              stroke="hsl(var(--muted-foreground))"
-              fontSize={12}
-            />
-            <Tooltip 
-              formatter={(value: number) => [`R$ ${value.toLocaleString('pt-BR', { maximumFractionDigits: 0 })}/m²`, 'Preço Médio']}
-              contentStyle={{
-                backgroundColor: 'hsl(var(--card))',
-                border: '1px solid hsl(var(--border))',
-                borderRadius: '8px',
-              }}
-            />
-            <Bar 
-              dataKey="preco_medio_m2" 
-              fill="hsl(var(--accent))" 
-              radius={[0, 8, 8, 0]} 
-            />
-          </BarChart>
-        </ResponsiveContainer>
+      <CardContent className="space-y-4">
+        {sortedRanking.slice(0, 8).map((item, index) => {
+          const percentage = maxValue > 0 ? ((item.preco_medio_m2 || 0) / maxValue) * 100 : 0;
+          
+          return (
+            <div key={item.microbairro || index} className="flex items-center gap-3">
+              <span className="text-sm font-medium text-foreground min-w-[120px] truncate">
+                {item.microbairro || 'N/A'}
+              </span>
+              <div className="flex-1 h-6 bg-muted rounded-full overflow-hidden">
+                <div 
+                  className="h-full bg-gradient-to-r from-accent to-accent/70 rounded-full transition-all duration-500"
+                  style={{ width: `${percentage}%` }}
+                />
+              </div>
+              <span className="text-xs text-muted-foreground min-w-[70px] text-right">
+                R$ {((item.preco_medio_m2 || 0) / 1000).toFixed(1)}k/m²
+              </span>
+            </div>
+          );
+        })}
+
+        {sortedRanking.length === 0 && (
+          <div className="text-center text-muted-foreground py-8">
+            Nenhum dado disponível
+          </div>
+        )}
       </CardContent>
     </Card>
   );

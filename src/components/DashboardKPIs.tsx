@@ -1,6 +1,6 @@
 import { TrendingUp, Activity, TrendingDown, MapPin } from "lucide-react";
 import { KPICard } from "./KPICard";
-import { useKPIStats } from "@/hooks/useITBITransactions";
+import { useKPIStats } from "@/hooks/useKPIStats";
 import { Skeleton } from "./ui/skeleton";
 
 export function DashboardKPIs() {
@@ -8,9 +8,9 @@ export function DashboardKPIs() {
 
   if (isLoading) {
     return (
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         {[1, 2, 3, 4].map((i) => (
-          <Skeleton key={i} className="h-32" />
+          <Skeleton key={i} className="h-40" />
         ))}
       </div>
     );
@@ -19,36 +19,55 @@ export function DashboardKPIs() {
   if (!stats) return null;
 
   const variacaoPositiva = parseFloat(stats.variacaoAnual) >= 0;
+  const variacaoMensalPositiva = parseFloat(stats.variacaoMensal) >= 0;
+
+  const currentYear = new Date().getFullYear();
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
       <KPICard
-        title="Preço Médio (R$/m²)"
+        title={`Preço Médio (${currentYear} YTD)`}
         value={`R$ ${stats.precoMedio.toLocaleString('pt-BR')}`}
-        change="Últimos 12 meses"
+        change={`${variacaoMensalPositiva ? '+' : ''}${stats.variacaoMensal}% vs mês anterior`}
         icon={TrendingUp}
-        trend="up"
+        trend={variacaoMensalPositiva ? "up" : "down"}
+        breakdown={{
+          apt: `R$ ${stats.precoMedioApt.toLocaleString('pt-BR')}`,
+          casa: `R$ ${stats.precoMedioCasa.toLocaleString('pt-BR')}`,
+        }}
       />
       <KPICard
-        title="Liquidez (Volume)"
+        title={`Liquidez (Acumulado ${currentYear})`}
         value={stats.liquidez.toString()}
-        change="Imóveis vendidos (12 meses)"
+        subtitle="transações volume total"
         icon={Activity}
-        trend="up"
+        trend="neutral"
+        breakdown={{
+          apt: stats.liquidezApt.toString(),
+          casa: stats.liquidezCasa.toString(),
+        }}
       />
       <KPICard
         title="Variação Anual (YoY)"
-        value={`${stats.variacaoAnual}%`}
-        change={`${variacaoPositiva ? 'Alta' : 'Queda'} vs 12 meses anteriores`}
+        value={`${parseFloat(stats.variacaoAnual) >= 0 ? '+' : ''}${stats.variacaoAnual}%`}
+        subtitle="últimos 12 meses"
         icon={variacaoPositiva ? TrendingUp : TrendingDown}
         trend={variacaoPositiva ? "up" : "down"}
+        breakdown={{
+          apt: `${parseFloat(stats.variacaoAnualApt) >= 0 ? '+' : ''}${stats.variacaoAnualApt}%`,
+          casa: `${parseFloat(stats.variacaoAnualCasa) >= 0 ? '+' : ''}${stats.variacaoAnualCasa}%`,
+        }}
       />
       <KPICard
         title="Bairro Mais Valorizado"
         value={stats.bairroMaisValorizado}
-        change={`R$ ${Math.round(stats.precoMedioBairro).toLocaleString('pt-BR')}/m²`}
+        subtitle="média/m²"
         icon={MapPin}
         trend="up"
+        breakdown={{
+          apt: `R$ ${stats.precoMedioBairroApt.toLocaleString('pt-BR')}`,
+          casa: `R$ ${stats.precoMedioBairroCasa.toLocaleString('pt-BR')}`,
+        }}
       />
     </div>
   );
