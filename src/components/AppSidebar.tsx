@@ -1,4 +1,4 @@
-import { LayoutDashboard, TrendingUp, Home, FileText } from "lucide-react";
+import { LayoutDashboard, TrendingUp, Home, FileText, Database } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import {
   Sidebar,
@@ -18,6 +18,7 @@ const items = [
   { title: "Analysis", url: "/analysis", icon: TrendingUp },
   { title: "Properties", url: "/properties", icon: Home },
   { title: "Reports", url: "/reports", icon: FileText },
+  { title: "Seed Data", url: "/seed-data", icon: Database },
 ];
 
 export function AppSidebar() {
