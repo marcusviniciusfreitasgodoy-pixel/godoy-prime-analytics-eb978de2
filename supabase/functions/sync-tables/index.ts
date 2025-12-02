@@ -15,25 +15,45 @@ serve(async (req) => {
   try {
     console.log('Starting table synchronization...');
 
-    // Source project credentials
-    const sourceUrl = Deno.env.get('SUPABASE_SOURCE_URL');
-    const sourceKey = Deno.env.get('SUPABASE_SOURCE_ANON_KEY');
+    // Log all available env vars (names only for debugging)
+    const envKeys = [];
+    for (const key of Object.keys(Deno.env.toObject())) {
+      envKeys.push(key);
+    }
+    console.log('Available env vars:', envKeys.join(', '));
+
+    // Source project credentials - try both naming conventions
+    let sourceUrl = Deno.env.get('SUPABASE_SOURCE_URL');
+    let sourceKey = Deno.env.get('SUPABASE_SOURCE_ANON_KEY');
+
+    console.log('Source URL from env:', sourceUrl ? `set (${sourceUrl.length} chars)` : 'not set');
+    console.log('Source Key from env:', sourceKey ? `set (${sourceKey.length} chars)` : 'not set');
+
+    // Allow passing credentials in request body as fallback
+    if (!sourceUrl || !sourceKey) {
+      try {
+        const body = await req.json();
+        if (body.sourceUrl) sourceUrl = body.sourceUrl;
+        if (body.sourceKey) sourceKey = body.sourceKey;
+        console.log('Credentials from body:', !!body.sourceUrl, !!body.sourceKey);
+      } catch (e) {
+        console.log('No body or invalid JSON');
+      }
+    }
 
     // Current project credentials
     const currentUrl = Deno.env.get('SUPABASE_URL');
     const currentServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
 
-    console.log('Source URL set:', !!sourceUrl, 'length:', sourceUrl?.length || 0);
-    console.log('Source Key set:', !!sourceKey, 'length:', sourceKey?.length || 0);
     console.log('Current URL set:', !!currentUrl);
     console.log('Service Key set:', !!currentServiceKey);
 
     if (!sourceUrl || sourceUrl.trim() === '') {
-      throw new Error('SUPABASE_SOURCE_URL is not configured or empty');
+      throw new Error('SUPABASE_SOURCE_URL is not configured. Pass sourceUrl in request body or set the secret.');
     }
 
     if (!sourceKey || sourceKey.trim() === '') {
-      throw new Error('SUPABASE_SOURCE_ANON_KEY is not configured or empty');
+      throw new Error('SUPABASE_SOURCE_ANON_KEY is not configured. Pass sourceKey in request body or set the secret.');
     }
 
     if (!currentUrl || !currentServiceKey) {
