@@ -10,6 +10,7 @@ import { AuthProvider } from "@/hooks/useAuth";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import Dashboard from "./pages/Dashboard";
 import VistoriaDigital from "./pages/VistoriaDigital";
+import Documentacao from "./pages/Documentacao";
 import Auth from "./pages/Auth";
 import NotFound from "./pages/NotFound";
 
@@ -37,6 +38,7 @@ const App = () => (
                           <Routes>
                             <Route path="/" element={<Dashboard />} />
                             <Route path="/vistoria-digital" element={<VistoriaDigital />} />
+                            <Route path="/documentacao" element={<Documentacao />} />
                             <Route path="*" element={<NotFound />} />
                           </Routes>
                         </main>
