@@ -2,3 +2,6 @@ project_id = "ldiadiezzooivgittjvj"
 
 [functions.sync-itbi-prefeitura]
 verify_jwt = false
+
+[functions.import-itbi]
+verify_jwt = false
