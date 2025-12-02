@@ -1,24 +1,32 @@
 import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from "recharts";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "./ui/tabs";
-
-// Mock data - will be replaced with real data later
-const mockData = Array.from({ length: 60 }, (_, i) => {
-  const month = new Date();
-  month.setMonth(month.getMonth() - (59 - i));
-  return {
-    mes: month.toLocaleDateString('pt-BR', { month: 'short', year: '2-digit' }),
-    geral: 12000 + Math.random() * 3000,
-    apartamento: 12500 + Math.random() * 2500,
-    casa: 11000 + Math.random() * 2000,
-  };
-});
+import { useEvolutionData } from "@/hooks/useEvolutionData";
+import { Skeleton } from "./ui/skeleton";
 
 export function EvolutionChart() {
+  const { data: evolutionData, isLoading } = useEvolutionData();
+
+  if (isLoading) {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle>Evolução Histórica</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <Skeleton className="h-[350px] w-full" />
+        </CardContent>
+      </Card>
+    );
+  }
+
+  const chartData = evolutionData || [];
+  const monthCount = chartData.length;
+
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Evolução Histórica (60 meses)</CardTitle>
+        <CardTitle>Evolução Histórica ({monthCount} meses)</CardTitle>
       </CardHeader>
       <CardContent>
         <Tabs defaultValue="geral" className="w-full">
@@ -30,13 +38,13 @@ export function EvolutionChart() {
           
           <TabsContent value="geral" className="mt-6">
             <ResponsiveContainer width="100%" height={350}>
-              <LineChart data={mockData}>
+              <LineChart data={chartData}>
                 <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
                 <XAxis 
                   dataKey="mes" 
                   stroke="hsl(var(--muted-foreground))"
                   fontSize={12}
-                  interval={5}
+                  interval={Math.max(0, Math.floor(monthCount / 6) - 1)}
                 />
                 <YAxis 
                   stroke="hsl(var(--muted-foreground))"
@@ -64,13 +72,13 @@ export function EvolutionChart() {
           
           <TabsContent value="tipologia" className="mt-6">
             <ResponsiveContainer width="100%" height={350}>
-              <LineChart data={mockData}>
+              <LineChart data={chartData}>
                 <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
                 <XAxis 
                   dataKey="mes" 
                   stroke="hsl(var(--muted-foreground))"
                   fontSize={12}
-                  interval={5}
+                  interval={Math.max(0, Math.floor(monthCount / 6) - 1)}
                 />
                 <YAxis 
                   stroke="hsl(var(--muted-foreground))"
@@ -108,16 +116,13 @@ export function EvolutionChart() {
           
           <TabsContent value="variacao" className="mt-6">
             <ResponsiveContainer width="100%" height={350}>
-              <LineChart data={mockData.map((d, i) => ({
-                ...d,
-                variacao: i > 0 ? ((d.geral - mockData[i-1].geral) / mockData[i-1].geral * 100) : 0
-              }))}>
+              <LineChart data={chartData}>
                 <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
                 <XAxis 
                   dataKey="mes" 
                   stroke="hsl(var(--muted-foreground))"
                   fontSize={12}
-                  interval={5}
+                  interval={Math.max(0, Math.floor(monthCount / 6) - 1)}
                 />
                 <YAxis 
                   stroke="hsl(var(--muted-foreground))"
