@@ -28,7 +28,7 @@ export default function SeedData() {
   return (
     <div className="space-y-6">
       <div>
-        <h2 className="text-3xl font-bold text-foreground">Seed Database</h2>
+        <h2 className="text-3xl font-bold text-foreground">Popular Banco de Dados</h2>
         <p className="text-muted-foreground mt-1">Popular banco com 507 condomínios da Barra</p>
       </div>
 

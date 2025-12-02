@@ -14,11 +14,11 @@ import {
 } from "@/components/ui/sidebar";
 
 const items = [
-  { title: "Dashboard", url: "/", icon: LayoutDashboard },
-  { title: "Analysis", url: "/analysis", icon: TrendingUp },
-  { title: "Properties", url: "/properties", icon: Home },
-  { title: "Reports", url: "/reports", icon: FileText },
-  { title: "Seed Data", url: "/seed-data", icon: Database },
+  { title: "Painel", url: "/", icon: LayoutDashboard },
+  { title: "Análise", url: "/analysis", icon: TrendingUp },
+  { title: "Propriedades", url: "/properties", icon: Home },
+  { title: "Relatórios", url: "/reports", icon: FileText },
+  { title: "Popular Dados", url: "/seed-data", icon: Database },
 ];
 
 export function AppSidebar() {
@@ -33,7 +33,7 @@ export function AppSidebar() {
       <SidebarContent>
         <SidebarGroup>
           <SidebarGroupLabel className="text-sidebar-foreground/60 px-4">
-            Navigation
+            Navegação
           </SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>

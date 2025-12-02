@@ -13,7 +13,7 @@ export default function Reports() {
   return (
     <div className="space-y-6">
       <div>
-        <h2 className="text-3xl font-bold text-foreground">Reports</h2>
+        <h2 className="text-3xl font-bold text-foreground">Relatórios</h2>
         <p className="text-muted-foreground mt-1">Relatórios e documentos</p>
       </div>
 
