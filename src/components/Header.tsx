@@ -1,6 +1,6 @@
 import { MapPin, LogOut } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import logoImage from "@/assets/godoy-logo.png";
+import logoSymbol from "@/assets/godoy-logo-symbol.png";
 import { useAuth } from "@/hooks/useAuth";
 
 export function Header() {
@@ -11,13 +11,13 @@ export function Header() {
       <div className="h-full px-8 flex items-center justify-between max-w-[1600px] mx-auto">
         <div className="flex items-center gap-4">
           <img 
-            src={logoImage} 
+            src={logoSymbol} 
             alt="Godoy Prime Realty" 
-            className="h-12 w-auto object-contain"
+            className="h-14 w-auto object-contain"
           />
           <div className="border-l border-accent/30 pl-4">
-            <h1 className="font-bold text-lg text-primary-foreground tracking-wider">ANALYTICS DASHBOARD</h1>
-            <p className="text-xs text-accent font-semibold tracking-wide">PREMIUM REAL ESTATE</p>
+            <h1 className="font-bold text-lg text-primary-foreground tracking-wider">GODOY PRIME</h1>
+            <p className="text-xs text-accent font-semibold tracking-wide">ANALYTICS DASHBOARD</p>
           </div>
         </div>
         
