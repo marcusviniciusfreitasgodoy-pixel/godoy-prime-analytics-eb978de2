@@ -53,6 +53,7 @@ export type Database = {
           descricao: string | null
           factor_key: string | null
           id: string
+          label: string | null
           nome_variavel: string
           parametro: string
           peso_valor: number
@@ -64,6 +65,7 @@ export type Database = {
           descricao?: string | null
           factor_key?: string | null
           id?: string
+          label?: string | null
           nome_variavel: string
           parametro: string
           peso_valor: number
@@ -75,6 +77,7 @@ export type Database = {
           descricao?: string | null
           factor_key?: string | null
           id?: string
+          label?: string | null
           nome_variavel?: string
           parametro?: string
           peso_valor?: number
