@@ -23,8 +23,17 @@ serve(async (req) => {
     const currentUrl = Deno.env.get('SUPABASE_URL');
     const currentServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
 
-    if (!sourceUrl || !sourceKey) {
-      throw new Error('Source Supabase credentials not configured');
+    console.log('Source URL set:', !!sourceUrl, 'length:', sourceUrl?.length || 0);
+    console.log('Source Key set:', !!sourceKey, 'length:', sourceKey?.length || 0);
+    console.log('Current URL set:', !!currentUrl);
+    console.log('Service Key set:', !!currentServiceKey);
+
+    if (!sourceUrl || sourceUrl.trim() === '') {
+      throw new Error('SUPABASE_SOURCE_URL is not configured or empty');
+    }
+
+    if (!sourceKey || sourceKey.trim() === '') {
+      throw new Error('SUPABASE_SOURCE_ANON_KEY is not configured or empty');
     }
 
     if (!currentUrl || !currentServiceKey) {
