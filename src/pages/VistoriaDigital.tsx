@@ -7,7 +7,9 @@ import {
   AccordionTrigger,
 } from "@/components/ui/accordion";
 import { Button } from "@/components/ui/button";
-import { CheckCircle2, AlertTriangle, XCircle, Circle } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { CheckCircle2, AlertTriangle, XCircle, Circle, FileText } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
 
 type ItemStatus = 'ok' | 'atencao' | 'critico' | 'nao-verificado';
 
@@ -25,66 +27,205 @@ interface ChecklistCategory {
 
 const initialChecklist: ChecklistCategory[] = [
   {
-    id: 'estrutura',
-    title: 'Estrutura',
+    id: 'fundacoes',
+    title: '1. Fundações e Estrutura',
     items: [
-      { id: 'fundacao', label: 'Fundação e pilares', status: 'nao-verificado' },
-      { id: 'vigas', label: 'Vigas e lajes', status: 'nao-verificado' },
-      { id: 'rachaduras', label: 'Fissuras e rachaduras', status: 'nao-verificado' },
-      { id: 'umidade', label: 'Infiltrações e umidade', status: 'nao-verificado' },
+      { id: 'trincas', label: 'Trincas ou fissuras grandes (>3mm) em paredes, pisos e tetos', status: 'nao-verificado' },
+      { id: 'umidade-base', label: 'Sinais de umidade ascendente nas bases das paredes', status: 'nao-verificado' },
+      { id: 'portas-janelas', label: 'Portas e janelas fecham corretamente', status: 'nao-verificado' },
+    ],
+  },
+  {
+    id: 'cobertura',
+    title: '2. Cobertura e Telhado',
+    items: [
+      { id: 'manchas-teto', label: 'Manchas de umidade ou mofo no teto do último andar', status: 'nao-verificado' },
+      { id: 'calhas', label: 'Calhas e rufos: danos ou entupimento', status: 'nao-verificado' },
+      { id: 'telhas', label: 'Estado geral das telhas', status: 'nao-verificado' },
     ],
   },
   {
     id: 'eletrica',
-    title: 'Instalações Elétricas',
+    title: '3. Instalações Elétricas',
     items: [
-      { id: 'quadro', label: 'Quadro de distribuição', status: 'nao-verificado' },
-      { id: 'tomadas', label: 'Tomadas e interruptores', status: 'nao-verificado' },
-      { id: 'fiacao', label: 'Fiação aparente', status: 'nao-verificado' },
-      { id: 'disjuntores', label: 'Disjuntores e proteção', status: 'nao-verificado' },
+      { id: 'quadro', label: 'Quadro de disjuntores: identificado, organizado e moderno', status: 'nao-verificado' },
+      { id: 'tomadas', label: 'Teste de tomadas e interruptores (funcionamento e fixação)', status: 'nao-verificado' },
+      { id: 'carga', label: 'Carga suporta equipamentos modernos (Ar condicionado, etc.)', status: 'nao-verificado' },
     ],
   },
   {
     id: 'hidraulica',
-    title: 'Instalações Hidráulicas',
+    title: '4. Instalações Hidráulicas',
     items: [
-      { id: 'encanamento', label: 'Tubulações e encanamento', status: 'nao-verificado' },
-      { id: 'vazamentos', label: 'Vazamentos visíveis', status: 'nao-verificado' },
-      { id: 'caixa-dagua', label: 'Caixa d\'água', status: 'nao-verificado' },
-      { id: 'esgoto', label: 'Sistema de esgoto', status: 'nao-verificado' },
+      { id: 'pressao', label: 'Pressão da água em torneiras e chuveiros', status: 'nao-verificado' },
+      { id: 'vazamentos-vaso', label: 'Vazamentos na base dos vasos sanitários ao acionar descarga', status: 'nao-verificado' },
+      { id: 'manchas-vazamento', label: 'Manchas de vazamento sob pias e em paredes de áreas molhadas', status: 'nao-verificado' },
     ],
   },
   {
     id: 'acabamentos',
-    title: 'Acabamentos',
+    title: '5. Acabamentos Internos',
     items: [
-      { id: 'pintura', label: 'Pintura geral', status: 'nao-verificado' },
-      { id: 'pisos', label: 'Pisos e revestimentos', status: 'nao-verificado' },
-      { id: 'portas', label: 'Portas e janelas', status: 'nao-verificado' },
-      { id: 'tetos', label: 'Forros e tetos', status: 'nao-verificado' },
+      { id: 'piso', label: 'Qualidade do piso (riscos, peças soltas, manchas)', status: 'nao-verificado' },
+      { id: 'pintura', label: 'Pintura de paredes e tetos (bolhas, descascados, sujeira)', status: 'nao-verificado' },
+      { id: 'rodapes', label: 'Estado de rodapés, guarnições e forros de gesso', status: 'nao-verificado' },
     ],
   },
   {
-    id: 'areas-externas',
-    title: 'Áreas Externas',
+    id: 'esquadrias',
+    title: '6. Esquadrias (Portas e Janelas)',
     items: [
-      { id: 'fachada', label: 'Fachada do prédio', status: 'nao-verificado' },
-      { id: 'varanda', label: 'Varanda/Sacada', status: 'nao-verificado' },
-      { id: 'jardim', label: 'Jardim/Área verde', status: 'nao-verificado' },
-      { id: 'garagem', label: 'Vaga de garagem', status: 'nao-verificado' },
+      { id: 'vedacao', label: 'Vedação e funcionamento das ferragens ao abrir/fechar', status: 'nao-verificado' },
+      { id: 'infiltracao', label: 'Sinais de infiltração ao redor dos caixilhos', status: 'nao-verificado' },
+      { id: 'vidros', label: 'Estado dos vidros (riscos, trincas)', status: 'nao-verificado' },
+    ],
+  },
+  {
+    id: 'ventilacao',
+    title: '7. Ventilação e Iluminação',
+    items: [
+      { id: 'luz-natural', label: 'Iluminação natural suficiente nos ambientes', status: 'nao-verificado' },
+      { id: 'ventilacao-cruzada', label: 'Ventilação cruzada adequada (banheiros e cozinha sem mofo)', status: 'nao-verificado' },
+      { id: 'exaustao', label: 'Sistemas de exaustão (coifas, depuradores) funcionando', status: 'nao-verificado' },
+    ],
+  },
+  {
+    id: 'area-externa',
+    title: '8. Área Externa e Fachada',
+    items: [
+      { id: 'fachada', label: 'Revestimento da fachada (trincas, descolamento de pastilhas)', status: 'nao-verificado' },
+      { id: 'muros', label: 'Estado de muros, portões e grades (ferrugem)', status: 'nao-verificado' },
+      { id: 'calcadas', label: 'Condição de calçadas e acessos (pedras soltas)', status: 'nao-verificado' },
+    ],
+  },
+  {
+    id: 'climatizacao',
+    title: '9. Climatização (Aquecimento/Ar)',
+    items: [
+      { id: 'ar-funcionamento', label: 'Funcionamento dos equipamentos de ar condicionado', status: 'nao-verificado' },
+      { id: 'filtros', label: 'Manutenção e limpeza dos filtros', status: 'nao-verificado' },
+      { id: 'ruidos', label: 'Ruídos anormais durante a operação', status: 'nao-verificado' },
+    ],
+  },
+  {
+    id: 'seguranca',
+    title: '10. Segurança',
+    items: [
+      { id: 'alarmes', label: 'Alarmes, câmeras e cercas elétricas (estado visual)', status: 'nao-verificado' },
+      { id: 'portas-seguras', label: 'Robustez de portas, fechaduras e portões', status: 'nao-verificado' },
+      { id: 'incendio', label: 'Equipamentos de combate a incêndio (validade extintores)', status: 'nao-verificado' },
+    ],
+  },
+  {
+    id: 'garagem',
+    title: '11. Garagem',
+    items: [
+      { id: 'piso-garagem', label: 'Estado do piso e infiltrações no teto', status: 'nao-verificado' },
+      { id: 'portao', label: 'Portão automático (tempo de abertura/fechamento)', status: 'nao-verificado' },
+      { id: 'manobra', label: 'Espaço de manobra e tamanho das vagas', status: 'nao-verificado' },
+    ],
+  },
+  {
+    id: 'lazer',
+    title: '12. Áreas de Lazer (Privativas)',
+    items: [
+      { id: 'piscina', label: 'Revestimento da piscina e casa de máquinas', status: 'nao-verificado' },
+      { id: 'churrasqueira', label: 'Estrutura da churrasqueira, coifas e bancadas', status: 'nao-verificado' },
+      { id: 'gourmet', label: 'Iluminação e pontos de água/esgoto na área gourmet', status: 'nao-verificado' },
+    ],
+  },
+  {
+    id: 'paisagismo',
+    title: '13. Paisagismo e Jardins',
+    items: [
+      { id: 'plantas', label: 'Saúde geral das plantas e do gramado', status: 'nao-verificado' },
+      { id: 'irrigacao', label: 'Sistema de irrigação (automático?)', status: 'nao-verificado' },
+      { id: 'iluminacao-jardim', label: 'Iluminação externa e caminhos de jardim', status: 'nao-verificado' },
+    ],
+  },
+  {
+    id: 'marcenaria',
+    title: '14. Marcenaria e Planejados',
+    items: [
+      { id: 'ferragens', label: 'Ferragens e corrediças de portas e gavetas', status: 'nao-verificado' },
+      { id: 'cupim', label: 'Estufamento, descolamento ou sinais de cupim', status: 'nao-verificado' },
+      { id: 'conservacao-armarios', label: 'Qualidade geral e estado de conservação dos armários', status: 'nao-verificado' },
+    ],
+  },
+  {
+    id: 'loucas',
+    title: '15. Louças e Metais',
+    items: [
+      { id: 'loucas', label: 'Trincas ou manchas em pias, cubas e vasos', status: 'nao-verificado' },
+      { id: 'torneiras', label: 'Funcionamento de torneiras e registros (pingando?)', status: 'nao-verificado' },
+      { id: 'metais', label: 'Ferrugem ou descascados nos metais', status: 'nao-verificado' },
+    ],
+  },
+  {
+    id: 'isolamento',
+    title: '16. Isolamento Acústico/Térmico',
+    items: [
+      { id: 'ruido', label: 'Nível de ruído da rua com janelas fechadas', status: 'nao-verificado' },
+      { id: 'materiais', label: 'Materiais usados (vidro duplo, lã de rocha, etc.)', status: 'nao-verificado' },
+      { id: 'termico', label: 'Conforto térmico interno vs externo', status: 'nao-verificado' },
+    ],
+  },
+  {
+    id: 'tecnologia',
+    title: '17. Tecnologia e Automação',
+    items: [
+      { id: 'automacao', label: 'Sistemas de automação (luz, som, persianas) respondendo', status: 'nao-verificado' },
+      { id: 'wifi', label: 'Sinal de Wi-Fi e pontos de rede nos quartos', status: 'nao-verificado' },
+      { id: 'central', label: 'Central de controle e documentação técnica disponível', status: 'nao-verificado' },
+    ],
+  },
+  {
+    id: 'acessibilidade',
+    title: '18. Acessibilidade',
+    items: [
+      { id: 'rampas', label: 'Rampas, portas largas ou elevadores', status: 'nao-verificado' },
+      { id: 'circulacao', label: 'Circulação nos corredores e banheiros (cadeirante?)', status: 'nao-verificado' },
+    ],
+  },
+  {
+    id: 'vizinhanca',
+    title: '19. Vizinhança e Entorno',
+    items: [
+      { id: 'vizinhos', label: 'Perfil das construções vizinhas e ruído (obras?)', status: 'nao-verificado' },
+      { id: 'comercio', label: 'Proximidade de comércios e serviços', status: 'nao-verificado' },
+      { id: 'seguranca-rua', label: 'Sensação de segurança e fluxo de veículos na rua', status: 'nao-verificado' },
+    ],
+  },
+  {
+    id: 'documentacao',
+    title: '20. Documentação (Análise Prévia)',
+    items: [
+      { id: 'matricula', label: 'Matrícula do Imóvel atualizada', status: 'nao-verificado' },
+      { id: 'area-prefeitura', label: 'Área construída na prefeitura corresponde à realidade', status: 'nao-verificado' },
+      { id: 'certidoes', label: 'Certidões Negativas (IPTU, Condomínio em dia?)', status: 'nao-verificado' },
+    ],
+  },
+  {
+    id: 'sensacao',
+    title: '21. Sensação Geral (Feeling)',
+    items: [
+      { id: 'layout', label: 'Layout atende às necessidades da família', status: 'nao-verificado' },
+      { id: 'bem-estar', label: 'Sensação de bem-estar e segurança no espaço', status: 'nao-verificado' },
+      { id: 'rotina', label: 'Imagina a rotina diária acontecendo ali', status: 'nao-verificado' },
     ],
   },
 ];
 
 const statusConfig = {
-  'ok': { icon: CheckCircle2, color: 'text-green-600', label: 'OK' },
+  'ok': { icon: CheckCircle2, color: 'text-green-600', label: 'Conforme' },
   'atencao': { icon: AlertTriangle, color: 'text-yellow-600', label: 'Atenção' },
   'critico': { icon: XCircle, color: 'text-red-600', label: 'Crítico' },
-  'nao-verificado': { icon: Circle, color: 'text-muted-foreground', label: 'Não Verificado' },
+  'nao-verificado': { icon: Circle, color: 'text-muted-foreground', label: 'Não se Aplica' },
 };
 
 export default function VistoriaDigital() {
   const [checklist, setChecklist] = useState<ChecklistCategory[]>(initialChecklist);
+  const { toast } = useToast();
 
   const updateItemStatus = (categoryId: string, itemId: string, newStatus: ItemStatus) => {
     setChecklist(prev =>
@@ -110,8 +251,27 @@ export default function VistoriaDigital() {
     return Math.round((verifiedItems / totalItems) * 100);
   };
 
+  const getCriticalCount = () => {
+    return checklist.reduce(
+      (sum, cat) => sum + cat.items.filter(item => item.status === 'critico').length,
+      0
+    );
+  };
+
   const resetChecklist = () => {
     setChecklist(initialChecklist);
+    toast({
+      title: "Checklist resetado",
+      description: "Todos os itens foram marcados como não verificados.",
+    });
+  };
+
+  const generateReport = () => {
+    toast({
+      title: "Gerando Relatório",
+      description: "Seu relatório de vistoria está sendo preparado para exportação.",
+    });
+    // Lógica futura para gerar PDF
   };
 
   return (
@@ -125,9 +285,20 @@ export default function VistoriaDigital() {
         <CardHeader>
           <div className="flex items-center justify-between">
             <CardTitle>Progresso da Vistoria</CardTitle>
-            <Button variant="outline" onClick={resetChecklist} size="sm">
-              Resetar Checklist
-            </Button>
+            <div className="flex gap-2">
+              {getCriticalCount() > 0 && (
+                <Badge variant="destructive" className="text-sm">
+                  {getCriticalCount()} Crítico{getCriticalCount() > 1 ? 's' : ''}
+                </Badge>
+              )}
+              <Button variant="outline" onClick={resetChecklist} size="sm">
+                Resetar Checklist
+              </Button>
+              <Button onClick={generateReport} size="sm" className="gap-2">
+                <FileText className="h-4 w-4" />
+                Gerar Relatório
+              </Button>
+            </div>
           </div>
           <div className="mt-4">
             <div className="flex items-center justify-between text-sm mb-2">
