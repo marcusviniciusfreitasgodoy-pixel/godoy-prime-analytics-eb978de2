@@ -2,8 +2,12 @@ import { Building2, TrendingUp, Home, Target } from "lucide-react";
 import { KPICard } from "@/components/KPICard";
 import { PriceChart } from "@/components/PriceChart";
 import { PropertyTable } from "@/components/PropertyTable";
+import { useKPIStats } from "@/hooks/useKPIStats";
+import { Skeleton } from "@/components/ui/skeleton";
 
 export default function Dashboard() {
+  const stats = useKPIStats();
+
   return (
     <div className="space-y-6">
       <div>
@@ -14,28 +18,28 @@ export default function Dashboard() {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         <KPICard
           title="Total Properties"
-          value="247"
+          value={stats.totalProperties.toString()}
           change="+12% vs last month"
           icon={Building2}
           trend="up"
         />
         <KPICard
           title="Average Price"
-          value="R$ 3.2M"
+          value={stats.averagePrice}
           change="+8% vs last month"
           icon={TrendingUp}
           trend="up"
         />
         <KPICard
           title="Active Listings"
-          value="189"
+          value={stats.activeListings.toString()}
           change="+5% vs last month"
           icon={Home}
           trend="up"
         />
         <KPICard
           title="Closing Rate"
-          value="68%"
+          value={stats.closingRate}
           change="+3% vs last month"
           icon={Target}
           trend="up"
