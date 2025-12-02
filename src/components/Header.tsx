@@ -1,24 +1,30 @@
-import { Building2 } from "lucide-react";
+import { MapPin } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import logoImage from "@/assets/godoy-logo.png";
 
 export function Header() {
   return (
-    <header className="h-16 border-b border-border bg-card sticky top-0 z-50 backdrop-blur-sm bg-card/95">
-      <div className="h-full px-6 flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <div className="bg-accent p-2 rounded-lg">
-            <Building2 className="h-6 w-6 text-accent-foreground" />
-          </div>
-          <div>
-            <h1 className="font-bold text-xl text-foreground">Godoy Prime</h1>
-            <p className="text-xs text-muted-foreground">Analytics</p>
+    <header className="h-20 border-b border-border bg-primary sticky top-0 z-50 shadow-lg">
+      <div className="h-full px-8 flex items-center justify-between max-w-[1600px] mx-auto">
+        <div className="flex items-center gap-4">
+          <img 
+            src={logoImage} 
+            alt="Godoy Prime Realty" 
+            className="h-12 w-auto object-contain"
+          />
+          <div className="border-l border-accent/30 pl-4">
+            <h1 className="font-bold text-lg text-primary-foreground tracking-wider">ANALYTICS DASHBOARD</h1>
+            <p className="text-xs text-accent font-semibold tracking-wide">PREMIUM REAL ESTATE</p>
           </div>
         </div>
         
-        <div className="flex items-center gap-4">
-          <Button variant="ghost" size="sm">Rio de Janeiro</Button>
-          <div className="w-px h-6 bg-border" />
-          <Button variant="ghost" size="sm">Barra da Tijuca</Button>
+        <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2 text-primary-foreground/90 text-sm">
+            <MapPin className="h-4 w-4 text-accent" />
+            <span className="font-semibold">Barra da Tijuca</span>
+            <span className="text-primary-foreground/60">•</span>
+            <span className="font-semibold">Rio de Janeiro</span>
+          </div>
         </div>
       </div>
     </header>
