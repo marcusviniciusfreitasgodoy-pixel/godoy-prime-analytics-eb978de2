@@ -25,21 +25,21 @@ export function DashboardKPIs() {
       <KPICard
         title="Preço Médio (R$/m²)"
         value={`R$ ${stats.precoMedio.toLocaleString('pt-BR')}`}
-        change="Transações residenciais YTD"
+        change="Últimos 12 meses"
         icon={TrendingUp}
         trend="up"
       />
       <KPICard
         title="Liquidez (Volume)"
         value={stats.liquidez.toString()}
-        change="Imóveis vendidos no ano"
+        change="Imóveis vendidos (12 meses)"
         icon={Activity}
         trend="up"
       />
       <KPICard
         title="Variação Anual (YoY)"
         value={`${stats.variacaoAnual}%`}
-        change={`${variacaoPositiva ? 'Alta' : 'Queda'} vs ano anterior`}
+        change={`${variacaoPositiva ? 'Alta' : 'Queda'} vs 12 meses anteriores`}
         icon={variacaoPositiva ? TrendingUp : TrendingDown}
         trend={variacaoPositiva ? "up" : "down"}
       />

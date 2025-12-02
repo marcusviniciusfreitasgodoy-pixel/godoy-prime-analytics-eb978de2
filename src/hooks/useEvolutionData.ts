@@ -13,11 +13,17 @@ export function useEvolutionData() {
   return useQuery<EvolutionData[]>({
     queryKey: ['evolution-data'],
     queryFn: async () => {
+      // Últimos 60 meses para o gráfico de evolução
+      const sixtyMonthsAgo = new Date();
+      sixtyMonthsAgo.setMonth(sixtyMonthsAgo.getMonth() - 60);
+      const startDate = sixtyMonthsAgo.toISOString().split('T')[0];
+
       const { data, error } = await supabase
         .from('itbi_transactions')
         .select('data_transacao, valor_m2, tipologia')
         .eq('uso', 'Residencial')
         .not('valor_m2', 'is', null)
+        .gte('data_transacao', startDate)
         .order('data_transacao', { ascending: true });
 
       if (error) throw error;

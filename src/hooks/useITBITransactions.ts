@@ -70,13 +70,19 @@ export function useMicrobairroDetalhado() {
   return useQuery<MicrobairroDetalhado[]>({
     queryKey: ['microbairro-detalhado'],
     queryFn: async () => {
-      // Buscar todas as transações residenciais agrupadas por logradouro (microbairro)
+      // Últimos 24 meses para rankings e detalhes
+      const twentyFourMonthsAgo = new Date();
+      twentyFourMonthsAgo.setMonth(twentyFourMonthsAgo.getMonth() - 24);
+      const startDate = twentyFourMonthsAgo.toISOString().split('T')[0];
+
+      // Buscar transações residenciais dos últimos 24 meses
       const { data: transactions, error } = await supabase
         .from('itbi_transactions')
         .select('logradouro, valor_m2, tipologia')
         .eq('uso', 'Residencial')
         .not('valor_m2', 'is', null)
-        .not('logradouro', 'is', null);
+        .not('logradouro', 'is', null)
+        .gte('data_transacao', startDate);
 
       if (error) throw error;
 
@@ -143,42 +149,45 @@ export function useKPIStats() {
   return useQuery({
     queryKey: ['kpi-stats'],
     queryFn: async () => {
-      const currentYear = new Date().getFullYear();
-      const startOfYear = `${currentYear}-01-01`;
+      // Últimos 24 meses para KPIs
+      const twentyFourMonthsAgo = new Date();
+      twentyFourMonthsAgo.setMonth(twentyFourMonthsAgo.getMonth() - 24);
+      const startDate24Months = twentyFourMonthsAgo.toISOString().split('T')[0];
 
-      // Buscar transações do ano corrente
-      const { data: currentYearData, error: currentError } = await supabase
+      // Últimos 12 meses para comparação atual
+      const twelveMonthsAgo = new Date();
+      twelveMonthsAgo.setMonth(twelveMonthsAgo.getMonth() - 12);
+      const startDate12Months = twelveMonthsAgo.toISOString().split('T')[0];
+
+      // Buscar transações dos últimos 12 meses (período atual)
+      const { data: currentPeriodData, error: currentError } = await supabase
         .from('itbi_transactions')
         .select('valor_m2, tipologia, uso')
         .eq('uso', 'Residencial')
-        .gte('data_transacao', startOfYear);
+        .gte('data_transacao', startDate12Months);
 
       if (currentError) throw currentError;
 
-      // Buscar transações do ano anterior para comparação
-      const lastYear = currentYear - 1;
-      const startOfLastYear = `${lastYear}-01-01`;
-      const endOfLastYear = `${lastYear}-12-31`;
-
-      const { data: lastYearData, error: lastError } = await supabase
+      // Buscar transações dos 12 meses anteriores (para comparação YoY)
+      const { data: previousPeriodData, error: previousError } = await supabase
         .from('itbi_transactions')
         .select('valor_m2')
         .eq('uso', 'Residencial')
-        .gte('data_transacao', startOfLastYear)
-        .lte('data_transacao', endOfLastYear);
+        .gte('data_transacao', startDate24Months)
+        .lt('data_transacao', startDate12Months);
 
-      if (lastError) throw lastError;
+      if (previousError) throw previousError;
 
       // Calcular KPIs
-      const currentTransactions = currentYearData || [];
-      const lastYearTransactions = lastYearData || [];
+      const currentTransactions = currentPeriodData || [];
+      const previousTransactions = previousPeriodData || [];
 
       const precoMedio = currentTransactions.length > 0
         ? currentTransactions.reduce((sum, t) => sum + (t.valor_m2 || 0), 0) / currentTransactions.length
         : 0;
 
-      const precoMedioAnterior = lastYearTransactions.length > 0
-        ? lastYearTransactions.reduce((sum, t) => sum + (t.valor_m2 || 0), 0) / lastYearTransactions.length
+      const precoMedioAnterior = previousTransactions.length > 0
+        ? previousTransactions.reduce((sum, t) => sum + (t.valor_m2 || 0), 0) / previousTransactions.length
         : 0;
 
       const variacaoAnual = precoMedioAnterior > 0
