@@ -52,9 +52,15 @@ serve(async (req) => {
       for (let i = 0; i < records.length; i += batchSize) {
         const batch = records.slice(i, i + batchSize);
         
+        // Remover valor_m2 pois é calculado automaticamente pelo banco
+        const cleanBatch = batch.map((record: Record<string, unknown>) => {
+          const { valor_m2, ...rest } = record;
+          return rest;
+        });
+        
         const { data, error } = await supabase
           .from('itbi_transactions')
-          .insert(batch)
+          .insert(cleanBatch)
           .select('id');
 
         if (error) {
