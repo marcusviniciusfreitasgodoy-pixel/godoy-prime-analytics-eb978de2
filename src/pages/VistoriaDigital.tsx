@@ -8,8 +8,10 @@ import {
 } from "@/components/ui/accordion";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { CheckCircle2, AlertTriangle, XCircle, Circle, FileText } from "lucide-react";
+import { CheckCircle2, AlertTriangle, XCircle, Circle, FileText, Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import jsPDF from "jspdf";
+import { formatDate } from "@/utils/exportUtils";
 
 type ItemStatus = 'ok' | 'atencao' | 'critico' | 'nao-verificado';
 
@@ -217,14 +219,15 @@ const initialChecklist: ChecklistCategory[] = [
 ];
 
 const statusConfig = {
-  'ok': { icon: CheckCircle2, color: 'text-green-600', label: 'Conforme' },
-  'atencao': { icon: AlertTriangle, color: 'text-yellow-600', label: 'Atenção' },
-  'critico': { icon: XCircle, color: 'text-red-600', label: 'Crítico' },
-  'nao-verificado': { icon: Circle, color: 'text-muted-foreground', label: 'Não se Aplica' },
+  'ok': { icon: CheckCircle2, color: 'text-green-600', label: 'Conforme', pdfColor: [34, 197, 94] as [number, number, number] },
+  'atencao': { icon: AlertTriangle, color: 'text-yellow-600', label: 'Atenção', pdfColor: [234, 179, 8] as [number, number, number] },
+  'critico': { icon: XCircle, color: 'text-red-600', label: 'Crítico', pdfColor: [239, 68, 68] as [number, number, number] },
+  'nao-verificado': { icon: Circle, color: 'text-muted-foreground', label: 'Não Verificado', pdfColor: [156, 163, 175] as [number, number, number] },
 };
 
 export default function VistoriaDigital() {
   const [checklist, setChecklist] = useState<ChecklistCategory[]>(initialChecklist);
+  const [isGeneratingPDF, setIsGeneratingPDF] = useState(false);
   const { toast } = useToast();
 
   const updateItemStatus = (categoryId: string, itemId: string, newStatus: ItemStatus) => {
@@ -258,6 +261,13 @@ export default function VistoriaDigital() {
     );
   };
 
+  const getAttentionCount = () => {
+    return checklist.reduce(
+      (sum, cat) => sum + cat.items.filter(item => item.status === 'atencao').length,
+      0
+    );
+  };
+
   const resetChecklist = () => {
     setChecklist(initialChecklist);
     toast({
@@ -266,12 +276,135 @@ export default function VistoriaDigital() {
     });
   };
 
-  const generateReport = () => {
-    toast({
-      title: "Gerando Relatório",
-      description: "Seu relatório de vistoria está sendo preparado para exportação.",
-    });
-    // Lógica futura para gerar PDF
+  const generateReport = async () => {
+    setIsGeneratingPDF(true);
+    
+    try {
+      const doc = new jsPDF();
+      const pageWidth = doc.internal.pageSize.getWidth();
+      let yPos = 20;
+      
+      // Header
+      doc.setFillColor(12, 35, 64); // Navy
+      doc.rect(0, 0, pageWidth, 40, 'F');
+      
+      doc.setTextColor(255, 255, 255);
+      doc.setFontSize(24);
+      doc.setFont('helvetica', 'bold');
+      doc.text('GODOY PRIME', 20, 25);
+      
+      doc.setFontSize(12);
+      doc.setFont('helvetica', 'normal');
+      doc.text('Relatório de Vistoria Digital', 20, 35);
+      
+      yPos = 55;
+      
+      // Date and summary
+      doc.setTextColor(0, 0, 0);
+      doc.setFontSize(10);
+      doc.text(`Data: ${formatDate(new Date())}`, 20, yPos);
+      yPos += 10;
+      
+      doc.setFontSize(12);
+      doc.setFont('helvetica', 'bold');
+      doc.text('Resumo da Vistoria', 20, yPos);
+      yPos += 8;
+      
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(10);
+      doc.text(`Progresso: ${getProgress()}%`, 20, yPos);
+      yPos += 6;
+      
+      const criticalCount = getCriticalCount();
+      const attentionCount = getAttentionCount();
+      
+      if (criticalCount > 0) {
+        doc.setTextColor(239, 68, 68);
+        doc.text(`Itens Críticos: ${criticalCount}`, 20, yPos);
+        yPos += 6;
+      }
+      
+      if (attentionCount > 0) {
+        doc.setTextColor(234, 179, 8);
+        doc.text(`Itens com Atenção: ${attentionCount}`, 20, yPos);
+        yPos += 6;
+      }
+      
+      doc.setTextColor(0, 0, 0);
+      yPos += 10;
+      
+      // Categories
+      for (const category of checklist) {
+        const verifiedInCategory = category.items.filter(i => i.status !== 'nao-verificado');
+        if (verifiedInCategory.length === 0) continue;
+        
+        // Check if we need a new page
+        if (yPos > 250) {
+          doc.addPage();
+          yPos = 20;
+        }
+        
+        doc.setFillColor(240, 240, 240);
+        doc.rect(15, yPos - 4, pageWidth - 30, 8, 'F');
+        
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(11);
+        doc.text(category.title, 20, yPos);
+        yPos += 12;
+        
+        doc.setFont('helvetica', 'normal');
+        doc.setFontSize(9);
+        
+        for (const item of category.items) {
+          if (item.status === 'nao-verificado') continue;
+          
+          if (yPos > 280) {
+            doc.addPage();
+            yPos = 20;
+          }
+          
+          const config = statusConfig[item.status];
+          doc.setTextColor(...config.pdfColor);
+          doc.text(`[${config.label.toUpperCase()}]`, 20, yPos);
+          
+          doc.setTextColor(0, 0, 0);
+          doc.text(item.label, 55, yPos);
+          yPos += 6;
+        }
+        
+        yPos += 6;
+      }
+      
+      // Footer
+      const pageCount = doc.internal.pages.length - 1;
+      for (let i = 1; i <= pageCount; i++) {
+        doc.setPage(i);
+        doc.setFontSize(8);
+        doc.setTextColor(128, 128, 128);
+        doc.text(
+          `Godoy Prime Analytics - Página ${i} de ${pageCount}`,
+          pageWidth / 2,
+          290,
+          { align: 'center' }
+        );
+      }
+      
+      doc.save(`vistoria_${new Date().toISOString().split('T')[0]}.pdf`);
+      
+      toast({
+        title: "PDF gerado com sucesso",
+        description: "O relatório de vistoria foi baixado.",
+      });
+    } catch (error) {
+      console.error('Error generating PDF:', error);
+      toast({
+        title: "Erro ao gerar PDF",
+        description: "Não foi possível gerar o relatório.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsGeneratingPDF(false);
+    }
   };
 
   return (
@@ -294,8 +427,12 @@ export default function VistoriaDigital() {
               <Button variant="outline" onClick={resetChecklist} size="sm">
                 Resetar Checklist
               </Button>
-              <Button onClick={generateReport} size="sm" className="gap-2">
-                <FileText className="h-4 w-4" />
+              <Button onClick={generateReport} size="sm" className="gap-2" disabled={isGeneratingPDF}>
+                {isGeneratingPDF ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <FileText className="h-4 w-4" />
+                )}
                 Gerar Relatório
               </Button>
             </div>

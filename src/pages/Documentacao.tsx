@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Accordion,
@@ -15,8 +15,10 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { FileText, HelpCircle, Save } from "lucide-react";
+import { FileText, HelpCircle, Save, Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import jsPDF from "jspdf";
+import { formatDate } from "@/utils/exportUtils";
 
 interface DocumentItem {
   id: string;
@@ -106,7 +108,20 @@ const initialChecklist: DocumentCategory[] = [
 
 export default function Documentacao() {
   const [checklist, setChecklist] = useState<DocumentCategory[]>(initialChecklist);
+  const [isGeneratingPDF, setIsGeneratingPDF] = useState(false);
   const { toast } = useToast();
+
+  // Load saved progress on mount
+  useEffect(() => {
+    const saved = localStorage.getItem('documentacao-checklist');
+    if (saved) {
+      try {
+        setChecklist(JSON.parse(saved));
+      } catch (e) {
+        console.error('Error loading saved checklist:', e);
+      }
+    }
+  }, []);
 
   const toggleItemChecked = (categoryId: string, itemId: string) => {
     setChecklist(prev =>
@@ -140,12 +155,112 @@ export default function Documentacao() {
     });
   };
 
-  const exportPDF = () => {
-    toast({
-      title: "Gerando PDF",
-      description: "Seu relatório de documentação está sendo preparado para exportação.",
-    });
-    // Lógica futura para gerar PDF
+  const exportPDF = async () => {
+    setIsGeneratingPDF(true);
+    
+    try {
+      const doc = new jsPDF();
+      const pageWidth = doc.internal.pageSize.getWidth();
+      let yPos = 20;
+      
+      // Header
+      doc.setFillColor(12, 35, 64); // Navy
+      doc.rect(0, 0, pageWidth, 40, 'F');
+      
+      doc.setTextColor(255, 255, 255);
+      doc.setFontSize(24);
+      doc.setFont('helvetica', 'bold');
+      doc.text('GODOY PRIME', 20, 25);
+      
+      doc.setFontSize(12);
+      doc.setFont('helvetica', 'normal');
+      doc.text('Checklist de Due Diligence', 20, 35);
+      
+      yPos = 55;
+      
+      // Date and summary
+      doc.setTextColor(0, 0, 0);
+      doc.setFontSize(10);
+      doc.text(`Data: ${formatDate(new Date())}`, 20, yPos);
+      yPos += 10;
+      
+      doc.setFontSize(12);
+      doc.setFont('helvetica', 'bold');
+      doc.text('Resumo da Documentação', 20, yPos);
+      yPos += 8;
+      
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(10);
+      doc.text(`Progresso: ${getProgress()}% dos documentos coletados`, 20, yPos);
+      yPos += 15;
+      
+      // Categories
+      for (const category of checklist) {
+        // Check if we need a new page
+        if (yPos > 250) {
+          doc.addPage();
+          yPos = 20;
+        }
+        
+        doc.setFillColor(240, 240, 240);
+        doc.rect(15, yPos - 4, pageWidth - 30, 8, 'F');
+        
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(11);
+        doc.text(category.title, 20, yPos);
+        yPos += 12;
+        
+        doc.setFont('helvetica', 'normal');
+        doc.setFontSize(9);
+        
+        for (const item of category.items) {
+          if (yPos > 280) {
+            doc.addPage();
+            yPos = 20;
+          }
+          
+          const checkbox = item.checked ? '[X]' : '[ ]';
+          doc.setTextColor(item.checked ? 34 : 100, item.checked ? 197 : 100, item.checked ? 94 : 100);
+          doc.text(checkbox, 20, yPos);
+          
+          doc.setTextColor(0, 0, 0);
+          doc.text(item.label, 32, yPos);
+          yPos += 6;
+        }
+        
+        yPos += 6;
+      }
+      
+      // Footer
+      const pageCount = doc.internal.pages.length - 1;
+      for (let i = 1; i <= pageCount; i++) {
+        doc.setPage(i);
+        doc.setFontSize(8);
+        doc.setTextColor(128, 128, 128);
+        doc.text(
+          `Godoy Prime Analytics - Página ${i} de ${pageCount}`,
+          pageWidth / 2,
+          290,
+          { align: 'center' }
+        );
+      }
+      
+      doc.save(`documentacao_${new Date().toISOString().split('T')[0]}.pdf`);
+      
+      toast({
+        title: "PDF gerado com sucesso",
+        description: "O checklist de documentação foi baixado.",
+      });
+    } catch (error) {
+      console.error('Error generating PDF:', error);
+      toast({
+        title: "Erro ao gerar PDF",
+        description: "Não foi possível gerar o documento.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsGeneratingPDF(false);
+    }
   };
 
   const resetChecklist = () => {
@@ -176,8 +291,12 @@ export default function Documentacao() {
                 <Save className="h-4 w-4" />
                 Salvar Progresso
               </Button>
-              <Button onClick={exportPDF} size="sm" className="gap-2">
-                <FileText className="h-4 w-4" />
+              <Button onClick={exportPDF} size="sm" className="gap-2" disabled={isGeneratingPDF}>
+                {isGeneratingPDF ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <FileText className="h-4 w-4" />
+                )}
                 Exportar PDF
               </Button>
             </div>
