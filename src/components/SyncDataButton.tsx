@@ -24,8 +24,12 @@ export const SyncDataButton = () => {
     try {
       console.log("Iniciando sincronização de dados...");
       
+      // Source project credentials (fallback if secrets not configured)
+      const sourceUrl = "https://wlnwspjobfdjftyffqne.supabase.co";
+      const sourceKey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndsbndzcGpvYmZkamZ0eWZmcW5lIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDI1MzcxMjAsImV4cCI6MjA1ODExMzEyMH0.xCHqS2a7HGlhDw_TRQwJxphCAkb9es2TZ-6CdDHVe_E";
+      
       const { data, error } = await supabase.functions.invoke("sync-tables", {
-        body: {},
+        body: { sourceUrl, sourceKey },
       });
 
       if (error) {
