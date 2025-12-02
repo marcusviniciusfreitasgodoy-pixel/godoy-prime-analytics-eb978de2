@@ -26,6 +26,16 @@ export interface MicrobairroRanking {
   mediana_m2: number;
 }
 
+export interface MicrobairroDetalhado {
+  microbairro: string;
+  valor_m2: number;
+  total_transacoes: number;
+  valor_m2_apt: number;
+  valor_m2_casa: number;
+  rank: number;
+  trend: "high" | "stable";
+}
+
 export function useITBITransactions() {
   return useQuery<ITBITransaction[]>({
     queryKey: ['itbi-transactions'],
@@ -52,6 +62,79 @@ export function useMicrobairroRanking() {
 
       if (error) throw error;
       return data as MicrobairroRanking[];
+    },
+  });
+}
+
+export function useMicrobairroDetalhado() {
+  return useQuery<MicrobairroDetalhado[]>({
+    queryKey: ['microbairro-detalhado'],
+    queryFn: async () => {
+      // Buscar todas as transações residenciais agrupadas por logradouro (microbairro)
+      const { data: transactions, error } = await supabase
+        .from('itbi_transactions')
+        .select('logradouro, valor_m2, tipologia')
+        .eq('uso', 'Residencial')
+        .not('valor_m2', 'is', null)
+        .not('logradouro', 'is', null);
+
+      if (error) throw error;
+
+      // Agrupar dados por microbairro
+      const grouped = (transactions || []).reduce((acc, t) => {
+        const micro = t.logradouro;
+        if (!acc[micro]) {
+          acc[micro] = {
+            total: [],
+            apartamentos: [],
+            casas: [],
+          };
+        }
+        
+        acc[micro].total.push(t.valor_m2!);
+        
+        if (t.tipologia?.toLowerCase().includes('apartamento')) {
+          acc[micro].apartamentos.push(t.valor_m2!);
+        } else if (t.tipologia?.toLowerCase().includes('casa')) {
+          acc[micro].casas.push(t.valor_m2!);
+        }
+        
+        return acc;
+      }, {} as Record<string, { total: number[], apartamentos: number[], casas: number[] }>);
+
+      // Calcular médias e criar array de resultados
+      const result = Object.entries(grouped).map(([microbairro, dados]) => {
+        const valor_m2 = Math.round(
+          dados.total.reduce((sum, v) => sum + v, 0) / dados.total.length
+        );
+        
+        const valor_m2_apt = dados.apartamentos.length > 0
+          ? Math.round(dados.apartamentos.reduce((sum, v) => sum + v, 0) / dados.apartamentos.length)
+          : valor_m2;
+        
+        const valor_m2_casa = dados.casas.length > 0
+          ? Math.round(dados.casas.reduce((sum, v) => sum + v, 0) / dados.casas.length)
+          : Math.round(valor_m2 * 0.92); // Fallback se não houver dados de casas
+
+        return {
+          microbairro,
+          valor_m2,
+          total_transacoes: dados.total.length,
+          valor_m2_apt,
+          valor_m2_casa,
+          rank: 0, // Será preenchido após ordenação
+          trend: "stable" as const,
+        };
+      });
+
+      // Ordenar por valor_m2 (maior para menor) e adicionar rank e trend
+      result.sort((a, b) => b.valor_m2 - a.valor_m2);
+      
+      return result.map((item, index) => ({
+        ...item,
+        rank: index + 1,
+        trend: index < 3 ? "high" : "stable",
+      }));
     },
   });
 }

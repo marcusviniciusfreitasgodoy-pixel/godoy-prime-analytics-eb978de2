@@ -1,10 +1,10 @@
 import { MapPin } from "lucide-react";
 import { MicrobairroCard } from "@/components/MicrobairroCard";
-import { useMicrobairroRanking } from "@/hooks/useITBITransactions";
+import { useMicrobairroDetalhado } from "@/hooks/useITBITransactions";
 import { Skeleton } from "@/components/ui/skeleton";
 
 export default function Microbairros() {
-  const { data: ranking, isLoading } = useMicrobairroRanking();
+  const { data: microbairros, isLoading } = useMicrobairroDetalhado();
 
   if (isLoading) {
     return (
@@ -22,24 +22,7 @@ export default function Microbairros() {
     );
   }
 
-  // Ordenar por preço médio (maior para menor)
-  const sortedRanking = [...(ranking || [])].sort(
-    (a, b) => b.preco_medio_m2 - a.preco_medio_m2
-  );
-
-  const maxTransacoes = Math.max(...sortedRanking.map((r) => r.total_transacoes), 1);
-
-  // Enriquecer dados com valores de apartamento e casa (simulado com base no preço médio)
-  const enrichedData = sortedRanking.map((item, index) => ({
-    ...item,
-    rank: index + 1,
-    // Apartamentos geralmente são 10-15% mais caros que a média
-    valor_m2_apt: Math.round(item.preco_medio_m2 * 1.12),
-    // Casas geralmente são 5-10% mais baratas que a média
-    valor_m2_casa: Math.round(item.preco_medio_m2 * 0.92),
-    // Top 3 tem alta demanda
-    trend: (index < 3 ? "high" : "stable") as "high" | "stable",
-  }));
+  const maxTransacoes = Math.max(...(microbairros || []).map((r) => r.total_transacoes), 1);
 
   return (
     <div className="space-y-6">
@@ -56,12 +39,12 @@ export default function Microbairros() {
 
       {/* Grid de Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {enrichedData.map((item) => (
+        {(microbairros || []).map((item) => (
           <MicrobairroCard
             key={item.microbairro}
-            microbairro={item.microbairro || "Desconhecido"}
-            valor_m2={item.preco_medio_m2}
-            total_transacoes={item.total_transacoes || 0}
+            microbairro={item.microbairro}
+            valor_m2={item.valor_m2}
+            total_transacoes={item.total_transacoes}
             valor_m2_apt={item.valor_m2_apt}
             valor_m2_casa={item.valor_m2_casa}
             rank={item.rank}
@@ -71,7 +54,7 @@ export default function Microbairros() {
         ))}
       </div>
 
-      {enrichedData.length === 0 && !isLoading && (
+      {(microbairros || []).length === 0 && !isLoading && (
         <div className="text-center py-12 text-muted-foreground">
           Nenhum dado disponível para exibição.
         </div>
