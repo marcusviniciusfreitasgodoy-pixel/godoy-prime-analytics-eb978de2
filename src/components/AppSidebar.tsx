@@ -1,4 +1,4 @@
-import { LayoutDashboard, TrendingUp, Home, FileText, Database } from "lucide-react";
+import { Home, ClipboardCheck } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import {
   Sidebar,
@@ -14,11 +14,8 @@ import {
 } from "@/components/ui/sidebar";
 
 const items = [
-  { title: "Painel", url: "/", icon: LayoutDashboard },
-  { title: "Análise", url: "/analysis", icon: TrendingUp },
-  { title: "Propriedades", url: "/properties", icon: Home },
-  { title: "Relatórios", url: "/reports", icon: FileText },
-  { title: "Popular Dados", url: "/seed-data", icon: Database },
+  { title: "Dashboard", url: "/", icon: Home },
+  { title: "Vistoria Digital", url: "/vistoria-digital", icon: ClipboardCheck },
 ];
 
 export function AppSidebar() {
