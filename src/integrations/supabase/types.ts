@@ -51,6 +51,7 @@ export type Database = {
         Row: {
           created_at: string | null
           descricao: string | null
+          factor_key: string | null
           id: string
           nome_variavel: string
           parametro: string
@@ -61,6 +62,7 @@ export type Database = {
         Insert: {
           created_at?: string | null
           descricao?: string | null
+          factor_key?: string | null
           id?: string
           nome_variavel: string
           parametro: string
@@ -71,6 +73,7 @@ export type Database = {
         Update: {
           created_at?: string | null
           descricao?: string | null
+          factor_key?: string | null
           id?: string
           nome_variavel?: string
           parametro?: string
