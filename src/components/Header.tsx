@@ -2,6 +2,7 @@ import { MapPin, LogOut } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import logoSymbol from "@/assets/godoy-logo-symbol.png";
 import { useAuth } from "@/hooks/useAuth";
+import { SyncDataButton } from "./SyncDataButton";
 
 export function Header() {
   const { signOut } = useAuth();
@@ -28,6 +29,7 @@ export function Header() {
             <span className="text-primary-foreground/60">•</span>
             <span className="font-semibold">Rio de Janeiro</span>
           </div>
+          <SyncDataButton />
           <Button 
             variant="outline" 
             size="sm" 
