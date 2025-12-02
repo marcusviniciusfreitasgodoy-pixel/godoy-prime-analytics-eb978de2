@@ -94,7 +94,7 @@ export function SearchTools() {
   };
 
   const exportLocationResults = () => {
-    if (!locationResult || !locationResult.transactions) {
+    if (!locationResult || !locationResult.transacoes) {
       toast({
         title: "Sem dados",
         description: "Faça uma busca primeiro para exportar os resultados.",
@@ -103,10 +103,8 @@ export function SearchTools() {
       return;
     }
     
-    const exportData = locationResult.transactions.map(t => ({
-      Logradouro: t.logradouro,
-      Numero: t.numero || '',
-      Complemento: t.complemento || '',
+    const exportData = locationResult.transacoes.map(t => ({
+      Logradouro: locationResult.logradouro,
       Valor_Transacao: t.valor_transacao,
       Area_m2: t.area_m2,
       Valor_m2: t.valor_m2,
@@ -303,7 +301,7 @@ export function SearchTools() {
                 )}
                 Buscar
               </Button>
-              {locationResult && locationResult.transactions && (
+              {locationResult && locationResult.transacoes && (
                 <Button variant="outline" onClick={exportLocationResults}>
                   <FileDown className="h-4 w-4" />
                 </Button>
@@ -332,7 +330,7 @@ export function SearchTools() {
                   <div>
                     <span className="text-muted-foreground">Faixa:</span>
                     <span className="ml-2 font-semibold">
-                      R$ {(locationResult.preco_min / 1000).toFixed(0)}k - {(locationResult.preco_max / 1000).toFixed(0)}k/m²
+                      R$ {locationResult.transacoes.length > 0 ? Math.min(...locationResult.transacoes.map(t => t.valor_m2)).toLocaleString('pt-BR') : 0} - {locationResult.transacoes.length > 0 ? Math.max(...locationResult.transacoes.map(t => t.valor_m2)).toLocaleString('pt-BR') : 0}/m²
                     </span>
                   </div>
                 </div>
