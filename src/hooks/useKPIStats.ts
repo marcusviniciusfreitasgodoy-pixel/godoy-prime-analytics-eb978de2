@@ -52,6 +52,7 @@ export function useKPIStats() {
         .from('itbi_transactions')
         .select('valor_m2, tipologia, data_transacao')
         .eq('uso', 'Residencial')
+        .eq('bairro', 'BARRA DA TIJUCA')
         .gte('data_transacao', startDate12Months);
 
       if (currentError) throw currentError;
@@ -61,6 +62,7 @@ export function useKPIStats() {
         .from('itbi_transactions')
         .select('valor_m2, tipologia')
         .eq('uso', 'Residencial')
+        .eq('bairro', 'BARRA DA TIJUCA')
         .gte('data_transacao', startDate24Months)
         .lt('data_transacao', startDate12Months);
 
@@ -136,6 +138,7 @@ export function useKPIStats() {
           .from('itbi_transactions')
           .select('valor_m2, tipologia')
           .eq('uso', 'Residencial')
+          .eq('bairro', 'BARRA DA TIJUCA')
           .ilike('logradouro', `%${rankingData.microbairro}%`)
           .gte('data_transacao', startDate12Months);
 
