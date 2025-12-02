@@ -8,51 +8,14 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-
-const properties = [
-  {
-    id: 1,
-    condominio: "Península",
-    type: "Apartamento",
-    price: "R$ 3.200.000",
-    size: "180m²",
-    status: "active",
-  },
-  {
-    id: 2,
-    condominio: "Riserva Golf",
-    type: "Cobertura",
-    price: "R$ 5.800.000",
-    size: "320m²",
-    status: "sold",
-  },
-  {
-    id: 3,
-    condominio: "Majestic",
-    type: "Apartamento",
-    price: "R$ 2.900.000",
-    size: "150m²",
-    status: "active",
-  },
-  {
-    id: 4,
-    condominio: "Le Parc",
-    type: "Apartamento",
-    price: "R$ 4.100.000",
-    size: "220m²",
-    status: "pending",
-  },
-  {
-    id: 5,
-    condominio: "Ilha Pura",
-    type: "Apartamento",
-    price: "R$ 2.500.000",
-    size: "130m²",
-    status: "active",
-  },
-];
+import { useProperties } from "@/hooks/useProperties";
+import { useFilters } from "@/contexts/FiltersContext";
+import { Skeleton } from "@/components/ui/skeleton";
 
 export function PropertyTable() {
+  const { filters } = useFilters();
+  const properties = useProperties(filters);
+
   return (
     <Card>
       <CardHeader>
@@ -70,32 +33,40 @@ export function PropertyTable() {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {properties.map((property) => (
-              <TableRow key={property.id}>
-                <TableCell className="font-medium">{property.condominio}</TableCell>
-                <TableCell>{property.type}</TableCell>
-                <TableCell className="font-semibold text-accent">{property.price}</TableCell>
-                <TableCell>{property.size}</TableCell>
-                <TableCell>
-                  <Badge 
-                    variant={
-                      property.status === "active" 
-                        ? "default" 
-                        : property.status === "sold" 
-                        ? "secondary" 
-                        : "outline"
-                    }
-                    className={
-                      property.status === "active"
-                        ? "bg-success text-success-foreground"
-                        : ""
-                    }
-                  >
-                    {property.status === "active" ? "Ativo" : property.status === "sold" ? "Vendido" : "Pendente"}
-                  </Badge>
+            {properties.length === 0 ? (
+              <TableRow>
+                <TableCell colSpan={5} className="text-center text-muted-foreground py-8">
+                  Nenhuma propriedade encontrada com os filtros selecionados.
                 </TableCell>
               </TableRow>
-            ))}
+            ) : (
+              properties.map((property) => (
+                <TableRow key={property.id}>
+                  <TableCell className="font-medium">{property.condominio}</TableCell>
+                  <TableCell>{property.type}</TableCell>
+                  <TableCell className="font-semibold text-accent">{property.price}</TableCell>
+                  <TableCell>{property.size}</TableCell>
+                  <TableCell>
+                    <Badge 
+                      variant={
+                        property.status === "active" 
+                          ? "default" 
+                          : property.status === "sold" 
+                          ? "secondary" 
+                          : "outline"
+                      }
+                      className={
+                        property.status === "active"
+                          ? "bg-success text-success-foreground"
+                          : ""
+                      }
+                    >
+                      {property.status === "active" ? "Ativo" : property.status === "sold" ? "Vendido" : "Pendente"}
+                    </Badge>
+                  </TableCell>
+                </TableRow>
+              ))
+            )}
           </TableBody>
         </Table>
       </CardContent>
