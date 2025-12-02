@@ -3,10 +3,10 @@ import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContai
 
 const data = [
   { month: "Jan", price: 2800000 },
-  { month: "Feb", price: 2950000 },
+  { month: "Fev", price: 2950000 },
   { month: "Mar", price: 3100000 },
-  { month: "Apr", price: 3050000 },
-  { month: "May", price: 3200000 },
+  { month: "Abr", price: 3050000 },
+  { month: "Mai", price: 3200000 },
   { month: "Jun", price: 3350000 },
 ];
 
@@ -14,7 +14,7 @@ export function PriceChart() {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Price Trends</CardTitle>
+        <CardTitle>Tendências de Preço</CardTitle>
       </CardHeader>
       <CardContent>
         <ResponsiveContainer width="100%" height={300}>

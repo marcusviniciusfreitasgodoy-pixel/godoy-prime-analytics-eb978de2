@@ -5,7 +5,7 @@ export default function Properties() {
   return (
     <div className="space-y-6">
       <div>
-        <h2 className="text-3xl font-bold text-foreground">Properties</h2>
+        <h2 className="text-3xl font-bold text-foreground">Propriedades</h2>
         <p className="text-muted-foreground mt-1">Gestão completa de propriedades</p>
       </div>
 

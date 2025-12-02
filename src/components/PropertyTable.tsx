@@ -19,7 +19,7 @@ export function PropertyTable() {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Recent Properties</CardTitle>
+        <CardTitle>Propriedades Recentes</CardTitle>
       </CardHeader>
       <CardContent>
         <Table>
