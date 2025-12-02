@@ -9,6 +9,7 @@ import { Header } from "@/components/Header";
 import { AuthProvider } from "@/hooks/useAuth";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import Dashboard from "./pages/Dashboard";
+import Microbairros from "./pages/Microbairros";
 import VistoriaDigital from "./pages/VistoriaDigital";
 import Documentacao from "./pages/Documentacao";
 import Auth from "./pages/Auth";
@@ -37,6 +38,7 @@ const App = () => (
                         <main className="flex-1 p-6 overflow-auto">
                           <Routes>
                             <Route path="/" element={<Dashboard />} />
+                            <Route path="/microbairros" element={<Microbairros />} />
                             <Route path="/vistoria-digital" element={<VistoriaDigital />} />
                             <Route path="/documentacao" element={<Documentacao />} />
                             <Route path="*" element={<NotFound />} />
