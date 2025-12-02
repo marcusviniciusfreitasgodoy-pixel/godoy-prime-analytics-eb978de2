@@ -57,11 +57,11 @@ export type Database = {
           is_active: boolean | null
           label: string | null
           multiplier: number | null
-          nome_variavel: string
+          nome_variavel: string | null
           order_index: number | null
-          parametro: string
-          peso_valor: number
-          tipo_imovel: string
+          parametro: string | null
+          peso_valor: number | null
+          tipo_imovel: string | null
           updated_at: string | null
         }
         Insert: {
@@ -73,11 +73,11 @@ export type Database = {
           is_active?: boolean | null
           label?: string | null
           multiplier?: number | null
-          nome_variavel: string
+          nome_variavel?: string | null
           order_index?: number | null
-          parametro: string
-          peso_valor: number
-          tipo_imovel: string
+          parametro?: string | null
+          peso_valor?: number | null
+          tipo_imovel?: string | null
           updated_at?: string | null
         }
         Update: {
@@ -89,11 +89,11 @@ export type Database = {
           is_active?: boolean | null
           label?: string | null
           multiplier?: number | null
-          nome_variavel?: string
+          nome_variavel?: string | null
           order_index?: number | null
-          parametro?: string
-          peso_valor?: number
-          tipo_imovel?: string
+          parametro?: string | null
+          peso_valor?: number | null
+          tipo_imovel?: string | null
           updated_at?: string | null
         }
         Relationships: []
