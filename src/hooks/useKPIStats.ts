@@ -27,15 +27,9 @@ export function useKPIStats() {
   return useQuery<KPIStatsData>({
     queryKey: ['kpi-stats-detailed'],
     queryFn: async () => {
-      // Últimos 24 meses para KPIs
-      const twentyFourMonthsAgo = new Date();
-      twentyFourMonthsAgo.setMonth(twentyFourMonthsAgo.getMonth() - 24);
-      const startDate24Months = twentyFourMonthsAgo.toISOString().split('T')[0];
-
-      // Últimos 12 meses para comparação atual
-      const twelveMonthsAgo = new Date();
-      twelveMonthsAgo.setMonth(twelveMonthsAgo.getMonth() - 12);
-      const startDate12Months = twelveMonthsAgo.toISOString().split('T')[0];
+      // Dados desde 2020 para KPIs (ajustado para dados históricos disponíveis)
+      const startDate24Months = '2020-01-01';
+      const startDate12Months = '2020-07-01'; // Meio de 2020 para dividir períodos
 
       // Último mês para variação mensal
       const oneMonthAgo = new Date();
