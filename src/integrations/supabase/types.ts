@@ -49,36 +49,48 @@ export type Database = {
       }
       ia_valuation_weights: {
         Row: {
+          category: string | null
           created_at: string | null
           descricao: string | null
           factor_key: string | null
           id: string
+          is_active: boolean | null
           label: string | null
+          multiplier: number | null
           nome_variavel: string
+          order_index: number | null
           parametro: string
           peso_valor: number
           tipo_imovel: string
           updated_at: string | null
         }
         Insert: {
+          category?: string | null
           created_at?: string | null
           descricao?: string | null
           factor_key?: string | null
           id?: string
+          is_active?: boolean | null
           label?: string | null
+          multiplier?: number | null
           nome_variavel: string
+          order_index?: number | null
           parametro: string
           peso_valor: number
           tipo_imovel: string
           updated_at?: string | null
         }
         Update: {
+          category?: string | null
           created_at?: string | null
           descricao?: string | null
           factor_key?: string | null
           id?: string
+          is_active?: boolean | null
           label?: string | null
+          multiplier?: number | null
           nome_variavel?: string
+          order_index?: number | null
           parametro?: string
           peso_valor?: number
           tipo_imovel?: string
