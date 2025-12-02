@@ -5,3 +5,6 @@ verify_jwt = false
 
 [functions.import-itbi]
 verify_jwt = false
+
+[functions.sync-itbi-daily]
+verify_jwt = false
