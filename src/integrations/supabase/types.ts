@@ -14,16 +14,73 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      itbi_transactions: {
+        Row: {
+          area_m2: number
+          bairro: string | null
+          complemento: string | null
+          created_at: string | null
+          data_transacao: string
+          id: string
+          logradouro: string
+          numero: string | null
+          tipologia: string | null
+          updated_at: string | null
+          uso: Database["public"]["Enums"]["uso_imovel"]
+          valor_m2: number | null
+          valor_transacao: number
+        }
+        Insert: {
+          area_m2: number
+          bairro?: string | null
+          complemento?: string | null
+          created_at?: string | null
+          data_transacao: string
+          id?: string
+          logradouro: string
+          numero?: string | null
+          tipologia?: string | null
+          updated_at?: string | null
+          uso?: Database["public"]["Enums"]["uso_imovel"]
+          valor_m2?: number | null
+          valor_transacao: number
+        }
+        Update: {
+          area_m2?: number
+          bairro?: string | null
+          complemento?: string | null
+          created_at?: string | null
+          data_transacao?: string
+          id?: string
+          logradouro?: string
+          numero?: string | null
+          tipologia?: string | null
+          updated_at?: string | null
+          uso?: Database["public"]["Enums"]["uso_imovel"]
+          valor_m2?: number | null
+          valor_transacao?: number
+        }
+        Relationships: []
+      }
     }
     Views: {
-      [_ in never]: never
+      view_ranking_microbairros: {
+        Row: {
+          mediana_m2: number | null
+          microbairro: string | null
+          preco_max_m2: number | null
+          preco_medio_m2: number | null
+          preco_min_m2: number | null
+          total_transacoes: number | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
       [_ in never]: never
     }
     Enums: {
-      [_ in never]: never
+      uso_imovel: "Residencial" | "Comercial"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -150,6 +207,8 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      uso_imovel: ["Residencial", "Comercial"],
+    },
   },
 } as const
