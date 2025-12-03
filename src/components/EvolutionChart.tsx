@@ -72,78 +72,83 @@ export function EvolutionChart({ bairro = "BARRA DA TIJUCA" }: EvolutionChartPro
 
   return (
     <Card>
-      <CardHeader className="pb-2 px-4 sm:px-6">
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-          <div className="flex items-start gap-3">
-            <div>
-              <CardTitle className="text-base sm:text-lg">Evolução Histórica ({periodCount} {periodLabel})</CardTitle>
-              <CardDescription className="text-xs sm:text-sm">
-                Tendência de Mercado - Dados {granularity === 'annual' ? 'Anuais' : 'Semestrais'}
+      <CardHeader className="pb-2 px-3 sm:px-6">
+        <div className="flex flex-col gap-3">
+          {/* Title and granularity toggle row */}
+          <div className="flex items-start justify-between gap-2">
+            <div className="flex-1 min-w-0">
+              <CardTitle className="text-sm sm:text-lg leading-tight">Evolução Histórica ({periodCount} {periodLabel})</CardTitle>
+              <CardDescription className="text-[10px] sm:text-sm mt-0.5">
+                Tendência - {granularity === 'annual' ? 'Anual' : 'Semestral'}
               </CardDescription>
             </div>
-            <div className="flex items-center gap-2">
-              <TooltipProvider>
-                <UITooltip>
-                  <TooltipTrigger asChild>
-                    <div className="flex flex-col items-center gap-0.5 cursor-help">
-                      <span className="text-[10px] text-muted-foreground uppercase tracking-wide">Curto</span>
-                      <Badge 
-                        variant={shortTermTrend.direction === 'up' ? 'default' : shortTermTrend.direction === 'down' ? 'destructive' : 'secondary'}
-                        className="flex items-center gap-1 text-xs"
-                      >
-                        {shortTermTrend.direction === 'up' && <TrendingUp className="h-3 w-3" />}
-                        {shortTermTrend.direction === 'down' && <TrendingDown className="h-3 w-3" />}
-                        {shortTermTrend.direction === 'neutral' && <Minus className="h-3 w-3" />}
-                        {shortTermTrend.value > 0 ? '+' : ''}{shortTermTrend.value.toFixed(1)}%
-                      </Badge>
-                    </div>
-                  </TooltipTrigger>
-                  <TooltipContent side="bottom" className="max-w-[220px]">
-                    <p className="text-xs font-medium">Tendência de curto prazo</p>
-                    <p className="text-xs text-muted-foreground mt-1">Variação entre os dois últimos semestres: {shortTermTrend.period}</p>
-                  </TooltipContent>
-                </UITooltip>
-              </TooltipProvider>
-              
-              <TooltipProvider>
-                <UITooltip>
-                  <TooltipTrigger asChild>
-                    <div className="flex flex-col items-center gap-0.5 cursor-help">
-                      <span className="text-[10px] text-muted-foreground uppercase tracking-wide">Longo</span>
-                      <Badge 
-                        variant={longTermTrend.direction === 'up' ? 'default' : longTermTrend.direction === 'down' ? 'destructive' : 'secondary'}
-                        className="flex items-center gap-1 text-xs"
-                      >
-                        {longTermTrend.direction === 'up' && <TrendingUp className="h-3 w-3" />}
-                        {longTermTrend.direction === 'down' && <TrendingDown className="h-3 w-3" />}
-                        {longTermTrend.direction === 'neutral' && <Minus className="h-3 w-3" />}
-                        {longTermTrend.value > 0 ? '+' : ''}{longTermTrend.value.toFixed(1)}%
-                      </Badge>
-                    </div>
-                  </TooltipTrigger>
-                  <TooltipContent side="bottom" className="max-w-[220px]">
-                    <p className="text-xs font-medium">Tendência de longo prazo</p>
-                    <p className="text-xs text-muted-foreground mt-1">Variação entre os dois últimos anos: {longTermTrend.period}</p>
-                  </TooltipContent>
-                </UITooltip>
-              </TooltipProvider>
-            </div>
+            <ToggleGroup 
+              type="single" 
+              value={granularity} 
+              onValueChange={(value) => value && setGranularity(value as GranularityType)}
+              className="flex-shrink-0"
+            >
+              <ToggleGroupItem value="semester" aria-label="Semestral" className="text-[10px] sm:text-xs gap-0.5 sm:gap-1 px-2 sm:px-3 h-7 sm:h-8">
+                <CalendarDays className="h-3 w-3 sm:h-3.5 sm:w-3.5" />
+                <span className="hidden sm:inline">Semestral</span>
+                <span className="sm:hidden">Sem</span>
+              </ToggleGroupItem>
+              <ToggleGroupItem value="annual" aria-label="Anual" className="text-[10px] sm:text-xs gap-0.5 sm:gap-1 px-2 sm:px-3 h-7 sm:h-8">
+                <Calendar className="h-3 w-3 sm:h-3.5 sm:w-3.5" />
+                <span className="hidden sm:inline">Anual</span>
+                <span className="sm:hidden">Ano</span>
+              </ToggleGroupItem>
+            </ToggleGroup>
           </div>
-          <ToggleGroup 
-            type="single" 
-            value={granularity} 
-            onValueChange={(value) => value && setGranularity(value as GranularityType)}
-            className="justify-start"
-          >
-            <ToggleGroupItem value="semester" aria-label="Semestral" className="text-xs gap-1 px-3">
-              <CalendarDays className="h-3.5 w-3.5" />
-              Semestral
-            </ToggleGroupItem>
-            <ToggleGroupItem value="annual" aria-label="Anual" className="text-xs gap-1 px-3">
-              <Calendar className="h-3.5 w-3.5" />
-              Anual
-            </ToggleGroupItem>
-          </ToggleGroup>
+          
+          {/* Trend badges row */}
+          <div className="flex items-center gap-3">
+            <TooltipProvider>
+              <UITooltip>
+                <TooltipTrigger asChild>
+                  <div className="flex items-center gap-1.5 cursor-help">
+                    <span className="text-[10px] text-muted-foreground uppercase tracking-wide">Curto:</span>
+                    <Badge 
+                      variant={shortTermTrend.direction === 'up' ? 'default' : shortTermTrend.direction === 'down' ? 'destructive' : 'secondary'}
+                      className="flex items-center gap-0.5 text-[10px] sm:text-xs h-5 px-1.5"
+                    >
+                      {shortTermTrend.direction === 'up' && <TrendingUp className="h-2.5 w-2.5 sm:h-3 sm:w-3" />}
+                      {shortTermTrend.direction === 'down' && <TrendingDown className="h-2.5 w-2.5 sm:h-3 sm:w-3" />}
+                      {shortTermTrend.direction === 'neutral' && <Minus className="h-2.5 w-2.5 sm:h-3 sm:w-3" />}
+                      {shortTermTrend.value > 0 ? '+' : ''}{shortTermTrend.value.toFixed(1)}%
+                    </Badge>
+                  </div>
+                </TooltipTrigger>
+                <TooltipContent side="bottom" className="max-w-[220px]">
+                  <p className="text-xs font-medium">Tendência de curto prazo</p>
+                  <p className="text-xs text-muted-foreground mt-1">Variação entre os dois últimos semestres: {shortTermTrend.period}</p>
+                </TooltipContent>
+              </UITooltip>
+            </TooltipProvider>
+            
+            <TooltipProvider>
+              <UITooltip>
+                <TooltipTrigger asChild>
+                  <div className="flex items-center gap-1.5 cursor-help">
+                    <span className="text-[10px] text-muted-foreground uppercase tracking-wide">Longo:</span>
+                    <Badge 
+                      variant={longTermTrend.direction === 'up' ? 'default' : longTermTrend.direction === 'down' ? 'destructive' : 'secondary'}
+                      className="flex items-center gap-0.5 text-[10px] sm:text-xs h-5 px-1.5"
+                    >
+                      {longTermTrend.direction === 'up' && <TrendingUp className="h-2.5 w-2.5 sm:h-3 sm:w-3" />}
+                      {longTermTrend.direction === 'down' && <TrendingDown className="h-2.5 w-2.5 sm:h-3 sm:w-3" />}
+                      {longTermTrend.direction === 'neutral' && <Minus className="h-2.5 w-2.5 sm:h-3 sm:w-3" />}
+                      {longTermTrend.value > 0 ? '+' : ''}{longTermTrend.value.toFixed(1)}%
+                    </Badge>
+                  </div>
+                </TooltipTrigger>
+                <TooltipContent side="bottom" className="max-w-[220px]">
+                  <p className="text-xs font-medium">Tendência de longo prazo</p>
+                  <p className="text-xs text-muted-foreground mt-1">Variação entre os dois últimos anos: {longTermTrend.period}</p>
+                </TooltipContent>
+              </UITooltip>
+            </TooltipProvider>
+          </div>
         </div>
       </CardHeader>
       <CardContent className="px-2 sm:px-6">
