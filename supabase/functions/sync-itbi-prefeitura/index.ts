@@ -239,6 +239,7 @@ serve(async (req) => {
           dataTransacao = `${ano}-06-15`;
         }
 
+        // NÃO incluir valor_m2 - é uma coluna gerada automaticamente pelo banco
         return {
           logradouro: logradouro.toUpperCase(),
           numero: null,
@@ -246,7 +247,6 @@ serve(async (req) => {
           bairro: bairro.trim().toUpperCase(),
           valor_transacao: Math.round(valor * 100) / 100,
           area_m2: Math.round(area * 100) / 100,
-          valor_m2: Math.round((valor / area) * 100) / 100,
           data_transacao: dataTransacao,
           uso: classificarUso(uso),
           tipologia: classificarTipologia(tipologia),
