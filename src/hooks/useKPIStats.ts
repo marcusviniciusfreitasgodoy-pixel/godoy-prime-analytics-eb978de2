@@ -21,11 +21,13 @@ export interface KPIStatsData {
 interface TransactionData {
   valor_m2: number | null;
   tipologia: string | null;
+  total_transacoes: number | null;
+  data_transacao?: string;
 }
 
 export function useKPIStats() {
   return useQuery<KPIStatsData>({
-    queryKey: ['kpi-stats-detailed-v2'],
+    queryKey: ['kpi-stats-detailed-v3'],
     staleTime: 0,
     refetchOnMount: 'always',
     queryFn: async () => {
@@ -58,7 +60,7 @@ export function useKPIStats() {
       // Buscar transações dos últimos 12 meses (período atual) - SOMENTE RESIDENCIAL
       const { data: currentPeriodData, error: currentError } = await supabase
         .from('itbi_transactions')
-        .select('valor_m2, tipologia, data_transacao')
+        .select('valor_m2, tipologia, data_transacao, total_transacoes')
         .eq('uso', 'Residencial')
         .eq('bairro', 'BARRA DA TIJUCA')
         .not('valor_m2', 'is', null)
@@ -70,7 +72,7 @@ export function useKPIStats() {
       // Buscar transações dos 12 meses anteriores (para comparação YoY) - SOMENTE RESIDENCIAL
       const { data: previousPeriodData, error: previousError } = await supabase
         .from('itbi_transactions')
-        .select('valor_m2, tipologia')
+        .select('valor_m2, tipologia, total_transacoes')
         .eq('uso', 'Residencial')
         .eq('bairro', 'BARRA DA TIJUCA')
         .not('valor_m2', 'is', null)
@@ -83,8 +85,8 @@ export function useKPIStats() {
       const currentTransactions = currentPeriodData || [];
       const previousTransactions = previousPeriodData || [];
 
-      console.log('[KPI] Transações período atual:', currentTransactions.length);
-      console.log('[KPI] Transações período anterior:', previousTransactions.length);
+      console.log('[KPI] Registros período atual:', currentTransactions.length);
+      console.log('[KPI] Registros período anterior:', previousTransactions.length);
 
       // Separar por tipologia - current
       const currentApt = currentTransactions.filter(t => 
@@ -104,28 +106,51 @@ export function useKPIStats() {
 
       // Transações do último mês
       const lastMonthTransactions = currentTransactions.filter(t => 
-        t.data_transacao >= startDateLastMonth
+        t.data_transacao && t.data_transacao >= startDateLastMonth
       );
       const previousMonthTransactions = currentTransactions.filter(t => 
-        t.data_transacao >= startDateTwoMonths && t.data_transacao < startDateLastMonth
+        t.data_transacao && t.data_transacao >= startDateTwoMonths && t.data_transacao < startDateLastMonth
       );
 
-      // Calcular médias
-      const calcMedia = (arr: TransactionData[]) => 
-        arr.length > 0 
-          ? arr.reduce((sum, t) => sum + (t.valor_m2 || 0), 0) / arr.length 
-          : 0;
+      // METODOLOGIA PREFEITURA: Calcular médias ponderadas por total_transacoes
+      const calcMediaPonderada = (arr: TransactionData[]) => {
+        if (arr.length === 0) return 0;
+        
+        let somaValoresPonderados = 0;
+        let somaTransacoes = 0;
+        
+        for (const t of arr) {
+          const peso = t.total_transacoes || 1;
+          somaValoresPonderados += (t.valor_m2 || 0) * peso;
+          somaTransacoes += peso;
+        }
+        
+        return somaTransacoes > 0 ? somaValoresPonderados / somaTransacoes : 0;
+      };
 
-      const precoMedio = calcMedia(currentTransactions);
-      const precoMedioApt = calcMedia(currentApt);
-      const precoMedioCasa = calcMedia(currentCasa);
+      // METODOLOGIA PREFEITURA: Calcular liquidez como soma de total_transacoes
+      const calcLiquidez = (arr: TransactionData[]) => {
+        return arr.reduce((sum, t) => sum + (t.total_transacoes || 1), 0);
+      };
+
+      const precoMedio = calcMediaPonderada(currentTransactions);
+      const precoMedioApt = calcMediaPonderada(currentApt);
+      const precoMedioCasa = calcMediaPonderada(currentCasa);
       
-      const precoMedioAnterior = calcMedia(previousTransactions);
-      const precoMedioAptAnterior = calcMedia(previousApt);
-      const precoMedioCasaAnterior = calcMedia(previousCasa);
+      const precoMedioAnterior = calcMediaPonderada(previousTransactions);
+      const precoMedioAptAnterior = calcMediaPonderada(previousApt);
+      const precoMedioCasaAnterior = calcMediaPonderada(previousCasa);
 
-      const precoMedioLastMonth = calcMedia(lastMonthTransactions);
-      const precoMedioPrevMonth = calcMedia(previousMonthTransactions);
+      const precoMedioLastMonth = calcMediaPonderada(lastMonthTransactions);
+      const precoMedioPrevMonth = calcMediaPonderada(previousMonthTransactions);
+
+      // Calcular liquidez real usando total_transacoes
+      const liquidez = calcLiquidez(currentTransactions);
+      const liquidezApt = calcLiquidez(currentApt);
+      const liquidezCasa = calcLiquidez(currentCasa);
+
+      console.log('[KPI] Liquidez real (total_transacoes):', liquidez);
+      console.log('[KPI] Preço médio ponderado:', precoMedio);
 
       // Calcular variações
       const calcVariacao = (atual: number, anterior: number) => 
@@ -142,7 +167,7 @@ export function useKPIStats() {
         .select('microbairro, preco_medio_m2')
         .order('preco_medio_m2', { ascending: false })
         .limit(1)
-        .single();
+        .maybeSingle();
 
       // Buscar breakdown do bairro mais valorizado
       let precoMedioBairroApt = rankingData?.preco_medio_m2 || 0;
@@ -151,7 +176,7 @@ export function useKPIStats() {
       if (rankingData?.microbairro) {
         const { data: bairroTransactions } = await supabase
           .from('itbi_transactions')
-          .select('valor_m2, tipologia')
+          .select('valor_m2, tipologia, total_transacoes')
           .eq('uso', 'Residencial')
           .eq('bairro', 'BARRA DA TIJUCA')
           .ilike('logradouro', `%${rankingData.microbairro}%`)
@@ -166,10 +191,10 @@ export function useKPIStats() {
           );
           
           if (bairroApt.length > 0) {
-            precoMedioBairroApt = calcMedia(bairroApt);
+            precoMedioBairroApt = calcMediaPonderada(bairroApt);
           }
           if (bairroCasa.length > 0) {
-            precoMedioBairroCasa = calcMedia(bairroCasa);
+            precoMedioBairroCasa = calcMediaPonderada(bairroCasa);
           }
         }
       }
@@ -178,9 +203,9 @@ export function useKPIStats() {
         precoMedio: Math.round(precoMedio),
         precoMedioApt: Math.round(precoMedioApt || precoMedio),
         precoMedioCasa: Math.round(precoMedioCasa || precoMedio * 0.85),
-        liquidez: currentTransactions.length,
-        liquidezApt: currentApt.length,
-        liquidezCasa: currentCasa.length,
+        liquidez,
+        liquidezApt,
+        liquidezCasa,
         variacaoAnual: variacaoAnual.toFixed(2),
         variacaoAnualApt: variacaoAnualApt.toFixed(1),
         variacaoAnualCasa: variacaoAnualCasa.toFixed(1),

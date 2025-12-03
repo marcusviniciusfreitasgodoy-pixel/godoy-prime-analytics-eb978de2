@@ -225,6 +225,8 @@ serve(async (req) => {
         
         const valor = extractNumber(attrs['média_valor_transação']) ?? 0;
         const area = extractNumber(attrs['média_área_construída']) ?? 1;
+        const totalTransacoes = extractNumber(attrs['total_transações']) ?? 1;
+        const percentualTransferido = extractNumber(attrs['média_percentual_transferido']) ?? 100;
         const logradouro = extractString(attrs['logradouro']) ?? 'Não informado';
         const bairro = extractString(attrs['bairro']) ?? 'BARRA DA TIJUCA';
         const ano = extractNumber(attrs['ano_transação']);
@@ -239,7 +241,9 @@ serve(async (req) => {
           dataTransacao = `${ano}-06-15`;
         }
 
-        // NÃO incluir valor_m2 - é uma coluna gerada automaticamente pelo banco
+        // Calcular valor_m2 usando a metodologia da Prefeitura
+        const valorM2 = area > 0 ? valor / area : 0;
+
         return {
           logradouro: logradouro.toUpperCase(),
           numero: null,
@@ -247,9 +251,12 @@ serve(async (req) => {
           bairro: bairro.trim().toUpperCase(),
           valor_transacao: Math.round(valor * 100) / 100,
           area_m2: Math.round(area * 100) / 100,
+          valor_m2: Math.round(valorM2 * 100) / 100,
           data_transacao: dataTransacao,
           uso: classificarUso(uso),
           tipologia: classificarTipologia(tipologia),
+          total_transacoes: Math.round(totalTransacoes),
+          percentual_transferido: Math.round(percentualTransferido * 100) / 100,
         };
       });
 
