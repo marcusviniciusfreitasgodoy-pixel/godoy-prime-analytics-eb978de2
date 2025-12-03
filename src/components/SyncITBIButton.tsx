@@ -16,23 +16,31 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useQueryClient } from "@tanstack/react-query";
 
 export const SyncITBIButton = () => {
   const [isLoading, setIsLoading] = useState(false);
-  const [clearExisting, setClearExisting] = useState(false);
+  const [clearExisting, setClearExisting] = useState(true);
+  const [selectedYear, setSelectedYear] = useState("2025");
   const { toast } = useToast();
   const queryClient = useQueryClient();
+
+  const currentYear = new Date().getFullYear();
+  const years = Array.from({ length: currentYear - 2019 }, (_, i) => (currentYear - i).toString());
 
   const handleSync = async () => {
     setIsLoading(true);
     try {
-      console.log("Iniciando sincronização com API da Prefeitura...");
+      console.log(`Iniciando sincronização: ano ${selectedYear}, limpar=${clearExisting}`);
 
       const { data, error } = await supabase.functions.invoke("sync-itbi-prefeitura", {
         body: {
           clearExisting: clearExisting,
-          bairro: "BARRA DA TIJUCA",
+          codbairro: "128", // Barra da Tijuca
+          minYear: parseInt(selectedYear),
+          maxYear: parseInt(selectedYear),
+          onlyResidencial: false,
         },
       });
 
@@ -47,13 +55,14 @@ export const SyncITBIButton = () => {
         // Invalidar queries para atualizar dados na tela
         await queryClient.invalidateQueries({ queryKey: ['itbi-transactions'] });
         await queryClient.invalidateQueries({ queryKey: ['kpi-stats'] });
+        await queryClient.invalidateQueries({ queryKey: ['kpi-stats-detailed'] });
         await queryClient.invalidateQueries({ queryKey: ['microbairro-ranking'] });
         await queryClient.invalidateQueries({ queryKey: ['microbairro-detalhado'] });
         await queryClient.invalidateQueries({ queryKey: ['evolution-data'] });
 
         toast({
           title: "Sincronização concluída!",
-          description: `${data.transacoes_inseridas} transações importadas da API da Prefeitura.`,
+          description: `${data.registros_inseridos} registros (${data.total_transacoes_reais} transações) importados para ${selectedYear}.`,
           variant: "default",
         });
       } else {
@@ -94,36 +103,56 @@ export const SyncITBIButton = () => {
             <AlertCircle className="h-5 w-5 text-amber-500" />
             Sincronizar Dados ITBI
           </AlertDialogTitle>
-          <AlertDialogDescription className="space-y-4">
-            <p>Esta ação irá buscar transações de ITBI diretamente da API da Prefeitura do Rio de Janeiro:</p>
-            <ul className="list-disc list-inside space-y-1 text-sm">
-              <li>Filtrar por Barra da Tijuca</li>
-              <li>Importar novas transações</li>
-              <li>Classificar tipologia (Apartamento/Casa)</li>
-              <li>Calcular valor por m²</li>
-            </ul>
-            
-            <div className="flex items-center space-x-2 mt-4 p-3 bg-muted rounded-md">
-              <Checkbox
-                id="clearExisting"
-                checked={clearExisting}
-                onCheckedChange={(checked) => setClearExisting(!!checked)}
-              />
-              <Label htmlFor="clearExisting" className="text-sm text-foreground cursor-pointer">
-                Limpar dados existentes antes de importar
-              </Label>
-            </div>
+          <AlertDialogDescription asChild>
+            <div className="space-y-4">
+              <p>Buscar transações de ITBI da API da Prefeitura do Rio de Janeiro (codbairro=128 - Barra da Tijuca):</p>
+              
+              <div className="space-y-3">
+                <div className="space-y-2">
+                  <Label className="text-sm font-medium">Ano</Label>
+                  <Select value={selectedYear} onValueChange={setSelectedYear}>
+                    <SelectTrigger className="w-full">
+                      <SelectValue placeholder="Selecione o ano" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {years.map((year) => (
+                        <SelectItem key={year} value={year}>
+                          {year}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                
+                <div className="flex items-center space-x-2 p-3 bg-muted rounded-md">
+                  <Checkbox
+                    id="clearExisting"
+                    checked={clearExisting}
+                    onCheckedChange={(checked) => setClearExisting(!!checked)}
+                  />
+                  <Label htmlFor="clearExisting" className="text-sm text-foreground cursor-pointer">
+                    Limpar dados do ano antes de importar
+                  </Label>
+                </div>
+              </div>
 
-            <p className="text-xs text-muted-foreground mt-2">
-              Fonte: pgeo3.rio.rj.gov.br - API ArcGIS ITBI
-            </p>
+              <ul className="list-disc list-inside space-y-1 text-sm text-muted-foreground">
+                <li>Filtro: percentual transferido ≥ 90%</li>
+                <li>Classifica: Residencial/Comercial, Apto/Casa</li>
+                <li>Calcula: valor/m² automático</li>
+              </ul>
+
+              <p className="text-xs text-muted-foreground">
+                Fonte: pgeo3.rio.rj.gov.br/arcgis - API ITBI Prefeitura RJ
+              </p>
+            </div>
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>
           <AlertDialogCancel>Cancelar</AlertDialogCancel>
           <AlertDialogAction onClick={handleSync} className="bg-primary">
             <CheckCircle2 className="mr-2 h-4 w-4" />
-            Iniciar Sincronização
+            Sincronizar {selectedYear}
           </AlertDialogAction>
         </AlertDialogFooter>
       </AlertDialogContent>
