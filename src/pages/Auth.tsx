@@ -9,6 +9,7 @@ import { z } from 'zod';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
+import godoyLogo from '@/assets/godoy-logo.png';
 
 const authSchema = z.object({
   email: z.string().email({ message: 'E-mail inválido' }).max(255),
@@ -59,7 +60,7 @@ export default function Auth() {
         <CardHeader className="space-y-3 text-center">
           <div className="flex justify-center mb-2">
             <img 
-              src="/src/assets/godoy-logo.png" 
+              src={godoyLogo} 
               alt="Godoy Prime" 
               className="h-16 w-auto"
             />
