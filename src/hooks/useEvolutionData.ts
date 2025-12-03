@@ -11,24 +11,45 @@ export interface EvolutionData {
 
 export function useEvolutionData() {
   return useQuery<EvolutionData[]>({
-    queryKey: ['evolution-data-v2'],
+    queryKey: ['evolution-data-v3'],
     staleTime: 0,
+    refetchOnMount: 'always',
     queryFn: async () => {
-      // Dados desde 2020 para evolução
+      // Dados desde 2020 para evolução (60+ meses)
       const startDate = '2020-01-01';
 
-      // Buscar todos os registros (sem limite de 1000)
-      const { data, error } = await supabase
-        .from('itbi_transactions')
-        .select('data_transacao, valor_m2, tipologia')
-        .eq('uso', 'Residencial')
-        .eq('bairro', 'BARRA DA TIJUCA')
-        .not('valor_m2', 'is', null)
-        .gte('data_transacao', startDate)
-        .order('data_transacao', { ascending: true })
-        .limit(10000);
+      // Buscar TODOS os registros com paginação
+      let allData: { data_transacao: string; valor_m2: number | null; tipologia: string | null }[] = [];
+      let offset = 0;
+      const pageSize = 1000;
+      let hasMore = true;
 
-      if (error) throw error;
+      while (hasMore) {
+        const { data, error } = await supabase
+          .from('itbi_transactions')
+          .select('data_transacao, valor_m2, tipologia')
+          .eq('uso', 'Residencial')
+          .eq('bairro', 'BARRA DA TIJUCA')
+          .not('valor_m2', 'is', null)
+          .gte('data_transacao', startDate)
+          .order('data_transacao', { ascending: true })
+          .range(offset, offset + pageSize - 1);
+
+        if (error) throw error;
+
+        if (data && data.length > 0) {
+          allData = [...allData, ...data];
+          offset += pageSize;
+          hasMore = data.length === pageSize;
+        } else {
+          hasMore = false;
+        }
+      }
+
+      console.log(`[EvolutionData] Total registros: ${allData.length}`);
+      const data = allData;
+
+      if (!data || data.length === 0) return [];
 
       // Group by month
       const grouped = (data || []).reduce((acc, t) => {
