@@ -61,6 +61,7 @@ export function SearchTools({ bairro = "BARRA DA TIJUCA" }: SearchToolsProps) {
   const [valorMax, setValorMax] = useState<string>("");
   const [transacaoBairro, setTransacaoBairro] = useState<string>("BARRA DA TIJUCA");
   const [transacaoTipologia, setTransacaoTipologia] = useState<string>("");
+  const [transacaoPeriodo, setTransacaoPeriodo] = useState<string>("12");
   const [searchTransactions, setSearchTransactions] = useState(false);
 
   // Valuation state
@@ -103,6 +104,7 @@ export function SearchTools({ bairro = "BARRA DA TIJUCA" }: SearchToolsProps) {
       valorMax: valorMax ? parseFloat(valorMax) : undefined,
       bairro: transacaoBairro || undefined,
       tipologia: transacaoTipologia === 'todas' ? undefined : transacaoTipologia || undefined,
+      periodoMeses: parseInt(transacaoPeriodo),
     },
     searchTransactions
   );
@@ -199,6 +201,7 @@ export function SearchTools({ bairro = "BARRA DA TIJUCA" }: SearchToolsProps) {
     setValorMax("");
     setTransacaoBairro("BARRA DA TIJUCA");
     setTransacaoTipologia("");
+    setTransacaoPeriodo("12");
     setSearchTransactions(false);
   };
 
@@ -724,7 +727,7 @@ export function SearchTools({ bairro = "BARRA DA TIJUCA" }: SearchToolsProps) {
           </TabsContent>
 
           <TabsContent value="transacoes" className="space-y-4 mt-4">
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-3 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="trans-bairro">Bairro</Label>
                 <Select 
@@ -746,6 +749,17 @@ export function SearchTools({ bairro = "BARRA DA TIJUCA" }: SearchToolsProps) {
                     <SelectItem value="LEBLON">Leblon</SelectItem>
                     <SelectItem value="BOTAFOGO">Botafogo</SelectItem>
                     <SelectItem value="TIJUCA">Tijuca</SelectItem>
+                    <SelectItem value="FLAMENGO">Flamengo</SelectItem>
+                    <SelectItem value="LARANJEIRAS">Laranjeiras</SelectItem>
+                    <SelectItem value="GAVEA">Gávea</SelectItem>
+                    <SelectItem value="JARDIM BOTANICO">Jardim Botânico</SelectItem>
+                    <SelectItem value="LAGOA">Lagoa</SelectItem>
+                    <SelectItem value="SAO CONRADO">São Conrado</SelectItem>
+                    <SelectItem value="HUMAITA">Humaitá</SelectItem>
+                    <SelectItem value="URCA">Urca</SelectItem>
+                    <SelectItem value="CENTRO">Centro</SelectItem>
+                    <SelectItem value="VILA ISABEL">Vila Isabel</SelectItem>
+                    <SelectItem value="MEIER">Méier</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -766,6 +780,25 @@ export function SearchTools({ bairro = "BARRA DA TIJUCA" }: SearchToolsProps) {
                     <SelectItem value="apartamento">Apartamento</SelectItem>
                     <SelectItem value="casa">Casa</SelectItem>
                     <SelectItem value="cobertura">Cobertura</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="trans-periodo">Período</Label>
+                <Select 
+                  value={transacaoPeriodo} 
+                  onValueChange={(value) => {
+                    setTransacaoPeriodo(value);
+                    setSearchTransactions(false);
+                  }}
+                >
+                  <SelectTrigger id="trans-periodo">
+                    <SelectValue placeholder="Selecione" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {PERIODO_OPTIONS.map((opt) => (
+                      <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
               </div>
