@@ -59,6 +59,8 @@ export function SearchTools({ bairro = "BARRA DA TIJUCA" }: SearchToolsProps) {
   // Transaction search state
   const [valorMin, setValorMin] = useState<string>("");
   const [valorMax, setValorMax] = useState<string>("");
+  const [transacaoBairro, setTransacaoBairro] = useState<string>("BARRA DA TIJUCA");
+  const [transacaoTipologia, setTransacaoTipologia] = useState<string>("");
   const [searchTransactions, setSearchTransactions] = useState(false);
 
   // Valuation state
@@ -99,6 +101,8 @@ export function SearchTools({ bairro = "BARRA DA TIJUCA" }: SearchToolsProps) {
     {
       valorMin: valorMin ? parseFloat(valorMin) : undefined,
       valorMax: valorMax ? parseFloat(valorMax) : undefined,
+      bairro: transacaoBairro || undefined,
+      tipologia: transacaoTipologia === 'todas' ? undefined : transacaoTipologia || undefined,
     },
     searchTransactions
   );
@@ -193,6 +197,8 @@ export function SearchTools({ bairro = "BARRA DA TIJUCA" }: SearchToolsProps) {
   const clearTransactionFilters = () => {
     setValorMin("");
     setValorMax("");
+    setTransacaoBairro("BARRA DA TIJUCA");
+    setTransacaoTipologia("");
     setSearchTransactions(false);
   };
 
@@ -720,7 +726,54 @@ export function SearchTools({ bairro = "BARRA DA TIJUCA" }: SearchToolsProps) {
           <TabsContent value="transacoes" className="space-y-4 mt-4">
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="valor-min">Valor Mínimo</Label>
+                <Label htmlFor="trans-bairro">Bairro</Label>
+                <Select 
+                  value={transacaoBairro} 
+                  onValueChange={(value) => {
+                    setTransacaoBairro(value);
+                    setSearchTransactions(false);
+                  }}
+                >
+                  <SelectTrigger id="trans-bairro">
+                    <SelectValue placeholder="Selecione o bairro" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="BARRA DA TIJUCA">Barra da Tijuca</SelectItem>
+                    <SelectItem value="RECREIO DOS BANDEIRANTES">Recreio dos Bandeirantes</SelectItem>
+                    <SelectItem value="JACAREPAGUA">Jacarepaguá</SelectItem>
+                    <SelectItem value="COPACABANA">Copacabana</SelectItem>
+                    <SelectItem value="IPANEMA">Ipanema</SelectItem>
+                    <SelectItem value="LEBLON">Leblon</SelectItem>
+                    <SelectItem value="BOTAFOGO">Botafogo</SelectItem>
+                    <SelectItem value="TIJUCA">Tijuca</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="trans-tipologia">Tipologia</Label>
+                <Select 
+                  value={transacaoTipologia} 
+                  onValueChange={(value) => {
+                    setTransacaoTipologia(value);
+                    setSearchTransactions(false);
+                  }}
+                >
+                  <SelectTrigger id="trans-tipologia">
+                    <SelectValue placeholder="Todas" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="todas">Todas</SelectItem>
+                    <SelectItem value="apartamento">Apartamento</SelectItem>
+                    <SelectItem value="casa">Casa</SelectItem>
+                    <SelectItem value="cobertura">Cobertura</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="valor-min">Valor Mínimo (R$)</Label>
                 <Input 
                   id="valor-min" 
                   type="number" 
@@ -733,7 +786,7 @@ export function SearchTools({ bairro = "BARRA DA TIJUCA" }: SearchToolsProps) {
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="valor-max">Valor Máximo</Label>
+                <Label htmlFor="valor-max">Valor Máximo (R$)</Label>
                 <Input 
                   id="valor-max" 
                   type="number" 

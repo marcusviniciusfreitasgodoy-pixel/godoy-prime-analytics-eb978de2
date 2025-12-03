@@ -133,6 +133,8 @@ export function useLocationSearch(params: LocationSearchParams, enabled: boolean
 export interface TransactionSearchParams {
   valorMin?: number;
   valorMax?: number;
+  bairro?: string;
+  tipologia?: string;
 }
 
 export interface MicrobairroLiquidez {
@@ -147,10 +149,20 @@ export function useTransactionSearch(params: TransactionSearchParams, enabled: b
     queryFn: async () => {
       let query = supabase
         .from('itbi_transactions')
-        .select('logradouro, valor_transacao, valor_m2')
+        .select('logradouro, valor_transacao, valor_m2, total_transacoes')
         .eq('uso', 'Residencial')
         .not('valor_m2', 'is', null)
         .gte('percentual_transferido', 90);
+
+      // Filtro por bairro
+      if (params.bairro) {
+        query = query.ilike('bairro', params.bairro);
+      }
+
+      // Filtro por tipologia
+      if (params.tipologia) {
+        query = query.ilike('tipologia', `%${params.tipologia}%`);
+      }
 
       if (params.valorMin) {
         query = query.gte('valor_transacao', params.valorMin);
@@ -171,7 +183,7 @@ export function useTransactionSearch(params: TransactionSearchParams, enabled: b
           acc[micro] = { valores: [], count: 0 };
         }
         acc[micro].valores.push(t.valor_m2!);
-        acc[micro].count++;
+        acc[micro].count += t.total_transacoes || 1;
         return acc;
       }, {} as Record<string, { valores: number[], count: number }>);
 
