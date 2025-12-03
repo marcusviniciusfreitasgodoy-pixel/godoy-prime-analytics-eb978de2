@@ -434,15 +434,15 @@ export function SearchTools({ bairro = "BARRA DA TIJUCA" }: SearchToolsProps) {
       <CardContent>
         <Tabs defaultValue="localizacao" className="w-full">
           <TabsList className="grid w-full grid-cols-3">
-            <TabsTrigger value="localizacao">
+            <TabsTrigger value="localizacao" data-tour="tab-localizacao">
               <Search className="h-4 w-4 mr-2" />
               Localização
             </TabsTrigger>
-            <TabsTrigger value="transacoes">
+            <TabsTrigger value="transacoes" data-tour="tab-transacoes">
               <DollarSign className="h-4 w-4 mr-2" />
               Transações
             </TabsTrigger>
-            <TabsTrigger value="valuation">
+            <TabsTrigger value="valuation" data-tour="tab-valuation">
               <Bot className="h-4 w-4 mr-2" />
               IA Valuation
             </TabsTrigger>
