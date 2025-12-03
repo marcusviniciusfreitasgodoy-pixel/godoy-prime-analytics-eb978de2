@@ -186,24 +186,24 @@ serve(async (req) => {
           continue;
         }
         
-        // Normalizar área: máximo 4 dígitos antes do decimal
-        // Valores como 99038461 devem virar 99.04 (dividir por 1.000.000)
+        // Normalizar área APENAS se claramente errada
+        // Valores corretos: < 10.000 m² (ex: 107.2, 85.22, 500.0)
+        // Valores errados: > 1.000.000 (ex: 99038461 deve virar 99.04)
         let area = areaRaw;
         if (area > 1000000) {
+          // Valor absurdamente grande - dividir por 1.000.000
           area = area / 1000000;
-        } else if (area > 10000) {
-          // Valores intermediários como 99038 devem virar 99.04
-          area = area / 1000;
+          console.log(`[NORM] Área normalizada: ${areaRaw} → ${area.toFixed(2)}`);
         }
         
-        // Normalizar valor: valores em trilhões devem virar milhões
-        // Valores como 1.338.014.253.461 devem virar 1.338.014
+        // Normalizar valor APENAS se claramente errado
+        // Valores corretos: < 10 bilhões (ex: 1243946.6 = R$ 1.2M)
+        // Valores errados: > 10 bilhões (ex: 1.338.014.253.461)
         let valor = valorRaw;
-        if (valor > 1000000000) {
+        if (valor > 10000000000) {
+          // Valor em trilhões - dividir por 1.000.000
           valor = valor / 1000000;
-        } else if (valor > 100000000) {
-          // Valores intermediários
-          valor = valor / 1000;
+          console.log(`[NORM] Valor normalizado: ${valorRaw} → ${valor.toFixed(2)}`);
         }
         
         // Calcular valor/m²
