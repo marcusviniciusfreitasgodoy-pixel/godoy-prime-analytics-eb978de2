@@ -84,7 +84,8 @@ export function useMicrobairroDetalhado() {
         .eq('bairro', 'BARRA DA TIJUCA')
         .not('valor_m2', 'is', null)
         .not('logradouro', 'is', null)
-        .gte('data_transacao', startDate);
+        .gte('data_transacao', startDate)
+        .limit(10000);
 
       if (error) throw error;
 
@@ -167,7 +168,8 @@ export function useKPIStats() {
         .select('valor_m2, tipologia, uso')
         .eq('uso', 'Residencial')
         .eq('bairro', 'BARRA DA TIJUCA')
-        .gte('data_transacao', startDate12Months);
+        .gte('data_transacao', startDate12Months)
+        .limit(10000);
 
       if (currentError) throw currentError;
 
@@ -178,7 +180,8 @@ export function useKPIStats() {
         .eq('uso', 'Residencial')
         .eq('bairro', 'BARRA DA TIJUCA')
         .gte('data_transacao', startDate24Months)
-        .lt('data_transacao', startDate12Months);
+        .lt('data_transacao', startDate12Months)
+        .limit(10000);
 
       if (previousError) throw previousError;
 

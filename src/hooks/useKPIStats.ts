@@ -47,7 +47,8 @@ export function useKPIStats() {
         .select('valor_m2, tipologia, data_transacao')
         .eq('uso', 'Residencial')
         .eq('bairro', 'BARRA DA TIJUCA')
-        .gte('data_transacao', startDate12Months);
+        .gte('data_transacao', startDate12Months)
+        .limit(10000);
 
       if (currentError) throw currentError;
 
@@ -58,7 +59,8 @@ export function useKPIStats() {
         .eq('uso', 'Residencial')
         .eq('bairro', 'BARRA DA TIJUCA')
         .gte('data_transacao', startDate24Months)
-        .lt('data_transacao', startDate12Months);
+        .lt('data_transacao', startDate12Months)
+        .limit(10000);
 
       if (previousError) throw previousError;
 
