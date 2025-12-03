@@ -25,39 +25,55 @@ interface TransactionData {
 
 export function useKPIStats() {
   return useQuery<KPIStatsData>({
-    queryKey: ['kpi-stats-detailed'],
+    queryKey: ['kpi-stats-detailed-v2'],
+    staleTime: 0,
+    refetchOnMount: 'always',
     queryFn: async () => {
-      // Dados desde 2020 para KPIs (ajustado para dados históricos disponíveis)
-      const startDate24Months = '2020-01-01';
-      const startDate12Months = '2020-07-01'; // Meio de 2020 para dividir períodos
+      // Datas dinâmicas baseadas na data atual
+      const now = new Date();
+      
+      // Últimos 12 meses (período atual)
+      const twelveMonthsAgo = new Date(now);
+      twelveMonthsAgo.setMonth(twelveMonthsAgo.getMonth() - 12);
+      const startDate12Months = twelveMonthsAgo.toISOString().split('T')[0];
+      
+      // 24 meses atrás (para período anterior de comparação YoY)
+      const twentyFourMonthsAgo = new Date(now);
+      twentyFourMonthsAgo.setMonth(twentyFourMonthsAgo.getMonth() - 24);
+      const startDate24Months = twentyFourMonthsAgo.toISOString().split('T')[0];
 
       // Último mês para variação mensal
-      const oneMonthAgo = new Date();
+      const oneMonthAgo = new Date(now);
       oneMonthAgo.setMonth(oneMonthAgo.getMonth() - 1);
       const startDateLastMonth = oneMonthAgo.toISOString().split('T')[0];
 
       // Dois meses atrás
-      const twoMonthsAgo = new Date();
+      const twoMonthsAgo = new Date(now);
       twoMonthsAgo.setMonth(twoMonthsAgo.getMonth() - 2);
       const startDateTwoMonths = twoMonthsAgo.toISOString().split('T')[0];
 
-      // Buscar transações dos últimos 12 meses (período atual)
+      console.log('[KPI] Período atual:', startDate12Months, 'até hoje');
+      console.log('[KPI] Período anterior:', startDate24Months, 'até', startDate12Months);
+
+      // Buscar transações dos últimos 12 meses (período atual) - SOMENTE RESIDENCIAL
       const { data: currentPeriodData, error: currentError } = await supabase
         .from('itbi_transactions')
         .select('valor_m2, tipologia, data_transacao')
         .eq('uso', 'Residencial')
         .eq('bairro', 'BARRA DA TIJUCA')
+        .not('valor_m2', 'is', null)
         .gte('data_transacao', startDate12Months)
         .limit(10000);
 
       if (currentError) throw currentError;
 
-      // Buscar transações dos 12 meses anteriores (para comparação YoY)
+      // Buscar transações dos 12 meses anteriores (para comparação YoY) - SOMENTE RESIDENCIAL
       const { data: previousPeriodData, error: previousError } = await supabase
         .from('itbi_transactions')
         .select('valor_m2, tipologia')
         .eq('uso', 'Residencial')
         .eq('bairro', 'BARRA DA TIJUCA')
+        .not('valor_m2', 'is', null)
         .gte('data_transacao', startDate24Months)
         .lt('data_transacao', startDate12Months)
         .limit(10000);
@@ -66,6 +82,9 @@ export function useKPIStats() {
 
       const currentTransactions = currentPeriodData || [];
       const previousTransactions = previousPeriodData || [];
+
+      console.log('[KPI] Transações período atual:', currentTransactions.length);
+      console.log('[KPI] Transações período anterior:', previousTransactions.length);
 
       // Separar por tipologia - current
       const currentApt = currentTransactions.filter(t => 
