@@ -108,7 +108,9 @@ export type Database = {
           id: string
           logradouro: string
           numero: string | null
+          percentual_transferido: number | null
           tipologia: string | null
+          total_transacoes: number
           updated_at: string | null
           uso: Database["public"]["Enums"]["uso_imovel"]
           valor_m2: number | null
@@ -123,7 +125,9 @@ export type Database = {
           id?: string
           logradouro: string
           numero?: string | null
+          percentual_transferido?: number | null
           tipologia?: string | null
+          total_transacoes?: number
           updated_at?: string | null
           uso?: Database["public"]["Enums"]["uso_imovel"]
           valor_m2?: number | null
@@ -138,7 +142,9 @@ export type Database = {
           id?: string
           logradouro?: string
           numero?: string | null
+          percentual_transferido?: number | null
           tipologia?: string | null
+          total_transacoes?: number
           updated_at?: string | null
           uso?: Database["public"]["Enums"]["uso_imovel"]
           valor_m2?: number | null
