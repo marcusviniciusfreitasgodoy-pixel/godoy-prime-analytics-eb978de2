@@ -57,7 +57,11 @@ export function useEvolutionData() {
       return months.map((key, index) => {
         const [year, month] = key.split('-');
         const date = new Date(parseInt(year), parseInt(month) - 1);
-        const mesFormatted = date.toLocaleDateString('pt-BR', { month: 'short', year: '2-digit' });
+        // Formato: "Jan/20" para primeiro mês do ano, apenas "20" para outros
+        const monthNum = parseInt(month);
+        const mesFormatted = monthNum === 1 
+          ? `Jan/${year.slice(2)}` 
+          : date.toLocaleDateString('pt-BR', { month: 'short', year: '2-digit' });
         
         const avg = (arr: number[]) => arr.length > 0 
           ? arr.reduce((sum, v) => sum + v, 0) / arr.length 

@@ -60,7 +60,8 @@ export function EvolutionChart() {
                   fontSize={11}
                   tickLine={false}
                   axisLine={false}
-                  interval={Math.max(0, Math.floor(monthCount / 8) - 1)}
+                  interval={11}
+                  tickFormatter={(value) => value.includes('Jan') ? value : ''}
                 />
                 <YAxis 
                   yAxisId="price"
@@ -116,7 +117,8 @@ export function EvolutionChart() {
                   fontSize={11}
                   tickLine={false}
                   axisLine={false}
-                  interval={Math.max(0, Math.floor(monthCount / 8) - 1)}
+                  interval={11}
+                  tickFormatter={(value) => value.includes('Jan') ? value : ''}
                 />
                 <YAxis 
                   stroke="hsl(var(--muted-foreground))"
@@ -160,7 +162,8 @@ export function EvolutionChart() {
                   fontSize={11}
                   tickLine={false}
                   axisLine={false}
-                  interval={Math.max(0, Math.floor(monthCount / 8) - 1)}
+                  interval={11}
+                  tickFormatter={(value) => value.includes('Jan') ? value : ''}
                 />
                 <YAxis 
                   stroke="hsl(var(--muted-foreground))"
