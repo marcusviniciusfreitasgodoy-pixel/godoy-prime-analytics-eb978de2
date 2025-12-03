@@ -537,17 +537,38 @@ export function SearchTools({ bairro = "BARRA DA TIJUCA" }: SearchToolsProps) {
                           type="button"
                           className={cn(
                             "w-full px-3 py-2 text-left text-sm hover:bg-accent transition-colors",
-                            "flex items-center justify-between gap-2 border-b border-border/50 last:border-0"
+                            "flex flex-col gap-1 border-b border-border/50 last:border-0"
                           )}
                           onClick={() => handleSelectSuggestion(s.logradouro)}
                         >
-                          <div className="flex items-center gap-2 min-w-0">
-                            <MapPin className="h-4 w-4 text-muted-foreground flex-shrink-0" />
-                            <span className="truncate">{s.logradouro}</span>
+                          <div className="flex items-center justify-between gap-2 w-full">
+                            <div className="flex items-center gap-2 min-w-0">
+                              <MapPin className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+                              <span className="truncate font-medium">
+                                {s.nome_condominio || s.logradouro}
+                              </span>
+                            </div>
+                            <div className="flex items-center gap-1 flex-shrink-0">
+                              {s.microbairro && (
+                                <Badge variant="outline" className="text-[10px] px-1.5 py-0">
+                                  {s.microbairro}
+                                </Badge>
+                              )}
+                              <Badge variant="secondary" className="text-xs">
+                                {s.total_transacoes}
+                              </Badge>
+                            </div>
                           </div>
-                          <Badge variant="secondary" className="flex-shrink-0 text-xs">
-                            {s.total_transacoes}
-                          </Badge>
+                          {s.nome_condominio && (
+                            <div className="flex items-center gap-2 text-xs text-muted-foreground pl-6">
+                              <span className="truncate">{s.logradouro}</span>
+                              {s.padrao_construtivo && (
+                                <Badge variant="outline" className="text-[10px] px-1.5 py-0 bg-accent/50">
+                                  {s.padrao_construtivo}
+                                </Badge>
+                              )}
+                            </div>
+                          )}
                         </button>
                       ))
                     )}
@@ -704,9 +725,38 @@ export function SearchTools({ bairro = "BARRA DA TIJUCA" }: SearchToolsProps) {
             
             {locationResult ? (
               <div className="p-3 sm:p-4 border rounded-lg bg-muted/30 space-y-3">
-                <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2">
-                  <span className="font-semibold text-foreground text-sm sm:text-base truncate">{locationResult.logradouro}</span>
-                  <Badge variant="secondary" className="self-start sm:self-auto">{locationResult.total_transacoes} transações</Badge>
+                <div className="flex flex-col gap-1">
+                  <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-2">
+                    <div className="flex flex-col">
+                      {locationResult.nome_condominio ? (
+                        <>
+                          <span className="font-semibold text-foreground text-sm sm:text-base">
+                            {locationResult.nome_condominio}
+                          </span>
+                          <span className="text-xs text-muted-foreground truncate">
+                            {locationResult.logradouro}
+                          </span>
+                        </>
+                      ) : (
+                        <span className="font-semibold text-foreground text-sm sm:text-base truncate">
+                          {locationResult.logradouro}
+                        </span>
+                      )}
+                    </div>
+                    <div className="flex flex-wrap gap-1 self-start sm:self-auto">
+                      {locationResult.microbairro && (
+                        <Badge variant="outline" className="text-xs">
+                          {locationResult.microbairro}
+                        </Badge>
+                      )}
+                      {locationResult.padrao_construtivo && (
+                        <Badge variant="outline" className="text-xs bg-accent/50">
+                          {locationResult.padrao_construtivo}
+                        </Badge>
+                      )}
+                      <Badge variant="secondary">{locationResult.total_transacoes} transações</Badge>
+                    </div>
+                  </div>
                 </div>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-4 text-sm">
                   <div className="flex justify-between sm:block">
@@ -1040,17 +1090,38 @@ export function SearchTools({ bairro = "BARRA DA TIJUCA" }: SearchToolsProps) {
                           type="button"
                           className={cn(
                             "w-full px-3 py-2 text-left text-sm hover:bg-accent transition-colors",
-                            "flex items-center justify-between gap-2 border-b border-border/50 last:border-0"
+                            "flex flex-col gap-1 border-b border-border/50 last:border-0"
                           )}
                           onClick={() => handleSelectValSuggestion(s.logradouro)}
                         >
-                          <div className="flex items-center gap-2 min-w-0">
-                            <MapPin className="h-4 w-4 text-muted-foreground flex-shrink-0" />
-                            <span className="truncate">{s.logradouro}</span>
+                          <div className="flex items-center justify-between gap-2 w-full">
+                            <div className="flex items-center gap-2 min-w-0">
+                              <MapPin className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+                              <span className="truncate font-medium">
+                                {s.nome_condominio || s.logradouro}
+                              </span>
+                            </div>
+                            <div className="flex items-center gap-1 flex-shrink-0">
+                              {s.microbairro && (
+                                <Badge variant="outline" className="text-[10px] px-1.5 py-0">
+                                  {s.microbairro}
+                                </Badge>
+                              )}
+                              <Badge variant="secondary" className="text-xs">
+                                {s.total_transacoes}
+                              </Badge>
+                            </div>
                           </div>
-                          <Badge variant="secondary" className="flex-shrink-0 text-xs">
-                            {s.total_transacoes}
-                          </Badge>
+                          {s.nome_condominio && (
+                            <div className="flex items-center gap-2 text-xs text-muted-foreground pl-6">
+                              <span className="truncate">{s.logradouro}</span>
+                              {s.padrao_construtivo && (
+                                <Badge variant="outline" className="text-[10px] px-1.5 py-0 bg-accent/50">
+                                  {s.padrao_construtivo}
+                                </Badge>
+                              )}
+                            </div>
+                          )}
                         </button>
                       ))
                     )}
