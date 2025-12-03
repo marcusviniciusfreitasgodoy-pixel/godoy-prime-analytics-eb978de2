@@ -135,6 +135,7 @@ export interface TransactionSearchParams {
   valorMax?: number;
   bairro?: string;
   tipologia?: string;
+  periodoMeses?: number;
 }
 
 export interface MicrobairroLiquidez {
@@ -147,12 +148,19 @@ export function useTransactionSearch(params: TransactionSearchParams, enabled: b
   return useQuery<MicrobairroLiquidez[]>({
     queryKey: ['transaction-search', params],
     queryFn: async () => {
+      // Período configurável (padrão: 12 meses)
+      const meses = params.periodoMeses || 12;
+      const startDateCalc = new Date();
+      startDateCalc.setMonth(startDateCalc.getMonth() - meses);
+      const startDate = startDateCalc.toISOString().split('T')[0];
+
       let query = supabase
         .from('itbi_transactions')
-        .select('logradouro, valor_transacao, valor_m2, total_transacoes')
+        .select('logradouro, valor_transacao, valor_m2, total_transacoes, data_transacao')
         .eq('uso', 'Residencial')
         .not('valor_m2', 'is', null)
-        .gte('percentual_transferido', 90);
+        .gte('percentual_transferido', 90)
+        .gte('data_transacao', startDate);
 
       // Filtro por bairro
       if (params.bairro) {
