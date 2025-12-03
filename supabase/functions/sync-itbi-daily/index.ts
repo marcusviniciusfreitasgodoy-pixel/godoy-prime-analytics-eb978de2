@@ -52,6 +52,18 @@ Deno.serve(async (req) => {
     return new Response(null, { headers: corsHeaders })
   }
 
+  // Verificação de segurança: validar secret header para cron jobs
+  const cronSecret = req.headers.get('x-cron-secret')
+  const expectedSecret = Deno.env.get('CRON_SECRET')
+  
+  if (!expectedSecret || cronSecret !== expectedSecret) {
+    console.error('[CRON] Unauthorized: Invalid or missing cron secret')
+    return new Response(
+      JSON.stringify({ success: false, error: 'Unauthorized' }),
+      { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    )
+  }
+
   try {
     const supabase = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
