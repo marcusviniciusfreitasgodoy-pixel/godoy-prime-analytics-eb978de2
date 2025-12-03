@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { FileDown, Info, HelpCircle } from "lucide-react";
+import { FileDown, Info, HelpCircle, Monitor } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { DashboardKPIs } from "@/components/DashboardKPIs";
@@ -56,19 +56,22 @@ export default function Dashboard() {
     <div className="space-y-6">
       <GuidedTour run={runTour} onFinish={() => setRunTour(false)} />
       
-      <div className="flex items-center justify-between flex-wrap gap-4">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h2 className="text-3xl font-bold text-foreground">Dashboard</h2>
-          <p className="text-muted-foreground mt-1">
+          <h2 className="text-2xl sm:text-3xl font-bold text-foreground">Dashboard</h2>
+          <p className="text-muted-foreground text-sm sm:text-base mt-1">
             Inteligência de Mercado Imobiliário
           </p>
         </div>
-        <div className="flex items-center gap-4 flex-wrap">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 sm:gap-4">
           <BairroSelector value={selectedBairro} onChange={setSelectedBairro} />
           <div className="flex gap-2">
-            <Button variant="outline" size="sm" onClick={() => setRunTour(true)}>
+            <Button variant="outline" size="sm" onClick={() => setRunTour(true)} className="hidden sm:flex">
               <HelpCircle className="h-4 w-4 mr-2" />
               Tour Guiado
+            </Button>
+            <Button variant="outline" size="sm" onClick={() => setRunTour(true)} className="sm:hidden">
+              <HelpCircle className="h-4 w-4" />
             </Button>
             <Button 
               variant="outline" 
@@ -76,8 +79,8 @@ export default function Dashboard() {
               onClick={handleExportCSV}
               disabled={isExporting}
             >
-              <FileDown className="h-4 w-4 mr-2" />
-              {isExporting ? "Exportando..." : "Exportar CSV"}
+              <FileDown className="h-4 w-4 sm:mr-2" />
+              <span className="hidden sm:inline">{isExporting ? "Exportando..." : "Exportar CSV"}</span>
             </Button>
           </div>
         </div>
@@ -85,10 +88,19 @@ export default function Dashboard() {
 
       <Alert>
         <Info className="h-4 w-4" />
-        <AlertDescription>
+        <AlertDescription className="text-xs sm:text-sm">
           <strong>Disclaimer Jurídico:</strong> Esta ferramenta fornece análises estatísticas 
           baseadas em dados públicos de ITBI. As informações não substituem laudos oficiais 
           (PTAM) e devem ser utilizadas apenas como referência de mercado.
+        </AlertDescription>
+      </Alert>
+
+      {/* Aviso mobile */}
+      <Alert className="sm:hidden bg-muted/50 border-muted">
+        <Monitor className="h-4 w-4" />
+        <AlertDescription className="text-xs">
+          <strong>Dica:</strong> Para melhor experiência com gráficos e análises detalhadas, 
+          recomendamos usar um computador ou tablet.
         </AlertDescription>
       </Alert>
 
