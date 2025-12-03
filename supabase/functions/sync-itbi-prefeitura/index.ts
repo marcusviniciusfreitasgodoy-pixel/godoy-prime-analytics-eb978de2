@@ -9,6 +9,19 @@ const corsHeaders = {
 // API da Prefeitura do Rio de Janeiro - ITBI
 const PREFEITURA_API_URL = 'https://pgeo3.rio.rj.gov.br/arcgis/rest/services/Fazenda/ITBI/MapServer/8/query';
 
+// Mapeamento de códigos de bairro para nomes (principais bairros do Rio)
+const BAIRRO_CODES: Record<string, string> = {
+  '128': 'BARRA DA TIJUCA',
+  '159': 'RECREIO DOS BANDEIRANTES',
+  '118': 'COPACABANA',
+  '119': 'IPANEMA',
+  '120': 'LEBLON',
+  '123': 'LAGOA',
+  '029': 'BOTAFOGO',
+  '040': 'FLAMENGO',
+  '088': 'TIJUCA',
+};
+
 interface ArcGISFeature {
   attributes: Record<string, unknown>;
 }
@@ -62,7 +75,7 @@ serve(async (req) => {
   }
 
   try {
-    console.log('=== SINCRONIZAÇÃO ITBI VIA API ===');
+    console.log('=== SINCRONIZAÇÃO ITBI VIA API (v2 - codbairro) ===');
 
     const supabaseUrl = Deno.env.get('SUPABASE_URL');
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
@@ -73,37 +86,52 @@ serve(async (req) => {
 
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
+    // Parâmetros
     let clearExisting = false;
-    let filterByBairro = false; // Importar todos os bairros por padrão
+    let codbairro = '128'; // Barra da Tijuca por padrão
     let minYear = 2020;
+    let maxYear = new Date().getFullYear();
+    let onlyResidencial = false;
     
     try {
       const body = await req.json();
       if (body.clearExisting !== undefined) clearExisting = body.clearExisting;
-      if (body.filterByBairro !== undefined) filterByBairro = body.filterByBairro;
+      if (body.codbairro) codbairro = body.codbairro;
       if (body.minYear) minYear = body.minYear;
+      if (body.maxYear) maxYear = body.maxYear;
+      if (body.onlyResidencial !== undefined) onlyResidencial = body.onlyResidencial;
     } catch {
       console.log('Usando parâmetros padrão');
     }
 
-    console.log(`Filtrar por Barra da Tijuca: ${filterByBairro}`);
-    console.log(`Ano mínimo: ${minYear}`);
+    const bairroNome = BAIRRO_CODES[codbairro] || 'BARRA DA TIJUCA';
+    console.log(`Bairro: ${bairroNome} (código: ${codbairro})`);
+    console.log(`Período: ${minYear} - ${maxYear}`);
+    console.log(`Apenas residencial: ${onlyResidencial}`);
 
-    // Buscar com paginação - usar 1=1 e filtrar no código
+    // Buscar com paginação - FILTRANDO POR CODBAIRRO NA API!
     let allFeatures: ArcGISFeature[] = [];
     let offset = 0;
     const pageSize = 2000;
     let hasMore = true;
 
+    // Construir WHERE clause com codbairro
+    let whereClause = `codbairro='${codbairro}' AND ano_transação>=${minYear} AND ano_transação<=${maxYear}`;
+    if (onlyResidencial) {
+      whereClause += ` AND uso='RESIDENCIAL'`;
+    }
+    const encodedWhere = encodeURIComponent(whereClause);
+
+    console.log(`WHERE: ${whereClause}`);
     console.log('Buscando dados da API da Prefeitura...');
 
     while (hasMore) {
-      const apiUrl = `${PREFEITURA_API_URL}?where=1%3D1&outFields=*&f=json&resultRecordCount=${pageSize}&resultOffset=${offset}`;
+      const apiUrl = `${PREFEITURA_API_URL}?where=${encodedWhere}&outFields=*&f=json&resultRecordCount=${pageSize}&resultOffset=${offset}`;
       
       console.log(`Offset ${offset}...`);
 
       const response = await fetch(apiUrl, {
-        headers: { 'Accept': 'application/json', 'User-Agent': 'GodoyPrime/1.0' }
+        headers: { 'Accept': 'application/json', 'User-Agent': 'GodoyPrime/2.0' }
       });
       
       if (!response.ok) {
@@ -130,9 +158,14 @@ serve(async (req) => {
           console.log('Exemplo registro:', JSON.stringify({
             logradouro: attrs['logradouro'],
             bairro: attrs['bairro'],
+            codbairro: attrs['codbairro'],
             ano: attrs['ano_transação'],
+            mes: attrs['mês_transação'],
+            uso: attrs['uso'],
             valor: attrs['média_valor_transação'],
-            area: attrs['média_área_construída']
+            area: attrs['média_área_construída'],
+            percentual: attrs['média_percentual_transferido'],
+            total: attrs['total_transações']
           }));
         }
         
@@ -146,8 +179,8 @@ serve(async (req) => {
       }
 
       // Limite de segurança
-      if (offset > 200000) {
-        console.log('Limite de segurança atingido (200k)');
+      if (offset > 50000) {
+        console.log('Limite de segurança atingido (50k)');
         hasMore = false;
       }
     }
@@ -165,16 +198,21 @@ serve(async (req) => {
       );
     }
 
-    // Limpar dados se solicitado
+    // Limpar dados existentes do bairro/período se solicitado
     if (clearExisting) {
-      console.log('Limpando dados existentes...');
+      console.log(`Limpando dados existentes de ${bairroNome} (${minYear}-${maxYear})...`);
+      
       const { error: deleteError } = await supabase
         .from('itbi_transactions')
         .delete()
-        .neq('id', '00000000-0000-0000-0000-000000000000');
+        .eq('bairro', bairroNome)
+        .gte('data_transacao', `${minYear}-01-01`)
+        .lte('data_transacao', `${maxYear}-12-31`);
       
       if (deleteError) {
         console.error('Erro ao limpar:', deleteError.message);
+      } else {
+        console.log('Dados anteriores removidos');
       }
     }
 
@@ -195,18 +233,17 @@ serve(async (req) => {
 
     let skippedInvalidData = 0;
     let skippedOutliers = 0;
-    let skippedBairro = 0;
+    let skippedPercentual = 0;
 
     for (const f of allFeatures) {
       const attrs = f.attributes;
       
-      // Extrair dados nativos JSON (números já vêm corretos!)
+      // Extrair dados nativos JSON (números já vêm corretos da API!)
       const valor = extractNumber(attrs['média_valor_transação']);
       const area = extractNumber(attrs['média_área_construída']);
       const totalTransacoes = extractNumber(attrs['total_transações']) ?? 1;
       const percentualTransferido = extractNumber(attrs['média_percentual_transferido']) ?? 100;
       const logradouro = extractString(attrs['logradouro']);
-      const bairro = extractString(attrs['bairro'])?.trim().toUpperCase() || '';
       const ano = extractNumber(attrs['ano_transação']);
       const mes = extractNumber(attrs['mês_transação']);
       const tipologia = extractString(attrs['principais_tipologias']);
@@ -218,34 +255,28 @@ serve(async (req) => {
         continue;
       }
 
-      // Filtrar por ano
-      if (ano === null || ano < minYear) {
-        skippedInvalidData++;
-        continue;
-      }
-
-      // Filtrar por bairro (usar nome, não código)
-      if (filterByBairro && !bairro.includes('BARRA DA TIJUCA')) {
-        skippedBairro++;
+      // Filtrar por percentual transferido >= 90%
+      if (percentualTransferido < 90) {
+        skippedPercentual++;
         continue;
       }
 
       // Calcular valor/m²
       const valorM2 = valor / area;
 
-      // Validar ranges razoáveis para evitar overflow
-      // Área: 10 a 2000 m²
-      // Valor: R$ 50.000 a R$ 100.000.000
-      // Valor/m²: R$ 1.000 a R$ 200.000
-      if (area < 10 || area > 2000) {
+      // Validar ranges razoáveis (menos restritivos)
+      // Área: 20 a 5000 m²
+      // Valor: R$ 100.000 a R$ 200.000.000
+      // Valor/m²: R$ 500 a R$ 300.000
+      if (area < 20 || area > 5000) {
         skippedOutliers++;
         continue;
       }
-      if (valor < 50000 || valor > 100000000) {
+      if (valor < 100000 || valor > 200000000) {
         skippedOutliers++;
         continue;
       }
-      if (valorM2 < 1000 || valorM2 > 200000) {
+      if (valorM2 < 500 || valorM2 > 300000) {
         skippedOutliers++;
         continue;
       }
@@ -258,12 +289,11 @@ serve(async (req) => {
         dataTransacao = `${ano}-06-15`;
       }
 
-      // valor_m2 é GENERATED pelo banco, não incluir no insert
       transacoes.push({
         logradouro: logradouro.toUpperCase(),
         numero: null,
         complemento: null,
-        bairro: bairro || 'BARRA DA TIJUCA',
+        bairro: bairroNome,
         valor_transacao: Math.round(valor * 100) / 100,
         area_m2: Math.round(area * 100) / 100,
         data_transacao: dataTransacao,
@@ -277,7 +307,11 @@ serve(async (req) => {
     console.log(`Transações válidas para inserção: ${transacoes.length}`);
     console.log(`Ignoradas (dados inválidos): ${skippedInvalidData}`);
     console.log(`Ignoradas (outliers): ${skippedOutliers}`);
-    console.log(`Ignoradas (outro bairro): ${skippedBairro}`);
+    console.log(`Ignoradas (percentual < 90%): ${skippedPercentual}`);
+
+    // Calcular total de transações reais
+    const totalTransacoesReais = transacoes.reduce((sum, t) => sum + t.total_transacoes, 0);
+    console.log(`Total de transações reais (soma): ${totalTransacoesReais}`);
 
     // Inserir em lotes
     let totalInseridas = 0;
@@ -300,17 +334,17 @@ serve(async (req) => {
     const summary = {
       success: true,
       message: 'Sincronização via API concluída',
-      api_registros: allFeatures.length,
-      transacoes_validas: transacoes.length,
-      transacoes_inseridas: totalInseridas,
-      ignoradas: {
+      bairro: bairroNome,
+      codbairro: codbairro,
+      periodo: `${minYear}-${maxYear}`,
+      api_registros_agregados: allFeatures.length,
+      registros_validos: transacoes.length,
+      registros_inseridos: totalInseridas,
+      total_transacoes_reais: totalTransacoesReais,
+      ignorados: {
         dados_invalidos: skippedInvalidData,
         outliers: skippedOutliers,
-        outro_bairro: skippedBairro,
-      },
-      filtros: {
-        ano_minimo: minYear,
-        bairro: filterByBairro ? 'BARRA DA TIJUCA' : 'TODOS'
+        percentual_baixo: skippedPercentual,
       },
       erros: erros.length > 0 ? erros : undefined,
     };
