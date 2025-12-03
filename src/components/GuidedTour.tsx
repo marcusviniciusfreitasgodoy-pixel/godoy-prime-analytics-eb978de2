@@ -20,8 +20,23 @@ const tourSteps: Step[] = [
   },
   {
     target: '[data-tour="search-tools"]',
-    content: 'Ferramentas de busca: pesquise por localização, filtre transações por valor, ou use a IA Valuation para precificar imóveis.',
+    content: 'Ferramentas de busca avançadas com três módulos especializados para análise do mercado imobiliário.',
     placement: 'top',
+  },
+  {
+    target: '[data-tour="tab-localizacao"]',
+    content: 'Busca por Localização: pesquise ruas ou condomínios e veja estatísticas como mediana, média e desvio padrão do m². Filtre por tipologia, finalidade, área e período.',
+    placement: 'bottom',
+  },
+  {
+    target: '[data-tour="tab-transacoes"]',
+    content: 'Busca por Transações: encontre microbairros por faixa de valor, bairro, tipologia e área. Ideal para identificar regiões com maior liquidez.',
+    placement: 'bottom',
+  },
+  {
+    target: '[data-tour="tab-valuation"]',
+    content: 'IA Valuation: calcule o valor estimado de um imóvel com base na localização, área, características e condições. Gera preço mínimo, justo e máximo.',
+    placement: 'bottom',
   },
 ];
 
