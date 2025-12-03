@@ -537,21 +537,41 @@ export function SearchTools({ bairro = "BARRA DA TIJUCA" }: SearchToolsProps) {
             <div className="grid grid-cols-3 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="tipologia">Tipologia</Label>
-                <Select value={tipologia} onValueChange={setTipologia}>
+                <Select 
+                  value={tipologia} 
+                  onValueChange={setTipologia}
+                  disabled={finalidade === 'todas'}
+                >
                   <SelectTrigger id="tipologia">
-                    <SelectValue placeholder="Todas" />
+                    <SelectValue placeholder={finalidade === 'todas' ? 'Selecione finalidade' : 'Todas'} />
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="todas">Todas</SelectItem>
-                    <SelectItem value="apartamento">Apartamento</SelectItem>
-                    <SelectItem value="casa">Casa</SelectItem>
+                    {(finalidade === 'residencial' || finalidade === '') && (
+                      <>
+                        <SelectItem value="apartamento">Apartamento</SelectItem>
+                        <SelectItem value="casa">Casa</SelectItem>
+                      </>
+                    )}
+                    {finalidade === 'comercial' && (
+                      <>
+                        <SelectItem value="sala">Sala Comercial</SelectItem>
+                        <SelectItem value="loja">Loja</SelectItem>
+                      </>
+                    )}
                   </SelectContent>
                 </Select>
               </div>
               
               <div className="space-y-2">
                 <Label htmlFor="finalidade">Finalidade</Label>
-                <Select value={finalidade} onValueChange={setFinalidade}>
+                <Select 
+                  value={finalidade} 
+                  onValueChange={(value) => {
+                    setFinalidade(value);
+                    setTipologia(''); // Limpa tipologia ao mudar finalidade
+                  }}
+                >
                   <SelectTrigger id="finalidade">
                     <SelectValue placeholder="Todas" />
                   </SelectTrigger>
