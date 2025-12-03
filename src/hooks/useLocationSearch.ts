@@ -17,6 +17,9 @@ export interface LocationSearchResult {
   media_m2: number;
   total_transacoes: number;
   desvio_padrao: number;
+  nome_condominio?: string;
+  microbairro?: string;
+  padrao_construtivo?: string;
   transacoes: {
     id: string;
     valor_transacao: number;
@@ -40,7 +43,6 @@ export function useLocationSearch(params: LocationSearchParams, enabled: boolean
       const startDate = startDateCalc.toISOString().split('T')[0];
 
       // Normaliza a busca removendo prefixos comuns e criando variações
-      // Banco usa: AVN (Avenida), RUA, PRC (Praça), EST (Estrada)
       const searchTerm = params.query.toUpperCase().trim();
       
       // Remove prefixos comuns para buscar apenas o nome
@@ -53,13 +55,35 @@ export function useLocationSearch(params: LocationSearchParams, enabled: boolean
         .replace(/^(TRAVESSA|TV|TV\.)\s*/i, '')
         .trim();
 
-      // Busca pelo termo limpo (sem prefixo) OU pelo termo original
-      // Isso permite encontrar "AVN LUCIO COSTA" buscando "Lucio Costa" ou "Avenida Lucio Costa"
+      // 1. Buscar na tabela de mapeamento de condomínios
+      const { data: condominioMatch } = await supabase
+        .from('condominios_mapeamento')
+        .select('logradouro_padrao, nome_condominio, microbairro, padrao_construtivo')
+        .or(`nome_condominio.ilike.%${cleanedSearch}%,nome_condominio.ilike.%${searchTerm}%,logradouro_padrao.ilike.%${cleanedSearch}%,logradouro_padrao.eq.${searchTerm}`)
+        .limit(1)
+        .maybeSingle();
+
+      // Se encontrou um condomínio, usar o logradouro padrão para a busca
+      const actualSearchLogradouro = condominioMatch?.logradouro_padrao || searchTerm;
+      const condInfo = condominioMatch ? {
+        nome_condominio: condominioMatch.nome_condominio,
+        microbairro: condominioMatch.microbairro || undefined,
+        padrao_construtivo: condominioMatch.padrao_construtivo || undefined,
+      } : null;
+
+      // 2. Buscar transações pelo logradouro (exato se condomínio encontrado, fuzzy caso contrário)
       let query = supabase
         .from('itbi_transactions')
         .select('id, logradouro, valor_transacao, area_m2, valor_m2, data_transacao, tipologia, uso, total_transacoes')
-        .or(`logradouro.ilike.%${cleanedSearch}%,logradouro.ilike.%${searchTerm}%`)
-        .gte('data_transacao', startDate); // Filtro: últimos 12 meses
+        .gte('data_transacao', startDate);
+
+      if (condominioMatch) {
+        // Busca exata pelo logradouro do condomínio
+        query = query.eq('logradouro', condominioMatch.logradouro_padrao);
+      } else {
+        // Busca fuzzy pelo termo original
+        query = query.or(`logradouro.ilike.%${cleanedSearch}%,logradouro.ilike.%${searchTerm}%`);
+      }
 
       // Apply filters
       if (params.finalidade) {
@@ -82,7 +106,7 @@ export function useLocationSearch(params: LocationSearchParams, enabled: boolean
         .not('valor_m2', 'is', null)
         .gte('percentual_transferido', 90)
         .order('data_transacao', { ascending: false })
-        .limit(200); // Aumentado para capturar mais dados antes de agregar
+        .limit(200);
 
       if (error) throw error;
       if (!data || data.length === 0) return null;
@@ -114,8 +138,11 @@ export function useLocationSearch(params: LocationSearchParams, enabled: boolean
         logradouro: data[0].logradouro,
         mediana_m2: Math.round(mediana),
         media_m2: Math.round(media),
-        total_transacoes: totalTransacoesReal, // Volume real de transações
+        total_transacoes: totalTransacoesReal,
         desvio_padrao: Math.round(desvio_padrao),
+        nome_condominio: condInfo?.nome_condominio,
+        microbairro: condInfo?.microbairro,
+        padrao_construtivo: condInfo?.padrao_construtivo,
         transacoes: data.map(t => ({
           id: t.id,
           valor_transacao: t.valor_transacao,
