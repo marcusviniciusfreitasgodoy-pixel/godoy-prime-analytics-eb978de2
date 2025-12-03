@@ -16,6 +16,7 @@ export interface KPIStatsData {
   precoMedioBairroApt: number;
   precoMedioBairroCasa: number;
   variacaoMensal: string;
+  mesReferencia: string; // Mês de referência para a variação mensal
 }
 
 interface TransactionData {
@@ -24,6 +25,21 @@ interface TransactionData {
   total_transacoes: number | null;
   data_transacao?: string;
 }
+
+// Função para agrupar transações por mês (YYYY-MM)
+const agruparPorMes = (transactions: TransactionData[]) => {
+  const grupos: Record<string, TransactionData[]> = {};
+  
+  for (const t of transactions) {
+    if (t.data_transacao) {
+      const mesAno = t.data_transacao.substring(0, 7); // YYYY-MM
+      if (!grupos[mesAno]) grupos[mesAno] = [];
+      grupos[mesAno].push(t);
+    }
+  }
+  
+  return grupos;
+};
 
 export function useKPIStats() {
   return useQuery<KPIStatsData>({
@@ -107,13 +123,18 @@ export function useKPIStats() {
         t.tipologia?.toLowerCase().includes('casa')
       );
 
-      // Transações do último mês
-      const lastMonthTransactions = currentTransactions.filter(t => 
-        t.data_transacao && t.data_transacao >= startDateLastMonth
-      );
-      const previousMonthTransactions = currentTransactions.filter(t => 
-        t.data_transacao && t.data_transacao >= startDateTwoMonths && t.data_transacao < startDateLastMonth
-      );
+      // Transações agrupadas por mês para encontrar os últimos 2 meses com dados
+      const transacoesPorMes = agruparPorMes(currentTransactions);
+      const mesesComDados = Object.keys(transacoesPorMes).sort().reverse(); // Mais recente primeiro
+      
+      console.log('[KPI] Meses com dados:', mesesComDados);
+
+      // Pegar os dois últimos meses com dados
+      const ultimoMes = mesesComDados[0] || null;
+      const penultimoMes = mesesComDados[1] || null;
+
+      const lastMonthTransactions = ultimoMes ? transacoesPorMes[ultimoMes] : [];
+      const previousMonthTransactions = penultimoMes ? transacoesPorMes[penultimoMes] : [];
 
       // METODOLOGIA PREFEITURA: Calcular médias ponderadas por total_transacoes
       const calcMediaPonderada = (arr: TransactionData[]) => {
@@ -154,8 +175,8 @@ export function useKPIStats() {
 
       console.log('[KPI] Liquidez real (total_transacoes):', liquidez);
       console.log('[KPI] Preço médio ponderado:', precoMedio);
-      console.log('[KPI] Transações último mês:', lastMonthTransactions.length);
-      console.log('[KPI] Transações mês anterior:', previousMonthTransactions.length);
+      console.log('[KPI] Último mês com dados:', ultimoMes, '- Transações:', lastMonthTransactions.length);
+      console.log('[KPI] Penúltimo mês com dados:', penultimoMes, '- Transações:', previousMonthTransactions.length);
 
       // Calcular variações - retorna null se não houver dados suficientes
       const calcVariacao = (atual: number, anterior: number): number | null => {
@@ -168,10 +189,20 @@ export function useKPIStats() {
       const variacaoAnualApt = calcVariacao(precoMedioApt, precoMedioAptAnterior);
       const variacaoAnualCasa = calcVariacao(precoMedioCasa, precoMedioCasaAnterior);
       
-      // Variação mensal: só calcula se houver dados em ambos os meses
+      // Variação mensal: compara os dois últimos meses com dados
       const variacaoMensal = (lastMonthTransactions.length > 0 && previousMonthTransactions.length > 0)
         ? calcVariacao(precoMedioLastMonth, precoMedioPrevMonth)
         : null;
+
+      // Formatar nome do mês de referência
+      const formatarMesReferencia = (mesAno: string | null) => {
+        if (!mesAno) return 'N/A';
+        const [ano, mes] = mesAno.split('-');
+        const meses = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
+        return `${meses[parseInt(mes) - 1]}/${ano}`;
+      };
+
+      const mesReferencia = ultimoMes ? formatarMesReferencia(ultimoMes) : 'N/A';
 
       // Buscar microbairro mais valorizado com breakdown
       const { data: rankingData } = await supabase
@@ -227,6 +258,7 @@ export function useKPIStats() {
         precoMedioBairroApt: Math.round(precoMedioBairroApt),
         precoMedioBairroCasa: Math.round(precoMedioBairroCasa),
         variacaoMensal: variacaoMensal !== null ? variacaoMensal.toFixed(2) : 'N/A',
+        mesReferencia,
       };
     },
   });

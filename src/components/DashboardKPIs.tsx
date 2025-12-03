@@ -27,11 +27,12 @@ export function DashboardKPIs() {
 
   const currentYear = new Date().getFullYear();
 
-  // Formatar variação mensal
+  // Formatar variação mensal com mês de referência
   const formatarVariacaoMensal = () => {
     if (!variacaoMensalDisponivel) return 'Dados insuficientes';
     const prefix = variacaoMensalPositiva ? '+' : '';
-    return `${prefix}${stats.variacaoMensal}% vs mês anterior`;
+    const mesRef = stats.mesReferencia !== 'N/A' ? ` (${stats.mesReferencia})` : '';
+    return `${prefix}${stats.variacaoMensal}% vs mês anterior${mesRef}`;
   };
 
   return (
