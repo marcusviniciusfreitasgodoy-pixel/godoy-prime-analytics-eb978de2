@@ -186,7 +186,6 @@ serve(async (req) => {
       bairro: string;
       valor_transacao: number;
       area_m2: number;
-      valor_m2: number;
       data_transacao: string;
       uso: 'Residencial' | 'Comercial';
       tipologia: string;
@@ -259,6 +258,7 @@ serve(async (req) => {
         dataTransacao = `${ano}-06-15`;
       }
 
+      // valor_m2 é GENERATED pelo banco, não incluir no insert
       transacoes.push({
         logradouro: logradouro.toUpperCase(),
         numero: null,
@@ -266,7 +266,6 @@ serve(async (req) => {
         bairro: bairro || 'BARRA DA TIJUCA',
         valor_transacao: Math.round(valor * 100) / 100,
         area_m2: Math.round(area * 100) / 100,
-        valor_m2: Math.round(valorM2 * 100) / 100,
         data_transacao: dataTransacao,
         uso: classificarUso(uso),
         tipologia: classificarTipologia(tipologia),
