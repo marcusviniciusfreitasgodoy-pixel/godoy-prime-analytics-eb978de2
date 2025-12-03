@@ -32,6 +32,11 @@ export function useLocationSearch(params: LocationSearchParams, enabled: boolean
     queryFn: async () => {
       if (!params.query || params.query.length < 3) return null;
 
+      // Período: últimos 12 meses (consistente com KPIs)
+      const twelveMonthsAgo = new Date();
+      twelveMonthsAgo.setMonth(twelveMonthsAgo.getMonth() - 12);
+      const startDate = twelveMonthsAgo.toISOString().split('T')[0];
+
       // Normaliza a busca removendo prefixos comuns e criando variações
       // Banco usa: AVN (Avenida), RUA, PRC (Praça), EST (Estrada)
       const searchTerm = params.query.toUpperCase().trim();
@@ -50,8 +55,9 @@ export function useLocationSearch(params: LocationSearchParams, enabled: boolean
       // Isso permite encontrar "AVN LUCIO COSTA" buscando "Lucio Costa" ou "Avenida Lucio Costa"
       let query = supabase
         .from('itbi_transactions')
-        .select('id, logradouro, valor_transacao, area_m2, valor_m2, data_transacao, tipologia, uso')
-        .or(`logradouro.ilike.%${cleanedSearch}%,logradouro.ilike.%${searchTerm}%`);
+        .select('id, logradouro, valor_transacao, area_m2, valor_m2, data_transacao, tipologia, uso, total_transacoes')
+        .or(`logradouro.ilike.%${cleanedSearch}%,logradouro.ilike.%${searchTerm}%`)
+        .gte('data_transacao', startDate); // Filtro: últimos 12 meses
 
       // Apply filters
       if (params.finalidade) {
@@ -74,14 +80,27 @@ export function useLocationSearch(params: LocationSearchParams, enabled: boolean
         .not('valor_m2', 'is', null)
         .gte('percentual_transferido', 90)
         .order('data_transacao', { ascending: false })
-        .limit(50);
+        .limit(200); // Aumentado para capturar mais dados antes de agregar
 
       if (error) throw error;
       if (!data || data.length === 0) return null;
 
-      // Calculate statistics
+      // Calcular total real de transações (SUM de total_transacoes, não count de registros)
+      const totalTransacoesReal = data.reduce((sum, t) => sum + (t.total_transacoes || 1), 0);
+
+      // Calculate statistics com ponderação
       const valores = data.map(t => t.valor_m2!).sort((a, b) => a - b);
-      const media = valores.reduce((sum, v) => sum + v, 0) / valores.length;
+      
+      // Média ponderada por total_transacoes
+      let somaValoresPonderados = 0;
+      let somaPesos = 0;
+      for (const t of data) {
+        const peso = t.total_transacoes || 1;
+        somaValoresPonderados += t.valor_m2! * peso;
+        somaPesos += peso;
+      }
+      const media = somaPesos > 0 ? somaValoresPonderados / somaPesos : 0;
+      
       const mediana = valores.length % 2 === 0
         ? (valores[valores.length / 2 - 1] + valores[valores.length / 2]) / 2
         : valores[Math.floor(valores.length / 2)];
@@ -93,7 +112,7 @@ export function useLocationSearch(params: LocationSearchParams, enabled: boolean
         logradouro: data[0].logradouro,
         mediana_m2: Math.round(mediana),
         media_m2: Math.round(media),
-        total_transacoes: data.length,
+        total_transacoes: totalTransacoesReal, // Volume real de transações
         desvio_padrao: Math.round(desvio_padrao),
         transacoes: data.map(t => ({
           id: t.id,
