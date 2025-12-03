@@ -1,11 +1,12 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "./ui/card";
 import { ComposedChart, Bar, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from "recharts";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "./ui/tabs";
 import { useEvolutionData, GranularityType } from "@/hooks/useEvolutionData";
 import { Skeleton } from "./ui/skeleton";
 import { ToggleGroup, ToggleGroupItem } from "./ui/toggle-group";
-import { Calendar, CalendarDays } from "lucide-react";
+import { Calendar, CalendarDays, TrendingUp, TrendingDown, Minus } from "lucide-react";
+import { Badge } from "./ui/badge";
 
 interface EvolutionChartProps {
   bairro?: string;
@@ -33,6 +34,18 @@ export function EvolutionChart({ bairro = "BARRA DA TIJUCA" }: EvolutionChartPro
   const periodCount = chartData.length;
   const periodLabel = granularity === 'annual' ? 'anos' : 'semestres';
 
+  // Calcular tendência do último período
+  const trend = useMemo(() => {
+    if (chartData.length < 2) return { direction: 'neutral' as const, value: 0 };
+    const lastPeriod = chartData[chartData.length - 1];
+    const previousPeriod = chartData[chartData.length - 2];
+    const variation = lastPeriod.variacao;
+    
+    if (variation > 1) return { direction: 'up' as const, value: variation, lastPeriod: lastPeriod.mes };
+    if (variation < -1) return { direction: 'down' as const, value: variation, lastPeriod: lastPeriod.mes };
+    return { direction: 'neutral' as const, value: variation, lastPeriod: lastPeriod.mes };
+  }, [chartData]);
+
   const tooltipStyle = {
     backgroundColor: 'hsl(var(--card))',
     border: '1px solid hsl(var(--border))',
@@ -44,11 +57,24 @@ export function EvolutionChart({ bairro = "BARRA DA TIJUCA" }: EvolutionChartPro
     <Card>
       <CardHeader className="pb-2 px-4 sm:px-6">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-          <div>
-            <CardTitle className="text-base sm:text-lg">Evolução Histórica ({periodCount} {periodLabel})</CardTitle>
-            <CardDescription className="text-xs sm:text-sm">
-              Tendência de Mercado - Dados {granularity === 'annual' ? 'Anuais' : 'Semestrais'}
-            </CardDescription>
+          <div className="flex items-start gap-3">
+            <div>
+              <CardTitle className="text-base sm:text-lg">Evolução Histórica ({periodCount} {periodLabel})</CardTitle>
+              <CardDescription className="text-xs sm:text-sm">
+                Tendência de Mercado - Dados {granularity === 'annual' ? 'Anuais' : 'Semestrais'}
+              </CardDescription>
+            </div>
+            {trend.lastPeriod && (
+              <Badge 
+                variant={trend.direction === 'up' ? 'default' : trend.direction === 'down' ? 'destructive' : 'secondary'}
+                className="flex items-center gap-1 text-xs shrink-0"
+              >
+                {trend.direction === 'up' && <TrendingUp className="h-3 w-3" />}
+                {trend.direction === 'down' && <TrendingDown className="h-3 w-3" />}
+                {trend.direction === 'neutral' && <Minus className="h-3 w-3" />}
+                {trend.value > 0 ? '+' : ''}{trend.value.toFixed(1)}%
+              </Badge>
+            )}
           </div>
           <ToggleGroup 
             type="single" 
