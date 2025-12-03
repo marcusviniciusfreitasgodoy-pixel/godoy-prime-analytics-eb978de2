@@ -4,6 +4,7 @@ import logoSymbol from "@/assets/godoy-logo-symbol.png";
 import { useAuth } from "@/hooks/useAuth";
 import { SyncDataButton } from "./SyncDataButton";
 import { SyncITBIButton } from "./SyncITBIButton";
+import { ImportCSVButton } from "./ImportCSVButton";
 
 export function Header() {
   const { signOut } = useAuth();
@@ -30,6 +31,7 @@ export function Header() {
             <span className="text-primary-foreground/60">•</span>
             <span className="font-semibold">Rio de Janeiro</span>
           </div>
+          <ImportCSVButton />
           <SyncITBIButton />
           <SyncDataButton />
           <Button
