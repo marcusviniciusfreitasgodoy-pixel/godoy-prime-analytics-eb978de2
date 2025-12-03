@@ -22,7 +22,7 @@ import { useQueryClient } from "@tanstack/react-query";
 export const SyncITBIButton = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [clearExisting, setClearExisting] = useState(true);
-  const [selectedYear, setSelectedYear] = useState("2025");
+  const [selectedYear, setSelectedYear] = useState(new Date().getFullYear().toString());
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
