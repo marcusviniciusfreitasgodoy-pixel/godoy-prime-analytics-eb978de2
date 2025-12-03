@@ -170,6 +170,7 @@ Deno.serve(async (req) => {
           dataTransacao = `${ano}-${String(mes).padStart(2, '0')}-15`
         }
 
+        // NÃO incluir valor_m2 - é coluna gerada automaticamente
         return {
           logradouro: logradouro.toUpperCase().substring(0, 500),
           numero: null,
@@ -177,7 +178,6 @@ Deno.serve(async (req) => {
           bairro: bairro ? bairro.trim().toUpperCase().substring(0, 100) : null,
           valor_transacao: Math.round(valor * 100) / 100,
           area_m2: Math.round(area * 100) / 100,
-          valor_m2: Math.round((valor / area) * 100) / 100,
           data_transacao: dataTransacao,
           uso: classificarUso(uso),
           tipologia: classificarTipologia(tipologia)
