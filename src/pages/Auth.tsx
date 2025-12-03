@@ -55,8 +55,8 @@ export default function Auth() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-[hsl(var(--primary))] via-[hsl(var(--primary-dark))] to-[hsl(var(--navy))] p-4">
-      <Card className="w-full max-w-md border-accent/30 bg-card/95 backdrop-blur-sm shadow-2xl">
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-muted via-muted to-muted/80 p-4">
+      <Card className="w-full max-w-md border-accent/30 bg-primary shadow-2xl">
         <CardHeader className="space-y-3 text-center">
           <div className="flex justify-center mb-2">
             <img 
@@ -69,10 +69,10 @@ export default function Auth() {
               }}
             />
           </div>
-          <CardTitle className="text-3xl font-bold text-foreground">
+          <CardTitle className="text-3xl font-bold text-primary-foreground">
             {isLogin ? 'Bem-vindo' : 'Criar Conta'}
           </CardTitle>
-          <CardDescription className="text-muted-foreground">
+          <CardDescription className="text-primary-foreground/70">
             {isLogin 
               ? 'Entre com suas credenciais para acessar a plataforma' 
               : 'Cadastre-se para acessar insights exclusivos do mercado'}
@@ -86,12 +86,12 @@ export default function Auth() {
                 name="email"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>E-mail Corporativo</FormLabel>
+                    <FormLabel className="text-primary-foreground">E-mail Corporativo</FormLabel>
                     <FormControl>
                       <Input 
                         type="email" 
                         placeholder="seu.email@empresa.com.br"
-                        className="bg-background border-border"
+                        className="bg-primary-foreground/10 border-primary-foreground/30 text-primary-foreground placeholder:text-primary-foreground/50"
                         {...field}
                       />
                     </FormControl>
@@ -105,12 +105,12 @@ export default function Auth() {
                 name="password"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Senha</FormLabel>
+                    <FormLabel className="text-primary-foreground">Senha</FormLabel>
                     <FormControl>
                       <Input 
                         type="password" 
                         placeholder="••••••••"
-                        className="bg-background border-border"
+                        className="bg-primary-foreground/10 border-primary-foreground/30 text-primary-foreground placeholder:text-primary-foreground/50"
                         {...field}
                       />
                     </FormControl>
@@ -121,7 +121,7 @@ export default function Auth() {
 
               <Button 
                 type="submit" 
-                className="w-full bg-accent hover:bg-accent/90 text-accent-foreground font-semibold"
+                className="w-full bg-accent hover:bg-accent/90 text-primary font-semibold"
                 disabled={isLoading}
               >
                 {isLoading ? 'Processando...' : (isLogin ? 'Entrar' : 'Cadastrar')}
