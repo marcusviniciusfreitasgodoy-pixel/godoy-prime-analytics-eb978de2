@@ -58,12 +58,14 @@ export function useKPIStats() {
       console.log('[KPI] Período anterior:', startDate24Months, 'até', startDate12Months);
 
       // Buscar transações dos últimos 12 meses (período atual) - SOMENTE RESIDENCIAL
+      // METODOLOGIA PREFEITURA: Filtrar percentual_transferido >= 90%
       const { data: currentPeriodData, error: currentError } = await supabase
         .from('itbi_transactions')
         .select('valor_m2, tipologia, data_transacao, total_transacoes')
         .eq('uso', 'Residencial')
         .eq('bairro', 'BARRA DA TIJUCA')
         .not('valor_m2', 'is', null)
+        .gte('percentual_transferido', 90)
         .gte('data_transacao', startDate12Months)
         .limit(10000);
 
@@ -76,6 +78,7 @@ export function useKPIStats() {
         .eq('uso', 'Residencial')
         .eq('bairro', 'BARRA DA TIJUCA')
         .not('valor_m2', 'is', null)
+        .gte('percentual_transferido', 90)
         .gte('data_transacao', startDate24Months)
         .lt('data_transacao', startDate12Months)
         .limit(10000);
@@ -179,6 +182,7 @@ export function useKPIStats() {
           .select('valor_m2, tipologia, total_transacoes')
           .eq('uso', 'Residencial')
           .eq('bairro', 'BARRA DA TIJUCA')
+          .gte('percentual_transferido', 90)
           .ilike('logradouro', `%${rankingData.microbairro}%`)
           .gte('data_transacao', startDate12Months);
 
