@@ -135,18 +135,54 @@ export default function Dashboard() {
         <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 sm:gap-4">
           <BairroSelector value={selectedBairro} onChange={setSelectedBairro} />
           <div className="flex gap-2">
+            {/* Desktop: botões com texto */}
             <Button variant="outline" size="sm" onClick={() => setRunTour(true)} className="hidden sm:flex">
               <HelpCircle className="h-4 w-4 mr-2" />
               Tour Guiado
             </Button>
-            <Button variant="outline" size="sm" onClick={() => setRunTour(true)} className="sm:hidden">
-              <HelpCircle className="h-4 w-4" />
+            
+            {/* Mobile: botões maiores com labels */}
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={() => setRunTour(true)} 
+              className="sm:hidden flex flex-col items-center gap-1 h-auto py-2 px-3 min-w-[60px]"
+            >
+              <HelpCircle className="h-5 w-5 text-accent" />
+              <span className="text-[10px] font-medium">Tour</span>
             </Button>
+            
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="outline" size="sm" disabled={isExporting}>
-                  <FileDown className="h-4 w-4 sm:mr-2" />
-                  <span className="hidden sm:inline">{isExporting ? "Exportando..." : "Exportar"}</span>
+                {/* Desktop */}
+                <Button variant="outline" size="sm" disabled={isExporting} className="hidden sm:flex">
+                  <FileDown className="h-4 w-4 mr-2" />
+                  {isExporting ? "Exportando..." : "Exportar"}
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem onClick={handleExportXLSX} className="gap-2">
+                  <FileSpreadsheet className="h-4 w-4" />
+                  Excel (.xlsx)
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={handleExportCSV} className="gap-2">
+                  <FileText className="h-4 w-4" />
+                  CSV (.csv)
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+            
+            {/* Mobile: botão de exportar com label */}
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  disabled={isExporting} 
+                  className="sm:hidden flex flex-col items-center gap-1 h-auto py-2 px-3 min-w-[60px]"
+                >
+                  <FileSpreadsheet className="h-5 w-5 text-accent" />
+                  <span className="text-[10px] font-medium">Excel</span>
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
