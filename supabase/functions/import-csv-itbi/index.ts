@@ -186,12 +186,15 @@ serve(async (req) => {
           continue;
         }
         
-        // Normalizar área APENAS se claramente errada
-        // Valores corretos: < 1.000.000 (ex: 107.2, 85.22, 500.0)
-        // Valores errados: > 1.000.000 (ex: 99038461 deve virar 99.04)
+        // Normalizar área para range razoável (10-1000 m²)
+        // Divide por 10 até área estar no range adequado
         let area = areaRaw;
-        if (area > 1000000) {
-          area = area / 1000000;
+        if (area > 10000) {
+          // Área claramente errada (> 10.000 m²)
+          // Dividir progressivamente até chegar em range 10-1000
+          while (area > 1000) {
+            area = area / 10;
+          }
           console.log(`[NORM] Área: ${areaRaw} → ${area.toFixed(2)} m²`);
         }
         
