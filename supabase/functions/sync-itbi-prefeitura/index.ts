@@ -74,7 +74,7 @@ serve(async (req) => {
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
     let clearExisting = false;
-    let filterByBairro = true;
+    let filterByBairro = false; // Importar todos os bairros por padrão
     let minYear = 2020;
     
     try {
