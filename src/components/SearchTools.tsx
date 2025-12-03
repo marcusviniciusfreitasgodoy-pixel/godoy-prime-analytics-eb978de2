@@ -366,14 +366,8 @@ export function SearchTools({ bairro = "BARRA DA TIJUCA" }: SearchToolsProps) {
       multiplier *= 0.85;
     }
 
-    // Tipologia específica
-    if (valTipologia === 'cobertura') {
-      multiplier *= 1.25;
-    } else if (valTipologia === 'garden') {
-      multiplier *= 1.10;
-    } else if (valTipologia === 'flat') {
-      multiplier *= 0.90;
-    }
+    // Tipologia específica (apenas apartamento e casa disponíveis)
+    // Não há multiplicadores específicos para apartamento/casa padrão
 
     // Quartos e vagas (bônus adicionais)
     const quartos = parseInt(valQuartos) || 3;
@@ -551,7 +545,6 @@ export function SearchTools({ bairro = "BARRA DA TIJUCA" }: SearchToolsProps) {
                     <SelectItem value="todas">Todas</SelectItem>
                     <SelectItem value="apartamento">Apartamento</SelectItem>
                     <SelectItem value="casa">Casa</SelectItem>
-                    <SelectItem value="cobertura">Cobertura</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -811,7 +804,6 @@ export function SearchTools({ bairro = "BARRA DA TIJUCA" }: SearchToolsProps) {
                     <SelectItem value="todas">Todas</SelectItem>
                     <SelectItem value="apartamento">Apartamento</SelectItem>
                     <SelectItem value="casa">Casa</SelectItem>
-                    <SelectItem value="cobertura">Cobertura</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -1012,9 +1004,6 @@ export function SearchTools({ bairro = "BARRA DA TIJUCA" }: SearchToolsProps) {
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="apartamento">Apartamento</SelectItem>
-                    <SelectItem value="cobertura">Cobertura</SelectItem>
-                    <SelectItem value="garden">Garden</SelectItem>
-                    <SelectItem value="flat">Flat</SelectItem>
                     <SelectItem value="casa">Casa</SelectItem>
                   </SelectContent>
                 </Select>
