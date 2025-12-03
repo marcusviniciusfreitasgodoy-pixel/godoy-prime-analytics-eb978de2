@@ -41,7 +41,7 @@ const agruparPorMes = (transactions: TransactionData[]) => {
   return grupos;
 };
 
-export function useKPIStats(bairro: string = 'BARRA DA TIJUCA') {
+export function useKPIStats(bairro: string = 'Barra da Tijuca') {
   return useQuery<KPIStatsData>({
     queryKey: ['kpi-stats-detailed-v3', bairro],
     staleTime: 0,
@@ -75,11 +75,12 @@ export function useKPIStats(bairro: string = 'BARRA DA TIJUCA') {
 
       // Buscar transações dos últimos 12 meses (período atual) - SOMENTE RESIDENCIAL
       // METODOLOGIA PREFEITURA: Filtrar percentual_transferido >= 90%
+      // Usa ilike para filtro case-insensitive do bairro
       const { data: currentPeriodData, error: currentError } = await supabase
         .from('itbi_transactions')
         .select('valor_m2, tipologia, data_transacao, total_transacoes')
         .eq('uso', 'Residencial')
-        .eq('bairro', bairro)
+        .ilike('bairro', bairro)
         .not('valor_m2', 'is', null)
         .gte('percentual_transferido', 90)
         .gte('data_transacao', startDate12Months)
@@ -92,7 +93,7 @@ export function useKPIStats(bairro: string = 'BARRA DA TIJUCA') {
         .from('itbi_transactions')
         .select('valor_m2, tipologia, total_transacoes')
         .eq('uso', 'Residencial')
-        .eq('bairro', bairro)
+        .ilike('bairro', bairro)
         .not('valor_m2', 'is', null)
         .gte('percentual_transferido', 90)
         .gte('data_transacao', startDate24Months)
@@ -152,9 +153,10 @@ export function useKPIStats(bairro: string = 'BARRA DA TIJUCA') {
         return somaTransacoes > 0 ? somaValoresPonderados / somaTransacoes : 0;
       };
 
-      // METODOLOGIA PREFEITURA: Calcular liquidez como soma de total_transacoes
+      // Liquidez = número de registros (não soma de total_transacoes)
+      // Cada registro representa uma agregação de rua/mês, liquidez = quantidade de registros
       const calcLiquidez = (arr: TransactionData[]) => {
-        return arr.reduce((sum, t) => sum + (t.total_transacoes || 1), 0);
+        return arr.length;
       };
 
       const precoMedio = calcMediaPonderada(currentTransactions);
@@ -168,15 +170,15 @@ export function useKPIStats(bairro: string = 'BARRA DA TIJUCA') {
       const precoMedioLastMonth = calcMediaPonderada(lastMonthTransactions);
       const precoMedioPrevMonth = calcMediaPonderada(previousMonthTransactions);
 
-      // Calcular liquidez real usando total_transacoes
+      // Calcular liquidez = número de registros
       const liquidez = calcLiquidez(currentTransactions);
       const liquidezApt = calcLiquidez(currentApt);
       const liquidezCasa = calcLiquidez(currentCasa);
 
-      console.log('[KPI] Liquidez real (total_transacoes):', liquidez);
+      console.log('[KPI] Liquidez (registros):', liquidez);
       console.log('[KPI] Preço médio ponderado:', precoMedio);
-      console.log('[KPI] Último mês com dados:', ultimoMes, '- Transações:', lastMonthTransactions.length);
-      console.log('[KPI] Penúltimo mês com dados:', penultimoMes, '- Transações:', previousMonthTransactions.length);
+      console.log('[KPI] Último mês com dados:', ultimoMes, '- Registros:', lastMonthTransactions.length);
+      console.log('[KPI] Penúltimo mês com dados:', penultimoMes, '- Registros:', previousMonthTransactions.length);
 
       // Calcular variações - retorna null se não houver dados suficientes
       const calcVariacao = (atual: number, anterior: number): number | null => {
@@ -221,7 +223,7 @@ export function useKPIStats(bairro: string = 'BARRA DA TIJUCA') {
           .from('itbi_transactions')
           .select('valor_m2, tipologia, total_transacoes')
           .eq('uso', 'Residencial')
-          .eq('bairro', bairro)
+          .ilike('bairro', bairro)
           .gte('percentual_transferido', 90)
           .ilike('logradouro', `%${rankingData.microbairro}%`)
           .gte('data_transacao', startDate12Months);

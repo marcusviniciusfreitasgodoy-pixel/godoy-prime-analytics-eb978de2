@@ -15,7 +15,7 @@ import { useToast } from "@/hooks/use-toast";
 export default function Dashboard() {
   const [runTour, setRunTour] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
-  const [selectedBairro, setSelectedBairro] = useState("BARRA DA TIJUCA");
+  const [selectedBairro, setSelectedBairro] = useState("Barra da Tijuca");
   const { toast } = useToast();
 
   const handleExportCSV = async () => {
