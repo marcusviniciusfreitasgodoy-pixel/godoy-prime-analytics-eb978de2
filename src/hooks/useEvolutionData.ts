@@ -9,7 +9,7 @@ export interface EvolutionData {
   variacao: number;
 }
 
-export function useEvolutionData(bairro: string = 'Barra da Tijuca') {
+export function useEvolutionData(bairro: string = 'BARRA DA TIJUCA') {
   return useQuery<EvolutionData[]>({
     queryKey: ['evolution-data-v3', bairro],
     staleTime: 0,

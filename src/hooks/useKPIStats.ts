@@ -41,7 +41,7 @@ const agruparPorMes = (transactions: TransactionData[]) => {
   return grupos;
 };
 
-export function useKPIStats(bairro: string = 'Barra da Tijuca') {
+export function useKPIStats(bairro: string = 'BARRA DA TIJUCA') {
   return useQuery<KPIStatsData>({
     queryKey: ['kpi-stats-detailed-v3', bairro],
     staleTime: 0,
