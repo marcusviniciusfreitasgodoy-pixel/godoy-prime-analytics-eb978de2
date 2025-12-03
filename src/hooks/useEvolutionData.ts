@@ -11,7 +11,8 @@ export interface EvolutionData {
 
 export function useEvolutionData() {
   return useQuery<EvolutionData[]>({
-    queryKey: ['evolution-data'],
+    queryKey: ['evolution-data-v2'],
+    staleTime: 0,
     queryFn: async () => {
       // Dados desde 2020 para evolução
       const startDate = '2020-01-01';
