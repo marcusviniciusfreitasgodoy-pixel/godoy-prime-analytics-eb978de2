@@ -24,14 +24,16 @@ export function MethodologyDisclaimer() {
                 <strong>Fonte:</strong> ITBI - Prefeitura do Rio de Janeiro
               </li>
               <li>
-                <strong>Filtro:</strong> Apenas transações com ≥90% de
-                transferência
+                <strong>Filtro:</strong> Apenas transações com ≥90% de transferência
               </li>
               <li>
-                <strong>Uso:</strong> Somente imóveis residenciais
+                <strong>Uso:</strong> Imóveis residenciais e comerciais
               </li>
               <li>
-                <strong>Região:</strong> Barra da Tijuca
+                <strong>KPIs:</strong> Calculados apenas para uso residencial
+              </li>
+              <li>
+                <strong>Região:</strong> Conforme bairro selecionado
               </li>
               <li>
                 <strong>Atualização:</strong> Diária automática às 02:00
