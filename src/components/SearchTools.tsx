@@ -1,9 +1,9 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useRef, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "./ui/tabs";
 import { Input } from "./ui/input";
 import { Button } from "./ui/button";
-import { Search, DollarSign, Bot, Loader2, FileDown } from "lucide-react";
+import { Search, DollarSign, Bot, Loader2, FileDown, MapPin } from "lucide-react";
 import { Label } from "./ui/label";
 import {
   Select,
@@ -14,9 +14,11 @@ import {
 } from "./ui/select";
 import { useLocationSearch, useTransactionSearch } from "@/hooks/useLocationSearch";
 import { useValuationWeights } from "@/hooks/useValuationWeights";
+import { useStreetSuggestions } from "@/hooks/useStreetSuggestions";
 import { Badge } from "./ui/badge";
 import { exportToCSV } from "@/utils/exportUtils";
 import { useToast } from "@/hooks/use-toast";
+import { cn } from "@/lib/utils";
 
 export function SearchTools() {
   const { toast } = useToast();
@@ -28,6 +30,9 @@ export function SearchTools() {
   const [areaMin, setAreaMin] = useState<string>("");
   const [areaMax, setAreaMax] = useState<string>("");
   const [searchLocation, setSearchLocation] = useState(false);
+  const [showSuggestions, setShowSuggestions] = useState(false);
+  const suggestionsRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
 
   // Transaction search state
   const [valorMin, setValorMin] = useState<string>("");
@@ -36,6 +41,9 @@ export function SearchTools() {
 
   // Valuation state
   const [valLocalizacao, setValLocalizacao] = useState("");
+  const [showValSuggestions, setShowValSuggestions] = useState(false);
+  const valSuggestionsRef = useRef<HTMLDivElement>(null);
+  const valInputRef = useRef<HTMLInputElement>(null);
   const [valArea, setValArea] = useState("");
   const [valQuartos, setValQuartos] = useState("");
   const [valVagas, setValVagas] = useState("");
@@ -73,6 +81,40 @@ export function SearchTools() {
   );
 
   const { data: weights } = useValuationWeights();
+
+  // Street suggestions for autocomplete
+  const { data: suggestions, isLoading: suggestionsLoading } = useStreetSuggestions(locationQuery);
+  const { data: valSuggestions, isLoading: valSuggestionsLoading } = useStreetSuggestions(valLocalizacao);
+
+  // Close suggestions when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (suggestionsRef.current && !suggestionsRef.current.contains(event.target as Node) &&
+          inputRef.current && !inputRef.current.contains(event.target as Node)) {
+        setShowSuggestions(false);
+      }
+      if (valSuggestionsRef.current && !valSuggestionsRef.current.contains(event.target as Node) &&
+          valInputRef.current && !valInputRef.current.contains(event.target as Node)) {
+        setShowValSuggestions(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  const handleSelectSuggestion = (logradouro: string) => {
+    setLocationQuery(logradouro);
+    setShowSuggestions(false);
+    setSearchLocation(true);
+  };
+
+  const handleSelectValSuggestion = (logradouro: string) => {
+    setValLocalizacao(logradouro);
+    setLocationQuery(logradouro);
+    setShowValSuggestions(false);
+    setSearchLocation(true);
+    setValuationResult(null);
+  };
 
   // Map weights by factor_key for easy lookup
   const weightsMap = useMemo(() => {
@@ -229,15 +271,54 @@ export function SearchTools() {
           <TabsContent value="localizacao" className="space-y-4 mt-4">
             <div className="space-y-2">
               <Label htmlFor="rua">Rua ou Condomínio</Label>
-              <Input 
-                id="rua"
-                value={locationQuery}
-                onChange={(e) => {
-                  setLocationQuery(e.target.value);
-                  setSearchLocation(false);
-                }}
-                placeholder="Digite o nome da rua ou condomínio..." 
-              />
+              <div className="relative">
+                <Input 
+                  ref={inputRef}
+                  id="rua"
+                  value={locationQuery}
+                  onChange={(e) => {
+                    setLocationQuery(e.target.value);
+                    setSearchLocation(false);
+                    setShowSuggestions(true);
+                  }}
+                  onFocus={() => setShowSuggestions(true)}
+                  placeholder="Digite o nome da rua ou condomínio..." 
+                  autoComplete="off"
+                />
+                {showSuggestions && locationQuery.length >= 2 && (suggestions?.length ?? 0) > 0 && (
+                  <div 
+                    ref={suggestionsRef}
+                    className="absolute z-50 w-full mt-1 bg-popover border border-border rounded-md shadow-lg max-h-64 overflow-y-auto"
+                  >
+                    {suggestionsLoading ? (
+                      <div className="p-3 text-sm text-muted-foreground flex items-center gap-2">
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                        Buscando...
+                      </div>
+                    ) : (
+                      suggestions?.map((s) => (
+                        <button
+                          key={s.logradouro}
+                          type="button"
+                          className={cn(
+                            "w-full px-3 py-2 text-left text-sm hover:bg-accent transition-colors",
+                            "flex items-center justify-between gap-2 border-b border-border/50 last:border-0"
+                          )}
+                          onClick={() => handleSelectSuggestion(s.logradouro)}
+                        >
+                          <div className="flex items-center gap-2 min-w-0">
+                            <MapPin className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+                            <span className="truncate">{s.logradouro}</span>
+                          </div>
+                          <Badge variant="secondary" className="flex-shrink-0 text-xs">
+                            {s.total_transacoes}
+                          </Badge>
+                        </button>
+                      ))
+                    )}
+                  </div>
+                )}
+              </div>
             </div>
             
             <div className="grid grid-cols-2 gap-4">
@@ -404,26 +485,61 @@ export function SearchTools() {
           <TabsContent value="valuation" className="space-y-4 mt-4">
             <div className="space-y-2">
               <Label htmlFor="val-localizacao">Localização</Label>
-              <Input 
-                id="val-localizacao" 
-                placeholder="Rua ou condomínio" 
-                value={valLocalizacao}
-                onChange={(e) => {
-                  setValLocalizacao(e.target.value);
-                  setLocationQuery(e.target.value);
-                  setSearchLocation(false);
-                  setValuationResult(null);
-                }}
-              />
-              <Button 
-                variant="outline" 
-                size="sm" 
-                className="w-full"
-                onClick={() => setSearchLocation(true)}
-                disabled={!valLocalizacao}
-              >
-                Validar Localização
-              </Button>
+              <div className="relative">
+                <Input 
+                  ref={valInputRef}
+                  id="val-localizacao" 
+                  placeholder="Rua ou condomínio" 
+                  value={valLocalizacao}
+                  onChange={(e) => {
+                    setValLocalizacao(e.target.value);
+                    setLocationQuery(e.target.value);
+                    setSearchLocation(false);
+                    setValuationResult(null);
+                    setShowValSuggestions(true);
+                  }}
+                  onFocus={() => setShowValSuggestions(true)}
+                  autoComplete="off"
+                />
+                {showValSuggestions && valLocalizacao.length >= 2 && (valSuggestions?.length ?? 0) > 0 && (
+                  <div 
+                    ref={valSuggestionsRef}
+                    className="absolute z-50 w-full mt-1 bg-popover border border-border rounded-md shadow-lg max-h-64 overflow-y-auto"
+                  >
+                    {valSuggestionsLoading ? (
+                      <div className="p-3 text-sm text-muted-foreground flex items-center gap-2">
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                        Buscando...
+                      </div>
+                    ) : (
+                      valSuggestions?.map((s) => (
+                        <button
+                          key={s.logradouro}
+                          type="button"
+                          className={cn(
+                            "w-full px-3 py-2 text-left text-sm hover:bg-accent transition-colors",
+                            "flex items-center justify-between gap-2 border-b border-border/50 last:border-0"
+                          )}
+                          onClick={() => handleSelectValSuggestion(s.logradouro)}
+                        >
+                          <div className="flex items-center gap-2 min-w-0">
+                            <MapPin className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+                            <span className="truncate">{s.logradouro}</span>
+                          </div>
+                          <Badge variant="secondary" className="flex-shrink-0 text-xs">
+                            {s.total_transacoes}
+                          </Badge>
+                        </button>
+                      ))
+                    )}
+                  </div>
+                )}
+              </div>
+              {locationResult && (
+                <div className="text-xs text-green-600 flex items-center gap-1">
+                  ✓ Localização validada ({locationResult.total_transacoes} transações)
+                </div>
+              )}
             </div>
             
             <div className="grid grid-cols-2 gap-4">
