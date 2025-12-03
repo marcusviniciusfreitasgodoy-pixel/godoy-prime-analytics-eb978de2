@@ -43,7 +43,7 @@ export function useITBITransactions() {
       const { data, error } = await supabase
         .from('itbi_transactions')
         .select('*')
-        .ilike('bairro', 'Barra da Tijuca')
+        .ilike('bairro', 'BARRA DA TIJUCA')
         .order('data_transacao', { ascending: false })
         .limit(100);
 
@@ -53,12 +53,12 @@ export function useITBITransactions() {
   });
 }
 
-export function useMicrobairroRanking(bairro: string = 'Barra da Tijuca') {
+export function useMicrobairroRanking(bairro: string = 'BARRA DA TIJUCA') {
   return useQuery<MicrobairroRanking[]>({
     queryKey: ['microbairro-ranking', bairro],
     queryFn: async () => {
       // Para Barra da Tijuca, usar a view otimizada
-      if (bairro.toLowerCase() === 'barra da tijuca') {
+      if (bairro.toUpperCase() === 'BARRA DA TIJUCA') {
         const { data, error } = await supabase
           .from('view_ranking_microbairros')
           .select('*');
@@ -132,7 +132,7 @@ export function useMicrobairroDetalhado() {
         .from('itbi_transactions')
         .select('logradouro, valor_m2, tipologia')
         .eq('uso', 'Residencial')
-        .ilike('bairro', 'Barra da Tijuca')
+        .ilike('bairro', 'BARRA DA TIJUCA')
         .not('valor_m2', 'is', null)
         .not('logradouro', 'is', null)
         .gte('data_transacao', startDate)
@@ -218,7 +218,7 @@ export function useKPIStats() {
         .from('itbi_transactions')
         .select('valor_m2, tipologia, uso')
         .eq('uso', 'Residencial')
-        .ilike('bairro', 'Barra da Tijuca')
+        .ilike('bairro', 'BARRA DA TIJUCA')
         .gte('data_transacao', startDate12Months)
         .limit(10000);
 
@@ -229,7 +229,7 @@ export function useKPIStats() {
         .from('itbi_transactions')
         .select('valor_m2')
         .eq('uso', 'Residencial')
-        .ilike('bairro', 'Barra da Tijuca')
+        .ilike('bairro', 'BARRA DA TIJUCA')
         .gte('data_transacao', startDate24Months)
         .lt('data_transacao', startDate12Months)
         .limit(10000);
