@@ -59,12 +59,12 @@ export function ImportCSVButton() {
       setProgress(30);
       setStatus("uploading");
 
-      // Enviar para Edge Function
+      // Enviar para Edge Function - SEM FILTRO DE BAIRRO para importar todos
       const { data, error } = await supabase.functions.invoke('import-csv-itbi', {
         body: {
           csv_content: text,
           clear_existing: true,
-          codbairro_filter: '128', // Barra da Tijuca
+          codbairro_filter: null, // Importa TODOS os bairros
           min_year: 2020,
         },
       });

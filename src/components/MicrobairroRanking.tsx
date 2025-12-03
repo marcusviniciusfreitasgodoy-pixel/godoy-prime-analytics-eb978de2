@@ -2,8 +2,12 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "./ui/
 import { useMicrobairroRanking } from "@/hooks/useITBITransactions";
 import { Skeleton } from "./ui/skeleton";
 
-export function MicrobairroRanking() {
-  const { data: ranking, isLoading } = useMicrobairroRanking();
+interface MicrobairroRankingProps {
+  bairro?: string;
+}
+
+export function MicrobairroRanking({ bairro = "BARRA DA TIJUCA" }: MicrobairroRankingProps) {
+  const { data: ranking, isLoading } = useMicrobairroRanking(bairro);
 
   if (isLoading) {
     return (

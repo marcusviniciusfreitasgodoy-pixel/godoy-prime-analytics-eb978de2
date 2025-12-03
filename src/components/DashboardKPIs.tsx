@@ -4,8 +4,12 @@ import { useKPIStats } from "@/hooks/useKPIStats";
 import { Skeleton } from "./ui/skeleton";
 import { MethodologyDisclaimer } from "./MethodologyDisclaimer";
 
-export function DashboardKPIs() {
-  const { data: stats, isLoading } = useKPIStats();
+interface DashboardKPIsProps {
+  bairro?: string;
+}
+
+export function DashboardKPIs({ bairro = "BARRA DA TIJUCA" }: DashboardKPIsProps) {
+  const { data: stats, isLoading } = useKPIStats(bairro);
 
   if (isLoading) {
     return (

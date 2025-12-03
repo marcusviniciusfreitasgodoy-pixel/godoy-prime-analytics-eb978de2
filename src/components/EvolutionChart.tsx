@@ -4,8 +4,12 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "./ui/tabs";
 import { useEvolutionData } from "@/hooks/useEvolutionData";
 import { Skeleton } from "./ui/skeleton";
 
-export function EvolutionChart() {
-  const { data: evolutionData, isLoading } = useEvolutionData();
+interface EvolutionChartProps {
+  bairro?: string;
+}
+
+export function EvolutionChart({ bairro = "BARRA DA TIJUCA" }: EvolutionChartProps) {
+  const { data: evolutionData, isLoading } = useEvolutionData(bairro);
 
   if (isLoading) {
     return (

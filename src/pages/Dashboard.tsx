@@ -7,6 +7,7 @@ import { EvolutionChart } from "@/components/EvolutionChart";
 import { MicrobairroRanking } from "@/components/MicrobairroRanking";
 import { SearchTools } from "@/components/SearchTools";
 import { GuidedTour } from "@/components/GuidedTour";
+import { BairroSelector } from "@/components/BairroSelector";
 import { supabase } from "@/integrations/supabase/client";
 import { exportToCSV } from "@/utils/exportUtils";
 import { useToast } from "@/hooks/use-toast";
@@ -14,6 +15,7 @@ import { useToast } from "@/hooks/use-toast";
 export default function Dashboard() {
   const [runTour, setRunTour] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
+  const [selectedBairro, setSelectedBairro] = useState("BARRA DA TIJUCA");
   const { toast } = useToast();
 
   const handleExportCSV = async () => {
@@ -54,27 +56,30 @@ export default function Dashboard() {
     <div className="space-y-6">
       <GuidedTour run={runTour} onFinish={() => setRunTour(false)} />
       
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between flex-wrap gap-4">
         <div>
           <h2 className="text-3xl font-bold text-foreground">Dashboard</h2>
           <p className="text-muted-foreground mt-1">
-            Inteligência de Mercado Imobiliário - Barra da Tijuca
+            Inteligência de Mercado Imobiliário
           </p>
         </div>
-        <div className="flex gap-2">
-          <Button variant="outline" size="sm" onClick={() => setRunTour(true)}>
-            <HelpCircle className="h-4 w-4 mr-2" />
-            Tour Guiado
-          </Button>
-          <Button 
-            variant="outline" 
-            size="sm" 
-            onClick={handleExportCSV}
-            disabled={isExporting}
-          >
-            <FileDown className="h-4 w-4 mr-2" />
-            {isExporting ? "Exportando..." : "Exportar CSV"}
-          </Button>
+        <div className="flex items-center gap-4 flex-wrap">
+          <BairroSelector value={selectedBairro} onChange={setSelectedBairro} />
+          <div className="flex gap-2">
+            <Button variant="outline" size="sm" onClick={() => setRunTour(true)}>
+              <HelpCircle className="h-4 w-4 mr-2" />
+              Tour Guiado
+            </Button>
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={handleExportCSV}
+              disabled={isExporting}
+            >
+              <FileDown className="h-4 w-4 mr-2" />
+              {isExporting ? "Exportando..." : "Exportar CSV"}
+            </Button>
+          </div>
         </div>
       </div>
 
@@ -88,20 +93,20 @@ export default function Dashboard() {
       </Alert>
 
       <div data-tour="kpis">
-        <DashboardKPIs />
+        <DashboardKPIs bairro={selectedBairro} />
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <div data-tour="evolution-chart">
-          <EvolutionChart />
+          <EvolutionChart bairro={selectedBairro} />
         </div>
         <div data-tour="microbairro-ranking">
-          <MicrobairroRanking />
+          <MicrobairroRanking bairro={selectedBairro} />
         </div>
       </div>
 
       <div data-tour="search-tools">
-        <SearchTools />
+        <SearchTools bairro={selectedBairro} />
       </div>
     </div>
   );
