@@ -32,17 +32,26 @@ export function useLocationSearch(params: LocationSearchParams, enabled: boolean
     queryFn: async () => {
       if (!params.query || params.query.length < 3) return null;
 
-      // Normalize search query
-      const normalizedQuery = params.query
-        .toUpperCase()
-        .replace(/AVENIDA/g, 'AV')
-        .replace(/RUA/g, 'R')
-        .replace(/ESTRADA/g, 'EST');
+      // Normaliza a busca removendo prefixos comuns e criando variações
+      // Banco usa: AVN (Avenida), RUA, PRC (Praça), EST (Estrada)
+      const searchTerm = params.query.toUpperCase().trim();
+      
+      // Remove prefixos comuns para buscar apenas o nome
+      const cleanedSearch = searchTerm
+        .replace(/^(AVENIDA|AVN|AV|AV\.|AVENUE)\s*/i, '')
+        .replace(/^(RUA|R|R\.)\s*/i, '')
+        .replace(/^(PRAÇA|PRC|PRACA)\s*/i, '')
+        .replace(/^(ESTRADA|EST|EST\.)\s*/i, '')
+        .replace(/^(ALAMEDA|AL|AL\.)\s*/i, '')
+        .replace(/^(TRAVESSA|TV|TV\.)\s*/i, '')
+        .trim();
 
+      // Busca pelo termo limpo (sem prefixo) OU pelo termo original
+      // Isso permite encontrar "AVN LUCIO COSTA" buscando "Lucio Costa" ou "Avenida Lucio Costa"
       let query = supabase
         .from('itbi_transactions')
         .select('id, logradouro, valor_transacao, area_m2, valor_m2, data_transacao, tipologia, uso')
-        .or(`logradouro.ilike.%${normalizedQuery}%,logradouro.ilike.%${params.query}%`);
+        .or(`logradouro.ilike.%${cleanedSearch}%,logradouro.ilike.%${searchTerm}%`);
 
       // Apply filters
       if (params.finalidade) {
