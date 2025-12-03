@@ -128,7 +128,7 @@ export function useTransactionSearch(params: TransactionSearchParams, enabled: b
         query = query.lte('valor_transacao', params.valorMax);
       }
 
-      const { data, error } = await query;
+      const { data, error } = await query.limit(5000);
 
       if (error) throw error;
 

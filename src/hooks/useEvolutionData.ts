@@ -16,6 +16,7 @@ export function useEvolutionData() {
       // Dados desde 2020 para evolução
       const startDate = '2020-01-01';
 
+      // Buscar todos os registros (sem limite de 1000)
       const { data, error } = await supabase
         .from('itbi_transactions')
         .select('data_transacao, valor_m2, tipologia')
@@ -23,7 +24,8 @@ export function useEvolutionData() {
         .eq('bairro', 'BARRA DA TIJUCA')
         .not('valor_m2', 'is', null)
         .gte('data_transacao', startDate)
-        .order('data_transacao', { ascending: true });
+        .order('data_transacao', { ascending: true })
+        .limit(10000);
 
       if (error) throw error;
 
