@@ -3,7 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "./ui/tabs";
 import { Input } from "./ui/input";
 import { Button } from "./ui/button";
-import { Search, DollarSign, Bot, Loader2, FileDown, MapPin } from "lucide-react";
+import { Search, DollarSign, Bot, Loader2, FileDown, MapPin, X, History, RotateCcw, Plus, Trash2, TrendingUp, TrendingDown, GitCompare } from "lucide-react";
 import { Label } from "./ui/label";
 import {
   Select,
@@ -15,17 +15,29 @@ import {
 import { useLocationSearch, useTransactionSearch } from "@/hooks/useLocationSearch";
 import { useValuationWeights } from "@/hooks/useValuationWeights";
 import { useStreetSuggestions } from "@/hooks/useStreetSuggestions";
+import { useSearchHistory } from "@/hooks/useSearchHistory";
+import { useStreetComparison } from "@/hooks/useStreetComparison";
 import { Badge } from "./ui/badge";
 import { exportToCSV } from "@/utils/exportUtils";
+import { exportValuationToPDF } from "@/utils/valuationPdfExport";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "./ui/tooltip";
+import { StreetComparisonChart } from "./StreetComparisonChart";
 
 interface SearchToolsProps {
   bairro?: string;
 }
 
+const PERIODO_OPTIONS = [
+  { value: '6', label: 'Últimos 6 meses' },
+  { value: '12', label: 'Últimos 12 meses' },
+  { value: '24', label: 'Últimos 24 meses' },
+];
+
 export function SearchTools({ bairro = "BARRA DA TIJUCA" }: SearchToolsProps) {
   const { toast } = useToast();
+  const { history, addToHistory, clearHistory } = useSearchHistory();
   
   // Location search state
   const [locationQuery, setLocationQuery] = useState("");
@@ -33,10 +45,16 @@ export function SearchTools({ bairro = "BARRA DA TIJUCA" }: SearchToolsProps) {
   const [finalidade, setFinalidade] = useState<string>("");
   const [areaMin, setAreaMin] = useState<string>("");
   const [areaMax, setAreaMax] = useState<string>("");
+  const [periodoMeses, setPeriodoMeses] = useState<string>("12");
   const [searchLocation, setSearchLocation] = useState(false);
   const [showSuggestions, setShowSuggestions] = useState(false);
+  const [showHistory, setShowHistory] = useState(false);
   const suggestionsRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+
+  // Comparison state
+  const [comparisonStreets, setComparisonStreets] = useState<string[]>([]);
+  const [showComparison, setShowComparison] = useState(false);
 
   // Transaction search state
   const [valorMin, setValorMin] = useState<string>("");
@@ -68,10 +86,11 @@ export function SearchTools({ bairro = "BARRA DA TIJUCA" }: SearchToolsProps) {
   const { data: locationResult, isLoading: locationLoading } = useLocationSearch(
     {
       query: locationQuery,
-      tipologia: tipologia || undefined,
-      finalidade: finalidade || undefined,
+      tipologia: tipologia === 'todas' ? undefined : tipologia || undefined,
+      finalidade: finalidade === 'todas' ? undefined : finalidade || undefined,
       areaMin: areaMin ? parseFloat(areaMin) : undefined,
       areaMax: areaMax ? parseFloat(areaMax) : undefined,
+      periodoMeses: parseInt(periodoMeses),
     },
     searchLocation
   );
@@ -85,6 +104,10 @@ export function SearchTools({ bairro = "BARRA DA TIJUCA" }: SearchToolsProps) {
   );
 
   const { data: weights } = useValuationWeights();
+  const { data: comparisonData, isLoading: comparisonLoading } = useStreetComparison(
+    comparisonStreets,
+    parseInt(periodoMeses)
+  );
 
   // Street suggestions for autocomplete
   const { data: suggestions, isLoading: suggestionsLoading } = useStreetSuggestions(locationQuery);
@@ -96,6 +119,7 @@ export function SearchTools({ bairro = "BARRA DA TIJUCA" }: SearchToolsProps) {
       if (suggestionsRef.current && !suggestionsRef.current.contains(event.target as Node) &&
           inputRef.current && !inputRef.current.contains(event.target as Node)) {
         setShowSuggestions(false);
+        setShowHistory(false);
       }
       if (valSuggestionsRef.current && !valSuggestionsRef.current.contains(event.target as Node) &&
           valInputRef.current && !valInputRef.current.contains(event.target as Node)) {
@@ -109,7 +133,9 @@ export function SearchTools({ bairro = "BARRA DA TIJUCA" }: SearchToolsProps) {
   const handleSelectSuggestion = (logradouro: string) => {
     setLocationQuery(logradouro);
     setShowSuggestions(false);
+    setShowHistory(false);
     setSearchLocation(true);
+    addToHistory(logradouro, 'location');
   };
 
   const handleSelectValSuggestion = (logradouro: string) => {
@@ -118,6 +144,15 @@ export function SearchTools({ bairro = "BARRA DA TIJUCA" }: SearchToolsProps) {
     setShowValSuggestions(false);
     setSearchLocation(true);
     setValuationResult(null);
+    addToHistory(logradouro, 'valuation');
+  };
+
+  const handleSelectFromHistory = (item: { query: string; type: string }) => {
+    if (item.type === 'location' || item.type === 'valuation') {
+      setLocationQuery(item.query);
+      setSearchLocation(true);
+    }
+    setShowHistory(false);
   };
 
   // Map weights by factor_key for easy lookup
@@ -133,10 +168,67 @@ export function SearchTools({ bairro = "BARRA DA TIJUCA" }: SearchToolsProps) {
 
   const handleLocationSearch = () => {
     setSearchLocation(true);
+    if (locationQuery) {
+      addToHistory(locationQuery, 'location');
+    }
   };
 
   const handleTransactionSearch = () => {
     setSearchTransactions(true);
+    if (valorMin || valorMax) {
+      addToHistory(`R$ ${valorMin || '0'} - R$ ${valorMax || '∞'}`, 'transaction');
+    }
+  };
+
+  const clearLocationFilters = () => {
+    setLocationQuery("");
+    setTipologia("");
+    setFinalidade("");
+    setAreaMin("");
+    setAreaMax("");
+    setPeriodoMeses("12");
+    setSearchLocation(false);
+  };
+
+  const clearTransactionFilters = () => {
+    setValorMin("");
+    setValorMax("");
+    setSearchTransactions(false);
+  };
+
+  const clearValuationForm = () => {
+    setValLocalizacao("");
+    setValArea("");
+    setValQuartos("");
+    setValVagas("");
+    setValSol("");
+    setValVista("");
+    setValEstado("");
+    setValTipologia("");
+    setValuationResult(null);
+  };
+
+  const addToComparison = () => {
+    if (locationResult && comparisonStreets.length < 3) {
+      const street = locationResult.logradouro;
+      if (!comparisonStreets.includes(street)) {
+        setComparisonStreets([...comparisonStreets, street]);
+        setShowComparison(true);
+        toast({
+          title: "Adicionado à comparação",
+          description: `${street} (${comparisonStreets.length + 1}/3)`,
+        });
+      }
+    }
+  };
+
+  const removeFromComparison = (street: string) => {
+    setComparisonStreets(comparisonStreets.filter(s => s !== street));
+  };
+
+  const clearComparison = () => {
+    setComparisonStreets([]);
+    setShowComparison(false);
   };
 
   const exportLocationResults = () => {
@@ -162,6 +254,40 @@ export function SearchTools({ bairro = "BARRA DA TIJUCA" }: SearchToolsProps) {
     toast({
       title: "Exportado com sucesso",
       description: `${exportData.length} transações exportadas para CSV.`,
+    });
+  };
+
+  const handleExportValuationPDF = () => {
+    if (!valuationResult || !locationResult) {
+      toast({
+        title: "Sem dados",
+        description: "Calcule a avaliação primeiro para exportar.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    exportValuationToPDF(
+      valuationResult,
+      {
+        localizacao: valLocalizacao,
+        area: valArea,
+        quartos: valQuartos,
+        vagas: valVagas,
+        sol: valSol,
+        vista: valVista,
+        estado: valEstado,
+        tipologia: valTipologia,
+      },
+      {
+        mediana_m2: locationResult.mediana_m2,
+        total_transacoes: locationResult.total_transacoes,
+      }
+    );
+
+    toast({
+      title: "PDF exportado",
+      description: "Relatório de avaliação salvo com sucesso.",
     });
   };
 
@@ -196,7 +322,7 @@ export function SearchTools({ bairro = "BARRA DA TIJUCA" }: SearchToolsProps) {
     } else if (valEstado === 'original' && weightsMap['STATE_ORIGINAL']) {
       multiplier *= weightsMap['STATE_ORIGINAL'];
     } else if (valEstado === 'reformar') {
-      multiplier *= 0.85; // Deduct 15% for properties needing renovation
+      multiplier *= 0.85;
     }
 
     // Tipologia específica
@@ -216,13 +342,11 @@ export function SearchTools({ bairro = "BARRA DA TIJUCA" }: SearchToolsProps) {
     if (vagas >= 3) multiplier *= 1.05;
 
     const precoJusto = Math.round(basePrice * multiplier * area);
-    const precoMin = Math.round(precoJusto * 0.90); // -10% para liquidez
-    const precoMax = Math.round(precoJusto * 1.15); // +15% para teste de mercado
+    const precoMin = Math.round(precoJusto * 0.90);
+    const precoMax = Math.round(precoJusto * 1.15);
 
-    // Calculate confidence based on sample size
     const confianca = Math.min(95, 50 + locationResult.total_transacoes * 3);
 
-    // Market temperature based on liquidity and volatility
     const desvioRelativo = locationResult.desvio_padrao / locationResult.media_m2;
     const liquidez = locationResult.total_transacoes;
     
@@ -250,10 +374,27 @@ export function SearchTools({ bairro = "BARRA DA TIJUCA" }: SearchToolsProps) {
     });
   };
 
+  const locationHistoryItems = history.filter(h => h.type === 'location');
+
   return (
     <Card data-tour="search-tools">
       <CardHeader>
-        <CardTitle>Ferramentas de Busca</CardTitle>
+        <CardTitle className="flex items-center justify-between">
+          <span>Ferramentas de Busca</span>
+          {history.length > 0 && (
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button variant="ghost" size="sm" onClick={clearHistory} className="h-8 text-xs">
+                    <Trash2 className="h-3 w-3 mr-1" />
+                    Limpar Histórico
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>Limpar histórico de buscas recentes</TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          )}
+        </CardTitle>
       </CardHeader>
       <CardContent>
         <Tabs defaultValue="localizacao" className="w-full">
@@ -284,11 +425,44 @@ export function SearchTools({ bairro = "BARRA DA TIJUCA" }: SearchToolsProps) {
                     setLocationQuery(e.target.value);
                     setSearchLocation(false);
                     setShowSuggestions(true);
+                    setShowHistory(false);
                   }}
-                  onFocus={() => setShowSuggestions(true)}
+                  onFocus={() => {
+                    if (locationQuery.length >= 2) {
+                      setShowSuggestions(true);
+                    } else if (locationHistoryItems.length > 0) {
+                      setShowHistory(true);
+                    }
+                  }}
                   placeholder="Digite o nome da rua ou condomínio..." 
                   autoComplete="off"
                 />
+                
+                {/* History dropdown */}
+                {showHistory && locationHistoryItems.length > 0 && locationQuery.length < 2 && (
+                  <div 
+                    ref={suggestionsRef}
+                    className="absolute z-50 w-full mt-1 bg-popover border border-border rounded-md shadow-lg max-h-64 overflow-y-auto"
+                  >
+                    <div className="px-3 py-2 text-xs text-muted-foreground border-b flex items-center gap-1">
+                      <History className="h-3 w-3" />
+                      Buscas recentes
+                    </div>
+                    {locationHistoryItems.map((item) => (
+                      <button
+                        key={item.timestamp}
+                        type="button"
+                        className="w-full px-3 py-2 text-left text-sm hover:bg-accent transition-colors flex items-center gap-2"
+                        onClick={() => handleSelectFromHistory(item)}
+                      >
+                        <MapPin className="h-4 w-4 text-muted-foreground" />
+                        <span className="truncate">{item.query}</span>
+                      </button>
+                    ))}
+                  </div>
+                )}
+
+                {/* Suggestions dropdown */}
                 {showSuggestions && locationQuery.length >= 2 && (suggestions?.length ?? 0) > 0 && (
                   <div 
                     ref={suggestionsRef}
@@ -325,7 +499,7 @@ export function SearchTools({ bairro = "BARRA DA TIJUCA" }: SearchToolsProps) {
               </div>
             </div>
             
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-3 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="tipologia">Tipologia</Label>
                 <Select value={tipologia} onValueChange={setTipologia}>
@@ -333,6 +507,7 @@ export function SearchTools({ bairro = "BARRA DA TIJUCA" }: SearchToolsProps) {
                     <SelectValue placeholder="Todas" />
                   </SelectTrigger>
                   <SelectContent>
+                    <SelectItem value="todas">Todas</SelectItem>
                     <SelectItem value="apartamento">Apartamento</SelectItem>
                     <SelectItem value="casa">Casa</SelectItem>
                     <SelectItem value="cobertura">Cobertura</SelectItem>
@@ -347,8 +522,23 @@ export function SearchTools({ bairro = "BARRA DA TIJUCA" }: SearchToolsProps) {
                     <SelectValue placeholder="Todas" />
                   </SelectTrigger>
                   <SelectContent>
+                    <SelectItem value="todas">Todas</SelectItem>
                     <SelectItem value="residencial">Residencial</SelectItem>
                     <SelectItem value="comercial">Comercial</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="periodo">Período</Label>
+                <Select value={periodoMeses} onValueChange={setPeriodoMeses}>
+                  <SelectTrigger id="periodo">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {PERIODO_OPTIONS.map(opt => (
+                      <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
               </div>
@@ -378,18 +568,61 @@ export function SearchTools({ bairro = "BARRA DA TIJUCA" }: SearchToolsProps) {
             </div>
             
             <div className="flex gap-2">
-              <Button className="flex-1" onClick={handleLocationSearch} disabled={locationLoading || !locationQuery}>
-                {locationLoading ? (
-                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                ) : (
-                  <Search className="h-4 w-4 mr-2" />
-                )}
-                Buscar
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <span className="flex-1">
+                      <Button 
+                        className="w-full" 
+                        onClick={handleLocationSearch} 
+                        disabled={locationLoading || !locationQuery}
+                      >
+                        {locationLoading ? (
+                          <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                        ) : (
+                          <Search className="h-4 w-4 mr-2" />
+                        )}
+                        Buscar
+                      </Button>
+                    </span>
+                  </TooltipTrigger>
+                  {!locationQuery && (
+                    <TooltipContent>Digite uma localização para buscar</TooltipContent>
+                  )}
+                </Tooltip>
+              </TooltipProvider>
+              
+              <Button variant="outline" onClick={clearLocationFilters} title="Limpar filtros">
+                <RotateCcw className="h-4 w-4" />
               </Button>
+              
               {locationResult && locationResult.transacoes && (
-                <Button variant="outline" onClick={exportLocationResults}>
-                  <FileDown className="h-4 w-4" />
-                </Button>
+                <>
+                  <Button variant="outline" onClick={exportLocationResults} title="Exportar CSV">
+                    <FileDown className="h-4 w-4" />
+                  </Button>
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button 
+                          variant="outline" 
+                          onClick={addToComparison}
+                          disabled={comparisonStreets.length >= 3 || comparisonStreets.includes(locationResult.logradouro)}
+                          title="Adicionar à comparação"
+                        >
+                          <GitCompare className="h-4 w-4" />
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        {comparisonStreets.length >= 3 
+                          ? "Máximo de 3 ruas para comparar"
+                          : comparisonStreets.includes(locationResult.logradouro)
+                            ? "Já adicionado à comparação"
+                            : "Adicionar à comparação"}
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
+                </>
               )}
             </div>
             
@@ -425,6 +658,63 @@ export function SearchTools({ bairro = "BARRA DA TIJUCA" }: SearchToolsProps) {
                 Digite uma localização para ver as transações oficiais
               </div>
             )}
+
+            {/* Comparison Section */}
+            {comparisonStreets.length > 0 && (
+              <div className="p-4 border rounded-lg bg-accent/5 space-y-3">
+                <div className="flex justify-between items-center">
+                  <span className="font-semibold text-foreground flex items-center gap-2">
+                    <GitCompare className="h-4 w-4" />
+                    Comparação ({comparisonStreets.length}/3)
+                  </span>
+                  <Button variant="ghost" size="sm" onClick={clearComparison}>
+                    <X className="h-4 w-4" />
+                  </Button>
+                </div>
+                
+                <div className="flex flex-wrap gap-2">
+                  {comparisonStreets.map((street, idx) => (
+                    <Badge key={street} variant="secondary" className="flex items-center gap-1">
+                      <span className="truncate max-w-[150px]">{street}</span>
+                      <button onClick={() => removeFromComparison(street)} className="ml-1 hover:text-destructive">
+                        <X className="h-3 w-3" />
+                      </button>
+                    </Badge>
+                  ))}
+                </div>
+
+                {comparisonLoading ? (
+                  <div className="flex items-center justify-center py-4">
+                    <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+                  </div>
+                ) : comparisonData && comparisonData.length > 0 && (
+                  <>
+                    <div className="grid gap-2">
+                      {comparisonData.map((street, idx) => (
+                        <div key={street.logradouro} className="flex items-center justify-between text-sm p-2 bg-background rounded">
+                          <span className="truncate max-w-[180px] font-medium">{street.logradouro}</span>
+                          <div className="flex items-center gap-3">
+                            <span className="text-muted-foreground">
+                              R$ {street.media_m2.toLocaleString('pt-BR')}/m²
+                            </span>
+                            {street.variacao_periodo !== null && (
+                              <span className={cn(
+                                "flex items-center text-xs",
+                                street.variacao_periodo >= 0 ? "text-green-600" : "text-red-600"
+                              )}>
+                                {street.variacao_periodo >= 0 ? <TrendingUp className="h-3 w-3 mr-1" /> : <TrendingDown className="h-3 w-3 mr-1" />}
+                                {street.variacao_periodo >= 0 ? '+' : ''}{street.variacao_periodo.toFixed(1)}%
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                    <StreetComparisonChart data={comparisonData} />
+                  </>
+                )}
+              </div>
+            )}
           </TabsContent>
 
           <TabsContent value="transacoes" className="space-y-4 mt-4">
@@ -457,14 +747,19 @@ export function SearchTools({ bairro = "BARRA DA TIJUCA" }: SearchToolsProps) {
               </div>
             </div>
             
-            <Button className="w-full" onClick={handleTransactionSearch} disabled={transactionLoading}>
-              {transactionLoading ? (
-                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-              ) : (
-                <DollarSign className="h-4 w-4 mr-2" />
-              )}
-              Buscar Transações
-            </Button>
+            <div className="flex gap-2">
+              <Button className="flex-1" onClick={handleTransactionSearch} disabled={transactionLoading}>
+                {transactionLoading ? (
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                ) : (
+                  <DollarSign className="h-4 w-4 mr-2" />
+                )}
+                Buscar Transações
+              </Button>
+              <Button variant="outline" onClick={clearTransactionFilters} title="Limpar filtros">
+                <RotateCcw className="h-4 w-4" />
+              </Button>
+            </div>
             
             {transactionResult && transactionResult.length > 0 ? (
               <div className="space-y-2">
@@ -644,14 +939,19 @@ export function SearchTools({ bairro = "BARRA DA TIJUCA" }: SearchToolsProps) {
               </Select>
             </div>
             
-            <Button 
-              className="w-full" 
-              onClick={calculateValuation}
-              disabled={!locationResult || !valArea}
-            >
-              <Bot className="h-4 w-4 mr-2" />
-              Calcular Valuation
-            </Button>
+            <div className="flex gap-2">
+              <Button 
+                className="flex-1" 
+                onClick={calculateValuation}
+                disabled={!locationResult || !valArea}
+              >
+                <Bot className="h-4 w-4 mr-2" />
+                Calcular Valuation
+              </Button>
+              <Button variant="outline" onClick={clearValuationForm} title="Limpar formulário">
+                <RotateCcw className="h-4 w-4" />
+              </Button>
+            </div>
             
             {valuationResult ? (
               <div className="p-4 border rounded-lg bg-gradient-to-br from-accent/10 to-accent/5 space-y-4">
@@ -682,6 +982,14 @@ export function SearchTools({ bairro = "BARRA DA TIJUCA" }: SearchToolsProps) {
                     <p className="font-semibold text-foreground">{valuationResult.confianca}%</p>
                   </div>
                 </div>
+                <Button 
+                  variant="outline" 
+                  className="w-full" 
+                  onClick={handleExportValuationPDF}
+                >
+                  <FileDown className="h-4 w-4 mr-2" />
+                  Exportar Relatório PDF
+                </Button>
               </div>
             ) : (
               <div className="p-4 border rounded-lg bg-muted/50 text-center text-sm text-muted-foreground">

@@ -6,9 +6,9 @@ export interface StreetSuggestion {
   total_transacoes: number;
 }
 
-export function useStreetSuggestions(query: string) {
+export function useStreetSuggestions(query: string, bairro: string = 'BARRA DA TIJUCA') {
   return useQuery<StreetSuggestion[]>({
-    queryKey: ['street-suggestions', query],
+    queryKey: ['street-suggestions', query, bairro],
     queryFn: async () => {
       if (!query || query.length < 2) return [];
 
@@ -28,7 +28,7 @@ export function useStreetSuggestions(query: string) {
         .from('itbi_transactions')
         .select('logradouro')
         .eq('uso', 'Residencial')
-        .eq('bairro', 'BARRA DA TIJUCA')
+        .ilike('bairro', bairro)
         .or(`logradouro.ilike.%${cleanedSearch}%,logradouro.ilike.%${query.toUpperCase()}%`)
         .limit(500);
 
