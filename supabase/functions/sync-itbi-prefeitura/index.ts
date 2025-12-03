@@ -77,18 +77,21 @@ serve(async (req) => {
     let clearExisting = false;
     let codbairro = '159'; // Barra da Tijuca
     let fetchAll = false;
+    let minYear = 2020; // Padrão: buscar apenas desde 2020
     
     try {
       const body = await req.json();
       if (body.clearExisting !== undefined) clearExisting = body.clearExisting;
       if (body.codbairro) codbairro = body.codbairro;
       if (body.fetchAll) fetchAll = body.fetchAll;
+      if (body.minYear) minYear = body.minYear;
     } catch {
       console.log('Usando parâmetros padrão');
     }
 
     console.log(`Código bairro: ${codbairro}`);
     console.log(`Fetch all: ${fetchAll}`);
+    console.log(`Ano mínimo: ${minYear}`);
 
     // Buscar com paginação
     let allFeatures: ArcGISFeature[] = [];
@@ -96,13 +99,11 @@ serve(async (req) => {
     const pageSize = 2000;
     let hasMore = true;
 
-    // Usar codbairro para filtrar (mais preciso)
-    // Se fetchAll, busca tudo (1=1)
-    const whereClause = fetchAll 
-      ? '1%3D1' 
-      : encodeURIComponent(`codbairro = '${codbairro}'`);
+    // SEMPRE usar 1=1 para buscar todos os dados, filtrar no código
+    // A API não suporta bem filtros complexos, melhor filtrar depois
+    const whereClause = '1%3D1';
 
-    console.log(`Query: ${fetchAll ? '1=1' : `codbairro = '${codbairro}'`}`);
+    console.log(`Query: 1=1 (filtro por ano >= ${minYear} será aplicado no código)`);
 
     while (hasMore) {
       const apiUrl = `${PREFEITURA_API_URL}?where=${whereClause}&outFields=*&f=json&resultRecordCount=${pageSize}&resultOffset=${offset}`;
@@ -138,7 +139,10 @@ serve(async (req) => {
             bairro: attrs['bairro'],
             codbairro: attrs['codbairro'],
             ano: attrs['ano_transação'],
-            mes: attrs['mês_transação']
+            mes: attrs['mês_transação'],
+            uso: attrs['uso'],
+            valor: attrs['média_valor_transação'],
+            area: attrs['média_área_construída']
           }));
         }
         
@@ -151,18 +155,19 @@ serve(async (req) => {
         }
       }
 
-      if (offset > 200000) {
-        console.log('Limite de segurança');
+      // Limite de segurança aumentado para 150k registros
+      if (offset > 150000) {
+        console.log('Limite de segurança atingido (150k)');
         hasMore = false;
       }
     }
 
-    console.log(`Total coletado: ${allFeatures.length}`);
+    console.log(`Total coletado da API: ${allFeatures.length}`);
 
     if (allFeatures.length === 0) {
       // Testar com query simples
       console.log('Testando query simples...');
-      const testUrl = `${PREFEITURA_API_URL}?where=1%3D1&outFields=codbairro,bairro&f=json&resultRecordCount=5`;
+      const testUrl = `${PREFEITURA_API_URL}?where=1%3D1&outFields=codbairro,bairro,ano_transação&f=json&resultRecordCount=5`;
       const testResp = await fetch(testUrl, {
         headers: { 'Accept': 'application/json', 'User-Agent': 'GodoyPrime/1.0' }
       });
@@ -171,17 +176,16 @@ serve(async (req) => {
         const testData: ArcGISResponse = await testResp.json();
         const samples = testData.features?.slice(0, 5).map(f => ({
           bairro: f.attributes['bairro'],
-          codbairro: f.attributes['codbairro']
+          codbairro: f.attributes['codbairro'],
+          ano: f.attributes['ano_transação']
         })) || [];
         console.log('Amostras:', JSON.stringify(samples));
         
         return new Response(
           JSON.stringify({
             success: true,
-            message: 'Nenhum registro encontrado para o código de bairro',
-            codbairro_usado: codbairro,
+            message: 'Nenhum registro encontrado',
             amostras_disponiveis: samples,
-            tip: 'Tente fetchAll:true para buscar todos os registros'
           }),
           { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         );
@@ -203,13 +207,18 @@ serve(async (req) => {
       await supabase.from('itbi_transactions').delete().neq('id', '00000000-0000-0000-0000-000000000000');
     }
 
-    // Transformar dados
+    // Transformar dados - FILTRAR POR ANO >= minYear
     const transacoes = allFeatures
       .filter(f => {
         const attrs = f.attributes;
+        const ano = extractNumber(attrs['ano_transação']);
         const valor = extractNumber(attrs['média_valor_transação']);
         const area = extractNumber(attrs['média_área_construída']);
-        return valor !== null && valor > 0 && area !== null && area > 0;
+        
+        // Filtrar por ano >= minYear E dados válidos
+        return ano !== null && ano >= minYear && 
+               valor !== null && valor > 0 && 
+               area !== null && area > 0;
       })
       .map(f => {
         const attrs = f.attributes;
@@ -234,7 +243,7 @@ serve(async (req) => {
           logradouro: logradouro.toUpperCase(),
           numero: null,
           complemento: null,
-          bairro: bairro.trim(),
+          bairro: bairro.trim().toUpperCase(),
           valor_transacao: Math.round(valor * 100) / 100,
           area_m2: Math.round(area * 100) / 100,
           valor_m2: Math.round((valor / area) * 100) / 100,
@@ -244,7 +253,7 @@ serve(async (req) => {
         };
       });
 
-    console.log(`Válidas: ${transacoes.length}`);
+    console.log(`Válidas (ano >= ${minYear}): ${transacoes.length}`);
 
     // Inserir em lotes
     let totalInseridas = 0;
@@ -266,8 +275,9 @@ serve(async (req) => {
       success: true,
       message: 'Sincronização concluída',
       transacoes_encontradas: allFeatures.length,
-      transacoes_validas: transacoes.length,
+      transacoes_filtradas_ano: transacoes.length,
       transacoes_inseridas: totalInseridas,
+      minYear,
       erros,
     };
 

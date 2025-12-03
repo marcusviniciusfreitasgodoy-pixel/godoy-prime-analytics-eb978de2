@@ -5,25 +5,46 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 }
 
-const PREFEITURA_API_URL = 'https://pgeo3.rio.rj.gov.br/arcgis/rest/services/SMF/Mapa_ITBI/MapServer/0/query'
+// API correta - mesma usada no sync-itbi-prefeitura
+// Layer 8: Transações por Logradouro e Mês
+const PREFEITURA_API_URL = 'https://pgeo3.rio.rj.gov.br/arcgis/rest/services/Fazenda/ITBI/MapServer/8/query'
 
-function classifyUso(uso: string | null): 'Residencial' | 'Comercial' {
-  if (!uso) return 'Residencial'
-  const usoUpper = uso.toUpperCase()
-  if (['COMERCIAL', 'LOJA', 'SALA', 'ESCRITORIO', 'GALPAO', 'INDUSTRIAL'].some(t => usoUpper.includes(t))) {
+function classificarUso(uso: string | null): 'Residencial' | 'Comercial' {
+  const texto = (uso || '').toLowerCase().trim()
+  if (texto.includes('nao residencial') || texto.includes('não residencial') || texto.includes('comercial')) {
     return 'Comercial'
   }
   return 'Residencial'
 }
 
-function classifyTipologia(tipo: string | null): string | null {
-  if (!tipo) return null
-  const tipoUpper = tipo.toUpperCase()
-  if (tipoUpper.includes('APARTAMENTO') || tipoUpper.includes('APTO')) return 'Apartamento'
-  if (tipoUpper.includes('CASA')) return 'Casa'
-  if (tipoUpper.includes('SALA') || tipoUpper.includes('LOJA')) return 'Sala/Loja'
-  if (tipoUpper.includes('TERRENO')) return 'Terreno'
-  return tipo
+function classificarTipologia(tipologia: string | null): string | null {
+  if (!tipologia) return null
+  const tipo = tipologia.toLowerCase().trim()
+  if (tipo.includes('apartamento') || tipo.includes('apto') || tipo.includes('flat') || tipo.includes('cobertura')) {
+    return 'Apartamento'
+  } else if (tipo.includes('casa') || tipo.includes('sobrado') || tipo.includes('residencia')) {
+    return 'Casa'
+  } else if (tipo.includes('terreno') || tipo.includes('lote')) {
+    return 'Terreno'
+  } else if (tipo.includes('sala') || tipo.includes('loja') || tipo.includes('escritório')) {
+    return 'Comercial'
+  }
+  return 'Apartamento'
+}
+
+function extractNumber(value: unknown): number | null {
+  if (typeof value === 'number') return value
+  if (typeof value === 'string') {
+    const num = parseFloat(value)
+    return isNaN(num) ? null : num
+  }
+  return null
+}
+
+function extractString(value: unknown): string | null {
+  if (typeof value === 'string') return value.trim()
+  if (typeof value === 'number') return String(value)
+  return null
 }
 
 Deno.serve(async (req) => {
@@ -37,72 +58,129 @@ Deno.serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     )
 
-    // Buscar dados dos últimos 7 dias
-    const sevenDaysAgo = Date.now() - (7 * 24 * 60 * 60 * 1000)
+    // Ano e mês atual para filtrar dados recentes
+    const now = new Date()
+    const currentYear = now.getFullYear()
+    const currentMonth = now.getMonth() + 1
     
-    console.log(`[CRON] Buscando transações desde ${new Date(sevenDaysAgo).toISOString()}`)
+    // Também considerar o mês anterior para pegar dados que podem ter sido inseridos com atraso
+    const prevMonth = currentMonth === 1 ? 12 : currentMonth - 1
+    const prevYear = currentMonth === 1 ? currentYear - 1 : currentYear
 
+    console.log(`[CRON] Buscando transações de ${prevYear}-${prevMonth} a ${currentYear}-${currentMonth}`)
+
+    // Buscar dados da API com where=1=1 (filtrar no código)
     const allRecords: any[] = []
     let offset = 0
-    const batchSize = 1000
+    const batchSize = 2000
 
-    // Fetch all pages from API
     while (true) {
-      const params = new URLSearchParams({
-        where: `DT_ACEITE_ITBI >= ${sevenDaysAgo}`,
-        outFields: '*',
-        f: 'json',
-        resultOffset: offset.toString(),
-        resultRecordCount: batchSize.toString(),
-        orderByFields: 'DT_ACEITE_ITBI DESC'
+      const apiUrl = `${PREFEITURA_API_URL}?where=1%3D1&outFields=*&f=json&resultRecordCount=${batchSize}&resultOffset=${offset}`
+      
+      console.log(`[CRON] Offset ${offset}...`)
+
+      const response = await fetch(apiUrl, {
+        headers: { 'Accept': 'application/json', 'User-Agent': 'GodoyPrime/1.0' }
       })
+      
+      if (!response.ok) {
+        console.error(`[CRON] HTTP Error: ${response.status}`)
+        break
+      }
 
-      const response = await fetch(`${PREFEITURA_API_URL}?${params}`)
       const data = await response.json()
-      const features = data.features || []
+      
+      if (data.error) {
+        console.error('[CRON] API Error:', data.error)
+        break
+      }
 
-      if (features.length === 0) break
+      const features = data.features || []
+      
+      if (features.length === 0) {
+        console.log('[CRON] Fim dos dados')
+        break
+      }
+
+      // Log de exemplo no primeiro batch
+      if (offset === 0 && features[0]) {
+        const attrs = features[0].attributes
+        console.log('[CRON] Exemplo:', JSON.stringify({
+          ano: attrs['ano_transação'],
+          mes: attrs['mês_transação'],
+          bairro: attrs['bairro'],
+          logradouro: attrs['logradouro']
+        }))
+      }
 
       allRecords.push(...features)
-      console.log(`[CRON] Obtidos ${features.length} registros (total: ${allRecords.length})`)
+      console.log(`[CRON] Página: ${features.length} registros (total: ${allRecords.length})`)
 
       if (features.length < batchSize) break
       offset += batchSize
+
+      // Limite de segurança - para sync diário não precisamos de muitos
+      if (offset > 20000) {
+        console.log('[CRON] Limite de segurança para sync diário')
+        break
+      }
     }
 
     console.log(`[CRON] Total da API: ${allRecords.length}`)
 
-    // Transform records
-    const validRecords = allRecords
+    // Filtrar apenas registros do mês atual ou anterior (dados recentes)
+    const recentRecords = allRecords.filter((feature: any) => {
+      const attrs = feature.attributes || {}
+      const ano = extractNumber(attrs['ano_transação'])
+      const mes = extractNumber(attrs['mês_transação'])
+      
+      if (!ano || !mes) return false
+      
+      // Aceitar mês atual OU mês anterior
+      const isCurrentMonth = ano === currentYear && mes === currentMonth
+      const isPrevMonth = ano === prevYear && mes === prevMonth
+      
+      return isCurrentMonth || isPrevMonth
+    })
+
+    console.log(`[CRON] Registros recentes (últimos 2 meses): ${recentRecords.length}`)
+
+    // Transformar registros
+    const validRecords = recentRecords
       .map((feature: any) => {
         const attrs = feature.attributes || {}
         
-        const valor = attrs.VL_TRANSACAO
-        const area = attrs.AREA_M2 || attrs.AREA
-        const dataMs = attrs.DT_ACEITE_ITBI
-        const logradouro = attrs.LOGRADOURO || attrs.ENDERECO || ''
-        const numero = attrs.NUMERO
-        const complemento = attrs.COMPLEMENTO
-        const bairro = attrs.BAIRRO || ''
-        const usoRaw = attrs.USO || attrs.TIPO_USO
-        const tipologiaRaw = attrs.TIPOLOGIA || attrs.TIPO_IMOVEL
+        const valor = extractNumber(attrs['média_valor_transação'])
+        const area = extractNumber(attrs['média_área_construída'])
+        const ano = extractNumber(attrs['ano_transação'])
+        const mes = extractNumber(attrs['mês_transação'])
+        const logradouro = extractString(attrs['logradouro'])
+        const bairro = extractString(attrs['bairro'])
+        const uso = extractString(attrs['uso'])
+        const tipologia = extractString(attrs['principais_tipologias'])
 
-        if (!valor || !area || !dataMs || valor <= 0 || area <= 0) {
+        // Validar dados essenciais
+        if (!valor || !area || valor <= 0 || area <= 0 || !logradouro) {
           return null
         }
 
-        const dataTransacao = new Date(dataMs).toISOString().split('T')[0]
+        // Construir data da transação
+        let dataTransacao = new Date().toISOString().split('T')[0]
+        if (ano && mes) {
+          dataTransacao = `${ano}-${String(mes).padStart(2, '0')}-15`
+        }
 
         return {
-          logradouro: String(logradouro).trim().toUpperCase().substring(0, 500),
-          numero: numero ? String(numero).trim().substring(0, 20) : null,
-          complemento: complemento ? String(complemento).trim().substring(0, 100) : null,
-          bairro: bairro ? String(bairro).trim().toUpperCase().substring(0, 100) : null,
-          valor_transacao: Number(valor),
-          area_m2: Number(area),
+          logradouro: logradouro.toUpperCase().substring(0, 500),
+          numero: null,
+          complemento: null,
+          bairro: bairro ? bairro.trim().toUpperCase().substring(0, 100) : null,
+          valor_transacao: Math.round(valor * 100) / 100,
+          area_m2: Math.round(area * 100) / 100,
+          valor_m2: Math.round((valor / area) * 100) / 100,
           data_transacao: dataTransacao,
-          uso: classifyUso(usoRaw),
-          tipologia: classifyTipologia(tipologiaRaw)
+          uso: classificarUso(uso),
+          tipologia: classificarTipologia(tipologia)
         }
       })
       .filter(Boolean)
@@ -114,30 +192,33 @@ Deno.serve(async (req) => {
         success: true,
         message: 'Nenhum registro novo encontrado',
         found: allRecords.length,
+        recent: recentRecords.length,
         valid: 0,
         inserted: 0
       }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
     }
 
-    // Insert in batches using upsert to avoid duplicates
+    // Inserir usando upsert para evitar duplicatas
     let totalInserted = 0
-    const insertBatchSize = 500
+    let errors = 0
+    const insertBatchSize = 100
 
     for (let i = 0; i < validRecords.length; i += insertBatchSize) {
       const batch = validRecords.slice(i, i + insertBatchSize)
       
-      const { data, error } = await supabase
+      // Usar insert simples - duplicatas serão rejeitadas naturalmente
+      const { error } = await supabase
         .from('itbi_transactions')
-        .upsert(batch, { 
-          onConflict: 'logradouro,numero,data_transacao,valor_transacao',
-          ignoreDuplicates: true 
-        })
-        .select('id')
+        .insert(batch)
 
       if (error) {
-        console.error(`[CRON] Erro no lote: ${error.message}`)
+        // Ignorar erros de duplicata, logar outros
+        if (!error.message.includes('duplicate')) {
+          console.error(`[CRON] Erro no lote: ${error.message}`)
+          errors++
+        }
       } else {
-        totalInserted += data?.length || 0
+        totalInserted += batch.length
       }
     }
 
@@ -146,8 +227,10 @@ Deno.serve(async (req) => {
     return new Response(JSON.stringify({
       success: true,
       found: allRecords.length,
+      recent: recentRecords.length,
       valid: validRecords.length,
       inserted: totalInserted,
+      errors,
       timestamp: new Date().toISOString()
     }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
 
