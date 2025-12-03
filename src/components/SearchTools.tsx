@@ -437,14 +437,14 @@ export function SearchTools({ bairro = "BARRA DA TIJUCA" }: SearchToolsProps) {
     <Card data-tour="search-tools">
       <CardHeader>
         <CardTitle className="flex items-center justify-between">
-          <span>Ferramentas de Busca</span>
+          <span className="text-sm sm:text-base">Ferramentas de Busca</span>
           {history.length > 0 && (
             <TooltipProvider>
               <Tooltip>
                 <TooltipTrigger asChild>
                   <Button variant="ghost" size="sm" onClick={clearHistory} className="h-8 text-xs">
-                    <Trash2 className="h-3 w-3 mr-1" />
-                    Limpar Histórico
+                    <Trash2 className="h-3 w-3 sm:mr-1" />
+                    <span className="hidden sm:inline">Limpar Histórico</span>
                   </Button>
                 </TooltipTrigger>
                 <TooltipContent>Limpar histórico de buscas recentes</TooltipContent>
@@ -455,18 +455,18 @@ export function SearchTools({ bairro = "BARRA DA TIJUCA" }: SearchToolsProps) {
       </CardHeader>
       <CardContent>
         <Tabs defaultValue="localizacao" className="w-full">
-          <TabsList className="grid w-full grid-cols-3">
-            <TabsTrigger value="localizacao" data-tour="tab-localizacao">
-              <Search className="h-4 w-4 mr-2" />
-              Localização
+          <TabsList className="grid w-full grid-cols-3 h-auto">
+            <TabsTrigger value="localizacao" data-tour="tab-localizacao" className="text-xs sm:text-sm py-2 px-1 sm:px-3">
+              <Search className="h-4 w-4 sm:mr-2" />
+              <span className="hidden sm:inline">Localização</span>
             </TabsTrigger>
-            <TabsTrigger value="transacoes" data-tour="tab-transacoes">
-              <DollarSign className="h-4 w-4 mr-2" />
-              Transações
+            <TabsTrigger value="transacoes" data-tour="tab-transacoes" className="text-xs sm:text-sm py-2 px-1 sm:px-3">
+              <DollarSign className="h-4 w-4 sm:mr-2" />
+              <span className="hidden sm:inline">Transações</span>
             </TabsTrigger>
-            <TabsTrigger value="valuation" data-tour="tab-valuation">
-              <Bot className="h-4 w-4 mr-2" />
-              IA Valuation
+            <TabsTrigger value="valuation" data-tour="tab-valuation" className="text-xs sm:text-sm py-2 px-1 sm:px-3">
+              <Bot className="h-4 w-4 sm:mr-2" />
+              <span className="hidden sm:inline">IA Valuation</span>
             </TabsTrigger>
           </TabsList>
 
@@ -556,7 +556,7 @@ export function SearchTools({ bairro = "BARRA DA TIJUCA" }: SearchToolsProps) {
               </div>
             </div>
             
-            <div className="grid grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
               <div className="space-y-2">
                 <Label htmlFor="tipologia">Tipologia</Label>
                 <Select 
@@ -620,7 +620,7 @@ export function SearchTools({ bairro = "BARRA DA TIJUCA" }: SearchToolsProps) {
               </div>
             </div>
             
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-2 gap-3 sm:gap-4">
               <div className="space-y-2">
                 <Label htmlFor="area-min">Área Mínima (m²)</Label>
                 <Input 
@@ -643,7 +643,7 @@ export function SearchTools({ bairro = "BARRA DA TIJUCA" }: SearchToolsProps) {
               </div>
             </div>
             
-            <div className="flex gap-2">
+            <div className="flex flex-wrap gap-2">
               <TooltipProvider>
                 <Tooltip>
                   <TooltipTrigger asChild>
@@ -703,27 +703,27 @@ export function SearchTools({ bairro = "BARRA DA TIJUCA" }: SearchToolsProps) {
             </div>
             
             {locationResult ? (
-              <div className="p-4 border rounded-lg bg-muted/30 space-y-3">
-                <div className="flex justify-between items-center">
-                  <span className="font-semibold text-foreground">{locationResult.logradouro}</span>
-                  <Badge variant="secondary">{locationResult.total_transacoes} transações</Badge>
+              <div className="p-3 sm:p-4 border rounded-lg bg-muted/30 space-y-3">
+                <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2">
+                  <span className="font-semibold text-foreground text-sm sm:text-base truncate">{locationResult.logradouro}</span>
+                  <Badge variant="secondary" className="self-start sm:self-auto">{locationResult.total_transacoes} transações</Badge>
                 </div>
-                <div className="grid grid-cols-2 gap-4 text-sm">
-                  <div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-4 text-sm">
+                  <div className="flex justify-between sm:block">
                     <span className="text-muted-foreground">Mediana:</span>
-                    <span className="ml-2 font-semibold">R$ {locationResult.mediana_m2.toLocaleString('pt-BR')}/m²</span>
+                    <span className="sm:ml-2 font-semibold">R$ {locationResult.mediana_m2.toLocaleString('pt-BR')}/m²</span>
                   </div>
-                  <div>
+                  <div className="flex justify-between sm:block">
                     <span className="text-muted-foreground">Média:</span>
-                    <span className="ml-2 font-semibold">R$ {locationResult.media_m2.toLocaleString('pt-BR')}/m²</span>
+                    <span className="sm:ml-2 font-semibold">R$ {locationResult.media_m2.toLocaleString('pt-BR')}/m²</span>
                   </div>
-                  <div>
+                  <div className="flex justify-between sm:block">
                     <span className="text-muted-foreground">Desvio:</span>
-                    <span className="ml-2 font-semibold">R$ {locationResult.desvio_padrao.toLocaleString('pt-BR')}/m²</span>
+                    <span className="sm:ml-2 font-semibold">R$ {locationResult.desvio_padrao.toLocaleString('pt-BR')}/m²</span>
                   </div>
-                  <div>
+                  <div className="flex justify-between sm:block">
                     <span className="text-muted-foreground">Faixa:</span>
-                    <span className="ml-2 font-semibold">
+                    <span className="sm:ml-2 font-semibold text-xs sm:text-sm">
                       R$ {locationResult.transacoes.length > 0 ? Math.min(...locationResult.transacoes.map(t => t.valor_m2)).toLocaleString('pt-BR') : 0} - {locationResult.transacoes.length > 0 ? Math.max(...locationResult.transacoes.map(t => t.valor_m2)).toLocaleString('pt-BR') : 0}/m²
                     </span>
                   </div>
@@ -737,9 +737,9 @@ export function SearchTools({ bairro = "BARRA DA TIJUCA" }: SearchToolsProps) {
 
             {/* Comparison Section */}
             {comparisonStreets.length > 0 && (
-              <div className="p-4 border rounded-lg bg-accent/5 space-y-3">
+              <div className="p-3 sm:p-4 border rounded-lg bg-accent/5 space-y-3">
                 <div className="flex justify-between items-center">
-                  <span className="font-semibold text-foreground flex items-center gap-2">
+                  <span className="font-semibold text-foreground flex items-center gap-2 text-sm sm:text-base">
                     <GitCompare className="h-4 w-4" />
                     Comparação ({comparisonStreets.length}/3)
                   </span>
@@ -750,8 +750,8 @@ export function SearchTools({ bairro = "BARRA DA TIJUCA" }: SearchToolsProps) {
                 
                 <div className="flex flex-wrap gap-2">
                   {comparisonStreets.map((street, idx) => (
-                    <Badge key={street} variant="secondary" className="flex items-center gap-1">
-                      <span className="truncate max-w-[150px]">{street}</span>
+                    <Badge key={street} variant="secondary" className="flex items-center gap-1 text-xs">
+                      <span className="truncate max-w-[100px] sm:max-w-[150px]">{street}</span>
                       <button onClick={() => removeFromComparison(street)} className="ml-1 hover:text-destructive">
                         <X className="h-3 w-3" />
                       </button>
@@ -767,9 +767,9 @@ export function SearchTools({ bairro = "BARRA DA TIJUCA" }: SearchToolsProps) {
                   <>
                     <div className="grid gap-2">
                       {comparisonData.map((street, idx) => (
-                        <div key={street.logradouro} className="flex items-center justify-between text-sm p-2 bg-background rounded">
-                          <span className="truncate max-w-[180px] font-medium">{street.logradouro}</span>
-                          <div className="flex items-center gap-3">
+                        <div key={street.logradouro} className="flex flex-col sm:flex-row sm:items-center sm:justify-between text-sm p-2 bg-background rounded gap-1">
+                          <span className="truncate max-w-full sm:max-w-[180px] font-medium">{street.logradouro}</span>
+                          <div className="flex items-center gap-2 sm:gap-3 text-xs sm:text-sm">
                             <span className="text-muted-foreground">
                               R$ {street.media_m2.toLocaleString('pt-BR')}/m²
                             </span>
@@ -794,7 +794,7 @@ export function SearchTools({ bairro = "BARRA DA TIJUCA" }: SearchToolsProps) {
           </TabsContent>
 
           <TabsContent value="transacoes" className="space-y-4 mt-4">
-            <div className="grid grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
               <div className="space-y-2">
                 <Label htmlFor="trans-bairro">Bairro</Label>
                 <Select 
@@ -870,7 +870,7 @@ export function SearchTools({ bairro = "BARRA DA TIJUCA" }: SearchToolsProps) {
               </div>
             </div>
             
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-2 gap-3 sm:gap-4">
               <div className="space-y-2">
                 <Label htmlFor="valor-min">Valor Mínimo</Label>
                 <Select 
@@ -915,7 +915,7 @@ export function SearchTools({ bairro = "BARRA DA TIJUCA" }: SearchToolsProps) {
               </div>
             </div>
             
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-2 gap-3 sm:gap-4">
               <div className="space-y-2">
                 <Label htmlFor="trans-area-min">Área Mínima (m²)</Label>
                 <Input 
@@ -944,14 +944,15 @@ export function SearchTools({ bairro = "BARRA DA TIJUCA" }: SearchToolsProps) {
               </div>
             </div>
             
-            <div className="flex gap-2">
-              <Button className="flex-1" onClick={handleTransactionSearch} disabled={transactionLoading}>
+            <div className="flex flex-wrap gap-2">
+              <Button className="flex-1 min-w-0" onClick={handleTransactionSearch} disabled={transactionLoading}>
                 {transactionLoading ? (
                   <Loader2 className="h-4 w-4 mr-2 animate-spin" />
                 ) : (
-                  <DollarSign className="h-4 w-4 mr-2" />
+                  <DollarSign className="h-4 w-4 sm:mr-2" />
                 )}
-                Buscar Transações
+                <span className="hidden sm:inline">Buscar Transações</span>
+                <span className="sm:hidden">Buscar</span>
               </Button>
               <Button variant="outline" onClick={clearTransactionFilters} title="Limpar filtros">
                 <RotateCcw className="h-4 w-4" />
@@ -979,9 +980,9 @@ export function SearchTools({ bairro = "BARRA DA TIJUCA" }: SearchToolsProps) {
                 })()}
                 <p className="text-sm text-muted-foreground mb-2">TOP 10 logradouros por liquidez:</p>
                 {transactionResult.map((item, idx) => (
-                  <div key={item.microbairro} className="flex items-center justify-between p-2 rounded bg-muted/30 text-sm">
-                    <span className="truncate max-w-[200px]">{idx + 1}. {item.microbairro}</span>
-                    <div className="flex gap-4 text-muted-foreground">
+                  <div key={item.microbairro} className="flex flex-col sm:flex-row sm:items-center sm:justify-between p-2 rounded bg-muted/30 text-sm gap-1 sm:gap-0">
+                    <span className="truncate max-w-full sm:max-w-[200px] font-medium sm:font-normal">{idx + 1}. {item.microbairro}</span>
+                    <div className="flex gap-3 sm:gap-4 text-muted-foreground text-xs sm:text-sm">
                       <span>{item.total_transacoes} trans.</span>
                       <span className="font-medium text-foreground">R$ {(item.preco_medio_m2 / 1000).toFixed(1)}k/m²</span>
                     </div>
@@ -1055,7 +1056,7 @@ export function SearchTools({ bairro = "BARRA DA TIJUCA" }: SearchToolsProps) {
               )}
             </div>
             
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-2 gap-3 sm:gap-4">
               <div className="space-y-2">
                 <Label htmlFor="val-area">Área (m²)</Label>
                 <Input 
@@ -1080,7 +1081,7 @@ export function SearchTools({ bairro = "BARRA DA TIJUCA" }: SearchToolsProps) {
               </div>
             </div>
             
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-2 gap-3 sm:gap-4">
               <div className="space-y-2">
                 <Label htmlFor="val-quartos">Quartos</Label>
                 <Input 
@@ -1103,7 +1104,7 @@ export function SearchTools({ bairro = "BARRA DA TIJUCA" }: SearchToolsProps) {
               </div>
             </div>
             
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-2 gap-3 sm:gap-4">
               <div className="space-y-2">
                 <Label htmlFor="val-sol">Sol</Label>
                 <Select value={valSol} onValueChange={setValSol}>
@@ -1150,14 +1151,15 @@ export function SearchTools({ bairro = "BARRA DA TIJUCA" }: SearchToolsProps) {
               </Select>
             </div>
             
-            <div className="flex gap-2">
+            <div className="flex flex-wrap gap-2">
               <Button 
-                className="flex-1" 
+                className="flex-1 min-w-0" 
                 onClick={calculateValuation}
                 disabled={!locationResult || !valArea}
               >
-                <Bot className="h-4 w-4 mr-2" />
-                Calcular Valuation
+                <Bot className="h-4 w-4 sm:mr-2" />
+                <span className="hidden sm:inline">Calcular Valuation</span>
+                <span className="sm:hidden">Calcular</span>
               </Button>
               <Button variant="outline" onClick={clearValuationForm} title="Limpar formulário">
                 <RotateCcw className="h-4 w-4" />
@@ -1165,27 +1167,27 @@ export function SearchTools({ bairro = "BARRA DA TIJUCA" }: SearchToolsProps) {
             </div>
             
             {valuationResult ? (
-              <div className="p-4 border rounded-lg bg-gradient-to-br from-accent/10 to-accent/5 space-y-4">
+              <div className="p-3 sm:p-4 border rounded-lg bg-gradient-to-br from-accent/10 to-accent/5 space-y-3 sm:space-y-4">
                 <div className="text-center">
                   <p className="text-sm text-muted-foreground mb-1">Preço Justo de Mercado</p>
-                  <p className="text-3xl font-bold text-accent">
+                  <p className="text-2xl sm:text-3xl font-bold text-accent">
                     R$ {valuationResult.justo.toLocaleString('pt-BR')}
                   </p>
                 </div>
                 <div className="grid grid-cols-2 gap-2 text-sm text-center">
                   <div className="p-2 bg-card rounded">
                     <p className="text-xs text-muted-foreground">Liquidez (Mín)</p>
-                    <p className="font-semibold">R$ {valuationResult.min.toLocaleString('pt-BR')}</p>
+                    <p className="font-semibold text-xs sm:text-sm">R$ {valuationResult.min.toLocaleString('pt-BR')}</p>
                   </div>
                   <div className="p-2 bg-card rounded">
                     <p className="text-xs text-muted-foreground">Oportunidade (Máx)</p>
-                    <p className="font-semibold">R$ {valuationResult.max.toLocaleString('pt-BR')}</p>
+                    <p className="font-semibold text-xs sm:text-sm">R$ {valuationResult.max.toLocaleString('pt-BR')}</p>
                   </div>
                 </div>
-                <div className="grid grid-cols-2 gap-4 text-center">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 text-center">
                   <div className="p-3 bg-card rounded-lg">
                     <p className="text-xs text-muted-foreground">Termômetro</p>
-                    <p className="font-semibold text-foreground">Mercado de {valuationResult.mercado}</p>
+                    <p className="font-semibold text-foreground text-sm">Mercado de {valuationResult.mercado}</p>
                     <p className="text-xs text-muted-foreground mt-1">{valuationResult.mercadoDescricao}</p>
                   </div>
                   <div className="p-3 bg-card rounded-lg">
@@ -1199,7 +1201,8 @@ export function SearchTools({ bairro = "BARRA DA TIJUCA" }: SearchToolsProps) {
                   onClick={handleExportValuationPDF}
                 >
                   <FileDown className="h-4 w-4 mr-2" />
-                  Exportar Relatório PDF
+                  <span className="hidden sm:inline">Exportar Relatório PDF</span>
+                  <span className="sm:hidden">Exportar PDF</span>
                 </Button>
               </div>
             ) : (
