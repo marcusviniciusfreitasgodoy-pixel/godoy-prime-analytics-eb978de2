@@ -1,21 +1,25 @@
+import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "./ui/card";
 import { ComposedChart, Bar, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from "recharts";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "./ui/tabs";
-import { useEvolutionData } from "@/hooks/useEvolutionData";
+import { useEvolutionData, GranularityType } from "@/hooks/useEvolutionData";
 import { Skeleton } from "./ui/skeleton";
+import { ToggleGroup, ToggleGroupItem } from "./ui/toggle-group";
+import { Calendar, CalendarDays } from "lucide-react";
 
 interface EvolutionChartProps {
   bairro?: string;
 }
 
 export function EvolutionChart({ bairro = "BARRA DA TIJUCA" }: EvolutionChartProps) {
-  const { data: evolutionData, isLoading } = useEvolutionData(bairro);
+  const [granularity, setGranularity] = useState<GranularityType>('semester');
+  const { data: evolutionData, isLoading } = useEvolutionData(bairro, granularity);
 
   if (isLoading) {
     return (
       <Card>
         <CardHeader>
-          <CardTitle>Evolução Histórica (60 meses)</CardTitle>
+          <CardTitle>Evolução Histórica</CardTitle>
           <CardDescription>Tendência de Mercado</CardDescription>
         </CardHeader>
         <CardContent>
@@ -26,9 +30,9 @@ export function EvolutionChart({ bairro = "BARRA DA TIJUCA" }: EvolutionChartPro
   }
 
   const chartData = evolutionData || [];
-  const monthCount = chartData.length;
+  const periodCount = chartData.length;
+  const periodLabel = granularity === 'annual' ? 'anos' : 'semestres';
 
-  // Custom tooltip style
   const tooltipStyle = {
     backgroundColor: 'hsl(var(--card))',
     border: '1px solid hsl(var(--border))',
@@ -39,11 +43,28 @@ export function EvolutionChart({ bairro = "BARRA DA TIJUCA" }: EvolutionChartPro
   return (
     <Card>
       <CardHeader className="pb-2 px-4 sm:px-6">
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
           <div>
-            <CardTitle className="text-base sm:text-lg">Evolução Histórica ({monthCount} semestres)</CardTitle>
-            <CardDescription className="text-xs sm:text-sm">Tendência de Mercado - Dados Semestrais</CardDescription>
+            <CardTitle className="text-base sm:text-lg">Evolução Histórica ({periodCount} {periodLabel})</CardTitle>
+            <CardDescription className="text-xs sm:text-sm">
+              Tendência de Mercado - Dados {granularity === 'annual' ? 'Anuais' : 'Semestrais'}
+            </CardDescription>
           </div>
+          <ToggleGroup 
+            type="single" 
+            value={granularity} 
+            onValueChange={(value) => value && setGranularity(value as GranularityType)}
+            className="justify-start"
+          >
+            <ToggleGroupItem value="semester" aria-label="Semestral" className="text-xs gap-1 px-3">
+              <CalendarDays className="h-3.5 w-3.5" />
+              Semestral
+            </ToggleGroupItem>
+            <ToggleGroupItem value="annual" aria-label="Anual" className="text-xs gap-1 px-3">
+              <Calendar className="h-3.5 w-3.5" />
+              Anual
+            </ToggleGroupItem>
+          </ToggleGroup>
         </div>
       </CardHeader>
       <CardContent className="px-2 sm:px-6">

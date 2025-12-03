@@ -9,16 +9,16 @@ export interface EvolutionData {
   variacao: number;
 }
 
-export function useEvolutionData(bairro: string = 'BARRA DA TIJUCA') {
+export type GranularityType = 'semester' | 'annual';
+
+export function useEvolutionData(bairro: string = 'BARRA DA TIJUCA', granularity: GranularityType = 'semester') {
   return useQuery<EvolutionData[]>({
-    queryKey: ['evolution-data-v4', bairro],
+    queryKey: ['evolution-data-v5', bairro, granularity],
     staleTime: 0,
     refetchOnMount: 'always',
     queryFn: async () => {
-      // Dados desde 2020 para evolução
       const startDate = '2020-01-01';
 
-      // Buscar TODOS os registros com paginação
       let allData: { data_transacao: string; valor_m2: number | null; tipologia: string | null }[] = [];
       let offset = 0;
       const pageSize = 1000;
@@ -52,13 +52,19 @@ export function useEvolutionData(bairro: string = 'BARRA DA TIJUCA') {
 
       if (!data || data.length === 0) return [];
 
-      // Agrupar por SEMESTRE (S1 = Jan-Jun, S2 = Jul-Dec)
+      // Agrupar por período (semestre ou ano)
       const grouped = (data || []).reduce((acc, t) => {
         const date = new Date(t.data_transacao);
         const year = date.getFullYear();
-        const month = date.getMonth() + 1;
-        const semester = month <= 6 ? 'S1' : 'S2';
-        const key = `${year}-${semester}`;
+        
+        let key: string;
+        if (granularity === 'annual') {
+          key = `${year}`;
+        } else {
+          const month = date.getMonth() + 1;
+          const semester = month <= 6 ? 'S1' : 'S2';
+          key = `${year}-${semester}`;
+        }
         
         if (!acc[key]) {
           acc[key] = { geral: [], apartamento: [], casa: [] };
@@ -75,8 +81,11 @@ export function useEvolutionData(bairro: string = 'BARRA DA TIJUCA') {
         return acc;
       }, {} as Record<string, { geral: number[], apartamento: number[], casa: number[] }>);
 
-      // Ordenar semestres cronologicamente
-      const semesters = Object.keys(grouped).sort((a, b) => {
+      // Ordenar períodos cronologicamente
+      const periods = Object.keys(grouped).sort((a, b) => {
+        if (granularity === 'annual') {
+          return parseInt(a) - parseInt(b);
+        }
         const [yearA, semA] = a.split('-');
         const [yearB, semB] = b.split('-');
         if (yearA !== yearB) return parseInt(yearA) - parseInt(yearB);
@@ -85,10 +94,14 @@ export function useEvolutionData(bairro: string = 'BARRA DA TIJUCA') {
 
       let previousGeral = 0;
 
-      return semesters.map((key, index) => {
-        const [year, semester] = key.split('-');
-        // Formato: "S1/20" ou "S2/20"
-        const mesFormatted = `${semester}/${year.slice(2)}`;
+      return periods.map((key, index) => {
+        let mesFormatted: string;
+        if (granularity === 'annual') {
+          mesFormatted = key;
+        } else {
+          const [year, semester] = key.split('-');
+          mesFormatted = `${semester}/${year.slice(2)}`;
+        }
         
         const avg = (arr: number[]) => arr.length > 0 
           ? arr.reduce((sum, v) => sum + v, 0) / arr.length 
