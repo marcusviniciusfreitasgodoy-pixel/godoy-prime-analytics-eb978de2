@@ -18,7 +18,7 @@ export function useStreetSuggestions(query: string, bairro: string = 'BARRA DA T
       const searchTerm = query.toUpperCase().trim();
       
       // Remove prefixos comuns para buscar pelo nome
-      const cleanedSearch = searchTerm
+      let cleanedSearch = searchTerm
         .replace(/^(AVENIDA|AVN|AV|AV\.|AVENUE)\s*/i, '')
         .replace(/^(RUA|R|R\.)\s*/i, '')
         .replace(/^(PRAÇA|PRC|PRACA)\s*/i, '')
@@ -27,11 +27,106 @@ export function useStreetSuggestions(query: string, bairro: string = 'BARRA DA T
         .replace(/^(TRAVESSA|TV|TV\.)\s*/i, '')
         .trim();
 
+      // Expandir abreviações comuns para busca
+      const abbreviationMap: Record<string, string[]> = {
+        'DESENHISTA': ['DESEN', 'DESENHISTA'],
+        'DESEN': ['DESEN', 'DESENHISTA'],
+        'ALMIRANTE': ['ALMTE', 'ALM', 'ALMIRANTE'],
+        'ALMTE': ['ALMTE', 'ALM', 'ALMIRANTE'],
+        'DOUTOR': ['DR', 'DOUTOR'],
+        'DR': ['DR', 'DOUTOR'],
+        'ENGENHEIRO': ['ENG', 'ENGENHEIRO'],
+        'ENG': ['ENG', 'ENGENHEIRO'],
+        'PROFESSOR': ['PROF', 'PROFESSOR'],
+        'PROF': ['PROF', 'PROFESSOR'],
+        'GENERAL': ['GEN', 'GENERAL'],
+        'GEN': ['GEN', 'GENERAL'],
+        'CORONEL': ['CEL', 'CORONEL'],
+        'CEL': ['CEL', 'CORONEL'],
+        'TENENTE': ['TEN', 'TENENTE'],
+        'TEN': ['TEN', 'TENENTE'],
+        'CAPITAO': ['CAP', 'CAPITAO'],
+        'CAP': ['CAP', 'CAPITAO'],
+        'DEPUTADO': ['DEP', 'DEPUTADO'],
+        'DEP': ['DEP', 'DEPUTADO'],
+        'SENADOR': ['SEN', 'SENADOR'],
+        'SEN': ['SEN', 'SENADOR'],
+        'PREFEITO': ['PREF', 'PREFEITO'],
+        'PREF': ['PREF', 'PREFEITO'],
+        'PROCURADOR': ['PROCUR', 'PROCURADOR'],
+        'PROCUR': ['PROCUR', 'PROCURADOR'],
+        'MARECHAL': ['MAL', 'MARECHAL'],
+        'MAL': ['MAL', 'MARECHAL'],
+        'COMENDADOR': ['COM', 'COMENDADOR'],
+        'COM': ['COM', 'COMENDADOR'],
+      };
+
+      // Corrigir erros de digitação comuns
+      const typoCorrections: Record<string, string> = {
+        'GUMARAES': 'GUIMARAES',
+        'GUIMARAIS': 'GUIMARAES',
+        'GIMARAES': 'GUIMARAES',
+        'GUIMARÃES': 'GUIMARAES',
+        'AMERICAS': 'AMERICAS',
+        'AMERCIAS': 'AMERICAS',
+        'TIJUCA': 'TIJUCA',
+        'TIJUICA': 'TIJUCA',
+        'LUCIO': 'LUCIO',
+        'LÚCIO': 'LUCIO',
+        'OLEGARIO': 'OLEGARIO',
+        'OLEGÁRIO': 'OLEGARIO',
+        'DULCIDIO': 'DULCIDIO',
+        'DULCÍDIO': 'DULCIDIO',
+        'SERNANBETIBA': 'SERNAMBETIBA',
+        'SERNABETIBA': 'SERNAMBETIBA',
+      };
+
+      // Aplicar correções de digitação
+      let correctedSearch = cleanedSearch;
+      Object.entries(typoCorrections).forEach(([typo, correction]) => {
+        correctedSearch = correctedSearch.replace(new RegExp(typo, 'gi'), correction);
+      });
+
+      // Gerar variações de busca baseadas em abreviações
+      const searchVariations: string[] = [cleanedSearch, correctedSearch];
+      const words = cleanedSearch.split(/\s+/);
+      
+      words.forEach(word => {
+        const variations = abbreviationMap[word];
+        if (variations) {
+          variations.forEach(variation => {
+            const newSearch = cleanedSearch.replace(new RegExp(`\\b${word}\\b`, 'gi'), variation);
+            if (!searchVariations.includes(newSearch)) {
+              searchVariations.push(newSearch);
+            }
+          });
+        }
+      });
+
+      // Também aplicar correções nas variações
+      const correctedWords = correctedSearch.split(/\s+/);
+      correctedWords.forEach(word => {
+        const variations = abbreviationMap[word];
+        if (variations) {
+          variations.forEach(variation => {
+            const newSearch = correctedSearch.replace(new RegExp(`\\b${word}\\b`, 'gi'), variation);
+            if (!searchVariations.includes(newSearch)) {
+              searchVariations.push(newSearch);
+            }
+          });
+        }
+      });
+
       // 1. Buscar na tabela de mapeamento de condomínios por nome
+      const condominioOrConditions = [
+        ...searchVariations.map(v => `nome_condominio.ilike.%${v}%`),
+        ...searchVariations.map(v => `logradouro_padrao.ilike.%${v}%`),
+      ].join(',');
+
       const { data: condominios } = await supabase
         .from('condominios_mapeamento')
         .select('logradouro_padrao, nome_condominio, microbairro, padrao_construtivo')
-        .or(`nome_condominio.ilike.%${cleanedSearch}%,nome_condominio.ilike.%${searchTerm}%,logradouro_padrao.ilike.%${cleanedSearch}%`);
+        .or(condominioOrConditions);
 
       // Criar mapa de logradouros para dados do condomínio
       const condominioMap = new Map<string, { nome: string; microbairro?: string; padrao?: string }>();
@@ -43,10 +138,11 @@ export function useStreetSuggestions(query: string, bairro: string = 'BARRA DA T
         });
       });
 
-      // 2. Buscar transações por logradouro OU pelos logradouros dos condomínios encontrados
+      // 2. Buscar transações por logradouro usando todas as variações
       const condominioLogradouros = (condominios || []).map(c => c.logradouro_padrao);
       
-      let orConditions = `logradouro.ilike.%${cleanedSearch}%,logradouro.ilike.%${searchTerm}%`;
+      // Construir condições OR para todas as variações de busca
+      let orConditions = searchVariations.map(v => `logradouro.ilike.%${v}%`).join(',');
       
       // Adicionar logradouros dos condomínios encontrados
       if (condominioLogradouros.length > 0) {
