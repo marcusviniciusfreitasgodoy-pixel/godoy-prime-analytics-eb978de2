@@ -136,6 +136,8 @@ export interface TransactionSearchParams {
   bairro?: string;
   tipologia?: string;
   periodoMeses?: number;
+  areaMin?: number;
+  areaMax?: number;
 }
 
 export interface MicrobairroLiquidez {
@@ -172,12 +174,22 @@ export function useTransactionSearch(params: TransactionSearchParams, enabled: b
         query = query.ilike('tipologia', `%${params.tipologia}%`);
       }
 
+      // Filtro por valor
       if (params.valorMin) {
         query = query.gte('valor_transacao', params.valorMin);
       }
 
       if (params.valorMax) {
         query = query.lte('valor_transacao', params.valorMax);
+      }
+
+      // Filtro por área
+      if (params.areaMin) {
+        query = query.gte('area_m2', params.areaMin);
+      }
+
+      if (params.areaMax) {
+        query = query.lte('area_m2', params.areaMax);
       }
 
       const { data, error } = await query.limit(5000);
