@@ -786,7 +786,15 @@ export function SearchTools({ bairro = "BARRA DA TIJUCA" }: SearchToolsProps) {
                         </div>
                       ))}
                     </div>
-                    <StreetComparisonChart data={comparisonData} />
+                    {/* Gráfico apenas no desktop */}
+                    <div className="hidden sm:block">
+                      <StreetComparisonChart data={comparisonData} />
+                    </div>
+                    <div className="sm:hidden p-3 bg-muted/30 rounded-lg text-center">
+                      <p className="text-xs text-muted-foreground">
+                        📊 Gráfico de comparação disponível apenas no computador
+                      </p>
+                    </div>
                   </>
                 )}
               </div>
