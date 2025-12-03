@@ -6,6 +6,7 @@ import { DashboardKPIs } from "@/components/DashboardKPIs";
 import { EvolutionChart } from "@/components/EvolutionChart";
 import { MicrobairroRanking } from "@/components/MicrobairroRanking";
 import { SearchTools } from "@/components/SearchTools";
+import { AdvancedSearchReport } from "@/components/AdvancedSearchReport";
 import { GuidedTour } from "@/components/GuidedTour";
 import { BairroSelector } from "@/components/BairroSelector";
 import { supabase } from "@/integrations/supabase/client";
@@ -120,6 +121,8 @@ export default function Dashboard() {
       <div data-tour="search-tools">
         <SearchTools bairro={selectedBairro} />
       </div>
+
+      <AdvancedSearchReport />
     </div>
   );
 }
