@@ -153,10 +153,10 @@ export function useKPIStats(bairro: string = 'Barra da Tijuca') {
         return somaTransacoes > 0 ? somaValoresPonderados / somaTransacoes : 0;
       };
 
-      // Liquidez = número de registros (não soma de total_transacoes)
-      // Cada registro representa uma agregação de rua/mês, liquidez = quantidade de registros
+      // Liquidez = soma de total_transacoes (número real de transações)
+      // Cada registro é uma agregação, total_transacoes indica quantas transações reais
       const calcLiquidez = (arr: TransactionData[]) => {
-        return arr.length;
+        return arr.reduce((sum, t) => sum + (t.total_transacoes || 1), 0);
       };
 
       const precoMedio = calcMediaPonderada(currentTransactions);
@@ -170,12 +170,12 @@ export function useKPIStats(bairro: string = 'Barra da Tijuca') {
       const precoMedioLastMonth = calcMediaPonderada(lastMonthTransactions);
       const precoMedioPrevMonth = calcMediaPonderada(previousMonthTransactions);
 
-      // Calcular liquidez = número de registros
+      // Calcular liquidez = soma de total_transacoes (transações reais)
       const liquidez = calcLiquidez(currentTransactions);
       const liquidezApt = calcLiquidez(currentApt);
       const liquidezCasa = calcLiquidez(currentCasa);
 
-      console.log('[KPI] Liquidez (registros):', liquidez);
+      console.log('[KPI] Liquidez (transações reais):', liquidez);
       console.log('[KPI] Preço médio ponderado:', precoMedio);
       console.log('[KPI] Último mês com dados:', ultimoMes, '- Registros:', lastMonthTransactions.length);
       console.log('[KPI] Penúltimo mês com dados:', penultimoMes, '- Registros:', previousMonthTransactions.length);
