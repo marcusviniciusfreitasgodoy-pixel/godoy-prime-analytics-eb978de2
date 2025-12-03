@@ -62,6 +62,8 @@ export function SearchTools({ bairro = "BARRA DA TIJUCA" }: SearchToolsProps) {
   const [transacaoBairro, setTransacaoBairro] = useState<string>("BARRA DA TIJUCA");
   const [transacaoTipologia, setTransacaoTipologia] = useState<string>("");
   const [transacaoPeriodo, setTransacaoPeriodo] = useState<string>("12");
+  const [transacaoAreaMin, setTransacaoAreaMin] = useState<string>("");
+  const [transacaoAreaMax, setTransacaoAreaMax] = useState<string>("");
   const [searchTransactions, setSearchTransactions] = useState(false);
 
   // Valuation state
@@ -105,6 +107,8 @@ export function SearchTools({ bairro = "BARRA DA TIJUCA" }: SearchToolsProps) {
       bairro: transacaoBairro || undefined,
       tipologia: transacaoTipologia === 'todas' ? undefined : transacaoTipologia || undefined,
       periodoMeses: parseInt(transacaoPeriodo),
+      areaMin: transacaoAreaMin ? parseFloat(transacaoAreaMin) : undefined,
+      areaMax: transacaoAreaMax ? parseFloat(transacaoAreaMax) : undefined,
     },
     searchTransactions
   );
@@ -202,7 +206,35 @@ export function SearchTools({ bairro = "BARRA DA TIJUCA" }: SearchToolsProps) {
     setTransacaoBairro("BARRA DA TIJUCA");
     setTransacaoTipologia("");
     setTransacaoPeriodo("12");
+    setTransacaoAreaMin("");
+    setTransacaoAreaMax("");
     setSearchTransactions(false);
+  };
+
+  const exportTransactionResults = () => {
+    if (!transactionResult || transactionResult.length === 0) {
+      toast({
+        title: "Sem dados",
+        description: "Faça uma busca primeiro para exportar os resultados.",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    const exportData = transactionResult.map((item, idx) => ({
+      Ranking: idx + 1,
+      Logradouro: item.microbairro,
+      Total_Transacoes: item.total_transacoes,
+      Preco_Medio_m2: item.preco_medio_m2,
+      Bairro: transacaoBairro,
+      Periodo_Meses: transacaoPeriodo,
+    }));
+    
+    exportToCSV(exportData, `transacoes_${transacaoBairro.replace(/\s+/g, '_')}_${transacaoPeriodo}m`);
+    toast({
+      title: "Exportado com sucesso",
+      description: `${exportData.length} logradouros exportados para CSV.`,
+    });
   };
 
   const clearValuationForm = () => {
@@ -833,6 +865,35 @@ export function SearchTools({ bairro = "BARRA DA TIJUCA" }: SearchToolsProps) {
               </div>
             </div>
             
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="trans-area-min">Área Mínima (m²)</Label>
+                <Input 
+                  id="trans-area-min" 
+                  type="number" 
+                  placeholder="50" 
+                  value={transacaoAreaMin}
+                  onChange={(e) => {
+                    setTransacaoAreaMin(e.target.value);
+                    setSearchTransactions(false);
+                  }}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="trans-area-max">Área Máxima (m²)</Label>
+                <Input 
+                  id="trans-area-max" 
+                  type="number" 
+                  placeholder="500" 
+                  value={transacaoAreaMax}
+                  onChange={(e) => {
+                    setTransacaoAreaMax(e.target.value);
+                    setSearchTransactions(false);
+                  }}
+                />
+              </div>
+            </div>
+            
             <div className="flex gap-2">
               <Button className="flex-1" onClick={handleTransactionSearch} disabled={transactionLoading}>
                 {transactionLoading ? (
@@ -845,6 +906,11 @@ export function SearchTools({ bairro = "BARRA DA TIJUCA" }: SearchToolsProps) {
               <Button variant="outline" onClick={clearTransactionFilters} title="Limpar filtros">
                 <RotateCcw className="h-4 w-4" />
               </Button>
+              {transactionResult && transactionResult.length > 0 && (
+                <Button variant="outline" onClick={exportTransactionResults} title="Exportar CSV">
+                  <FileDown className="h-4 w-4" />
+                </Button>
+              )}
             </div>
             
             {transactionResult && transactionResult.length > 0 ? (
