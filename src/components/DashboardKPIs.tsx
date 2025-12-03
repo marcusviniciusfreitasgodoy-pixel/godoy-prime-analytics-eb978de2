@@ -2,6 +2,7 @@ import { TrendingUp, Activity, TrendingDown, MapPin } from "lucide-react";
 import { KPICard } from "./KPICard";
 import { useKPIStats } from "@/hooks/useKPIStats";
 import { Skeleton } from "./ui/skeleton";
+import { MethodologyDisclaimer } from "./MethodologyDisclaimer";
 
 export function DashboardKPIs() {
   const { data: stats, isLoading } = useKPIStats();
@@ -24,7 +25,11 @@ export function DashboardKPIs() {
   const currentYear = new Date().getFullYear();
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+    <div className="space-y-3">
+      <div className="flex justify-end">
+        <MethodologyDisclaimer />
+      </div>
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
       <KPICard
         title={`Preço Médio (${currentYear} YTD)`}
         value={`R$ ${stats.precoMedio.toLocaleString('pt-BR')}`}
@@ -69,6 +74,7 @@ export function DashboardKPIs() {
           casa: `R$ ${stats.precoMedioBairroCasa.toLocaleString('pt-BR')}`,
         }}
       />
+      </div>
     </div>
   );
 }
