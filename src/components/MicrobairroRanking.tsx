@@ -23,9 +23,9 @@ export function MicrobairroRanking({ bairro = "BARRA DA TIJUCA" }: MicrobairroRa
     );
   }
 
-  const sortedRanking = [...(ranking || [])].sort((a, b) => 
-    (b.preco_medio_m2 || 0) - (a.preco_medio_m2 || 0)
-  );
+  const sortedRanking = [...(ranking || [])]
+    .filter(item => item.microbairro && item.microbairro.toUpperCase() !== 'OUTROS')
+    .sort((a, b) => (b.preco_medio_m2 || 0) - (a.preco_medio_m2 || 0));
 
   const maxValue = Math.max(...sortedRanking.map(r => r.preco_medio_m2 || 0));
 
