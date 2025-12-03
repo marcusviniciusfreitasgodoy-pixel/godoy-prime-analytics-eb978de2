@@ -19,10 +19,20 @@ export function DashboardKPIs() {
 
   if (!stats) return null;
 
-  const variacaoPositiva = parseFloat(stats.variacaoAnual) >= 0;
-  const variacaoMensalPositiva = parseFloat(stats.variacaoMensal) >= 0;
+  const variacaoAnualNum = parseFloat(stats.variacaoAnual);
+  const variacaoMensalNum = parseFloat(stats.variacaoMensal);
+  const variacaoPositiva = !isNaN(variacaoAnualNum) && variacaoAnualNum >= 0;
+  const variacaoMensalPositiva = !isNaN(variacaoMensalNum) && variacaoMensalNum >= 0;
+  const variacaoMensalDisponivel = stats.variacaoMensal !== 'N/A';
 
   const currentYear = new Date().getFullYear();
+
+  // Formatar variação mensal
+  const formatarVariacaoMensal = () => {
+    if (!variacaoMensalDisponivel) return 'Dados insuficientes';
+    const prefix = variacaoMensalPositiva ? '+' : '';
+    return `${prefix}${stats.variacaoMensal}% vs mês anterior`;
+  };
 
   return (
     <div className="space-y-3">
@@ -33,9 +43,9 @@ export function DashboardKPIs() {
       <KPICard
         title={`Preço Médio (${currentYear} YTD)`}
         value={`R$ ${stats.precoMedio.toLocaleString('pt-BR')}`}
-        change={`${variacaoMensalPositiva ? '+' : ''}${stats.variacaoMensal}% vs mês anterior`}
+        change={formatarVariacaoMensal()}
         icon={TrendingUp}
-        trend={variacaoMensalPositiva ? "up" : "down"}
+        trend={variacaoMensalDisponivel ? (variacaoMensalPositiva ? "up" : "down") : "neutral"}
         breakdown={{
           apt: `R$ ${stats.precoMedioApt.toLocaleString('pt-BR')}`,
           casa: `R$ ${stats.precoMedioCasa.toLocaleString('pt-BR')}`,
@@ -54,13 +64,13 @@ export function DashboardKPIs() {
       />
       <KPICard
         title="Variação Anual (YoY)"
-        value={`${parseFloat(stats.variacaoAnual) >= 0 ? '+' : ''}${stats.variacaoAnual}%`}
+        value={stats.variacaoAnual === 'N/A' ? 'N/A' : `${variacaoPositiva ? '+' : ''}${stats.variacaoAnual}%`}
         subtitle="últimos 12 meses"
         icon={variacaoPositiva ? TrendingUp : TrendingDown}
-        trend={variacaoPositiva ? "up" : "down"}
+        trend={stats.variacaoAnual === 'N/A' ? "neutral" : (variacaoPositiva ? "up" : "down")}
         breakdown={{
-          apt: `${parseFloat(stats.variacaoAnualApt) >= 0 ? '+' : ''}${stats.variacaoAnualApt}%`,
-          casa: `${parseFloat(stats.variacaoAnualCasa) >= 0 ? '+' : ''}${stats.variacaoAnualCasa}%`,
+          apt: stats.variacaoAnualApt === 'N/A' ? 'N/A' : `${parseFloat(stats.variacaoAnualApt) >= 0 ? '+' : ''}${stats.variacaoAnualApt}%`,
+          casa: stats.variacaoAnualCasa === 'N/A' ? 'N/A' : `${parseFloat(stats.variacaoAnualCasa) >= 0 ? '+' : ''}${stats.variacaoAnualCasa}%`,
         }}
       />
       <KPICard

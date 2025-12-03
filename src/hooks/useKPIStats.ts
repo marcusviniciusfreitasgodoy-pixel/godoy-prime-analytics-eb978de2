@@ -154,15 +154,24 @@ export function useKPIStats() {
 
       console.log('[KPI] Liquidez real (total_transacoes):', liquidez);
       console.log('[KPI] Preço médio ponderado:', precoMedio);
+      console.log('[KPI] Transações último mês:', lastMonthTransactions.length);
+      console.log('[KPI] Transações mês anterior:', previousMonthTransactions.length);
 
-      // Calcular variações
-      const calcVariacao = (atual: number, anterior: number) => 
-        anterior > 0 ? ((atual - anterior) / anterior) * 100 : 0;
+      // Calcular variações - retorna null se não houver dados suficientes
+      const calcVariacao = (atual: number, anterior: number): number | null => {
+        if (atual === 0 && anterior === 0) return null;
+        if (anterior === 0) return null;
+        return ((atual - anterior) / anterior) * 100;
+      };
 
       const variacaoAnual = calcVariacao(precoMedio, precoMedioAnterior);
       const variacaoAnualApt = calcVariacao(precoMedioApt, precoMedioAptAnterior);
       const variacaoAnualCasa = calcVariacao(precoMedioCasa, precoMedioCasaAnterior);
-      const variacaoMensal = calcVariacao(precoMedioLastMonth, precoMedioPrevMonth);
+      
+      // Variação mensal: só calcula se houver dados em ambos os meses
+      const variacaoMensal = (lastMonthTransactions.length > 0 && previousMonthTransactions.length > 0)
+        ? calcVariacao(precoMedioLastMonth, precoMedioPrevMonth)
+        : null;
 
       // Buscar microbairro mais valorizado com breakdown
       const { data: rankingData } = await supabase
@@ -210,14 +219,14 @@ export function useKPIStats() {
         liquidez,
         liquidezApt,
         liquidezCasa,
-        variacaoAnual: variacaoAnual.toFixed(2),
-        variacaoAnualApt: variacaoAnualApt.toFixed(1),
-        variacaoAnualCasa: variacaoAnualCasa.toFixed(1),
+        variacaoAnual: variacaoAnual !== null ? variacaoAnual.toFixed(2) : 'N/A',
+        variacaoAnualApt: variacaoAnualApt !== null ? variacaoAnualApt.toFixed(1) : 'N/A',
+        variacaoAnualCasa: variacaoAnualCasa !== null ? variacaoAnualCasa.toFixed(1) : 'N/A',
         bairroMaisValorizado: rankingData?.microbairro || 'N/A',
         precoMedioBairro: rankingData?.preco_medio_m2 || 0,
         precoMedioBairroApt: Math.round(precoMedioBairroApt),
         precoMedioBairroCasa: Math.round(precoMedioBairroCasa),
-        variacaoMensal: variacaoMensal.toFixed(2),
+        variacaoMensal: variacaoMensal !== null ? variacaoMensal.toFixed(2) : 'N/A',
       };
     },
   });
