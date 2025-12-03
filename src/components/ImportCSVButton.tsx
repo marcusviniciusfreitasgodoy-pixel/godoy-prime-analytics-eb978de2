@@ -54,12 +54,19 @@ export function ImportCSVButton() {
     setStats(null);
 
     try {
+      // Obter sessão do usuário para autenticação
+      const { data: { session } } = await supabase.auth.getSession();
+      
+      if (!session?.access_token) {
+        throw new Error('Você precisa estar logado como administrador para executar esta ação');
+      }
+
       // Ler arquivo
       const text = await file.text();
       setProgress(30);
       setStatus("uploading");
 
-      // Enviar para Edge Function - SEM FILTRO DE BAIRRO para importar todos
+      // Enviar para Edge Function com token de autenticação
       const { data, error } = await supabase.functions.invoke('import-csv-itbi', {
         body: {
           csv_content: text,
@@ -67,6 +74,9 @@ export function ImportCSVButton() {
           codbairro_filter: null, // Importa TODOS os bairros
           min_year: 2020,
         },
+        headers: {
+          Authorization: `Bearer ${session.access_token}`
+        }
       });
 
       setProgress(100);
@@ -132,6 +142,9 @@ export function ImportCSVButton() {
           </DialogTitle>
           <DialogDescription>
             Selecione o arquivo CSV da Prefeitura do Rio de Janeiro para importar as transações ITBI.
+            <span className="block mt-1 text-amber-600 dark:text-amber-400">
+              Requer permissão de administrador.
+            </span>
           </DialogDescription>
         </DialogHeader>
 
