@@ -6,13 +6,13 @@ import { Label } from "./ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "./ui/table";
 import { Badge } from "./ui/badge";
-import { Loader2, FileDown, Search, FileText, X } from "lucide-react";
+import { Loader2, FileDown, Search, FileText, X, FileSpreadsheet } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { exportToCSV } from "@/utils/exportUtils";
+import { exportToCSV, exportToXLSX } from "@/utils/exportUtils";
 import { useToast } from "@/hooks/use-toast";
 import { ScrollArea } from "./ui/scroll-area";
-
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "./ui/dropdown-menu";
 interface AdvancedSearchResult {
   id: string;
   logradouro: string;
@@ -145,7 +145,58 @@ export function AdvancedSearchReport() {
     setSearchParams(null);
   };
 
-  const handleExport = () => {
+  const handleExportXLSX = () => {
+    if (!results || results.length === 0) {
+      toast({
+        title: "Sem dados",
+        description: "Faça uma busca primeiro para exportar.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const appliedFilters: Record<string, string> = {};
+    if (searchParams?.valorMin) appliedFilters['Valor Mínimo'] = formatCurrency(searchParams.valorMin);
+    if (searchParams?.valorMax) appliedFilters['Valor Máximo'] = formatCurrency(searchParams.valorMax);
+    if (searchParams?.areaMin) appliedFilters['Área Mínima'] = `${searchParams.areaMin} m²`;
+    if (searchParams?.areaMax) appliedFilters['Área Máxima'] = `${searchParams.areaMax} m²`;
+    if (searchParams?.tipologia) appliedFilters['Tipologia'] = searchParams.tipologia;
+    if (searchParams?.anoInicio) appliedFilters['Ano Início'] = searchParams.anoInicio;
+    if (searchParams?.anoFim) appliedFilters['Ano Fim'] = searchParams.anoFim;
+    if (searchParams?.bairro) appliedFilters['Bairro'] = searchParams.bairro;
+    if (searchParams?.logradouro) appliedFilters['Logradouro'] = searchParams.logradouro;
+
+    exportToXLSX({
+      filename: 'relatorio_avancado_godoy_prime',
+      title: 'Relatório Avançado - Godoy Prime Analytics',
+      subtitle: 'Análise de Transações Imobiliárias',
+      filters: appliedFilters,
+      data: results,
+      columns: [
+        { key: 'logradouro', header: 'Logradouro', width: 35, format: 'text' },
+        { key: 'numero', header: 'Número', width: 10, format: 'text' },
+        { key: 'complemento', header: 'Complemento', width: 15, format: 'text' },
+        { key: 'bairro', header: 'Bairro', width: 20, format: 'text' },
+        { key: 'tipologia', header: 'Tipologia', width: 15, format: 'text' },
+        { key: 'data_transacao', header: 'Data', width: 12, format: 'date' },
+        { key: 'valor_transacao', header: 'Valor Total', width: 18, format: 'currency' },
+        { key: 'area_m2', header: 'Área (m²)', width: 12, format: 'number' },
+        { key: 'valor_m2', header: 'R$/m²', width: 15, format: 'currency' },
+      ],
+      summary: [
+        { label: 'Total de Registros', value: results.length },
+        { label: 'Valor Total', value: totalValue },
+        { label: 'Média R$/m²', value: avgValueM2 },
+      ],
+    });
+
+    toast({
+      title: "Exportado com sucesso",
+      description: `${results.length} registros exportados para Excel.`,
+    });
+  };
+
+  const handleExportCSV = () => {
     if (!results || results.length === 0) {
       toast({
         title: "Sem dados",
@@ -168,7 +219,7 @@ export function AdvancedSearchReport() {
       Valor_m2: r.valor_m2 || '',
     }));
 
-    exportToCSV(exportData, `relatorio_avancado_${new Date().toISOString().split('T')[0]}`);
+    exportToCSV(exportData, 'relatorio_avancado_godoy_prime');
     toast({
       title: "Exportado com sucesso",
       description: `${results.length} registros exportados para CSV.`,
@@ -203,10 +254,24 @@ export function AdvancedSearchReport() {
             </CardDescription>
           </div>
           {results && results.length > 0 && (
-            <Button onClick={handleExport} size="sm" variant="outline" className="gap-1">
-              <FileDown className="h-4 w-4" />
-              <span className="hidden sm:inline">Exportar CSV</span>
-            </Button>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button size="sm" variant="outline" className="gap-1">
+                  <FileDown className="h-4 w-4" />
+                  <span className="hidden sm:inline">Exportar</span>
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem onClick={handleExportXLSX} className="gap-2">
+                  <FileSpreadsheet className="h-4 w-4" />
+                  Excel (.xlsx)
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={handleExportCSV} className="gap-2">
+                  <FileText className="h-4 w-4" />
+                  CSV (.csv)
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           )}
         </div>
       </CardHeader>
