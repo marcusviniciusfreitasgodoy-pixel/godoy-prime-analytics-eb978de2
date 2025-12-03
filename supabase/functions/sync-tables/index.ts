@@ -15,6 +15,64 @@ serve(async (req) => {
   try {
     console.log('Starting table synchronization...');
 
+    // Current project credentials for auth validation
+    const currentUrl = Deno.env.get('SUPABASE_URL');
+    const currentServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
+
+    if (!currentUrl || !currentServiceKey) {
+      throw new Error('Current Supabase credentials not found');
+    }
+
+    // Create client for auth validation
+    const authClient = createClient(currentUrl, currentServiceKey);
+
+    // Verify JWT token
+    const authHeader = req.headers.get('Authorization');
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      console.error('No authorization header provided');
+      return new Response(
+        JSON.stringify({ success: false, error: 'Token de autorização não fornecido' }),
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    const token = authHeader.replace('Bearer ', '');
+    const { data: { user }, error: userError } = await authClient.auth.getUser(token);
+
+    if (userError || !user) {
+      console.error('Invalid token:', userError?.message);
+      return new Response(
+        JSON.stringify({ success: false, error: 'Token inválido ou expirado' }),
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    console.log('User authenticated:', user.id);
+
+    // Verify admin role
+    const { data: isAdmin, error: roleError } = await authClient.rpc('has_role', {
+      _user_id: user.id,
+      _role: 'admin'
+    });
+
+    if (roleError) {
+      console.error('Error checking role:', roleError.message);
+      return new Response(
+        JSON.stringify({ success: false, error: 'Erro ao verificar permissões' }),
+        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    if (!isAdmin) {
+      console.error('User does not have admin role:', user.id);
+      return new Response(
+        JSON.stringify({ success: false, error: 'Permissão negada. Apenas administradores podem sincronizar dados.' }),
+        { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    console.log('Admin role verified for user:', user.id);
+
     // Log all available env vars (names only for debugging)
     const envKeys = [];
     for (const key of Object.keys(Deno.env.toObject())) {
@@ -41,13 +99,6 @@ serve(async (req) => {
       }
     }
 
-    // Current project credentials
-    const currentUrl = Deno.env.get('SUPABASE_URL');
-    const currentServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
-
-    console.log('Current URL set:', !!currentUrl);
-    console.log('Service Key set:', !!currentServiceKey);
-
     if (!sourceUrl || sourceUrl.trim() === '') {
       throw new Error('SUPABASE_SOURCE_URL is not configured. Pass sourceUrl in request body or set the secret.');
     }
@@ -56,13 +107,9 @@ serve(async (req) => {
       throw new Error('SUPABASE_SOURCE_ANON_KEY is not configured. Pass sourceKey in request body or set the secret.');
     }
 
-    if (!currentUrl || !currentServiceKey) {
-      throw new Error('Current Supabase credentials not found');
-    }
-
     // Create clients
     const sourceClient = createClient(sourceUrl, sourceKey);
-    const currentClient = createClient(currentUrl, currentServiceKey);
+    const currentClient = authClient; // Reuse the auth client for current project operations
 
     console.log('Fetching data from source project...');
 
