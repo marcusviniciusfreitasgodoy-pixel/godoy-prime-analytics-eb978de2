@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { FileDown, Info, HelpCircle, Monitor, FileSpreadsheet, FileText } from "lucide-react";
+import { FileDown, Info, HelpCircle, Monitor, FileSpreadsheet, FileText, BarChart3, Search, TrendingUp, MapPin } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { DashboardKPIs } from "@/components/DashboardKPIs";
@@ -125,64 +125,107 @@ export default function Dashboard() {
     <div className="space-y-6">
       <GuidedTour run={runTour} onFinish={() => setRunTour(false)} />
       
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+      {/* Mobile Hero Section */}
+      <div className="sm:hidden">
+        <div className="bg-gradient-to-br from-primary/5 via-background to-accent/5 rounded-xl p-5 border border-border/50">
+          <h1 className="text-xl font-bold text-foreground mb-2">
+            Inteligência Imobiliária
+          </h1>
+          <p className="text-sm text-muted-foreground mb-4">
+            Análise de mercado baseada em dados reais de transações ITBI do Rio de Janeiro.
+          </p>
+          
+          {/* Feature highlights */}
+          <div className="grid grid-cols-2 gap-3 mb-5">
+            <div className="flex items-center gap-2">
+              <div className="p-1.5 rounded-md bg-accent/10">
+                <BarChart3 className="h-4 w-4 text-accent" />
+              </div>
+              <span className="text-xs text-foreground/80">Preços por região</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="p-1.5 rounded-md bg-accent/10">
+                <Search className="h-4 w-4 text-accent" />
+              </div>
+              <span className="text-xs text-foreground/80">Busca por endereço</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="p-1.5 rounded-md bg-accent/10">
+                <TrendingUp className="h-4 w-4 text-accent" />
+              </div>
+              <span className="text-xs text-foreground/80">Evolução histórica</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="p-1.5 rounded-md bg-accent/10">
+                <MapPin className="h-4 w-4 text-accent" />
+              </div>
+              <span className="text-xs text-foreground/80">Ranking microbairros</span>
+            </div>
+          </div>
+          
+          {/* Controls */}
+          <div className="flex items-center justify-between gap-3">
+            <BairroSelector value={selectedBairro} onChange={setSelectedBairro} />
+            <div className="flex gap-2">
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={() => setRunTour(true)} 
+                className="flex flex-col items-center gap-1 h-auto py-2 px-3 min-w-[52px] bg-background/80"
+              >
+                <HelpCircle className="h-4 w-4 text-accent" />
+                <span className="text-[9px] font-medium">Tour</span>
+              </Button>
+              
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    disabled={isExporting} 
+                    className="flex flex-col items-center gap-1 h-auto py-2 px-3 min-w-[52px] bg-background/80"
+                  >
+                    <FileSpreadsheet className="h-4 w-4 text-accent" />
+                    <span className="text-[9px] font-medium">Excel</span>
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuItem onClick={handleExportXLSX} className="gap-2">
+                    <FileSpreadsheet className="h-4 w-4" />
+                    Excel (.xlsx)
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={handleExportCSV} className="gap-2">
+                    <FileText className="h-4 w-4" />
+                    CSV (.csv)
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Desktop Header */}
+      <div className="hidden sm:flex flex-row items-center justify-between gap-4">
         <div>
           <h2 className="text-2xl sm:text-3xl font-bold text-foreground">Dashboard</h2>
           <p className="text-muted-foreground text-sm sm:text-base mt-1">
             Inteligência de Mercado Imobiliário
           </p>
         </div>
-        <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 sm:gap-4">
+        <div className="flex flex-row items-center gap-4">
           <BairroSelector value={selectedBairro} onChange={setSelectedBairro} />
           <div className="flex gap-2">
-            {/* Desktop: botões com texto */}
-            <Button variant="outline" size="sm" onClick={() => setRunTour(true)} className="hidden sm:flex">
+            <Button variant="outline" size="sm" onClick={() => setRunTour(true)}>
               <HelpCircle className="h-4 w-4 mr-2" />
               Tour Guiado
             </Button>
             
-            {/* Mobile: botões maiores com labels */}
-            <Button 
-              variant="outline" 
-              size="sm" 
-              onClick={() => setRunTour(true)} 
-              className="sm:hidden flex flex-col items-center gap-1 h-auto py-2 px-3 min-w-[60px]"
-            >
-              <HelpCircle className="h-5 w-5 text-accent" />
-              <span className="text-[10px] font-medium">Tour</span>
-            </Button>
-            
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                {/* Desktop */}
-                <Button variant="outline" size="sm" disabled={isExporting} className="hidden sm:flex">
+                <Button variant="outline" size="sm" disabled={isExporting}>
                   <FileDown className="h-4 w-4 mr-2" />
                   {isExporting ? "Exportando..." : "Exportar"}
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
-                <DropdownMenuItem onClick={handleExportXLSX} className="gap-2">
-                  <FileSpreadsheet className="h-4 w-4" />
-                  Excel (.xlsx)
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={handleExportCSV} className="gap-2">
-                  <FileText className="h-4 w-4" />
-                  CSV (.csv)
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-            
-            {/* Mobile: botão de exportar com label */}
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button 
-                  variant="outline" 
-                  size="sm" 
-                  disabled={isExporting} 
-                  className="sm:hidden flex flex-col items-center gap-1 h-auto py-2 px-3 min-w-[60px]"
-                >
-                  <FileSpreadsheet className="h-5 w-5 text-accent" />
-                  <span className="text-[10px] font-medium">Excel</span>
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
