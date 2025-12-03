@@ -241,9 +241,7 @@ serve(async (req) => {
           dataTransacao = `${ano}-06-15`;
         }
 
-        // Calcular valor_m2 usando a metodologia da Prefeitura
-        const valorM2 = area > 0 ? valor / area : 0;
-
+        // valor_m2 é coluna GENERATED - calculada automaticamente pelo banco
         return {
           logradouro: logradouro.toUpperCase(),
           numero: null,
@@ -251,7 +249,6 @@ serve(async (req) => {
           bairro: bairro.trim().toUpperCase(),
           valor_transacao: Math.round(valor * 100) / 100,
           area_m2: Math.round(area * 100) / 100,
-          valor_m2: Math.round(valorM2 * 100) / 100,
           data_transacao: dataTransacao,
           uso: classificarUso(uso),
           tipologia: classificarTipologia(tipologia),
