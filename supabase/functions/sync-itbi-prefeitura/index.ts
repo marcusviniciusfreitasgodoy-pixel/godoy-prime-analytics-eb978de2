@@ -75,22 +75,22 @@ serve(async (req) => {
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
     let clearExisting = false;
-    let codbairro = '159'; // Barra da Tijuca
-    let fetchAll = false;
-    let minYear = 2020; // Padrão: buscar apenas desde 2020
+    let codbairro = '128'; // Barra da Tijuca (CORRIGIDO: era 159 que é Parque Colúmbia)
+    let filterByBairro = true; // Por padrão, filtra só Barra da Tijuca
+    let minYear = 2020;
     
     try {
       const body = await req.json();
       if (body.clearExisting !== undefined) clearExisting = body.clearExisting;
       if (body.codbairro) codbairro = body.codbairro;
-      if (body.fetchAll) fetchAll = body.fetchAll;
+      if (body.filterByBairro !== undefined) filterByBairro = body.filterByBairro;
       if (body.minYear) minYear = body.minYear;
     } catch {
       console.log('Usando parâmetros padrão');
     }
 
     console.log(`Código bairro: ${codbairro}`);
-    console.log(`Fetch all: ${fetchAll}`);
+    console.log(`Filtrar por bairro: ${filterByBairro}`);
     console.log(`Ano mínimo: ${minYear}`);
 
     // Buscar com paginação
@@ -207,18 +207,54 @@ serve(async (req) => {
       await supabase.from('itbi_transactions').delete().neq('id', '00000000-0000-0000-0000-000000000000');
     }
 
-    // Transformar dados - FILTRAR POR ANO >= minYear
+    // Contar registros por bairro para debug
+    const bairroCounts: Record<string, number> = {};
+    const barraTijucaRecords: ArcGISFeature[] = [];
+    
+    for (const f of allFeatures) {
+      const attrs = f.attributes;
+      const bairroData = extractString(attrs['bairro'])?.trim().toUpperCase() || 'DESCONHECIDO';
+      bairroCounts[bairroData] = (bairroCounts[bairroData] || 0) + 1;
+      
+      if (bairroData.includes('BARRA DA TIJUCA') || bairroData.includes('BARRA')) {
+        barraTijucaRecords.push(f);
+      }
+    }
+    
+    // Log top 5 bairros
+    const topBairros = Object.entries(bairroCounts)
+      .sort(([,a], [,b]) => b - a)
+      .slice(0, 10);
+    console.log('Top 10 bairros:', JSON.stringify(topBairros));
+    console.log(`Registros com "BARRA" no nome: ${barraTijucaRecords.length}`);
+    
+    if (barraTijucaRecords.length > 0 && barraTijucaRecords[0]) {
+      const sample = barraTijucaRecords[0].attributes;
+      console.log('Exemplo Barra:', JSON.stringify({
+        bairro: sample['bairro'],
+        codbairro: sample['codbairro'],
+        logradouro: sample['logradouro'],
+        ano: sample['ano_transação']
+      }));
+    }
+
+    // Transformar dados - FILTRAR POR ANO >= minYear e opcionalmente por bairro
     const transacoes = allFeatures
       .filter(f => {
         const attrs = f.attributes;
         const ano = extractNumber(attrs['ano_transação']);
         const valor = extractNumber(attrs['média_valor_transação']);
         const area = extractNumber(attrs['média_área_construída']);
+        const bairroData = extractString(attrs['bairro'])?.trim().toUpperCase() || '';
         
         // Filtrar por ano >= minYear E dados válidos
-        return ano !== null && ano >= minYear && 
-               valor !== null && valor > 0 && 
-               area !== null && area > 0;
+        const anoValido = ano !== null && ano >= minYear;
+        const dadosValidos = valor !== null && valor > 0 && area !== null && area > 0;
+        
+        // Filtrar por bairro - usar nome do bairro que é mais confiável
+        const bairroValido = !filterByBairro || bairroData.includes('BARRA DA TIJUCA');
+        
+        return anoValido && dadosValidos && bairroValido;
       })
       .map(f => {
         const attrs = f.attributes;
@@ -257,7 +293,7 @@ serve(async (req) => {
         };
       });
 
-    console.log(`Válidas (ano >= ${minYear}): ${transacoes.length}`);
+    console.log(`Válidas (ano >= ${minYear}, bairro ${filterByBairro ? codbairro : 'TODOS'}): ${transacoes.length}`);
 
     // Inserir em lotes
     let totalInseridas = 0;
@@ -279,9 +315,13 @@ serve(async (req) => {
       success: true,
       message: 'Sincronização concluída',
       transacoes_encontradas: allFeatures.length,
-      transacoes_filtradas_ano: transacoes.length,
+      transacoes_filtradas: transacoes.length,
       transacoes_inseridas: totalInseridas,
-      minYear,
+      filtros: {
+        minYear,
+        codbairro: filterByBairro ? codbairro : 'TODOS',
+        bairro: filterByBairro ? 'BARRA DA TIJUCA' : 'TODOS'
+      },
       erros,
     };
 
