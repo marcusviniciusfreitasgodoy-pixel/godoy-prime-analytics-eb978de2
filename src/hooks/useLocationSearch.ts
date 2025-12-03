@@ -8,6 +8,7 @@ export interface LocationSearchParams {
   finalidade?: string;
   areaMin?: number;
   areaMax?: number;
+  periodoMeses?: number;
 }
 
 export interface LocationSearchResult {
@@ -32,10 +33,11 @@ export function useLocationSearch(params: LocationSearchParams, enabled: boolean
     queryFn: async () => {
       if (!params.query || params.query.length < 3) return null;
 
-      // Período: últimos 12 meses (consistente com KPIs)
-      const twelveMonthsAgo = new Date();
-      twelveMonthsAgo.setMonth(twelveMonthsAgo.getMonth() - 12);
-      const startDate = twelveMonthsAgo.toISOString().split('T')[0];
+      // Período configurável (padrão: 12 meses)
+      const meses = params.periodoMeses || 12;
+      const startDateCalc = new Date();
+      startDateCalc.setMonth(startDateCalc.getMonth() - meses);
+      const startDate = startDateCalc.toISOString().split('T')[0];
 
       // Normaliza a busca removendo prefixos comuns e criando variações
       // Banco usa: AVN (Avenida), RUA, PRC (Praça), EST (Estrada)
