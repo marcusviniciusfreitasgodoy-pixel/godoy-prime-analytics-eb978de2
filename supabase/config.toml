@@ -1,13 +1,13 @@
 project_id = "ldiadiezzooivgittjvj"
 
 [functions.sync-itbi-prefeitura]
-verify_jwt = false
+verify_jwt = true
 
 [functions.import-itbi]
-verify_jwt = false
+verify_jwt = true
 
 [functions.sync-itbi-daily]
 verify_jwt = false
 
 [functions.import-csv-itbi]
-verify_jwt = false
+verify_jwt = true

@@ -32,6 +32,13 @@ export const SyncITBIButton = () => {
   const handleSync = async () => {
     setIsLoading(true);
     try {
+      // Obter sessão do usuário para autenticação
+      const { data: { session } } = await supabase.auth.getSession();
+      
+      if (!session?.access_token) {
+        throw new Error('Você precisa estar logado para executar esta ação');
+      }
+
       console.log(`Iniciando sincronização: ano ${selectedYear}, limpar=${clearExisting}`);
 
       const { data, error } = await supabase.functions.invoke("sync-itbi-prefeitura", {
@@ -42,6 +49,9 @@ export const SyncITBIButton = () => {
           maxYear: parseInt(selectedYear),
           onlyResidencial: false,
         },
+        headers: {
+          Authorization: `Bearer ${session.access_token}`
+        }
       });
 
       if (error) {
