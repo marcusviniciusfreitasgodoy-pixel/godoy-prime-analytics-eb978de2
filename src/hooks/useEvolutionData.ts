@@ -9,7 +9,7 @@ export interface EvolutionData {
   variacao: number;
 }
 
-export function useEvolutionData(bairro: string = 'BARRA DA TIJUCA') {
+export function useEvolutionData(bairro: string = 'Barra da Tijuca') {
   return useQuery<EvolutionData[]>({
     queryKey: ['evolution-data-v3', bairro],
     staleTime: 0,
@@ -29,7 +29,7 @@ export function useEvolutionData(bairro: string = 'BARRA DA TIJUCA') {
           .from('itbi_transactions')
           .select('data_transacao, valor_m2, tipologia')
           .eq('uso', 'Residencial')
-          .eq('bairro', bairro)
+          .ilike('bairro', bairro)
           .not('valor_m2', 'is', null)
           .gte('percentual_transferido', 90)
           .gte('data_transacao', startDate)

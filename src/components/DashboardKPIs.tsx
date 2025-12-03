@@ -8,7 +8,7 @@ interface DashboardKPIsProps {
   bairro?: string;
 }
 
-export function DashboardKPIs({ bairro = "BARRA DA TIJUCA" }: DashboardKPIsProps) {
+export function DashboardKPIs({ bairro = "Barra da Tijuca" }: DashboardKPIsProps) {
   const { data: stats, isLoading } = useKPIStats(bairro);
 
   if (isLoading) {
