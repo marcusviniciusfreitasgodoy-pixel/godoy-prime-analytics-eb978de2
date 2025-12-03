@@ -207,13 +207,25 @@ export function useTransactionSearch(params: TransactionSearchParams, enabled: b
         return acc;
       }, {} as Record<string, { valores: number[], count: number }>);
 
-      const result = Object.entries(grouped).map(([microbairro, data]) => ({
+      const allResults = Object.entries(grouped).map(([microbairro, data]) => ({
         microbairro,
         total_transacoes: data.count,
         preco_medio_m2: Math.round(data.valores.reduce((sum, v) => sum + v, 0) / data.valores.length),
       }));
 
-      return result.sort((a, b) => b.total_transacoes - a.total_transacoes).slice(0, 10);
+      // Calcular total geral de todas as transações
+      const totalGeralTransacoes = allResults.reduce((sum, r) => sum + r.total_transacoes, 0);
+      
+      // Retornar TOP 10 com metadata do total geral
+      const top10 = allResults.sort((a, b) => b.total_transacoes - a.total_transacoes).slice(0, 10);
+      
+      // Adicionar totalGeral ao primeiro item como metadata (workaround)
+      if (top10.length > 0) {
+        (top10 as any).__totalGeral = totalGeralTransacoes;
+        (top10 as any).__totalLogradouros = allResults.length;
+      }
+      
+      return top10;
     },
     enabled,
   });

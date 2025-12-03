@@ -965,7 +965,19 @@ export function SearchTools({ bairro = "BARRA DA TIJUCA" }: SearchToolsProps) {
             
             {transactionResult && transactionResult.length > 0 ? (
               <div className="space-y-2">
-                <p className="text-sm text-muted-foreground mb-2">Microbairros por liquidez:</p>
+                {/* Mostrar total geral de transações */}
+                {(() => {
+                  const totalGeral = (transactionResult as any).__totalGeral || transactionResult.reduce((s, r) => s + r.total_transacoes, 0);
+                  const totalLogradouros = (transactionResult as any).__totalLogradouros || transactionResult.length;
+                  return (
+                    <div className="p-3 rounded-lg bg-primary/10 border border-primary/20 mb-3">
+                      <p className="text-sm font-medium text-foreground">
+                        Total: <span className="text-primary">{totalGeral} transações</span> em {totalLogradouros} logradouros
+                      </p>
+                    </div>
+                  );
+                })()}
+                <p className="text-sm text-muted-foreground mb-2">TOP 10 logradouros por liquidez:</p>
                 {transactionResult.map((item, idx) => (
                   <div key={item.microbairro} className="flex items-center justify-between p-2 rounded bg-muted/30 text-sm">
                     <span className="truncate max-w-[200px]">{idx + 1}. {item.microbairro}</span>
