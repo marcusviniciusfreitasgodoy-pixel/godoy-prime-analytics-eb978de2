@@ -11,9 +11,10 @@ export interface EvolutionData {
 
 export type GranularityType = 'semester' | 'annual';
 
+// Hook para dados de evolução com granularidade configurável (v6 - rebuild)
 export function useEvolutionData(bairro: string = 'BARRA DA TIJUCA', granularity: GranularityType = 'semester') {
   return useQuery<EvolutionData[]>({
-    queryKey: ['evolution-data-v5', bairro, granularity],
+    queryKey: ['evolution-data-v6', bairro, granularity],
     staleTime: 0,
     refetchOnMount: 'always',
     queryFn: async () => {

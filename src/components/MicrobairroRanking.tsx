@@ -23,8 +23,13 @@ export function MicrobairroRanking({ bairro = "BARRA DA TIJUCA" }: MicrobairroRa
     );
   }
 
+  // Filtrar "Outros" e ordenar por preço (v2 - rebuild fix)
   const sortedRanking = [...(ranking || [])]
-    .filter(item => item.microbairro && item.microbairro.toUpperCase() !== 'OUTROS')
+    .filter(item => {
+      if (!item.microbairro) return false;
+      const nome = item.microbairro.toLowerCase().trim();
+      return nome !== 'outros';
+    })
     .sort((a, b) => (b.preco_medio_m2 || 0) - (a.preco_medio_m2 || 0));
 
   const maxValue = Math.max(...sortedRanking.map(r => r.preco_medio_m2 || 0));
