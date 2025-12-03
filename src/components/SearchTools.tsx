@@ -51,6 +51,10 @@ const VALOR_OPTIONS = [
   { value: '10000000', label: 'R$ 10 milhões' },
   { value: '15000000', label: 'R$ 15 milhões' },
   { value: '20000000', label: 'R$ 20 milhões' },
+  { value: '30000000', label: 'R$ 30 milhões' },
+  { value: '50000000', label: 'R$ 50 milhões' },
+  { value: '75000000', label: 'R$ 75 milhões' },
+  { value: '100000000', label: 'R$ 100 milhões' },
 ];
 
 export function SearchTools({ bairro = "BARRA DA TIJUCA" }: SearchToolsProps) {
