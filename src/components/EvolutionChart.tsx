@@ -16,6 +16,21 @@ export function EvolutionChart({ bairro = "BARRA DA TIJUCA" }: EvolutionChartPro
   const [granularity, setGranularity] = useState<GranularityType>('semester');
   const { data: evolutionData, isLoading } = useEvolutionData(bairro, granularity);
 
+  const chartData = evolutionData || [];
+  const periodCount = chartData.length;
+  const periodLabel = granularity === 'annual' ? 'anos' : 'semestres';
+
+  // Calcular tendência do último período (deve estar antes do return condicional)
+  const trend = useMemo(() => {
+    if (chartData.length < 2) return { direction: 'neutral' as const, value: 0, lastPeriod: '' };
+    const lastPeriod = chartData[chartData.length - 1];
+    const variation = lastPeriod.variacao;
+    
+    if (variation > 1) return { direction: 'up' as const, value: variation, lastPeriod: lastPeriod.mes };
+    if (variation < -1) return { direction: 'down' as const, value: variation, lastPeriod: lastPeriod.mes };
+    return { direction: 'neutral' as const, value: variation, lastPeriod: lastPeriod.mes };
+  }, [chartData]);
+
   if (isLoading) {
     return (
       <Card>
@@ -29,22 +44,6 @@ export function EvolutionChart({ bairro = "BARRA DA TIJUCA" }: EvolutionChartPro
       </Card>
     );
   }
-
-  const chartData = evolutionData || [];
-  const periodCount = chartData.length;
-  const periodLabel = granularity === 'annual' ? 'anos' : 'semestres';
-
-  // Calcular tendência do último período
-  const trend = useMemo(() => {
-    if (chartData.length < 2) return { direction: 'neutral' as const, value: 0 };
-    const lastPeriod = chartData[chartData.length - 1];
-    const previousPeriod = chartData[chartData.length - 2];
-    const variation = lastPeriod.variacao;
-    
-    if (variation > 1) return { direction: 'up' as const, value: variation, lastPeriod: lastPeriod.mes };
-    if (variation < -1) return { direction: 'down' as const, value: variation, lastPeriod: lastPeriod.mes };
-    return { direction: 'neutral' as const, value: variation, lastPeriod: lastPeriod.mes };
-  }, [chartData]);
 
   const tooltipStyle = {
     backgroundColor: 'hsl(var(--card))',
