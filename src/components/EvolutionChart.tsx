@@ -166,10 +166,13 @@ export function EvolutionChart({ bairro = "BARRA DA TIJUCA" }: EvolutionChartPro
                 <XAxis 
                   dataKey="mes" 
                   stroke="hsl(var(--muted-foreground))"
-                  fontSize={11}
+                  fontSize={10}
                   tickLine={false}
                   axisLine={false}
-                  interval={0}
+                  interval="preserveStartEnd"
+                  angle={-45}
+                  textAnchor="end"
+                  height={50}
                 />
                 <YAxis 
                   yAxisId="price"
@@ -222,10 +225,13 @@ export function EvolutionChart({ bairro = "BARRA DA TIJUCA" }: EvolutionChartPro
                 <XAxis 
                   dataKey="mes" 
                   stroke="hsl(var(--muted-foreground))"
-                  fontSize={11}
+                  fontSize={10}
                   tickLine={false}
                   axisLine={false}
-                  interval={0}
+                  interval="preserveStartEnd"
+                  angle={-45}
+                  textAnchor="end"
+                  height={50}
                 />
                 <YAxis 
                   stroke="hsl(var(--muted-foreground))"
@@ -266,10 +272,13 @@ export function EvolutionChart({ bairro = "BARRA DA TIJUCA" }: EvolutionChartPro
                 <XAxis 
                   dataKey="mes" 
                   stroke="hsl(var(--muted-foreground))"
-                  fontSize={11}
+                  fontSize={10}
                   tickLine={false}
                   axisLine={false}
-                  interval={0}
+                  interval="preserveStartEnd"
+                  angle={-45}
+                  textAnchor="end"
+                  height={50}
                 />
                 <YAxis 
                   stroke="hsl(var(--muted-foreground))"
