@@ -186,17 +186,32 @@ serve(async (req) => {
           continue;
         }
         
-        // Área e Valor já vêm corretos da planilha (soma das transações agregadas)
-        // NÃO normalizar - os valores grandes são esperados para múltiplas transações
-        const area = areaRaw;
-        const valor = valorRaw;
+        // Normalizar área: máximo 4 dígitos antes do decimal
+        // Valores como 99038461 devem virar 99.04 (dividir por 1.000.000)
+        let area = areaRaw;
+        if (area > 1000000) {
+          area = area / 1000000;
+        } else if (area > 10000) {
+          // Valores intermediários como 99038 devem virar 99.04
+          area = area / 1000;
+        }
         
-        // Calcular valor/m² (soma_valores / soma_areas = média ponderada correta)
+        // Normalizar valor: valores em trilhões devem virar milhões
+        // Valores como 1.338.014.253.461 devem virar 1.338.014
+        let valor = valorRaw;
+        if (valor > 1000000000) {
+          valor = valor / 1000000;
+        } else if (valor > 100000000) {
+          // Valores intermediários
+          valor = valor / 1000;
+        }
+        
+        // Calcular valor/m²
         const valorM2 = area > 0 ? valor / area : null;
         
         // Log para debug de valores suspeitos
         if (valorM2 && (valorM2 < 1000 || valorM2 > 200000)) {
-          console.log(`[WARN] valor_m2 fora do range: ${logradouro} - R$ ${valorM2?.toFixed(2)}/m²`);
+          console.log(`[WARN] valor_m2 fora do range: ${logradouro} - R$ ${valorM2?.toFixed(2)}/m² (area=${area.toFixed(2)}, valor=${valor.toFixed(2)})`);
         }
         
         // Construir data da transação
