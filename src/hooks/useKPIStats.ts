@@ -41,9 +41,9 @@ const agruparPorMes = (transactions: TransactionData[]) => {
   return grupos;
 };
 
-export function useKPIStats() {
+export function useKPIStats(bairro: string = 'BARRA DA TIJUCA') {
   return useQuery<KPIStatsData>({
-    queryKey: ['kpi-stats-detailed-v3'],
+    queryKey: ['kpi-stats-detailed-v3', bairro],
     staleTime: 0,
     refetchOnMount: 'always',
     queryFn: async () => {
@@ -79,7 +79,7 @@ export function useKPIStats() {
         .from('itbi_transactions')
         .select('valor_m2, tipologia, data_transacao, total_transacoes')
         .eq('uso', 'Residencial')
-        .eq('bairro', 'BARRA DA TIJUCA')
+        .eq('bairro', bairro)
         .not('valor_m2', 'is', null)
         .gte('percentual_transferido', 90)
         .gte('data_transacao', startDate12Months)
@@ -92,7 +92,7 @@ export function useKPIStats() {
         .from('itbi_transactions')
         .select('valor_m2, tipologia, total_transacoes')
         .eq('uso', 'Residencial')
-        .eq('bairro', 'BARRA DA TIJUCA')
+        .eq('bairro', bairro)
         .not('valor_m2', 'is', null)
         .gte('percentual_transferido', 90)
         .gte('data_transacao', startDate24Months)
@@ -221,7 +221,7 @@ export function useKPIStats() {
           .from('itbi_transactions')
           .select('valor_m2, tipologia, total_transacoes')
           .eq('uso', 'Residencial')
-          .eq('bairro', 'BARRA DA TIJUCA')
+          .eq('bairro', bairro)
           .gte('percentual_transferido', 90)
           .ilike('logradouro', `%${rankingData.microbairro}%`)
           .gte('data_transacao', startDate12Months);

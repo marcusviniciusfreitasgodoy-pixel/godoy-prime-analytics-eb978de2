@@ -20,7 +20,11 @@ import { exportToCSV } from "@/utils/exportUtils";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 
-export function SearchTools() {
+interface SearchToolsProps {
+  bairro?: string;
+}
+
+export function SearchTools({ bairro = "BARRA DA TIJUCA" }: SearchToolsProps) {
   const { toast } = useToast();
   
   // Location search state

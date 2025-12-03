@@ -115,7 +115,7 @@ serve(async (req) => {
     }
 
     console.log('Iniciando parsing do CSV...');
-    console.log(`Filtros: codbairro=${codbairro_filter || 'todos'}, min_year=${min_year || 2020}`);
+    console.log(`Filtros: codbairro=${codbairro_filter || 'TODOS'}, min_year=${min_year || 2020}`);
 
     // Parse CSV
     const linhas = csv_content.split('\n').filter((l: string) => l.trim());
@@ -148,7 +148,8 @@ serve(async (req) => {
     let linhasProcessadas = 0;
     let linhasFiltradas = 0;
     
-    const filtroCodbairro = codbairro_filter || '128'; // Barra da Tijuca
+    // Se codbairro_filter for null/undefined/vazio, importa TODOS os bairros
+    const filtroCodbairro = codbairro_filter || null;
     const filtroAno = min_year || 2020;
 
     for (let i = 1; i < linhas.length; i++) {
@@ -158,7 +159,7 @@ serve(async (req) => {
         const codbairro = campos[idx.codbairro]?.trim();
         const ano = parseNumero(campos[idx.ano]);
         
-        // Filtrar por bairro e ano
+        // Filtrar por bairro somente se filtro foi especificado
         if (filtroCodbairro && codbairro !== filtroCodbairro) {
           linhasFiltradas++;
           continue;

@@ -53,16 +53,67 @@ export function useITBITransactions() {
   });
 }
 
-export function useMicrobairroRanking() {
+export function useMicrobairroRanking(bairro: string = 'BARRA DA TIJUCA') {
   return useQuery<MicrobairroRanking[]>({
-    queryKey: ['microbairro-ranking'],
+    queryKey: ['microbairro-ranking', bairro],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from('view_ranking_microbairros')
-        .select('*');
+      // Para Barra da Tijuca, usar a view otimizada
+      if (bairro === 'BARRA DA TIJUCA') {
+        const { data, error } = await supabase
+          .from('view_ranking_microbairros')
+          .select('*');
+
+        if (error) throw error;
+        return data as MicrobairroRanking[];
+      }
+      
+      // Para outros bairros, calcular dinamicamente por logradouro
+      const { data: transactions, error } = await supabase
+        .from('itbi_transactions')
+        .select('logradouro, valor_m2, total_transacoes')
+        .eq('bairro', bairro)
+        .eq('uso', 'Residencial')
+        .not('valor_m2', 'is', null)
+        .gte('percentual_transferido', 90)
+        .limit(5000);
 
       if (error) throw error;
-      return data as MicrobairroRanking[];
+
+      // Agrupar por logradouro
+      const grouped = (transactions || []).reduce((acc, t) => {
+        const key = t.logradouro;
+        if (!acc[key]) {
+          acc[key] = { valores: [], total: 0 };
+        }
+        acc[key].valores.push(t.valor_m2!);
+        acc[key].total += t.total_transacoes || 1;
+        return acc;
+      }, {} as Record<string, { valores: number[], total: number }>);
+
+      // Calcular métricas
+      const result = Object.entries(grouped).map(([logradouro, data]) => {
+        const sorted = [...data.valores].sort((a, b) => a - b);
+        const mediana = sorted.length > 0 
+          ? sorted[Math.floor(sorted.length / 2)] 
+          : 0;
+        const media = sorted.length > 0 
+          ? sorted.reduce((a, b) => a + b, 0) / sorted.length 
+          : 0;
+        
+        return {
+          microbairro: logradouro,
+          total_transacoes: data.total,
+          preco_medio_m2: Math.round(media),
+          preco_min_m2: Math.min(...data.valores),
+          preco_max_m2: Math.max(...data.valores),
+          mediana_m2: Math.round(mediana),
+        };
+      });
+
+      return result
+        .filter(r => r.total_transacoes >= 3) // Mínimo de 3 transações
+        .sort((a, b) => b.preco_medio_m2 - a.preco_medio_m2)
+        .slice(0, 10); // Top 10
     },
   });
 }
