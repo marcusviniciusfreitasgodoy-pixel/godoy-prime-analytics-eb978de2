@@ -164,21 +164,13 @@ export default function Dashboard() {
         </div>
       </div>
 
-      <Alert>
+      {/* Avisos - visíveis apenas em desktop */}
+      <Alert className="hidden sm:flex">
         <Info className="h-4 w-4" />
         <AlertDescription className="text-xs sm:text-sm">
           <strong>Disclaimer Jurídico:</strong> Esta ferramenta fornece análises estatísticas 
           baseadas em dados públicos de ITBI. As informações não substituem laudos oficiais 
           (PTAM) e devem ser utilizadas apenas como referência de mercado.
-        </AlertDescription>
-      </Alert>
-
-      {/* Aviso mobile */}
-      <Alert className="sm:hidden bg-muted/50 border-muted">
-        <Monitor className="h-4 w-4" />
-        <AlertDescription className="text-xs">
-          <strong>Dica:</strong> Para melhor experiência com gráficos e análises detalhadas, 
-          recomendamos usar um computador ou tablet.
         </AlertDescription>
       </Alert>
 
@@ -200,6 +192,25 @@ export default function Dashboard() {
       </div>
 
       <AdvancedSearchReport />
+
+      {/* Avisos - visíveis apenas em mobile, no final da página */}
+      <div className="sm:hidden space-y-3">
+        <Alert>
+          <Info className="h-4 w-4" />
+          <AlertDescription className="text-xs">
+            <strong>Disclaimer Jurídico:</strong> Esta ferramenta fornece análises estatísticas 
+            baseadas em dados públicos de ITBI. As informações não substituem laudos oficiais 
+            (PTAM) e devem ser utilizadas apenas como referência de mercado.
+          </AlertDescription>
+        </Alert>
+        <Alert className="bg-muted/50 border-muted">
+          <Monitor className="h-4 w-4" />
+          <AlertDescription className="text-xs">
+            <strong>Dica:</strong> Para melhor experiência com gráficos e análises detalhadas, 
+            recomendamos usar um computador ou tablet.
+          </AlertDescription>
+        </Alert>
+      </div>
     </div>
   );
 }
