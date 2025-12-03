@@ -11,11 +11,11 @@ export interface EvolutionData {
 
 export function useEvolutionData(bairro: string = 'BARRA DA TIJUCA') {
   return useQuery<EvolutionData[]>({
-    queryKey: ['evolution-data-v3', bairro],
+    queryKey: ['evolution-data-v4', bairro],
     staleTime: 0,
     refetchOnMount: 'always',
     queryFn: async () => {
-      // Dados desde 2020 para evolução (60+ meses)
+      // Dados desde 2020 para evolução
       const startDate = '2020-01-01';
 
       // Buscar TODOS os registros com paginação
@@ -52,10 +52,13 @@ export function useEvolutionData(bairro: string = 'BARRA DA TIJUCA') {
 
       if (!data || data.length === 0) return [];
 
-      // Group by month
+      // Agrupar por SEMESTRE (S1 = Jan-Jun, S2 = Jul-Dec)
       const grouped = (data || []).reduce((acc, t) => {
         const date = new Date(t.data_transacao);
-        const key = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+        const year = date.getFullYear();
+        const month = date.getMonth() + 1;
+        const semester = month <= 6 ? 'S1' : 'S2';
+        const key = `${year}-${semester}`;
         
         if (!acc[key]) {
           acc[key] = { geral: [], apartamento: [], casa: [] };
@@ -72,18 +75,20 @@ export function useEvolutionData(bairro: string = 'BARRA DA TIJUCA') {
         return acc;
       }, {} as Record<string, { geral: number[], apartamento: number[], casa: number[] }>);
 
-      // Calculate averages and format
-      const months = Object.keys(grouped).sort();
+      // Ordenar semestres cronologicamente
+      const semesters = Object.keys(grouped).sort((a, b) => {
+        const [yearA, semA] = a.split('-');
+        const [yearB, semB] = b.split('-');
+        if (yearA !== yearB) return parseInt(yearA) - parseInt(yearB);
+        return semA === 'S1' ? -1 : 1;
+      });
+
       let previousGeral = 0;
 
-      return months.map((key, index) => {
-        const [year, month] = key.split('-');
-        const date = new Date(parseInt(year), parseInt(month) - 1);
-        // Formato: "Jan/20" para primeiro mês do ano, apenas "20" para outros
-        const monthNum = parseInt(month);
-        const mesFormatted = monthNum === 1 
-          ? `Jan/${year.slice(2)}` 
-          : date.toLocaleDateString('pt-BR', { month: 'short', year: '2-digit' });
+      return semesters.map((key, index) => {
+        const [year, semester] = key.split('-');
+        // Formato: "S1/20" ou "S2/20"
+        const mesFormatted = `${semester}/${year.slice(2)}`;
         
         const avg = (arr: number[]) => arr.length > 0 
           ? arr.reduce((sum, v) => sum + v, 0) / arr.length 

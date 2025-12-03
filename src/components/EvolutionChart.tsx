@@ -41,8 +41,8 @@ export function EvolutionChart({ bairro = "BARRA DA TIJUCA" }: EvolutionChartPro
       <CardHeader className="pb-2 px-4 sm:px-6">
         <div className="flex items-center justify-between">
           <div>
-            <CardTitle className="text-base sm:text-lg">Evolução Histórica ({monthCount} meses)</CardTitle>
-            <CardDescription className="text-xs sm:text-sm">Tendência de Mercado</CardDescription>
+            <CardTitle className="text-base sm:text-lg">Evolução Histórica ({monthCount} semestres)</CardTitle>
+            <CardDescription className="text-xs sm:text-sm">Tendência de Mercado - Dados Semestrais</CardDescription>
           </div>
         </div>
       </CardHeader>
@@ -64,8 +64,7 @@ export function EvolutionChart({ bairro = "BARRA DA TIJUCA" }: EvolutionChartPro
                   fontSize={11}
                   tickLine={false}
                   axisLine={false}
-                  interval={11}
-                  tickFormatter={(value) => value.includes('Jan') ? value : ''}
+                  interval={0}
                 />
                 <YAxis 
                   yAxisId="price"
@@ -121,8 +120,7 @@ export function EvolutionChart({ bairro = "BARRA DA TIJUCA" }: EvolutionChartPro
                   fontSize={11}
                   tickLine={false}
                   axisLine={false}
-                  interval={11}
-                  tickFormatter={(value) => value.includes('Jan') ? value : ''}
+                  interval={0}
                 />
                 <YAxis 
                   stroke="hsl(var(--muted-foreground))"
@@ -166,8 +164,7 @@ export function EvolutionChart({ bairro = "BARRA DA TIJUCA" }: EvolutionChartPro
                   fontSize={11}
                   tickLine={false}
                   axisLine={false}
-                  interval={11}
-                  tickFormatter={(value) => value.includes('Jan') ? value : ''}
+                  interval={0}
                 />
                 <YAxis 
                   stroke="hsl(var(--muted-foreground))"
