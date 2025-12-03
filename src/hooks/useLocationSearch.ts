@@ -72,6 +72,7 @@ export function useLocationSearch(params: LocationSearchParams, enabled: boolean
 
       const { data, error } = await query
         .not('valor_m2', 'is', null)
+        .gte('percentual_transferido', 90)
         .order('data_transacao', { ascending: false })
         .limit(50);
 
@@ -127,7 +128,8 @@ export function useTransactionSearch(params: TransactionSearchParams, enabled: b
         .from('itbi_transactions')
         .select('logradouro, valor_transacao, valor_m2')
         .eq('uso', 'Residencial')
-        .not('valor_m2', 'is', null);
+        .not('valor_m2', 'is', null)
+        .gte('percentual_transferido', 90);
 
       if (params.valorMin) {
         query = query.gte('valor_transacao', params.valorMin);
