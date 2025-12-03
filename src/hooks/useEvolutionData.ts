@@ -31,6 +31,7 @@ export function useEvolutionData() {
           .eq('uso', 'Residencial')
           .eq('bairro', 'BARRA DA TIJUCA')
           .not('valor_m2', 'is', null)
+          .gte('percentual_transferido', 90)
           .gte('data_transacao', startDate)
           .order('data_transacao', { ascending: true })
           .range(offset, offset + pageSize - 1);
