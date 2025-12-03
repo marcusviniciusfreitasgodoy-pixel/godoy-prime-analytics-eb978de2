@@ -7,6 +7,7 @@ import { Skeleton } from "./ui/skeleton";
 import { ToggleGroup, ToggleGroupItem } from "./ui/toggle-group";
 import { Calendar, CalendarDays, TrendingUp, TrendingDown, Minus } from "lucide-react";
 import { Badge } from "./ui/badge";
+import { Tooltip as UITooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "./ui/tooltip";
 
 interface EvolutionChartProps {
   bairro?: string;
@@ -15,21 +16,38 @@ interface EvolutionChartProps {
 export function EvolutionChart({ bairro = "BARRA DA TIJUCA" }: EvolutionChartProps) {
   const [granularity, setGranularity] = useState<GranularityType>('semester');
   const { data: evolutionData, isLoading } = useEvolutionData(bairro, granularity);
+  const { data: semesterData } = useEvolutionData(bairro, 'semester');
+  const { data: annualData } = useEvolutionData(bairro, 'annual');
 
   const chartData = evolutionData || [];
   const periodCount = chartData.length;
   const periodLabel = granularity === 'annual' ? 'anos' : 'semestres';
 
-  // Calcular tendência do último período (deve estar antes do return condicional)
-  const trend = useMemo(() => {
-    if (chartData.length < 2) return { direction: 'neutral' as const, value: 0, lastPeriod: '' };
-    const lastPeriod = chartData[chartData.length - 1];
+  // Calcular tendência de curto prazo (semestral)
+  const shortTermTrend = useMemo(() => {
+    if (!semesterData || semesterData.length < 2) return { direction: 'neutral' as const, value: 0, period: '' };
+    const lastPeriod = semesterData[semesterData.length - 1];
+    const prevPeriod = semesterData[semesterData.length - 2];
     const variation = lastPeriod.variacao;
+    const periodLabel = `${lastPeriod.mes} vs ${prevPeriod.mes}`;
     
-    if (variation > 1) return { direction: 'up' as const, value: variation, lastPeriod: lastPeriod.mes };
-    if (variation < -1) return { direction: 'down' as const, value: variation, lastPeriod: lastPeriod.mes };
-    return { direction: 'neutral' as const, value: variation, lastPeriod: lastPeriod.mes };
-  }, [chartData]);
+    if (variation > 1) return { direction: 'up' as const, value: variation, period: periodLabel };
+    if (variation < -1) return { direction: 'down' as const, value: variation, period: periodLabel };
+    return { direction: 'neutral' as const, value: variation, period: periodLabel };
+  }, [semesterData]);
+
+  // Calcular tendência de longo prazo (anual)
+  const longTermTrend = useMemo(() => {
+    if (!annualData || annualData.length < 2) return { direction: 'neutral' as const, value: 0, period: '' };
+    const lastPeriod = annualData[annualData.length - 1];
+    const prevPeriod = annualData[annualData.length - 2];
+    const variation = lastPeriod.variacao;
+    const periodLabel = `${lastPeriod.mes} vs ${prevPeriod.mes}`;
+    
+    if (variation > 1) return { direction: 'up' as const, value: variation, period: periodLabel };
+    if (variation < -1) return { direction: 'down' as const, value: variation, period: periodLabel };
+    return { direction: 'neutral' as const, value: variation, period: periodLabel };
+  }, [annualData]);
 
   if (isLoading) {
     return (
@@ -63,17 +81,53 @@ export function EvolutionChart({ bairro = "BARRA DA TIJUCA" }: EvolutionChartPro
                 Tendência de Mercado - Dados {granularity === 'annual' ? 'Anuais' : 'Semestrais'}
               </CardDescription>
             </div>
-            {trend.lastPeriod && (
-              <Badge 
-                variant={trend.direction === 'up' ? 'default' : trend.direction === 'down' ? 'destructive' : 'secondary'}
-                className="flex items-center gap-1 text-xs shrink-0"
-              >
-                {trend.direction === 'up' && <TrendingUp className="h-3 w-3" />}
-                {trend.direction === 'down' && <TrendingDown className="h-3 w-3" />}
-                {trend.direction === 'neutral' && <Minus className="h-3 w-3" />}
-                {trend.value > 0 ? '+' : ''}{trend.value.toFixed(1)}%
-              </Badge>
-            )}
+            <div className="flex items-center gap-2">
+              <TooltipProvider>
+                <UITooltip>
+                  <TooltipTrigger asChild>
+                    <div className="flex flex-col items-center gap-0.5 cursor-help">
+                      <span className="text-[10px] text-muted-foreground uppercase tracking-wide">Curto</span>
+                      <Badge 
+                        variant={shortTermTrend.direction === 'up' ? 'default' : shortTermTrend.direction === 'down' ? 'destructive' : 'secondary'}
+                        className="flex items-center gap-1 text-xs"
+                      >
+                        {shortTermTrend.direction === 'up' && <TrendingUp className="h-3 w-3" />}
+                        {shortTermTrend.direction === 'down' && <TrendingDown className="h-3 w-3" />}
+                        {shortTermTrend.direction === 'neutral' && <Minus className="h-3 w-3" />}
+                        {shortTermTrend.value > 0 ? '+' : ''}{shortTermTrend.value.toFixed(1)}%
+                      </Badge>
+                    </div>
+                  </TooltipTrigger>
+                  <TooltipContent side="bottom" className="max-w-[220px]">
+                    <p className="text-xs font-medium">Tendência de curto prazo</p>
+                    <p className="text-xs text-muted-foreground mt-1">Variação entre os dois últimos semestres: {shortTermTrend.period}</p>
+                  </TooltipContent>
+                </UITooltip>
+              </TooltipProvider>
+              
+              <TooltipProvider>
+                <UITooltip>
+                  <TooltipTrigger asChild>
+                    <div className="flex flex-col items-center gap-0.5 cursor-help">
+                      <span className="text-[10px] text-muted-foreground uppercase tracking-wide">Longo</span>
+                      <Badge 
+                        variant={longTermTrend.direction === 'up' ? 'default' : longTermTrend.direction === 'down' ? 'destructive' : 'secondary'}
+                        className="flex items-center gap-1 text-xs"
+                      >
+                        {longTermTrend.direction === 'up' && <TrendingUp className="h-3 w-3" />}
+                        {longTermTrend.direction === 'down' && <TrendingDown className="h-3 w-3" />}
+                        {longTermTrend.direction === 'neutral' && <Minus className="h-3 w-3" />}
+                        {longTermTrend.value > 0 ? '+' : ''}{longTermTrend.value.toFixed(1)}%
+                      </Badge>
+                    </div>
+                  </TooltipTrigger>
+                  <TooltipContent side="bottom" className="max-w-[220px]">
+                    <p className="text-xs font-medium">Tendência de longo prazo</p>
+                    <p className="text-xs text-muted-foreground mt-1">Variação entre os dois últimos anos: {longTermTrend.period}</p>
+                  </TooltipContent>
+                </UITooltip>
+              </TooltipProvider>
+            </div>
           </div>
           <ToggleGroup 
             type="single" 
