@@ -118,7 +118,7 @@ export function ImportCSVButton() {
         <Button 
           variant="outline" 
           size="sm"
-          className="gap-2 border-accent/30 text-primary-foreground hover:bg-accent/10"
+          className="gap-2 border-accent bg-accent/20 text-accent hover:bg-accent/30 hover:text-accent font-semibold"
         >
           <Upload className="h-4 w-4" />
           Importar CSV
