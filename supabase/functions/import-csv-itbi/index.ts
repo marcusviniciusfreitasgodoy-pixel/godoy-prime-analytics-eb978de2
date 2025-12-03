@@ -187,23 +187,28 @@ serve(async (req) => {
         }
         
         // Normalizar área APENAS se claramente errada
-        // Valores corretos: < 10.000 m² (ex: 107.2, 85.22, 500.0)
+        // Valores corretos: < 1.000.000 (ex: 107.2, 85.22, 500.0)
         // Valores errados: > 1.000.000 (ex: 99038461 deve virar 99.04)
         let area = areaRaw;
         if (area > 1000000) {
-          // Valor absurdamente grande - dividir por 1.000.000
           area = area / 1000000;
-          console.log(`[NORM] Área normalizada: ${areaRaw} → ${area.toFixed(2)}`);
+          console.log(`[NORM] Área: ${areaRaw} → ${area.toFixed(2)} m²`);
         }
         
-        // Normalizar valor APENAS se claramente errado
-        // Valores corretos: < 10 bilhões (ex: 1243946.6 = R$ 1.2M)
-        // Valores errados: > 10 bilhões (ex: 1.338.014.253.461)
+        // Normalizar valor com base na magnitude
+        // Padrão: valores corretos estão entre R$ 500k e R$ 50M
+        // > 100 bilhões (100.000.000.000): dividir por 1.000.000
+        // > 1 bilhão (1.000.000.000) e <= 100B: dividir por 1.000
+        // < 1 bilhão: já está correto (ex: 1243946.6 = R$ 1.2M)
         let valor = valorRaw;
-        if (valor > 10000000000) {
-          // Valor em trilhões - dividir por 1.000.000
+        if (valor > 100000000000) {
+          // Valores em trilhões (ex: 1.338.014.253.461 → 1.338.014)
           valor = valor / 1000000;
-          console.log(`[NORM] Valor normalizado: ${valorRaw} → ${valor.toFixed(2)}`);
+          console.log(`[NORM] Valor (trilhões): ${valorRaw} → ${valor.toFixed(2)}`);
+        } else if (valor > 1000000000) {
+          // Valores em bilhões (ex: 12.452.502.475 → 12.452.502)
+          valor = valor / 1000;
+          console.log(`[NORM] Valor (bilhões): ${valorRaw} → ${valor.toFixed(2)}`);
         }
         
         // Calcular valor/m²
