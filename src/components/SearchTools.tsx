@@ -35,6 +35,24 @@ const PERIODO_OPTIONS = [
   { value: '24', label: 'Últimos 24 meses' },
 ];
 
+const VALOR_OPTIONS = [
+  { value: '', label: 'Sem limite' },
+  { value: '100000', label: 'R$ 100 mil' },
+  { value: '200000', label: 'R$ 200 mil' },
+  { value: '300000', label: 'R$ 300 mil' },
+  { value: '500000', label: 'R$ 500 mil' },
+  { value: '750000', label: 'R$ 750 mil' },
+  { value: '1000000', label: 'R$ 1 milhão' },
+  { value: '1500000', label: 'R$ 1,5 milhões' },
+  { value: '2000000', label: 'R$ 2 milhões' },
+  { value: '3000000', label: 'R$ 3 milhões' },
+  { value: '5000000', label: 'R$ 5 milhões' },
+  { value: '7500000', label: 'R$ 7,5 milhões' },
+  { value: '10000000', label: 'R$ 10 milhões' },
+  { value: '15000000', label: 'R$ 15 milhões' },
+  { value: '20000000', label: 'R$ 20 milhões' },
+];
+
 export function SearchTools({ bairro = "BARRA DA TIJUCA" }: SearchToolsProps) {
   const { toast } = useToast();
   const { history, addToHistory, clearHistory } = useSearchHistory();
@@ -102,8 +120,8 @@ export function SearchTools({ bairro = "BARRA DA TIJUCA" }: SearchToolsProps) {
 
   const { data: transactionResult, isLoading: transactionLoading } = useTransactionSearch(
     {
-      valorMin: valorMin ? parseFloat(valorMin) : undefined,
-      valorMax: valorMax ? parseFloat(valorMax) : undefined,
+      valorMin: valorMin && valorMin !== 'none' ? parseFloat(valorMin) : undefined,
+      valorMax: valorMax && valorMax !== 'none' ? parseFloat(valorMax) : undefined,
       bairro: transacaoBairro || undefined,
       tipologia: transacaoTipologia === 'todas' ? undefined : transacaoTipologia || undefined,
       periodoMeses: parseInt(transacaoPeriodo),
@@ -185,9 +203,9 @@ export function SearchTools({ bairro = "BARRA DA TIJUCA" }: SearchToolsProps) {
 
   const handleTransactionSearch = () => {
     setSearchTransactions(true);
-    if (valorMin || valorMax) {
-      addToHistory(`R$ ${valorMin || '0'} - R$ ${valorMax || '∞'}`, 'transaction');
-    }
+    const minLabel = VALOR_OPTIONS.find(o => o.value === valorMin)?.label || 'Sem limite';
+    const maxLabel = VALOR_OPTIONS.find(o => o.value === valorMax)?.label || 'Sem limite';
+    addToHistory(`${minLabel} - ${maxLabel}`, 'transaction');
   };
 
   const clearLocationFilters = () => {
@@ -850,30 +868,46 @@ export function SearchTools({ bairro = "BARRA DA TIJUCA" }: SearchToolsProps) {
             
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="valor-min">Valor Mínimo (R$)</Label>
-                <Input 
-                  id="valor-min" 
-                  type="number" 
-                  placeholder="0" 
-                  value={valorMin}
-                  onChange={(e) => {
-                    setValorMin(e.target.value);
+                <Label htmlFor="valor-min">Valor Mínimo</Label>
+                <Select 
+                  value={valorMin} 
+                  onValueChange={(value) => {
+                    setValorMin(value);
                     setSearchTransactions(false);
                   }}
-                />
+                >
+                  <SelectTrigger id="valor-min">
+                    <SelectValue placeholder="Sem limite" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {VALOR_OPTIONS.map((opt) => (
+                      <SelectItem key={opt.value || 'none'} value={opt.value || 'none'}>
+                        {opt.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
               <div className="space-y-2">
-                <Label htmlFor="valor-max">Valor Máximo (R$)</Label>
-                <Input 
-                  id="valor-max" 
-                  type="number" 
-                  placeholder="10000000" 
-                  value={valorMax}
-                  onChange={(e) => {
-                    setValorMax(e.target.value);
+                <Label htmlFor="valor-max">Valor Máximo</Label>
+                <Select 
+                  value={valorMax} 
+                  onValueChange={(value) => {
+                    setValorMax(value);
                     setSearchTransactions(false);
                   }}
-                />
+                >
+                  <SelectTrigger id="valor-max">
+                    <SelectValue placeholder="Sem limite" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {VALOR_OPTIONS.map((opt) => (
+                      <SelectItem key={opt.value || 'none-max'} value={opt.value || 'none'}>
+                        {opt.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
             </div>
             
