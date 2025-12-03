@@ -39,12 +39,12 @@ export const SyncITBIButton = () => {
         throw new Error('Você precisa estar logado para executar esta ação');
       }
 
-      console.log(`Iniciando sincronização: ano ${selectedYear}, limpar=${clearExisting}`);
+      console.log(`Iniciando sincronização de TODOS os bairros: ano ${selectedYear}, limpar=${clearExisting}`);
 
       const { data, error } = await supabase.functions.invoke("sync-itbi-prefeitura", {
         body: {
           clearExisting: clearExisting,
-          codbairro: "128", // Barra da Tijuca
+          // Sem codbairro = buscar TODOS os bairros do Rio
           minYear: parseInt(selectedYear),
           maxYear: parseInt(selectedYear),
           onlyResidencial: false,
@@ -115,7 +115,7 @@ export const SyncITBIButton = () => {
           </AlertDialogTitle>
           <AlertDialogDescription asChild>
             <div className="space-y-4">
-              <p>Buscar transações de ITBI da API da Prefeitura do Rio de Janeiro (codbairro=128 - Barra da Tijuca):</p>
+              <p>Buscar transações de ITBI da API da Prefeitura do Rio de Janeiro para <strong>todos os bairros</strong>:</p>
               
               <div className="space-y-3">
                 <div className="space-y-2">

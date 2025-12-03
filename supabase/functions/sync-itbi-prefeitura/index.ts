@@ -124,7 +124,7 @@ serve(async (req) => {
 
     // Parâmetros
     let clearExisting = false;
-    let codbairro = '128'; // Barra da Tijuca por padrão
+    let codbairro: string | null = null; // null = todos os bairros
     let minYear = 2020;
     let maxYear = new Date().getFullYear();
     let onlyResidencial = false;
@@ -132,7 +132,7 @@ serve(async (req) => {
     try {
       const body = await req.json();
       if (body.clearExisting !== undefined) clearExisting = body.clearExisting;
-      if (body.codbairro) codbairro = body.codbairro;
+      if (body.codbairro) codbairro = body.codbairro; // Se não fornecido, busca todos
       if (body.minYear) minYear = body.minYear;
       if (body.maxYear) maxYear = body.maxYear;
       if (body.onlyResidencial !== undefined) onlyResidencial = body.onlyResidencial;
@@ -140,19 +140,22 @@ serve(async (req) => {
       console.log('Usando parâmetros padrão');
     }
 
-    const bairroNome = BAIRRO_CODES[codbairro] || 'BARRA DA TIJUCA';
-    console.log(`Bairro: ${bairroNome} (código: ${codbairro})`);
+    const syncAllBairros = !codbairro;
+    console.log(syncAllBairros ? 'Sincronizando TODOS os bairros do Rio' : `Bairro: ${BAIRRO_CODES[codbairro!] || codbairro}`);
     console.log(`Período: ${minYear} - ${maxYear}`);
     console.log(`Apenas residencial: ${onlyResidencial}`);
 
-    // Buscar com paginação - FILTRANDO POR CODBAIRRO NA API!
+    // Buscar com paginação
     let allFeatures: ArcGISFeature[] = [];
     let offset = 0;
     const pageSize = 2000;
     let hasMore = true;
 
-    // Construir WHERE clause com codbairro
-    let whereClause = `codbairro='${codbairro}' AND ano_transação>=${minYear} AND ano_transação<=${maxYear}`;
+    // Construir WHERE clause - sem codbairro se sincronizando todos
+    let whereClause = `ano_transação>=${minYear} AND ano_transação<=${maxYear}`;
+    if (codbairro) {
+      whereClause = `codbairro='${codbairro}' AND ${whereClause}`;
+    }
     if (onlyResidencial) {
       whereClause += ` AND uso='RESIDENCIAL'`;
     }
@@ -234,21 +237,38 @@ serve(async (req) => {
       );
     }
 
-    // Limpar dados existentes do bairro/período se solicitado
+    // Limpar dados existentes do período se solicitado
     if (clearExisting) {
-      console.log(`Limpando dados existentes de ${bairroNome} (${minYear}-${maxYear})...`);
-      
-      const { error: deleteError } = await supabase
-        .from('itbi_transactions')
-        .delete()
-        .eq('bairro', bairroNome)
-        .gte('data_transacao', `${minYear}-01-01`)
-        .lte('data_transacao', `${maxYear}-12-31`);
-      
-      if (deleteError) {
-        console.error('Erro ao limpar:', deleteError.message);
+      if (syncAllBairros) {
+        console.log(`Limpando dados existentes de TODOS os bairros (${minYear}-${maxYear})...`);
+        
+        const { error: deleteError } = await supabase
+          .from('itbi_transactions')
+          .delete()
+          .gte('data_transacao', `${minYear}-01-01`)
+          .lte('data_transacao', `${maxYear}-12-31`);
+        
+        if (deleteError) {
+          console.error('Erro ao limpar:', deleteError.message);
+        } else {
+          console.log('Dados anteriores de todos os bairros removidos');
+        }
       } else {
-        console.log('Dados anteriores removidos');
+        const bairroNome = BAIRRO_CODES[codbairro!] || codbairro;
+        console.log(`Limpando dados existentes de ${bairroNome} (${minYear}-${maxYear})...`);
+        
+        const { error: deleteError } = await supabase
+          .from('itbi_transactions')
+          .delete()
+          .eq('bairro', bairroNome)
+          .gte('data_transacao', `${minYear}-01-01`)
+          .lte('data_transacao', `${maxYear}-12-31`);
+        
+        if (deleteError) {
+          console.error('Erro ao limpar:', deleteError.message);
+        } else {
+          console.log('Dados anteriores removidos');
+        }
       }
     }
 
@@ -284,6 +304,8 @@ serve(async (req) => {
       const mes = extractNumber(attrs['mês_transação']);
       const tipologia = extractString(attrs['principais_tipologias']);
       const uso = extractString(attrs['uso']);
+      const bairroApi = extractString(attrs['bairro']);
+      const codbairroApi = extractString(attrs['codbairro']);
 
       // Validar dados obrigatórios
       if (!logradouro || valor === null || area === null || valor <= 0 || area <= 0) {
@@ -325,11 +347,14 @@ serve(async (req) => {
         dataTransacao = `${ano}-06-15`;
       }
 
+      // Determinar nome do bairro (usar da API ou mapear do código)
+      const bairroFinal = bairroApi?.toUpperCase() || BAIRRO_CODES[codbairroApi || ''] || 'DESCONHECIDO';
+
       transacoes.push({
         logradouro: logradouro.toUpperCase(),
         numero: null,
         complemento: null,
-        bairro: bairroNome,
+        bairro: bairroFinal,
         valor_transacao: Math.round(valor * 100) / 100,
         area_m2: Math.round(area * 100) / 100,
         data_transacao: dataTransacao,
@@ -369,9 +394,9 @@ serve(async (req) => {
 
     const summary = {
       success: true,
-      message: 'Sincronização via API concluída',
-      bairro: bairroNome,
-      codbairro: codbairro,
+      message: syncAllBairros ? 'Sincronização de TODOS os bairros concluída' : 'Sincronização via API concluída',
+      bairro: syncAllBairros ? 'TODOS' : (BAIRRO_CODES[codbairro!] || codbairro),
+      codbairro: codbairro || 'TODOS',
       periodo: `${minYear}-${maxYear}`,
       api_registros_agregados: allFeatures.length,
       registros_validos: transacoes.length,
