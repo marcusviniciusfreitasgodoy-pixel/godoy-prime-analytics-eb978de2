@@ -186,32 +186,17 @@ serve(async (req) => {
           continue;
         }
         
-        // Normalizar área para range razoável (10-1000 m²)
-        // Divide por 10 até área estar no range adequado
-        let area = areaRaw;
-        if (area > 10000) {
-          // Área claramente errada (> 10.000 m²)
-          // Dividir progressivamente até chegar em range 10-1000
-          while (area > 1000) {
-            area = area / 10;
-          }
-          console.log(`[NORM] Área: ${areaRaw} → ${area.toFixed(2)} m²`);
-        }
+        // SEM NORMALIZAÇÃO - confiar no parsing brasileiro
+        // Os valores devem vir corretos do CSV após parseNumero()
+        const area = areaRaw;
+        const valor = valorRaw;
         
-        // Normalizar valor com base na magnitude
-        // Padrão: valores corretos estão entre R$ 500k e R$ 50M
-        // > 100 bilhões (100.000.000.000): dividir por 1.000.000
-        // > 1 bilhão (1.000.000.000) e <= 100B: dividir por 1.000
-        // < 1 bilhão: já está correto (ex: 1243946.6 = R$ 1.2M)
-        let valor = valorRaw;
-        if (valor > 100000000000) {
-          // Valores em trilhões (ex: 1.338.014.253.461 → 1.338.014)
-          valor = valor / 1000000;
-          console.log(`[NORM] Valor (trilhões): ${valorRaw} → ${valor.toFixed(2)}`);
-        } else if (valor > 1000000000) {
-          // Valores em bilhões (ex: 12.452.502.475 → 12.452.502)
-          valor = valor / 1000;
-          console.log(`[NORM] Valor (bilhões): ${valorRaw} → ${valor.toFixed(2)}`);
+        // Log para debug se valores parecem fora do esperado
+        if (area > 1000) {
+          console.log(`[WARN] Área muito grande: ${logradouro} - ${area.toFixed(2)} m² (raw: ${campos[idx.area]})`);
+        }
+        if (valor > 100000000) {
+          console.log(`[WARN] Valor muito alto: ${logradouro} - R$ ${valor.toFixed(2)} (raw: ${campos[idx.valor_transacao]})`);
         }
         
         // Calcular valor/m²
