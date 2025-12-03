@@ -186,40 +186,17 @@ serve(async (req) => {
           continue;
         }
         
-        // Normalizar área (se muito grande, pode estar com separador errado)
-        let area = areaRaw;
-        if (area > 10000) {
-          // Provavelmente formato X.XXX.XXX interpretado errado
-          area = area / 1000;
-        }
-        if (area > 1000) {
-          area = area / 10;
-        }
+        // Área e Valor já vêm corretos da planilha (soma das transações agregadas)
+        // NÃO normalizar - os valores grandes são esperados para múltiplas transações
+        const area = areaRaw;
+        const valor = valorRaw;
         
-        // Normalizar valor
-        let valor = valorRaw;
-        // Valores de imóveis em Barra da Tijuca: tipicamente R$ 500k - R$ 50M
-        // Se valor > 1 bilhão, provavelmente está com separador errado
-        if (valor > 1000000000) {
-          valor = valor / 1000;
-        }
-        if (valor > 100000000 && area < 500) {
-          valor = valor / 1000;
-        }
-        
-        // Calcular valor/m²
+        // Calcular valor/m² (soma_valores / soma_areas = média ponderada correta)
         const valorM2 = area > 0 ? valor / area : null;
         
-        // Validar valor/m² razoável (R$ 1.000 a R$ 100.000/m² para Barra)
-        if (valorM2 && (valorM2 < 500 || valorM2 > 200000)) {
-          // Tentar ajustar
-          if (valorM2 < 500 && valor < 100000) {
-            // Valor muito baixo, multiplicar por 1000
-            valor = valor * 1000;
-          } else if (valorM2 > 200000) {
-            // Valor muito alto, dividir
-            valor = valor / 1000;
-          }
+        // Log para debug de valores suspeitos
+        if (valorM2 && (valorM2 < 1000 || valorM2 > 200000)) {
+          console.log(`[WARN] valor_m2 fora do range: ${logradouro} - R$ ${valorM2?.toFixed(2)}/m²`);
         }
         
         // Construir data da transação
