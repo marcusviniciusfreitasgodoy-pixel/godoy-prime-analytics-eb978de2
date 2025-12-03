@@ -38,24 +38,24 @@ export function EvolutionChart({ bairro = "BARRA DA TIJUCA" }: EvolutionChartPro
 
   return (
     <Card>
-      <CardHeader className="pb-2">
+      <CardHeader className="pb-2 px-4 sm:px-6">
         <div className="flex items-center justify-between">
           <div>
-            <CardTitle>Evolução Histórica ({monthCount} meses)</CardTitle>
-            <CardDescription>Tendência de Mercado</CardDescription>
+            <CardTitle className="text-base sm:text-lg">Evolução Histórica ({monthCount} meses)</CardTitle>
+            <CardDescription className="text-xs sm:text-sm">Tendência de Mercado</CardDescription>
           </div>
         </div>
       </CardHeader>
-      <CardContent>
+      <CardContent className="px-2 sm:px-6">
         <Tabs defaultValue="geral" className="w-full">
-          <TabsList className="grid w-full grid-cols-3 mb-4">
-            <TabsTrigger value="geral">Geral</TabsTrigger>
-            <TabsTrigger value="tipologia">Por Tipologia</TabsTrigger>
-            <TabsTrigger value="variacao">Variação (%)</TabsTrigger>
+          <TabsList className="grid w-full grid-cols-3 mb-4 h-auto">
+            <TabsTrigger value="geral" className="text-xs sm:text-sm py-2">Geral</TabsTrigger>
+            <TabsTrigger value="tipologia" className="text-xs sm:text-sm py-2">Tipologia</TabsTrigger>
+            <TabsTrigger value="variacao" className="text-xs sm:text-sm py-2">Variação</TabsTrigger>
           </TabsList>
           
           <TabsContent value="geral" className="mt-2">
-            <ResponsiveContainer width="100%" height={320}>
+            <ResponsiveContainer width="100%" height={280} className="sm:!h-[320px]">
               <ComposedChart data={chartData}>
                 <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" vertical={false} />
                 <XAxis 
@@ -112,7 +112,7 @@ export function EvolutionChart({ bairro = "BARRA DA TIJUCA" }: EvolutionChartPro
           </TabsContent>
           
           <TabsContent value="tipologia" className="mt-2">
-            <ResponsiveContainer width="100%" height={320}>
+            <ResponsiveContainer width="100%" height={280} className="sm:!h-[320px]">
               <ComposedChart data={chartData}>
                 <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" vertical={false} />
                 <XAxis 
@@ -157,7 +157,7 @@ export function EvolutionChart({ bairro = "BARRA DA TIJUCA" }: EvolutionChartPro
           </TabsContent>
           
           <TabsContent value="variacao" className="mt-2">
-            <ResponsiveContainer width="100%" height={320}>
+            <ResponsiveContainer width="100%" height={280} className="sm:!h-[320px]">
               <ComposedChart data={chartData}>
                 <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" vertical={false} />
                 <XAxis 
