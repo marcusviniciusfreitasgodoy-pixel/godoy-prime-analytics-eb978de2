@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { FileDown, Info, HelpCircle, Monitor, FileSpreadsheet, FileText, BarChart3, Search, TrendingUp, MapPin } from "lucide-react";
+import { FileDown, Info, HelpCircle, Monitor, FileSpreadsheet, FileText, BarChart3, Search, TrendingUp, MapPin, Database } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { DashboardKPIs } from "@/components/DashboardKPIs";
@@ -121,6 +121,70 @@ export default function Dashboard() {
     }
   };
 
+  const handleBackupCompleto = async () => {
+    setIsExporting(true);
+    try {
+      // Fetch ALL data from all neighborhoods
+      const { data, error } = await supabase
+        .from("itbi_transactions")
+        .select("*")
+        .order("bairro", { ascending: true })
+        .order("data_transacao", { ascending: false });
+
+      if (error) throw error;
+
+      if (data && data.length > 0) {
+        const totalTransacoes = data.reduce((sum, r) => sum + r.total_transacoes, 0);
+        const bairrosUnicos = [...new Set(data.map(r => r.bairro))].length;
+        
+        exportToXLSX({
+          filename: `backup_completo_itbi_${new Date().toISOString().split('T')[0]}`,
+          title: 'Backup Completo - Base ITBI Prefeitura RJ',
+          subtitle: `Godoy Prime Analytics - Exportado em ${new Date().toLocaleDateString('pt-BR')}`,
+          filters: {
+            'Total de Registros': data.length.toLocaleString('pt-BR'),
+            'Total de Transações': totalTransacoes.toLocaleString('pt-BR'),
+            'Bairros': bairrosUnicos.toLocaleString('pt-BR'),
+            'Período': `${data[data.length - 1]?.data_transacao || 'N/A'} a ${data[0]?.data_transacao || 'N/A'}`,
+          },
+          data,
+          columns: [
+            { key: 'bairro', header: 'Bairro', width: 25, format: 'text' },
+            { key: 'logradouro', header: 'Logradouro', width: 35, format: 'text' },
+            { key: 'numero', header: 'Número', width: 10, format: 'text' },
+            { key: 'complemento', header: 'Complemento', width: 15, format: 'text' },
+            { key: 'tipologia', header: 'Tipologia', width: 15, format: 'text' },
+            { key: 'uso', header: 'Uso', width: 12, format: 'text' },
+            { key: 'data_transacao', header: 'Data', width: 12, format: 'date' },
+            { key: 'valor_transacao', header: 'Valor Total', width: 18, format: 'currency' },
+            { key: 'area_m2', header: 'Área (m²)', width: 12, format: 'number' },
+            { key: 'valor_m2', header: 'R$/m²', width: 15, format: 'currency' },
+            { key: 'total_transacoes', header: 'Qtd Trans.', width: 10, format: 'number' },
+            { key: 'percentual_transferido', header: '% Transf.', width: 10, format: 'number' },
+          ],
+          summary: [
+            { label: 'Total de Registros Agregados', value: data.length },
+            { label: 'Total de Transações Reais', value: totalTransacoes },
+            { label: 'Total de Bairros', value: bairrosUnicos },
+          ],
+        });
+        toast({
+          title: "Backup concluído",
+          description: `${data.length.toLocaleString('pt-BR')} registros (${totalTransacoes.toLocaleString('pt-BR')} transações) exportados.`,
+        });
+      }
+    } catch (error) {
+      console.error('Backup error:', error);
+      toast({
+        title: "Erro no backup",
+        description: "Não foi possível exportar o backup completo.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
   return (
     <div className="space-y-3 sm:space-y-6">
       <GuidedTour run={runTour} onFinish={() => setRunTour(false)} />
@@ -198,6 +262,10 @@ export default function Dashboard() {
                     <FileText className="h-4 w-4" />
                     CSV (.csv)
                   </DropdownMenuItem>
+                  <DropdownMenuItem onClick={handleBackupCompleto} className="gap-2 border-t mt-1 pt-1">
+                    <Database className="h-4 w-4" />
+                    Backup Completo
+                  </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
             </div>
@@ -236,6 +304,10 @@ export default function Dashboard() {
                 <DropdownMenuItem onClick={handleExportCSV} className="gap-2">
                   <FileText className="h-4 w-4" />
                   CSV (.csv)
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={handleBackupCompleto} className="gap-2 border-t mt-1 pt-1">
+                  <Database className="h-4 w-4" />
+                  Backup Completo
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
