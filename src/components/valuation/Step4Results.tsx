@@ -3,7 +3,7 @@ import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { CheckCircle, AlertTriangle, XCircle, TrendingUp, TrendingDown, Minus } from "lucide-react";
 import type { ValuationResult, CombinedPrices } from "@/utils/valuationCalculations";
-import type { ValuationState } from "./ValuationEngine";
+import type { ValuationState } from "@/types/valuation";
 
 interface Props {
   result: ValuationResult;

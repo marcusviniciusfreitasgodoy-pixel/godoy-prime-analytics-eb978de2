@@ -5,7 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { MapPin, TrendingUp, TrendingDown, Minus, Search, Building2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
-import type { ValuationState } from "./ValuationEngine";
+import type { ValuationState } from "@/types/valuation";
 import type { CombinedPrices, ITBIData, AnuncioData } from "@/utils/valuationCalculations";
 
 interface Props {
