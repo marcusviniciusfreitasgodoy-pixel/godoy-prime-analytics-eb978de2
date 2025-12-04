@@ -455,7 +455,7 @@ export default function Documentacao() {
           <CardTitle className="text-lg sm:text-xl">Perfil do Vendedor</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="flex flex-col sm:flex-row sm:items-center gap-4 sm:gap-8">
+          <div className="flex flex-col gap-4">
             <div className="flex items-center gap-3">
               <Checkbox
                 id="flag-empresario"
@@ -505,7 +505,7 @@ export default function Documentacao() {
           <CardTitle className="text-lg sm:text-xl">Perfil do Comprador</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="flex flex-col sm:flex-row sm:items-center gap-4 sm:gap-8">
+          <div className="flex flex-col gap-4">
             <div className="flex items-center gap-3">
               <Checkbox
                 id="flag-comunhao-total"
@@ -564,7 +564,7 @@ export default function Documentacao() {
                       {category.items.map((item) => (
                         <div
                           key={item.id}
-                          className={`flex items-start sm:items-center justify-between gap-2 p-2.5 sm:p-3 rounded-lg border bg-card ${
+                          className={`flex items-start sm:items-center gap-2 p-2.5 sm:p-3 rounded-lg border bg-card ${
                             item.conditionalOn ? 'border-l-4 border-l-primary/50 bg-primary/5' : ''
                           }`}
                         >
