@@ -179,6 +179,7 @@ export default function Documentacao() {
       const visible = cat.items.filter(item => isItemVisible(item, cat.items) && item.checked);
       return sum + visible.length;
     }, 0);
+    if (visibleItems === 0) return 0;
     return Math.round((checkedItems / visibleItems) * 100);
   };
 
