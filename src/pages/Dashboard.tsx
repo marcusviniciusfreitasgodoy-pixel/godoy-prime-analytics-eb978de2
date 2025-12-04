@@ -171,10 +171,10 @@ export default function Dashboard() {
                 variant="outline" 
                 size="sm" 
                 onClick={() => setRunTour(true)} 
-                className="flex flex-col items-center gap-0.5 h-auto py-1.5 px-2 min-w-[44px] bg-background/80"
+                className="flex flex-col items-center gap-0.5 h-auto py-1.5 px-2.5 min-w-[46px] bg-background/80"
               >
-                <HelpCircle className="h-3.5 w-3.5 text-accent" />
-                <span className="text-[8px] font-medium">Tour</span>
+                <HelpCircle className="h-4 w-4 text-accent" />
+                <span className="text-[10px] font-medium">Tour</span>
               </Button>
               
               <DropdownMenu>
@@ -183,10 +183,10 @@ export default function Dashboard() {
                     variant="outline" 
                     size="sm" 
                     disabled={isExporting} 
-                    className="flex flex-col items-center gap-0.5 h-auto py-1.5 px-2 min-w-[44px] bg-background/80"
+                    className="flex flex-col items-center gap-0.5 h-auto py-1.5 px-2.5 min-w-[46px] bg-background/80"
                   >
-                    <FileSpreadsheet className="h-3.5 w-3.5 text-accent" />
-                    <span className="text-[8px] font-medium">Excel</span>
+                    <FileSpreadsheet className="h-4 w-4 text-accent" />
+                    <span className="text-[10px] font-medium">Excel</span>
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end">
