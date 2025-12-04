@@ -3,7 +3,7 @@ import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Card, CardContent } from "@/components/ui/card";
 import { Ruler, Calculator } from "lucide-react";
-import type { ValuationState } from "./ValuationEngine";
+import type { ValuationState } from "@/types/valuation";
 import type { CombinedPrices } from "@/utils/valuationCalculations";
 
 interface Props {

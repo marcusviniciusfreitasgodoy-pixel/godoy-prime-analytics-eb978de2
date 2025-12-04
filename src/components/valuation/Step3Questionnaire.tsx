@@ -7,7 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Eye, Sun, Wrench, Sofa, Shield, LayoutGrid, FileText } from "lucide-react";
-import type { ValuationState } from "./ValuationEngine";
+import type { ValuationState } from "@/types/valuation";
 import type { ValuationCharacteristic, DocumentationFactor } from "@/hooks/useValuationCharacteristics";
 import { groupCharacteristicsByCategory } from "@/hooks/useValuationCharacteristics";
 import type { ValuationResult, CharacteristicResponse } from "@/utils/valuationCalculations";

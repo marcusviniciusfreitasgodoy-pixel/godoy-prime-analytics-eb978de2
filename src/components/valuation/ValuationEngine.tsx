@@ -13,8 +13,6 @@ import { Step5Recommendation } from "./Step5Recommendation";
 import { calculateValuation, calculateCombinedPrices } from "@/utils/valuationCalculations";
 import { ValuationState, initialValuationState } from "@/types/valuation";
 
-export type { ValuationState } from "@/types/valuation";
-
 const STEPS = [
   { id: 1, title: "Localização", description: "Selecione o endereço" },
   { id: 2, title: "Dados Básicos", description: "Área e base de preço" },
