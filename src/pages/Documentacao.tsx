@@ -623,10 +623,10 @@ export default function Documentacao() {
       <Card>
         <CardContent className="pt-6">
           <TooltipProvider>
-            <Accordion type="multiple" className="w-full">
+            <Accordion type="multiple" className="w-full text-left">
               {checklist.map((category) => (
                 <AccordionItem key={category.id} value={category.id}>
-                  <AccordionTrigger className="text-lg font-semibold">
+                  <AccordionTrigger className="text-base sm:text-lg font-semibold text-left">
                     {category.title}
                   </AccordionTrigger>
                   <AccordionContent>
