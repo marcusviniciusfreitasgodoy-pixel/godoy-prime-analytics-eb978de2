@@ -122,59 +122,59 @@ export default function Dashboard() {
   };
 
   return (
-    <div className="space-y-4 sm:space-y-6">
+    <div className="space-y-3 sm:space-y-6">
       <GuidedTour run={runTour} onFinish={() => setRunTour(false)} />
       
       {/* Mobile Hero Section */}
       <div className="sm:hidden">
-        <div className="bg-gradient-to-br from-primary/5 via-background to-accent/5 rounded-lg p-3 border border-border/50">
-          <h1 className="text-xl font-bold text-foreground mb-2">
+        <div className="bg-gradient-to-br from-primary/5 via-background to-accent/5 rounded-md p-2 border border-border/50">
+          <h1 className="text-lg font-bold text-foreground mb-1">
             Inteligência Imobiliária
           </h1>
-          <p className="text-sm text-muted-foreground mb-4">
+          <p className="text-xs text-muted-foreground mb-3">
             Análise de mercado baseada em dados reais de transações ITBI do Rio de Janeiro.
           </p>
           
           {/* Feature highlights */}
-          <div className="grid grid-cols-2 gap-3 mb-5">
-            <div className="flex items-center gap-2">
-              <div className="p-1.5 rounded-md bg-accent/10">
-                <BarChart3 className="h-4 w-4 text-accent" />
+          <div className="grid grid-cols-2 gap-2 mb-3">
+            <div className="flex items-center gap-1.5">
+              <div className="p-1 rounded-md bg-accent/10">
+                <BarChart3 className="h-3.5 w-3.5 text-accent" />
               </div>
-              <span className="text-xs text-foreground/80">Preços por região</span>
+              <span className="text-[11px] text-foreground/80">Preços por região</span>
             </div>
-            <div className="flex items-center gap-2">
-              <div className="p-1.5 rounded-md bg-accent/10">
-                <Search className="h-4 w-4 text-accent" />
+            <div className="flex items-center gap-1.5">
+              <div className="p-1 rounded-md bg-accent/10">
+                <Search className="h-3.5 w-3.5 text-accent" />
               </div>
-              <span className="text-xs text-foreground/80">Busca por endereço</span>
+              <span className="text-[11px] text-foreground/80">Busca por endereço</span>
             </div>
-            <div className="flex items-center gap-2">
-              <div className="p-1.5 rounded-md bg-accent/10">
-                <TrendingUp className="h-4 w-4 text-accent" />
+            <div className="flex items-center gap-1.5">
+              <div className="p-1 rounded-md bg-accent/10">
+                <TrendingUp className="h-3.5 w-3.5 text-accent" />
               </div>
-              <span className="text-xs text-foreground/80">Evolução histórica</span>
+              <span className="text-[11px] text-foreground/80">Evolução histórica</span>
             </div>
-            <div className="flex items-center gap-2">
-              <div className="p-1.5 rounded-md bg-accent/10">
-                <MapPin className="h-4 w-4 text-accent" />
+            <div className="flex items-center gap-1.5">
+              <div className="p-1 rounded-md bg-accent/10">
+                <MapPin className="h-3.5 w-3.5 text-accent" />
               </div>
-              <span className="text-xs text-foreground/80">Ranking microbairros</span>
+              <span className="text-[11px] text-foreground/80">Ranking microbairros</span>
             </div>
           </div>
           
           {/* Controls */}
-          <div className="flex items-center justify-between gap-3">
+          <div className="flex items-center justify-between gap-2">
             <BairroSelector value={selectedBairro} onChange={setSelectedBairro} />
-            <div className="flex gap-2">
+            <div className="flex gap-1.5">
               <Button 
                 variant="outline" 
                 size="sm" 
                 onClick={() => setRunTour(true)} 
-                className="flex flex-col items-center gap-1 h-auto py-2 px-3 min-w-[52px] bg-background/80"
+                className="flex flex-col items-center gap-0.5 h-auto py-1.5 px-2 min-w-[44px] bg-background/80"
               >
-                <HelpCircle className="h-4 w-4 text-accent" />
-                <span className="text-[9px] font-medium">Tour</span>
+                <HelpCircle className="h-3.5 w-3.5 text-accent" />
+                <span className="text-[8px] font-medium">Tour</span>
               </Button>
               
               <DropdownMenu>
@@ -183,10 +183,10 @@ export default function Dashboard() {
                     variant="outline" 
                     size="sm" 
                     disabled={isExporting} 
-                    className="flex flex-col items-center gap-1 h-auto py-2 px-3 min-w-[52px] bg-background/80"
+                    className="flex flex-col items-center gap-0.5 h-auto py-1.5 px-2 min-w-[44px] bg-background/80"
                   >
-                    <FileSpreadsheet className="h-4 w-4 text-accent" />
-                    <span className="text-[9px] font-medium">Excel</span>
+                    <FileSpreadsheet className="h-3.5 w-3.5 text-accent" />
+                    <span className="text-[8px] font-medium">Excel</span>
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end">
