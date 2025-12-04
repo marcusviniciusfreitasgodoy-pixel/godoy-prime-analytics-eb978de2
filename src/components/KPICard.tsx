@@ -21,7 +21,7 @@ export function KPICard({ title, value, subtitle, change, icon: Icon, trend, bre
 
   return (
     <Card className="hover:shadow-xl transition-all duration-300 hover:border-accent/50 bg-gradient-to-br from-card to-card/80">
-      <CardContent className="p-3 sm:p-5">
+      <CardContent className="p-2 sm:p-5">
         <div className="flex items-start justify-between mb-1.5 sm:mb-2">
           <div className="flex-1 min-w-0">
             <p className="text-[10px] sm:text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-0.5 sm:mb-1 truncate">{title}</p>
