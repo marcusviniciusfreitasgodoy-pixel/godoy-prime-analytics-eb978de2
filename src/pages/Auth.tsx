@@ -13,8 +13,15 @@ import { supabase } from '@/integrations/supabase/client';
 import { ArrowLeft } from 'lucide-react';
 import godoyLogo from '@/assets/godoy-logo-symbol.png';
 
-const authSchema = z.object({
+const loginSchema = z.object({
   email: z.string().email({ message: 'E-mail inválido' }).max(255),
+  password: z.string().min(6, { message: 'Senha deve ter no mínimo 6 caracteres' }).max(100),
+});
+
+const signupSchema = z.object({
+  fullName: z.string().min(3, { message: 'Nome deve ter no mínimo 3 caracteres' }).max(100),
+  email: z.string().email({ message: 'E-mail inválido' }).max(255),
+  phone: z.string().regex(/^\(\d{2}\)\s?\d{4,5}-?\d{4}$/, { message: 'Telefone inválido. Use o formato (XX) XXXXX-XXXX' }).optional().or(z.literal('')),
   password: z.string().min(6, { message: 'Senha deve ter no mínimo 6 caracteres' }).max(100),
 });
 
@@ -22,7 +29,8 @@ const resetSchema = z.object({
   email: z.string().email({ message: 'E-mail inválido' }).max(255),
 });
 
-type AuthFormData = z.infer<typeof authSchema>;
+type LoginFormData = z.infer<typeof loginSchema>;
+type SignupFormData = z.infer<typeof signupSchema>;
 type ResetFormData = z.infer<typeof resetSchema>;
 
 export default function Auth() {
@@ -32,10 +40,20 @@ export default function Auth() {
   const { signIn, signUp, user } = useAuth();
   const navigate = useNavigate();
 
-  const form = useForm<AuthFormData>({
-    resolver: zodResolver(authSchema),
+  const loginForm = useForm<LoginFormData>({
+    resolver: zodResolver(loginSchema),
     defaultValues: {
       email: '',
+      password: '',
+    },
+  });
+
+  const signupForm = useForm<SignupFormData>({
+    resolver: zodResolver(signupSchema),
+    defaultValues: {
+      fullName: '',
+      email: '',
+      phone: '',
       password: '',
     },
   });
@@ -54,19 +72,39 @@ export default function Auth() {
     }
   }, [user, navigate]);
 
-  const onSubmit = async (data: AuthFormData) => {
+  const onLoginSubmit = async (data: LoginFormData) => {
     setIsLoading(true);
     try {
-      if (isLogin) {
-        await signIn(data.email, data.password);
-      } else {
-        await signUp(data.email, data.password);
-      }
+      await signIn(data.email, data.password);
     } catch (error) {
       console.error('Auth error:', error);
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const onSignupSubmit = async (data: SignupFormData) => {
+    setIsLoading(true);
+    try {
+      await signUp({
+        email: data.email,
+        password: data.password,
+        fullName: data.fullName,
+        phone: data.phone || undefined,
+      });
+    } catch (error) {
+      console.error('Auth error:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const formatPhone = (value: string) => {
+    const numbers = value.replace(/\D/g, '');
+    if (numbers.length <= 2) return numbers.length ? `(${numbers}` : '';
+    if (numbers.length <= 7) return `(${numbers.slice(0, 2)}) ${numbers.slice(2)}`;
+    if (numbers.length <= 11) return `(${numbers.slice(0, 2)}) ${numbers.slice(2, 7)}-${numbers.slice(7)}`;
+    return `(${numbers.slice(0, 2)}) ${numbers.slice(2, 7)}-${numbers.slice(7, 11)}`;
   };
 
   const onResetSubmit = async (data: ResetFormData) => {
@@ -188,47 +226,47 @@ export default function Auth() {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-              <FormField
-                control={form.control}
-                name="email"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel className="text-primary-foreground">E-mail Corporativo</FormLabel>
-                    <FormControl>
-                      <Input 
-                        type="email" 
-                        placeholder="seu.email@empresa.com.br"
-                        className="bg-primary-foreground/10 border-primary-foreground/30 text-primary-foreground placeholder:text-primary-foreground/50"
-                        {...field}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              
-              <FormField
-                control={form.control}
-                name="password"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel className="text-primary-foreground">Senha</FormLabel>
-                    <FormControl>
-                      <Input 
-                        type="password" 
-                        placeholder="••••••••"
-                        className="bg-primary-foreground/10 border-primary-foreground/30 text-primary-foreground placeholder:text-primary-foreground/50"
-                        {...field}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+          {isLogin ? (
+            <Form {...loginForm}>
+              <form onSubmit={loginForm.handleSubmit(onLoginSubmit)} className="space-y-4">
+                <FormField
+                  control={loginForm.control}
+                  name="email"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel className="text-primary-foreground">E-mail Corporativo</FormLabel>
+                      <FormControl>
+                        <Input 
+                          type="email" 
+                          placeholder="seu.email@empresa.com.br"
+                          className="bg-primary-foreground/10 border-primary-foreground/30 text-primary-foreground placeholder:text-primary-foreground/50"
+                          {...field}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                
+                <FormField
+                  control={loginForm.control}
+                  name="password"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel className="text-primary-foreground">Senha</FormLabel>
+                      <FormControl>
+                        <Input 
+                          type="password" 
+                          placeholder="••••••••"
+                          className="bg-primary-foreground/10 border-primary-foreground/30 text-primary-foreground placeholder:text-primary-foreground/50"
+                          {...field}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
 
-              {isLogin && (
                 <div className="text-right">
                   <button
                     type="button"
@@ -238,17 +276,108 @@ export default function Auth() {
                     Esqueci minha senha
                   </button>
                 </div>
-              )}
 
-              <Button 
-                type="submit" 
-                className="w-full bg-accent hover:bg-accent/90 text-primary font-semibold"
-                disabled={isLoading}
-              >
-                {isLoading ? 'Processando...' : (isLogin ? 'Entrar' : 'Cadastrar')}
-              </Button>
-            </form>
-          </Form>
+                <Button 
+                  type="submit" 
+                  className="w-full bg-accent hover:bg-accent/90 text-primary font-semibold"
+                  disabled={isLoading}
+                >
+                  {isLoading ? 'Processando...' : 'Entrar'}
+                </Button>
+              </form>
+            </Form>
+          ) : (
+            <Form {...signupForm}>
+              <form onSubmit={signupForm.handleSubmit(onSignupSubmit)} className="space-y-4">
+                <FormField
+                  control={signupForm.control}
+                  name="fullName"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel className="text-primary-foreground">Nome Completo</FormLabel>
+                      <FormControl>
+                        <Input 
+                          type="text" 
+                          placeholder="João da Silva"
+                          className="bg-primary-foreground/10 border-primary-foreground/30 text-primary-foreground placeholder:text-primary-foreground/50"
+                          {...field}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={signupForm.control}
+                  name="email"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel className="text-primary-foreground">E-mail Corporativo</FormLabel>
+                      <FormControl>
+                        <Input 
+                          type="email" 
+                          placeholder="seu.email@empresa.com.br"
+                          className="bg-primary-foreground/10 border-primary-foreground/30 text-primary-foreground placeholder:text-primary-foreground/50"
+                          {...field}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={signupForm.control}
+                  name="phone"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel className="text-primary-foreground">Telefone</FormLabel>
+                      <FormControl>
+                        <Input 
+                          type="tel" 
+                          placeholder="(21) 99999-9999"
+                          className="bg-primary-foreground/10 border-primary-foreground/30 text-primary-foreground placeholder:text-primary-foreground/50"
+                          {...field}
+                          onChange={(e) => {
+                            field.onChange(formatPhone(e.target.value));
+                          }}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                
+                <FormField
+                  control={signupForm.control}
+                  name="password"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel className="text-primary-foreground">Senha</FormLabel>
+                      <FormControl>
+                        <Input 
+                          type="password" 
+                          placeholder="••••••••"
+                          className="bg-primary-foreground/10 border-primary-foreground/30 text-primary-foreground placeholder:text-primary-foreground/50"
+                          {...field}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <Button 
+                  type="submit" 
+                  className="w-full bg-accent hover:bg-accent/90 text-primary font-semibold"
+                  disabled={isLoading}
+                >
+                  {isLoading ? 'Processando...' : 'Cadastrar'}
+                </Button>
+              </form>
+            </Form>
+          )}
 
           <div className="mt-6 text-center">
             <button
