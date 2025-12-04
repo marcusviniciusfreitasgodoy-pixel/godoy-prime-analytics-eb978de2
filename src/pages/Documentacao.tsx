@@ -122,14 +122,34 @@ export default function Documentacao() {
   const [isGeneratingPDF, setIsGeneratingPDF] = useState(false);
   const { toast } = useToast();
 
-  // Load saved progress on mount
+  // Load saved progress on mount - merge with initial structure to preserve new fields
   useEffect(() => {
     const saved = localStorage.getItem('documentacao-checklist');
     if (saved) {
       try {
-        setChecklist(JSON.parse(saved));
+        const savedData = JSON.parse(saved) as DocumentCategory[];
+        // Merge saved data with initial checklist to preserve new fields
+        const merged = initialChecklist.map(category => {
+          const savedCategory = savedData.find(c => c.id === category.id);
+          if (!savedCategory) return category;
+          return {
+            ...category,
+            items: category.items.map(item => {
+              const savedItem = savedCategory.items.find(i => i.id === item.id);
+              if (!savedItem) return item;
+              // Preserve checked state and inputValue, but keep new fields from initialChecklist
+              return { 
+                ...item, 
+                checked: savedItem.checked, 
+                inputValue: savedItem.inputValue || item.inputValue 
+              };
+            }),
+          };
+        });
+        setChecklist(merged);
       } catch (e) {
         console.error('Error loading saved checklist:', e);
+        localStorage.removeItem('documentacao-checklist');
       }
     }
   }, []);
