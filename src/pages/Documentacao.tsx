@@ -9,7 +9,6 @@ import {
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Progress } from "@/components/ui/progress";
-import { Input } from "@/components/ui/input";
 import {
   Tooltip,
   TooltipContent,
@@ -26,10 +25,6 @@ interface DocumentItem {
   label: string;
   checked: boolean;
   tooltip?: string;
-  conditionalOn?: string; // Show only if this item id is checked
-  inputField?: 'text'; // If set, shows an input field
-  inputValue?: string;
-  inputPlaceholder?: string;
 }
 
 interface DocumentCategory {
@@ -47,11 +42,8 @@ const initialChecklist: DocumentCategory[] = [
       { id: 'v-cpf', label: 'CPF (Ex: 109.313.837-81)', checked: false },
       { id: 'v-rg', label: 'RG (com órgão emissor e data de expedição)', checked: false },
       { id: 'v-email', label: 'E-mail', checked: false },
-      { id: 'v-uniao-estavel', label: 'União Estável', checked: false, tooltip: 'Marcar se vendedor está em união estável' },
-      { id: 'v-estado-civil', label: 'Estado civil e regime matrimonial', checked: false },
+      { id: 'v-estado-civil', label: 'Estado civil e regime matrimonial', checked: false, tooltip: 'Incluir informação sobre União Estável se aplicável' },
       { id: 'v-profissao', label: 'Profissão', checked: false },
-      { id: 'v-empresario', label: 'Empresário', checked: false, tooltip: 'Marcar se o vendedor é empresário (PJ)' },
-      { id: 'v-cnpj', label: 'CNPJ da Empresa', checked: false, conditionalOn: 'v-empresario', inputField: 'text', inputValue: '', inputPlaceholder: 'Ex: 00.000.000/0001-00' },
       { id: 'v-conjuge', label: 'Qualificação do cônjuge (se aplicável)', checked: false },
     ],
   },
@@ -95,13 +87,10 @@ const initialChecklist: DocumentCategory[] = [
     items: [
       { id: 'c-nome', label: 'Nome completo', checked: false },
       { id: 'c-nacionalidade', label: 'Nacionalidade', checked: false },
+      { id: 'c-profissao', label: 'Profissão', checked: false },
       { id: 'c-rg', label: 'RG (com órgão emissor e data)', checked: false },
       { id: 'c-cpf', label: 'CPF', checked: false },
-      { id: 'c-uniao-estavel', label: 'União Estável', checked: false, tooltip: 'Marcar se comprador está em união estável' },
       { id: 'c-estado-civil', label: 'Estado civil e regime de casamento', checked: false },
-      { id: 'c-profissao', label: 'Profissão', checked: false },
-      { id: 'c-empresario', label: 'Empresário', checked: false, tooltip: 'Marcar se o comprador é empresário (PJ)' },
-      { id: 'c-cnpj', label: 'CNPJ da Empresa', checked: false, conditionalOn: 'c-empresario', inputField: 'text', inputValue: '', inputPlaceholder: 'Ex: 00.000.000/0001-00' },
       { id: 'c-endereco', label: 'Endereço completo', checked: false },
       { id: 'c-email', label: 'E-mail', checked: false },
     ],
@@ -149,37 +138,13 @@ export default function Documentacao() {
     );
   };
 
-  const updateItemInput = (categoryId: string, itemId: string, value: string) => {
-    setChecklist(prev =>
-      prev.map(category =>
-        category.id === categoryId
-          ? {
-              ...category,
-              items: category.items.map(item =>
-                item.id === itemId ? { ...item, inputValue: value } : item
-              ),
-            }
-          : category
-      )
-    );
-  };
-
-  const isItemVisible = (item: DocumentItem, categoryItems: DocumentItem[]) => {
-    if (!item.conditionalOn) return true;
-    const parentItem = categoryItems.find(i => i.id === item.conditionalOn);
-    return parentItem?.checked ?? false;
-  };
-
   const getProgress = () => {
-    const visibleItems = checklist.reduce((sum, cat) => {
-      const visible = cat.items.filter(item => isItemVisible(item, cat.items));
-      return sum + visible.length;
-    }, 0);
-    const checkedItems = checklist.reduce((sum, cat) => {
-      const visible = cat.items.filter(item => isItemVisible(item, cat.items) && item.checked);
-      return sum + visible.length;
-    }, 0);
-    return Math.round((checkedItems / visibleItems) * 100);
+    const totalItems = checklist.reduce((sum, cat) => sum + cat.items.length, 0);
+    const checkedItems = checklist.reduce(
+      (sum, cat) => sum + cat.items.filter(item => item.checked).length,
+      0
+    );
+    return Math.round((checkedItems / totalItems) * 100);
   };
 
   const saveProgress = () => {
@@ -357,53 +322,39 @@ export default function Documentacao() {
                   </AccordionTrigger>
                   <AccordionContent>
                     <div className="space-y-2 sm:space-y-3 pt-2">
-                      {category.items.map((item) => {
-                        if (!isItemVisible(item, category.items)) return null;
-                        
-                        return (
-                          <div
-                            key={item.id}
-                            className={`p-2.5 sm:p-3 rounded-lg border bg-card space-y-2 ${item.conditionalOn ? 'ml-6 border-l-2 border-l-primary/30' : ''}`}
-                          >
-                            <div className="flex items-start sm:items-center justify-between gap-2">
-                              <div className="flex items-start sm:items-center gap-2.5 sm:gap-3 flex-1 min-w-0">
-                                <Checkbox
-                                  id={item.id}
-                                  checked={item.checked}
-                                  onCheckedChange={() => toggleItemChecked(category.id, item.id)}
-                                  className="mt-0.5 sm:mt-0"
-                                />
-                                <label
-                                  htmlFor={item.id}
-                                  className={`font-medium cursor-pointer flex-1 text-sm sm:text-base leading-tight ${
-                                    item.checked ? 'line-through text-muted-foreground' : ''
-                                  }`}
-                                >
-                                  {item.label}
-                                </label>
-                              </div>
-                              {item.tooltip && (
-                                <Tooltip>
-                                  <TooltipTrigger asChild>
-                                    <HelpCircle className="h-4 w-4 text-muted-foreground cursor-help flex-shrink-0" />
-                                  </TooltipTrigger>
-                                  <TooltipContent className="max-w-xs">
-                                    <p>{item.tooltip}</p>
-                                  </TooltipContent>
-                                </Tooltip>
-                              )}
-                            </div>
-                            {item.inputField && item.checked && (
-                              <Input
-                                placeholder={item.inputPlaceholder}
-                                value={item.inputValue || ''}
-                                onChange={(e) => updateItemInput(category.id, item.id, e.target.value)}
-                                className="ml-7 max-w-xs text-sm"
-                              />
-                            )}
+                      {category.items.map((item) => (
+                        <div
+                          key={item.id}
+                          className="flex items-start sm:items-center justify-between gap-2 p-2.5 sm:p-3 rounded-lg border bg-card"
+                        >
+                          <div className="flex items-start sm:items-center gap-2.5 sm:gap-3 flex-1 min-w-0">
+                            <Checkbox
+                              id={item.id}
+                              checked={item.checked}
+                              onCheckedChange={() => toggleItemChecked(category.id, item.id)}
+                              className="mt-0.5 sm:mt-0"
+                            />
+                            <label
+                              htmlFor={item.id}
+                              className={`font-medium cursor-pointer flex-1 text-sm sm:text-base leading-tight ${
+                                item.checked ? 'line-through text-muted-foreground' : ''
+                              }`}
+                            >
+                              {item.label}
+                            </label>
                           </div>
-                        );
-                      })}
+                          {item.tooltip && (
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <HelpCircle className="h-4 w-4 text-muted-foreground cursor-help flex-shrink-0" />
+                              </TooltipTrigger>
+                              <TooltipContent className="max-w-xs">
+                                <p>{item.tooltip}</p>
+                              </TooltipContent>
+                            </Tooltip>
+                          )}
+                        </div>
+                      ))}
                     </div>
                   </AccordionContent>
                 </AccordionItem>
