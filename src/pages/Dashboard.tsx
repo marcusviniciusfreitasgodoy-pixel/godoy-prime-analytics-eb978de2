@@ -122,12 +122,12 @@ export default function Dashboard() {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 sm:space-y-6">
       <GuidedTour run={runTour} onFinish={() => setRunTour(false)} />
       
       {/* Mobile Hero Section */}
       <div className="sm:hidden">
-        <div className="bg-gradient-to-br from-primary/5 via-background to-accent/5 rounded-xl p-5 border border-border/50">
+        <div className="bg-gradient-to-br from-primary/5 via-background to-accent/5 rounded-lg p-3 border border-border/50">
           <h1 className="text-xl font-bold text-foreground mb-2">
             Inteligência Imobiliária
           </h1>
