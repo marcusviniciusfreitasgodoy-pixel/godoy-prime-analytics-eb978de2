@@ -3,7 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "./ui/tabs";
 import { Input } from "./ui/input";
 import { Button } from "./ui/button";
-import { Search, DollarSign, Bot, Loader2, FileDown, MapPin, X, History, RotateCcw, Plus, Trash2, TrendingUp, TrendingDown, GitCompare } from "lucide-react";
+import { Search, DollarSign, Calculator, Loader2, FileDown, MapPin, X, History, RotateCcw, Plus, Trash2, TrendingUp, TrendingDown, GitCompare } from "lucide-react";
 import { Label } from "./ui/label";
 import {
   Select,
@@ -13,17 +13,16 @@ import {
   SelectValue,
 } from "./ui/select";
 import { useLocationSearch, useTransactionSearch } from "@/hooks/useLocationSearch";
-import { useValuationWeights } from "@/hooks/useValuationWeights";
 import { useStreetSuggestions } from "@/hooks/useStreetSuggestions";
 import { useSearchHistory } from "@/hooks/useSearchHistory";
 import { useStreetComparison } from "@/hooks/useStreetComparison";
 import { Badge } from "./ui/badge";
 import { exportToCSV } from "@/utils/exportUtils";
-import { exportValuationToPDF } from "@/utils/valuationPdfExport";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "./ui/tooltip";
 import { StreetComparisonChart } from "./StreetComparisonChart";
+import { ValuationEngine } from "./valuation/ValuationEngine";
 
 interface SearchToolsProps {
   bairro?: string;
@@ -88,27 +87,6 @@ export function SearchTools({ bairro = "BARRA DA TIJUCA" }: SearchToolsProps) {
   const [transacaoAreaMax, setTransacaoAreaMax] = useState<string>("");
   const [searchTransactions, setSearchTransactions] = useState(false);
 
-  // Valuation state
-  const [valLocalizacao, setValLocalizacao] = useState("");
-  const [showValSuggestions, setShowValSuggestions] = useState(false);
-  const valSuggestionsRef = useRef<HTMLDivElement>(null);
-  const valInputRef = useRef<HTMLInputElement>(null);
-  const [valArea, setValArea] = useState("");
-  const [valQuartos, setValQuartos] = useState("");
-  const [valVagas, setValVagas] = useState("");
-  const [valSol, setValSol] = useState("");
-  const [valVista, setValVista] = useState("");
-  const [valEstado, setValEstado] = useState("");
-  const [valTipologia, setValTipologia] = useState("");
-  const [valuationResult, setValuationResult] = useState<{
-    min: number;
-    justo: number;
-    max: number;
-    confianca: number;
-    mercado: string;
-    mercadoDescricao: string;
-  } | null>(null);
-
   // Queries
   const { data: locationResult, isLoading: locationLoading } = useLocationSearch(
     {
@@ -135,7 +113,6 @@ export function SearchTools({ bairro = "BARRA DA TIJUCA" }: SearchToolsProps) {
     searchTransactions
   );
 
-  const { data: weights } = useValuationWeights();
   const { data: comparisonData, isLoading: comparisonLoading } = useStreetComparison(
     comparisonStreets,
     parseInt(periodoMeses)
@@ -143,7 +120,6 @@ export function SearchTools({ bairro = "BARRA DA TIJUCA" }: SearchToolsProps) {
 
   // Street suggestions for autocomplete
   const { data: suggestions, isLoading: suggestionsLoading } = useStreetSuggestions(locationQuery);
-  const { data: valSuggestions, isLoading: valSuggestionsLoading } = useStreetSuggestions(valLocalizacao);
 
   // Close suggestions when clicking outside
   useEffect(() => {
@@ -152,10 +128,6 @@ export function SearchTools({ bairro = "BARRA DA TIJUCA" }: SearchToolsProps) {
           inputRef.current && !inputRef.current.contains(event.target as Node)) {
         setShowSuggestions(false);
         setShowHistory(false);
-      }
-      if (valSuggestionsRef.current && !valSuggestionsRef.current.contains(event.target as Node) &&
-          valInputRef.current && !valInputRef.current.contains(event.target as Node)) {
-        setShowValSuggestions(false);
       }
     };
     document.addEventListener('mousedown', handleClickOutside);
@@ -170,33 +142,13 @@ export function SearchTools({ bairro = "BARRA DA TIJUCA" }: SearchToolsProps) {
     addToHistory(logradouro, 'location');
   };
 
-  const handleSelectValSuggestion = (logradouro: string) => {
-    setValLocalizacao(logradouro);
-    setLocationQuery(logradouro);
-    setShowValSuggestions(false);
-    setSearchLocation(true);
-    setValuationResult(null);
-    addToHistory(logradouro, 'valuation');
-  };
-
   const handleSelectFromHistory = (item: { query: string; type: string }) => {
-    if (item.type === 'location' || item.type === 'valuation') {
+    if (item.type === 'location') {
       setLocationQuery(item.query);
       setSearchLocation(true);
     }
     setShowHistory(false);
   };
-
-  // Map weights by factor_key for easy lookup
-  const weightsMap = useMemo(() => {
-    if (!weights) return {};
-    return weights.reduce((acc, w) => {
-      if (w.factor_key) {
-        acc[w.factor_key] = w.multiplier || 1;
-      }
-      return acc;
-    }, {} as Record<string, number>);
-  }, [weights]);
 
   const handleLocationSearch = () => {
     setSearchLocation(true);
@@ -259,18 +211,6 @@ export function SearchTools({ bairro = "BARRA DA TIJUCA" }: SearchToolsProps) {
     });
   };
 
-  const clearValuationForm = () => {
-    setValLocalizacao("");
-    setValArea("");
-    setValQuartos("");
-    setValVagas("");
-    setValSol("");
-    setValVista("");
-    setValEstado("");
-    setValTipologia("");
-    setValuationResult(null);
-  };
-
   const addToComparison = () => {
     if (locationResult && comparisonStreets.length < 3) {
       const street = locationResult.logradouro;
@@ -320,117 +260,6 @@ export function SearchTools({ bairro = "BARRA DA TIJUCA" }: SearchToolsProps) {
     });
   };
 
-  const handleExportValuationPDF = () => {
-    if (!valuationResult || !locationResult) {
-      toast({
-        title: "Sem dados",
-        description: "Calcule a avaliação primeiro para exportar.",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    exportValuationToPDF(
-      valuationResult,
-      {
-        localizacao: valLocalizacao,
-        area: valArea,
-        quartos: valQuartos,
-        vagas: valVagas,
-        sol: valSol,
-        vista: valVista,
-        estado: valEstado,
-        tipologia: valTipologia,
-      },
-      {
-        mediana_m2: locationResult.mediana_m2,
-        total_transacoes: locationResult.total_transacoes,
-      }
-    );
-
-    toast({
-      title: "PDF exportado",
-      description: "Relatório de avaliação salvo com sucesso.",
-    });
-  };
-
-  const calculateValuation = () => {
-    if (!valArea || !locationResult) return;
-
-    const area = parseFloat(valArea);
-    const basePrice = locationResult.mediana_m2;
-    
-    // Apply multipliers from database weights
-    let multiplier = 1.0;
-    
-    // Vista
-    if (valVista === 'frente-mar' && weightsMap['VIEW_FRONT_SEA']) {
-      multiplier *= weightsMap['VIEW_FRONT_SEA'];
-    } else if (valVista === 'mar' && weightsMap['VIEW_SEA']) {
-      multiplier *= weightsMap['VIEW_SEA'];
-    } else if (valVista === 'verde' && weightsMap['VIEW_GREEN']) {
-      multiplier *= weightsMap['VIEW_GREEN'];
-    }
-    
-    // Sol
-    if (valSol === 'manha' && weightsMap['SUN_MORNING']) {
-      multiplier *= weightsMap['SUN_MORNING'];
-    } else if (valSol === 'tarde' && weightsMap['SUN_AFTERNOON']) {
-      multiplier *= weightsMap['SUN_AFTERNOON'];
-    }
-    
-    // Estado
-    if ((valEstado === 'novo' || valEstado === 'reformado') && weightsMap['STATE_NEW']) {
-      multiplier *= weightsMap['STATE_NEW'];
-    } else if (valEstado === 'original' && weightsMap['STATE_ORIGINAL']) {
-      multiplier *= weightsMap['STATE_ORIGINAL'];
-    } else if (valEstado === 'reformar') {
-      multiplier *= 0.85;
-    }
-
-    // Tipologia específica (apenas apartamento e casa disponíveis)
-    // Não há multiplicadores específicos para apartamento/casa padrão
-
-    // Quartos e vagas (bônus adicionais)
-    const quartos = parseInt(valQuartos) || 3;
-    if (quartos >= 4) multiplier *= 1.05;
-
-    const vagas = parseInt(valVagas) || 2;
-    if (vagas >= 3) multiplier *= 1.05;
-
-    const precoJusto = Math.round(basePrice * multiplier * area);
-    const precoMin = Math.round(precoJusto * 0.90);
-    const precoMax = Math.round(precoJusto * 1.15);
-
-    const confianca = Math.min(95, 50 + locationResult.total_transacoes * 3);
-
-    const desvioRelativo = locationResult.desvio_padrao / locationResult.media_m2;
-    const liquidez = locationResult.total_transacoes;
-    
-    let mercado: string;
-    let mercadoDescricao: string;
-    
-    if (liquidez > 10 && desvioRelativo < 0.20) {
-      mercado = 'Vendedor';
-      mercadoDescricao = 'Alta demanda, proprietários têm vantagem na negociação';
-    } else if (liquidez < 5 || desvioRelativo > 0.30) {
-      mercado = 'Comprador';
-      mercadoDescricao = 'Oferta elevada, compradores têm poder de barganha';
-    } else {
-      mercado = 'Equilibrado';
-      mercadoDescricao = 'Mercado estável com condições justas para ambas as partes';
-    }
-
-    setValuationResult({
-      min: precoMin,
-      justo: precoJusto,
-      max: precoMax,
-      confianca,
-      mercado,
-      mercadoDescricao,
-    });
-  };
-
   const locationHistoryItems = history.filter(h => h.type === 'location');
 
   return (
@@ -465,8 +294,8 @@ export function SearchTools({ bairro = "BARRA DA TIJUCA" }: SearchToolsProps) {
               <span className="hidden sm:inline">Transações</span>
             </TabsTrigger>
             <TabsTrigger value="valuation" data-tour="tab-valuation" className="text-xs sm:text-sm py-2 px-1 sm:px-3">
-              <Bot className="h-4 w-4 sm:mr-2" />
-              <span className="hidden sm:inline">IA Valuation</span>
+              <Calculator className="h-4 w-4 sm:mr-2" />
+              <span className="hidden sm:inline">Valuation</span>
             </TabsTrigger>
           </TabsList>
 
@@ -1054,241 +883,8 @@ export function SearchTools({ bairro = "BARRA DA TIJUCA" }: SearchToolsProps) {
             )}
           </TabsContent>
 
-          <TabsContent value="valuation" className="space-y-4 mt-4">
-            <div className="space-y-2">
-              <Label htmlFor="val-localizacao">Localização</Label>
-              <div className="relative">
-                <Input 
-                  ref={valInputRef}
-                  id="val-localizacao" 
-                  placeholder="Rua ou condomínio" 
-                  value={valLocalizacao}
-                  onChange={(e) => {
-                    setValLocalizacao(e.target.value);
-                    setLocationQuery(e.target.value);
-                    setSearchLocation(false);
-                    setValuationResult(null);
-                    setShowValSuggestions(true);
-                  }}
-                  onFocus={() => setShowValSuggestions(true)}
-                  autoComplete="off"
-                />
-                {showValSuggestions && valLocalizacao.length >= 2 && (valSuggestions?.length ?? 0) > 0 && (
-                  <div 
-                    ref={valSuggestionsRef}
-                    className="absolute z-50 w-full mt-1 bg-popover border border-border rounded-md shadow-lg max-h-64 overflow-y-auto"
-                  >
-                    {valSuggestionsLoading ? (
-                      <div className="p-3 text-sm text-muted-foreground flex items-center gap-2">
-                        <Loader2 className="h-4 w-4 animate-spin" />
-                        Buscando...
-                      </div>
-                    ) : (
-                      valSuggestions?.map((s) => (
-                        <button
-                          key={s.logradouro}
-                          type="button"
-                          className={cn(
-                            "w-full px-3 py-2 text-left text-sm hover:bg-accent transition-colors",
-                            "flex flex-col gap-1 border-b border-border/50 last:border-0"
-                          )}
-                          onClick={() => handleSelectValSuggestion(s.logradouro)}
-                        >
-                          <div className="flex items-center justify-between gap-2 w-full">
-                            <div className="flex items-center gap-2 min-w-0">
-                              <MapPin className="h-4 w-4 text-muted-foreground flex-shrink-0" />
-                              <span className="truncate font-medium">
-                                {s.nome_condominio || s.logradouro}
-                              </span>
-                            </div>
-                            <div className="flex items-center gap-1 flex-shrink-0">
-                              {s.microbairro && (
-                                <Badge variant="outline" className="text-[10px] px-1.5 py-0">
-                                  {s.microbairro}
-                                </Badge>
-                              )}
-                              <Badge variant="secondary" className="text-xs">
-                                {s.total_transacoes}
-                              </Badge>
-                            </div>
-                          </div>
-                          {s.nome_condominio && (
-                            <div className="flex items-center gap-2 text-xs text-muted-foreground pl-6">
-                              <span className="truncate">{s.logradouro}</span>
-                              {s.padrao_construtivo && (
-                                <Badge variant="outline" className="text-[10px] px-1.5 py-0 bg-accent/50">
-                                  {s.padrao_construtivo}
-                                </Badge>
-                              )}
-                            </div>
-                          )}
-                        </button>
-                      ))
-                    )}
-                  </div>
-                )}
-              </div>
-              {locationResult && (
-                <div className="text-xs text-green-600 flex items-center gap-1">
-                  ✓ Localização validada ({locationResult.total_transacoes} transações)
-                </div>
-              )}
-            </div>
-            
-            <div className="grid grid-cols-2 gap-3 sm:gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="val-area">Área (m²)</Label>
-                <Input 
-                  id="val-area" 
-                  type="number" 
-                  placeholder="150" 
-                  value={valArea}
-                  onChange={(e) => setValArea(e.target.value)}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="val-tipologia">Tipologia</Label>
-                <Select value={valTipologia} onValueChange={setValTipologia}>
-                  <SelectTrigger id="val-tipologia">
-                    <SelectValue placeholder="Padrão" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="apartamento">Apartamento</SelectItem>
-                    <SelectItem value="casa">Casa</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-            
-            <div className="grid grid-cols-2 gap-3 sm:gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="val-quartos">Quartos</Label>
-                <Input 
-                  id="val-quartos" 
-                  type="number" 
-                  placeholder="3" 
-                  value={valQuartos}
-                  onChange={(e) => setValQuartos(e.target.value)}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="val-vagas">Vagas</Label>
-                <Input 
-                  id="val-vagas" 
-                  type="number" 
-                  placeholder="2" 
-                  value={valVagas}
-                  onChange={(e) => setValVagas(e.target.value)}
-                />
-              </div>
-            </div>
-            
-            <div className="grid grid-cols-2 gap-3 sm:gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="val-sol">Sol</Label>
-                <Select value={valSol} onValueChange={setValSol}>
-                  <SelectTrigger id="val-sol">
-                    <SelectValue placeholder="Selecione" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="manha">Manhã</SelectItem>
-                    <SelectItem value="tarde">Tarde</SelectItem>
-                    <SelectItem value="dia-todo">Dia Todo</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              
-              <div className="space-y-2">
-                <Label htmlFor="val-vista">Vista</Label>
-                <Select value={valVista} onValueChange={setValVista}>
-                  <SelectTrigger id="val-vista">
-                    <SelectValue placeholder="Selecione" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="frente-mar">Frente Mar</SelectItem>
-                    <SelectItem value="mar">Vista Mar</SelectItem>
-                    <SelectItem value="verde">Verde</SelectItem>
-                    <SelectItem value="urbana">Urbana</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-            
-            <div className="space-y-2">
-              <Label htmlFor="val-estado">Estado de Conservação</Label>
-              <Select value={valEstado} onValueChange={setValEstado}>
-                <SelectTrigger id="val-estado">
-                  <SelectValue placeholder="Selecione" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="novo">Novo</SelectItem>
-                  <SelectItem value="reformado">Reformado</SelectItem>
-                  <SelectItem value="bom">Bom Estado</SelectItem>
-                  <SelectItem value="original">Original</SelectItem>
-                  <SelectItem value="reformar">A Reformar</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            
-            <div className="flex flex-wrap gap-2">
-              <Button 
-                className="flex-1 min-w-0" 
-                onClick={calculateValuation}
-                disabled={!locationResult || !valArea}
-              >
-                <Bot className="h-4 w-4 sm:mr-2" />
-                <span className="hidden sm:inline">Calcular Valuation</span>
-                <span className="sm:hidden">Calcular</span>
-              </Button>
-              <Button variant="outline" onClick={clearValuationForm} title="Limpar formulário">
-                <RotateCcw className="h-4 w-4" />
-              </Button>
-            </div>
-            
-            {valuationResult ? (
-              <div className="p-3 sm:p-4 border rounded-lg bg-gradient-to-br from-accent/10 to-accent/5 space-y-3 sm:space-y-4">
-                <div className="text-center">
-                  <p className="text-sm text-muted-foreground mb-1">Preço Justo de Mercado</p>
-                  <p className="text-2xl sm:text-3xl font-bold text-accent">
-                    R$ {valuationResult.justo.toLocaleString('pt-BR')}
-                  </p>
-                </div>
-                <div className="grid grid-cols-2 gap-2 text-sm text-center">
-                  <div className="p-2 bg-card rounded">
-                    <p className="text-xs text-muted-foreground">Liquidez (Mín)</p>
-                    <p className="font-semibold text-xs sm:text-sm">R$ {valuationResult.min.toLocaleString('pt-BR')}</p>
-                  </div>
-                  <div className="p-2 bg-card rounded">
-                    <p className="text-xs text-muted-foreground">Oportunidade (Máx)</p>
-                    <p className="font-semibold text-xs sm:text-sm">R$ {valuationResult.max.toLocaleString('pt-BR')}</p>
-                  </div>
-                </div>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 text-center">
-                  <div className="p-3 bg-card rounded-lg">
-                    <p className="text-xs text-muted-foreground">Termômetro</p>
-                    <p className="font-semibold text-foreground text-sm">Mercado de {valuationResult.mercado}</p>
-                    <p className="text-xs text-muted-foreground mt-1">{valuationResult.mercadoDescricao}</p>
-                  </div>
-                  <div className="p-3 bg-card rounded-lg">
-                    <p className="text-xs text-muted-foreground">Confiança</p>
-                    <p className="font-semibold text-foreground">{valuationResult.confianca}%</p>
-                  </div>
-                </div>
-                <Button 
-                  variant="outline" 
-                  className="w-full" 
-                  onClick={handleExportValuationPDF}
-                >
-                  <FileDown className="h-4 w-4 mr-2" />
-                  <span className="hidden sm:inline">Exportar Relatório PDF</span>
-                  <span className="sm:hidden">Exportar PDF</span>
-                </Button>
-              </div>
-            ) : (
-              <div className="p-4 border rounded-lg bg-muted/50 text-center text-sm text-muted-foreground">
-                Valide a localização e insira a área para calcular
-              </div>
-            )}
+          <TabsContent value="valuation" className="mt-4">
+            <ValuationEngine bairro={bairro} />
           </TabsContent>
         </Tabs>
       </CardContent>
