@@ -10,12 +10,12 @@ export default function Microbairros() {
     return (
       <div className="space-y-6">
         <div className="space-y-2">
-          <Skeleton className="h-10 w-96" />
-          <Skeleton className="h-5 w-[500px]" />
+          <Skeleton className="h-8 sm:h-10 w-64 sm:w-96" />
+          <Skeleton className="h-4 sm:h-5 w-full sm:w-[500px]" />
         </div>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
           {[1, 2, 3, 4, 5, 6].map((i) => (
-            <Skeleton key={i} className="h-[400px]" />
+            <Skeleton key={i} className="h-[320px] sm:h-[400px]" />
           ))}
         </div>
       </div>
@@ -28,17 +28,17 @@ export default function Microbairros() {
     <div className="space-y-6">
       {/* Cabeçalho */}
       <div className="border-b border-accent/30 pb-4">
-        <div className="flex items-center gap-3 mb-2">
-          <MapPin className="h-8 w-8 text-accent" />
-          <h1 className="text-4xl font-bold text-[#0C2340]">Análise por Microbairros</h1>
+        <div className="flex items-center gap-2 sm:gap-3 mb-2">
+          <MapPin className="h-6 w-6 sm:h-8 sm:w-8 text-accent flex-shrink-0" />
+          <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-[#0C2340]">Análise por Microbairros</h1>
         </div>
-        <p className="text-muted-foreground">
+        <p className="text-sm sm:text-base text-muted-foreground">
           Comparativo de performance regional na Barra da Tijuca (2025)
         </p>
       </div>
 
       {/* Grid de Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
         {(microbairros || []).map((item) => (
           <MicrobairroCard
             key={item.microbairro}
