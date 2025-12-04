@@ -276,6 +276,40 @@ export default function Documentacao() {
       doc.setFont('helvetica', 'normal');
       doc.setFontSize(10);
       doc.text(`Progresso: ${getProgress()}% dos documentos coletados`, 20, yPos);
+      yPos += 12;
+      
+      // Perfil do Vendedor
+      doc.setFillColor(212, 175, 55); // Gold
+      doc.rect(15, yPos - 4, pageWidth - 30, 8, 'F');
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(10);
+      doc.setTextColor(12, 35, 64);
+      doc.text('PERFIL DO VENDEDOR', 20, yPos);
+      yPos += 10;
+      
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(9);
+      doc.setTextColor(0, 0, 0);
+      doc.text(`• Empresário / Pessoa Jurídica: ${flags.vendedor.isEmpresario ? 'Sim' : 'Não'}`, 20, yPos);
+      yPos += 6;
+      doc.text(`• União Estável: ${flags.vendedor.isUniaoEstavel ? 'Sim' : 'Não'}`, 20, yPos);
+      yPos += 10;
+      
+      // Perfil do Comprador
+      doc.setFillColor(212, 175, 55); // Gold
+      doc.rect(15, yPos - 4, pageWidth - 30, 8, 'F');
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(10);
+      doc.setTextColor(12, 35, 64);
+      doc.text('PERFIL DO COMPRADOR', 20, yPos);
+      yPos += 10;
+      
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(9);
+      doc.setTextColor(0, 0, 0);
+      doc.text(`• Comunhão Total de Bens: ${flags.comprador.isComunhaoTotal ? 'Sim' : 'Não'}`, 20, yPos);
+      yPos += 6;
+      doc.text(`• União Estável: ${flags.comprador.isUniaoEstavel ? 'Sim' : 'Não'}`, 20, yPos);
       yPos += 15;
       
       // Categories
@@ -291,6 +325,7 @@ export default function Documentacao() {
         
         doc.setFont('helvetica', 'bold');
         doc.setFontSize(11);
+        doc.setTextColor(0, 0, 0);
         doc.text(category.title, 20, yPos);
         yPos += 12;
         
@@ -304,11 +339,21 @@ export default function Documentacao() {
           }
           
           const checkbox = item.checked ? '[X]' : '[ ]';
+          const isConditional = !!item.conditionalOn;
+          
+          // Checkbox color: green if checked, gray if not
           doc.setTextColor(item.checked ? 34 : 100, item.checked ? 197 : 100, item.checked ? 94 : 100);
           doc.text(checkbox, 20, yPos);
           
-          doc.setTextColor(0, 0, 0);
-          doc.text(item.label, 32, yPos);
+          // Label color: gold accent for conditional items, black for regular
+          if (isConditional) {
+            doc.setTextColor(180, 140, 30); // Gold/amber for conditional items
+          } else {
+            doc.setTextColor(0, 0, 0);
+          }
+          
+          const prefix = isConditional ? '→ ' : '';
+          doc.text(prefix + item.label, 32, yPos);
           yPos += 6;
         }
         
