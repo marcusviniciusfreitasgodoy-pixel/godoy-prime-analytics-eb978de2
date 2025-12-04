@@ -275,33 +275,33 @@ export default function Documentacao() {
   return (
     <div className="space-y-6">
       <div>
-        <h2 className="text-3xl font-bold text-foreground">Documentação (Due Diligence)</h2>
-        <p className="text-muted-foreground mt-1">Checklist para garantir segurança jurídica da transação</p>
+        <h2 className="text-2xl sm:text-3xl font-bold text-foreground">Documentação</h2>
+        <p className="text-sm sm:text-base text-muted-foreground mt-1">Checklist para garantir segurança jurídica da transação</p>
       </div>
 
       <Card>
-        <CardHeader>
-          <div className="flex items-center justify-between">
-            <CardTitle>Progresso da Documentação</CardTitle>
-            <div className="flex gap-2">
-              <Button variant="outline" onClick={resetChecklist} size="sm">
+        <CardHeader className="space-y-4">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+            <CardTitle className="text-lg sm:text-xl">Progresso da Documentação</CardTitle>
+            <div className="flex flex-wrap gap-2">
+              <Button variant="outline" onClick={resetChecklist} size="sm" className="text-xs sm:text-sm">
                 Resetar
               </Button>
-              <Button variant="outline" onClick={saveProgress} size="sm" className="gap-2">
-                <Save className="h-4 w-4" />
-                Salvar Progresso
+              <Button variant="outline" onClick={saveProgress} size="sm" className="gap-1.5 text-xs sm:text-sm">
+                <Save className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+                Salvar
               </Button>
-              <Button onClick={exportPDF} size="sm" className="gap-2" disabled={isGeneratingPDF}>
+              <Button onClick={exportPDF} size="sm" className="gap-1.5 text-xs sm:text-sm" disabled={isGeneratingPDF}>
                 {isGeneratingPDF ? (
-                  <Loader2 className="h-4 w-4 animate-spin" />
+                  <Loader2 className="h-3.5 w-3.5 sm:h-4 sm:w-4 animate-spin" />
                 ) : (
-                  <FileText className="h-4 w-4" />
+                  <FileText className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
                 )}
-                Exportar PDF
+                PDF
               </Button>
             </div>
           </div>
-          <div className="mt-4">
+          <div>
             <div className="flex items-center justify-between text-sm mb-2">
               <span className="text-muted-foreground">Documentos Coletados</span>
               <span className="font-semibold text-primary">{getProgress()}%</span>
@@ -321,21 +321,22 @@ export default function Documentacao() {
                     {category.title}
                   </AccordionTrigger>
                   <AccordionContent>
-                    <div className="space-y-3 pt-2">
+                    <div className="space-y-2 sm:space-y-3 pt-2">
                       {category.items.map((item) => (
                         <div
                           key={item.id}
-                          className="flex items-center justify-between p-3 rounded-lg border bg-card"
+                          className="flex items-start sm:items-center justify-between gap-2 p-2.5 sm:p-3 rounded-lg border bg-card"
                         >
-                          <div className="flex items-center gap-3 flex-1">
+                          <div className="flex items-start sm:items-center gap-2.5 sm:gap-3 flex-1 min-w-0">
                             <Checkbox
                               id={item.id}
                               checked={item.checked}
                               onCheckedChange={() => toggleItemChecked(category.id, item.id)}
+                              className="mt-0.5 sm:mt-0"
                             />
                             <label
                               htmlFor={item.id}
-                              className={`font-medium cursor-pointer flex-1 ${
+                              className={`font-medium cursor-pointer flex-1 text-sm sm:text-base leading-tight ${
                                 item.checked ? 'line-through text-muted-foreground' : ''
                               }`}
                             >
@@ -345,7 +346,7 @@ export default function Documentacao() {
                           {item.tooltip && (
                             <Tooltip>
                               <TooltipTrigger asChild>
-                                <HelpCircle className="h-4 w-4 text-muted-foreground cursor-help" />
+                                <HelpCircle className="h-4 w-4 text-muted-foreground cursor-help flex-shrink-0" />
                               </TooltipTrigger>
                               <TooltipContent className="max-w-xs">
                                 <p>{item.tooltip}</p>

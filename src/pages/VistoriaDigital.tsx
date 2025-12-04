@@ -410,34 +410,34 @@ export default function VistoriaDigital() {
   return (
     <div className="space-y-6">
       <div>
-        <h2 className="text-3xl font-bold text-foreground">Vistoria Digital</h2>
-        <p className="text-muted-foreground mt-1">Checklist completo para avaliação de imóveis</p>
+        <h2 className="text-2xl sm:text-3xl font-bold text-foreground">Vistoria Digital</h2>
+        <p className="text-sm sm:text-base text-muted-foreground mt-1">Checklist completo para avaliação de imóveis</p>
       </div>
 
       <Card>
-        <CardHeader>
-          <div className="flex items-center justify-between">
-            <CardTitle>Progresso da Vistoria</CardTitle>
-            <div className="flex gap-2">
+        <CardHeader className="space-y-4">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+            <CardTitle className="text-lg sm:text-xl">Progresso da Vistoria</CardTitle>
+            <div className="flex flex-wrap gap-2">
               {getCriticalCount() > 0 && (
-                <Badge variant="destructive" className="text-sm">
+                <Badge variant="destructive" className="text-xs sm:text-sm">
                   {getCriticalCount()} Crítico{getCriticalCount() > 1 ? 's' : ''}
                 </Badge>
               )}
-              <Button variant="outline" onClick={resetChecklist} size="sm">
-                Resetar Checklist
+              <Button variant="outline" onClick={resetChecklist} size="sm" className="text-xs sm:text-sm">
+                Resetar
               </Button>
-              <Button onClick={generateReport} size="sm" className="gap-2" disabled={isGeneratingPDF}>
+              <Button onClick={generateReport} size="sm" className="gap-1.5 text-xs sm:text-sm" disabled={isGeneratingPDF}>
                 {isGeneratingPDF ? (
-                  <Loader2 className="h-4 w-4 animate-spin" />
+                  <Loader2 className="h-3.5 w-3.5 sm:h-4 sm:w-4 animate-spin" />
                 ) : (
-                  <FileText className="h-4 w-4" />
+                  <FileText className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
                 )}
-                Gerar Relatório
+                <span className="hidden xs:inline">Gerar</span> Relatório
               </Button>
             </div>
           </div>
-          <div className="mt-4">
+          <div>
             <div className="flex items-center justify-between text-sm mb-2">
               <span className="text-muted-foreground">Progresso</span>
               <span className="font-semibold text-primary">{getProgress()}%</span>
@@ -461,19 +461,19 @@ export default function VistoriaDigital() {
                   {category.title}
                 </AccordionTrigger>
                 <AccordionContent>
-                  <div className="space-y-4 pt-2">
+                  <div className="space-y-3 pt-2">
                     {category.items.map((item) => {
                       const StatusIcon = statusConfig[item.status].icon;
                       return (
                         <div
                           key={item.id}
-                          className="flex items-center justify-between p-3 rounded-lg border bg-card"
+                          className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 p-3 rounded-lg border bg-card"
                         >
-                          <div className="flex items-center gap-3">
-                            <StatusIcon className={`h-5 w-5 ${statusConfig[item.status].color}`} />
-                            <span className="font-medium">{item.label}</span>
+                          <div className="flex items-start sm:items-center gap-3 flex-1 min-w-0">
+                            <StatusIcon className={`h-5 w-5 flex-shrink-0 mt-0.5 sm:mt-0 ${statusConfig[item.status].color}`} />
+                            <span className="font-medium text-sm sm:text-base leading-tight">{item.label}</span>
                           </div>
-                          <div className="flex gap-2">
+                          <div className="flex gap-1.5 sm:gap-2 flex-shrink-0 ml-8 sm:ml-0">
                             {(Object.keys(statusConfig) as ItemStatus[]).map((status) => {
                               const config = statusConfig[status];
                               const Icon = config.icon;
@@ -483,7 +483,7 @@ export default function VistoriaDigital() {
                                   variant={item.status === status ? "default" : "outline"}
                                   size="sm"
                                   onClick={() => updateItemStatus(category.id, item.id, status)}
-                                  className="gap-1"
+                                  className="h-8 w-8 sm:h-9 sm:w-auto sm:px-3 p-0 sm:gap-1"
                                 >
                                   <Icon className="h-4 w-4" />
                                 </Button>
