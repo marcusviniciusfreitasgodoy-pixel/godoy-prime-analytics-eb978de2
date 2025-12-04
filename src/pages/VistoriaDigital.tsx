@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Accordion,
@@ -8,24 +8,16 @@ import {
 } from "@/components/ui/accordion";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Textarea } from "@/components/ui/textarea";
-import { CheckCircle2, AlertTriangle, XCircle, Circle, FileText, Loader2, MinusCircle, MessageSquare } from "lucide-react";
+import { CheckCircle2, AlertTriangle, XCircle, Circle, FileText, Loader2, MinusCircle } from "lucide-react";
 import {
   Tooltip,
   TooltipContent,
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import {
-  Collapsible,
-  CollapsibleContent,
-  CollapsibleTrigger,
-} from "@/components/ui/collapsible";
 import { useToast } from "@/hooks/use-toast";
 import jsPDF from "jspdf";
 import { formatDate } from "@/utils/exportUtils";
-
-const STORAGE_KEY = 'godoy-vistoria-checklist';
 
 type ItemStatus = 'ok' | 'atencao' | 'critico' | 'nao-verificado' | 'nao-aplica';
 
@@ -33,7 +25,6 @@ interface ChecklistItem {
   id: string;
   label: string;
   status: ItemStatus;
-  observacao?: string;
 }
 
 interface ChecklistCategory {
@@ -246,24 +237,9 @@ const statusConfig = {
 };
 
 export default function VistoriaDigital() {
-  const [checklist, setChecklist] = useState<ChecklistCategory[]>(() => {
-    const saved = localStorage.getItem(STORAGE_KEY);
-    if (saved) {
-      try {
-        return JSON.parse(saved);
-      } catch {
-        return initialChecklist;
-      }
-    }
-    return initialChecklist;
-  });
+  const [checklist, setChecklist] = useState<ChecklistCategory[]>(initialChecklist);
   const [isGeneratingPDF, setIsGeneratingPDF] = useState(false);
   const { toast } = useToast();
-
-  // Persistir no localStorage quando checklist mudar
-  useEffect(() => {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(checklist));
-  }, [checklist]);
 
   const updateItemStatus = (categoryId: string, itemId: string, newStatus: ItemStatus) => {
     setChecklist(prev =>
@@ -273,21 +249,6 @@ export default function VistoriaDigital() {
               ...category,
               items: category.items.map(item =>
                 item.id === itemId ? { ...item, status: newStatus } : item
-              ),
-            }
-          : category
-      )
-    );
-  };
-
-  const updateItemObservacao = (categoryId: string, itemId: string, observacao: string) => {
-    setChecklist(prev =>
-      prev.map(category =>
-        category.id === categoryId
-          ? {
-              ...category,
-              items: category.items.map(item =>
-                item.id === itemId ? { ...item, observacao } : item
               ),
             }
           : category
@@ -320,7 +281,6 @@ export default function VistoriaDigital() {
 
   const resetChecklist = () => {
     setChecklist(initialChecklist);
-    localStorage.removeItem(STORAGE_KEY);
     toast({
       title: "Checklist resetado",
       description: "Todos os itens foram marcados como não verificados.",
@@ -421,20 +381,6 @@ export default function VistoriaDigital() {
           doc.setTextColor(0, 0, 0);
           doc.text(item.label, 55, yPos);
           yPos += 6;
-          
-          // Adicionar observação se existir
-          if (item.observacao && item.observacao.trim()) {
-            if (yPos > 280) {
-              doc.addPage();
-              yPos = 20;
-            }
-            doc.setFontSize(8);
-            doc.setTextColor(100, 100, 100);
-            const obsLines = doc.splitTextToSize(`Obs: ${item.observacao}`, pageWidth - 75);
-            doc.text(obsLines, 55, yPos);
-            yPos += obsLines.length * 4 + 2;
-            doc.setFontSize(9);
-          }
         }
         
         yPos += 6;
@@ -529,62 +475,41 @@ export default function VistoriaDigital() {
                   <div className="space-y-3 pt-2">
                     {category.items.map((item) => {
                       const StatusIcon = statusConfig[item.status].icon;
-                      const hasObservacao = item.observacao && item.observacao.trim().length > 0;
                       return (
                         <div
                           key={item.id}
-                          className="p-3 rounded-lg border bg-card space-y-2"
+                          className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 p-3 rounded-lg border bg-card"
                         >
-                          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-                            <div className="flex items-start sm:items-center gap-3 flex-1 min-w-0">
-                              <StatusIcon className={`h-5 w-5 flex-shrink-0 mt-0.5 sm:mt-0 ${statusConfig[item.status].color}`} />
-                              <span className="font-medium text-sm sm:text-base leading-tight">{item.label}</span>
-                            </div>
-                            <TooltipProvider delayDuration={300}>
-                              <div className="flex gap-1.5 sm:gap-2 flex-shrink-0 ml-8 sm:ml-0">
-                                {(Object.keys(statusConfig) as ItemStatus[]).map((status) => {
-                                  const config = statusConfig[status];
-                                  const Icon = config.icon;
-                                  return (
-                                    <Tooltip key={status}>
-                                      <TooltipTrigger asChild>
-                                        <Button
-                                          variant={item.status === status ? "default" : "outline"}
-                                          size="sm"
-                                          onClick={() => updateItemStatus(category.id, item.id, status)}
-                                          className="h-8 w-8 sm:h-9 sm:w-auto sm:px-3 p-0 sm:gap-1"
-                                        >
-                                          <Icon className="h-4 w-4" />
-                                        </Button>
-                                      </TooltipTrigger>
-                                      <TooltipContent side="top" className="max-w-[200px] text-center">
-                                        <p className="font-medium">{config.label}</p>
-                                        <p className="text-xs text-muted-foreground">{config.tooltip}</p>
-                                      </TooltipContent>
-                                    </Tooltip>
-                                  );
-                                })}
-                              </div>
-                            </TooltipProvider>
+                          <div className="flex items-start sm:items-center gap-3 flex-1 min-w-0">
+                            <StatusIcon className={`h-5 w-5 flex-shrink-0 mt-0.5 sm:mt-0 ${statusConfig[item.status].color}`} />
+                            <span className="font-medium text-sm sm:text-base leading-tight">{item.label}</span>
                           </div>
-                          
-                          <Collapsible>
-                            <CollapsibleTrigger asChild>
-                              <Button variant="ghost" size="sm" className="h-7 text-xs gap-1.5 ml-8 sm:ml-0">
-                                <MessageSquare className="h-3.5 w-3.5" />
-                                {hasObservacao ? 'Ver observação' : 'Adicionar observação'}
-                                {hasObservacao && <Badge variant="secondary" className="h-4 text-[10px] px-1.5">1</Badge>}
-                              </Button>
-                            </CollapsibleTrigger>
-                            <CollapsibleContent className="mt-2 ml-8 sm:ml-0">
-                              <Textarea
-                                placeholder="Adicione observações sobre este item..."
-                                value={item.observacao || ''}
-                                onChange={(e) => updateItemObservacao(category.id, item.id, e.target.value)}
-                                className="text-sm min-h-[60px] resize-none"
-                              />
-                            </CollapsibleContent>
-                          </Collapsible>
+                          <TooltipProvider delayDuration={300}>
+                            <div className="flex gap-1.5 sm:gap-2 flex-shrink-0 ml-8 sm:ml-0">
+                              {(Object.keys(statusConfig) as ItemStatus[]).map((status) => {
+                                const config = statusConfig[status];
+                                const Icon = config.icon;
+                                return (
+                                  <Tooltip key={status}>
+                                    <TooltipTrigger asChild>
+                                      <Button
+                                        variant={item.status === status ? "default" : "outline"}
+                                        size="sm"
+                                        onClick={() => updateItemStatus(category.id, item.id, status)}
+                                        className="h-8 w-8 sm:h-9 sm:w-auto sm:px-3 p-0 sm:gap-1"
+                                      >
+                                        <Icon className="h-4 w-4" />
+                                      </Button>
+                                    </TooltipTrigger>
+                                    <TooltipContent side="top" className="max-w-[200px] text-center">
+                                      <p className="font-medium">{config.label}</p>
+                                      <p className="text-xs text-muted-foreground">{config.tooltip}</p>
+                                    </TooltipContent>
+                                  </Tooltip>
+                                );
+                              })}
+                            </div>
+                          </TooltipProvider>
                         </div>
                       );
                     })}
