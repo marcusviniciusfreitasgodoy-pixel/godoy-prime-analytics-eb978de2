@@ -9,6 +9,12 @@ import {
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { CheckCircle2, AlertTriangle, XCircle, Circle, FileText, Loader2, MinusCircle } from "lucide-react";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { useToast } from "@/hooks/use-toast";
 import jsPDF from "jspdf";
 import { formatDate } from "@/utils/exportUtils";
@@ -223,11 +229,11 @@ const initialChecklist: ChecklistCategory[] = [
 ];
 
 const statusConfig = {
-  'ok': { icon: CheckCircle2, color: 'text-green-600', label: 'Conforme', pdfColor: [34, 197, 94] as [number, number, number] },
-  'atencao': { icon: AlertTriangle, color: 'text-yellow-600', label: 'Atenção', pdfColor: [234, 179, 8] as [number, number, number] },
-  'critico': { icon: XCircle, color: 'text-red-600', label: 'Crítico', pdfColor: [239, 68, 68] as [number, number, number] },
-  'nao-verificado': { icon: Circle, color: 'text-muted-foreground', label: 'Não Verificado', pdfColor: [156, 163, 175] as [number, number, number] },
-  'nao-aplica': { icon: MinusCircle, color: 'text-blue-500', label: 'N/A', pdfColor: [59, 130, 246] as [number, number, number] },
+  'ok': { icon: CheckCircle2, color: 'text-green-600', label: 'Conforme', pdfColor: [34, 197, 94] as [number, number, number], tooltip: 'Item em conformidade, sem problemas identificados' },
+  'atencao': { icon: AlertTriangle, color: 'text-yellow-600', label: 'Atenção', pdfColor: [234, 179, 8] as [number, number, number], tooltip: 'Requer atenção ou pequenos reparos' },
+  'critico': { icon: XCircle, color: 'text-red-600', label: 'Crítico', pdfColor: [239, 68, 68] as [number, number, number], tooltip: 'Problema grave que impacta a avaliação' },
+  'nao-verificado': { icon: Circle, color: 'text-muted-foreground', label: 'Não Verificado', pdfColor: [156, 163, 175] as [number, number, number], tooltip: 'Ainda não foi verificado' },
+  'nao-aplica': { icon: MinusCircle, color: 'text-blue-500', label: 'N/A', pdfColor: [59, 130, 246] as [number, number, number], tooltip: 'Não se aplica a este imóvel (não impacta a avaliação)' },
 };
 
 export default function VistoriaDigital() {
@@ -478,23 +484,32 @@ export default function VistoriaDigital() {
                             <StatusIcon className={`h-5 w-5 flex-shrink-0 mt-0.5 sm:mt-0 ${statusConfig[item.status].color}`} />
                             <span className="font-medium text-sm sm:text-base leading-tight">{item.label}</span>
                           </div>
-                          <div className="flex gap-1.5 sm:gap-2 flex-shrink-0 ml-8 sm:ml-0">
-                            {(Object.keys(statusConfig) as ItemStatus[]).map((status) => {
-                              const config = statusConfig[status];
-                              const Icon = config.icon;
-                              return (
-                                <Button
-                                  key={status}
-                                  variant={item.status === status ? "default" : "outline"}
-                                  size="sm"
-                                  onClick={() => updateItemStatus(category.id, item.id, status)}
-                                  className="h-8 w-8 sm:h-9 sm:w-auto sm:px-3 p-0 sm:gap-1"
-                                >
-                                  <Icon className="h-4 w-4" />
-                                </Button>
-                              );
-                            })}
-                          </div>
+                          <TooltipProvider delayDuration={300}>
+                            <div className="flex gap-1.5 sm:gap-2 flex-shrink-0 ml-8 sm:ml-0">
+                              {(Object.keys(statusConfig) as ItemStatus[]).map((status) => {
+                                const config = statusConfig[status];
+                                const Icon = config.icon;
+                                return (
+                                  <Tooltip key={status}>
+                                    <TooltipTrigger asChild>
+                                      <Button
+                                        variant={item.status === status ? "default" : "outline"}
+                                        size="sm"
+                                        onClick={() => updateItemStatus(category.id, item.id, status)}
+                                        className="h-8 w-8 sm:h-9 sm:w-auto sm:px-3 p-0 sm:gap-1"
+                                      >
+                                        <Icon className="h-4 w-4" />
+                                      </Button>
+                                    </TooltipTrigger>
+                                    <TooltipContent side="top" className="max-w-[200px] text-center">
+                                      <p className="font-medium">{config.label}</p>
+                                      <p className="text-xs text-muted-foreground">{config.tooltip}</p>
+                                    </TooltipContent>
+                                  </Tooltip>
+                                );
+                              })}
+                            </div>
+                          </TooltipProvider>
                         </div>
                       );
                     })}
