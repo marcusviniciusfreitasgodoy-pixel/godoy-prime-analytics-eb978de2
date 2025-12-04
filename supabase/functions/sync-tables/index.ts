@@ -73,43 +73,23 @@ serve(async (req) => {
 
     console.log('Admin role verified for user:', user.id);
 
-    // Log all available env vars (names only for debugging)
-    const envKeys = [];
-    for (const key of Object.keys(Deno.env.toObject())) {
-      envKeys.push(key);
-    }
-    console.log('Available env vars:', envKeys.join(', '));
-
-    // Source project credentials - try both naming conventions
-    let sourceUrl = Deno.env.get('SUPABASE_SOURCE_URL');
-    let sourceKey = Deno.env.get('SUPABASE_SOURCE_ANON_KEY');
-
-    console.log('Source URL from env:', sourceUrl ? `set (${sourceUrl.length} chars)` : 'not set');
-    console.log('Source Key from env:', sourceKey ? `set (${sourceKey.length} chars)` : 'not set');
-
-    // Allow passing credentials in request body as fallback
-    if (!sourceUrl || !sourceKey) {
-      try {
-        const body = await req.json();
-        if (body.sourceUrl) sourceUrl = body.sourceUrl;
-        if (body.sourceKey) sourceKey = body.sourceKey;
-        console.log('Credentials from body:', !!body.sourceUrl, !!body.sourceKey);
-      } catch (e) {
-        console.log('No body or invalid JSON');
-      }
-    }
+    // Source project credentials from server-side secrets only
+    const sourceUrl = Deno.env.get('SUPABASE_SOURCE_URL');
+    const sourceKey = Deno.env.get('SUPABASE_SOURCE_ANON_KEY');
 
     if (!sourceUrl || sourceUrl.trim() === '') {
-      throw new Error('SUPABASE_SOURCE_URL is not configured. Pass sourceUrl in request body or set the secret.');
+      throw new Error('SUPABASE_SOURCE_URL não está configurado nos secrets do servidor.');
     }
 
     if (!sourceKey || sourceKey.trim() === '') {
-      throw new Error('SUPABASE_SOURCE_ANON_KEY is not configured. Pass sourceKey in request body or set the secret.');
+      throw new Error('SUPABASE_SOURCE_ANON_KEY não está configurado nos secrets do servidor.');
     }
+
+    console.log('Using server-side credentials for source project');
 
     // Create clients
     const sourceClient = createClient(sourceUrl, sourceKey);
-    const currentClient = authClient; // Reuse the auth client for current project operations
+    const currentClient = authClient;
 
     console.log('Fetching data from source project...');
 
@@ -134,13 +114,13 @@ serve(async (req) => {
 
     console.log(`Fetched ${condominiosData?.length || 0} condominios and ${weightsData?.length || 0} weights`);
 
-    // Clear existing data in current project (optional - remove if you want to keep existing data)
+    // Clear existing data in current project
     console.log('Clearing existing data...');
     
     const { error: clearCondominiosError } = await currentClient
       .from('condominios_mapeamento')
       .delete()
-      .neq('id', '00000000-0000-0000-0000-000000000000'); // Delete all
+      .neq('id', '00000000-0000-0000-0000-000000000000');
 
     if (clearCondominiosError) {
       console.warn('Warning clearing condominios:', clearCondominiosError);
@@ -149,7 +129,7 @@ serve(async (req) => {
     const { error: clearWeightsError } = await currentClient
       .from('ia_valuation_weights')
       .delete()
-      .neq('id', '00000000-0000-0000-0000-000000000000'); // Delete all
+      .neq('id', '00000000-0000-0000-0000-000000000000');
 
     if (clearWeightsError) {
       console.warn('Warning clearing weights:', clearWeightsError);
@@ -218,4 +198,3 @@ serve(async (req) => {
     );
   }
 });
-
