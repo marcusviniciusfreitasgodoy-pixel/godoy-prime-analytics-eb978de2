@@ -25,6 +25,7 @@ interface DocumentItem {
   label: string;
   checked: boolean;
   tooltip?: string;
+  conditionalOn?: string; // Shows only when this flag is true
 }
 
 interface DocumentCategory {
@@ -33,7 +34,12 @@ interface DocumentCategory {
   items: DocumentItem[];
 }
 
-const initialChecklist: DocumentCategory[] = [
+interface VendedorFlags {
+  isEmpresario: boolean;
+  isUniaoEstavel: boolean;
+}
+
+const getInitialChecklist = (flags: VendedorFlags): DocumentCategory[] => [
   {
     id: 'vendedor-cadastro',
     title: 'Vendedor - Dados de Cadastro',
@@ -42,9 +48,20 @@ const initialChecklist: DocumentCategory[] = [
       { id: 'v-cpf', label: 'CPF (Ex: 109.313.837-81)', checked: false },
       { id: 'v-rg', label: 'RG (com órgão emissor e data de expedição)', checked: false },
       { id: 'v-email', label: 'E-mail', checked: false },
-      { id: 'v-estado-civil', label: 'Estado civil e regime matrimonial', checked: false, tooltip: 'Incluir informação sobre União Estável se aplicável' },
+      { id: 'v-estado-civil', label: 'Estado civil e regime matrimonial', checked: false },
       { id: 'v-profissao', label: 'Profissão', checked: false },
       { id: 'v-conjuge', label: 'Qualificação do cônjuge (se aplicável)', checked: false },
+      // Conditional items for Empresário
+      ...(flags.isEmpresario ? [
+        { id: 'v-cnpj', label: 'CNPJ da empresa', checked: false, conditionalOn: 'isEmpresario' },
+        { id: 'v-contrato-social', label: 'Contrato Social consolidado', checked: false, conditionalOn: 'isEmpresario', tooltip: 'Com todas as alterações' },
+        { id: 'v-certidao-simplificada', label: 'Certidão Simplificada da Junta Comercial', checked: false, conditionalOn: 'isEmpresario' },
+      ] : []),
+      // Conditional items for União Estável
+      ...(flags.isUniaoEstavel ? [
+        { id: 'v-declaracao-uniao', label: 'Escritura de União Estável', checked: false, conditionalOn: 'isUniaoEstavel', tooltip: 'Registrada em cartório' },
+        { id: 'v-companheiro-docs', label: 'Documentos do(a) companheiro(a)', checked: false, conditionalOn: 'isUniaoEstavel', tooltip: 'RG, CPF e comprovante de residência' },
+      ] : []),
     ],
   },
   {
@@ -106,17 +123,51 @@ const initialChecklist: DocumentCategory[] = [
   },
 ];
 
+const initialFlags: VendedorFlags = {
+  isEmpresario: false,
+  isUniaoEstavel: false,
+};
+
 export default function Documentacao() {
-  const [checklist, setChecklist] = useState<DocumentCategory[]>(initialChecklist);
+  const [vendedorFlags, setVendedorFlags] = useState<VendedorFlags>(initialFlags);
+  const [checklist, setChecklist] = useState<DocumentCategory[]>(() => getInitialChecklist(initialFlags));
   const [isGeneratingPDF, setIsGeneratingPDF] = useState(false);
   const { toast } = useToast();
 
+  // Update checklist when flags change
+  useEffect(() => {
+    setChecklist(prev => {
+      const newChecklist = getInitialChecklist(vendedorFlags);
+      // Preserve checked state from previous checklist
+      return newChecklist.map(category => {
+        const prevCategory = prev.find(c => c.id === category.id);
+        if (!prevCategory) return category;
+        return {
+          ...category,
+          items: category.items.map(item => {
+            const prevItem = prevCategory.items.find(i => i.id === item.id);
+            return prevItem ? { ...item, checked: prevItem.checked } : item;
+          }),
+        };
+      });
+    });
+  }, [vendedorFlags]);
+
   // Load saved progress on mount
   useEffect(() => {
-    const saved = localStorage.getItem('documentacao-checklist');
-    if (saved) {
+    const savedChecklist = localStorage.getItem('documentacao-checklist');
+    const savedFlags = localStorage.getItem('documentacao-flags');
+    if (savedFlags) {
       try {
-        setChecklist(JSON.parse(saved));
+        const flags = JSON.parse(savedFlags);
+        setVendedorFlags(flags);
+      } catch (e) {
+        console.error('Error loading saved flags:', e);
+      }
+    }
+    if (savedChecklist) {
+      try {
+        setChecklist(JSON.parse(savedChecklist));
       } catch (e) {
         console.error('Error loading saved checklist:', e);
       }
@@ -149,6 +200,7 @@ export default function Documentacao() {
 
   const saveProgress = () => {
     localStorage.setItem('documentacao-checklist', JSON.stringify(checklist));
+    localStorage.setItem('documentacao-flags', JSON.stringify(vendedorFlags));
     toast({
       title: "Progresso salvo",
       description: "O checklist foi salvo localmente.",
@@ -264,12 +316,18 @@ export default function Documentacao() {
   };
 
   const resetChecklist = () => {
-    setChecklist(initialChecklist);
+    setVendedorFlags(initialFlags);
+    setChecklist(getInitialChecklist(initialFlags));
     localStorage.removeItem('documentacao-checklist');
+    localStorage.removeItem('documentacao-flags');
     toast({
       title: "Checklist resetado",
       description: "Todos os itens foram desmarcados.",
     });
+  };
+
+  const toggleFlag = (flag: keyof VendedorFlags) => {
+    setVendedorFlags(prev => ({ ...prev, [flag]: !prev[flag] }));
   };
 
   return (
@@ -312,6 +370,56 @@ export default function Documentacao() {
       </Card>
 
       <Card>
+        <CardHeader>
+          <CardTitle className="text-lg sm:text-xl">Perfil do Vendedor</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="flex flex-col sm:flex-row sm:items-center gap-4 sm:gap-8">
+            <div className="flex items-center gap-3">
+              <Checkbox
+                id="flag-empresario"
+                checked={vendedorFlags.isEmpresario}
+                onCheckedChange={() => toggleFlag('isEmpresario')}
+              />
+              <label htmlFor="flag-empresario" className="font-medium cursor-pointer text-sm sm:text-base">
+                Vendedor é Empresário / Pessoa Jurídica
+              </label>
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <HelpCircle className="h-4 w-4 text-muted-foreground cursor-help" />
+                  </TooltipTrigger>
+                  <TooltipContent className="max-w-xs">
+                    <p>Se marcado, serão adicionados campos para CNPJ e documentos empresariais</p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+            </div>
+            <div className="flex items-center gap-3">
+              <Checkbox
+                id="flag-uniao-estavel"
+                checked={vendedorFlags.isUniaoEstavel}
+                onCheckedChange={() => toggleFlag('isUniaoEstavel')}
+              />
+              <label htmlFor="flag-uniao-estavel" className="font-medium cursor-pointer text-sm sm:text-base">
+                Vendedor em União Estável
+              </label>
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <HelpCircle className="h-4 w-4 text-muted-foreground cursor-help" />
+                  </TooltipTrigger>
+                  <TooltipContent className="max-w-xs">
+                    <p>Se marcado, serão adicionados campos para documentação do(a) companheiro(a)</p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card>
         <CardContent className="pt-6">
           <TooltipProvider>
             <Accordion type="multiple" className="w-full">
@@ -325,7 +433,9 @@ export default function Documentacao() {
                       {category.items.map((item) => (
                         <div
                           key={item.id}
-                          className="flex items-start sm:items-center justify-between gap-2 p-2.5 sm:p-3 rounded-lg border bg-card"
+                          className={`flex items-start sm:items-center justify-between gap-2 p-2.5 sm:p-3 rounded-lg border bg-card ${
+                            item.conditionalOn ? 'border-l-4 border-l-primary/50 bg-primary/5' : ''
+                          }`}
                         >
                           <div className="flex items-start sm:items-center gap-2.5 sm:gap-3 flex-1 min-w-0">
                             <Checkbox
