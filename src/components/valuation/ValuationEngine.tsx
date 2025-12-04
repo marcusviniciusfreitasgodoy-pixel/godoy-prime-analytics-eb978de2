@@ -150,6 +150,22 @@ export function ValuationEngine({ bairro = "BARRA DA TIJUCA" }: Props) {
     );
   }
 
+  // Verificar se os dados foram carregados
+  if (!characteristics || characteristics.length === 0 || !docFactors || docFactors.length === 0) {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-lg">Valuation Engine</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <p className="text-sm text-muted-foreground">
+            Carregando configurações de avaliação...
+          </p>
+        </CardContent>
+      </Card>
+    );
+  }
+
   const progress = (currentStep / 5) * 100;
   const combined = state.itbiData 
     ? calculateCombinedPrices(state.itbiData, state.anuncioData || undefined)
