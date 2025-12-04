@@ -1,6 +1,6 @@
 import jsPDF from 'jspdf';
 import type { ValuationResult, CombinedPrices } from './valuationCalculations';
-import type { ValuationState } from '@/components/valuation/ValuationEngine';
+import type { ValuationState } from '@/types/valuation';
 
 export function exportValuationEnginePDF(
   result: ValuationResult,

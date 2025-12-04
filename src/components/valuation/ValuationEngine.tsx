@@ -10,47 +10,10 @@ import { Step2BasicData } from "./Step2BasicData";
 import { Step3Questionnaire } from "./Step3Questionnaire";
 import { Step4Results } from "./Step4Results";
 import { Step5Recommendation } from "./Step5Recommendation";
-import type { ITBIData, AnuncioData, CharacteristicResponse, ValuationResult } from "@/utils/valuationCalculations";
 import { calculateValuation, calculateCombinedPrices } from "@/utils/valuationCalculations";
+import { ValuationState, initialValuationState } from "@/types/valuation";
 
-export interface ValuationState {
-  // Step 1: Location
-  logradouro: string;
-  bairro: string;
-  itbiData: ITBIData | null;
-  anuncioData: AnuncioData | null;
-  
-  // Step 2: Basic Data
-  area_m2: number;
-  baseSelected: "min" | "med" | "max" | "custom";
-  customBaseM2: number | null;
-  
-  // Step 3: Questionnaire
-  responses: CharacteristicResponse[];
-  
-  // Step 4-5: Documentation
-  docStatus: string;
-  docFactor: number;
-  docNotes: string;
-  
-  // Results
-  result: ValuationResult | null;
-}
-
-const initialState: ValuationState = {
-  logradouro: "",
-  bairro: "BARRA DA TIJUCA",
-  itbiData: null,
-  anuncioData: null,
-  area_m2: 0,
-  baseSelected: "med",
-  customBaseM2: null,
-  responses: [],
-  docStatus: "ok",
-  docFactor: 1.0,
-  docNotes: "",
-  result: null,
-};
+export type { ValuationState } from "@/types/valuation";
 
 const STEPS = [
   { id: 1, title: "Localização", description: "Selecione o endereço" },
@@ -66,7 +29,7 @@ interface Props {
 
 export function ValuationEngine({ bairro = "BARRA DA TIJUCA" }: Props) {
   const [currentStep, setCurrentStep] = useState(1);
-  const [state, setState] = useState<ValuationState>({ ...initialState, bairro });
+  const [state, setState] = useState<ValuationState>({ ...initialValuationState, bairro });
   
   const { data: characteristics, isLoading: loadingChars } = useValuationCharacteristics();
   const { data: docFactors, isLoading: loadingDocs } = useDocumentationFactors();
@@ -117,7 +80,7 @@ export function ValuationEngine({ bairro = "BARRA DA TIJUCA" }: Props) {
   };
 
   const handleReset = () => {
-    setState({ ...initialState, bairro });
+    setState({ ...initialValuationState, bairro });
     setCurrentStep(1);
   };
 
