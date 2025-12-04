@@ -173,6 +173,264 @@ export type Database = {
         }
         Relationships: []
       }
+      valuation_characteristics: {
+        Row: {
+          category: string
+          category_cap_max: number
+          category_cap_min: number
+          category_name: string
+          char_code: string
+          char_description: string | null
+          char_name: string
+          char_type: string
+          created_at: string | null
+          display_order: number
+          id: string
+          is_active: boolean | null
+          updated_at: string | null
+          weight_value: number
+        }
+        Insert: {
+          category: string
+          category_cap_max: number
+          category_cap_min: number
+          category_name: string
+          char_code: string
+          char_description?: string | null
+          char_name: string
+          char_type: string
+          created_at?: string | null
+          display_order: number
+          id?: string
+          is_active?: boolean | null
+          updated_at?: string | null
+          weight_value: number
+        }
+        Update: {
+          category?: string
+          category_cap_max?: number
+          category_cap_min?: number
+          category_name?: string
+          char_code?: string
+          char_description?: string | null
+          char_name?: string
+          char_type?: string
+          created_at?: string | null
+          display_order?: number
+          id?: string
+          is_active?: boolean | null
+          updated_at?: string | null
+          weight_value?: number
+        }
+        Relationships: []
+      }
+      valuation_documentation_factors: {
+        Row: {
+          action_required: string
+          adjustment: number | null
+          created_at: string | null
+          description: string | null
+          display_order: number
+          factor: number | null
+          id: string
+          is_active: boolean | null
+          severity: string
+          status_code: string
+          status_name: string
+        }
+        Insert: {
+          action_required: string
+          adjustment?: number | null
+          created_at?: string | null
+          description?: string | null
+          display_order: number
+          factor?: number | null
+          id?: string
+          is_active?: boolean | null
+          severity: string
+          status_code: string
+          status_name: string
+        }
+        Update: {
+          action_required?: string
+          adjustment?: number | null
+          created_at?: string | null
+          description?: string | null
+          display_order?: number
+          factor?: number | null
+          id?: string
+          is_active?: boolean | null
+          severity?: string
+          status_code?: string
+          status_name?: string
+        }
+        Relationships: []
+      }
+      valuation_responses: {
+        Row: {
+          characteristic_id: string
+          created_at: string | null
+          id: string
+          response_value: string
+          valuation_id: string
+          weight_applied: number | null
+        }
+        Insert: {
+          characteristic_id: string
+          created_at?: string | null
+          id?: string
+          response_value: string
+          valuation_id: string
+          weight_applied?: number | null
+        }
+        Update: {
+          characteristic_id?: string
+          created_at?: string | null
+          id?: string
+          response_value?: string
+          valuation_id?: string
+          weight_applied?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "valuation_responses_characteristic_id_fkey"
+            columns: ["characteristic_id"]
+            isOneToOne: false
+            referencedRelation: "valuation_characteristics"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "valuation_responses_valuation_id_fkey"
+            columns: ["valuation_id"]
+            isOneToOne: false
+            referencedRelation: "valuations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      valuations: {
+        Row: {
+          anuncio_max_m2: number | null
+          anuncio_med_m2: number | null
+          anuncio_min_m2: number | null
+          auto_capped: boolean | null
+          bairro: string
+          base_price_custom_m2: number | null
+          base_price_selected: string | null
+          combined_max_m2: number
+          combined_med_m2: number
+          combined_min_m2: number
+          confidence_level: string
+          confidence_score: number
+          created_at: string | null
+          documentation_factor: number
+          documentation_notes: string | null
+          documentation_status: string
+          final_value_max: number
+          final_value_med: number
+          final_value_min: number
+          id: string
+          itbi_max_m2: number
+          itbi_med_m2: number
+          itbi_min_m2: number
+          itbi_transaction_count: number | null
+          logradouro: string
+          numero: string | null
+          pdf_generated: boolean | null
+          property_area_m2: number
+          property_type: string | null
+          recommendation_action: string | null
+          recommendation_details: Json | null
+          recommendation_title: string | null
+          spread_percentage: number
+          total_adjustment: number
+          trend_direction: string | null
+          trend_percentage: number | null
+          updated_at: string | null
+          user_id: string | null
+        }
+        Insert: {
+          anuncio_max_m2?: number | null
+          anuncio_med_m2?: number | null
+          anuncio_min_m2?: number | null
+          auto_capped?: boolean | null
+          bairro?: string
+          base_price_custom_m2?: number | null
+          base_price_selected?: string | null
+          combined_max_m2: number
+          combined_med_m2: number
+          combined_min_m2: number
+          confidence_level: string
+          confidence_score: number
+          created_at?: string | null
+          documentation_factor: number
+          documentation_notes?: string | null
+          documentation_status: string
+          final_value_max: number
+          final_value_med: number
+          final_value_min: number
+          id?: string
+          itbi_max_m2: number
+          itbi_med_m2: number
+          itbi_min_m2: number
+          itbi_transaction_count?: number | null
+          logradouro: string
+          numero?: string | null
+          pdf_generated?: boolean | null
+          property_area_m2: number
+          property_type?: string | null
+          recommendation_action?: string | null
+          recommendation_details?: Json | null
+          recommendation_title?: string | null
+          spread_percentage: number
+          total_adjustment: number
+          trend_direction?: string | null
+          trend_percentage?: number | null
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          anuncio_max_m2?: number | null
+          anuncio_med_m2?: number | null
+          anuncio_min_m2?: number | null
+          auto_capped?: boolean | null
+          bairro?: string
+          base_price_custom_m2?: number | null
+          base_price_selected?: string | null
+          combined_max_m2?: number
+          combined_med_m2?: number
+          combined_min_m2?: number
+          confidence_level?: string
+          confidence_score?: number
+          created_at?: string | null
+          documentation_factor?: number
+          documentation_notes?: string | null
+          documentation_status?: string
+          final_value_max?: number
+          final_value_med?: number
+          final_value_min?: number
+          id?: string
+          itbi_max_m2?: number
+          itbi_med_m2?: number
+          itbi_min_m2?: number
+          itbi_transaction_count?: number | null
+          logradouro?: string
+          numero?: string | null
+          pdf_generated?: boolean | null
+          property_area_m2?: number
+          property_type?: string | null
+          recommendation_action?: string | null
+          recommendation_details?: Json | null
+          recommendation_title?: string | null
+          spread_percentage?: number
+          total_adjustment?: number
+          trend_direction?: string | null
+          trend_percentage?: number | null
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
     }
     Views: {
       view_ranking_microbairros: {
