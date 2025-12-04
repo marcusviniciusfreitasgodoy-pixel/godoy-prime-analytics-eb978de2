@@ -413,9 +413,9 @@ export default function Documentacao() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h2 className="text-2xl sm:text-3xl font-bold text-foreground">Documentação</h2>
-        <p className="text-sm sm:text-base text-muted-foreground mt-1">Checklist para garantir segurança jurídica da transação</p>
+      <div className="text-left">
+        <h2 className="text-2xl sm:text-3xl font-bold text-foreground text-left">Documentação</h2>
+        <p className="text-sm sm:text-base text-muted-foreground mt-1 text-left">Checklist para garantir segurança jurídica da transação</p>
       </div>
 
       <Card>
