@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "./ui/card";
 import { Input } from "./ui/input";
+import { CurrencyInput } from "./ui/currency-input";
 import { Button } from "./ui/button";
 import { Label } from "./ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui/select";
@@ -279,22 +280,20 @@ export function AdvancedSearchReport() {
         {/* Filters */}
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
           <div className="space-y-1">
-            <Label className="text-xs">Valor Mínimo (R$)</Label>
-            <Input
-              type="number"
-              placeholder="Ex: 15000000"
+            <Label className="text-xs">Valor Mínimo</Label>
+            <CurrencyInput
+              placeholder="R$ 15.000.000"
               value={valorMin}
-              onChange={(e) => setValorMin(e.target.value)}
+              onChange={setValorMin}
               className="h-9 text-sm"
             />
           </div>
           <div className="space-y-1">
-            <Label className="text-xs">Valor Máximo (R$)</Label>
-            <Input
-              type="number"
-              placeholder="Ex: 50000000"
+            <Label className="text-xs">Valor Máximo</Label>
+            <CurrencyInput
+              placeholder="R$ 50.000.000"
               value={valorMax}
-              onChange={(e) => setValorMax(e.target.value)}
+              onChange={setValorMax}
               className="h-9 text-sm"
             />
           </div>
