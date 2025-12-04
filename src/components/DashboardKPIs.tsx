@@ -13,9 +13,9 @@ export function DashboardKPIs({ bairro = "BARRA DA TIJUCA" }: DashboardKPIsProps
 
   if (isLoading) {
     return (
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
         {[1, 2, 3, 4].map((i) => (
-          <Skeleton key={i} className="h-24 sm:h-40" />
+          <Skeleton key={i} className="h-24 md:h-40" />
         ))}
       </div>
     );
@@ -44,7 +44,7 @@ export function DashboardKPIs({ bairro = "BARRA DA TIJUCA" }: DashboardKPIsProps
       <div className="flex justify-end">
         <MethodologyDisclaimer />
       </div>
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-4">
       <KPICard
         title={`Preço Médio (${currentYear} YTD)`}
         value={`R$ ${stats.precoMedio.toLocaleString('pt-BR')}`}
