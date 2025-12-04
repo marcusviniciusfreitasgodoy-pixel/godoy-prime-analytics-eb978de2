@@ -1,17 +1,14 @@
 import type { ValuationCharacteristic, DocumentationFactor } from "@/hooks/useValuationCharacteristics";
+import type { 
+  ITBIData, 
+  AnuncioData, 
+  CharacteristicResponse, 
+  ValuationResult, 
+  RecommendationResult 
+} from "@/types/valuation";
 
-export interface ITBIData {
-  min_m2: number;
-  med_m2: number;
-  max_m2: number;
-  transaction_count: number;
-}
-
-export interface AnuncioData {
-  min_m2: number;
-  med_m2: number;
-  max_m2: number;
-}
+// Re-export types for convenience
+export type { ITBIData, AnuncioData, CharacteristicResponse, ValuationResult, RecommendationResult };
 
 export interface CombinedPrices {
   min_m2: number;
@@ -19,34 +16,6 @@ export interface CombinedPrices {
   max_m2: number;
   trend_percentage: number;
   trend_direction: "UP" | "STABLE" | "DOWN";
-}
-
-export interface CharacteristicResponse {
-  char_id: string;
-  char_code: string;
-  response: "sim" | "nao" | "nao_aplica";
-  weight_applied: number;
-}
-
-export interface ValuationResult {
-  pessimista: number;
-  provavel: number;
-  otimista: number;
-  spread_percentage: number;
-  confidence_score: number;
-  confidence_level: "green" | "yellow_high" | "yellow_medium" | "red";
-  total_adjustment: number;
-  auto_capped: boolean;
-  recommendation: RecommendationResult;
-}
-
-export interface RecommendationResult {
-  status: string;
-  title: string;
-  message: string;
-  details?: string[];
-  urgency?: string;
-  potential_gain?: number;
 }
 
 // Combina ITBI (70%) + Anúncios (30%)

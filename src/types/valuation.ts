@@ -1,4 +1,45 @@
-import type { ITBIData, AnuncioData, CharacteristicResponse, ValuationResult } from "@/utils/valuationCalculations";
+// Types for Valuation Engine - defined inline to avoid circular dependencies
+
+export interface ITBIData {
+  min_m2: number;
+  med_m2: number;
+  max_m2: number;
+  transaction_count: number;
+}
+
+export interface AnuncioData {
+  min_m2: number;
+  med_m2: number;
+  max_m2: number;
+}
+
+export interface CharacteristicResponse {
+  char_id: string;
+  char_code: string;
+  response: "sim" | "nao" | "nao_aplica";
+  weight_applied: number;
+}
+
+export interface RecommendationResult {
+  status: string;
+  title: string;
+  message: string;
+  details?: string[];
+  urgency?: string;
+  potential_gain?: number;
+}
+
+export interface ValuationResult {
+  pessimista: number;
+  provavel: number;
+  otimista: number;
+  spread_percentage: number;
+  confidence_score: number;
+  confidence_level: "green" | "yellow_high" | "yellow_medium" | "red";
+  total_adjustment: number;
+  auto_capped: boolean;
+  recommendation: RecommendationResult;
+}
 
 export interface ValuationState {
   // Step 1: Location
