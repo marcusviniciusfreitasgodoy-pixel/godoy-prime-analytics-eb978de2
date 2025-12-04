@@ -36,7 +36,7 @@ const App = () => (
                       <AppSidebar />
                       <div className="flex-1 flex flex-col">
                         <Header />
-                        <main className="flex-1 px-2 py-3 sm:p-6 overflow-auto">
+                        <main className="flex-1 px-1 py-2 sm:p-6 overflow-auto">
                           <Routes>
                             <Route path="/" element={<Dashboard />} />
                             <Route path="/microbairros" element={<Microbairros />} />
