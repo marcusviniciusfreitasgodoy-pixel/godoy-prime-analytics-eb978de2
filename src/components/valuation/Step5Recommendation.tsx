@@ -16,6 +16,7 @@ import {
 import { toast } from "sonner";
 import type { ValuationResult, CombinedPrices } from "@/utils/valuationCalculations";
 import type { ValuationState } from "./ValuationEngine";
+import { exportValuationEnginePDF } from "@/utils/valuationPdfExport";
 
 interface Props {
   result: ValuationResult;
@@ -76,8 +77,13 @@ export function Step5Recommendation({ result, state, combined, onReset }: Props)
     : Minus;
 
   const handleExportPDF = () => {
-    // TODO: Implementar exportação PDF
-    toast.info("Exportação PDF será implementada em breve");
+    try {
+      exportValuationEnginePDF(result, state, combined);
+      toast.success("PDF exportado com sucesso!");
+    } catch (error) {
+      console.error("Erro ao exportar PDF:", error);
+      toast.error("Erro ao exportar PDF");
+    }
   };
 
   const handleShare = () => {
