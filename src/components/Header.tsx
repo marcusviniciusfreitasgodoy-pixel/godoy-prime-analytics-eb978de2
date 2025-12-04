@@ -1,4 +1,4 @@
-import { MapPin, LogOut, Menu } from "lucide-react";
+import { MapPin, LogOut, Menu, Home, ClipboardCheck, FileText } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import logoSymbol from "@/assets/godoy-logo-symbol.png";
 import { useAuth } from "@/hooks/useAuth";
@@ -6,6 +6,14 @@ import { SyncDataButton } from "./SyncDataButton";
 import { SyncITBIButton } from "./SyncITBIButton";
 import { ImportCSVButton } from "./ImportCSVButton";
 import { Sheet, SheetContent, SheetTrigger } from "./ui/sheet";
+import { NavLink } from "./NavLink";
+
+const navItems = [
+  { title: "Dashboard", url: "/", icon: Home },
+  { title: "Microbairros", url: "/microbairros", icon: MapPin },
+  { title: "Vistoria Digital", url: "/vistoria-digital", icon: ClipboardCheck },
+  { title: "Documentação", url: "/documentacao", icon: FileText },
+];
 
 export function Header() {
   const { signOut } = useAuth();
@@ -58,6 +66,23 @@ export function Header() {
                 <MapPin className="h-4 w-4 text-accent" />
                 <span className="font-semibold">Rio de Janeiro</span>
               </div>
+              
+              {/* Navigation links */}
+              <nav className="flex flex-col gap-1 pb-4 border-b border-border">
+                {navItems.map((item) => (
+                  <NavLink
+                    key={item.title}
+                    to={item.url}
+                    end
+                    className="flex items-center gap-3 px-3 py-2 text-primary-foreground/80 hover:bg-accent/10 rounded-md transition-colors"
+                    activeClassName="bg-accent/20 text-accent font-medium"
+                  >
+                    <item.icon className="h-4 w-4" />
+                    <span>{item.title}</span>
+                  </NavLink>
+                ))}
+              </nav>
+              
               <div className="flex flex-col gap-2">
                 <ImportCSVButton />
                 <SyncITBIButton />

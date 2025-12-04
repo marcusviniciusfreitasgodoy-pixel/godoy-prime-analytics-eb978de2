@@ -24,7 +24,7 @@ export function AppSidebar() {
   const { open } = useSidebar();
 
   return (
-    <Sidebar className={open ? "w-64" : "w-16"} collapsible="icon">
+    <Sidebar className={`hidden lg:flex ${open ? "w-64" : "w-16"}`} collapsible="icon">
       <div className="p-4 flex justify-end">
         <SidebarTrigger />
       </div>
