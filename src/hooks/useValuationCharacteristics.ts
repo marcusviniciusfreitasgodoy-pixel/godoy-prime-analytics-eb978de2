@@ -8,12 +8,12 @@ export interface ValuationCharacteristic {
   char_code: string;
   char_name: string;
   char_description: string | null;
-  char_type: "positive" | "negative";
+  char_type: string;
   weight_value: number;
   category_cap_max: number;
   category_cap_min: number;
   display_order: number;
-  is_active: boolean;
+  is_active: boolean | null;
 }
 
 export interface DocumentationFactor {
