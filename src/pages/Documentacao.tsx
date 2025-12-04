@@ -15,7 +15,13 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { FileText, HelpCircle, Save, Loader2 } from "lucide-react";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { FileText, HelpCircle, Save, Loader2, ChevronDown, User, Users } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import jsPDF from "jspdf";
 import { formatDate } from "@/utils/exportUtils";
@@ -239,13 +245,30 @@ export default function Documentacao() {
     });
   };
 
-  const exportPDF = async () => {
+  const exportPDF = async (party?: 'vendedor' | 'comprador' | 'completo') => {
     setIsGeneratingPDF(true);
+    const exportType = party || 'completo';
     
     try {
       const doc = new jsPDF();
       const pageWidth = doc.internal.pageSize.getWidth();
       let yPos = 20;
+      
+      // Filter categories based on party
+      const getFilteredCategories = () => {
+        if (exportType === 'vendedor') {
+          return checklist.filter(cat => 
+            cat.id.startsWith('vendedor') || cat.id === 'imovel-docs'
+          );
+        } else if (exportType === 'comprador') {
+          return checklist.filter(cat => 
+            cat.id.startsWith('comprador')
+          );
+        }
+        return checklist;
+      };
+      
+      const filteredCategories = getFilteredCategories();
       
       // Header
       doc.setFillColor(12, 35, 64); // Navy
@@ -258,7 +281,12 @@ export default function Documentacao() {
       
       doc.setFontSize(12);
       doc.setFont('helvetica', 'normal');
-      doc.text('Checklist de Due Diligence', 20, 35);
+      const subtitle = exportType === 'vendedor' 
+        ? 'Checklist do Vendedor' 
+        : exportType === 'comprador' 
+          ? 'Checklist do Comprador' 
+          : 'Checklist de Due Diligence';
+      doc.text(subtitle, 20, 35);
       
       yPos = 55;
       
@@ -273,47 +301,60 @@ export default function Documentacao() {
       doc.text('Resumo da Documentação', 20, yPos);
       yPos += 8;
       
+      // Calculate progress for filtered categories
+      const filteredTotal = filteredCategories.reduce((sum, cat) => sum + cat.items.length, 0);
+      const filteredChecked = filteredCategories.reduce(
+        (sum, cat) => sum + cat.items.filter(item => item.checked).length, 0
+      );
+      const filteredProgress = filteredTotal > 0 ? Math.round((filteredChecked / filteredTotal) * 100) : 0;
+      
       doc.setFont('helvetica', 'normal');
       doc.setFontSize(10);
-      doc.text(`Progresso: ${getProgress()}% dos documentos coletados`, 20, yPos);
+      doc.text(`Progresso: ${filteredProgress}% dos documentos coletados`, 20, yPos);
       yPos += 12;
       
-      // Perfil do Vendedor
-      doc.setFillColor(212, 175, 55); // Gold
-      doc.rect(15, yPos - 4, pageWidth - 30, 8, 'F');
-      doc.setFont('helvetica', 'bold');
-      doc.setFontSize(10);
-      doc.setTextColor(12, 35, 64);
-      doc.text('PERFIL DO VENDEDOR', 20, yPos);
-      yPos += 10;
+      // Perfil do Vendedor (only for vendedor or complete)
+      if (exportType === 'vendedor' || exportType === 'completo') {
+        doc.setFillColor(212, 175, 55); // Gold
+        doc.rect(15, yPos - 4, pageWidth - 30, 8, 'F');
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(10);
+        doc.setTextColor(12, 35, 64);
+        doc.text('PERFIL DO VENDEDOR', 20, yPos);
+        yPos += 10;
+        
+        doc.setFont('helvetica', 'normal');
+        doc.setFontSize(9);
+        doc.setTextColor(0, 0, 0);
+        doc.text(`• Empresário / Pessoa Jurídica: ${flags.vendedor.isEmpresario ? 'Sim' : 'Não'}`, 20, yPos);
+        yPos += 6;
+        doc.text(`• União Estável: ${flags.vendedor.isUniaoEstavel ? 'Sim' : 'Não'}`, 20, yPos);
+        yPos += 10;
+      }
       
-      doc.setFont('helvetica', 'normal');
-      doc.setFontSize(9);
-      doc.setTextColor(0, 0, 0);
-      doc.text(`• Empresário / Pessoa Jurídica: ${flags.vendedor.isEmpresario ? 'Sim' : 'Não'}`, 20, yPos);
-      yPos += 6;
-      doc.text(`• União Estável: ${flags.vendedor.isUniaoEstavel ? 'Sim' : 'Não'}`, 20, yPos);
-      yPos += 10;
+      // Perfil do Comprador (only for comprador or complete)
+      if (exportType === 'comprador' || exportType === 'completo') {
+        doc.setFillColor(212, 175, 55); // Gold
+        doc.rect(15, yPos - 4, pageWidth - 30, 8, 'F');
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(10);
+        doc.setTextColor(12, 35, 64);
+        doc.text('PERFIL DO COMPRADOR', 20, yPos);
+        yPos += 10;
+        
+        doc.setFont('helvetica', 'normal');
+        doc.setFontSize(9);
+        doc.setTextColor(0, 0, 0);
+        doc.text(`• Comunhão Total de Bens: ${flags.comprador.isComunhaoTotal ? 'Sim' : 'Não'}`, 20, yPos);
+        yPos += 6;
+        doc.text(`• União Estável: ${flags.comprador.isUniaoEstavel ? 'Sim' : 'Não'}`, 20, yPos);
+        yPos += 10;
+      }
       
-      // Perfil do Comprador
-      doc.setFillColor(212, 175, 55); // Gold
-      doc.rect(15, yPos - 4, pageWidth - 30, 8, 'F');
-      doc.setFont('helvetica', 'bold');
-      doc.setFontSize(10);
-      doc.setTextColor(12, 35, 64);
-      doc.text('PERFIL DO COMPRADOR', 20, yPos);
-      yPos += 10;
-      
-      doc.setFont('helvetica', 'normal');
-      doc.setFontSize(9);
-      doc.setTextColor(0, 0, 0);
-      doc.text(`• Comunhão Total de Bens: ${flags.comprador.isComunhaoTotal ? 'Sim' : 'Não'}`, 20, yPos);
-      yPos += 6;
-      doc.text(`• União Estável: ${flags.comprador.isUniaoEstavel ? 'Sim' : 'Não'}`, 20, yPos);
-      yPos += 15;
+      yPos += 5;
       
       // Categories
-      for (const category of checklist) {
+      for (const category of filteredCategories) {
         // Check if we need a new page
         if (yPos > 250) {
           doc.addPage();
@@ -374,11 +415,21 @@ export default function Documentacao() {
         );
       }
       
-      doc.save(`documentacao_${new Date().toISOString().split('T')[0]}.pdf`);
+      const filename = exportType === 'vendedor' 
+        ? 'checklist_vendedor' 
+        : exportType === 'comprador' 
+          ? 'checklist_comprador' 
+          : 'documentacao_completa';
+      doc.save(`${filename}_${new Date().toISOString().split('T')[0]}.pdf`);
       
+      const partyLabel = exportType === 'vendedor' 
+        ? 'do vendedor' 
+        : exportType === 'comprador' 
+          ? 'do comprador' 
+          : 'completo';
       toast({
         title: "PDF gerado com sucesso",
-        description: "O checklist de documentação foi baixado.",
+        description: `O checklist ${partyLabel} foi baixado.`,
       });
     } catch (error) {
       console.error('Error generating PDF:', error);
@@ -430,14 +481,33 @@ export default function Documentacao() {
                 <Save className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
                 Salvar
               </Button>
-              <Button onClick={exportPDF} size="sm" className="gap-1.5 text-xs sm:text-sm" disabled={isGeneratingPDF}>
-                {isGeneratingPDF ? (
-                  <Loader2 className="h-3.5 w-3.5 sm:h-4 sm:w-4 animate-spin" />
-                ) : (
-                  <FileText className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
-                )}
-                PDF
-              </Button>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button size="sm" className="gap-1.5 text-xs sm:text-sm" disabled={isGeneratingPDF}>
+                    {isGeneratingPDF ? (
+                      <Loader2 className="h-3.5 w-3.5 sm:h-4 sm:w-4 animate-spin" />
+                    ) : (
+                      <FileText className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+                    )}
+                    PDF
+                    <ChevronDown className="h-3 w-3" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuItem onClick={() => exportPDF('vendedor')} className="gap-2">
+                    <User className="h-4 w-4" />
+                    Checklist do Vendedor
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => exportPDF('comprador')} className="gap-2">
+                    <User className="h-4 w-4" />
+                    Checklist do Comprador
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => exportPDF('completo')} className="gap-2">
+                    <Users className="h-4 w-4" />
+                    Documentação Completa
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
             </div>
           </div>
           <div>
