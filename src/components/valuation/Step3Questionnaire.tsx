@@ -1,6 +1,6 @@
 import { useState, useMemo } from "react";
 import { Label } from "@/components/ui/label";
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { SimpleRadioGroup, SimpleRadioItem } from "@/components/ui/simple-radio";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -161,7 +161,7 @@ export function Step3Questionnaire({
                           </p>
                         )}
                       </div>
-                      <RadioGroup
+                      <SimpleRadioGroup
                         value={getResponse(char.id)}
                         onValueChange={(value) =>
                           handleResponseChange(
@@ -174,18 +174,18 @@ export function Step3Questionnaire({
                         className="flex gap-3"
                       >
                         <div className="flex items-center space-x-1">
-                          <RadioGroupItem value="nao" id={`${char.id}-nao`} />
+                          <SimpleRadioItem value="nao" id={`${char.id}-nao`} />
                           <Label htmlFor={`${char.id}-nao`} className="text-xs cursor-pointer">
                             Não
                           </Label>
                         </div>
                         <div className="flex items-center space-x-1">
-                          <RadioGroupItem value="sim" id={`${char.id}-sim`} />
+                          <SimpleRadioItem value="sim" id={`${char.id}-sim`} />
                           <Label htmlFor={`${char.id}-sim`} className="text-xs cursor-pointer">
                             Sim
                           </Label>
                         </div>
-                      </RadioGroup>
+                      </SimpleRadioGroup>
                     </div>
                   </CardContent>
                 </Card>

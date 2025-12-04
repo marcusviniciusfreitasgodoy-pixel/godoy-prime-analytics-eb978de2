@@ -1,6 +1,6 @@
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { SimpleRadioGroup, SimpleRadioItem } from "@/components/ui/simple-radio";
 import { Card, CardContent } from "@/components/ui/card";
 import { Ruler, Calculator } from "lucide-react";
 import type { ValuationState } from "@/types/valuation";
@@ -70,7 +70,7 @@ export function Step2BasicData({ state, updateState, combined }: Props) {
       {/* Seleção de base */}
       <div className="space-y-3">
         <Label>Qual base de preço usar?</Label>
-        <RadioGroup
+        <SimpleRadioGroup
           value={state.baseSelected}
           onValueChange={(value) => 
             updateState({ baseSelected: value as "min" | "med" | "max" | "custom" })
@@ -78,7 +78,7 @@ export function Step2BasicData({ state, updateState, combined }: Props) {
           className="space-y-3"
         >
           <div className="flex items-start space-x-3 p-3 rounded-lg border hover:bg-muted/30 transition-colors">
-            <RadioGroupItem value="min" id="min" className="mt-1" />
+            <SimpleRadioItem value="min" id="min" className="mt-1" />
             <div className="flex-1">
               <Label htmlFor="min" className="cursor-pointer">
                 <span className="font-medium text-red-600">Preço Mínimo</span>
@@ -93,7 +93,7 @@ export function Step2BasicData({ state, updateState, combined }: Props) {
           </div>
 
           <div className="flex items-start space-x-3 p-3 rounded-lg border-2 border-primary/30 bg-primary/5">
-            <RadioGroupItem value="med" id="med" className="mt-1" />
+            <SimpleRadioItem value="med" id="med" className="mt-1" />
             <div className="flex-1">
               <Label htmlFor="med" className="cursor-pointer">
                 <span className="font-medium text-primary">Preço Médio</span>
@@ -111,7 +111,7 @@ export function Step2BasicData({ state, updateState, combined }: Props) {
           </div>
 
           <div className="flex items-start space-x-3 p-3 rounded-lg border hover:bg-muted/30 transition-colors">
-            <RadioGroupItem value="max" id="max" className="mt-1" />
+            <SimpleRadioItem value="max" id="max" className="mt-1" />
             <div className="flex-1">
               <Label htmlFor="max" className="cursor-pointer">
                 <span className="font-medium text-emerald-600">Preço Máximo</span>
@@ -126,7 +126,7 @@ export function Step2BasicData({ state, updateState, combined }: Props) {
           </div>
 
           <div className="flex items-start space-x-3 p-3 rounded-lg border hover:bg-muted/30 transition-colors">
-            <RadioGroupItem value="custom" id="custom" className="mt-1" />
+            <SimpleRadioItem value="custom" id="custom" className="mt-1" />
             <div className="flex-1">
               <Label htmlFor="custom" className="cursor-pointer">
                 <span className="font-medium">Personalizado</span>
@@ -151,7 +151,7 @@ export function Step2BasicData({ state, updateState, combined }: Props) {
               </p>
             </div>
           </div>
-        </RadioGroup>
+        </SimpleRadioGroup>
       </div>
 
       {/* Valor base calculado */}
