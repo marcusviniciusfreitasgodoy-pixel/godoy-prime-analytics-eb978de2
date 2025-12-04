@@ -8,12 +8,12 @@ import {
 } from "@/components/ui/accordion";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { CheckCircle2, AlertTriangle, XCircle, Circle, FileText, Loader2 } from "lucide-react";
+import { CheckCircle2, AlertTriangle, XCircle, Circle, FileText, Loader2, MinusCircle } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import jsPDF from "jspdf";
 import { formatDate } from "@/utils/exportUtils";
 
-type ItemStatus = 'ok' | 'atencao' | 'critico' | 'nao-verificado';
+type ItemStatus = 'ok' | 'atencao' | 'critico' | 'nao-verificado' | 'nao-aplica';
 
 interface ChecklistItem {
   id: string;
@@ -44,6 +44,7 @@ const initialChecklist: ChecklistCategory[] = [
       { id: 'manchas-teto', label: 'Manchas de umidade ou mofo no teto do último andar', status: 'nao-verificado' },
       { id: 'calhas', label: 'Calhas e rufos: danos ou entupimento', status: 'nao-verificado' },
       { id: 'telhas', label: 'Estado geral das telhas', status: 'nao-verificado' },
+      { id: 'acesso-cobertura', label: 'Acesso à cobertura (em apartamentos marcar N/A)', status: 'nao-verificado' },
     ],
   },
   {
@@ -104,6 +105,7 @@ const initialChecklist: ChecklistCategory[] = [
     id: 'climatizacao',
     title: '9. Climatização (Aquecimento/Ar)',
     items: [
+      { id: 'possui-climatizacao', label: 'Imóvel possui sistema de climatização (se não, marcar N/A nos demais)', status: 'nao-verificado' },
       { id: 'ar-funcionamento', label: 'Funcionamento dos equipamentos de ar condicionado', status: 'nao-verificado' },
       { id: 'filtros', label: 'Manutenção e limpeza dos filtros', status: 'nao-verificado' },
       { id: 'ruidos', label: 'Ruídos anormais durante a operação', status: 'nao-verificado' },
@@ -167,6 +169,7 @@ const initialChecklist: ChecklistCategory[] = [
     id: 'isolamento',
     title: '16. Isolamento Acústico/Térmico',
     items: [
+      { id: 'possui-isolamento', label: 'Imóvel possui sistema de isolamento (se não, marcar N/A nos demais)', status: 'nao-verificado' },
       { id: 'ruido', label: 'Nível de ruído da rua com janelas fechadas', status: 'nao-verificado' },
       { id: 'materiais', label: 'Materiais usados (vidro duplo, lã de rocha, etc.)', status: 'nao-verificado' },
       { id: 'termico', label: 'Conforto térmico interno vs externo', status: 'nao-verificado' },
@@ -176,6 +179,7 @@ const initialChecklist: ChecklistCategory[] = [
     id: 'tecnologia',
     title: '17. Tecnologia e Automação',
     items: [
+      { id: 'possui-automacao', label: 'Imóvel possui sistema de automação (se não, marcar N/A nos demais)', status: 'nao-verificado' },
       { id: 'automacao', label: 'Sistemas de automação (luz, som, persianas) respondendo', status: 'nao-verificado' },
       { id: 'wifi', label: 'Sinal de Wi-Fi e pontos de rede nos quartos', status: 'nao-verificado' },
       { id: 'central', label: 'Central de controle e documentação técnica disponível', status: 'nao-verificado' },
@@ -223,6 +227,7 @@ const statusConfig = {
   'atencao': { icon: AlertTriangle, color: 'text-yellow-600', label: 'Atenção', pdfColor: [234, 179, 8] as [number, number, number] },
   'critico': { icon: XCircle, color: 'text-red-600', label: 'Crítico', pdfColor: [239, 68, 68] as [number, number, number] },
   'nao-verificado': { icon: Circle, color: 'text-muted-foreground', label: 'Não Verificado', pdfColor: [156, 163, 175] as [number, number, number] },
+  'nao-aplica': { icon: MinusCircle, color: 'text-blue-500', label: 'N/A', pdfColor: [59, 130, 246] as [number, number, number] },
 };
 
 export default function VistoriaDigital() {
@@ -457,7 +462,7 @@ export default function VistoriaDigital() {
           <Accordion type="multiple" className="w-full">
             {checklist.map((category) => (
               <AccordionItem key={category.id} value={category.id}>
-                <AccordionTrigger className="text-lg font-semibold">
+                <AccordionTrigger className="text-sm sm:text-lg font-semibold text-left justify-start">
                   {category.title}
                 </AccordionTrigger>
                 <AccordionContent>
