@@ -39,7 +39,17 @@ interface VendedorFlags {
   isUniaoEstavel: boolean;
 }
 
-const getInitialChecklist = (flags: VendedorFlags): DocumentCategory[] => [
+interface CompradorFlags {
+  isComunhaoTotal: boolean;
+  isUniaoEstavel: boolean;
+}
+
+interface AllFlags {
+  vendedor: VendedorFlags;
+  comprador: CompradorFlags;
+}
+
+const getInitialChecklist = (flags: AllFlags): DocumentCategory[] => [
   {
     id: 'vendedor-cadastro',
     title: 'Vendedor - Dados de Cadastro',
@@ -52,13 +62,13 @@ const getInitialChecklist = (flags: VendedorFlags): DocumentCategory[] => [
       { id: 'v-profissao', label: 'Profissão', checked: false },
       { id: 'v-conjuge', label: 'Qualificação do cônjuge (se aplicável)', checked: false },
       // Conditional items for Empresário
-      ...(flags.isEmpresario ? [
+      ...(flags.vendedor.isEmpresario ? [
         { id: 'v-cnpj', label: 'CNPJ da empresa', checked: false, conditionalOn: 'isEmpresario' },
         { id: 'v-contrato-social', label: 'Contrato Social consolidado', checked: false, conditionalOn: 'isEmpresario', tooltip: 'Com todas as alterações' },
         { id: 'v-certidao-simplificada', label: 'Certidão Simplificada da Junta Comercial', checked: false, conditionalOn: 'isEmpresario' },
       ] : []),
       // Conditional items for União Estável
-      ...(flags.isUniaoEstavel ? [
+      ...(flags.vendedor.isUniaoEstavel ? [
         { id: 'v-declaracao-uniao', label: 'Escritura de União Estável', checked: false, conditionalOn: 'isUniaoEstavel', tooltip: 'Registrada em cartório' },
         { id: 'v-companheiro-docs', label: 'Documentos do(a) companheiro(a)', checked: false, conditionalOn: 'isUniaoEstavel', tooltip: 'RG, CPF e comprovante de residência' },
       ] : []),
@@ -110,6 +120,17 @@ const getInitialChecklist = (flags: VendedorFlags): DocumentCategory[] => [
       { id: 'c-estado-civil', label: 'Estado civil e regime de casamento', checked: false },
       { id: 'c-endereco', label: 'Endereço completo', checked: false },
       { id: 'c-email', label: 'E-mail', checked: false },
+      // Conditional items for Comunhão Total or União Estável
+      ...((flags.comprador.isComunhaoTotal || flags.comprador.isUniaoEstavel) ? [
+        { id: 'c-conjuge-nome', label: 'Nome completo do cônjuge/companheiro(a)', checked: false, conditionalOn: 'conjuge' },
+        { id: 'c-conjuge-nacionalidade', label: 'Nacionalidade do cônjuge/companheiro(a)', checked: false, conditionalOn: 'conjuge' },
+        { id: 'c-conjuge-profissao', label: 'Profissão do cônjuge/companheiro(a)', checked: false, conditionalOn: 'conjuge' },
+        { id: 'c-conjuge-rg', label: 'RG do cônjuge/companheiro(a)', checked: false, conditionalOn: 'conjuge' },
+        { id: 'c-conjuge-cpf', label: 'CPF do cônjuge/companheiro(a)', checked: false, conditionalOn: 'conjuge' },
+      ] : []),
+      ...(flags.comprador.isUniaoEstavel ? [
+        { id: 'c-declaracao-uniao', label: 'Escritura de União Estável do Comprador', checked: false, conditionalOn: 'isUniaoEstavel', tooltip: 'Registrada em cartório' },
+      ] : []),
     ],
   },
   {
@@ -119,17 +140,28 @@ const getInitialChecklist = (flags: VendedorFlags): DocumentCategory[] => [
       { id: 'c-rg-cpf-copias', label: 'RG e CPF (Originais e cópias)', checked: false },
       { id: 'c-certidao-casamento', label: 'Certidão de Casamento', checked: false, tooltip: 'Obrigatória se casado, separado ou divorciado' },
       { id: 'c-comprovante', label: 'Comprovante de Residência atualizado', checked: false },
+      // Conditional items for Comunhão Total or União Estável
+      ...((flags.comprador.isComunhaoTotal || flags.comprador.isUniaoEstavel) ? [
+        { id: 'c-conjuge-rg-cpf', label: 'RG e CPF do cônjuge/companheiro(a) (cópias)', checked: false, conditionalOn: 'conjuge' },
+        { id: 'c-conjuge-comprovante', label: 'Comprovante de Residência do cônjuge/companheiro(a)', checked: false, conditionalOn: 'conjuge' },
+      ] : []),
     ],
   },
 ];
 
-const initialFlags: VendedorFlags = {
-  isEmpresario: false,
-  isUniaoEstavel: false,
+const initialFlags: AllFlags = {
+  vendedor: {
+    isEmpresario: false,
+    isUniaoEstavel: false,
+  },
+  comprador: {
+    isComunhaoTotal: false,
+    isUniaoEstavel: false,
+  },
 };
 
 export default function Documentacao() {
-  const [vendedorFlags, setVendedorFlags] = useState<VendedorFlags>(initialFlags);
+  const [flags, setFlags] = useState<AllFlags>(initialFlags);
   const [checklist, setChecklist] = useState<DocumentCategory[]>(() => getInitialChecklist(initialFlags));
   const [isGeneratingPDF, setIsGeneratingPDF] = useState(false);
   const { toast } = useToast();
@@ -137,7 +169,7 @@ export default function Documentacao() {
   // Update checklist when flags change
   useEffect(() => {
     setChecklist(prev => {
-      const newChecklist = getInitialChecklist(vendedorFlags);
+      const newChecklist = getInitialChecklist(flags);
       // Preserve checked state from previous checklist
       return newChecklist.map(category => {
         const prevCategory = prev.find(c => c.id === category.id);
@@ -151,7 +183,7 @@ export default function Documentacao() {
         };
       });
     });
-  }, [vendedorFlags]);
+  }, [flags]);
 
   // Load saved progress on mount
   useEffect(() => {
@@ -159,8 +191,8 @@ export default function Documentacao() {
     const savedFlags = localStorage.getItem('documentacao-flags');
     if (savedFlags) {
       try {
-        const flags = JSON.parse(savedFlags);
-        setVendedorFlags(flags);
+        const loadedFlags = JSON.parse(savedFlags);
+        setFlags(loadedFlags);
       } catch (e) {
         console.error('Error loading saved flags:', e);
       }
@@ -200,7 +232,7 @@ export default function Documentacao() {
 
   const saveProgress = () => {
     localStorage.setItem('documentacao-checklist', JSON.stringify(checklist));
-    localStorage.setItem('documentacao-flags', JSON.stringify(vendedorFlags));
+    localStorage.setItem('documentacao-flags', JSON.stringify(flags));
     toast({
       title: "Progresso salvo",
       description: "O checklist foi salvo localmente.",
@@ -316,7 +348,7 @@ export default function Documentacao() {
   };
 
   const resetChecklist = () => {
-    setVendedorFlags(initialFlags);
+    setFlags(initialFlags);
     setChecklist(getInitialChecklist(initialFlags));
     localStorage.removeItem('documentacao-checklist');
     localStorage.removeItem('documentacao-flags');
@@ -326,8 +358,12 @@ export default function Documentacao() {
     });
   };
 
-  const toggleFlag = (flag: keyof VendedorFlags) => {
-    setVendedorFlags(prev => ({ ...prev, [flag]: !prev[flag] }));
+  const toggleVendedorFlag = (flag: keyof VendedorFlags) => {
+    setFlags(prev => ({ ...prev, vendedor: { ...prev.vendedor, [flag]: !prev.vendedor[flag] } }));
+  };
+
+  const toggleCompradorFlag = (flag: keyof CompradorFlags) => {
+    setFlags(prev => ({ ...prev, comprador: { ...prev.comprador, [flag]: !prev.comprador[flag] } }));
   };
 
   return (
@@ -378,8 +414,8 @@ export default function Documentacao() {
             <div className="flex items-center gap-3">
               <Checkbox
                 id="flag-empresario"
-                checked={vendedorFlags.isEmpresario}
-                onCheckedChange={() => toggleFlag('isEmpresario')}
+                checked={flags.vendedor.isEmpresario}
+                onCheckedChange={() => toggleVendedorFlag('isEmpresario')}
               />
               <label htmlFor="flag-empresario" className="font-medium cursor-pointer text-sm sm:text-base">
                 Vendedor é Empresário / Pessoa Jurídica
@@ -397,12 +433,62 @@ export default function Documentacao() {
             </div>
             <div className="flex items-center gap-3">
               <Checkbox
-                id="flag-uniao-estavel"
-                checked={vendedorFlags.isUniaoEstavel}
-                onCheckedChange={() => toggleFlag('isUniaoEstavel')}
+                id="flag-vendedor-uniao-estavel"
+                checked={flags.vendedor.isUniaoEstavel}
+                onCheckedChange={() => toggleVendedorFlag('isUniaoEstavel')}
               />
-              <label htmlFor="flag-uniao-estavel" className="font-medium cursor-pointer text-sm sm:text-base">
+              <label htmlFor="flag-vendedor-uniao-estavel" className="font-medium cursor-pointer text-sm sm:text-base">
                 Vendedor em União Estável
+              </label>
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <HelpCircle className="h-4 w-4 text-muted-foreground cursor-help" />
+                  </TooltipTrigger>
+                  <TooltipContent className="max-w-xs">
+                    <p>Se marcado, serão adicionados campos para documentação do(a) companheiro(a)</p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-lg sm:text-xl">Perfil do Comprador</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="flex flex-col sm:flex-row sm:items-center gap-4 sm:gap-8">
+            <div className="flex items-center gap-3">
+              <Checkbox
+                id="flag-comunhao-total"
+                checked={flags.comprador.isComunhaoTotal}
+                onCheckedChange={() => toggleCompradorFlag('isComunhaoTotal')}
+              />
+              <label htmlFor="flag-comunhao-total" className="font-medium cursor-pointer text-sm sm:text-base">
+                Comunhão Total de Bens
+              </label>
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <HelpCircle className="h-4 w-4 text-muted-foreground cursor-help" />
+                  </TooltipTrigger>
+                  <TooltipContent className="max-w-xs">
+                    <p>Se marcado, serão adicionados campos para qualificação do cônjuge</p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+            </div>
+            <div className="flex items-center gap-3">
+              <Checkbox
+                id="flag-comprador-uniao-estavel"
+                checked={flags.comprador.isUniaoEstavel}
+                onCheckedChange={() => toggleCompradorFlag('isUniaoEstavel')}
+              />
+              <label htmlFor="flag-comprador-uniao-estavel" className="font-medium cursor-pointer text-sm sm:text-base">
+                Comprador em União Estável
               </label>
               <TooltipProvider>
                 <Tooltip>
