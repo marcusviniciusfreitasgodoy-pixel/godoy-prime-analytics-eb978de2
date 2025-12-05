@@ -7,10 +7,10 @@ import { Label } from "./ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "./ui/table";
 import { Badge } from "./ui/badge";
-import { Loader2, FileDown, Search, FileText, X, FileSpreadsheet, MapPin, Building } from "lucide-react";
+import { Loader2, FileDown, Search, FileText, X, FileSpreadsheet, MapPin, Building, FileType } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { exportToCSV, exportToXLSX } from "@/utils/exportUtils";
+import { exportToCSV, exportToXLSX, exportToPDF } from "@/utils/exportUtils";
 import { useToast } from "@/hooks/use-toast";
 import { ScrollArea } from "./ui/scroll-area";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "./ui/dropdown-menu";
@@ -238,6 +238,54 @@ export function AdvancedSearchReport() {
     });
   };
 
+  const handleExportPDF = async () => {
+    if (!results || results.length === 0) {
+      toast({
+        title: "Sem dados",
+        description: "Faça uma busca primeiro para exportar.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const appliedFilters: Record<string, string> = {};
+    if (searchParams?.valorMin) appliedFilters['Valor Mínimo'] = formatCurrency(searchParams.valorMin);
+    if (searchParams?.valorMax) appliedFilters['Valor Máximo'] = formatCurrency(searchParams.valorMax);
+    if (searchParams?.areaMin) appliedFilters['Área Mínima'] = `${searchParams.areaMin} m²`;
+    if (searchParams?.areaMax) appliedFilters['Área Máxima'] = `${searchParams.areaMax} m²`;
+    if (searchParams?.tipologia) appliedFilters['Tipologia'] = searchParams.tipologia;
+    if (searchParams?.anoInicio) appliedFilters['Ano Início'] = searchParams.anoInicio;
+    if (searchParams?.anoFim) appliedFilters['Ano Fim'] = searchParams.anoFim;
+    if (searchParams?.bairro) appliedFilters['Bairro'] = searchParams.bairro;
+    if (searchParams?.logradouro) appliedFilters['Logradouro'] = searchParams.logradouro;
+
+    await exportToPDF({
+      filename: 'relatorio_avancado_godoy_prime',
+      title: 'Relatório Avançado - Godoy Prime Analytics',
+      subtitle: 'Análise de Transações Imobiliárias',
+      filters: appliedFilters,
+      data: results,
+      columns: [
+        { key: 'logradouro', header: 'Logradouro' },
+        { key: 'bairro', header: 'Bairro' },
+        { key: 'tipologia', header: 'Tipo' },
+        { key: 'data_transacao', header: 'Data' },
+        { key: 'valor_transacao', header: 'Valor' },
+        { key: 'valor_m2', header: 'R$/m²' },
+      ],
+      summary: [
+        { label: 'Total de Registros', value: results.length },
+        { label: 'Valor Total', value: totalValue },
+        { label: 'Média R$/m²', value: avgValueM2 },
+      ],
+    });
+
+    toast({
+      title: "PDF exportado",
+      description: `Relatório com ${results.length} registros gerado.`,
+    });
+  };
+
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat('pt-BR', {
       style: 'currency',
@@ -274,6 +322,10 @@ export function AdvancedSearchReport() {
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
+                <DropdownMenuItem onClick={handleExportPDF} className="gap-2">
+                  <FileType className="h-4 w-4" />
+                  PDF (.pdf)
+                </DropdownMenuItem>
                 <DropdownMenuItem onClick={handleExportXLSX} className="gap-2">
                   <FileSpreadsheet className="h-4 w-4" />
                   Excel (.xlsx)

@@ -3,7 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "./ui/tabs";
 import { Input } from "./ui/input";
 import { Button } from "./ui/button";
-import { Search, DollarSign, Calculator, Loader2, FileDown, MapPin, X, History, RotateCcw, Plus, Trash2, TrendingUp, TrendingDown, GitCompare } from "lucide-react";
+import { Search, DollarSign, Calculator, Loader2, FileDown, MapPin, X, History, RotateCcw, Plus, Trash2, TrendingUp, TrendingDown, GitCompare, FileSpreadsheet, FileText } from "lucide-react";
 import { Label } from "./ui/label";
 import {
   Select,
@@ -17,10 +17,11 @@ import { useStreetSuggestions } from "@/hooks/useStreetSuggestions";
 import { useSearchHistory } from "@/hooks/useSearchHistory";
 import { useStreetComparison } from "@/hooks/useStreetComparison";
 import { Badge } from "./ui/badge";
-import { exportToCSV } from "@/utils/exportUtils";
+import { exportToCSV, exportToXLSX } from "@/utils/exportUtils";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "./ui/tooltip";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "./ui/dropdown-menu";
 import { StreetComparisonChart } from "./StreetComparisonChart";
 import { ValuationEngine } from "./valuation/ValuationEngine";
 
@@ -208,6 +209,48 @@ export function SearchTools({ bairro = "BARRA DA TIJUCA" }: SearchToolsProps) {
     toast({
       title: "Exportado com sucesso",
       description: `${exportData.length} logradouros exportados para CSV.`,
+    });
+  };
+
+  const exportTransactionResultsXLSX = () => {
+    if (!transactionResult || transactionResult.length === 0) {
+      toast({
+        title: "Sem dados",
+        description: "Faça uma busca primeiro para exportar os resultados.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const minLabel = VALOR_OPTIONS.find(o => o.value === valorMin)?.label || 'Sem limite';
+    const maxLabel = VALOR_OPTIONS.find(o => o.value === valorMax)?.label || 'Sem limite';
+
+    exportToXLSX({
+      filename: `transacoes_${transacaoBairro.replace(/\s+/g, '_')}_${transacaoPeriodo}m`,
+      title: 'Ranking de Transações por Logradouro',
+      subtitle: `Bairro: ${transacaoBairro} | Período: ${transacaoPeriodo} meses`,
+      filters: {
+        'Valor Mínimo': minLabel,
+        'Valor Máximo': maxLabel,
+        'Bairro': transacaoBairro,
+        'Tipologia': transacaoTipologia || 'Todas',
+        'Período': `${transacaoPeriodo} meses`,
+      },
+      data: transactionResult,
+      columns: [
+        { key: 'microbairro', header: 'Logradouro', width: 40, format: 'text' },
+        { key: 'total_transacoes', header: 'Total Transações', width: 18, format: 'number' },
+        { key: 'preco_medio_m2', header: 'Preço Médio R$/m²', width: 20, format: 'currency' },
+      ],
+      summary: [
+        { label: 'Total de Logradouros', value: transactionResult.length },
+        { label: 'Total de Transações', value: transactionResult.reduce((sum, r) => sum + r.total_transacoes, 0) },
+      ],
+    });
+
+    toast({
+      title: "Exportado com sucesso",
+      description: `${transactionResult.length} logradouros exportados para Excel.`,
     });
   };
 
@@ -845,9 +888,23 @@ export function SearchTools({ bairro = "BARRA DA TIJUCA" }: SearchToolsProps) {
                 <RotateCcw className="h-4 w-4" />
               </Button>
               {transactionResult && transactionResult.length > 0 && (
-                <Button variant="outline" onClick={exportTransactionResults} title="Exportar CSV">
-                  <FileDown className="h-4 w-4" />
-                </Button>
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="outline" title="Exportar">
+                      <FileDown className="h-4 w-4" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end">
+                    <DropdownMenuItem onClick={exportTransactionResultsXLSX} className="gap-2">
+                      <FileSpreadsheet className="h-4 w-4" />
+                      Excel (.xlsx)
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={exportTransactionResults} className="gap-2">
+                      <FileText className="h-4 w-4" />
+                      CSV (.csv)
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
               )}
             </div>
             

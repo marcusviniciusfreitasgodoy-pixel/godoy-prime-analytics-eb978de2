@@ -194,3 +194,151 @@ export function formatDate(date: Date | string): string {
     minute: '2-digit',
   });
 }
+
+// PDF Export for Advanced Search Report
+interface ExportPDFOptions {
+  filename: string;
+  title?: string;
+  subtitle?: string;
+  filters?: Record<string, string>;
+  data: Record<string, any>[];
+  columns?: { key: string; header: string }[];
+  summary?: { label: string; value: string | number }[];
+}
+
+export async function exportToPDF(options: ExportPDFOptions) {
+  const { jsPDF } = await import('jspdf');
+  const { filename, title, subtitle, filters, data, columns, summary } = options;
+  
+  if (data.length === 0) return;
+  
+  const doc = new jsPDF();
+  const pageWidth = doc.internal.pageSize.getWidth();
+  let yPos = 20;
+  
+  // Header
+  doc.setFillColor(12, 35, 64); // Navy
+  doc.rect(0, 0, pageWidth, 35, 'F');
+  
+  doc.setTextColor(255, 255, 255);
+  doc.setFontSize(18);
+  doc.setFont('helvetica', 'bold');
+  doc.text(title || 'Relatório Godoy Prime Analytics', 14, 15);
+  
+  doc.setFontSize(10);
+  doc.setFont('helvetica', 'normal');
+  doc.text(subtitle || `Gerado em ${new Date().toLocaleDateString('pt-BR')}`, 14, 25);
+  
+  yPos = 45;
+  doc.setTextColor(0, 0, 0);
+  
+  // Filters section
+  if (filters && Object.keys(filters).length > 0) {
+    doc.setFillColor(245, 245, 245);
+    doc.rect(10, yPos - 5, pageWidth - 20, 8 + Object.keys(filters).length * 6, 'F');
+    
+    doc.setFontSize(11);
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(12, 35, 64);
+    doc.text('Filtros Aplicados:', 14, yPos);
+    yPos += 8;
+    
+    doc.setFontSize(9);
+    doc.setFont('helvetica', 'normal');
+    doc.setTextColor(60, 60, 60);
+    Object.entries(filters).forEach(([key, value]) => {
+      if (value) {
+        doc.text(`${key}: ${value}`, 18, yPos);
+        yPos += 5;
+      }
+    });
+    yPos += 8;
+  }
+  
+  // Summary section
+  if (summary && summary.length > 0) {
+    doc.setFillColor(212, 175, 55); // Gold
+    doc.rect(10, yPos - 3, pageWidth - 20, 8, 'F');
+    
+    doc.setFontSize(11);
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(12, 35, 64);
+    doc.text('Resumo Estatístico', 14, yPos + 3);
+    yPos += 12;
+    
+    doc.setFontSize(10);
+    doc.setFont('helvetica', 'normal');
+    doc.setTextColor(0, 0, 0);
+    summary.forEach(({ label, value }) => {
+      const formattedValue = typeof value === 'number' ? formatCurrencyNumber(value) : String(value);
+      doc.text(`${label}: ${formattedValue}`, 14, yPos);
+      yPos += 6;
+    });
+    yPos += 8;
+  }
+  
+  // Table header
+  const dataColumns = columns || Object.keys(data[0]).slice(0, 6).map(key => ({ key, header: key }));
+  const colWidth = (pageWidth - 28) / Math.min(dataColumns.length, 6);
+  
+  doc.setFillColor(12, 35, 64);
+  doc.rect(10, yPos - 4, pageWidth - 20, 8, 'F');
+  
+  doc.setFontSize(8);
+  doc.setFont('helvetica', 'bold');
+  doc.setTextColor(255, 255, 255);
+  
+  dataColumns.slice(0, 6).forEach((col, idx) => {
+    doc.text(col.header.substring(0, 12), 14 + idx * colWidth, yPos);
+  });
+  yPos += 8;
+  
+  // Table data (limited to fit page)
+  doc.setFont('helvetica', 'normal');
+  doc.setTextColor(0, 0, 0);
+  doc.setFontSize(7);
+  
+  const maxRows = Math.min(data.length, 35);
+  data.slice(0, maxRows).forEach((row, rowIdx) => {
+    if (yPos > 270) {
+      doc.addPage();
+      yPos = 20;
+    }
+    
+    // Alternate row colors
+    if (rowIdx % 2 === 0) {
+      doc.setFillColor(250, 250, 250);
+      doc.rect(10, yPos - 3, pageWidth - 20, 6, 'F');
+    }
+    
+    dataColumns.slice(0, 6).forEach((col, colIdx) => {
+      let value = row[col.key];
+      if (typeof value === 'number') {
+        value = value > 1000 ? formatCurrencyNumber(value) : value.toLocaleString('pt-BR');
+      }
+      const text = String(value ?? '').substring(0, 18);
+      doc.text(text, 14 + colIdx * colWidth, yPos);
+    });
+    yPos += 6;
+  });
+  
+  if (data.length > maxRows) {
+    yPos += 5;
+    doc.setFontSize(8);
+    doc.setTextColor(100, 100, 100);
+    doc.text(`... e mais ${data.length - maxRows} registros (veja exportação Excel para dados completos)`, 14, yPos);
+  }
+  
+  // Footer
+  const pageCount = doc.getNumberOfPages();
+  for (let i = 1; i <= pageCount; i++) {
+    doc.setPage(i);
+    doc.setFontSize(8);
+    doc.setTextColor(150, 150, 150);
+    doc.text('Godoy Prime Analytics - Inteligência Imobiliária', 14, 290);
+    doc.text(`Página ${i} de ${pageCount}`, pageWidth - 30, 290);
+  }
+  
+  const dateStr = new Date().toISOString().split('T')[0];
+  doc.save(`${filename}_${dateStr}.pdf`);
+}
