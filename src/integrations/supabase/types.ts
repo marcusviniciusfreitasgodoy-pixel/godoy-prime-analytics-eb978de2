@@ -470,6 +470,7 @@ export type Database = {
       }
     }
     Functions: {
+      get_vault_secret: { Args: { secret_name: string }; Returns: string }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
