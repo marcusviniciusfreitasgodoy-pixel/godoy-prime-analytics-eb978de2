@@ -164,24 +164,40 @@ export function useMicrobairroDetalhado() {
 
       // Calcular médias e criar array de resultados
       const result = Object.entries(grouped).map(([microbairro, dados]) => {
-        const valor_m2 = Math.round(
-          dados.total.reduce((sum, v) => sum + v, 0) / dados.total.length
-        );
-        
+        // Calcular média de apartamentos
         const valor_m2_apt = dados.apartamentos.length > 0
           ? Math.round(dados.apartamentos.reduce((sum, v) => sum + v, 0) / dados.apartamentos.length)
-          : valor_m2;
+          : 0;
         
+        // Calcular média de casas
         const valor_m2_casa = dados.casas.length > 0
           ? Math.round(dados.casas.reduce((sum, v) => sum + v, 0) / dados.casas.length)
-          : Math.round(valor_m2 * 0.92); // Fallback se não houver dados de casas
+          : 0;
+
+        // Preço médio = média entre apartamentos e casas (quando ambos existem)
+        let valor_m2: number;
+        if (valor_m2_apt > 0 && valor_m2_casa > 0) {
+          // Média entre apartamentos e casas
+          valor_m2 = Math.round((valor_m2_apt + valor_m2_casa) / 2);
+        } else if (valor_m2_apt > 0) {
+          // Apenas apartamentos disponíveis
+          valor_m2 = valor_m2_apt;
+        } else if (valor_m2_casa > 0) {
+          // Apenas casas disponíveis
+          valor_m2 = valor_m2_casa;
+        } else {
+          // Fallback para média geral
+          valor_m2 = Math.round(
+            dados.total.reduce((sum, v) => sum + v, 0) / dados.total.length
+          );
+        }
 
         return {
           microbairro,
           valor_m2,
           total_transacoes: dados.total.length,
-          valor_m2_apt,
-          valor_m2_casa,
+          valor_m2_apt: valor_m2_apt || valor_m2,
+          valor_m2_casa: valor_m2_casa || Math.round(valor_m2 * 0.92),
           rank: 0, // Será preenchido após ordenação
           trend: "stable" as const,
         };
