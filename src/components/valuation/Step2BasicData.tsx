@@ -1,4 +1,5 @@
 import { Input } from "@/components/ui/input";
+import { CurrencyInput } from "@/components/ui/currency-input";
 import { Label } from "@/components/ui/label";
 import { SimpleRadioGroup, SimpleRadioItem } from "@/components/ui/simple-radio";
 import { Card, CardContent } from "@/components/ui/card";
@@ -132,18 +133,16 @@ export function Step2BasicData({ state, updateState, combined }: Props) {
                 <span className="font-medium">Personalizado</span>
               </Label>
               {state.baseSelected === "custom" && (
-                <div className="mt-2 flex items-center gap-2">
-                  <span className="text-sm">R$</span>
-                  <Input
-                    type="number"
-                    value={state.customBaseM2 || ""}
-                    onChange={(e) => 
-                      updateState({ customBaseM2: Number(e.target.value) || null })
+                <div className="mt-2">
+                  <CurrencyInput
+                    value={state.customBaseM2?.toString() || ""}
+                    onChange={(value) => 
+                      updateState({ customBaseM2: value ? Number(value) : null })
                     }
-                    placeholder="Ex: 15000"
-                    className="w-32"
+                    placeholder="R$ 15.000"
+                    className="w-40"
                   />
-                  <span className="text-sm">/m²</span>
+                  <span className="text-sm text-muted-foreground ml-2">/m²</span>
                 </div>
               )}
               <p className="text-xs text-muted-foreground mt-1">
