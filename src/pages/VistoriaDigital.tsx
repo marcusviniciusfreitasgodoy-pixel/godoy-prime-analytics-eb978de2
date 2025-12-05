@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
+import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Accordion,
@@ -12,13 +13,19 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import { CheckCircle2, AlertTriangle, XCircle, Circle, FileText, Loader2, MinusCircle, Building2 } from "lucide-react";
+import { CheckCircle2, AlertTriangle, XCircle, Circle, FileText, Loader2, MinusCircle, Building2, Camera, Image, X, Calculator } from "lucide-react";
 import {
   Tooltip,
   TooltipContent,
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
 import jsPDF from "jspdf";
 import { formatDate } from "@/utils/exportUtils";
@@ -73,6 +80,15 @@ interface ChecklistCategory {
   id: string;
   title: string;
   items: ChecklistItem[];
+}
+
+interface PhotoItem {
+  id: string;
+  categoryId: string;
+  itemId: string;
+  dataUrl: string;
+  timestamp: string;
+  caption: string;
 }
 
 const initialChecklist: ChecklistCategory[] = [
@@ -282,7 +298,14 @@ export default function VistoriaDigital() {
   const [checklist, setChecklist] = useState<ChecklistCategory[]>(initialChecklist);
   const [propertyData, setPropertyData] = useState<PropertyData>(initialPropertyData);
   const [isGeneratingPDF, setIsGeneratingPDF] = useState(false);
+  const [photos, setPhotos] = useState<PhotoItem[]>([]);
+  const [selectedPhotoItem, setSelectedPhotoItem] = useState<{ categoryId: string; itemId: string; label: string } | null>(null);
+  const [photoDialogOpen, setPhotoDialogOpen] = useState(false);
+  const [viewPhotoUrl, setViewPhotoUrl] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const cameraInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
+  const navigate = useNavigate();
 
   const updatePropertyData = (field: keyof PropertyData, value: string) => {
     setPropertyData(prev => ({ ...prev, [field]: value }));
@@ -326,12 +349,106 @@ export default function VistoriaDigital() {
     );
   };
 
+  // Photo functions
+  const handlePhotoCapture = (categoryId: string, itemId: string, label: string) => {
+    setSelectedPhotoItem({ categoryId, itemId, label });
+    setPhotoDialogOpen(true);
+  };
+
+  const processFile = (file: File) => {
+    if (!selectedPhotoItem) return;
+    
+    if (file.size > 5 * 1024 * 1024) {
+      toast({
+        title: "Arquivo muito grande",
+        description: "O tamanho máximo é 5MB.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const dataUrl = e.target?.result as string;
+      const newPhoto: PhotoItem = {
+        id: `${Date.now()}`,
+        categoryId: selectedPhotoItem.categoryId,
+        itemId: selectedPhotoItem.itemId,
+        dataUrl,
+        timestamp: new Date().toISOString(),
+        caption: selectedPhotoItem.label,
+      };
+      setPhotos(prev => [...prev, newPhoto]);
+      setPhotoDialogOpen(false);
+      setSelectedPhotoItem(null);
+      toast({
+        title: "Foto adicionada",
+        description: "A foto foi anexada ao item de vistoria.",
+      });
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) processFile(file);
+    e.target.value = '';
+  };
+
+  const removePhoto = (photoId: string) => {
+    setPhotos(prev => prev.filter(p => p.id !== photoId));
+    toast({
+      title: "Foto removida",
+      description: "A foto foi removida da vistoria.",
+    });
+  };
+
+  const getPhotosForItem = (categoryId: string, itemId: string) => {
+    return photos.filter(p => p.categoryId === categoryId && p.itemId === itemId);
+  };
+
+  // Integration with Valuation Engine
+  const handleGenerateValuation = () => {
+    // Pass property data to Valuation Engine via navigation state
+    navigate('/', {
+      state: {
+        fromVistoria: true,
+        vistoriaData: {
+          logradouro: propertyData.logradouro,
+          bairro: propertyData.bairro,
+          area_m2: propertyData.areaM2 ? parseFloat(propertyData.areaM2) : 0,
+          tipoImovel: propertyData.tipoImovel,
+          nomeCondominio: propertyData.nomeCondominio,
+          // Map inspection results to suggested characteristics
+          checklistSummary: {
+            criticalCount: getCriticalCount(),
+            attentionCount: getAttentionCount(),
+            progress: getProgress(),
+            // Extract relevant inspection categories for valuation suggestions
+            eletrica: checklist.find(c => c.id === 'eletrica')?.items.every(i => i.status === 'ok' || i.status === 'nao-aplica'),
+            hidraulica: checklist.find(c => c.id === 'hidraulica')?.items.every(i => i.status === 'ok' || i.status === 'nao-aplica'),
+            acabamentos: checklist.find(c => c.id === 'acabamentos')?.items.every(i => i.status === 'ok' || i.status === 'nao-aplica'),
+            climatizacao: checklist.find(c => c.id === 'climatizacao')?.items.some(i => i.status === 'ok'),
+            seguranca: checklist.find(c => c.id === 'seguranca')?.items.every(i => i.status === 'ok' || i.status === 'nao-aplica'),
+            lazer: checklist.find(c => c.id === 'lazer')?.items.some(i => i.status === 'ok'),
+            automacao: checklist.find(c => c.id === 'tecnologia')?.items.some(i => i.status === 'ok'),
+          },
+        },
+      },
+    });
+    toast({
+      title: "Redirecionando para Avaliação",
+      description: "Os dados do imóvel serão pré-preenchidos no Valuation Engine.",
+    });
+  };
+
   const resetChecklist = () => {
     setChecklist(initialChecklist);
     setPropertyData(initialPropertyData);
+    setPhotos([]);
     toast({
       title: "Checklist resetado",
-      description: "Todos os itens e dados do imóvel foram limpos.",
+      description: "Todos os itens, dados e fotos foram limpos.",
     });
   };
 
@@ -541,6 +658,12 @@ export default function VistoriaDigital() {
                   {getCriticalCount()} Crítico{getCriticalCount() > 1 ? 's' : ''}
                 </Badge>
               )}
+              {photos.length > 0 && (
+                <Badge variant="secondary" className="text-xs sm:text-sm">
+                  <Image className="h-3 w-3 mr-1" />
+                  {photos.length} Foto{photos.length > 1 ? 's' : ''}
+                </Badge>
+              )}
               <Button variant="outline" onClick={resetChecklist} size="sm" className="text-xs sm:text-sm">
                 Resetar
               </Button>
@@ -551,6 +674,16 @@ export default function VistoriaDigital() {
                   <FileText className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
                 )}
                 <span className="hidden xs:inline">Gerar</span> Relatório
+              </Button>
+              <Button 
+                onClick={handleGenerateValuation} 
+                size="sm" 
+                variant="secondary"
+                className="gap-1.5 text-xs sm:text-sm"
+                disabled={!propertyData.logradouro}
+              >
+                <Calculator className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+                <span className="hidden xs:inline">Gerar</span> Avaliação
               </Button>
             </div>
           </div>
@@ -754,41 +887,86 @@ export default function VistoriaDigital() {
                   <div className="space-y-3 pt-2">
                     {category.items.map((item) => {
                       const StatusIcon = statusConfig[item.status].icon;
+                      const itemPhotos = getPhotosForItem(category.id, item.id);
                       return (
-                        <div
-                          key={item.id}
-                          className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 p-3 rounded-lg border bg-card"
-                        >
-                          <div className="flex items-start sm:items-center gap-3 flex-1 min-w-0">
-                            <StatusIcon className={`h-5 w-5 flex-shrink-0 mt-0.5 sm:mt-0 ${statusConfig[item.status].color}`} />
-                            <span className="font-medium text-sm sm:text-base leading-tight">{item.label}</span>
-                          </div>
-                          <TooltipProvider delayDuration={300}>
-                            <div className="flex gap-1.5 sm:gap-2 flex-shrink-0 ml-8 sm:ml-0">
-                              {(Object.keys(statusConfig) as ItemStatus[]).map((status) => {
-                                const config = statusConfig[status];
-                                const Icon = config.icon;
-                                return (
-                                  <Tooltip key={status}>
-                                    <TooltipTrigger asChild>
-                                      <Button
-                                        variant={item.status === status ? "default" : "outline"}
-                                        size="sm"
-                                        onClick={() => updateItemStatus(category.id, item.id, status)}
-                                        className="h-8 w-8 sm:h-9 sm:w-auto sm:px-3 p-0 sm:gap-1"
-                                      >
-                                        <Icon className="h-4 w-4" />
-                                      </Button>
-                                    </TooltipTrigger>
-                                    <TooltipContent side="top" className="max-w-[200px] text-center">
-                                      <p className="font-medium">{config.label}</p>
-                                      <p className="text-xs text-muted-foreground">{config.tooltip}</p>
-                                    </TooltipContent>
-                                  </Tooltip>
-                                );
-                              })}
+                        <div key={item.id} className="space-y-2">
+                          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 p-3 rounded-lg border bg-card">
+                            <div className="flex items-start sm:items-center gap-3 flex-1 min-w-0">
+                              <StatusIcon className={`h-5 w-5 flex-shrink-0 mt-0.5 sm:mt-0 ${statusConfig[item.status].color}`} />
+                              <span className="font-medium text-sm sm:text-base leading-tight">{item.label}</span>
                             </div>
-                          </TooltipProvider>
+                            <TooltipProvider delayDuration={300}>
+                              <div className="flex gap-1.5 sm:gap-2 flex-shrink-0 ml-8 sm:ml-0">
+                                {(Object.keys(statusConfig) as ItemStatus[]).map((status) => {
+                                  const config = statusConfig[status];
+                                  const Icon = config.icon;
+                                  return (
+                                    <Tooltip key={status}>
+                                      <TooltipTrigger asChild>
+                                        <Button
+                                          variant={item.status === status ? "default" : "outline"}
+                                          size="sm"
+                                          onClick={() => updateItemStatus(category.id, item.id, status)}
+                                          className="h-8 w-8 sm:h-9 sm:w-auto sm:px-3 p-0 sm:gap-1"
+                                        >
+                                          <Icon className="h-4 w-4" />
+                                        </Button>
+                                      </TooltipTrigger>
+                                      <TooltipContent side="top" className="max-w-[200px] text-center">
+                                        <p className="font-medium">{config.label}</p>
+                                        <p className="text-xs text-muted-foreground">{config.tooltip}</p>
+                                      </TooltipContent>
+                                    </Tooltip>
+                                  );
+                                })}
+                                {/* Photo button */}
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <Button
+                                      variant={itemPhotos.length > 0 ? "secondary" : "outline"}
+                                      size="sm"
+                                      onClick={() => handlePhotoCapture(category.id, item.id, item.label)}
+                                      className="h-8 w-8 sm:h-9 sm:w-auto sm:px-3 p-0 sm:gap-1"
+                                    >
+                                      <Camera className="h-4 w-4" />
+                                      {itemPhotos.length > 0 && (
+                                        <span className="hidden sm:inline text-xs ml-1">{itemPhotos.length}</span>
+                                      )}
+                                    </Button>
+                                  </TooltipTrigger>
+                                  <TooltipContent side="top">
+                                    <p className="font-medium">Adicionar Foto</p>
+                                    <p className="text-xs text-muted-foreground">
+                                      {itemPhotos.length > 0 ? `${itemPhotos.length} foto(s) anexada(s)` : 'Capture ou anexe fotos'}
+                                    </p>
+                                  </TooltipContent>
+                                </Tooltip>
+                              </div>
+                            </TooltipProvider>
+                          </div>
+                          {/* Display photos for this item */}
+                          {itemPhotos.length > 0 && (
+                            <div className="flex gap-2 flex-wrap ml-8 pl-3">
+                              {itemPhotos.map((photo) => (
+                                <div key={photo.id} className="relative group">
+                                  <img
+                                    src={photo.dataUrl}
+                                    alt={photo.caption}
+                                    className="w-16 h-16 object-cover rounded-md border cursor-pointer hover:opacity-90"
+                                    onClick={() => setViewPhotoUrl(photo.dataUrl)}
+                                  />
+                                  <Button
+                                    variant="destructive"
+                                    size="icon"
+                                    className="absolute -top-2 -right-2 h-5 w-5 opacity-0 group-hover:opacity-100 transition-opacity"
+                                    onClick={() => removePhoto(photo.id)}
+                                  >
+                                    <X className="h-3 w-3" />
+                                  </Button>
+                                </div>
+                              ))}
+                            </div>
+                          )}
                         </div>
                       );
                     })}
@@ -799,6 +977,71 @@ export default function VistoriaDigital() {
           </Accordion>
         </CardContent>
       </Card>
+
+      {/* Hidden file inputs */}
+      <input
+        type="file"
+        ref={fileInputRef}
+        accept="image/*"
+        className="hidden"
+        onChange={handleFileSelect}
+      />
+      <input
+        type="file"
+        ref={cameraInputRef}
+        accept="image/*"
+        capture="environment"
+        className="hidden"
+        onChange={handleFileSelect}
+      />
+
+      {/* Photo capture dialog */}
+      <Dialog open={photoDialogOpen} onOpenChange={setPhotoDialogOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Adicionar Foto</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <p className="text-sm text-muted-foreground">
+              {selectedPhotoItem?.label}
+            </p>
+            <div className="grid grid-cols-2 gap-4">
+              <Button
+                variant="outline"
+                className="h-24 flex-col gap-2"
+                onClick={() => cameraInputRef.current?.click()}
+              >
+                <Camera className="h-8 w-8" />
+                <span>Tirar Foto</span>
+              </Button>
+              <Button
+                variant="outline"
+                className="h-24 flex-col gap-2"
+                onClick={() => fileInputRef.current?.click()}
+              >
+                <Image className="h-8 w-8" />
+                <span>Galeria</span>
+              </Button>
+            </div>
+            <p className="text-xs text-muted-foreground text-center">
+              Tamanho máximo: 5MB por foto
+            </p>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Photo view dialog */}
+      <Dialog open={!!viewPhotoUrl} onOpenChange={() => setViewPhotoUrl(null)}>
+        <DialogContent className="sm:max-w-3xl p-2">
+          {viewPhotoUrl && (
+            <img
+              src={viewPhotoUrl}
+              alt="Foto da vistoria"
+              className="w-full h-auto max-h-[80vh] object-contain rounded-md"
+            />
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

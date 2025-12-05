@@ -27,6 +27,25 @@ import { ValuationEngine } from "./valuation/ValuationEngine";
 
 interface SearchToolsProps {
   bairro?: string;
+  vistoriaData?: {
+    logradouro?: string;
+    bairro?: string;
+    area_m2?: number;
+    tipoImovel?: string;
+    nomeCondominio?: string;
+    checklistSummary?: {
+      criticalCount: number;
+      attentionCount: number;
+      progress: number;
+      eletrica?: boolean;
+      hidraulica?: boolean;
+      acabamentos?: boolean;
+      climatizacao?: boolean;
+      seguranca?: boolean;
+      lazer?: boolean;
+      automacao?: boolean;
+    };
+  };
 }
 
 const PERIODO_OPTIONS = [
@@ -57,7 +76,7 @@ const VALOR_OPTIONS = [
   { value: '100000000', label: 'R$ 100 milhões' },
 ];
 
-export function SearchTools({ bairro = "BARRA DA TIJUCA" }: SearchToolsProps) {
+export function SearchTools({ bairro = "BARRA DA TIJUCA", vistoriaData }: SearchToolsProps) {
   const { toast } = useToast();
   const { history, addToHistory, clearHistory } = useSearchHistory();
   
@@ -942,7 +961,7 @@ export function SearchTools({ bairro = "BARRA DA TIJUCA" }: SearchToolsProps) {
           </TabsContent>
 
           <TabsContent value="valuation" className="mt-4">
-            <ValuationEngine bairro={bairro} />
+            <ValuationEngine bairro={bairro} vistoriaData={vistoriaData} />
           </TabsContent>
         </Tabs>
       </CardContent>

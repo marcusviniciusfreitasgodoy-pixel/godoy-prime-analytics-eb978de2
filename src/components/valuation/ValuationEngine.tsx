@@ -1,10 +1,12 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useLocation } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
-import { ArrowLeft, ArrowRight, Calculator } from "lucide-react";
+import { ArrowLeft, ArrowRight, Calculator, ClipboardCheck } from "lucide-react";
 import { useValuationCharacteristics, useDocumentationFactors } from "@/hooks/useValuationCharacteristics";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Badge } from "@/components/ui/badge";
 import { Step1Location } from "./Step1Location";
 import { Step2BasicData } from "./Step2BasicData";
 import { Step3Questionnaire } from "./Step3Questionnaire";
@@ -21,16 +23,60 @@ const STEPS = [
   { id: 5, title: "Recomendação", description: "Análise e próximos passos" },
 ];
 
-interface Props {
+interface VistoriaData {
+  logradouro?: string;
   bairro?: string;
+  area_m2?: number;
+  tipoImovel?: string;
+  nomeCondominio?: string;
+  checklistSummary?: {
+    criticalCount: number;
+    attentionCount: number;
+    progress: number;
+    eletrica?: boolean;
+    hidraulica?: boolean;
+    acabamentos?: boolean;
+    climatizacao?: boolean;
+    seguranca?: boolean;
+    lazer?: boolean;
+    automacao?: boolean;
+  };
 }
 
-export function ValuationEngine({ bairro = "BARRA DA TIJUCA" }: Props) {
+interface Props {
+  bairro?: string;
+  vistoriaData?: VistoriaData;
+}
+
+export function ValuationEngine({ bairro = "BARRA DA TIJUCA", vistoriaData }: Props) {
+  const location = useLocation();
   const [currentStep, setCurrentStep] = useState(1);
   const [state, setState] = useState<ValuationState>({ ...initialValuationState, bairro });
+  const [fromVistoria, setFromVistoria] = useState(false);
   
   const { data: characteristics, isLoading: loadingChars } = useValuationCharacteristics();
   const { data: docFactors, isLoading: loadingDocs } = useDocumentationFactors();
+
+  // Check for vistoria data from navigation or props
+  useEffect(() => {
+    const locationState = location.state as { fromVistoria?: boolean; vistoriaData?: VistoriaData } | null;
+    const data = vistoriaData || locationState?.vistoriaData;
+    
+    if (data) {
+      setFromVistoria(true);
+      setState(prev => ({
+        ...prev,
+        logradouro: data.logradouro || prev.logradouro,
+        bairro: data.bairro || prev.bairro,
+        area_m2: data.area_m2 || prev.area_m2,
+      }));
+      
+      // Clear location state after using it
+      if (locationState?.fromVistoria) {
+        window.history.replaceState({}, document.title);
+      }
+    }
+  }, [location.state, vistoriaData]);
 
   const updateState = (updates: Partial<ValuationState>) => {
     setState((prev) => ({ ...prev, ...updates }));
@@ -139,7 +185,15 @@ export function ValuationEngine({ bairro = "BARRA DA TIJUCA" }: Props) {
           <div className="flex items-center gap-3">
             <Calculator className="h-6 w-6 text-primary" />
             <div>
-              <CardTitle className="text-lg">Valuation Engine</CardTitle>
+              <CardTitle className="text-lg flex items-center gap-2">
+                Valuation Engine
+                {fromVistoria && (
+                  <Badge variant="secondary" className="text-xs">
+                    <ClipboardCheck className="h-3 w-3 mr-1" />
+                    Via Vistoria
+                  </Badge>
+                )}
+              </CardTitle>
               <p className="text-sm text-muted-foreground">
                 {STEPS[currentStep - 1].description}
               </p>
