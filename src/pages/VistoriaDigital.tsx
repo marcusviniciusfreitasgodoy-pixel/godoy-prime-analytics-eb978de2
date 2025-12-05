@@ -34,6 +34,7 @@ interface PropertyData {
   quartos: string;
   suites: string;
   banheiros: string;
+  vagas: string;
   proprietario: string;
   telefone: string;
   vistoriador: string;
@@ -52,6 +53,7 @@ const initialPropertyData: PropertyData = {
   quartos: '',
   suites: '',
   banheiros: '',
+  vagas: '',
   proprietario: '',
   telefone: '',
   vistoriador: '',
@@ -377,6 +379,7 @@ export default function VistoriaDigital() {
         propertyData.quartos ? `${propertyData.quartos} Qts` : null,
         propertyData.suites ? `${propertyData.suites} Stes` : null,
         propertyData.banheiros ? `${propertyData.banheiros} Bnh` : null,
+        propertyData.vagas ? `${propertyData.vagas} Vgs` : null,
       ].filter(Boolean).join(' | ');
       
       const propertyInfo = [
@@ -675,6 +678,16 @@ export default function VistoriaDigital() {
                 id="banheiros"
                 value={propertyData.banheiros}
                 onChange={(e) => updatePropertyData('banheiros', e.target.value)}
+                placeholder="2"
+                type="number"
+              />
+            </div>
+            <div>
+              <Label htmlFor="vagas">Vagas de Garagem</Label>
+              <Input
+                id="vagas"
+                value={propertyData.vagas}
+                onChange={(e) => updatePropertyData('vagas', e.target.value)}
                 placeholder="2"
                 type="number"
               />
