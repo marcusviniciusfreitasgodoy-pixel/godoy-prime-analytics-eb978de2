@@ -1,5 +1,5 @@
-import { useQuery } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+import { useState } from "react";
+import { useAllBairros } from "@/hooks/useBairroSuggestions";
 import {
   Select,
   SelectContent,
@@ -7,7 +7,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { MapPin } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { MapPin, Search } from "lucide-react";
 
 interface BairroSelectorProps {
   value: string;
@@ -15,31 +16,13 @@ interface BairroSelectorProps {
 }
 
 export function BairroSelector({ value, onChange }: BairroSelectorProps) {
-  const { data: bairros, isLoading } = useQuery({
-    queryKey: ["bairros-disponiveis"],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("itbi_transactions")
-        .select("bairro")
-        .not("bairro", "is", null);
+  const [searchFilter, setSearchFilter] = useState("");
+  const { data: bairros, isLoading } = useAllBairros();
 
-      if (error) throw error;
-
-      // Extrair bairros únicos e contar transações
-      const bairroCount: Record<string, number> = {};
-      for (const row of data || []) {
-        if (row.bairro) {
-          bairroCount[row.bairro] = (bairroCount[row.bairro] || 0) + 1;
-        }
-      }
-
-      // Ordenar por quantidade de transações (mais relevantes primeiro)
-      return Object.entries(bairroCount)
-        .sort((a, b) => b[1] - a[1])
-        .map(([bairro, count]) => ({ bairro, count }));
-    },
-    staleTime: 5 * 60 * 1000, // 5 minutos
-  });
+  // Filtrar bairros baseado na busca
+  const filteredBairros = bairros?.filter((b) =>
+    b.bairro.toLowerCase().includes(searchFilter.toLowerCase())
+  ) || [];
 
   return (
     <div className="flex items-center gap-2">
@@ -48,13 +31,28 @@ export function BairroSelector({ value, onChange }: BairroSelectorProps) {
         <SelectTrigger className="w-[220px] bg-background/50 border-border">
           <SelectValue placeholder="Selecione o bairro" />
         </SelectTrigger>
-        <SelectContent>
-          {bairros?.map(({ bairro, count }) => (
+        <SelectContent className="max-h-[300px]">
+          <div className="flex items-center px-2 pb-2 sticky top-0 bg-popover">
+            <Search className="h-4 w-4 text-muted-foreground mr-2" />
+            <Input
+              placeholder="Buscar bairro..."
+              value={searchFilter}
+              onChange={(e) => setSearchFilter(e.target.value)}
+              className="h-8 text-sm"
+              onClick={(e) => e.stopPropagation()}
+            />
+          </div>
+          {filteredBairros.length === 0 && (
+            <div className="py-2 px-2 text-sm text-muted-foreground text-center">
+              Nenhum bairro encontrado
+            </div>
+          )}
+          {filteredBairros.map(({ bairro, total_transacoes }) => (
             <SelectItem key={bairro} value={bairro}>
               <span className="flex items-center justify-between w-full gap-2">
-                <span>{bairro}</span>
+                <span className="truncate">{bairro}</span>
                 <span className="text-xs text-muted-foreground">
-                  ({count.toLocaleString("pt-BR")})
+                  ({total_transacoes.toLocaleString("pt-BR")})
                 </span>
               </span>
             </SelectItem>

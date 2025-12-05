@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "./ui/card";
 import { Input } from "./ui/input";
 import { CurrencyInput } from "./ui/currency-input";
@@ -7,13 +7,16 @@ import { Label } from "./ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "./ui/table";
 import { Badge } from "./ui/badge";
-import { Loader2, FileDown, Search, FileText, X, FileSpreadsheet } from "lucide-react";
+import { Loader2, FileDown, Search, FileText, X, FileSpreadsheet, MapPin, Building } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { exportToCSV, exportToXLSX } from "@/utils/exportUtils";
 import { useToast } from "@/hooks/use-toast";
 import { ScrollArea } from "./ui/scroll-area";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "./ui/dropdown-menu";
+import { Popover, PopoverContent, PopoverTrigger } from "./ui/popover";
+import { useBairroSuggestions } from "@/hooks/useBairroSuggestions";
+import { useStreetSuggestions } from "@/hooks/useStreetSuggestions";
 interface AdvancedSearchResult {
   id: string;
   logradouro: string;
@@ -56,6 +59,14 @@ export function AdvancedSearchReport() {
   const [anoFim, setAnoFim] = useState("");
   const [bairro, setBairro] = useState("");
   const [logradouro, setLogradouro] = useState("");
+  
+  // Autocomplete popover states
+  const [bairroPopoverOpen, setBairroPopoverOpen] = useState(false);
+  const [logradouroPopoverOpen, setLogradouroPopoverOpen] = useState(false);
+  
+  // Autocomplete suggestions
+  const { data: bairroSuggestions } = useBairroSuggestions(bairro);
+  const { data: streetSuggestions } = useStreetSuggestions(logradouro, bairro || "BARRA DA TIJUCA");
   
   // Search trigger
   const [searchParams, setSearchParams] = useState<{
@@ -364,21 +375,110 @@ export function AdvancedSearchReport() {
           </div>
           <div className="space-y-1">
             <Label className="text-xs">Bairro</Label>
-            <Input
-              placeholder="Ex: Barra"
-              value={bairro}
-              onChange={(e) => setBairro(e.target.value)}
-              className="h-9 text-sm"
-            />
+            <Popover open={bairroPopoverOpen} onOpenChange={setBairroPopoverOpen}>
+              <PopoverTrigger asChild>
+                <div className="relative">
+                  <MapPin className="absolute left-2 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    placeholder="Digite o bairro..."
+                    value={bairro}
+                    onChange={(e) => {
+                      setBairro(e.target.value);
+                      if (e.target.value.length >= 2) {
+                        setBairroPopoverOpen(true);
+                      }
+                    }}
+                    className="h-9 text-sm pl-8"
+                  />
+                </div>
+              </PopoverTrigger>
+              {bairroSuggestions && bairroSuggestions.length > 0 && (
+                <PopoverContent className="w-[280px] p-0" align="start">
+                  <div className="max-h-[200px] overflow-y-auto">
+                    {bairroSuggestions.map((suggestion) => (
+                      <button
+                        key={suggestion.bairro}
+                        className="w-full px-3 py-2 text-left text-sm hover:bg-accent flex items-center justify-between"
+                        onClick={() => {
+                          setBairro(suggestion.bairro);
+                          setBairroPopoverOpen(false);
+                        }}
+                      >
+                        <span className="truncate">{suggestion.bairro}</span>
+                        <Badge variant="secondary" className="text-xs ml-2">
+                          {suggestion.total_transacoes.toLocaleString("pt-BR")}
+                        </Badge>
+                      </button>
+                    ))}
+                  </div>
+                </PopoverContent>
+              )}
+            </Popover>
           </div>
           <div className="space-y-1 col-span-2 sm:col-span-1">
             <Label className="text-xs">Logradouro</Label>
-            <Input
-              placeholder="Ex: Lucio Costa"
-              value={logradouro}
-              onChange={(e) => setLogradouro(e.target.value)}
-              className="h-9 text-sm"
-            />
+            <Popover open={logradouroPopoverOpen} onOpenChange={setLogradouroPopoverOpen}>
+              <PopoverTrigger asChild>
+                <div className="relative">
+                  <Building className="absolute left-2 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    placeholder="Rua ou condomínio..."
+                    value={logradouro}
+                    onChange={(e) => {
+                      setLogradouro(e.target.value);
+                      if (e.target.value.length >= 2) {
+                        setLogradouroPopoverOpen(true);
+                      }
+                    }}
+                    className="h-9 text-sm pl-8"
+                  />
+                </div>
+              </PopoverTrigger>
+              {streetSuggestions && streetSuggestions.length > 0 && (
+                <PopoverContent className="w-[320px] p-0" align="start">
+                  <div className="max-h-[250px] overflow-y-auto">
+                    {streetSuggestions.map((suggestion, idx) => (
+                      <button
+                        key={`${suggestion.logradouro}-${idx}`}
+                        className="w-full px-3 py-2 text-left text-sm hover:bg-accent border-b border-border/50 last:border-0"
+                        onClick={() => {
+                          setLogradouro(suggestion.logradouro);
+                          setLogradouroPopoverOpen(false);
+                        }}
+                      >
+                        <div className="flex items-center justify-between">
+                          <span className="font-medium truncate">
+                            {suggestion.nome_condominio || suggestion.logradouro}
+                          </span>
+                          <Badge variant="secondary" className="text-xs ml-2 shrink-0">
+                            {suggestion.total_transacoes.toLocaleString("pt-BR")}
+                          </Badge>
+                        </div>
+                        {suggestion.nome_condominio && (
+                          <span className="text-xs text-muted-foreground truncate block">
+                            {suggestion.logradouro}
+                          </span>
+                        )}
+                        {(suggestion.microbairro || suggestion.padrao_construtivo) && (
+                          <div className="flex gap-1 mt-1">
+                            {suggestion.microbairro && (
+                              <Badge variant="outline" className="text-xs">
+                                {suggestion.microbairro}
+                              </Badge>
+                            )}
+                            {suggestion.padrao_construtivo && (
+                              <Badge variant="outline" className="text-xs">
+                                {suggestion.padrao_construtivo}
+                              </Badge>
+                            )}
+                          </div>
+                        )}
+                      </button>
+                    ))}
+                  </div>
+                </PopoverContent>
+              )}
+            </Popover>
           </div>
         </div>
 
