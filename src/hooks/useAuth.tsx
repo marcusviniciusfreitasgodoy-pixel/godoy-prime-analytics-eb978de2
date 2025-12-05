@@ -38,12 +38,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
     );
 
-    // THEN check for existing session
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session);
-      setUser(session?.user ?? null);
-      setLoading(false);
-    });
+    // THEN check for existing session with error handling
+    supabase.auth.getSession()
+      .then(({ data: { session }, error }) => {
+        if (error) {
+          console.error('Error getting session:', error);
+          // Clear invalid token from localStorage
+          const storageKey = `sb-ldiadiezzooivgittjvj-auth-token`;
+          localStorage.removeItem(storageKey);
+        }
+        setSession(session);
+        setUser(session?.user ?? null);
+        setLoading(false);
+      })
+      .catch((error) => {
+        console.error('Fatal error getting session:', error);
+        setLoading(false);
+      });
 
     return () => subscription.unsubscribe();
   }, []);
@@ -55,7 +66,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         password,
       });
 
-      if (error) throw error;
+      if (error) {
+        if (error.message.includes('Invalid login credentials')) {
+          throw new Error('Email ou senha incorretos.');
+        }
+        throw error;
+      }
 
       toast.success('Login realizado com sucesso!');
       navigate('/');
@@ -69,7 +85,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     try {
       const redirectUrl = `${window.location.origin}/`;
       
-      const { error } = await supabase.auth.signUp({
+      const { error, data: signUpData } = await supabase.auth.signUp({
         email: data.email,
         password: data.password,
         options: {
@@ -81,9 +97,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         }
       });
 
-      if (error) throw error;
+      if (error) {
+        if (error.message.includes('User already registered')) {
+          throw new Error('Este email já está cadastrado. Tente fazer login.');
+        }
+        if (error.message.includes('Password should be at least')) {
+          throw new Error('A senha deve ter pelo menos 6 caracteres.');
+        }
+        throw error;
+      }
 
-      toast.success('Cadastro realizado! Você já pode fazer login.');
+      // Check if email confirmation is required
+      if (signUpData.user && !signUpData.session) {
+        toast.info('Verifique seu email para confirmar o cadastro.');
+      } else {
+        toast.success('Cadastro realizado! Você já pode fazer login.');
+      }
+      
       navigate('/');
     } catch (error: any) {
       toast.error(error.message || 'Erro ao criar conta');
