@@ -6,7 +6,6 @@ import {
   TrendingDown, 
   Minus, 
   FileDown, 
-  Share2, 
   CheckCircle,
   AlertTriangle,
   Clock,
@@ -83,17 +82,6 @@ export function Step5Recommendation({ result, state, combined, onReset }: Props)
     } catch (error) {
       console.error("Erro ao exportar PDF:", error);
       toast.error("Erro ao exportar PDF");
-    }
-  };
-
-  const handleShare = () => {
-    const text = `Avaliação Godoy Prime\n${state.logradouro}\n${state.area_m2}m²\n\nValor Provável: ${formatCurrency(result.provavel)}\nIntervalo: ${formatCurrency(result.pessimista)} - ${formatCurrency(result.otimista)}`;
-    
-    if (navigator.share) {
-      navigator.share({ text });
-    } else {
-      navigator.clipboard.writeText(text);
-      toast.success("Texto copiado para a área de transferência");
     }
   };
 
@@ -249,14 +237,10 @@ export function Step5Recommendation({ result, state, combined, onReset }: Props)
       </Card>
 
       {/* Ações */}
-      <div className="grid grid-cols-2 gap-3">
-        <Button onClick={handleExportPDF} variant="outline" className="w-full">
+      <div className="flex justify-center">
+        <Button onClick={handleExportPDF} variant="outline" className="w-full max-w-xs">
           <FileDown className="mr-2 h-4 w-4" />
           Baixar PDF
-        </Button>
-        <Button onClick={handleShare} variant="outline" className="w-full">
-          <Share2 className="mr-2 h-4 w-4" />
-          Compartilhar
         </Button>
       </div>
 
