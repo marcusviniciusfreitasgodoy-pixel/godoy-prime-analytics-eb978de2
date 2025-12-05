@@ -2,6 +2,7 @@ import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 
 export type GranularityType = 'semester' | 'annual';
+export type MetricType = 'valorization' | 'liquidity';
 
 export interface MicrobairroEvolutionData {
   periodo: string;
@@ -31,29 +32,28 @@ const classificarMicrobairro = (logradouro: string): string | null => {
   if (log.includes('DULCIDIO') || log.includes('DULCÍDIO') || log.includes('CARDOSO')) {
     return 'ABM';
   }
-  // Parque das Rosas (próximo ao Barra Shopping)
   if (log.includes('MARIO COVAS') || log.includes('MÁRIO COVAS') ||
       log.includes('CESAR LATTES') || log.includes('CÉSAR LATTES') ||
       log.includes('HENRIQUE CORDEIRO')) {
     return 'Parque das Rosas';
   }
-  // Eixo Américas (outros condomínios da Av. das Américas)
   if (log.includes('AMERICAS') || log.includes('AMÉRICAS')) {
     return 'Eixo Américas';
   }
   
-  return null; // Ignorar "Outros"
+  return null;
 };
 
 export const useMicrobairroEvolutionData = (
   bairro: string = 'BARRA DA TIJUCA',
-  granularity: GranularityType = 'semester'
+  granularity: GranularityType = 'semester',
+  metric: MetricType = 'valorization'
 ) => {
   return useQuery({
-    queryKey: ['microbairro-evolution', bairro, granularity],
+    queryKey: ['microbairro-evolution', bairro, granularity, metric],
     queryFn: async () => {
-      const startDate = new Date();
-      startDate.setFullYear(startDate.getFullYear() - 5);
+      // Para liquidez acumulada, buscar desde 2020
+      const startDate = new Date('2020-01-01');
       
       let allData: any[] = [];
       let from = 0;
@@ -83,11 +83,11 @@ export const useMicrobairroEvolutionData = (
       }
       
       // Agrupar por período e microbairro
-      const grouped: Record<string, Record<string, { sum: number; count: number }>> = {};
+      const grouped: Record<string, Record<string, { sum: number; count: number; transactions: number }>> = {};
       
       allData.forEach(item => {
         const microbairro = classificarMicrobairro(item.logradouro);
-        if (!microbairro) return; // Ignorar "Outros"
+        if (!microbairro) return;
         
         const date = new Date(item.data_transacao);
         const year = date.getFullYear();
@@ -106,12 +106,13 @@ export const useMicrobairroEvolutionData = (
         }
         
         if (!grouped[periodo][microbairro]) {
-          grouped[periodo][microbairro] = { sum: 0, count: 0 };
+          grouped[periodo][microbairro] = { sum: 0, count: 0, transactions: 0 };
         }
         
         const transacoes = item.total_transacoes || 1;
         grouped[periodo][microbairro].sum += Number(item.valor_m2) * transacoes;
         grouped[periodo][microbairro].count += transacoes;
+        grouped[periodo][microbairro].transactions += transacoes;
       });
       
       // Converter para array ordenado
@@ -132,13 +133,27 @@ export const useMicrobairroEvolutionData = (
         Object.keys(periodData).forEach(mb => allMicrobairros.add(mb));
       });
       
+      // Calcular valores acumulados para liquidez
+      const cumulativeTransactions: Record<string, number> = {};
+      allMicrobairros.forEach(mb => {
+        cumulativeTransactions[mb] = 0;
+      });
+      
       const result: MicrobairroEvolutionData[] = sortedPeriods.map(periodo => {
         const entry: MicrobairroEvolutionData = { periodo };
         
         allMicrobairros.forEach(microbairro => {
           const data = grouped[periodo][microbairro];
-          if (data && data.count > 0) {
-            entry[microbairro] = Math.round(data.sum / data.count);
+          if (metric === 'valorization') {
+            if (data && data.count > 0) {
+              entry[microbairro] = Math.round(data.sum / data.count);
+            }
+          } else {
+            // Liquidez acumulada
+            if (data) {
+              cumulativeTransactions[microbairro] += data.transactions;
+            }
+            entry[microbairro] = cumulativeTransactions[microbairro];
           }
         });
         
