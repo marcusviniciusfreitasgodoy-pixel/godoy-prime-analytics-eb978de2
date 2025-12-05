@@ -9,7 +9,8 @@ export interface MicrobairroEvolutionData {
   [microbairro: string]: string | number;
 }
 
-const classificarMicrobairro = (logradouro: string): string | null => {
+// Classificação específica para Barra da Tijuca
+const classificarMicrobairroBarra = (logradouro: string): string | null => {
   const log = logradouro.toUpperCase();
   
   if (log.includes('LUCIO COSTA') || log.includes('LÚCIO COSTA') || 
@@ -42,6 +43,21 @@ const classificarMicrobairro = (logradouro: string): string | null => {
   }
   
   return null;
+};
+
+// Para outros bairros, usar logradouro simplificado como região
+const simplificarLogradouro = (logradouro: string): string => {
+  // Remove prefixos comuns e simplifica o nome
+  let nome = logradouro.toUpperCase()
+    .replace(/^(AVENIDA|AVN|AV\.?|RUA|R\.?|ESTRADA|EST\.?|TRAVESSA|TV\.?|PRACA|PCA\.?|PRAÇA|ALAMEDA|AL\.?)\s+/i, '')
+    .trim();
+  
+  // Limita o tamanho para melhor visualização
+  if (nome.length > 25) {
+    nome = nome.substring(0, 22) + '...';
+  }
+  
+  return nome;
 };
 
 export const useMicrobairroEvolutionData = (
@@ -82,12 +98,40 @@ export const useMicrobairroEvolutionData = (
         }
       }
       
-      // Agrupar por período e microbairro
+      // Para bairros que não são Barra, primeiro identificar os logradouros mais frequentes
+      const isBarra = bairro.toUpperCase().includes('BARRA DA TIJUCA');
+      
+      // Contar transações por logradouro para encontrar os top 8
+      const logradouroCount: Record<string, number> = {};
+      if (!isBarra) {
+        allData.forEach(item => {
+          const nome = simplificarLogradouro(item.logradouro);
+          logradouroCount[nome] = (logradouroCount[nome] || 0) + (item.total_transacoes || 1);
+        });
+      }
+      
+      // Pegar os 8 logradouros com mais transações para não-Barra
+      const topLogradouros = !isBarra 
+        ? Object.entries(logradouroCount)
+            .sort((a, b) => b[1] - a[1])
+            .slice(0, 8)
+            .map(([nome]) => nome)
+        : [];
+      
+      // Agrupar por período e microbairro/logradouro
       const grouped: Record<string, Record<string, { sum: number; count: number; transactions: number }>> = {};
       
       allData.forEach(item => {
-        const microbairro = classificarMicrobairro(item.logradouro);
-        if (!microbairro) return;
+        let regiao: string | null;
+        
+        if (isBarra) {
+          regiao = classificarMicrobairroBarra(item.logradouro);
+        } else {
+          const nome = simplificarLogradouro(item.logradouro);
+          regiao = topLogradouros.includes(nome) ? nome : null;
+        }
+        
+        if (!regiao) return;
         
         const date = new Date(item.data_transacao);
         const year = date.getFullYear();
@@ -105,14 +149,14 @@ export const useMicrobairroEvolutionData = (
           grouped[periodo] = {};
         }
         
-        if (!grouped[periodo][microbairro]) {
-          grouped[periodo][microbairro] = { sum: 0, count: 0, transactions: 0 };
+        if (!grouped[periodo][regiao]) {
+          grouped[periodo][regiao] = { sum: 0, count: 0, transactions: 0 };
         }
         
         const transacoes = item.total_transacoes || 1;
-        grouped[periodo][microbairro].sum += Number(item.valor_m2) * transacoes;
-        grouped[periodo][microbairro].count += transacoes;
-        grouped[periodo][microbairro].transactions += transacoes;
+        grouped[periodo][regiao].sum += Number(item.valor_m2) * transacoes;
+        grouped[periodo][regiao].count += transacoes;
+        grouped[periodo][regiao].transactions += transacoes;
       });
       
       // Converter para array ordenado
