@@ -73,15 +73,24 @@ serve(async (req) => {
 
     console.log('Admin role verified for user:', user.id);
 
+    // Debug: Log available environment variable names (not values)
+    const envVars = ['SUPABASE_SOURCE_URL', 'SUPABASE_SOURCE_ANON_KEY', 'SUPABASE_URL', 'SUPABASE_SERVICE_ROLE_KEY'];
+    envVars.forEach(name => {
+      const value = Deno.env.get(name);
+      console.log(`ENV ${name}: ${value ? 'SET (length: ' + value.length + ')' : 'NOT SET'}`);
+    });
+
     // Source project credentials from server-side secrets only
     const sourceUrl = Deno.env.get('SUPABASE_SOURCE_URL');
     const sourceKey = Deno.env.get('SUPABASE_SOURCE_ANON_KEY');
 
     if (!sourceUrl || sourceUrl.trim() === '') {
+      console.error('SUPABASE_SOURCE_URL is missing or empty. Please configure it in Edge Function secrets.');
       throw new Error('SUPABASE_SOURCE_URL não está configurado nos secrets do servidor.');
     }
 
     if (!sourceKey || sourceKey.trim() === '') {
+      console.error('SUPABASE_SOURCE_ANON_KEY is missing or empty. Please configure it in Edge Function secrets.');
       throw new Error('SUPABASE_SOURCE_ANON_KEY não está configurado nos secrets do servidor.');
     }
 
