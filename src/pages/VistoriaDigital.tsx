@@ -521,41 +521,21 @@ export default function VistoriaDigital() {
     setIsGeneratingPDF(true);
     
     try {
+      // Dynamic import for PDF template functions
+      const { drawGodoyHeader, drawSectionTitle, applyFootersToAllPages, BRAND_COLORS, getMaxContentY } = await import('@/utils/pdfTemplate');
+      
       const doc = new jsPDF();
       const pageWidth = doc.internal.pageSize.getWidth();
       const marginLeft = 20;
-      let yPos = 20;
       
-      // Header
-      doc.setFillColor(12, 35, 64);
-      doc.rect(0, 0, pageWidth, 40, 'F');
+      // Header padronizado
+      let yPos = drawGodoyHeader(doc, 'Relatório de Vistoria Digital');
       
-      doc.setTextColor(255, 255, 255);
-      doc.setFontSize(20);
-      doc.setFont('helvetica', 'bold');
-      doc.text('GODOY PRIME ANALYTICS', marginLeft, 18);
-      
-      doc.setFontSize(12);
-      doc.setFont('helvetica', 'normal');
-      doc.text('Relatorio de Vistoria Digital', marginLeft, 28);
-      
-      doc.setFontSize(9);
-      doc.text(`Gerado em: ${formatDate(new Date())}`, marginLeft, 36);
-      
-      yPos = 50;
-      
-      // Identificacao do Imovel
-      doc.setFontSize(11);
-      doc.setFont('helvetica', 'bold');
-      doc.setTextColor(12, 35, 64);
-      doc.text('IDENTIFICACAO DO IMOVEL', marginLeft, yPos);
-      doc.setDrawColor(212, 175, 55);
-      doc.setLineWidth(0.5);
-      doc.line(marginLeft, yPos + 2, marginLeft + 60, yPos + 2);
-      yPos += 10;
+      // Identificação do Imóvel
+      yPos = drawSectionTitle(doc, 'Identificação do Imóvel', yPos, marginLeft);
       
       doc.setFontSize(10);
-      doc.setTextColor(40, 40, 40);
+      doc.setTextColor(...BRAND_COLORS.darkGray);
       
       const configuracao = [
         propertyData.quartos ? `${propertyData.quartos} Qts` : null,
@@ -565,15 +545,15 @@ export default function VistoriaDigital() {
       ].filter(Boolean).join(' | ');
       
       const propertyInfo = [
-        ['Endereco:', `${propertyData.logradouro || 'Nao informado'}${propertyData.numero ? ', ' + propertyData.numero : ''}${propertyData.complemento ? ' - ' + propertyData.complemento : ''}`],
-        ['Condominio:', propertyData.nomeCondominio || '-'],
-        ['Bairro:', propertyData.bairro || 'Nao informado'],
-        ['Tipo:', propertyData.tipoImovel || 'Nao informado'],
-        ['Area:', propertyData.areaM2 ? `${propertyData.areaM2} m2` : 'Nao informada'],
-        ['Configuracao:', configuracao || 'Nao informada'],
-        ['Proprietario:', propertyData.proprietario || 'Nao informado'],
-        ['Telefone:', propertyData.telefone || 'Nao informado'],
-        ['Vistoriador:', propertyData.vistoriador || 'Nao informado'],
+        ['Endereço:', `${propertyData.logradouro || 'Não informado'}${propertyData.numero ? ', ' + propertyData.numero : ''}${propertyData.complemento ? ' - ' + propertyData.complemento : ''}`],
+        ['Condomínio:', propertyData.nomeCondominio || '-'],
+        ['Bairro:', propertyData.bairro || 'Não informado'],
+        ['Tipo:', propertyData.tipoImovel || 'Não informado'],
+        ['Área:', propertyData.areaM2 ? `${propertyData.areaM2} m²` : 'Não informada'],
+        ['Configuração:', configuracao || 'Não informada'],
+        ['Proprietário:', propertyData.proprietario || 'Não informado'],
+        ['Telefone:', propertyData.telefone || 'Não informado'],
+        ['Vistoriador:', propertyData.vistoriador || 'Não informado'],
         ['Data Vistoria:', propertyData.dataVistoria ? new Date(propertyData.dataVistoria).toLocaleDateString('pt-BR') : formatDate(new Date())],
       ];
       
@@ -588,7 +568,7 @@ export default function VistoriaDigital() {
       if (propertyData.observacoes) {
         yPos += 2;
         doc.setFont('helvetica', 'normal');
-        doc.text('Observacoes:', marginLeft + 5, yPos);
+        doc.text('Observações:', marginLeft + 5, yPos);
         yPos += 5;
         doc.setFontSize(9);
         const splitObs = doc.splitTextToSize(propertyData.observacoes, pageWidth - 50);
@@ -599,15 +579,10 @@ export default function VistoriaDigital() {
       yPos += 8;
       
       // Resumo da Vistoria
-      doc.setFontSize(11);
-      doc.setFont('helvetica', 'bold');
-      doc.setTextColor(12, 35, 64);
-      doc.text('RESUMO DA VISTORIA', marginLeft, yPos);
-      doc.line(marginLeft, yPos + 2, marginLeft + 50, yPos + 2);
-      yPos += 10;
+      yPos = drawSectionTitle(doc, 'Resumo da Vistoria', yPos, marginLeft);
       
       doc.setFontSize(10);
-      doc.setTextColor(40, 40, 40);
+      doc.setTextColor(...BRAND_COLORS.darkGray);
       doc.setFont('helvetica', 'normal');
       doc.text(`Progresso: ${getProgress()}%`, marginLeft + 5, yPos);
       yPos += 6;
@@ -617,17 +592,17 @@ export default function VistoriaDigital() {
       
       if (criticalCount > 0) {
         doc.setTextColor(220, 38, 38);
-        doc.text(`Itens Criticos: ${criticalCount}`, marginLeft + 5, yPos);
+        doc.text(`Itens Críticos: ${criticalCount}`, marginLeft + 5, yPos);
         yPos += 6;
       }
       
       if (attentionCount > 0) {
         doc.setTextColor(202, 138, 4);
-        doc.text(`Itens com Atencao: ${attentionCount}`, marginLeft + 5, yPos);
+        doc.text(`Itens com Atenção: ${attentionCount}`, marginLeft + 5, yPos);
         yPos += 6;
       }
       
-      doc.setTextColor(40, 40, 40);
+      doc.setTextColor(...BRAND_COLORS.darkGray);
       yPos += 8;
       
       // Categories
@@ -635,17 +610,17 @@ export default function VistoriaDigital() {
         const verifiedInCategory = category.items.filter(i => i.status !== 'nao-verificado');
         if (verifiedInCategory.length === 0) continue;
         
-        if (yPos > 250) {
+        if (yPos > getMaxContentY() - 20) {
           doc.addPage();
           yPos = 20;
         }
         
-        doc.setFillColor(240, 240, 240);
+        doc.setFillColor(...BRAND_COLORS.lightGray);
         doc.rect(15, yPos - 4, pageWidth - 30, 8, 'F');
         
         doc.setFont('helvetica', 'bold');
         doc.setFontSize(10);
-        doc.setTextColor(12, 35, 64);
+        doc.setTextColor(...BRAND_COLORS.navy);
         doc.text(category.title, marginLeft, yPos);
         yPos += 10;
         
@@ -655,7 +630,7 @@ export default function VistoriaDigital() {
         for (const item of category.items) {
           if (item.status === 'nao-verificado') continue;
           
-          if (yPos > 280) {
+          if (yPos > getMaxContentY()) {
             doc.addPage();
             yPos = 20;
           }
@@ -664,7 +639,7 @@ export default function VistoriaDigital() {
           doc.setTextColor(...config.pdfColor);
           doc.text(`[${config.label.toUpperCase()}]`, marginLeft, yPos);
           
-          doc.setTextColor(40, 40, 40);
+          doc.setTextColor(...BRAND_COLORS.darkGray);
           const splitLabel = doc.splitTextToSize(item.label, pageWidth - 80);
           doc.text(splitLabel, marginLeft + 35, yPos);
           yPos += splitLabel.length * 4 + 2;
@@ -673,7 +648,7 @@ export default function VistoriaDigital() {
           const itemPhotos = photos.filter(p => p.categoryId === category.id && p.itemId === item.id);
           if (itemPhotos.length > 0) {
             doc.setFontSize(8);
-            doc.setTextColor(100, 100, 100);
+            doc.setTextColor(...BRAND_COLORS.gray);
             doc.text(`[${itemPhotos.length} foto(s) anexada(s)]`, marginLeft + 35, yPos);
             yPos += 4;
           }
@@ -687,17 +662,10 @@ export default function VistoriaDigital() {
         doc.addPage();
         yPos = 20;
         
-        doc.setFontSize(14);
-        doc.setFont('helvetica', 'bold');
-        doc.setTextColor(12, 35, 64);
-        doc.text('ANEXO: REGISTRO FOTOGRAFICO', marginLeft, yPos);
-        doc.setDrawColor(212, 175, 55);
-        doc.setLineWidth(0.5);
-        doc.line(marginLeft, yPos + 2, marginLeft + 80, yPos + 2);
-        yPos += 15;
+        yPos = drawSectionTitle(doc, 'Anexo: Registro Fotográfico', yPos, marginLeft);
         
         doc.setFontSize(9);
-        doc.setTextColor(100, 100, 100);
+        doc.setTextColor(...BRAND_COLORS.gray);
         doc.text(`Total de ${photos.length} foto(s) registrada(s) durante a vistoria`, marginLeft, yPos);
         yPos += 10;
         
@@ -727,7 +695,7 @@ export default function VistoriaDigital() {
           // Category header
           doc.setFontSize(10);
           doc.setFont('helvetica', 'bold');
-          doc.setTextColor(12, 35, 64);
+          doc.setTextColor(...BRAND_COLORS.navy);
           doc.text(category.title, marginLeft, yPos);
           yPos += 8;
           
@@ -739,7 +707,7 @@ export default function VistoriaDigital() {
               yPos += imgHeight + 15;
             }
             
-            if (yPos + imgHeight > 270) {
+            if (yPos + imgHeight > getMaxContentY()) {
               doc.addPage();
               yPos = 20;
               xPos = marginLeft;
@@ -760,11 +728,11 @@ export default function VistoriaDigital() {
             } catch (imgError) {
               console.error('Error adding image to PDF:', imgError);
               // Add placeholder for failed image
-              doc.setFillColor(240, 240, 240);
+              doc.setFillColor(...BRAND_COLORS.lightGray);
               doc.rect(xPos, yPos, imgWidth, imgHeight, 'F');
               doc.setFontSize(8);
               doc.setTextColor(150, 150, 150);
-              doc.text('Imagem indisponivel', xPos + 15, yPos + 30);
+              doc.text('Imagem indisponível', xPos + 15, yPos + 30);
               xPos += imgWidth + 10;
             }
           }
@@ -773,19 +741,8 @@ export default function VistoriaDigital() {
         }
       }
       
-      // Footer
-      const pageCount = doc.internal.pages.length - 1;
-      for (let i = 1; i <= pageCount; i++) {
-        doc.setPage(i);
-        doc.setFontSize(8);
-        doc.setTextColor(128, 128, 128);
-        doc.text(
-          `Godoy Prime Analytics - Pagina ${i} de ${pageCount}`,
-          pageWidth / 2,
-          290,
-          { align: 'center' }
-        );
-      }
+      // Apply footers to all pages
+      applyFootersToAllPages(doc);
       
       const filename = `vistoria_${propertyData.logradouro?.replace(/\s+/g, '_').substring(0, 20) || 'imovel'}_${new Date().toISOString().split('T')[0]}.pdf`;
       doc.save(filename);
