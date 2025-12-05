@@ -28,8 +28,12 @@ interface PropertyData {
   numero: string;
   complemento: string;
   bairro: string;
+  nomeCondominio: string;
   tipoImovel: string;
   areaM2: string;
+  quartos: string;
+  suites: string;
+  banheiros: string;
   proprietario: string;
   telefone: string;
   vistoriador: string;
@@ -42,8 +46,12 @@ const initialPropertyData: PropertyData = {
   numero: '',
   complemento: '',
   bairro: 'BARRA DA TIJUCA',
+  nomeCondominio: '',
   tipoImovel: '',
   areaM2: '',
+  quartos: '',
+  suites: '',
+  banheiros: '',
   proprietario: '',
   telefone: '',
   vistoriador: '',
@@ -365,11 +373,19 @@ export default function VistoriaDigital() {
       doc.setFontSize(10);
       doc.setTextColor(40, 40, 40);
       
+      const configuracao = [
+        propertyData.quartos ? `${propertyData.quartos} Qts` : null,
+        propertyData.suites ? `${propertyData.suites} Stes` : null,
+        propertyData.banheiros ? `${propertyData.banheiros} Bnh` : null,
+      ].filter(Boolean).join(' | ');
+      
       const propertyInfo = [
         ['Endereco:', `${propertyData.logradouro || 'Nao informado'}${propertyData.numero ? ', ' + propertyData.numero : ''}${propertyData.complemento ? ' - ' + propertyData.complemento : ''}`],
+        ['Condominio:', propertyData.nomeCondominio || '-'],
         ['Bairro:', propertyData.bairro || 'Nao informado'],
         ['Tipo:', propertyData.tipoImovel || 'Nao informado'],
         ['Area:', propertyData.areaM2 ? `${propertyData.areaM2} m2` : 'Nao informada'],
+        ['Configuracao:', configuracao || 'Nao informada'],
         ['Proprietario:', propertyData.proprietario || 'Nao informado'],
         ['Telefone:', propertyData.telefone || 'Nao informado'],
         ['Vistoriador:', propertyData.vistoriador || 'Nao informado'],
@@ -598,6 +614,15 @@ export default function VistoriaDigital() {
                 placeholder="Barra da Tijuca"
               />
             </div>
+            <div className="sm:col-span-2">
+              <Label htmlFor="nomeCondominio">Nome do Condomínio</Label>
+              <Input
+                id="nomeCondominio"
+                value={propertyData.nomeCondominio}
+                onChange={(e) => updatePropertyData('nomeCondominio', e.target.value)}
+                placeholder="Ex: Riserva Golf"
+              />
+            </div>
             <div>
               <Label htmlFor="tipoImovel">Tipo do Imóvel</Label>
               <Select value={propertyData.tipoImovel} onValueChange={(v) => updatePropertyData('tipoImovel', v)}>
@@ -621,6 +646,36 @@ export default function VistoriaDigital() {
                 value={propertyData.areaM2}
                 onChange={(e) => updatePropertyData('areaM2', e.target.value)}
                 placeholder="150"
+                type="number"
+              />
+            </div>
+            <div>
+              <Label htmlFor="quartos">Quartos</Label>
+              <Input
+                id="quartos"
+                value={propertyData.quartos}
+                onChange={(e) => updatePropertyData('quartos', e.target.value)}
+                placeholder="3"
+                type="number"
+              />
+            </div>
+            <div>
+              <Label htmlFor="suites">Suítes</Label>
+              <Input
+                id="suites"
+                value={propertyData.suites}
+                onChange={(e) => updatePropertyData('suites', e.target.value)}
+                placeholder="1"
+                type="number"
+              />
+            </div>
+            <div>
+              <Label htmlFor="banheiros">Banheiros</Label>
+              <Input
+                id="banheiros"
+                value={propertyData.banheiros}
+                onChange={(e) => updatePropertyData('banheiros', e.target.value)}
+                placeholder="2"
                 type="number"
               />
             </div>
