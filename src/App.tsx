@@ -4,6 +4,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { SidebarProvider } from "@/components/ui/sidebar";
+import { BairroProvider } from "@/contexts/BairroContext";
 import { AppSidebar } from "@/components/AppSidebar";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
@@ -22,24 +23,26 @@ const App = () => {
         <Toaster />
         <Sonner />
         <BrowserRouter>
-          <SidebarProvider defaultOpen={true}>
-            <div className="min-h-screen flex w-full bg-background">
-              <AppSidebar />
-              <div className="flex-1 flex flex-col">
-                <Header />
-                <main className="flex-1 px-1 py-2 sm:p-6 overflow-auto">
-                  <Routes>
-                    <Route path="/" element={<Dashboard />} />
-                    <Route path="/microbairros" element={<Microbairros />} />
-                    <Route path="/vistoria-digital" element={<VistoriaDigital />} />
-                    <Route path="/documentacao" element={<Documentacao />} />
-                    <Route path="*" element={<NotFound />} />
-                  </Routes>
-                </main>
-                <Footer />
+          <BairroProvider>
+            <SidebarProvider defaultOpen={true}>
+              <div className="min-h-screen flex w-full bg-background">
+                <AppSidebar />
+                <div className="flex-1 flex flex-col">
+                  <Header />
+                  <main className="flex-1 px-1 py-2 sm:p-6 overflow-auto">
+                    <Routes>
+                      <Route path="/" element={<Dashboard />} />
+                      <Route path="/microbairros" element={<Microbairros />} />
+                      <Route path="/vistoria-digital" element={<VistoriaDigital />} />
+                      <Route path="/documentacao" element={<Documentacao />} />
+                      <Route path="*" element={<NotFound />} />
+                    </Routes>
+                  </main>
+                  <Footer />
+                </div>
               </div>
-            </div>
-          </SidebarProvider>
+            </SidebarProvider>
+          </BairroProvider>
         </BrowserRouter>
       </TooltipProvider>
     </QueryClientProvider>
