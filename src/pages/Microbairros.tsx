@@ -7,7 +7,9 @@ import { Skeleton } from "@/components/ui/skeleton";
 
 export default function Microbairros() {
   const { selectedBairro, setSelectedBairro } = useBairro();
+  console.log('[Microregiões] Bairro selecionado:', selectedBairro);
   const { data: microbairros, isLoading } = useMicrobairroDetalhado(selectedBairro);
+  console.log('[Microregiões] Dados recebidos:', microbairros?.length, 'registros');
 
   if (isLoading) {
     return (
