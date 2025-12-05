@@ -13,7 +13,7 @@ export function MicrobairroRanking({ bairro = "BARRA DA TIJUCA" }: MicrobairroRa
     return (
       <Card>
         <CardHeader>
-          <CardTitle className="text-base sm:text-lg">Ranking por Microbairro</CardTitle>
+          <CardTitle className="text-base sm:text-lg">Ranking por Região</CardTitle>
           <CardDescription>Mês referência:</CardDescription>
         </CardHeader>
         <CardContent>
@@ -39,7 +39,7 @@ export function MicrobairroRanking({ bairro = "BARRA DA TIJUCA" }: MicrobairroRa
   return (
     <Card>
       <CardHeader className="pb-2 px-4 sm:px-6">
-        <CardTitle className="text-base sm:text-lg">Ranking por Microbairro</CardTitle>
+        <CardTitle className="text-base sm:text-lg">Ranking por Região</CardTitle>
         <CardDescription className="text-xs sm:text-sm">Mês referência: {currentMonth}</CardDescription>
       </CardHeader>
       <CardContent className="space-y-3 sm:space-y-4 px-4 sm:px-6">
