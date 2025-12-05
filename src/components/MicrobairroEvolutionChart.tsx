@@ -25,6 +25,8 @@ const MICROBAIRRO_COLORS: Record<string, string> = {
   'Ayrton Senna': '#3B82F6',
   'Jardim Oceânico': '#8B5CF6',
   'ABM': '#F97316',
+  'Parque das Rosas': '#EC4899',
+  'Eixo Américas': '#14B8A6',
 };
 
 const formatCurrency = (value: number) => {
