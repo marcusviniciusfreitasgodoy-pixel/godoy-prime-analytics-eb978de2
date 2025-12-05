@@ -288,7 +288,7 @@ export default function Auth() {
             </Form>
           ) : (
             <Form {...signupForm}>
-              <form onSubmit={signupForm.handleSubmit(onSignupSubmit)} className="space-y-4">
+              <form onSubmit={signupForm.handleSubmit(onSignupSubmit)} className="space-y-4" autoComplete="off">
                 <FormField
                   control={signupForm.control}
                   name="fullName"
@@ -299,6 +299,7 @@ export default function Auth() {
                         <Input 
                           type="text" 
                           placeholder="João da Silva"
+                          autoComplete="name"
                           className="bg-primary-foreground/10 border-primary-foreground/30 text-primary-foreground placeholder:text-primary-foreground/50"
                           {...field}
                         />
@@ -318,6 +319,7 @@ export default function Auth() {
                         <Input 
                           type="email" 
                           placeholder="seu.email@empresa.com.br"
+                          autoComplete="email"
                           className="bg-primary-foreground/10 border-primary-foreground/30 text-primary-foreground placeholder:text-primary-foreground/50"
                           {...field}
                         />
@@ -337,6 +339,7 @@ export default function Auth() {
                         <Input 
                           type="tel" 
                           placeholder="(21) 99999-9999"
+                          autoComplete="tel"
                           className="bg-primary-foreground/10 border-primary-foreground/30 text-primary-foreground placeholder:text-primary-foreground/50"
                           {...field}
                           onChange={(e) => {
@@ -359,6 +362,7 @@ export default function Auth() {
                         <Input 
                           type="password" 
                           placeholder="••••••••"
+                          autoComplete="new-password"
                           className="bg-primary-foreground/10 border-primary-foreground/30 text-primary-foreground placeholder:text-primary-foreground/50"
                           {...field}
                         />
