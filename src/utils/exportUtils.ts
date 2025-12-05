@@ -1,13 +1,13 @@
 // Utility functions for exporting data
 import * as XLSX from 'xlsx';
-
-// Godoy Prime brand colors
-const BRAND_COLORS = {
-  navy: '0C2340',
-  gold: 'D4AF37',
-  white: 'FFFFFF',
-  lightGray: 'F5F5F5',
-};
+import {
+  BRAND_COLORS,
+  CONTACT_INFO,
+  drawGodoyHeader,
+  drawSectionTitle,
+  applyFootersToAllPages,
+  getMaxContentY,
+} from './pdfTemplate';
 
 export function exportToCSV(data: Record<string, any>[], filename: string) {
   if (data.length === 0) return;
@@ -58,7 +58,7 @@ export function exportToXLSX(options: ExportXLSXOptions) {
   const summaryRows: any[][] = [];
   
   // Header com título
-  summaryRows.push([title || 'Relatório Godoy Prime Analytics']);
+  summaryRows.push([title || 'Relatório Godoy Prime Realty']);
   summaryRows.push([subtitle || `Gerado em ${new Date().toLocaleDateString('pt-BR', { 
     day: '2-digit', 
     month: 'long', 
@@ -66,7 +66,7 @@ export function exportToXLSX(options: ExportXLSXOptions) {
     hour: '2-digit',
     minute: '2-digit'
   })}`]);
-  summaryRows.push([]); // Linha vazia
+  summaryRows.push([]);
   
   // Filtros aplicados
   if (filters && Object.keys(filters).length > 0) {
@@ -93,12 +93,14 @@ export function exportToXLSX(options: ExportXLSXOptions) {
   summaryRows.push(['Total de Registros', data.length.toString()]);
   summaryRows.push(['Fonte de Dados', 'ITBI - Prefeitura do Rio de Janeiro']);
   summaryRows.push(['Data de Geração', new Date().toLocaleString('pt-BR')]);
+  summaryRows.push([]);
+  summaryRows.push(['CONTATO']);
+  summaryRows.push([`Godoy Prime Realty - ${CONTACT_INFO.creci}`]);
+  summaryRows.push([`Tel: ${CONTACT_INFO.phone}`]);
+  summaryRows.push([CONTACT_INFO.address]);
   
   const summarySheet = XLSX.utils.aoa_to_sheet(summaryRows);
-  
-  // Definir largura das colunas do resumo
   summarySheet['!cols'] = [{ wch: 30 }, { wch: 40 }];
-  
   XLSX.utils.book_append_sheet(workbook, summarySheet, 'Resumo');
   
   // ============ ABA 2: DADOS ============
@@ -127,11 +129,8 @@ export function exportToXLSX(options: ExportXLSXOptions) {
   });
   
   const dataSheet = XLSX.utils.json_to_sheet(formattedData);
-  
-  // Definir largura das colunas
   const colWidths = [{ wch: 5 }, ...dataColumns.map(col => ({ wch: col.width || 15 }))];
   dataSheet['!cols'] = colWidths;
-  
   XLSX.utils.book_append_sheet(workbook, dataSheet, 'Transações');
   
   // ============ ABA 3: METODOLOGIA ============
@@ -162,13 +161,13 @@ export function exportToXLSX(options: ExportXLSXOptions) {
     ['• Esta ferramenta é de referência estatística e não substitui laudo PTAM'],
     [],
     ['Contato'],
-    ['Godoy Prime Analytics'],
-    ['Especialistas em Inteligência Imobiliária'],
+    [`Godoy Prime Realty - ${CONTACT_INFO.creci}`],
+    [`Tel: ${CONTACT_INFO.phone}`],
+    [CONTACT_INFO.address],
   ];
   
   const methodologySheet = XLSX.utils.aoa_to_sheet(methodologyRows);
   methodologySheet['!cols'] = [{ wch: 100 }];
-  
   XLSX.utils.book_append_sheet(workbook, methodologySheet, 'Metodologia');
   
   // Gerar arquivo
@@ -219,33 +218,20 @@ export async function exportToPDF(options: ExportPDFOptions) {
   
   const doc = new jsPDF();
   const pageWidth = doc.internal.pageSize.getWidth();
-  let yPos = 20;
+  const marginLeft = 14;
   
   // Header
-  doc.setFillColor(12, 35, 64); // Navy
-  doc.rect(0, 0, pageWidth, 35, 'F');
-  
-  doc.setTextColor(255, 255, 255);
-  doc.setFontSize(18);
-  doc.setFont('helvetica', 'bold');
-  doc.text(title || 'Relatório Godoy Prime Analytics', 14, 15);
-  
-  doc.setFontSize(10);
-  doc.setFont('helvetica', 'normal');
-  doc.text(subtitle || `Gerado em ${new Date().toLocaleDateString('pt-BR')}`, 14, 25);
-  
-  yPos = 45;
-  doc.setTextColor(0, 0, 0);
+  let yPos = drawGodoyHeader(doc, title || 'Relatório de Transações ITBI');
   
   // Filters section
   if (filters && Object.keys(filters).length > 0) {
-    doc.setFillColor(245, 245, 245);
+    doc.setFillColor(...BRAND_COLORS.lightGray);
     doc.rect(10, yPos - 5, pageWidth - 20, 8 + Object.keys(filters).length * 6, 'F');
     
     doc.setFontSize(11);
     doc.setFont('helvetica', 'bold');
-    doc.setTextColor(12, 35, 64);
-    doc.text('Filtros Aplicados:', 14, yPos);
+    doc.setTextColor(...BRAND_COLORS.navy);
+    doc.text('Filtros Aplicados:', marginLeft, yPos);
     yPos += 8;
     
     doc.setFontSize(9);
@@ -253,7 +239,7 @@ export async function exportToPDF(options: ExportPDFOptions) {
     doc.setTextColor(60, 60, 60);
     Object.entries(filters).forEach(([key, value]) => {
       if (value) {
-        doc.text(`${key}: ${value}`, 18, yPos);
+        doc.text(`${key}: ${value}`, marginLeft + 4, yPos);
         yPos += 5;
       }
     });
@@ -262,13 +248,13 @@ export async function exportToPDF(options: ExportPDFOptions) {
   
   // Summary section
   if (summary && summary.length > 0) {
-    doc.setFillColor(212, 175, 55); // Gold
+    doc.setFillColor(...BRAND_COLORS.gold);
     doc.rect(10, yPos - 3, pageWidth - 20, 8, 'F');
     
     doc.setFontSize(11);
     doc.setFont('helvetica', 'bold');
-    doc.setTextColor(12, 35, 64);
-    doc.text('Resumo Estatístico', 14, yPos + 3);
+    doc.setTextColor(...BRAND_COLORS.navy);
+    doc.text('Resumo Estatístico', marginLeft, yPos + 3);
     yPos += 12;
     
     doc.setFontSize(10);
@@ -277,7 +263,6 @@ export async function exportToPDF(options: ExportPDFOptions) {
     summary.forEach(({ label, value, format }) => {
       let formattedValue: string;
       if (typeof value === 'number') {
-        // Only format as currency if explicitly specified or if it's a large monetary value
         if (format === 'currency') {
           formattedValue = formatCurrencyNumber(value);
         } else {
@@ -286,37 +271,37 @@ export async function exportToPDF(options: ExportPDFOptions) {
       } else {
         formattedValue = String(value);
       }
-      doc.text(`${label}: ${formattedValue}`, 14, yPos);
+      doc.text(`${label}: ${formattedValue}`, marginLeft, yPos);
       yPos += 6;
     });
     yPos += 8;
   }
   
-  // Table header - increased to 7 columns to include Trans.
+  // Table header
   const dataColumns = columns || Object.keys(data[0]).slice(0, 7).map(key => ({ key, header: key }));
   const maxColumns = 7;
   const colWidth = (pageWidth - 28) / Math.min(dataColumns.length, maxColumns);
   
-  doc.setFillColor(12, 35, 64);
+  doc.setFillColor(...BRAND_COLORS.navy);
   doc.rect(10, yPos - 4, pageWidth - 20, 8, 'F');
   
   doc.setFontSize(7);
   doc.setFont('helvetica', 'bold');
-  doc.setTextColor(255, 255, 255);
+  doc.setTextColor(...BRAND_COLORS.white);
   
   dataColumns.slice(0, maxColumns).forEach((col, idx) => {
-    doc.text(col.header.substring(0, 12), 14 + idx * colWidth, yPos);
+    doc.text(col.header.substring(0, 12), marginLeft + idx * colWidth, yPos);
   });
   yPos += 8;
   
-  // Table data (limited to fit page)
+  // Table data
   doc.setFont('helvetica', 'normal');
   doc.setTextColor(0, 0, 0);
   doc.setFontSize(6);
   
   const maxRows = Math.min(data.length, 35);
   data.slice(0, maxRows).forEach((row, rowIdx) => {
-    if (yPos > 270) {
+    if (yPos > getMaxContentY()) {
       doc.addPage();
       yPos = 20;
     }
@@ -332,7 +317,6 @@ export async function exportToPDF(options: ExportPDFOptions) {
       const colFormat = (col as any).format;
       
       if (typeof value === 'number') {
-        // Format based on column type
         if (colFormat === 'currency' || (value > 1000 && colFormat !== 'number')) {
           value = formatCurrencyNumber(value);
         } else {
@@ -340,7 +324,7 @@ export async function exportToPDF(options: ExportPDFOptions) {
         }
       }
       const text = String(value ?? '').substring(0, 16);
-      doc.text(text, 14 + colIdx * colWidth, yPos);
+      doc.text(text, marginLeft + colIdx * colWidth, yPos);
     });
     yPos += 6;
   });
@@ -348,19 +332,12 @@ export async function exportToPDF(options: ExportPDFOptions) {
   if (data.length > maxRows) {
     yPos += 5;
     doc.setFontSize(8);
-    doc.setTextColor(100, 100, 100);
-    doc.text(`... e mais ${data.length - maxRows} registros (veja exportação Excel para dados completos)`, 14, yPos);
+    doc.setTextColor(...BRAND_COLORS.gray);
+    doc.text(`... e mais ${data.length - maxRows} registros (veja exportação Excel para dados completos)`, marginLeft, yPos);
   }
   
-  // Footer
-  const pageCount = doc.getNumberOfPages();
-  for (let i = 1; i <= pageCount; i++) {
-    doc.setPage(i);
-    doc.setFontSize(8);
-    doc.setTextColor(150, 150, 150);
-    doc.text('Godoy Prime Analytics - Inteligência Imobiliária', 14, 290);
-    doc.text(`Página ${i} de ${pageCount}`, pageWidth - 30, 290);
-  }
+  // Apply footers to all pages
+  applyFootersToAllPages(doc);
   
   const dateStr = new Date().toISOString().split('T')[0];
   doc.save(`${filename}_${dateStr}.pdf`);
