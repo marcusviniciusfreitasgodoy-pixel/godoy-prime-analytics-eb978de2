@@ -27,6 +27,7 @@ export interface LocationSearchResult {
     valor_m2: number;
     data_transacao: string;
     tipologia: string | null;
+    total_transacoes: number;
   }[];
 }
 
@@ -150,6 +151,7 @@ export function useLocationSearch(params: LocationSearchParams, enabled: boolean
           valor_m2: t.valor_m2!,
           data_transacao: t.data_transacao,
           tipologia: t.tipologia,
+          total_transacoes: t.total_transacoes || 1,
         })),
       };
     },
