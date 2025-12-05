@@ -207,8 +207,8 @@ interface ExportPDFOptions {
   subtitle?: string;
   filters?: Record<string, string>;
   data: Record<string, any>[];
-  columns?: { key: string; header: string }[];
-  summary?: { label: string; value: string | number }[];
+  columns?: { key: string; header: string; format?: 'currency' | 'number' | 'text' }[];
+  summary?: { label: string; value: string | number; format?: 'currency' | 'number' }[];
 }
 
 export async function exportToPDF(options: ExportPDFOptions) {
@@ -274,26 +274,37 @@ export async function exportToPDF(options: ExportPDFOptions) {
     doc.setFontSize(10);
     doc.setFont('helvetica', 'normal');
     doc.setTextColor(0, 0, 0);
-    summary.forEach(({ label, value }) => {
-      const formattedValue = typeof value === 'number' ? formatCurrencyNumber(value) : String(value);
+    summary.forEach(({ label, value, format }) => {
+      let formattedValue: string;
+      if (typeof value === 'number') {
+        // Only format as currency if explicitly specified or if it's a large monetary value
+        if (format === 'currency') {
+          formattedValue = formatCurrencyNumber(value);
+        } else {
+          formattedValue = value.toLocaleString('pt-BR');
+        }
+      } else {
+        formattedValue = String(value);
+      }
       doc.text(`${label}: ${formattedValue}`, 14, yPos);
       yPos += 6;
     });
     yPos += 8;
   }
   
-  // Table header
-  const dataColumns = columns || Object.keys(data[0]).slice(0, 6).map(key => ({ key, header: key }));
-  const colWidth = (pageWidth - 28) / Math.min(dataColumns.length, 6);
+  // Table header - increased to 7 columns to include Trans.
+  const dataColumns = columns || Object.keys(data[0]).slice(0, 7).map(key => ({ key, header: key }));
+  const maxColumns = 7;
+  const colWidth = (pageWidth - 28) / Math.min(dataColumns.length, maxColumns);
   
   doc.setFillColor(12, 35, 64);
   doc.rect(10, yPos - 4, pageWidth - 20, 8, 'F');
   
-  doc.setFontSize(8);
+  doc.setFontSize(7);
   doc.setFont('helvetica', 'bold');
   doc.setTextColor(255, 255, 255);
   
-  dataColumns.slice(0, 6).forEach((col, idx) => {
+  dataColumns.slice(0, maxColumns).forEach((col, idx) => {
     doc.text(col.header.substring(0, 12), 14 + idx * colWidth, yPos);
   });
   yPos += 8;
@@ -301,7 +312,7 @@ export async function exportToPDF(options: ExportPDFOptions) {
   // Table data (limited to fit page)
   doc.setFont('helvetica', 'normal');
   doc.setTextColor(0, 0, 0);
-  doc.setFontSize(7);
+  doc.setFontSize(6);
   
   const maxRows = Math.min(data.length, 35);
   data.slice(0, maxRows).forEach((row, rowIdx) => {
@@ -316,12 +327,19 @@ export async function exportToPDF(options: ExportPDFOptions) {
       doc.rect(10, yPos - 3, pageWidth - 20, 6, 'F');
     }
     
-    dataColumns.slice(0, 6).forEach((col, colIdx) => {
+    dataColumns.slice(0, maxColumns).forEach((col, colIdx) => {
       let value = row[col.key];
+      const colFormat = (col as any).format;
+      
       if (typeof value === 'number') {
-        value = value > 1000 ? formatCurrencyNumber(value) : value.toLocaleString('pt-BR');
+        // Format based on column type
+        if (colFormat === 'currency' || (value > 1000 && colFormat !== 'number')) {
+          value = formatCurrencyNumber(value);
+        } else {
+          value = value.toLocaleString('pt-BR');
+        }
       }
-      const text = String(value ?? '').substring(0, 18);
+      const text = String(value ?? '').substring(0, 16);
       doc.text(text, 14 + colIdx * colWidth, yPos);
     });
     yPos += 6;
