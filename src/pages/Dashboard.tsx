@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useLocation } from "react-router-dom";
+import { useLocation, useSearchParams } from "react-router-dom";
 import { FileDown, Info, HelpCircle, Monitor, FileSpreadsheet, FileText, BarChart3, Search, TrendingUp, MapPin, Database, FileImage, ClipboardCheck } from "lucide-react";
 import { generateTestChecklistPDF } from "@/utils/testChecklistPdf";
 import { Button } from "@/components/ui/button";
@@ -12,7 +12,6 @@ import { SearchTools } from "@/components/SearchTools";
 import { AdvancedSearchReport } from "@/components/AdvancedSearchReport";
 import { GuidedTour } from "@/components/GuidedTour";
 import { BairroSelector } from "@/components/BairroSelector";
-import { useBairro } from "@/contexts/BairroContext";
 import { supabase } from "@/integrations/supabase/client";
 import { exportToCSV, exportToXLSX } from "@/utils/exportUtils";
 import { exportDashboardPDF, exportDashboardXLSX } from "@/utils/dashboardExport";
@@ -22,12 +21,45 @@ import { useEvolutionData } from "@/hooks/useEvolutionData";
 import { useToast } from "@/hooks/use-toast";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator, DropdownMenuLabel } from "@/components/ui/dropdown-menu";
 
+const STORAGE_KEY = 'godoy-selected-bairro';
+const DEFAULT_BAIRRO = 'BARRA DA TIJUCA';
+
 export default function Dashboard() {
   const [runTour, setRunTour] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
-  const { selectedBairro, setSelectedBairro } = useBairro();
+  const [searchParams, setSearchParams] = useSearchParams();
   const { toast } = useToast();
   const location = useLocation();
+
+  // Get bairro from URL params or localStorage
+  const getBairroFromStorage = () => {
+    try {
+      return localStorage.getItem(STORAGE_KEY) || DEFAULT_BAIRRO;
+    } catch {
+      return DEFAULT_BAIRRO;
+    }
+  };
+
+  const urlBairro = searchParams.get('bairro');
+  const [selectedBairro, setSelectedBairroState] = useState(urlBairro || getBairroFromStorage());
+
+  // Update URL and localStorage when bairro changes
+  const setSelectedBairro = (bairro: string) => {
+    setSelectedBairroState(bairro);
+    setSearchParams({ bairro });
+    try {
+      localStorage.setItem(STORAGE_KEY, bairro);
+    } catch {
+      // localStorage not available
+    }
+  };
+
+  // Sync with URL params on mount
+  useEffect(() => {
+    if (urlBairro && urlBairro !== selectedBairro) {
+      setSelectedBairroState(urlBairro);
+    }
+  }, [urlBairro]);
 
   // Check for vistoria data from navigation
   const vistoriaData = (location.state as { vistoriaData?: any })?.vistoriaData;
@@ -425,67 +457,71 @@ export default function Dashboard() {
         </div>
       </div>
 
-      {/* Avisos - visíveis apenas em desktop */}
-      <Alert className="hidden sm:flex">
-        <Info className="h-4 w-4" />
-        <AlertDescription className="text-xs sm:text-sm">
-          <strong>Disclaimer Jurídico:</strong> Esta ferramenta fornece análises estatísticas 
-          baseadas em dados públicos de ITBI. As informações não substituem laudos oficiais 
-          (PTAM) e devem ser utilizadas apenas como referência de mercado.
-        </AlertDescription>
-      </Alert>
-
-      <div data-tour="kpis">
+      {/* KPIs Section */}
+      <section id="kpis" className="step-kpis">
         <DashboardKPIs bairro={selectedBairro} />
-      </div>
+      </section>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <div data-tour="evolution-chart">
+      {/* Charts Section - Desktop Only */}
+      <div className="hidden sm:grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <section id="evolution" className="step-evolution">
           <EvolutionChart bairro={selectedBairro} />
-        </div>
-        <div data-tour="microbairro-ranking">
+        </section>
+        <section id="ranking" className="step-ranking">
           <MicrobairroRanking bairro={selectedBairro} />
-        </div>
+        </section>
       </div>
 
-      <div data-tour="microbairro-evolution">
+      {/* Mobile Charts Message */}
+      <div className="sm:hidden">
+        <Alert>
+          <Monitor className="h-4 w-4" />
+          <AlertDescription className="text-xs">
+            Para melhor experiência com gráficos e análises detalhadas, recomendamos usar um computador ou tablet.
+          </AlertDescription>
+        </Alert>
+      </div>
+
+      {/* Microbairro Evolution Chart - Desktop Only */}
+      <div className="hidden sm:block">
         <MicrobairroEvolutionChart bairro={selectedBairro} />
       </div>
 
-      <div data-tour="search-tools">
-        <SearchTools bairro={selectedBairro} vistoriaData={vistoriaData} />
-      </div>
+      {/* Search Tools Section */}
+      <section id="search" className="step-search">
+        <SearchTools bairro={selectedBairro} />
+      </section>
 
-      <div data-tour="advanced-report">
+      {/* Advanced Search Report - Desktop Only */}
+      <div className="hidden sm:block">
         <AdvancedSearchReport />
       </div>
 
-      {/* Avisos - visíveis apenas em mobile, no final da página */}
-      <div className="sm:hidden space-y-3">
-        <Alert>
-          <Info className="h-4 w-4" />
-          <AlertDescription className="text-xs">
-            <strong>Disclaimer Jurídico:</strong> Esta ferramenta fornece análises estatísticas 
-            baseadas em dados públicos de ITBI. As informações não substituem laudos oficiais 
-            (PTAM) e devem ser utilizadas apenas como referência de mercado.
-          </AlertDescription>
-        </Alert>
+      {/* Legal Disclaimer - Desktop */}
+      <div className="hidden sm:block">
         <Alert className="bg-muted/50 border-muted">
-          <Monitor className="h-4 w-4" />
-          <AlertDescription className="text-xs">
-            <strong>Dica:</strong> Para melhor experiência com gráficos e análises detalhadas, 
-            recomendamos usar um computador ou tablet.
+          <Info className="h-4 w-4" />
+          <AlertDescription className="text-xs text-muted-foreground">
+            <strong>Aviso Legal:</strong> Os dados apresentados são de natureza estatística, baseados em transações ITBI oficiais, 
+            e não substituem laudos técnicos de avaliação (PTAM) conforme NBR 14653.
           </AlertDescription>
         </Alert>
       </div>
 
-      {/* Botão flutuante para gerar checklist de testes (temporário) */}
+      {/* Mobile Tips */}
+      <div className="sm:hidden space-y-2 mt-4">
+        <p className="text-[11px] text-muted-foreground text-center">
+          Deslize para ver mais opções • Clique nos cards para detalhes
+        </p>
+      </div>
+
+      {/* Floating Test Button */}
       <Button
-        onClick={generateTestChecklistPDF}
-        className="fixed bottom-6 right-6 z-50 shadow-lg bg-accent hover:bg-accent/90 text-accent-foreground"
-        size="lg"
+        onClick={() => generateTestChecklistPDF()}
+        className="fixed bottom-6 right-6 bg-accent hover:bg-accent/90 text-accent-foreground shadow-lg z-50"
+        size="sm"
       >
-        <ClipboardCheck className="h-5 w-5 mr-2" />
+        <ClipboardCheck className="h-4 w-4 mr-2" />
         Gerar Checklist PDF
       </Button>
     </div>
