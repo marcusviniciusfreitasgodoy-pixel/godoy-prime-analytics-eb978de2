@@ -1,4 +1,5 @@
 import { useState, useMemo, useRef, useEffect } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "./ui/tabs";
 import { Input } from "./ui/input";
@@ -79,6 +80,7 @@ const VALOR_OPTIONS = [
 export function SearchTools({ bairro = "BARRA DA TIJUCA", vistoriaData }: SearchToolsProps) {
   const { toast } = useToast();
   const { history, addToHistory, clearHistory } = useSearchHistory();
+  const queryClient = useQueryClient();
   
   // Location search state
   const [locationQuery, setLocationQuery] = useState("");
@@ -192,6 +194,8 @@ export function SearchTools({ bairro = "BARRA DA TIJUCA", vistoriaData }: Search
     setAreaMax("");
     setPeriodoMeses("12");
     setSearchLocation(false);
+    // Limpar cache da query
+    queryClient.removeQueries({ queryKey: ['location-search'] });
   };
 
   const clearTransactionFilters = () => {
@@ -203,6 +207,8 @@ export function SearchTools({ bairro = "BARRA DA TIJUCA", vistoriaData }: Search
     setTransacaoAreaMin("");
     setTransacaoAreaMax("");
     setSearchTransactions(false);
+    // Limpar cache da query
+    queryClient.removeQueries({ queryKey: ['transaction-search'] });
   };
 
   const exportTransactionResults = () => {
