@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { DashboardKPIs } from "@/components/DashboardKPIs";
 import { EvolutionChart } from "@/components/EvolutionChart";
+import { MicrobairroEvolutionChart } from "@/components/MicrobairroEvolutionChart";
 import { MicrobairroRanking } from "@/components/MicrobairroRanking";
 import { SearchTools } from "@/components/SearchTools";
 import { AdvancedSearchReport } from "@/components/AdvancedSearchReport";
@@ -336,6 +337,10 @@ export default function Dashboard() {
         <div data-tour="microbairro-ranking">
           <MicrobairroRanking bairro={selectedBairro} />
         </div>
+      </div>
+
+      <div data-tour="microbairro-evolution">
+        <MicrobairroEvolutionChart bairro={selectedBairro} />
       </div>
 
       <div data-tour="search-tools">
