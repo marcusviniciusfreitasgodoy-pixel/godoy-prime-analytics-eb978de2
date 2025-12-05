@@ -309,88 +309,77 @@ export default function Auth() {
           ) : (
             <Form {...signupForm}>
               <form onSubmit={signupForm.handleSubmit(onSignupSubmit)} className="space-y-4">
-                <FormField
-                  control={signupForm.control}
-                  name="fullName"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel className="text-primary-foreground">Nome Completo</FormLabel>
-                      <FormControl>
-                        <Input 
-                          {...field}
-                          type="text" 
-                          placeholder="João da Silva"
-                          autoComplete="off"
-                          className="bg-primary-foreground/10 border-primary-foreground/30 text-primary-foreground placeholder:text-primary-foreground/50"
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
+                <div className="space-y-2">
+                  <label htmlFor="signup-fullname" className="text-sm font-medium text-primary-foreground">
+                    Nome Completo
+                  </label>
+                  <input 
+                    id="signup-fullname"
+                    type="text" 
+                    placeholder="João da Silva"
+                    autoComplete="off"
+                    className="flex h-10 w-full rounded-md border px-3 py-2 text-sm bg-primary-foreground/10 border-primary-foreground/30 text-primary-foreground placeholder:text-primary-foreground/50 focus:outline-none focus:ring-2 focus:ring-accent"
+                    {...signupForm.register('fullName')}
+                  />
+                  {signupForm.formState.errors.fullName && (
+                    <p className="text-sm text-destructive">{signupForm.formState.errors.fullName.message}</p>
                   )}
-                />
+                </div>
 
-                <FormField
-                  control={signupForm.control}
-                  name="email"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel className="text-primary-foreground">E-mail Corporativo</FormLabel>
-                      <FormControl>
-                        <Input 
-                          {...field}
-                          type="email" 
-                          placeholder="seu.email@empresa.com.br"
-                          autoComplete="off"
-                          className="bg-primary-foreground/10 border-primary-foreground/30 text-primary-foreground placeholder:text-primary-foreground/50"
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
+                <div className="space-y-2">
+                  <label htmlFor="signup-email" className="text-sm font-medium text-primary-foreground">
+                    E-mail Corporativo
+                  </label>
+                  <input 
+                    id="signup-email"
+                    type="email" 
+                    placeholder="seu.email@empresa.com.br"
+                    autoComplete="off"
+                    className="flex h-10 w-full rounded-md border px-3 py-2 text-sm bg-primary-foreground/10 border-primary-foreground/30 text-primary-foreground placeholder:text-primary-foreground/50 focus:outline-none focus:ring-2 focus:ring-accent"
+                    {...signupForm.register('email')}
+                  />
+                  {signupForm.formState.errors.email && (
+                    <p className="text-sm text-destructive">{signupForm.formState.errors.email.message}</p>
                   )}
-                />
+                </div>
 
-                <FormField
-                  control={signupForm.control}
-                  name="phone"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel className="text-primary-foreground">Telefone</FormLabel>
-                      <FormControl>
-                        <Input 
-                          {...field}
-                          type="tel" 
-                          placeholder="(21) 99999-9999"
-                          autoComplete="off"
-                          className="bg-primary-foreground/10 border-primary-foreground/30 text-primary-foreground placeholder:text-primary-foreground/50"
-                          onChange={(e) => {
-                            field.onChange(formatPhone(e.target.value));
-                          }}
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
+                <div className="space-y-2">
+                  <label htmlFor="signup-phone" className="text-sm font-medium text-primary-foreground">
+                    Telefone (opcional)
+                  </label>
+                  <input 
+                    id="signup-phone"
+                    type="tel" 
+                    placeholder="(21) 99999-9999"
+                    autoComplete="off"
+                    className="flex h-10 w-full rounded-md border px-3 py-2 text-sm bg-primary-foreground/10 border-primary-foreground/30 text-primary-foreground placeholder:text-primary-foreground/50 focus:outline-none focus:ring-2 focus:ring-accent"
+                    {...signupForm.register('phone')}
+                    onChange={(e) => {
+                      const formatted = formatPhone(e.target.value);
+                      signupForm.setValue('phone', formatted);
+                    }}
+                  />
+                  {signupForm.formState.errors.phone && (
+                    <p className="text-sm text-destructive">{signupForm.formState.errors.phone.message}</p>
                   )}
-                />
+                </div>
                 
-                <FormField
-                  control={signupForm.control}
-                  name="password"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel className="text-primary-foreground">Senha</FormLabel>
-                      <FormControl>
-                        <Input 
-                          {...field}
-                          type="password" 
-                          placeholder="••••••••"
-                          autoComplete="new-password"
-                          className="bg-primary-foreground/10 border-primary-foreground/30 text-primary-foreground placeholder:text-primary-foreground/50"
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
+                <div className="space-y-2">
+                  <label htmlFor="signup-password" className="text-sm font-medium text-primary-foreground">
+                    Senha
+                  </label>
+                  <input 
+                    id="signup-password"
+                    type="password" 
+                    placeholder="••••••••"
+                    autoComplete="new-password"
+                    className="flex h-10 w-full rounded-md border px-3 py-2 text-sm bg-primary-foreground/10 border-primary-foreground/30 text-primary-foreground placeholder:text-primary-foreground/50 focus:outline-none focus:ring-2 focus:ring-accent"
+                    {...signupForm.register('password')}
+                  />
+                  {signupForm.formState.errors.password && (
+                    <p className="text-sm text-destructive">{signupForm.formState.errors.password.message}</p>
                   )}
-                />
+                </div>
 
                 <Button 
                   type="submit" 
