@@ -23,7 +23,7 @@ serve(async (req) => {
       throw new Error('Current Supabase credentials not found');
     }
 
-    // Create client for auth validation
+    // Create client for auth validation (using service_role to access vault)
     const authClient = createClient(currentUrl, currentServiceKey);
 
     // Verify JWT token
@@ -73,12 +73,40 @@ serve(async (req) => {
 
     console.log('Admin role verified for user:', user.id);
 
-    // Source project credentials - hardcoded as fallback since env vars aren't propagating
-    // This function is already protected by admin role verification above
-    const sourceUrl = Deno.env.get('SUPABASE_SOURCE_URL') || 'https://wlnwspjobfdjftyffqne.supabase.co';
-    const sourceKey = Deno.env.get('SUPABASE_SOURCE_SERVICE_KEY') || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndsbndzcGpvYmZkamZ0eWZmcW5lIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc2NDI2NzIwMCwiZXhwIjoyMDc5ODQzMjAwfQ.AoFvK9z_pFlBMUp33NZ9C3J6UWsIOt6t504k7gVzWEA';
+    // Retrieve source project credentials from Supabase Vault
+    console.log('Retrieving credentials from Vault...');
+    
+    const { data: sourceUrl, error: urlError } = await authClient.rpc('get_vault_secret', {
+      secret_name: 'source_project_url'
+    });
 
-    console.log('Using source project credentials (with fallback)');
+    const { data: sourceKey, error: keyError } = await authClient.rpc('get_vault_secret', {
+      secret_name: 'source_project_service_key'
+    });
+
+    if (urlError || keyError) {
+      console.error('Error retrieving vault secrets:', urlError?.message || keyError?.message);
+      return new Response(
+        JSON.stringify({ 
+          success: false, 
+          error: 'Erro ao recuperar credenciais do Vault. Verifique se os segredos foram configurados corretamente.' 
+        }),
+        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    if (!sourceUrl || !sourceKey) {
+      console.error('Vault secrets not found');
+      return new Response(
+        JSON.stringify({ 
+          success: false, 
+          error: 'Credenciais do projeto fonte não encontradas no Vault. Configure source_project_url e source_project_service_key.' 
+        }),
+        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    console.log('Successfully retrieved credentials from Vault');
 
     // Create clients
     const sourceClient = createClient(sourceUrl, sourceKey);
