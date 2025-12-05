@@ -206,42 +206,102 @@ export function useKPIStats(bairro: string = 'BARRA DA TIJUCA') {
 
       const mesReferencia = ultimoMes ? formatarMesReferencia(ultimoMes) : 'N/A';
 
-      // Buscar microbairro mais valorizado com breakdown
-      const { data: rankingData } = await supabase
-        .from('view_ranking_microbairros')
-        .select('microbairro, preco_medio_m2')
-        .order('preco_medio_m2', { ascending: false })
-        .limit(1)
-        .maybeSingle();
+      // Buscar região mais valorizada - dinâmico por bairro
+      let regiaoMaisValorizada = 'N/A';
+      let precoMedioBairro = 0;
+      let precoMedioBairroApt = 0;
+      let precoMedioBairroCasa = 0;
 
-      // Buscar breakdown do bairro mais valorizado
-      let precoMedioBairroApt = rankingData?.preco_medio_m2 || 0;
-      let precoMedioBairroCasa = (rankingData?.preco_medio_m2 || 0) * 0.9;
+      if (bairro.toUpperCase() === 'BARRA DA TIJUCA') {
+        // Para Barra da Tijuca, usar view otimizada de microbairros
+        const { data: rankingData } = await supabase
+          .from('view_ranking_microbairros')
+          .select('microbairro, preco_medio_m2')
+          .order('preco_medio_m2', { ascending: false })
+          .limit(1)
+          .maybeSingle();
 
-      if (rankingData?.microbairro) {
-        const { data: bairroTransactions } = await supabase
+        if (rankingData?.microbairro) {
+          regiaoMaisValorizada = rankingData.microbairro;
+          precoMedioBairro = rankingData.preco_medio_m2 || 0;
+          precoMedioBairroApt = precoMedioBairro;
+          precoMedioBairroCasa = precoMedioBairro * 0.9;
+
+          // Buscar breakdown por tipologia
+          const { data: bairroTransactions } = await supabase
+            .from('itbi_transactions')
+            .select('valor_m2, tipologia, total_transacoes')
+            .eq('uso', 'Residencial')
+            .ilike('bairro', bairro)
+            .gte('percentual_transferido', 90)
+            .ilike('logradouro', `%${rankingData.microbairro}%`)
+            .gte('data_transacao', startDate12Months);
+
+          if (bairroTransactions && bairroTransactions.length > 0) {
+            const bairroApt = bairroTransactions.filter(t => 
+              t.tipologia?.toLowerCase().includes('apartamento')
+            );
+            const bairroCasa = bairroTransactions.filter(t => 
+              t.tipologia?.toLowerCase().includes('casa')
+            );
+            
+            if (bairroApt.length > 0) {
+              precoMedioBairroApt = calcMediaPonderada(bairroApt);
+            }
+            if (bairroCasa.length > 0) {
+              precoMedioBairroCasa = calcMediaPonderada(bairroCasa);
+            }
+          }
+        }
+      } else {
+        // Para outros bairros, calcular dinamicamente por logradouro
+        const { data: logradouroData } = await supabase
           .from('itbi_transactions')
-          .select('valor_m2, tipologia, total_transacoes')
+          .select('logradouro, valor_m2, tipologia, total_transacoes')
           .eq('uso', 'Residencial')
           .ilike('bairro', bairro)
+          .not('valor_m2', 'is', null)
           .gte('percentual_transferido', 90)
-          .ilike('logradouro', `%${rankingData.microbairro}%`)
           .gte('data_transacao', startDate12Months);
 
-        if (bairroTransactions && bairroTransactions.length > 0) {
-          const bairroApt = bairroTransactions.filter(t => 
-            t.tipologia?.toLowerCase().includes('apartamento')
-          );
-          const bairroCasa = bairroTransactions.filter(t => 
-            t.tipologia?.toLowerCase().includes('casa')
-          );
+        if (logradouroData && logradouroData.length > 0) {
+          // Agrupar por logradouro e calcular média ponderada
+          const logradouroStats: Record<string, { somaValores: number; somaTransacoes: number; transacoes: TransactionData[] }> = {};
           
-          if (bairroApt.length > 0) {
-            precoMedioBairroApt = calcMediaPonderada(bairroApt);
+          for (const t of logradouroData) {
+            const log = t.logradouro || 'N/A';
+            if (!logradouroStats[log]) {
+              logradouroStats[log] = { somaValores: 0, somaTransacoes: 0, transacoes: [] };
+            }
+            const peso = t.total_transacoes || 1;
+            logradouroStats[log].somaValores += (t.valor_m2 || 0) * peso;
+            logradouroStats[log].somaTransacoes += peso;
+            logradouroStats[log].transacoes.push(t);
           }
-          if (bairroCasa.length > 0) {
-            precoMedioBairroCasa = calcMediaPonderada(bairroCasa);
+
+          // Encontrar logradouro com maior preço médio
+          let maxPreco = 0;
+          let melhorLogradouro = 'N/A';
+          let melhorTransacoes: TransactionData[] = [];
+
+          for (const [log, stats] of Object.entries(logradouroStats)) {
+            const mediaLog = stats.somaTransacoes > 0 ? stats.somaValores / stats.somaTransacoes : 0;
+            if (mediaLog > maxPreco) {
+              maxPreco = mediaLog;
+              melhorLogradouro = log;
+              melhorTransacoes = stats.transacoes;
+            }
           }
+
+          regiaoMaisValorizada = melhorLogradouro;
+          precoMedioBairro = maxPreco;
+
+          // Calcular breakdown por tipologia
+          const logApt = melhorTransacoes.filter(t => t.tipologia?.toLowerCase().includes('apartamento'));
+          const logCasa = melhorTransacoes.filter(t => t.tipologia?.toLowerCase().includes('casa'));
+          
+          precoMedioBairroApt = logApt.length > 0 ? calcMediaPonderada(logApt) : maxPreco;
+          precoMedioBairroCasa = logCasa.length > 0 ? calcMediaPonderada(logCasa) : maxPreco * 0.9;
         }
       }
 
@@ -255,8 +315,8 @@ export function useKPIStats(bairro: string = 'BARRA DA TIJUCA') {
         variacaoAnual: variacaoAnual !== null ? variacaoAnual.toFixed(2) : 'N/A',
         variacaoAnualApt: variacaoAnualApt !== null ? variacaoAnualApt.toFixed(1) : 'N/A',
         variacaoAnualCasa: variacaoAnualCasa !== null ? variacaoAnualCasa.toFixed(1) : 'N/A',
-        bairroMaisValorizado: rankingData?.microbairro || 'N/A',
-        precoMedioBairro: rankingData?.preco_medio_m2 || 0,
+        bairroMaisValorizado: regiaoMaisValorizada,
+        precoMedioBairro,
         precoMedioBairroApt: Math.round(precoMedioBairroApt),
         precoMedioBairroCasa: Math.round(precoMedioBairroCasa),
         variacaoMensal: variacaoMensal !== null ? variacaoMensal.toFixed(2) : 'N/A',

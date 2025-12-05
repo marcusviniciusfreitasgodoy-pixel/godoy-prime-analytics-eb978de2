@@ -79,7 +79,7 @@ export function DashboardKPIs({ bairro = "BARRA DA TIJUCA" }: DashboardKPIsProps
         }}
       />
       <KPICard
-        title="Bairro Mais Valorizado"
+        title="Região Mais Valorizada"
         value={stats.bairroMaisValorizado}
         subtitle="média/m²"
         icon={MapPin}
