@@ -28,6 +28,7 @@ interface AdvancedSearchResult {
   area_m2: number;
   valor_m2: number | null;
   tipologia: string | null;
+  total_transacoes: number;
 }
 
 const TIPOLOGIA_OPTIONS = [
@@ -89,7 +90,7 @@ export function AdvancedSearchReport() {
       
       let query = supabase
         .from('itbi_transactions')
-        .select('id, logradouro, numero, complemento, bairro, data_transacao, valor_transacao, area_m2, valor_m2, tipologia')
+        .select('id, logradouro, numero, complemento, bairro, data_transacao, valor_transacao, area_m2, valor_m2, tipologia, total_transacoes')
         .eq('uso', 'Residencial')
         .gte('percentual_transferido', 90)
         .not('valor_m2', 'is', null)
@@ -187,17 +188,18 @@ export function AdvancedSearchReport() {
       columns: [
         { key: 'logradouro', header: 'Logradouro', width: 35, format: 'text' },
         { key: 'numero', header: 'Número', width: 10, format: 'text' },
-        { key: 'complemento', header: 'Complemento', width: 15, format: 'text' },
         { key: 'bairro', header: 'Bairro', width: 20, format: 'text' },
         { key: 'tipologia', header: 'Tipologia', width: 15, format: 'text' },
         { key: 'data_transacao', header: 'Data', width: 12, format: 'date' },
-        { key: 'valor_transacao', header: 'Valor Total', width: 18, format: 'currency' },
+        { key: 'valor_transacao', header: 'Valor Médio', width: 18, format: 'currency' },
         { key: 'area_m2', header: 'Área (m²)', width: 12, format: 'number' },
         { key: 'valor_m2', header: 'R$/m²', width: 15, format: 'currency' },
+        { key: 'total_transacoes', header: 'Transações', width: 12, format: 'number' },
       ],
       summary: [
-        { label: 'Total de Registros', value: results.length },
-        { label: 'Valor Total', value: totalValue },
+        { label: 'Total de Registros (Agregações)', value: results.length },
+        { label: 'Total de Transações Reais', value: totalTransacoes },
+        { label: 'Valor Médio Total', value: totalValue },
         { label: 'Média R$/m²', value: avgValueM2 },
       ],
     });
@@ -226,9 +228,10 @@ export function AdvancedSearchReport() {
       Bairro: r.bairro || '',
       Tipologia: r.tipologia || '',
       Data: new Date(r.data_transacao).toLocaleDateString('pt-BR'),
-      Valor_Total: r.valor_transacao,
+      Valor_Medio: r.valor_transacao,
       Area_m2: r.area_m2,
       Valor_m2: r.valor_m2 || '',
+      Total_Transacoes: r.total_transacoes || 1,
     }));
 
     exportToCSV(exportData, 'relatorio_avancado_godoy_prime');
@@ -272,10 +275,12 @@ export function AdvancedSearchReport() {
         { key: 'data_transacao', header: 'Data' },
         { key: 'valor_transacao', header: 'Valor' },
         { key: 'valor_m2', header: 'R$/m²' },
+        { key: 'total_transacoes', header: 'Trans.' },
       ],
       summary: [
-        { label: 'Total de Registros', value: results.length },
-        { label: 'Valor Total', value: totalValue },
+        { label: 'Total de Registros (Agregações)', value: results.length },
+        { label: 'Total de Transações Reais', value: totalTransacoes },
+        { label: 'Valor Médio Total', value: totalValue },
         { label: 'Média R$/m²', value: avgValueM2 },
       ],
     });
@@ -296,6 +301,7 @@ export function AdvancedSearchReport() {
   };
 
   const totalValue = results?.reduce((sum, r) => sum + r.valor_transacao, 0) || 0;
+  const totalTransacoes = results?.reduce((sum, r) => sum + (r.total_transacoes || 1), 0) || 0;
   const avgValueM2 = results?.length 
     ? results.reduce((sum, r) => sum + (r.valor_m2 || 0), 0) / results.length 
     : 0;
@@ -554,10 +560,13 @@ export function AdvancedSearchReport() {
         {results && results.length > 0 && (
           <div className="flex flex-wrap gap-2 py-2 border-y border-border">
             <Badge variant="secondary" className="text-xs">
-              {results.length} {results.length >= 100 ? '+ ' : ''}registros encontrados
+              {results.length} registros (agregações)
+            </Badge>
+            <Badge variant="default" className="text-xs">
+              {totalTransacoes.toLocaleString('pt-BR')} transações reais
             </Badge>
             <Badge variant="outline" className="text-xs">
-              Total: {formatCurrency(totalValue)}
+              Valor Médio Total: {formatCurrency(totalValue)}
             </Badge>
             <Badge variant="outline" className="text-xs">
               Média R$/m²: {formatCurrency(avgValueM2)}
@@ -576,9 +585,10 @@ export function AdvancedSearchReport() {
                   <TableHead>Bairro</TableHead>
                   <TableHead>Tipo</TableHead>
                   <TableHead>Data</TableHead>
-                  <TableHead className="text-right">Valor Total</TableHead>
+                  <TableHead className="text-right">Valor Médio</TableHead>
                   <TableHead className="text-right">Área</TableHead>
                   <TableHead className="text-right">R$/m²</TableHead>
+                  <TableHead className="text-right">Trans.</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -607,6 +617,11 @@ export function AdvancedSearchReport() {
                     </TableCell>
                     <TableCell className="text-right text-xs">
                       {r.valor_m2 ? formatCurrency(r.valor_m2) : 'N/A'}
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <Badge variant="secondary" className="text-xs">
+                        {r.total_transacoes || 1}
+                      </Badge>
                     </TableCell>
                   </TableRow>
                 ))}

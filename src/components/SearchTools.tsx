@@ -289,14 +289,15 @@ export function SearchTools({ bairro = "BARRA DA TIJUCA" }: SearchToolsProps) {
     
     const exportData = locationResult.transacoes.map(t => ({
       Logradouro: locationResult.logradouro,
-      Valor_Transacao: t.valor_transacao,
+      Valor_Medio: t.valor_transacao,
       Area_m2: t.area_m2,
       Valor_m2: t.valor_m2,
       Data: t.data_transacao,
       Tipologia: t.tipologia || '',
+      Total_Transacoes: t.total_transacoes || 1,
     }));
     
-    exportToCSV(exportData, `transacoes_${locationQuery.replace(/\s+/g, '_')}`);
+    exportToCSV(exportData, `agregacoes_${locationQuery.replace(/\s+/g, '_')}`);
     toast({
       title: "Exportado com sucesso",
       description: `${exportData.length} transações exportadas para CSV.`,

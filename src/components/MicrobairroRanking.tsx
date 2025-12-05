@@ -48,9 +48,14 @@ export function MicrobairroRanking({ bairro = "BARRA DA TIJUCA" }: MicrobairroRa
           
           return (
             <div key={item.microbairro || index} className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-3">
-              <span className="text-xs sm:text-sm font-medium text-foreground sm:min-w-[120px] truncate">
-                {item.microbairro || 'N/A'}
-              </span>
+              <div className="flex items-center gap-2 sm:min-w-[140px]">
+                <span className="text-xs sm:text-sm font-medium text-foreground truncate">
+                  {item.microbairro || 'N/A'}
+                </span>
+                <span className="text-[10px] text-muted-foreground whitespace-nowrap">
+                  ({item.total_transacoes || 0} trans.)
+                </span>
+              </div>
               <div className="flex items-center gap-2 flex-1">
                 <div className="flex-1 h-5 sm:h-6 bg-muted rounded-full overflow-hidden">
                   <div 
