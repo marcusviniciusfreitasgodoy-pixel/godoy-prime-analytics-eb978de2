@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useLocation } from "react-router-dom";
 import { FileDown, Info, HelpCircle, Monitor, FileSpreadsheet, FileText, BarChart3, Search, TrendingUp, MapPin, Database, FileImage } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -24,6 +25,17 @@ export default function Dashboard() {
   const [isExporting, setIsExporting] = useState(false);
   const [selectedBairro, setSelectedBairro] = useState("BARRA DA TIJUCA");
   const { toast } = useToast();
+  const location = useLocation();
+
+  // Check for vistoria data from navigation
+  const vistoriaData = (location.state as { vistoriaData?: any })?.vistoriaData;
+
+  // Clear location state after reading it
+  useEffect(() => {
+    if (vistoriaData) {
+      window.history.replaceState({}, document.title);
+    }
+  }, [vistoriaData]);
 
   // Hooks para dados do dashboard (usados na exportação completa)
   const { data: kpiStats } = useKPIStats(selectedBairro);
@@ -439,7 +451,7 @@ export default function Dashboard() {
       </div>
 
       <div data-tour="search-tools">
-        <SearchTools bairro={selectedBairro} />
+        <SearchTools bairro={selectedBairro} vistoriaData={vistoriaData} />
       </div>
 
       <AdvancedSearchReport />
