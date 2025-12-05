@@ -319,7 +319,8 @@ export default function Auth() {
                         <Input 
                           type="text" 
                           placeholder="João da Silva"
-                          autoComplete="off"
+                          autoComplete="new-name"
+                          name="signup-fullname"
                           className="bg-primary-foreground/10 border-primary-foreground/30 text-primary-foreground placeholder:text-primary-foreground/50"
                           {...field}
                         />
@@ -339,7 +340,8 @@ export default function Auth() {
                         <Input 
                           type="email" 
                           placeholder="seu.email@empresa.com.br"
-                          autoComplete="off"
+                          autoComplete="new-email"
+                          name="signup-email"
                           className="bg-primary-foreground/10 border-primary-foreground/30 text-primary-foreground placeholder:text-primary-foreground/50"
                           {...field}
                         />
@@ -359,7 +361,8 @@ export default function Auth() {
                         <Input 
                           type="tel" 
                           placeholder="(21) 99999-9999"
-                          autoComplete="off"
+                          autoComplete="new-phone"
+                          name="signup-phone"
                           className="bg-primary-foreground/10 border-primary-foreground/30 text-primary-foreground placeholder:text-primary-foreground/50"
                           {...field}
                           onChange={(e) => {
@@ -383,6 +386,7 @@ export default function Auth() {
                           type="password" 
                           placeholder="••••••••"
                           autoComplete="new-password"
+                          name="signup-password"
                           className="bg-primary-foreground/10 border-primary-foreground/30 text-primary-foreground placeholder:text-primary-foreground/50"
                           {...field}
                         />
