@@ -322,17 +322,17 @@ export function AdvancedSearchReport() {
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
-                <DropdownMenuItem onClick={handleExportPDF} className="gap-2">
-                  <FileType className="h-4 w-4" />
-                  PDF (.pdf)
+                <DropdownMenuItem onClick={handleExportPDF} className="gap-2 cursor-pointer">
+                  <FileType className="h-4 w-4 text-red-500" />
+                  <span>PDF (.pdf)</span>
                 </DropdownMenuItem>
-                <DropdownMenuItem onClick={handleExportXLSX} className="gap-2">
-                  <FileSpreadsheet className="h-4 w-4" />
-                  Excel (.xlsx)
+                <DropdownMenuItem onClick={handleExportXLSX} className="gap-2 cursor-pointer">
+                  <FileSpreadsheet className="h-4 w-4 text-green-600" />
+                  <span>Excel (.xlsx)</span>
                 </DropdownMenuItem>
-                <DropdownMenuItem onClick={handleExportCSV} className="gap-2">
-                  <FileText className="h-4 w-4" />
-                  CSV (.csv)
+                <DropdownMenuItem onClick={handleExportCSV} className="gap-2 cursor-pointer">
+                  <FileText className="h-4 w-4 text-blue-500" />
+                  <span>CSV (.csv)</span>
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
