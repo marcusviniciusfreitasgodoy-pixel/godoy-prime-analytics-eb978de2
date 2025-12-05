@@ -88,7 +88,8 @@ export function useLocationSearch(params: LocationSearchParams, enabled: boolean
 
       // Apply filters
       if (params.finalidade) {
-        query = query.eq('uso', params.finalidade === 'residencial' ? 'Residencial' : 'Comercial');
+        const isResidencial = params.finalidade.toLowerCase() === 'residencial';
+        query = query.eq('uso', isResidencial ? 'Residencial' : 'Comercial');
       }
 
       if (params.tipologia) {
