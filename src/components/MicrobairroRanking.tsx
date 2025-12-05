@@ -34,13 +34,16 @@ export function MicrobairroRanking({ bairro = "BARRA DA TIJUCA" }: MicrobairroRa
 
   const maxValue = Math.max(...sortedRanking.map(r => r.preco_medio_m2 || 0));
 
-  const currentMonth = new Date().toLocaleDateString('pt-BR', { month: 'short', year: 'numeric' });
+  // Calcular período dos últimos 12 meses
+  const now = new Date();
+  const startDate = new Date(now.getFullYear(), now.getMonth() - 11, 1);
+  const periodText = `${startDate.toLocaleDateString('pt-BR', { month: 'short', year: 'numeric' })} - ${now.toLocaleDateString('pt-BR', { month: 'short', year: 'numeric' })}`;
 
   return (
     <Card>
       <CardHeader className="pb-2 px-4 sm:px-6">
         <CardTitle className="text-base sm:text-lg">Ranking por Região</CardTitle>
-        <CardDescription className="text-xs sm:text-sm">Mês referência: {currentMonth}</CardDescription>
+        <CardDescription className="text-xs sm:text-sm">Período: {periodText}</CardDescription>
       </CardHeader>
       <CardContent className="space-y-3 sm:space-y-4 px-4 sm:px-6">
         {sortedRanking.slice(0, 8).map((item, index) => {
