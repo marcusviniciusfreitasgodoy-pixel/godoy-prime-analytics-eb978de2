@@ -73,12 +73,20 @@ serve(async (req) => {
 
     console.log('Admin role verified for user:', user.id);
 
-    // Source project credentials - using service_role key to bypass RLS
+    // Source project credentials from environment variables
     // This function is already protected by admin role verification above
-    const sourceUrl = 'https://wlnwspjobfdjftyffqne.supabase.co';
-    const sourceKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndsbndzcGpvYmZkamZ0eWZmcW5lIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc2NDI2NzIwMCwiZXhwIjoyMDc5ODQzMjAwfQ.AoFvK9z_pFlBMUp33NZ9C3J6UWsIOt6t504k7gVzWEA';
+    const sourceUrl = Deno.env.get('SUPABASE_SOURCE_URL');
+    const sourceKey = Deno.env.get('SUPABASE_SOURCE_SERVICE_KEY');
 
-    console.log('Using source project credentials with service_role key');
+    if (!sourceUrl || !sourceKey) {
+      console.error('Missing source project credentials in environment');
+      return new Response(
+        JSON.stringify({ success: false, error: 'Credenciais do projeto fonte não configuradas. Configure SUPABASE_SOURCE_URL e SUPABASE_SOURCE_SERVICE_KEY.' }),
+        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    console.log('Using source project credentials from environment variables');
 
     // Create clients
     const sourceClient = createClient(sourceUrl, sourceKey);
