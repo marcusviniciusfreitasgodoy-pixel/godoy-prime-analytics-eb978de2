@@ -33,7 +33,7 @@ export interface LocationSearchResult {
 
 export function useLocationSearch(params: LocationSearchParams, enabled: boolean = false) {
   return useQuery<LocationSearchResult | null>({
-    queryKey: ['location-search', params],
+    queryKey: ['location-search', params, enabled],
     queryFn: async () => {
       if (!params.query || params.query.length < 3) return null;
 
@@ -178,7 +178,7 @@ export interface MicrobairroLiquidez {
 
 export function useTransactionSearch(params: TransactionSearchParams, enabled: boolean = false) {
   return useQuery<MicrobairroLiquidez[]>({
-    queryKey: ['transaction-search', params],
+    queryKey: ['transaction-search', params, enabled],
     queryFn: async () => {
       // Período configurável (padrão: 12 meses)
       const meses = params.periodoMeses || 12;
