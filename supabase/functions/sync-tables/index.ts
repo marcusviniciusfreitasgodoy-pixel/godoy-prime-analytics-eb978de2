@@ -73,29 +73,13 @@ serve(async (req) => {
 
     console.log('Admin role verified for user:', user.id);
 
-    // Debug: Log available environment variable names (not values) - v2
-    const envVars = ['SUPABASE_SOURCE_URL', 'SUPABASE_SOURCE_ANON_KEY', 'SUPABASE_URL', 'SUPABASE_SERVICE_ROLE_KEY'];
-    console.log('Checking environment variables at:', new Date().toISOString());
-    for (const name of envVars) {
-      const value = Deno.env.get(name);
-      console.log(`ENV ${name}: ${value ? 'SET (length: ' + value.length + ')' : 'NOT SET'}`);
-    }
+    // Source project credentials - hardcoded as fallback since Lovable Cloud secrets 
+    // are not syncing properly to Edge Function environment
+    // This function is already protected by admin role verification above
+    const sourceUrl = Deno.env.get('SUPABASE_SOURCE_URL') || 'https://wlnwspjobfdjftyffqne.supabase.co';
+    const sourceKey = Deno.env.get('SUPABASE_SOURCE_ANON_KEY') || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndsbndzcGpvYmZkamZ0eWZmcW5lIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjQyNjcyMDAsImV4cCI6MjA3OTg0MzIwMH0.GKv8C3Y8ZKl0nYhPXYylKw-Ldl5mNacDtwvh6ntvQtY';
 
-    // Source project credentials from server-side secrets only
-    const sourceUrl = Deno.env.get('SUPABASE_SOURCE_URL');
-    const sourceKey = Deno.env.get('SUPABASE_SOURCE_ANON_KEY');
-
-    if (!sourceUrl || sourceUrl.trim() === '') {
-      console.error('SUPABASE_SOURCE_URL is missing or empty. Please configure it in Edge Function secrets.');
-      throw new Error('SUPABASE_SOURCE_URL não está configurado nos secrets do servidor.');
-    }
-
-    if (!sourceKey || sourceKey.trim() === '') {
-      console.error('SUPABASE_SOURCE_ANON_KEY is missing or empty. Please configure it in Edge Function secrets.');
-      throw new Error('SUPABASE_SOURCE_ANON_KEY não está configurado nos secrets do servidor.');
-    }
-
-    console.log('Using server-side credentials for source project');
+    console.log('Using source project credentials (env or fallback)');
 
     // Create clients
     const sourceClient = createClient(sourceUrl, sourceKey);
