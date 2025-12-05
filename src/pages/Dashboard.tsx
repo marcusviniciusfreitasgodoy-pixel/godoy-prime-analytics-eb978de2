@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useLocation } from "react-router-dom";
-import { FileDown, Info, HelpCircle, Monitor, FileSpreadsheet, FileText, BarChart3, Search, TrendingUp, MapPin, Database, FileImage } from "lucide-react";
+import { FileDown, Info, HelpCircle, Monitor, FileSpreadsheet, FileText, BarChart3, Search, TrendingUp, MapPin, Database, FileImage, ClipboardCheck } from "lucide-react";
+import { generateTestChecklistPDF } from "@/utils/testChecklistPdf";
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { DashboardKPIs } from "@/components/DashboardKPIs";
@@ -476,6 +477,16 @@ export default function Dashboard() {
           </AlertDescription>
         </Alert>
       </div>
+
+      {/* Botão flutuante para gerar checklist de testes (temporário) */}
+      <Button
+        onClick={generateTestChecklistPDF}
+        className="fixed bottom-6 right-6 z-50 shadow-lg bg-accent hover:bg-accent/90 text-accent-foreground"
+        size="lg"
+      >
+        <ClipboardCheck className="h-5 w-5 mr-2" />
+        Gerar Checklist PDF
+      </Button>
     </div>
   );
 }
