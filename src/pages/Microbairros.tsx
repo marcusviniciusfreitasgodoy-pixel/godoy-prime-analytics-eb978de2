@@ -1,10 +1,13 @@
 import { MapPin } from "lucide-react";
 import { MicrobairroCard } from "@/components/MicrobairroCard";
 import { useMicrobairroDetalhado } from "@/hooks/useITBITransactions";
+import { useBairro } from "@/contexts/BairroContext";
+import { BairroSelector } from "@/components/BairroSelector";
 import { Skeleton } from "@/components/ui/skeleton";
 
 export default function Microbairros() {
-  const { data: microbairros, isLoading } = useMicrobairroDetalhado();
+  const { selectedBairro, setSelectedBairro } = useBairro();
+  const { data: microbairros, isLoading } = useMicrobairroDetalhado(selectedBairro);
 
   if (isLoading) {
     return (
@@ -28,13 +31,18 @@ export default function Microbairros() {
     <div className="space-y-6">
       {/* Cabeçalho */}
       <div className="border-b border-accent/30 pb-4">
-        <div className="flex items-center gap-2 sm:gap-3 mb-2">
-          <MapPin className="h-6 w-6 sm:h-8 sm:w-8 text-accent flex-shrink-0" />
-          <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-[#0C2340]">Análise por Microbairros</h1>
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+          <div>
+            <div className="flex items-center gap-2 sm:gap-3 mb-2">
+              <MapPin className="h-6 w-6 sm:h-8 sm:w-8 text-accent flex-shrink-0" />
+              <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-[#0C2340]">Análise por Microregiões</h1>
+            </div>
+            <p className="text-sm sm:text-base text-muted-foreground">
+              Comparativo de performance regional em {selectedBairro} (2025)
+            </p>
+          </div>
+          <BairroSelector value={selectedBairro} onChange={setSelectedBairro} />
         </div>
-        <p className="text-sm sm:text-base text-muted-foreground">
-          Comparativo de performance regional na Barra da Tijuca (2025)
-        </p>
       </div>
 
       {/* Grid de Cards */}

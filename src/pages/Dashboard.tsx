@@ -12,6 +12,7 @@ import { SearchTools } from "@/components/SearchTools";
 import { AdvancedSearchReport } from "@/components/AdvancedSearchReport";
 import { GuidedTour } from "@/components/GuidedTour";
 import { BairroSelector } from "@/components/BairroSelector";
+import { useBairro } from "@/contexts/BairroContext";
 import { supabase } from "@/integrations/supabase/client";
 import { exportToCSV, exportToXLSX } from "@/utils/exportUtils";
 import { exportDashboardPDF, exportDashboardXLSX } from "@/utils/dashboardExport";
@@ -24,7 +25,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 export default function Dashboard() {
   const [runTour, setRunTour] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
-  const [selectedBairro, setSelectedBairro] = useState("BARRA DA TIJUCA");
+  const { selectedBairro, setSelectedBairro } = useBairro();
   const { toast } = useToast();
   const location = useLocation();
 

@@ -9,7 +9,7 @@ import { NavLink } from "./NavLink";
 
 const navItems = [
   { title: "Dashboard", url: "/", icon: Home },
-  { title: "Microbairros", url: "/microbairros", icon: MapPin },
+  { title: "Microregiões", url: "/microbairros", icon: MapPin },
   { title: "Vistoria Digital", url: "/vistoria-digital", icon: ClipboardCheck },
   { title: "Documentação", url: "/documentacao", icon: FileText },
 ];
