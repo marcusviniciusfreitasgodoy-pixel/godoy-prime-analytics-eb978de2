@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
@@ -294,6 +294,15 @@ const statusConfig = {
   'nao-aplica': { icon: MinusCircle, color: 'text-blue-500', label: 'N/A', pdfColor: [59, 130, 246] as [number, number, number], tooltip: 'Não se aplica a este imóvel (não impacta a avaliação)' },
 };
 
+const STORAGE_KEY = 'godoy_vistoria_data';
+
+interface SavedVistoriaData {
+  propertyData: PropertyData;
+  checklist: ChecklistCategory[];
+  photos: PhotoItem[];
+  savedAt: string;
+}
+
 export default function VistoriaDigital() {
   const [checklist, setChecklist] = useState<ChecklistCategory[]>(initialChecklist);
   const [propertyData, setPropertyData] = useState<PropertyData>(initialPropertyData);
@@ -302,10 +311,65 @@ export default function VistoriaDigital() {
   const [selectedPhotoItem, setSelectedPhotoItem] = useState<{ categoryId: string; itemId: string; label: string } | null>(null);
   const [photoDialogOpen, setPhotoDialogOpen] = useState(false);
   const [viewPhotoUrl, setViewPhotoUrl] = useState<string | null>(null);
+  const [hasLoadedFromStorage, setHasLoadedFromStorage] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const cameraInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
   const navigate = useNavigate();
+
+  // Load from localStorage on mount
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem(STORAGE_KEY);
+      if (saved) {
+        const data: SavedVistoriaData = JSON.parse(saved);
+        setPropertyData(data.propertyData);
+        setChecklist(data.checklist);
+        setPhotos(data.photos || []);
+      }
+    } catch (error) {
+      console.error('Error loading from localStorage:', error);
+    }
+    setHasLoadedFromStorage(true);
+  }, []);
+
+  // Show toast after loading from storage (separate effect to avoid toast dependency issues)
+  useEffect(() => {
+    if (hasLoadedFromStorage) {
+      const saved = localStorage.getItem(STORAGE_KEY);
+      if (saved) {
+        try {
+          const data: SavedVistoriaData = JSON.parse(saved);
+          if (data.propertyData.logradouro) {
+            toast({
+              title: "Vistoria recuperada",
+              description: `Dados salvos em ${new Date(data.savedAt).toLocaleString("pt-BR")}`,
+            });
+          }
+        } catch {
+          // Ignore parse errors for toast
+        }
+      }
+    }
+  }, [hasLoadedFromStorage, toast]);
+
+  // Save to localStorage when data changes
+  useEffect(() => {
+    if (!hasLoadedFromStorage) return;
+    
+    const dataToSave: SavedVistoriaData = {
+      propertyData,
+      checklist,
+      photos,
+      savedAt: new Date().toISOString(),
+    };
+    
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(dataToSave));
+    } catch (error) {
+      console.error('Error saving to localStorage:', error);
+    }
+  }, [propertyData, checklist, photos, hasLoadedFromStorage]);
 
   const updatePropertyData = (field: keyof PropertyData, value: string) => {
     setPropertyData(prev => ({ ...prev, [field]: value }));
@@ -446,6 +510,7 @@ export default function VistoriaDigital() {
     setChecklist(initialChecklist);
     setPropertyData(initialPropertyData);
     setPhotos([]);
+    localStorage.removeItem(STORAGE_KEY);
     toast({
       title: "Checklist resetado",
       description: "Todos os itens, dados e fotos foram limpos.",
@@ -603,9 +668,109 @@ export default function VistoriaDigital() {
           const splitLabel = doc.splitTextToSize(item.label, pageWidth - 80);
           doc.text(splitLabel, marginLeft + 35, yPos);
           yPos += splitLabel.length * 4 + 2;
+          
+          // Check for photos attached to this item
+          const itemPhotos = photos.filter(p => p.categoryId === category.id && p.itemId === item.id);
+          if (itemPhotos.length > 0) {
+            doc.setFontSize(8);
+            doc.setTextColor(100, 100, 100);
+            doc.text(`[${itemPhotos.length} foto(s) anexada(s)]`, marginLeft + 35, yPos);
+            yPos += 4;
+          }
         }
         
         yPos += 4;
+      }
+      
+      // Photos section (if any)
+      if (photos.length > 0) {
+        doc.addPage();
+        yPos = 20;
+        
+        doc.setFontSize(14);
+        doc.setFont('helvetica', 'bold');
+        doc.setTextColor(12, 35, 64);
+        doc.text('ANEXO: REGISTRO FOTOGRAFICO', marginLeft, yPos);
+        doc.setDrawColor(212, 175, 55);
+        doc.setLineWidth(0.5);
+        doc.line(marginLeft, yPos + 2, marginLeft + 80, yPos + 2);
+        yPos += 15;
+        
+        doc.setFontSize(9);
+        doc.setTextColor(100, 100, 100);
+        doc.text(`Total de ${photos.length} foto(s) registrada(s) durante a vistoria`, marginLeft, yPos);
+        yPos += 10;
+        
+        // Group photos by category
+        const photosByCategory: Record<string, PhotoItem[]> = {};
+        photos.forEach(photo => {
+          const key = photo.categoryId;
+          if (!photosByCategory[key]) {
+            photosByCategory[key] = [];
+          }
+          photosByCategory[key].push(photo);
+        });
+        
+        // Add photos to PDF
+        const imgWidth = 80;
+        const imgHeight = 60;
+        
+        for (const [categoryId, categoryPhotos] of Object.entries(photosByCategory)) {
+          const category = checklist.find(c => c.id === categoryId);
+          if (!category) continue;
+          
+          if (yPos > 200) {
+            doc.addPage();
+            yPos = 20;
+          }
+          
+          // Category header
+          doc.setFontSize(10);
+          doc.setFont('helvetica', 'bold');
+          doc.setTextColor(12, 35, 64);
+          doc.text(category.title, marginLeft, yPos);
+          yPos += 8;
+          
+          let xPos = marginLeft;
+          
+          for (const photo of categoryPhotos) {
+            if (xPos + imgWidth > pageWidth - marginLeft) {
+              xPos = marginLeft;
+              yPos += imgHeight + 15;
+            }
+            
+            if (yPos + imgHeight > 270) {
+              doc.addPage();
+              yPos = 20;
+              xPos = marginLeft;
+            }
+            
+            try {
+              // Add photo
+              doc.addImage(photo.dataUrl, 'JPEG', xPos, yPos, imgWidth, imgHeight);
+              
+              // Add caption below photo
+              doc.setFontSize(7);
+              doc.setFont('helvetica', 'normal');
+              doc.setTextColor(80, 80, 80);
+              const captionLines = doc.splitTextToSize(photo.caption, imgWidth);
+              doc.text(captionLines.slice(0, 2), xPos, yPos + imgHeight + 4);
+              
+              xPos += imgWidth + 10;
+            } catch (imgError) {
+              console.error('Error adding image to PDF:', imgError);
+              // Add placeholder for failed image
+              doc.setFillColor(240, 240, 240);
+              doc.rect(xPos, yPos, imgWidth, imgHeight, 'F');
+              doc.setFontSize(8);
+              doc.setTextColor(150, 150, 150);
+              doc.text('Imagem indisponivel', xPos + 15, yPos + 30);
+              xPos += imgWidth + 10;
+            }
+          }
+          
+          yPos += imgHeight + 20;
+        }
       }
       
       // Footer
