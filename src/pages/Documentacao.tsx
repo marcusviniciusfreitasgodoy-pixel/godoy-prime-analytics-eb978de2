@@ -250,9 +250,12 @@ export default function Documentacao() {
     const exportType = party || 'completo';
     
     try {
+      // Dynamic import for PDF template functions
+      const { drawGodoyHeader, drawSectionTitle, applyFootersToAllPages, BRAND_COLORS, getMaxContentY } = await import('@/utils/pdfTemplate');
+      
       const doc = new jsPDF();
       const pageWidth = doc.internal.pageSize.getWidth();
-      let yPos = 20;
+      const marginLeft = 20;
       
       // Filter categories based on party
       const getFilteredCategories = () => {
@@ -270,36 +273,16 @@ export default function Documentacao() {
       
       const filteredCategories = getFilteredCategories();
       
-      // Header
-      doc.setFillColor(12, 35, 64); // Navy
-      doc.rect(0, 0, pageWidth, 40, 'F');
-      
-      doc.setTextColor(255, 255, 255);
-      doc.setFontSize(24);
-      doc.setFont('helvetica', 'bold');
-      doc.text('GODOY PRIME', 20, 25);
-      
-      doc.setFontSize(12);
-      doc.setFont('helvetica', 'normal');
+      // Header padronizado
       const subtitle = exportType === 'vendedor' 
         ? 'Checklist do Vendedor' 
         : exportType === 'comprador' 
           ? 'Checklist do Comprador' 
           : 'Checklist de Due Diligence';
-      doc.text(subtitle, 20, 35);
+      let yPos = drawGodoyHeader(doc, subtitle);
       
-      yPos = 55;
-      
-      // Date and summary
-      doc.setTextColor(0, 0, 0);
-      doc.setFontSize(10);
-      doc.text(`Data: ${formatDate(new Date())}`, 20, yPos);
-      yPos += 10;
-      
-      doc.setFontSize(12);
-      doc.setFont('helvetica', 'bold');
-      doc.text('Resumo da Documentação', 20, yPos);
-      yPos += 8;
+      // Resumo
+      yPos = drawSectionTitle(doc, 'Resumo da Documentação', yPos, marginLeft);
       
       // Calculate progress for filtered categories
       const filteredTotal = filteredCategories.reduce((sum, cat) => sum + cat.items.length, 0);
@@ -310,44 +293,45 @@ export default function Documentacao() {
       
       doc.setFont('helvetica', 'normal');
       doc.setFontSize(10);
-      doc.text(`Progresso: ${filteredProgress}% dos documentos coletados`, 20, yPos);
+      doc.setTextColor(...BRAND_COLORS.darkGray);
+      doc.text(`Progresso: ${filteredProgress}% dos documentos coletados`, marginLeft, yPos);
       yPos += 12;
       
       // Perfil do Vendedor (only for vendedor or complete)
       if (exportType === 'vendedor' || exportType === 'completo') {
-        doc.setFillColor(212, 175, 55); // Gold
+        doc.setFillColor(...BRAND_COLORS.gold);
         doc.rect(15, yPos - 4, pageWidth - 30, 8, 'F');
         doc.setFont('helvetica', 'bold');
         doc.setFontSize(10);
-        doc.setTextColor(12, 35, 64);
-        doc.text('PERFIL DO VENDEDOR', 20, yPos);
+        doc.setTextColor(...BRAND_COLORS.navy);
+        doc.text('PERFIL DO VENDEDOR', marginLeft, yPos);
         yPos += 10;
         
         doc.setFont('helvetica', 'normal');
         doc.setFontSize(9);
-        doc.setTextColor(0, 0, 0);
-        doc.text(`• Empresário / Pessoa Jurídica: ${flags.vendedor.isEmpresario ? 'Sim' : 'Não'}`, 20, yPos);
+        doc.setTextColor(...BRAND_COLORS.darkGray);
+        doc.text(`• Empresário / Pessoa Jurídica: ${flags.vendedor.isEmpresario ? 'Sim' : 'Não'}`, marginLeft, yPos);
         yPos += 6;
-        doc.text(`• União Estável: ${flags.vendedor.isUniaoEstavel ? 'Sim' : 'Não'}`, 20, yPos);
+        doc.text(`• União Estável: ${flags.vendedor.isUniaoEstavel ? 'Sim' : 'Não'}`, marginLeft, yPos);
         yPos += 10;
       }
       
       // Perfil do Comprador (only for comprador or complete)
       if (exportType === 'comprador' || exportType === 'completo') {
-        doc.setFillColor(212, 175, 55); // Gold
+        doc.setFillColor(...BRAND_COLORS.gold);
         doc.rect(15, yPos - 4, pageWidth - 30, 8, 'F');
         doc.setFont('helvetica', 'bold');
         doc.setFontSize(10);
-        doc.setTextColor(12, 35, 64);
-        doc.text('PERFIL DO COMPRADOR', 20, yPos);
+        doc.setTextColor(...BRAND_COLORS.navy);
+        doc.text('PERFIL DO COMPRADOR', marginLeft, yPos);
         yPos += 10;
         
         doc.setFont('helvetica', 'normal');
         doc.setFontSize(9);
-        doc.setTextColor(0, 0, 0);
-        doc.text(`• Comunhão Total de Bens: ${flags.comprador.isComunhaoTotal ? 'Sim' : 'Não'}`, 20, yPos);
+        doc.setTextColor(...BRAND_COLORS.darkGray);
+        doc.text(`• Comunhão Total de Bens: ${flags.comprador.isComunhaoTotal ? 'Sim' : 'Não'}`, marginLeft, yPos);
         yPos += 6;
-        doc.text(`• União Estável: ${flags.comprador.isUniaoEstavel ? 'Sim' : 'Não'}`, 20, yPos);
+        doc.text(`• União Estável: ${flags.comprador.isUniaoEstavel ? 'Sim' : 'Não'}`, marginLeft, yPos);
         yPos += 10;
       }
       
@@ -356,25 +340,25 @@ export default function Documentacao() {
       // Categories
       for (const category of filteredCategories) {
         // Check if we need a new page
-        if (yPos > 250) {
+        if (yPos > getMaxContentY() - 20) {
           doc.addPage();
           yPos = 20;
         }
         
-        doc.setFillColor(240, 240, 240);
+        doc.setFillColor(...BRAND_COLORS.lightGray);
         doc.rect(15, yPos - 4, pageWidth - 30, 8, 'F');
         
         doc.setFont('helvetica', 'bold');
         doc.setFontSize(11);
-        doc.setTextColor(0, 0, 0);
-        doc.text(category.title, 20, yPos);
+        doc.setTextColor(...BRAND_COLORS.navy);
+        doc.text(category.title, marginLeft, yPos);
         yPos += 12;
         
         doc.setFont('helvetica', 'normal');
         doc.setFontSize(9);
         
         for (const item of category.items) {
-          if (yPos > 280) {
+          if (yPos > getMaxContentY()) {
             doc.addPage();
             yPos = 20;
           }
@@ -384,36 +368,25 @@ export default function Documentacao() {
           
           // Checkbox color: green if checked, gray if not
           doc.setTextColor(item.checked ? 34 : 100, item.checked ? 197 : 100, item.checked ? 94 : 100);
-          doc.text(checkbox, 20, yPos);
+          doc.text(checkbox, marginLeft, yPos);
           
           // Label color: gold accent for conditional items, black for regular
           if (isConditional) {
             doc.setTextColor(180, 140, 30); // Gold/amber for conditional items
           } else {
-            doc.setTextColor(0, 0, 0);
+            doc.setTextColor(...BRAND_COLORS.darkGray);
           }
           
           const prefix = isConditional ? '→ ' : '';
-          doc.text(prefix + item.label, 32, yPos);
+          doc.text(prefix + item.label, marginLeft + 12, yPos);
           yPos += 6;
         }
         
         yPos += 6;
       }
       
-      // Footer
-      const pageCount = doc.internal.pages.length - 1;
-      for (let i = 1; i <= pageCount; i++) {
-        doc.setPage(i);
-        doc.setFontSize(8);
-        doc.setTextColor(128, 128, 128);
-        doc.text(
-          `Godoy Prime Analytics - Página ${i} de ${pageCount}`,
-          pageWidth / 2,
-          290,
-          { align: 'center' }
-        );
-      }
+      // Apply footers to all pages
+      applyFootersToAllPages(doc);
       
       const filename = exportType === 'vendedor' 
         ? 'checklist_vendedor' 
