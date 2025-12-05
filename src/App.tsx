@@ -18,11 +18,7 @@ import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
 
-console.log("🚀 App.tsx: Component loaded");
-
-const App = () => {
-  console.log("🚀 App.tsx: Rendering App");
-  return (
+const App = () => (
   <QueryClientProvider client={queryClient}>
     <TooltipProvider>
       <Toaster />
@@ -61,7 +57,6 @@ const App = () => {
       </BrowserRouter>
     </TooltipProvider>
   </QueryClientProvider>
-  );
-};
+);
 
 export default App;
