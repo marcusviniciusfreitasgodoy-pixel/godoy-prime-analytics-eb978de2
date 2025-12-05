@@ -18,7 +18,8 @@ interface MicrobairroEvolutionChartProps {
   bairro: string;
 }
 
-const MICROBAIRRO_COLORS: Record<string, string> = {
+// Cores predefinidas para microbairros da Barra
+const BARRA_MICROBAIRRO_COLORS: Record<string, string> = {
   'Orla': '#D4AF37',
   'Península': '#0C2340',
   'Centro Metropolitano': '#22C55E',
@@ -27,6 +28,22 @@ const MICROBAIRRO_COLORS: Record<string, string> = {
   'ABM': '#F97316',
   'Parque das Rosas': '#EC4899',
   'Eixo Américas': '#14B8A6',
+};
+
+// Cores dinâmicas para outros bairros
+const DYNAMIC_COLORS = [
+  '#D4AF37', '#0C2340', '#22C55E', '#3B82F6', 
+  '#8B5CF6', '#F97316', '#EC4899', '#14B8A6',
+  '#EF4444', '#06B6D4', '#84CC16', '#F59E0B',
+];
+
+const getRegionColor = (region: string, index: number): string => {
+  // Se for uma região conhecida da Barra, usar cor predefinida
+  if (BARRA_MICROBAIRRO_COLORS[region]) {
+    return BARRA_MICROBAIRRO_COLORS[region];
+  }
+  // Caso contrário, usar cor dinâmica baseada no índice
+  return DYNAMIC_COLORS[index % DYNAMIC_COLORS.length];
 };
 
 const formatCurrency = (value: number) => {
@@ -174,19 +191,22 @@ export const MicrobairroEvolutionChart = ({ bairro }: MicrobairroEvolutionChartP
                 iconType="line"
               />
               
-              {microbairros.map((microbairro) => (
-                <Line
-                  key={microbairro}
-                  type="monotone"
-                  dataKey={microbairro}
-                  name={microbairro}
-                  stroke={MICROBAIRRO_COLORS[microbairro] || '#888888'}
-                  strokeWidth={2.5}
-                  dot={{ r: 3, fill: MICROBAIRRO_COLORS[microbairro] || '#888888' }}
-                  activeDot={{ r: 5 }}
-                  connectNulls
-                />
-              ))}
+              {microbairros.map((microbairro, index) => {
+                const color = getRegionColor(microbairro, index);
+                return (
+                  <Line
+                    key={microbairro}
+                    type="monotone"
+                    dataKey={microbairro}
+                    name={microbairro}
+                    stroke={color}
+                    strokeWidth={2.5}
+                    dot={{ r: 3, fill: color }}
+                    activeDot={{ r: 5 }}
+                    connectNulls
+                  />
+                );
+              })}
             </LineChart>
           </ResponsiveContainer>
         </div>
