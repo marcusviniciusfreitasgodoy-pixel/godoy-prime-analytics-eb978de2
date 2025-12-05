@@ -454,7 +454,9 @@ export default function Dashboard() {
         <SearchTools bairro={selectedBairro} vistoriaData={vistoriaData} />
       </div>
 
-      <AdvancedSearchReport />
+      <div data-tour="advanced-report">
+        <AdvancedSearchReport />
+      </div>
 
       {/* Avisos - visíveis apenas em mobile, no final da página */}
       <div className="sm:hidden space-y-3">

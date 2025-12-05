@@ -38,6 +38,11 @@ const tourSteps: Step[] = [
     content: 'IA Valuation: calcule o valor estimado de um imóvel com base na localização, área, características e condições. Gera preço mínimo, justo e máximo.',
     placement: 'bottom',
   },
+  {
+    target: '[data-tour="advanced-report"]',
+    content: 'Relatório Avançado: pesquise transações com filtros detalhados (valor, área, tipologia, ano, bairro, logradouro) e exporte resultados em PDF, Excel ou CSV.',
+    placement: 'top',
+  },
 ];
 
 interface GuidedTourProps {
