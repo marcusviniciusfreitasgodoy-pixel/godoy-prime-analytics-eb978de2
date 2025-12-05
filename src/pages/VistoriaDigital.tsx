@@ -8,7 +8,11 @@ import {
 } from "@/components/ui/accordion";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { CheckCircle2, AlertTriangle, XCircle, Circle, FileText, Loader2, MinusCircle } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Textarea } from "@/components/ui/textarea";
+import { CheckCircle2, AlertTriangle, XCircle, Circle, FileText, Loader2, MinusCircle, Building2 } from "lucide-react";
 import {
   Tooltip,
   TooltipContent,
@@ -18,6 +22,34 @@ import {
 import { useToast } from "@/hooks/use-toast";
 import jsPDF from "jspdf";
 import { formatDate } from "@/utils/exportUtils";
+
+interface PropertyData {
+  logradouro: string;
+  numero: string;
+  complemento: string;
+  bairro: string;
+  tipoImovel: string;
+  areaM2: string;
+  proprietario: string;
+  telefone: string;
+  vistoriador: string;
+  dataVistoria: string;
+  observacoes: string;
+}
+
+const initialPropertyData: PropertyData = {
+  logradouro: '',
+  numero: '',
+  complemento: '',
+  bairro: 'BARRA DA TIJUCA',
+  tipoImovel: '',
+  areaM2: '',
+  proprietario: '',
+  telefone: '',
+  vistoriador: '',
+  dataVistoria: new Date().toISOString().split('T')[0],
+  observacoes: '',
+};
 
 type ItemStatus = 'ok' | 'atencao' | 'critico' | 'nao-verificado' | 'nao-aplica';
 
@@ -238,8 +270,13 @@ const statusConfig = {
 
 export default function VistoriaDigital() {
   const [checklist, setChecklist] = useState<ChecklistCategory[]>(initialChecklist);
+  const [propertyData, setPropertyData] = useState<PropertyData>(initialPropertyData);
   const [isGeneratingPDF, setIsGeneratingPDF] = useState(false);
   const { toast } = useToast();
+
+  const updatePropertyData = (field: keyof PropertyData, value: string) => {
+    setPropertyData(prev => ({ ...prev, [field]: value }));
+  };
 
   const updateItemStatus = (categoryId: string, itemId: string, newStatus: ItemStatus) => {
     setChecklist(prev =>
@@ -281,9 +318,10 @@ export default function VistoriaDigital() {
 
   const resetChecklist = () => {
     setChecklist(initialChecklist);
+    setPropertyData(initialPropertyData);
     toast({
       title: "Checklist resetado",
-      description: "Todos os itens foram marcados como não verificados.",
+      description: "Todos os itens e dados do imóvel foram limpos.",
     });
   };
 
@@ -293,63 +331,109 @@ export default function VistoriaDigital() {
     try {
       const doc = new jsPDF();
       const pageWidth = doc.internal.pageSize.getWidth();
+      const marginLeft = 20;
       let yPos = 20;
       
       // Header
-      doc.setFillColor(12, 35, 64); // Navy
+      doc.setFillColor(12, 35, 64);
       doc.rect(0, 0, pageWidth, 40, 'F');
       
       doc.setTextColor(255, 255, 255);
-      doc.setFontSize(24);
+      doc.setFontSize(20);
       doc.setFont('helvetica', 'bold');
-      doc.text('GODOY PRIME', 20, 25);
+      doc.text('GODOY PRIME ANALYTICS', marginLeft, 18);
       
       doc.setFontSize(12);
       doc.setFont('helvetica', 'normal');
-      doc.text('Relatório de Vistoria Digital', 20, 35);
+      doc.text('Relatorio de Vistoria Digital', marginLeft, 28);
       
-      yPos = 55;
+      doc.setFontSize(9);
+      doc.text(`Gerado em: ${formatDate(new Date())}`, marginLeft, 36);
       
-      // Date and summary
-      doc.setTextColor(0, 0, 0);
-      doc.setFontSize(10);
-      doc.text(`Data: ${formatDate(new Date())}`, 20, yPos);
+      yPos = 50;
+      
+      // Identificacao do Imovel
+      doc.setFontSize(11);
+      doc.setFont('helvetica', 'bold');
+      doc.setTextColor(12, 35, 64);
+      doc.text('IDENTIFICACAO DO IMOVEL', marginLeft, yPos);
+      doc.setDrawColor(212, 175, 55);
+      doc.setLineWidth(0.5);
+      doc.line(marginLeft, yPos + 2, marginLeft + 60, yPos + 2);
       yPos += 10;
       
-      doc.setFontSize(12);
-      doc.setFont('helvetica', 'bold');
-      doc.text('Resumo da Vistoria', 20, yPos);
+      doc.setFontSize(10);
+      doc.setTextColor(40, 40, 40);
+      
+      const propertyInfo = [
+        ['Endereco:', `${propertyData.logradouro || 'Nao informado'}${propertyData.numero ? ', ' + propertyData.numero : ''}${propertyData.complemento ? ' - ' + propertyData.complemento : ''}`],
+        ['Bairro:', propertyData.bairro || 'Nao informado'],
+        ['Tipo:', propertyData.tipoImovel || 'Nao informado'],
+        ['Area:', propertyData.areaM2 ? `${propertyData.areaM2} m2` : 'Nao informada'],
+        ['Proprietario:', propertyData.proprietario || 'Nao informado'],
+        ['Telefone:', propertyData.telefone || 'Nao informado'],
+        ['Vistoriador:', propertyData.vistoriador || 'Nao informado'],
+        ['Data Vistoria:', propertyData.dataVistoria ? new Date(propertyData.dataVistoria).toLocaleDateString('pt-BR') : formatDate(new Date())],
+      ];
+      
+      propertyInfo.forEach(([label, value]) => {
+        doc.setFont('helvetica', 'normal');
+        doc.text(label, marginLeft + 5, yPos);
+        doc.setFont('helvetica', 'bold');
+        doc.text(value, marginLeft + 45, yPos);
+        yPos += 6;
+      });
+      
+      if (propertyData.observacoes) {
+        yPos += 2;
+        doc.setFont('helvetica', 'normal');
+        doc.text('Observacoes:', marginLeft + 5, yPos);
+        yPos += 5;
+        doc.setFontSize(9);
+        const splitObs = doc.splitTextToSize(propertyData.observacoes, pageWidth - 50);
+        doc.text(splitObs, marginLeft + 5, yPos);
+        yPos += splitObs.length * 4;
+      }
+      
       yPos += 8;
       
-      doc.setFont('helvetica', 'normal');
+      // Resumo da Vistoria
+      doc.setFontSize(11);
+      doc.setFont('helvetica', 'bold');
+      doc.setTextColor(12, 35, 64);
+      doc.text('RESUMO DA VISTORIA', marginLeft, yPos);
+      doc.line(marginLeft, yPos + 2, marginLeft + 50, yPos + 2);
+      yPos += 10;
+      
       doc.setFontSize(10);
-      doc.text(`Progresso: ${getProgress()}%`, 20, yPos);
+      doc.setTextColor(40, 40, 40);
+      doc.setFont('helvetica', 'normal');
+      doc.text(`Progresso: ${getProgress()}%`, marginLeft + 5, yPos);
       yPos += 6;
       
       const criticalCount = getCriticalCount();
       const attentionCount = getAttentionCount();
       
       if (criticalCount > 0) {
-        doc.setTextColor(239, 68, 68);
-        doc.text(`Itens Críticos: ${criticalCount}`, 20, yPos);
+        doc.setTextColor(220, 38, 38);
+        doc.text(`Itens Criticos: ${criticalCount}`, marginLeft + 5, yPos);
         yPos += 6;
       }
       
       if (attentionCount > 0) {
-        doc.setTextColor(234, 179, 8);
-        doc.text(`Itens com Atenção: ${attentionCount}`, 20, yPos);
+        doc.setTextColor(202, 138, 4);
+        doc.text(`Itens com Atencao: ${attentionCount}`, marginLeft + 5, yPos);
         yPos += 6;
       }
       
-      doc.setTextColor(0, 0, 0);
-      yPos += 10;
+      doc.setTextColor(40, 40, 40);
+      yPos += 8;
       
       // Categories
       for (const category of checklist) {
         const verifiedInCategory = category.items.filter(i => i.status !== 'nao-verificado');
         if (verifiedInCategory.length === 0) continue;
         
-        // Check if we need a new page
         if (yPos > 250) {
           doc.addPage();
           yPos = 20;
@@ -359,9 +443,10 @@ export default function VistoriaDigital() {
         doc.rect(15, yPos - 4, pageWidth - 30, 8, 'F');
         
         doc.setFont('helvetica', 'bold');
-        doc.setFontSize(11);
-        doc.text(category.title, 20, yPos);
-        yPos += 12;
+        doc.setFontSize(10);
+        doc.setTextColor(12, 35, 64);
+        doc.text(category.title, marginLeft, yPos);
+        yPos += 10;
         
         doc.setFont('helvetica', 'normal');
         doc.setFontSize(9);
@@ -376,14 +461,15 @@ export default function VistoriaDigital() {
           
           const config = statusConfig[item.status];
           doc.setTextColor(...config.pdfColor);
-          doc.text(`[${config.label.toUpperCase()}]`, 20, yPos);
+          doc.text(`[${config.label.toUpperCase()}]`, marginLeft, yPos);
           
-          doc.setTextColor(0, 0, 0);
-          doc.text(item.label, 55, yPos);
-          yPos += 6;
+          doc.setTextColor(40, 40, 40);
+          const splitLabel = doc.splitTextToSize(item.label, pageWidth - 80);
+          doc.text(splitLabel, marginLeft + 35, yPos);
+          yPos += splitLabel.length * 4 + 2;
         }
         
-        yPos += 6;
+        yPos += 4;
       }
       
       // Footer
@@ -393,14 +479,15 @@ export default function VistoriaDigital() {
         doc.setFontSize(8);
         doc.setTextColor(128, 128, 128);
         doc.text(
-          `Godoy Prime Analytics - Página ${i} de ${pageCount}`,
+          `Godoy Prime Analytics - Pagina ${i} de ${pageCount}`,
           pageWidth / 2,
           290,
           { align: 'center' }
         );
       }
       
-      doc.save(`vistoria_${new Date().toISOString().split('T')[0]}.pdf`);
+      const filename = `vistoria_${propertyData.logradouro?.replace(/\s+/g, '_').substring(0, 20) || 'imovel'}_${new Date().toISOString().split('T')[0]}.pdf`;
+      doc.save(filename);
       
       toast({
         title: "PDF gerado com sucesso",
@@ -461,6 +548,130 @@ export default function VistoriaDigital() {
             </div>
           </div>
         </CardHeader>
+      </Card>
+
+      {/* Identificação do Imóvel */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-lg sm:text-xl flex items-center gap-2">
+            <Building2 className="h-5 w-5" />
+            Identificação do Imóvel
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            <div className="sm:col-span-2 lg:col-span-2">
+              <Label htmlFor="logradouro">Logradouro *</Label>
+              <Input
+                id="logradouro"
+                value={propertyData.logradouro}
+                onChange={(e) => updatePropertyData('logradouro', e.target.value)}
+                placeholder="Ex: Av. das Américas"
+              />
+            </div>
+            <div className="grid grid-cols-2 gap-2">
+              <div>
+                <Label htmlFor="numero">Número</Label>
+                <Input
+                  id="numero"
+                  value={propertyData.numero}
+                  onChange={(e) => updatePropertyData('numero', e.target.value)}
+                  placeholder="1000"
+                />
+              </div>
+              <div>
+                <Label htmlFor="complemento">Complemento</Label>
+                <Input
+                  id="complemento"
+                  value={propertyData.complemento}
+                  onChange={(e) => updatePropertyData('complemento', e.target.value)}
+                  placeholder="Apto 101"
+                />
+              </div>
+            </div>
+            <div>
+              <Label htmlFor="bairro">Bairro</Label>
+              <Input
+                id="bairro"
+                value={propertyData.bairro}
+                onChange={(e) => updatePropertyData('bairro', e.target.value)}
+                placeholder="Barra da Tijuca"
+              />
+            </div>
+            <div>
+              <Label htmlFor="tipoImovel">Tipo do Imóvel</Label>
+              <Select value={propertyData.tipoImovel} onValueChange={(v) => updatePropertyData('tipoImovel', v)}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Selecione..." />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="apartamento">Apartamento</SelectItem>
+                  <SelectItem value="casa">Casa</SelectItem>
+                  <SelectItem value="cobertura">Cobertura</SelectItem>
+                  <SelectItem value="sala_comercial">Sala Comercial</SelectItem>
+                  <SelectItem value="loja">Loja</SelectItem>
+                  <SelectItem value="terreno">Terreno</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <Label htmlFor="areaM2">Área (m²)</Label>
+              <Input
+                id="areaM2"
+                value={propertyData.areaM2}
+                onChange={(e) => updatePropertyData('areaM2', e.target.value)}
+                placeholder="150"
+                type="number"
+              />
+            </div>
+            <div>
+              <Label htmlFor="proprietario">Proprietário / Contato</Label>
+              <Input
+                id="proprietario"
+                value={propertyData.proprietario}
+                onChange={(e) => updatePropertyData('proprietario', e.target.value)}
+                placeholder="Nome do proprietário"
+              />
+            </div>
+            <div>
+              <Label htmlFor="telefone">Telefone</Label>
+              <Input
+                id="telefone"
+                value={propertyData.telefone}
+                onChange={(e) => updatePropertyData('telefone', e.target.value)}
+                placeholder="(21) 99999-9999"
+              />
+            </div>
+            <div>
+              <Label htmlFor="vistoriador">Vistoriador</Label>
+              <Input
+                id="vistoriador"
+                value={propertyData.vistoriador}
+                onChange={(e) => updatePropertyData('vistoriador', e.target.value)}
+                placeholder="Nome do corretor"
+              />
+            </div>
+            <div>
+              <Label htmlFor="dataVistoria">Data da Vistoria</Label>
+              <Input
+                id="dataVistoria"
+                type="date"
+                value={propertyData.dataVistoria}
+                onChange={(e) => updatePropertyData('dataVistoria', e.target.value)}
+              />
+            </div>
+          </div>
+          <div>
+            <Label htmlFor="observacoes">Observações Gerais</Label>
+            <Textarea
+              id="observacoes"
+              value={propertyData.observacoes}
+              onChange={(e) => updatePropertyData('observacoes', e.target.value)}
+              placeholder="Informações adicionais sobre o imóvel..."
+              rows={3}
+            />
+          </div>
+        </CardContent>
       </Card>
 
       <Card>
