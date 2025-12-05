@@ -31,6 +31,16 @@ const classificarMicrobairro = (logradouro: string): string | null => {
   if (log.includes('DULCIDIO') || log.includes('DULCÍDIO') || log.includes('CARDOSO')) {
     return 'ABM';
   }
+  // Parque das Rosas (próximo ao Barra Shopping)
+  if (log.includes('MARIO COVAS') || log.includes('MÁRIO COVAS') ||
+      log.includes('CESAR LATTES') || log.includes('CÉSAR LATTES') ||
+      log.includes('HENRIQUE CORDEIRO')) {
+    return 'Parque das Rosas';
+  }
+  // Eixo Américas (outros condomínios da Av. das Américas)
+  if (log.includes('AMERICAS') || log.includes('AMÉRICAS')) {
+    return 'Eixo Américas';
+  }
   
   return null; // Ignorar "Outros"
 };
