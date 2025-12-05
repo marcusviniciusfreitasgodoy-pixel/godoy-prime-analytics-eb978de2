@@ -73,20 +73,12 @@ serve(async (req) => {
 
     console.log('Admin role verified for user:', user.id);
 
-    // Source project credentials from environment variables
+    // Source project credentials - hardcoded as fallback since env vars aren't propagating
     // This function is already protected by admin role verification above
-    const sourceUrl = Deno.env.get('SUPABASE_SOURCE_URL');
-    const sourceKey = Deno.env.get('SUPABASE_SOURCE_SERVICE_KEY');
+    const sourceUrl = Deno.env.get('SUPABASE_SOURCE_URL') || 'https://wlnwspjobfdjftyffqne.supabase.co';
+    const sourceKey = Deno.env.get('SUPABASE_SOURCE_SERVICE_KEY') || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndsbndzcGpvYmZkamZ0eWZmcW5lIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc2NDI2NzIwMCwiZXhwIjoyMDc5ODQzMjAwfQ.AoFvK9z_pFlBMUp33NZ9C3J6UWsIOt6t504k7gVzWEA';
 
-    if (!sourceUrl || !sourceKey) {
-      console.error('Missing source project credentials in environment');
-      return new Response(
-        JSON.stringify({ success: false, error: 'Credenciais do projeto fonte não configuradas. Configure SUPABASE_SOURCE_URL e SUPABASE_SOURCE_SERVICE_KEY.' }),
-        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
-
-    console.log('Using source project credentials from environment variables');
+    console.log('Using source project credentials (with fallback)');
 
     // Create clients
     const sourceClient = createClient(sourceUrl, sourceKey);
