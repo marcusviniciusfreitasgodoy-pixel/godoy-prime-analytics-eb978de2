@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { FileDown, Info, HelpCircle, Monitor, FileSpreadsheet, FileText, BarChart3, Search, TrendingUp, MapPin, Database } from "lucide-react";
+import { FileDown, Info, HelpCircle, Monitor, FileSpreadsheet, FileText, BarChart3, Search, TrendingUp, MapPin, Database, FileImage } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { DashboardKPIs } from "@/components/DashboardKPIs";
@@ -12,14 +12,23 @@ import { GuidedTour } from "@/components/GuidedTour";
 import { BairroSelector } from "@/components/BairroSelector";
 import { supabase } from "@/integrations/supabase/client";
 import { exportToCSV, exportToXLSX } from "@/utils/exportUtils";
+import { exportDashboardPDF, exportDashboardXLSX } from "@/utils/dashboardExport";
+import { useKPIStats } from "@/hooks/useKPIStats";
+import { useMicrobairroRanking } from "@/hooks/useITBITransactions";
+import { useEvolutionData } from "@/hooks/useEvolutionData";
 import { useToast } from "@/hooks/use-toast";
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator, DropdownMenuLabel } from "@/components/ui/dropdown-menu";
 
 export default function Dashboard() {
   const [runTour, setRunTour] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
   const [selectedBairro, setSelectedBairro] = useState("BARRA DA TIJUCA");
   const { toast } = useToast();
+
+  // Hooks para dados do dashboard (usados na exportação completa)
+  const { data: kpiStats } = useKPIStats(selectedBairro);
+  const { data: rankingData } = useMicrobairroRanking(selectedBairro);
+  const { data: evolutionData } = useEvolutionData(selectedBairro, 'semester');
 
   const fetchExportData = async () => {
     const { data, error } = await supabase
@@ -186,6 +195,68 @@ export default function Dashboard() {
     }
   };
 
+  // Exportação completa do Dashboard (PDF)
+  const handleExportDashboardPDF = () => {
+    setIsExporting(true);
+    try {
+      exportDashboardPDF({
+        bairro: selectedBairro,
+        kpis: kpiStats || null,
+        ranking: (rankingData || []).map(r => ({
+          microbairro: r.microbairro || '',
+          preco_medio_m2: r.preco_medio_m2 || 0,
+          total_transacoes: r.total_transacoes || 0,
+        })),
+        evolution: evolutionData || [],
+        granularity: 'semester',
+      });
+      toast({
+        title: "PDF gerado",
+        description: "Relatório completo do Dashboard exportado em PDF.",
+      });
+    } catch (error) {
+      console.error('PDF export error:', error);
+      toast({
+        title: "Erro na exportação",
+        description: "Não foi possível gerar o PDF.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
+  // Exportação completa do Dashboard (Excel)
+  const handleExportDashboardXLSX = () => {
+    setIsExporting(true);
+    try {
+      exportDashboardXLSX({
+        bairro: selectedBairro,
+        kpis: kpiStats || null,
+        ranking: (rankingData || []).map(r => ({
+          microbairro: r.microbairro || '',
+          preco_medio_m2: r.preco_medio_m2 || 0,
+          total_transacoes: r.total_transacoes || 0,
+        })),
+        evolution: evolutionData || [],
+        granularity: 'semester',
+      });
+      toast({
+        title: "Excel gerado",
+        description: "Relatório completo do Dashboard exportado em Excel.",
+      });
+    } catch (error) {
+      console.error('XLSX export error:', error);
+      toast({
+        title: "Erro na exportação",
+        description: "Não foi possível gerar o Excel.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
   return (
     <div className="space-y-3 sm:space-y-6">
       <GuidedTour run={runTour} onFinish={() => setRunTour(false)} />
@@ -255,6 +326,17 @@ export default function Dashboard() {
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end">
+                  <DropdownMenuLabel className="text-xs text-muted-foreground">Relatório Completo</DropdownMenuLabel>
+                  <DropdownMenuItem onClick={handleExportDashboardPDF} className="gap-2">
+                    <FileImage className="h-4 w-4" />
+                    PDF (KPIs + Ranking)
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={handleExportDashboardXLSX} className="gap-2">
+                    <BarChart3 className="h-4 w-4" />
+                    Excel (Completo)
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuLabel className="text-xs text-muted-foreground">Transações</DropdownMenuLabel>
                   <DropdownMenuItem onClick={handleExportXLSX} className="gap-2">
                     <FileSpreadsheet className="h-4 w-4" />
                     Excel (.xlsx)
@@ -263,7 +345,8 @@ export default function Dashboard() {
                     <FileText className="h-4 w-4" />
                     CSV (.csv)
                   </DropdownMenuItem>
-                  <DropdownMenuItem onClick={handleBackupCompleto} className="gap-2 border-t mt-1 pt-1">
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem onClick={handleBackupCompleto} className="gap-2">
                     <Database className="h-4 w-4" />
                     Backup Completo
                   </DropdownMenuItem>
@@ -298,6 +381,17 @@ export default function Dashboard() {
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
+                <DropdownMenuLabel className="text-xs text-muted-foreground">Relatório Completo</DropdownMenuLabel>
+                <DropdownMenuItem onClick={handleExportDashboardPDF} className="gap-2">
+                  <FileImage className="h-4 w-4" />
+                  PDF (KPIs + Ranking + Evolução)
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={handleExportDashboardXLSX} className="gap-2">
+                  <BarChart3 className="h-4 w-4" />
+                  Excel (Completo)
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuLabel className="text-xs text-muted-foreground">Transações</DropdownMenuLabel>
                 <DropdownMenuItem onClick={handleExportXLSX} className="gap-2">
                   <FileSpreadsheet className="h-4 w-4" />
                   Excel (.xlsx)
@@ -306,7 +400,8 @@ export default function Dashboard() {
                   <FileText className="h-4 w-4" />
                   CSV (.csv)
                 </DropdownMenuItem>
-                <DropdownMenuItem onClick={handleBackupCompleto} className="gap-2 border-t mt-1 pt-1">
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={handleBackupCompleto} className="gap-2">
                   <Database className="h-4 w-4" />
                   Backup Completo
                 </DropdownMenuItem>
