@@ -317,12 +317,11 @@ export default function Auth() {
                       <FormLabel className="text-primary-foreground">Nome Completo</FormLabel>
                       <FormControl>
                         <Input 
+                          {...field}
                           type="text" 
                           placeholder="João da Silva"
-                          autoComplete="new-name"
-                          name="signup-fullname"
+                          autoComplete="off"
                           className="bg-primary-foreground/10 border-primary-foreground/30 text-primary-foreground placeholder:text-primary-foreground/50"
-                          {...field}
                         />
                       </FormControl>
                       <FormMessage />
@@ -338,12 +337,11 @@ export default function Auth() {
                       <FormLabel className="text-primary-foreground">E-mail Corporativo</FormLabel>
                       <FormControl>
                         <Input 
+                          {...field}
                           type="email" 
                           placeholder="seu.email@empresa.com.br"
-                          autoComplete="new-email"
-                          name="signup-email"
+                          autoComplete="off"
                           className="bg-primary-foreground/10 border-primary-foreground/30 text-primary-foreground placeholder:text-primary-foreground/50"
-                          {...field}
                         />
                       </FormControl>
                       <FormMessage />
@@ -359,12 +357,11 @@ export default function Auth() {
                       <FormLabel className="text-primary-foreground">Telefone</FormLabel>
                       <FormControl>
                         <Input 
+                          {...field}
                           type="tel" 
                           placeholder="(21) 99999-9999"
-                          autoComplete="new-phone"
-                          name="signup-phone"
+                          autoComplete="off"
                           className="bg-primary-foreground/10 border-primary-foreground/30 text-primary-foreground placeholder:text-primary-foreground/50"
-                          {...field}
                           onChange={(e) => {
                             field.onChange(formatPhone(e.target.value));
                           }}
@@ -383,12 +380,11 @@ export default function Auth() {
                       <FormLabel className="text-primary-foreground">Senha</FormLabel>
                       <FormControl>
                         <Input 
+                          {...field}
                           type="password" 
                           placeholder="••••••••"
                           autoComplete="new-password"
-                          name="signup-password"
                           className="bg-primary-foreground/10 border-primary-foreground/30 text-primary-foreground placeholder:text-primary-foreground/50"
-                          {...field}
                         />
                       </FormControl>
                       <FormMessage />
