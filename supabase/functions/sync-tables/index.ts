@@ -73,12 +73,13 @@ serve(async (req) => {
 
     console.log('Admin role verified for user:', user.id);
 
-    // Debug: Log available environment variable names (not values)
+    // Debug: Log available environment variable names (not values) - v2
     const envVars = ['SUPABASE_SOURCE_URL', 'SUPABASE_SOURCE_ANON_KEY', 'SUPABASE_URL', 'SUPABASE_SERVICE_ROLE_KEY'];
-    envVars.forEach(name => {
+    console.log('Checking environment variables at:', new Date().toISOString());
+    for (const name of envVars) {
       const value = Deno.env.get(name);
       console.log(`ENV ${name}: ${value ? 'SET (length: ' + value.length + ')' : 'NOT SET'}`);
-    });
+    }
 
     // Source project credentials from server-side secrets only
     const sourceUrl = Deno.env.get('SUPABASE_SOURCE_URL');
