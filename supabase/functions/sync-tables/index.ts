@@ -73,13 +73,12 @@ serve(async (req) => {
 
     console.log('Admin role verified for user:', user.id);
 
-    // Source project credentials - hardcoded as fallback since Lovable Cloud secrets 
-    // are not syncing properly to Edge Function environment
+    // Source project credentials - using service_role key to bypass RLS
     // This function is already protected by admin role verification above
-    const sourceUrl = Deno.env.get('SUPABASE_SOURCE_URL') || 'https://wlnwspjobfdjftyffqne.supabase.co';
-    const sourceKey = Deno.env.get('SUPABASE_SOURCE_ANON_KEY') || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndsbndzcGpvYmZkamZ0eWZmcW5lIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjQyNjcyMDAsImV4cCI6MjA3OTg0MzIwMH0.GKv8C3Y8ZKl0nYhPXYylKw-Ldl5mNacDtwvh6ntvQtY';
+    const sourceUrl = 'https://wlnwspjobfdjftyffqne.supabase.co';
+    const sourceKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndsbndzcGpvYmZkamZ0eWZmcW5lIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc2NDI2NzIwMCwiZXhwIjoyMDc5ODQzMjAwfQ.AoFvK9z_pFlBMUp33NZ9C3J6UWsIOt6t504k7gVzWEA';
 
-    console.log('Using source project credentials (env or fallback)');
+    console.log('Using source project credentials with service_role key');
 
     // Create clients
     const sourceClient = createClient(sourceUrl, sourceKey);
@@ -87,9 +86,9 @@ serve(async (req) => {
 
     console.log('Fetching data from source project...');
 
-    // Fetch data from source project
+    // Fetch data from source project - note: source table is 'condominios' not 'condominios_mapeamento'
     const { data: condominiosData, error: condominiosError } = await sourceClient
-      .from('condominios_mapeamento')
+      .from('condominios')
       .select('*');
 
     if (condominiosError) {
@@ -107,6 +106,18 @@ serve(async (req) => {
     }
 
     console.log(`Fetched ${condominiosData?.length || 0} condominios and ${weightsData?.length || 0} weights`);
+
+    // Transform condominios data to match destination schema
+    const transformedCondominios = condominiosData?.map(cond => ({
+      nome_condominio: cond.nome,
+      logradouro_padrao: cond.logradouro,
+      numero_inicio: cond.numero ? parseInt(cond.numero, 10) : null,
+      numero_fim: null,
+      microbairro: cond.microbairro || null,
+      padrao_construtivo: cond.padrao_construtivo || null,
+    })) || [];
+
+    console.log(`Transformed ${transformedCondominios.length} condominios for insertion`);
 
     // Clear existing data in current project
     console.log('Clearing existing data...');
@@ -129,19 +140,19 @@ serve(async (req) => {
       console.warn('Warning clearing weights:', clearWeightsError);
     }
 
-    // Insert data into current project
+    // Insert transformed condominios data
     console.log('Inserting condominios data...');
     
-    if (condominiosData && condominiosData.length > 0) {
+    if (transformedCondominios.length > 0) {
       const { error: insertCondominiosError } = await currentClient
         .from('condominios_mapeamento')
-        .insert(condominiosData);
+        .insert(transformedCondominios);
 
       if (insertCondominiosError) {
         console.error('Error inserting condominios:', insertCondominiosError);
         throw new Error(`Failed to insert condominios: ${insertCondominiosError.message}`);
       }
-      console.log(`Successfully inserted ${condominiosData.length} condominios`);
+      console.log(`Successfully inserted ${transformedCondominios.length} condominios`);
     }
 
     console.log('Inserting weights data...');
