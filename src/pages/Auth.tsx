@@ -12,16 +12,10 @@ import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { ArrowLeft } from 'lucide-react';
 import godoyLogo from '@/assets/godoy-logo-symbol.png';
+import { SignupForm } from '@/components/SignupForm';
 
 const loginSchema = z.object({
   email: z.string().email({ message: 'E-mail inválido' }).max(255),
-  password: z.string().min(6, { message: 'Senha deve ter no mínimo 6 caracteres' }).max(100),
-});
-
-const signupSchema = z.object({
-  fullName: z.string().min(3, { message: 'Nome deve ter no mínimo 3 caracteres' }).max(100),
-  email: z.string().email({ message: 'E-mail inválido' }).max(255),
-  phone: z.string().regex(/^\(\d{2}\)\s?\d{4,5}-?\d{4}$/, { message: 'Telefone inválido. Use o formato (XX) XXXXX-XXXX' }).optional().or(z.literal('')),
   password: z.string().min(6, { message: 'Senha deve ter no mínimo 6 caracteres' }).max(100),
 });
 
@@ -30,8 +24,14 @@ const resetSchema = z.object({
 });
 
 type LoginFormData = z.infer<typeof loginSchema>;
-type SignupFormData = z.infer<typeof signupSchema>;
 type ResetFormData = z.infer<typeof resetSchema>;
+
+interface SignupData {
+  email: string;
+  password: string;
+  fullName: string;
+  phone?: string;
+}
 
 export default function Auth() {
   const [isLogin, setIsLogin] = useState(true);
@@ -44,16 +44,6 @@ export default function Auth() {
     resolver: zodResolver(loginSchema),
     defaultValues: {
       email: '',
-      password: '',
-    },
-  });
-
-  const signupForm = useForm<SignupFormData>({
-    resolver: zodResolver(signupSchema),
-    defaultValues: {
-      fullName: '',
-      email: '',
-      phone: '',
       password: '',
     },
   });
@@ -74,15 +64,7 @@ export default function Auth() {
 
   // Reset forms when switching between login/signup
   const handleSwitchMode = () => {
-    if (isLogin) {
-      // Switching to signup - reset signup form
-      signupForm.reset({
-        fullName: '',
-        email: '',
-        phone: '',
-        password: '',
-      });
-    } else {
+    if (!isLogin) {
       // Switching to login - reset login form
       loginForm.reset({
         email: '',
@@ -103,14 +85,14 @@ export default function Auth() {
     }
   };
 
-  const onSignupSubmit = async (data: SignupFormData) => {
+  const onSignupSubmit = async (data: SignupData) => {
     setIsLoading(true);
     try {
       await signUp({
         email: data.email,
         password: data.password,
         fullName: data.fullName,
-        phone: data.phone || undefined,
+        phone: data.phone,
       });
     } catch (error) {
       console.error('Auth error:', error);
@@ -307,89 +289,11 @@ export default function Auth() {
               </form>
             </Form>
           ) : (
-            <Form {...signupForm}>
-              <form onSubmit={signupForm.handleSubmit(onSignupSubmit)} className="space-y-4">
-                <div className="space-y-2">
-                  <label htmlFor="signup-fullname" className="text-sm font-medium text-primary-foreground">
-                    Nome Completo
-                  </label>
-                  <input 
-                    id="signup-fullname"
-                    type="text" 
-                    placeholder="João da Silva"
-                    autoComplete="off"
-                    className="flex h-10 w-full rounded-md border px-3 py-2 text-sm bg-primary-foreground/10 border-primary-foreground/30 text-primary-foreground placeholder:text-primary-foreground/50 focus:outline-none focus:ring-2 focus:ring-accent"
-                    {...signupForm.register('fullName')}
-                  />
-                  {signupForm.formState.errors.fullName && (
-                    <p className="text-sm text-destructive">{signupForm.formState.errors.fullName.message}</p>
-                  )}
-                </div>
-
-                <div className="space-y-2">
-                  <label htmlFor="signup-email" className="text-sm font-medium text-primary-foreground">
-                    E-mail Corporativo
-                  </label>
-                  <input 
-                    id="signup-email"
-                    type="email" 
-                    placeholder="seu.email@empresa.com.br"
-                    autoComplete="off"
-                    className="flex h-10 w-full rounded-md border px-3 py-2 text-sm bg-primary-foreground/10 border-primary-foreground/30 text-primary-foreground placeholder:text-primary-foreground/50 focus:outline-none focus:ring-2 focus:ring-accent"
-                    {...signupForm.register('email')}
-                  />
-                  {signupForm.formState.errors.email && (
-                    <p className="text-sm text-destructive">{signupForm.formState.errors.email.message}</p>
-                  )}
-                </div>
-
-                <div className="space-y-2">
-                  <label htmlFor="signup-phone" className="text-sm font-medium text-primary-foreground">
-                    Telefone (opcional)
-                  </label>
-                  <input 
-                    id="signup-phone"
-                    type="tel" 
-                    placeholder="(21) 99999-9999"
-                    autoComplete="off"
-                    className="flex h-10 w-full rounded-md border px-3 py-2 text-sm bg-primary-foreground/10 border-primary-foreground/30 text-primary-foreground placeholder:text-primary-foreground/50 focus:outline-none focus:ring-2 focus:ring-accent"
-                    {...signupForm.register('phone')}
-                    onChange={(e) => {
-                      const formatted = formatPhone(e.target.value);
-                      signupForm.setValue('phone', formatted);
-                    }}
-                  />
-                  {signupForm.formState.errors.phone && (
-                    <p className="text-sm text-destructive">{signupForm.formState.errors.phone.message}</p>
-                  )}
-                </div>
-                
-                <div className="space-y-2">
-                  <label htmlFor="signup-password" className="text-sm font-medium text-primary-foreground">
-                    Senha
-                  </label>
-                  <input 
-                    id="signup-password"
-                    type="password" 
-                    placeholder="••••••••"
-                    autoComplete="new-password"
-                    className="flex h-10 w-full rounded-md border px-3 py-2 text-sm bg-primary-foreground/10 border-primary-foreground/30 text-primary-foreground placeholder:text-primary-foreground/50 focus:outline-none focus:ring-2 focus:ring-accent"
-                    {...signupForm.register('password')}
-                  />
-                  {signupForm.formState.errors.password && (
-                    <p className="text-sm text-destructive">{signupForm.formState.errors.password.message}</p>
-                  )}
-                </div>
-
-                <Button 
-                  type="submit" 
-                  className="w-full bg-accent hover:bg-accent/90 text-primary font-semibold"
-                  disabled={isLoading}
-                >
-                  {isLoading ? 'Processando...' : 'Cadastrar'}
-                </Button>
-              </form>
-            </Form>
+            <SignupForm 
+              onSubmit={onSignupSubmit} 
+              isLoading={isLoading} 
+              formatPhone={formatPhone}
+            />
           )}
 
           <div className="mt-6 text-center">
