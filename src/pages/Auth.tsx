@@ -12,10 +12,16 @@ import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { ArrowLeft } from 'lucide-react';
 import godoyLogo from '@/assets/godoy-logo-symbol.png';
-import { SignupForm } from '@/components/SignupForm';
 
 const loginSchema = z.object({
   email: z.string().email({ message: 'E-mail inválido' }).max(255),
+  password: z.string().min(6, { message: 'Senha deve ter no mínimo 6 caracteres' }).max(100),
+});
+
+const signupSchema = z.object({
+  fullName: z.string().min(3, { message: 'Nome deve ter no mínimo 3 caracteres' }).max(100),
+  email: z.string().email({ message: 'E-mail inválido' }).max(255),
+  phone: z.string().optional(),
   password: z.string().min(6, { message: 'Senha deve ter no mínimo 6 caracteres' }).max(100),
 });
 
@@ -24,14 +30,8 @@ const resetSchema = z.object({
 });
 
 type LoginFormData = z.infer<typeof loginSchema>;
+type SignupFormData = z.infer<typeof signupSchema>;
 type ResetFormData = z.infer<typeof resetSchema>;
-
-interface SignupData {
-  email: string;
-  password: string;
-  fullName: string;
-  phone?: string;
-}
 
 export default function Auth() {
   const [isLogin, setIsLogin] = useState(true);
@@ -48,6 +48,16 @@ export default function Auth() {
     },
   });
 
+  const signupForm = useForm<SignupFormData>({
+    resolver: zodResolver(signupSchema),
+    defaultValues: {
+      fullName: '',
+      email: '',
+      phone: '',
+      password: '',
+    },
+  });
+
   const resetForm = useForm<ResetFormData>({
     resolver: zodResolver(resetSchema),
     defaultValues: {
@@ -55,23 +65,19 @@ export default function Auth() {
     },
   });
 
-  // Redirect if already logged in
   useEffect(() => {
     if (user) {
       navigate('/');
     }
   }, [user, navigate]);
 
-  // Reset forms when switching between login/signup
   const handleSwitchMode = () => {
-    if (!isLogin) {
-      // Switching to login - reset login form
-      loginForm.reset({
-        email: '',
-        password: '',
-      });
-    }
     setIsLogin(!isLogin);
+    if (isLogin) {
+      signupForm.reset();
+    } else {
+      loginForm.reset();
+    }
   };
 
   const onLoginSubmit = async (data: LoginFormData) => {
@@ -85,14 +91,14 @@ export default function Auth() {
     }
   };
 
-  const onSignupSubmit = async (data: SignupData) => {
+  const onSignupSubmit = async (data: SignupFormData) => {
     setIsLoading(true);
     try {
       await signUp({
         email: data.email,
         password: data.password,
         fullName: data.fullName,
-        phone: data.phone,
+        phone: data.phone || undefined,
       });
     } catch (error) {
       console.error('Auth error:', error);
@@ -131,7 +137,6 @@ export default function Auth() {
     }
   };
 
-  // Forgot Password View
   if (isForgotPassword) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-muted via-muted to-muted/80 p-4">
@@ -167,6 +172,7 @@ export default function Auth() {
                       <FormControl>
                         <Input 
                           type="email" 
+                          inputMode="email"
                           placeholder="seu.email@empresa.com.br"
                           className="bg-primary-foreground/10 border-primary-foreground/30 text-primary-foreground placeholder:text-primary-foreground/50"
                           {...field}
@@ -239,7 +245,8 @@ export default function Auth() {
                       <FormLabel className="text-primary-foreground">E-mail Corporativo</FormLabel>
                       <FormControl>
                         <Input 
-                          type="email" 
+                          type="email"
+                          inputMode="email"
                           placeholder="seu.email@empresa.com.br"
                           className="bg-primary-foreground/10 border-primary-foreground/30 text-primary-foreground placeholder:text-primary-foreground/50"
                           {...field}
@@ -258,7 +265,7 @@ export default function Auth() {
                       <FormLabel className="text-primary-foreground">Senha</FormLabel>
                       <FormControl>
                         <Input 
-                          type="password" 
+                          type="password"
                           placeholder="••••••••"
                           className="bg-primary-foreground/10 border-primary-foreground/30 text-primary-foreground placeholder:text-primary-foreground/50"
                           {...field}
@@ -289,11 +296,100 @@ export default function Auth() {
               </form>
             </Form>
           ) : (
-            <SignupForm 
-              onSubmit={onSignupSubmit} 
-              isLoading={isLoading} 
-              formatPhone={formatPhone}
-            />
+            <Form {...signupForm}>
+              <form onSubmit={signupForm.handleSubmit(onSignupSubmit)} className="space-y-4">
+                <FormField
+                  control={signupForm.control}
+                  name="fullName"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel className="text-primary-foreground">Nome Completo</FormLabel>
+                      <FormControl>
+                        <Input 
+                          type="text"
+                          inputMode="text"
+                          placeholder="João da Silva"
+                          className="bg-primary-foreground/10 border-primary-foreground/30 text-primary-foreground placeholder:text-primary-foreground/50"
+                          {...field}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={signupForm.control}
+                  name="email"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel className="text-primary-foreground">E-mail Corporativo</FormLabel>
+                      <FormControl>
+                        <Input 
+                          type="email"
+                          inputMode="email"
+                          placeholder="seu.email@empresa.com.br"
+                          className="bg-primary-foreground/10 border-primary-foreground/30 text-primary-foreground placeholder:text-primary-foreground/50"
+                          {...field}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={signupForm.control}
+                  name="phone"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel className="text-primary-foreground">Telefone (opcional)</FormLabel>
+                      <FormControl>
+                        <Input 
+                          type="tel"
+                          inputMode="tel"
+                          placeholder="(21) 99999-9999"
+                          className="bg-primary-foreground/10 border-primary-foreground/30 text-primary-foreground placeholder:text-primary-foreground/50"
+                          value={field.value}
+                          onChange={(e) => field.onChange(formatPhone(e.target.value))}
+                          onBlur={field.onBlur}
+                          name={field.name}
+                          ref={field.ref}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                
+                <FormField
+                  control={signupForm.control}
+                  name="password"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel className="text-primary-foreground">Senha</FormLabel>
+                      <FormControl>
+                        <Input 
+                          type="password"
+                          placeholder="••••••••"
+                          className="bg-primary-foreground/10 border-primary-foreground/30 text-primary-foreground placeholder:text-primary-foreground/50"
+                          {...field}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <Button 
+                  type="submit" 
+                  className="w-full bg-accent hover:bg-accent/90 text-primary font-semibold"
+                  disabled={isLoading}
+                >
+                  {isLoading ? 'Processando...' : 'Cadastrar'}
+                </Button>
+              </form>
+            </Form>
           )}
 
           <div className="mt-6 text-center">
