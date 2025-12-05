@@ -7,7 +7,7 @@ import { Label } from "./ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "./ui/table";
 import { Badge } from "./ui/badge";
-import { Loader2, FileDown, Search, FileText, X, FileSpreadsheet, MapPin, Building, FileType } from "lucide-react";
+import { Loader2, FileDown, Search, FileText, X, FileSpreadsheet, MapPin, Building, FileType, Info } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { exportToCSV, exportToXLSX, exportToPDF } from "@/utils/exportUtils";
@@ -15,6 +15,7 @@ import { useToast } from "@/hooks/use-toast";
 import { ScrollArea } from "./ui/scroll-area";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "./ui/dropdown-menu";
 import { Popover, PopoverContent, PopoverTrigger } from "./ui/popover";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "./ui/tooltip";
 import { useBairroSuggestions } from "@/hooks/useBairroSuggestions";
 import { useStreetSuggestions } from "@/hooks/useStreetSuggestions";
 interface AdvancedSearchResult {
@@ -558,20 +559,57 @@ export function AdvancedSearchReport() {
 
         {/* Summary Stats */}
         {results && results.length > 0 && (
-          <div className="flex flex-wrap gap-2 py-2 border-y border-border">
-            <Badge variant="secondary" className="text-xs">
-              {results.length} registros (agregações)
-            </Badge>
-            <Badge variant="default" className="text-xs">
-              {totalTransacoes.toLocaleString('pt-BR')} transações reais
-            </Badge>
-            <Badge variant="outline" className="text-xs">
-              Valor Médio Total: {formatCurrency(totalValue)}
-            </Badge>
-            <Badge variant="outline" className="text-xs">
-              Média R$/m²: {formatCurrency(avgValueM2)}
-            </Badge>
-          </div>
+          <TooltipProvider>
+            <div className="flex flex-wrap gap-2 py-2 border-y border-border">
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Badge variant="secondary" className="text-xs cursor-help gap-1">
+                    <Info className="h-3 w-3" />
+                    {results.length} registros (agregações)
+                  </Badge>
+                </TooltipTrigger>
+                <TooltipContent className="max-w-[280px]">
+                  <p className="font-medium mb-1">Dados Agregados</p>
+                  <p className="text-xs">Cada registro representa dados agregados por logradouro/mês da Prefeitura, não transações individuais.</p>
+                </TooltipContent>
+              </Tooltip>
+              
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Badge variant="default" className="text-xs cursor-help gap-1">
+                    <Info className="h-3 w-3" />
+                    {totalTransacoes.toLocaleString('pt-BR')} transações reais
+                  </Badge>
+                </TooltipTrigger>
+                <TooltipContent className="max-w-[280px]">
+                  <p className="font-medium mb-1">Transações Reais</p>
+                  <p className="text-xs">Soma de todas as transações individuais que compõem os registros agregados. Este é o número real de vendas/transferências.</p>
+                </TooltipContent>
+              </Tooltip>
+              
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Badge variant="outline" className="text-xs cursor-help">
+                    Valor Médio Total: {formatCurrency(totalValue)}
+                  </Badge>
+                </TooltipTrigger>
+                <TooltipContent className="max-w-[280px]">
+                  <p className="text-xs">Soma dos valores médios de transação por agregação.</p>
+                </TooltipContent>
+              </Tooltip>
+              
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Badge variant="outline" className="text-xs cursor-help">
+                    Média R$/m²: {formatCurrency(avgValueM2)}
+                  </Badge>
+                </TooltipTrigger>
+                <TooltipContent className="max-w-[280px]">
+                  <p className="text-xs">Média aritmética do valor por metro quadrado entre todos os registros.</p>
+                </TooltipContent>
+              </Tooltip>
+            </div>
+          </TooltipProvider>
         )}
 
         {/* Results Table */}
