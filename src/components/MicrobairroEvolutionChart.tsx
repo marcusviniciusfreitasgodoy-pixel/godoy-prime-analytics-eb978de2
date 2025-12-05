@@ -1,7 +1,7 @@
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import { Skeleton } from '@/components/ui/skeleton';
-import { useMicrobairroEvolutionData, GranularityType } from '@/hooks/useMicrobairroEvolutionData';
+import { useMicrobairroEvolutionData, GranularityType, MetricType } from '@/hooks/useMicrobairroEvolutionData';
 import { useState } from 'react';
 import {
   LineChart,
@@ -12,7 +12,7 @@ import {
   ResponsiveContainer,
   Legend,
 } from 'recharts';
-import { TrendingUp } from 'lucide-react';
+import { TrendingUp, Activity } from 'lucide-react';
 
 interface MicrobairroEvolutionChartProps {
   bairro: string;
@@ -33,10 +33,23 @@ const formatCurrency = (value: number) => {
   return `R$ ${value.toLocaleString('pt-BR')}`;
 };
 
+const formatTransactions = (value: number) => {
+  return `${value.toLocaleString('pt-BR')} trans.`;
+};
+
 export const MicrobairroEvolutionChart = ({ bairro }: MicrobairroEvolutionChartProps) => {
   const [granularity, setGranularity] = useState<GranularityType>('semester');
+  const [metric, setMetric] = useState<MetricType>('valorization');
   
-  const { data: evolutionData, isLoading } = useMicrobairroEvolutionData(bairro, granularity);
+  const { data: evolutionData, isLoading } = useMicrobairroEvolutionData(bairro, granularity, metric);
+
+  const title = metric === 'valorization' 
+    ? 'Evolução de Valorização' 
+    : 'Evolução de Liquidez';
+
+  const subtitle = metric === 'valorization'
+    ? 'Preço médio R$/m² por microbairro ao longo do tempo'
+    : 'Transações acumuladas desde 2020 por microbairro';
 
   if (isLoading) {
     return (
@@ -57,7 +70,7 @@ export const MicrobairroEvolutionChart = ({ bairro }: MicrobairroEvolutionChartP
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-base">
             <TrendingUp className="h-5 w-5 text-primary" />
-            Evolução por Microbairro
+            {title}
           </CardTitle>
         </CardHeader>
         <CardContent>
@@ -74,25 +87,51 @@ export const MicrobairroEvolutionChart = ({ bairro }: MicrobairroEvolutionChartP
   return (
     <Card>
       <CardHeader className="pb-2">
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-          <CardTitle className="flex items-center gap-2 text-base">
-            <TrendingUp className="h-5 w-5 text-primary" />
-            Evolução por Microbairro
-          </CardTitle>
+        <div className="flex flex-col gap-3">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+            <div className="flex items-center gap-2">
+              {metric === 'valorization' ? (
+                <TrendingUp className="h-5 w-5 text-primary" />
+              ) : (
+                <Activity className="h-5 w-5 text-primary" />
+              )}
+              <CardTitle className="text-base">{title}</CardTitle>
+            </div>
+            
+            <ToggleGroup
+              type="single"
+              value={metric}
+              onValueChange={(value) => value && setMetric(value as MetricType)}
+              className="justify-start sm:justify-end"
+            >
+              <ToggleGroupItem value="valorization" aria-label="Valorização" className="text-xs px-2 py-1">
+                <TrendingUp className="h-3 w-3 mr-1" />
+                R$/m²
+              </ToggleGroupItem>
+              <ToggleGroupItem value="liquidity" aria-label="Liquidez" className="text-xs px-2 py-1">
+                <Activity className="h-3 w-3 mr-1" />
+                Trans.
+              </ToggleGroupItem>
+            </ToggleGroup>
+          </div>
           
-          <ToggleGroup
-            type="single"
-            value={granularity}
-            onValueChange={(value) => value && setGranularity(value as GranularityType)}
-            className="justify-start"
-          >
-            <ToggleGroupItem value="semester" aria-label="Semestral" className="text-xs px-3">
-              Semestral
-            </ToggleGroupItem>
-            <ToggleGroupItem value="annual" aria-label="Anual" className="text-xs px-3">
-              Anual
-            </ToggleGroupItem>
-          </ToggleGroup>
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+            <CardDescription className="text-xs">{subtitle}</CardDescription>
+            
+            <ToggleGroup
+              type="single"
+              value={granularity}
+              onValueChange={(value) => value && setGranularity(value as GranularityType)}
+              className="justify-start sm:justify-end"
+            >
+              <ToggleGroupItem value="semester" aria-label="Semestral" className="text-xs px-2 py-1">
+                Semestral
+              </ToggleGroupItem>
+              <ToggleGroupItem value="annual" aria-label="Anual" className="text-xs px-2 py-1">
+                Anual
+              </ToggleGroupItem>
+            </ToggleGroup>
+          </div>
         </div>
       </CardHeader>
       
@@ -110,11 +149,18 @@ export const MicrobairroEvolutionChart = ({ bairro }: MicrobairroEvolutionChartP
               />
               <YAxis 
                 tick={{ fontSize: 11 }}
-                tickFormatter={(value) => `${(value / 1000).toFixed(0)}k`}
-                width={45}
+                tickFormatter={(value) => 
+                  metric === 'valorization' 
+                    ? `${(value / 1000).toFixed(0)}k` 
+                    : value.toLocaleString('pt-BR')
+                }
+                width={50}
               />
               <Tooltip
-                formatter={(value: number) => [formatCurrency(value), '']}
+                formatter={(value: number) => [
+                  metric === 'valorization' ? formatCurrency(value) : formatTransactions(value),
+                  ''
+                ]}
                 labelFormatter={(label) => `Período: ${label}`}
                 contentStyle={{
                   backgroundColor: 'hsl(var(--background))',
@@ -144,10 +190,6 @@ export const MicrobairroEvolutionChart = ({ bairro }: MicrobairroEvolutionChartP
             </LineChart>
           </ResponsiveContainer>
         </div>
-        
-        <p className="text-xs text-muted-foreground text-center mt-2">
-          Preço médio R$/m² por microbairro ao longo do tempo
-        </p>
       </CardContent>
     </Card>
   );
