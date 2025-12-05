@@ -72,6 +72,26 @@ export default function Auth() {
     }
   }, [user, navigate]);
 
+  // Reset forms when switching between login/signup
+  const handleSwitchMode = () => {
+    if (isLogin) {
+      // Switching to signup - reset signup form
+      signupForm.reset({
+        fullName: '',
+        email: '',
+        phone: '',
+        password: '',
+      });
+    } else {
+      // Switching to login - reset login form
+      loginForm.reset({
+        email: '',
+        password: '',
+      });
+    }
+    setIsLogin(!isLogin);
+  };
+
   const onLoginSubmit = async (data: LoginFormData) => {
     setIsLoading(true);
     try {
@@ -299,6 +319,7 @@ export default function Auth() {
                         <Input 
                           type="text" 
                           placeholder="João da Silva"
+                          autoComplete="off"
                           className="bg-primary-foreground/10 border-primary-foreground/30 text-primary-foreground placeholder:text-primary-foreground/50"
                           {...field}
                         />
@@ -318,6 +339,7 @@ export default function Auth() {
                         <Input 
                           type="email" 
                           placeholder="seu.email@empresa.com.br"
+                          autoComplete="off"
                           className="bg-primary-foreground/10 border-primary-foreground/30 text-primary-foreground placeholder:text-primary-foreground/50"
                           {...field}
                         />
@@ -337,6 +359,7 @@ export default function Auth() {
                         <Input 
                           type="tel" 
                           placeholder="(21) 99999-9999"
+                          autoComplete="off"
                           className="bg-primary-foreground/10 border-primary-foreground/30 text-primary-foreground placeholder:text-primary-foreground/50"
                           {...field}
                           onChange={(e) => {
@@ -359,6 +382,7 @@ export default function Auth() {
                         <Input 
                           type="password" 
                           placeholder="••••••••"
+                          autoComplete="new-password"
                           className="bg-primary-foreground/10 border-primary-foreground/30 text-primary-foreground placeholder:text-primary-foreground/50"
                           {...field}
                         />
@@ -382,7 +406,7 @@ export default function Auth() {
           <div className="mt-6 text-center">
             <button
               type="button"
-              onClick={() => setIsLogin(!isLogin)}
+              onClick={handleSwitchMode}
               className="text-sm text-accent hover:text-accent/80 font-medium transition-colors"
             >
               {isLogin 
