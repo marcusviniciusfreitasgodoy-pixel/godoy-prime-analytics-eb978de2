@@ -1,7 +1,6 @@
-import { MapPin, LogOut, Menu, Home, ClipboardCheck, FileText } from "lucide-react";
+import { MapPin, Menu, Home, ClipboardCheck, FileText } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import logoSymbol from "@/assets/godoy-logo-symbol.png";
-import { useAuth } from "@/hooks/useAuth";
 import { SyncDataButton } from "./SyncDataButton";
 import { SyncITBIButton } from "./SyncITBIButton";
 import { ImportCSVButton } from "./ImportCSVButton";
@@ -16,8 +15,6 @@ const navItems = [
 ];
 
 export function Header() {
-  const { signOut } = useAuth();
-
   return (
     <header className="h-16 sm:h-20 border-b border-border bg-primary sticky top-0 z-50 shadow-lg">
       <div className="h-full px-4 sm:px-8 flex items-center justify-between max-w-[1600px] mx-auto">
@@ -42,15 +39,6 @@ export function Header() {
           <ImportCSVButton />
           <SyncITBIButton />
           <SyncDataButton />
-          <Button
-            variant="outline" 
-            size="sm" 
-            onClick={signOut}
-            className="gap-2 border-accent bg-accent/20 text-accent hover:bg-accent/30 hover:text-accent font-semibold"
-          >
-            <LogOut className="h-4 w-4" />
-            Sair
-          </Button>
         </div>
 
         {/* Mobile menu */}
@@ -88,15 +76,6 @@ export function Header() {
                 <SyncITBIButton />
                 <SyncDataButton />
               </div>
-              <Button
-                variant="outline" 
-                size="sm" 
-                onClick={signOut}
-                className="gap-2 border-accent bg-accent/20 text-accent hover:bg-accent/30 hover:text-accent font-semibold mt-4"
-              >
-                <LogOut className="h-4 w-4" />
-                Sair
-              </Button>
             </div>
           </SheetContent>
         </Sheet>

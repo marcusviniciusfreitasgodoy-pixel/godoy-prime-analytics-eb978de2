@@ -7,13 +7,10 @@ import { SidebarProvider } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/AppSidebar";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
-import { AuthProvider } from "@/hooks/useAuth";
-import { ProtectedRoute } from "@/components/ProtectedRoute";
 import Dashboard from "./pages/Dashboard";
 import Microbairros from "./pages/Microbairros";
 import VistoriaDigital from "./pages/VistoriaDigital";
 import Documentacao from "./pages/Documentacao";
-import Auth from "./pages/Auth";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -25,36 +22,24 @@ const App = () => {
         <Toaster />
         <Sonner />
         <BrowserRouter>
-          <AuthProvider>
-            <Routes>
-              <Route path="/auth" element={<Auth />} />
-              <Route
-                path="/*"
-                element={
-                  <ProtectedRoute>
-                    <SidebarProvider defaultOpen={true}>
-                      <div className="min-h-screen flex w-full bg-background">
-                        <AppSidebar />
-                        <div className="flex-1 flex flex-col">
-                          <Header />
-                          <main className="flex-1 px-1 py-2 sm:p-6 overflow-auto">
-                            <Routes>
-                              <Route path="/" element={<Dashboard />} />
-                              <Route path="/microbairros" element={<Microbairros />} />
-                              <Route path="/vistoria-digital" element={<VistoriaDigital />} />
-                              <Route path="/documentacao" element={<Documentacao />} />
-                              <Route path="*" element={<NotFound />} />
-                            </Routes>
-                          </main>
-                          <Footer />
-                        </div>
-                      </div>
-                    </SidebarProvider>
-                  </ProtectedRoute>
-                }
-              />
-            </Routes>
-          </AuthProvider>
+          <SidebarProvider defaultOpen={true}>
+            <div className="min-h-screen flex w-full bg-background">
+              <AppSidebar />
+              <div className="flex-1 flex flex-col">
+                <Header />
+                <main className="flex-1 px-1 py-2 sm:p-6 overflow-auto">
+                  <Routes>
+                    <Route path="/" element={<Dashboard />} />
+                    <Route path="/microbairros" element={<Microbairros />} />
+                    <Route path="/vistoria-digital" element={<VistoriaDigital />} />
+                    <Route path="/documentacao" element={<Documentacao />} />
+                    <Route path="*" element={<NotFound />} />
+                  </Routes>
+                </main>
+                <Footer />
+              </div>
+            </div>
+          </SidebarProvider>
         </BrowserRouter>
       </TooltipProvider>
     </QueryClientProvider>
