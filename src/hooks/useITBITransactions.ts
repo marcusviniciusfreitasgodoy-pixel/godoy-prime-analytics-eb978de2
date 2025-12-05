@@ -118,9 +118,9 @@ export function useMicrobairroRanking(bairro: string = 'BARRA DA TIJUCA') {
   });
 }
 
-export function useMicrobairroDetalhado() {
+export function useMicrobairroDetalhado(bairro: string = 'BARRA DA TIJUCA') {
   return useQuery<MicrobairroDetalhado[]>({
-    queryKey: ['microbairro-detalhado'],
+    queryKey: ['microbairro-detalhado', bairro],
     queryFn: async () => {
       // Últimos 24 meses para rankings e detalhes
       const twentyFourMonthsAgo = new Date();
@@ -132,7 +132,7 @@ export function useMicrobairroDetalhado() {
         .from('itbi_transactions')
         .select('logradouro, valor_m2, tipologia')
         .eq('uso', 'Residencial')
-        .ilike('bairro', 'BARRA DA TIJUCA')
+        .ilike('bairro', bairro)
         .not('valor_m2', 'is', null)
         .not('logradouro', 'is', null)
         .gte('data_transacao', startDate)
