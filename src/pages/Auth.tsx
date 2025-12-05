@@ -299,7 +299,6 @@ export default function Auth() {
                         <Input 
                           type="text" 
                           placeholder="João da Silva"
-                          autoComplete="name"
                           className="bg-primary-foreground/10 border-primary-foreground/30 text-primary-foreground placeholder:text-primary-foreground/50"
                           {...field}
                         />
@@ -319,7 +318,6 @@ export default function Auth() {
                         <Input 
                           type="email" 
                           placeholder="seu.email@empresa.com.br"
-                          autoComplete="email"
                           className="bg-primary-foreground/10 border-primary-foreground/30 text-primary-foreground placeholder:text-primary-foreground/50"
                           {...field}
                         />
@@ -339,7 +337,6 @@ export default function Auth() {
                         <Input 
                           type="tel" 
                           placeholder="(21) 99999-9999"
-                          autoComplete="tel"
                           className="bg-primary-foreground/10 border-primary-foreground/30 text-primary-foreground placeholder:text-primary-foreground/50"
                           {...field}
                           onChange={(e) => {

@@ -16,9 +16,6 @@ export default defineConfig(({ mode }) => ({
     VitePWA({
       registerType: "autoUpdate",
       includeAssets: ["favicon.png", "robots.txt"],
-      devOptions: {
-        enabled: false, // Disable PWA in development to avoid caching issues
-      },
       manifest: {
         name: "Godoy Prime Analytics",
         short_name: "Godoy Prime",
