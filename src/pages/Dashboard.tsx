@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useLocation } from "react-router-dom";
-import { FileDown, Info, HelpCircle, Monitor, FileSpreadsheet, FileText, BarChart3, Search, TrendingUp, MapPin, Database, FileImage } from "lucide-react";
+import { FileDown, Info, HelpCircle, Monitor, FileSpreadsheet, FileText, BarChart3, Search, TrendingUp, MapPin, Database, FileImage, Video } from "lucide-react";
 import { MarketAssistant } from "@/components/MarketAssistant";
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -16,6 +16,7 @@ import { useBairro } from "@/contexts/BairroContext";
 import { supabase } from "@/integrations/supabase/client";
 import { exportToCSV, exportToXLSX } from "@/utils/exportUtils";
 import { exportDashboardPDF, exportDashboardXLSX } from "@/utils/dashboardExport";
+import { exportVideoScriptPdf } from "@/utils/videoScriptPdfExport";
 import { useKPIStats } from "@/hooks/useKPIStats";
 import { useMicrobairroRanking } from "@/hooks/useITBITransactions";
 import { useEvolutionData } from "@/hooks/useEvolutionData";
@@ -364,6 +365,11 @@ export default function Dashboard() {
                     <Database className="h-4 w-4" />
                     Backup Completo
                   </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem onClick={() => exportVideoScriptPdf()} className="gap-2">
+                    <Video className="h-4 w-4" />
+                    Roteiro + FAQ
+                  </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
             </div>
@@ -418,6 +424,12 @@ export default function Dashboard() {
                 <DropdownMenuItem onClick={handleBackupCompleto} className="gap-2">
                   <Database className="h-4 w-4" />
                   Backup Completo
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuLabel className="text-xs text-muted-foreground">Material de Apoio</DropdownMenuLabel>
+                <DropdownMenuItem onClick={() => exportVideoScriptPdf()} className="gap-2">
+                  <Video className="h-4 w-4" />
+                  Roteiro de Vídeo + FAQ
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
