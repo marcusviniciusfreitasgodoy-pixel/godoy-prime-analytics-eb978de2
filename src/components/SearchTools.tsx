@@ -621,7 +621,20 @@ export function SearchTools({ bairro = "BARRA DA TIJUCA", vistoriaData }: Search
               )}
             </div>
             
-            {locationResult ? (
+            {locationLoading ? (
+              <div className="p-4 border rounded-lg bg-muted/30 space-y-3">
+                <div className="flex items-center justify-center gap-3">
+                  <Loader2 className="h-5 w-5 animate-spin text-primary" />
+                  <span className="text-sm text-muted-foreground">Buscando transações...</span>
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="h-4 bg-muted animate-pulse rounded" />
+                  <div className="h-4 bg-muted animate-pulse rounded" />
+                  <div className="h-4 bg-muted animate-pulse rounded" />
+                  <div className="h-4 bg-muted animate-pulse rounded" />
+                </div>
+              </div>
+            ) : locationResult ? (
               <div className="p-3 sm:p-4 border rounded-lg bg-muted/30 space-y-3">
                 <div className="flex flex-col gap-1">
                   <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-2">
