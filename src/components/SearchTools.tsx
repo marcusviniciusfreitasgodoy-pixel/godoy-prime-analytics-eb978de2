@@ -13,7 +13,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "./ui/select";
-import { useTransactionSearch } from "@/hooks/useLocationSearch";
+import { useTransactionSearch } from "@/hooks/useTransactionSearch";
 import { useSearchHistory } from "@/hooks/useSearchHistory";
 import { Badge } from "./ui/badge";
 import { exportToCSV, exportToXLSX } from "@/utils/exportUtils";
