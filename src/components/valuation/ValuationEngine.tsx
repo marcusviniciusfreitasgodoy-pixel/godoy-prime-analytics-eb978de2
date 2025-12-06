@@ -3,7 +3,8 @@ import { useLocation } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
-import { ArrowLeft, ArrowRight, Calculator, ClipboardCheck } from "lucide-react";
+import { ArrowLeft, ArrowRight, Calculator, ClipboardCheck, Info } from "lucide-react";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { useValuationCharacteristics, useDocumentationFactors } from "@/hooks/useValuationCharacteristics";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
@@ -187,6 +188,18 @@ export function ValuationEngine({ bairro = "BARRA DA TIJUCA", vistoriaData }: Pr
             <div>
               <CardTitle className="text-lg flex items-center gap-2">
                 Ferramenta de Avaliação
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Info className="h-4 w-4 text-muted-foreground cursor-help" />
+                    </TooltipTrigger>
+                    <TooltipContent side="bottom" className="max-w-xs">
+                      <p className="text-sm">
+                        <strong>Metodologia:</strong> Combina 70% dados ITBI (últimos 12 meses) + 30% anúncios de mercado (últimos 30 dias) para calcular valores de referência por m².
+                      </p>
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
                 {fromVistoria && (
                   <Badge variant="secondary" className="text-xs">
                     <ClipboardCheck className="h-3 w-3 mr-1" />
