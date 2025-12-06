@@ -1,4 +1,4 @@
-// Types for Valuation Engine - defined inline to avoid circular dependencies
+// Types for Ferramenta de Avaliação - defined inline to avoid circular dependencies
 
 export interface ITBIData {
   min_m2: number;

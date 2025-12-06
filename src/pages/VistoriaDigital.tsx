@@ -471,9 +471,9 @@ export default function VistoriaDigital() {
     return photos.filter(p => p.categoryId === categoryId && p.itemId === itemId);
   };
 
-  // Integration with Valuation Engine
+  // Integração com Ferramenta de Avaliação
   const handleGenerateValuation = () => {
-    // Pass property data to Valuation Engine via navigation state
+    // Pass property data to Ferramenta de Avaliação via navigation state
     navigate('/', {
       state: {
         fromVistoria: true,
@@ -502,7 +502,7 @@ export default function VistoriaDigital() {
     });
     toast({
       title: "Redirecionando para Avaliação",
-      description: "Os dados do imóvel serão pré-preenchidos no Valuation Engine.",
+      description: "Os dados do imóvel serão pré-preenchidos na Ferramenta de Avaliação.",
     });
   };
 

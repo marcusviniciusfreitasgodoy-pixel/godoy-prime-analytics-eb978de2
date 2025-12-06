@@ -162,7 +162,7 @@ export function ValuationEngine({ bairro = "BARRA DA TIJUCA", vistoriaData }: Pr
     return (
       <Card>
         <CardHeader>
-          <CardTitle className="text-lg">Valuation Engine</CardTitle>
+          <CardTitle className="text-lg">Ferramenta de Avaliação</CardTitle>
         </CardHeader>
         <CardContent>
           <p className="text-sm text-muted-foreground">
@@ -186,7 +186,7 @@ export function ValuationEngine({ bairro = "BARRA DA TIJUCA", vistoriaData }: Pr
             <Calculator className="h-6 w-6 text-primary" />
             <div>
               <CardTitle className="text-lg flex items-center gap-2">
-                Valuation Engine
+                Ferramenta de Avaliação
                 {fromVistoria && (
                   <Badge variant="secondary" className="text-xs">
                     <ClipboardCheck className="h-3 w-3 mr-1" />
