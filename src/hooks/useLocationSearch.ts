@@ -33,7 +33,7 @@ export interface LocationSearchResult {
 
 export function useLocationSearch(params: LocationSearchParams, enabled: boolean = false) {
   return useQuery<LocationSearchResult | null>({
-    queryKey: ['location-search', params],
+    queryKey: ['location-search', params.query, params.tipologia, params.finalidade, params.areaMin, params.areaMax, params.periodoMeses],
     queryFn: async () => {
       if (!params.query || params.query.length < 3) return null;
 
@@ -156,7 +156,8 @@ export function useLocationSearch(params: LocationSearchParams, enabled: boolean
         })),
       };
     },
-    enabled,
+    enabled: enabled && !!params.query && params.query.length >= 3,
+    staleTime: 1000 * 60 * 5, // 5 minutes
   });
 }
 
@@ -178,7 +179,7 @@ export interface MicrobairroLiquidez {
 
 export function useTransactionSearch(params: TransactionSearchParams, enabled: boolean = false) {
   return useQuery<MicrobairroLiquidez[]>({
-    queryKey: ['transaction-search', params],
+    queryKey: ['transaction-search', params.valorMin, params.valorMax, params.bairro, params.tipologia, params.periodoMeses, params.areaMin, params.areaMax],
     queryFn: async () => {
       // Período configurável (padrão: 12 meses)
       const meses = params.periodoMeses || 12;
@@ -258,5 +259,6 @@ export function useTransactionSearch(params: TransactionSearchParams, enabled: b
       return top10;
     },
     enabled,
+    staleTime: 1000 * 60 * 5, // 5 minutes
   });
 }
