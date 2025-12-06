@@ -1,10 +1,16 @@
 import { useState, useCallback } from "react";
-import { Upload, FileText, Loader2, CheckCircle, AlertTriangle, XCircle, RefreshCw, Eye, Sparkles } from "lucide-react";
+import { Upload, FileText, Loader2, CheckCircle, AlertTriangle, XCircle, RefreshCw, Sparkles, Trash2, ChevronDown, ChevronUp } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Progress } from "@/components/ui/progress";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "@/components/ui/collapsible";
 
 interface AnalysisResult {
   tipo_documento: string;
@@ -19,16 +25,24 @@ interface AnalysisResult {
   raw_response?: string;
 }
 
+interface DocumentFile {
+  id: string;
+  file: File;
+  preview: string;
+  status: 'pending' | 'analyzing' | 'done' | 'error';
+  result?: AnalysisResult;
+  error?: string;
+}
+
 interface DocumentAnalyzerProps {
   onChecklistItemSuggested?: (itemId: string) => void;
 }
 
 export function DocumentAnalyzer({ onChecklistItemSuggested }: DocumentAnalyzerProps) {
   const [isDragging, setIsDragging] = useState(false);
-  const [isAnalyzing, setIsAnalyzing] = useState(false);
-  const [preview, setPreview] = useState<string | null>(null);
-  const [filename, setFilename] = useState<string>("");
-  const [result, setResult] = useState<AnalysisResult | null>(null);
+  const [documents, setDocuments] = useState<DocumentFile[]>([]);
+  const [isAnalyzingBatch, setIsAnalyzingBatch] = useState(false);
+  const [expandedDoc, setExpandedDoc] = useState<string | null>(null);
   const { toast } = useToast();
 
   const handleDragOver = useCallback((e: React.DragEvent) => {
@@ -44,112 +58,166 @@ export function DocumentAnalyzer({ onChecklistItemSuggested }: DocumentAnalyzerP
   const handleDrop = useCallback((e: React.DragEvent) => {
     e.preventDefault();
     setIsDragging(false);
-    const files = e.dataTransfer.files;
-    if (files.length > 0) {
-      processFile(files[0]);
-    }
+    const files = Array.from(e.dataTransfer.files);
+    processFiles(files);
   }, []);
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = e.target.files;
-    if (files && files.length > 0) {
-      processFile(files[0]);
-    }
+    const files = e.target.files ? Array.from(e.target.files) : [];
+    processFiles(files);
+    // Reset input to allow selecting same files again
+    e.target.value = '';
   };
 
-  const processFile = async (file: File) => {
-    // Validate file type
+  const processFiles = async (files: File[]) => {
     const validTypes = ['image/jpeg', 'image/png', 'image/webp', 'application/pdf'];
-    if (!validTypes.includes(file.type)) {
+    const maxSize = 10 * 1024 * 1024; // 10MB
+
+    const validFiles = files.filter(file => {
+      if (!validTypes.includes(file.type)) {
+        toast({
+          title: `Arquivo ignorado: ${file.name}`,
+          description: "Tipo não suportado. Use JPG, PNG, WebP ou PDF.",
+          variant: "destructive",
+        });
+        return false;
+      }
+      if (file.size > maxSize) {
+        toast({
+          title: `Arquivo ignorado: ${file.name}`,
+          description: "Arquivo muito grande (máx. 10MB).",
+          variant: "destructive",
+        });
+        return false;
+      }
+      return true;
+    });
+
+    if (validFiles.length === 0) return;
+
+    // Convert files to DocumentFile objects
+    const newDocs: DocumentFile[] = await Promise.all(
+      validFiles.map(async (file) => {
+        const preview = await new Promise<string>((resolve) => {
+          const reader = new FileReader();
+          reader.onload = (e) => resolve(e.target?.result as string);
+          reader.readAsDataURL(file);
+        });
+
+        return {
+          id: `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+          file,
+          preview,
+          status: 'pending' as const,
+        };
+      })
+    );
+
+    setDocuments(prev => [...prev, ...newDocs]);
+
+    toast({
+      title: `${newDocs.length} documento(s) adicionado(s)`,
+      description: "Clique em 'Analisar Todos' para iniciar a análise.",
+    });
+  };
+
+  const analyzeDocument = async (doc: DocumentFile): Promise<AnalysisResult> => {
+    const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/analyze-document`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+      },
+      body: JSON.stringify({
+        image: doc.preview,
+        mimeType: doc.file.type,
+        filename: doc.file.name,
+      }),
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.error || `Erro ${response.status}`);
+    }
+
+    return await response.json();
+  };
+
+  const analyzeAllDocuments = async () => {
+    const pendingDocs = documents.filter(d => d.status === 'pending' || d.status === 'error');
+    if (pendingDocs.length === 0) {
       toast({
-        title: "Tipo de arquivo não suportado",
-        description: "Use imagens (JPG, PNG, WebP) ou PDF.",
-        variant: "destructive",
+        title: "Nenhum documento pendente",
+        description: "Adicione documentos ou resete os já analisados.",
       });
       return;
     }
 
-    // Validate file size (max 10MB)
-    if (file.size > 10 * 1024 * 1024) {
-      toast({
-        title: "Arquivo muito grande",
-        description: "O arquivo deve ter no máximo 10MB.",
-        variant: "destructive",
-      });
-      return;
-    }
+    setIsAnalyzingBatch(true);
 
-    setFilename(file.name);
-    setResult(null);
+    for (const doc of pendingDocs) {
+      // Update status to analyzing
+      setDocuments(prev => prev.map(d => 
+        d.id === doc.id ? { ...d, status: 'analyzing' as const } : d
+      ));
 
-    // Convert to base64
-    const reader = new FileReader();
-    reader.onload = async (e) => {
-      const base64 = e.target?.result as string;
-      setPreview(base64);
-      await analyzeDocument(base64, file.type, file.name);
-    };
-    reader.readAsDataURL(file);
-  };
+      try {
+        const result = await analyzeDocument(doc);
+        
+        // Update with result
+        setDocuments(prev => prev.map(d => 
+          d.id === doc.id ? { ...d, status: 'done' as const, result } : d
+        ));
 
-  const analyzeDocument = async (base64: string, mimeType: string, name: string) => {
-    setIsAnalyzing(true);
+        // Suggest checklist item if available
+        if (result.checklist_item && onChecklistItemSuggested) {
+          onChecklistItemSuggested(result.checklist_item);
+        }
 
-    try {
-      const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/analyze-document`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
-        },
-        body: JSON.stringify({
-          image: base64,
-          mimeType,
-          filename: name,
-        }),
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.error || `Erro ${response.status}`);
+      } catch (error) {
+        setDocuments(prev => prev.map(d => 
+          d.id === doc.id ? { 
+            ...d, 
+            status: 'error' as const, 
+            error: error instanceof Error ? error.message : 'Erro desconhecido' 
+          } : d
+        ));
       }
 
-      const analysisResult: AnalysisResult = await response.json();
-      setResult(analysisResult);
-
-      // Suggest checklist item if available
-      if (analysisResult.checklist_item && onChecklistItemSuggested) {
-        onChecklistItemSuggested(analysisResult.checklist_item);
-      }
-
-      toast({
-        title: "Análise concluída",
-        description: `Documento identificado: ${analysisResult.tipo_documento}`,
-      });
-
-    } catch (error) {
-      console.error('Analysis error:', error);
-      toast({
-        title: "Erro na análise",
-        description: error instanceof Error ? error.message : "Não foi possível analisar o documento.",
-        variant: "destructive",
-      });
-    } finally {
-      setIsAnalyzing(false);
+      // Small delay between requests to avoid rate limiting
+      await new Promise(resolve => setTimeout(resolve, 500));
     }
+
+    setIsAnalyzingBatch(false);
+
+    const successCount = documents.filter(d => d.status === 'done').length;
+    toast({
+      title: "Análise em lote concluída",
+      description: `${successCount} de ${documents.length} documentos analisados com sucesso.`,
+    });
   };
 
-  const reset = () => {
-    setPreview(null);
-    setFilename("");
-    setResult(null);
+  const removeDocument = (id: string) => {
+    setDocuments(prev => prev.filter(d => d.id !== id));
+    if (expandedDoc === id) setExpandedDoc(null);
+  };
+
+  const resetAll = () => {
+    setDocuments([]);
+    setExpandedDoc(null);
+  };
+
+  const getProgress = () => {
+    if (documents.length === 0) return 0;
+    const completed = documents.filter(d => d.status === 'done' || d.status === 'error').length;
+    return Math.round((completed / documents.length) * 100);
   };
 
   const getStatusIcon = (status: string) => {
     switch (status) {
-      case 'OK': return <CheckCircle className="h-5 w-5 text-green-500" />;
-      case 'ATENCAO': return <AlertTriangle className="h-5 w-5 text-yellow-500" />;
-      case 'CRITICO': return <XCircle className="h-5 w-5 text-red-500" />;
+      case 'OK': return <CheckCircle className="h-4 w-4 text-green-500" />;
+      case 'ATENCAO': return <AlertTriangle className="h-4 w-4 text-yellow-500" />;
+      case 'CRITICO': return <XCircle className="h-4 w-4 text-red-500" />;
       default: return null;
     }
   };
@@ -172,164 +240,277 @@ export function DocumentAnalyzer({ onChecklistItemSuggested }: DocumentAnalyzerP
     }
   };
 
+  const getDocStatusBadge = (doc: DocumentFile) => {
+    switch (doc.status) {
+      case 'pending':
+        return <Badge variant="outline" className="text-xs">Pendente</Badge>;
+      case 'analyzing':
+        return <Badge variant="outline" className="text-xs bg-blue-500/10 text-blue-600 border-blue-500/20">
+          <Loader2 className="h-3 w-3 animate-spin mr-1" />
+          Analisando
+        </Badge>;
+      case 'done':
+        return <Badge className={cn("text-xs", getStatusColor(doc.result?.status || ''))}>
+          {doc.result?.status || 'Concluído'}
+        </Badge>;
+      case 'error':
+        return <Badge variant="destructive" className="text-xs">Erro</Badge>;
+      default:
+        return null;
+    }
+  };
+
+  const summaryStats = {
+    total: documents.length,
+    ok: documents.filter(d => d.result?.status === 'OK').length,
+    atencao: documents.filter(d => d.result?.status === 'ATENCAO').length,
+    critico: documents.filter(d => d.result?.status === 'CRITICO').length,
+    pending: documents.filter(d => d.status === 'pending').length,
+    error: documents.filter(d => d.status === 'error').length,
+  };
+
   return (
     <Card className="border-accent/20">
       <CardHeader className="pb-3">
-        <CardTitle className="text-lg flex items-center gap-2">
-          <Sparkles className="h-5 w-5 text-accent" />
-          Análise Inteligente de Documentos
-        </CardTitle>
+        <div className="flex items-center justify-between">
+          <CardTitle className="text-lg flex items-center gap-2">
+            <Sparkles className="h-5 w-5 text-accent" />
+            Análise Inteligente de Documentos
+          </CardTitle>
+          {documents.length > 0 && (
+            <Button variant="ghost" size="sm" onClick={resetAll} className="text-xs">
+              <RefreshCw className="h-3 w-3 mr-1" />
+              Limpar
+            </Button>
+          )}
+        </div>
       </CardHeader>
       <CardContent className="space-y-4">
-        {!preview ? (
-          // Upload Area
-          <div
-            onDragOver={handleDragOver}
-            onDragLeave={handleDragLeave}
-            onDrop={handleDrop}
-            className={cn(
-              "border-2 border-dashed rounded-lg p-8 text-center transition-colors",
-              isDragging ? "border-accent bg-accent/5" : "border-border hover:border-accent/50"
-            )}
-          >
-            <Upload className="h-10 w-10 mx-auto text-muted-foreground mb-3" />
-            <p className="text-sm text-foreground font-medium mb-1">
-              Arraste um documento ou clique para selecionar
-            </p>
-            <p className="text-xs text-muted-foreground mb-4">
-              Suporta: JPG, PNG, WebP, PDF (máx. 10MB)
-            </p>
-            <input
-              type="file"
-              accept="image/jpeg,image/png,image/webp,application/pdf"
-              onChange={handleFileSelect}
-              className="hidden"
-              id="document-upload"
-            />
-            <label htmlFor="document-upload">
-              <Button variant="outline" size="sm" asChild>
-                <span className="cursor-pointer">
-                  <FileText className="h-4 w-4 mr-2" />
-                  Selecionar arquivo
-                </span>
-              </Button>
-            </label>
-          </div>
-        ) : (
-          // Preview and Results
+        {/* Upload Area */}
+        <div
+          onDragOver={handleDragOver}
+          onDragLeave={handleDragLeave}
+          onDrop={handleDrop}
+          className={cn(
+            "border-2 border-dashed rounded-lg p-6 text-center transition-colors",
+            isDragging ? "border-accent bg-accent/5" : "border-border hover:border-accent/50"
+          )}
+        >
+          <Upload className="h-8 w-8 mx-auto text-muted-foreground mb-2" />
+          <p className="text-sm text-foreground font-medium mb-1">
+            Arraste documentos ou clique para selecionar
+          </p>
+          <p className="text-xs text-muted-foreground mb-3">
+            Suporta múltiplos arquivos: JPG, PNG, WebP, PDF (máx. 10MB cada)
+          </p>
+          <input
+            type="file"
+            accept="image/jpeg,image/png,image/webp,application/pdf"
+            onChange={handleFileSelect}
+            className="hidden"
+            id="document-upload"
+            multiple
+          />
+          <label htmlFor="document-upload">
+            <Button variant="outline" size="sm" asChild>
+              <span className="cursor-pointer">
+                <FileText className="h-4 w-4 mr-2" />
+                Selecionar arquivos
+              </span>
+            </Button>
+          </label>
+        </div>
+
+        {/* Documents List */}
+        {documents.length > 0 && (
           <div className="space-y-4">
-            {/* Preview */}
-            <div className="flex items-start gap-4">
-              <div className="w-24 h-24 rounded-lg overflow-hidden bg-muted shrink-0 border">
-                {preview.startsWith('data:image') ? (
-                  <img src={preview} alt="Preview" className="w-full h-full object-cover" />
-                ) : (
-                  <div className="w-full h-full flex items-center justify-center">
-                    <FileText className="h-10 w-10 text-muted-foreground" />
-                  </div>
-                )}
+            {/* Progress and Actions */}
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 p-3 bg-muted/50 rounded-lg">
+              <div className="flex-1 w-full sm:w-auto">
+                <div className="flex items-center justify-between text-sm mb-1">
+                  <span className="text-muted-foreground">Progresso da Análise</span>
+                  <span className="font-medium">{getProgress()}%</span>
+                </div>
+                <Progress value={getProgress()} className="h-2" />
               </div>
-              <div className="flex-1 min-w-0">
-                <p className="font-medium text-sm truncate">{filename}</p>
-                {isAnalyzing && (
-                  <div className="flex items-center gap-2 text-sm text-muted-foreground mt-2">
+              <Button 
+                onClick={analyzeAllDocuments} 
+                disabled={isAnalyzingBatch || summaryStats.pending === 0}
+                size="sm"
+                className="gap-1.5"
+              >
+                {isAnalyzingBatch ? (
+                  <>
                     <Loader2 className="h-4 w-4 animate-spin" />
-                    <span>Analisando documento com IA...</span>
-                  </div>
+                    Analisando...
+                  </>
+                ) : (
+                  <>
+                    <Sparkles className="h-4 w-4" />
+                    Analisar Todos ({summaryStats.pending + summaryStats.error})
+                  </>
                 )}
-                {result && (
-                  <div className="flex items-center gap-2 mt-2">
-                    {getStatusIcon(result.status)}
-                    <Badge className={cn("text-xs", getStatusColor(result.status))}>
-                      {result.status}
-                    </Badge>
-                    <Badge variant="outline" className={cn("text-xs", getConfiancaColor(result.confianca))}>
-                      Confiança: {result.confianca}
-                    </Badge>
-                  </div>
-                )}
-              </div>
-              <Button variant="ghost" size="icon" onClick={reset} className="shrink-0">
-                <RefreshCw className="h-4 w-4" />
               </Button>
             </div>
 
-            {/* Analysis Results */}
-            {result && (
-              <div className="space-y-4 pt-4 border-t">
-                {/* Document Type */}
-                <div className="p-3 rounded-lg bg-muted/50">
-                  <p className="text-xs text-muted-foreground mb-1">Tipo de Documento</p>
-                  <p className="font-medium">{result.tipo_documento}</p>
-                  {result.status_motivo && (
-                    <p className="text-sm text-muted-foreground mt-1">{result.status_motivo}</p>
-                  )}
-                </div>
-
-                {/* Extracted Data */}
-                {Object.keys(result.dados_extraidos).length > 0 && (
-                  <div className="p-3 rounded-lg bg-muted/50">
-                    <p className="text-xs text-muted-foreground mb-2">Dados Extraídos</p>
-                    <div className="grid grid-cols-2 gap-2 text-sm">
-                      {Object.entries(result.dados_extraidos).map(([key, value]) => (
-                        <div key={key}>
-                          <span className="text-muted-foreground">{key}: </span>
-                          <span className="font-medium">{String(value)}</span>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
+            {/* Summary Stats */}
+            {summaryStats.total > 0 && (summaryStats.ok + summaryStats.atencao + summaryStats.critico) > 0 && (
+              <div className="flex flex-wrap gap-2 text-xs">
+                <span className="text-muted-foreground">Resumo:</span>
+                {summaryStats.ok > 0 && (
+                  <Badge variant="outline" className="bg-green-500/10 text-green-600 border-green-500/20">
+                    <CheckCircle className="h-3 w-3 mr-1" />
+                    {summaryStats.ok} OK
+                  </Badge>
                 )}
-
-                {/* Alerts */}
-                {result.alertas.length > 0 && (
-                  <div className="p-3 rounded-lg bg-yellow-500/10 border border-yellow-500/20">
-                    <p className="text-xs text-yellow-600 font-medium mb-2 flex items-center gap-1">
-                      <AlertTriangle className="h-3 w-3" />
-                      Alertas Identificados
-                    </p>
-                    <ul className="text-sm space-y-1">
-                      {result.alertas.map((alerta, i) => (
-                        <li key={i} className="text-yellow-700">• {alerta}</li>
-                      ))}
-                    </ul>
-                  </div>
+                {summaryStats.atencao > 0 && (
+                  <Badge variant="outline" className="bg-yellow-500/10 text-yellow-600 border-yellow-500/20">
+                    <AlertTriangle className="h-3 w-3 mr-1" />
+                    {summaryStats.atencao} Atenção
+                  </Badge>
                 )}
-
-                {/* Validity */}
-                {result.validade && (
-                  <div className="p-3 rounded-lg bg-muted/50">
-                    <p className="text-xs text-muted-foreground mb-1">Validade</p>
-                    <p className="font-medium">{result.validade}</p>
-                  </div>
-                )}
-
-                {/* Next Steps */}
-                {result.proximos_passos.length > 0 && (
-                  <div className="p-3 rounded-lg bg-accent/10 border border-accent/20">
-                    <p className="text-xs text-accent font-medium mb-2">Próximos Passos</p>
-                    <ul className="text-sm space-y-1">
-                      {result.proximos_passos.map((passo, i) => (
-                        <li key={i} className="text-foreground">• {passo}</li>
-                      ))}
-                    </ul>
-                  </div>
-                )}
-
-                {/* Checklist Item Suggestion */}
-                {result.checklist_item && onChecklistItemSuggested && (
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => onChecklistItemSuggested(result.checklist_item!)}
-                    className="w-full"
-                  >
-                    <CheckCircle className="h-4 w-4 mr-2" />
-                    Marcar item correspondente no checklist
-                  </Button>
+                {summaryStats.critico > 0 && (
+                  <Badge variant="outline" className="bg-red-500/10 text-red-600 border-red-500/20">
+                    <XCircle className="h-3 w-3 mr-1" />
+                    {summaryStats.critico} Crítico
+                  </Badge>
                 )}
               </div>
             )}
+
+            {/* Document Cards */}
+            <div className="space-y-2 max-h-[500px] overflow-y-auto pr-1">
+              {documents.map((doc) => (
+                <Collapsible 
+                  key={doc.id} 
+                  open={expandedDoc === doc.id}
+                  onOpenChange={(open) => setExpandedDoc(open ? doc.id : null)}
+                >
+                  <div className="border rounded-lg overflow-hidden">
+                    {/* Document Header */}
+                    <div className="flex items-center gap-3 p-3 bg-background">
+                      {/* Thumbnail */}
+                      <div className="w-12 h-12 rounded overflow-hidden bg-muted shrink-0 border">
+                        {doc.preview.startsWith('data:image') ? (
+                          <img src={doc.preview} alt="Preview" className="w-full h-full object-cover" />
+                        ) : (
+                          <div className="w-full h-full flex items-center justify-center">
+                            <FileText className="h-6 w-6 text-muted-foreground" />
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Info */}
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium truncate">{doc.file.name}</p>
+                        <div className="flex items-center gap-2 mt-1">
+                          {getDocStatusBadge(doc)}
+                          {doc.result && (
+                            <span className="text-xs text-muted-foreground">
+                              {doc.result.tipo_documento}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Actions */}
+                      <div className="flex items-center gap-1">
+                        {doc.status === 'done' && doc.result && (
+                          <CollapsibleTrigger asChild>
+                            <Button variant="ghost" size="icon" className="h-8 w-8">
+                              {expandedDoc === doc.id ? (
+                                <ChevronUp className="h-4 w-4" />
+                              ) : (
+                                <ChevronDown className="h-4 w-4" />
+                              )}
+                            </Button>
+                          </CollapsibleTrigger>
+                        )}
+                        <Button 
+                          variant="ghost" 
+                          size="icon" 
+                          className="h-8 w-8 text-muted-foreground hover:text-destructive"
+                          onClick={() => removeDocument(doc.id)}
+                          disabled={doc.status === 'analyzing'}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </div>
+
+                    {/* Expanded Content */}
+                    <CollapsibleContent>
+                      {doc.result && (
+                        <div className="p-3 border-t bg-muted/30 space-y-3">
+                          {/* Status Motivo */}
+                          {doc.result.status_motivo && (
+                            <p className="text-sm text-muted-foreground">{doc.result.status_motivo}</p>
+                          )}
+
+                          {/* Extracted Data */}
+                          {Object.keys(doc.result.dados_extraidos).length > 0 && (
+                            <div className="p-2 rounded bg-background">
+                              <p className="text-xs text-muted-foreground mb-1 font-medium">Dados Extraídos</p>
+                              <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-xs">
+                                {Object.entries(doc.result.dados_extraidos).map(([key, value]) => (
+                                  <div key={key} className="truncate">
+                                    <span className="text-muted-foreground">{key}: </span>
+                                    <span className="font-medium">{String(value)}</span>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+
+                          {/* Alerts */}
+                          {doc.result.alertas.length > 0 && (
+                            <div className="p-2 rounded bg-yellow-500/10 border border-yellow-500/20">
+                              <p className="text-xs text-yellow-600 font-medium mb-1">Alertas</p>
+                              <ul className="text-xs space-y-0.5">
+                                {doc.result.alertas.map((alerta, i) => (
+                                  <li key={i} className="text-yellow-700">• {alerta}</li>
+                                ))}
+                              </ul>
+                            </div>
+                          )}
+
+                          {/* Next Steps */}
+                          {doc.result.proximos_passos.length > 0 && (
+                            <div className="p-2 rounded bg-accent/10">
+                              <p className="text-xs text-accent font-medium mb-1">Próximos Passos</p>
+                              <ul className="text-xs space-y-0.5">
+                                {doc.result.proximos_passos.map((passo, i) => (
+                                  <li key={i}>• {passo}</li>
+                                ))}
+                              </ul>
+                            </div>
+                          )}
+
+                          {/* Checklist Action */}
+                          {doc.result.checklist_item && onChecklistItemSuggested && (
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => onChecklistItemSuggested(doc.result!.checklist_item!)}
+                              className="w-full text-xs"
+                            >
+                              <CheckCircle className="h-3 w-3 mr-1" />
+                              Marcar item no checklist
+                            </Button>
+                          )}
+                        </div>
+                      )}
+
+                      {doc.status === 'error' && doc.error && (
+                        <div className="p-3 border-t bg-red-500/5">
+                          <p className="text-xs text-red-600">{doc.error}</p>
+                        </div>
+                      )}
+                    </CollapsibleContent>
+                  </div>
+                </Collapsible>
+              ))}
+            </div>
           </div>
         )}
       </CardContent>
