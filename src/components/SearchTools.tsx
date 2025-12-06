@@ -378,7 +378,6 @@ export function SearchTools({ bairro = "BARRA DA TIJUCA", vistoriaData }: Search
                   value={locationQuery}
                   onChange={(e) => {
                     setLocationQuery(e.target.value);
-                    setSearchLocation(false);
                     setShowSuggestions(true);
                     setShowHistory(false);
                   }}
