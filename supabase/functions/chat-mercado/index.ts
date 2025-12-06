@@ -6,34 +6,59 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-const SYSTEM_PROMPT = `Você é um assistente especializado em mercado imobiliário do Rio de Janeiro, especialmente na região da Barra da Tijuca e adjacências.
+const SYSTEM_PROMPT = `Você é um assistente especializado em mercado imobiliário do Rio de Janeiro, com acesso a dados oficiais de transações ITBI (Imposto de Transmissão de Bens Imóveis) da Prefeitura do Rio de Janeiro.
 
-Você tem acesso a dados oficiais de transações ITBI (Imposto de Transmissão de Bens Imóveis) da Prefeitura do Rio de Janeiro desde 2020.
+COBERTURA DE DADOS:
+- Você tem acesso a dados de TODOS os 142 bairros do Rio de Janeiro
+- Dados históricos desde 2020 até o presente
+- Mais de 80.000 transações reais registradas
+- Dados incluem: preço por m², volume de transações, tipologia (apartamento/casa)
 
 Suas capacidades incluem:
-- Informar preços médios por m² de diferentes bairros e microbairros
-- Comparar valorização entre regiões
-- Analisar tendências de mercado
-- Identificar microbairros com maior liquidez (volume de vendas)
+- Informar preços médios por m² de QUALQUER bairro do Rio de Janeiro
+- Comparar valorização entre diferentes bairros e zonas (Sul, Norte, Oeste, Centro)
+- Analisar tendências de mercado por região
+- Identificar bairros com maior liquidez (volume de vendas)
 - Responder sobre tipologias (apartamentos, casas)
-- Fornecer contexto sobre o mercado de alto padrão
+- Fazer rankings comparativos entre bairros
+- Fornecer contexto sobre diferentes segmentos de mercado
 
 Regras importantes:
-1. Sempre baseie suas respostas nos dados fornecidos
-2. Quando não tiver dados suficientes, informe ao usuário
+1. Sempre baseie suas respostas nos dados fornecidos no contexto
+2. Quando não tiver dados suficientes para um bairro específico, informe ao usuário
 3. Use valores em Reais (R$) formatados no padrão brasileiro
 4. Seja conciso mas informativo
 5. Se a pergunta não for sobre mercado imobiliário, educadamente redirecione para seu foco
 6. Cite os períodos dos dados quando relevante
+7. Para comparações, destaque as diferenças percentuais entre os bairros
+8. Mencione a quantidade de transações para dar contexto sobre a confiabilidade dos dados
 
 Formato de resposta:
 - Use parágrafos curtos
-- Para comparações, use listas quando apropriado
+- Para comparações e rankings, use listas ou tabelas quando apropriado
 - Destaque valores importantes
 - Finalize com insights úteis quando possível`;
 
+// Extract neighborhood names mentioned in user message
+function extractBairrosFromMessage(message: string): string[] {
+  const normalizedMessage = message.toUpperCase();
+  const commonBairros = [
+    'BARRA DA TIJUCA', 'RECREIO DOS BANDEIRANTES', 'JACAREPAGUÁ', 'COPACABANA',
+    'IPANEMA', 'LEBLON', 'BOTAFOGO', 'FLAMENGO', 'LARANJEIRAS', 'TIJUCA',
+    'VILA ISABEL', 'GRAJAÚ', 'MÉIER', 'MADUREIRA', 'CAMPO GRANDE', 'SANTA CRUZ',
+    'BANGU', 'REALENGO', 'ILHA DO GOVERNADOR', 'PENHA', 'VILA DA PENHA',
+    'CENTRO', 'LAPA', 'GLÓRIA', 'CATETE', 'HUMAITÁ', 'JARDIM BOTÂNICO',
+    'GÁVEA', 'SÃO CONRADO', 'LAGOA', 'URCA', 'LEME', 'COSME VELHO',
+    'SANTA TERESA', 'RIO COMPRIDO', 'ESTÁCIO', 'PRAÇA DA BANDEIRA',
+    'MARACANÃ', 'ANDARAÍ', 'ALTO DA BOA VISTA', 'PECHINCHA', 'TAQUARA',
+    'FREGUESIA', 'TANQUE', 'ANIL', 'GARDÊNIA AZUL', 'CURICICA', 'VARGEM GRANDE',
+    'VARGEM PEQUENA', 'CAMORIM', 'JOATINGA', 'ITANHANGÁ'
+  ];
+  
+  return commonBairros.filter(bairro => normalizedMessage.includes(bairro));
+}
+
 serve(async (req) => {
-  // Handle CORS preflight
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
@@ -50,65 +75,160 @@ serve(async (req) => {
       throw new Error('LOVABLE_API_KEY is not configured');
     }
 
-    // Initialize Supabase client for data queries
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabase = createClient(supabaseUrl, supabaseKey);
 
-    // Fetch relevant market data for context
     const selectedBairro = bairro || 'BARRA DA TIJUCA';
+    const lastUserMessage = messages[messages.length - 1]?.content || '';
+    const mentionedBairros = extractBairrosFromMessage(lastUserMessage);
     
-    // Get KPI data (last 12 months)
     const twelveMonthsAgo = new Date();
     twelveMonthsAgo.setMonth(twelveMonthsAgo.getMonth() - 12);
-    
-    const { data: kpiData } = await supabase
+    const dateFilter = twelveMonthsAgo.toISOString().split('T')[0];
+
+    // 1. Get global Rio de Janeiro summary
+    const { data: globalData } = await supabase
       .from('itbi_transactions')
-      .select('valor_m2, total_transacoes, data_transacao, logradouro, tipologia')
+      .select('valor_m2, total_transacoes, bairro')
+      .eq('uso', 'Residencial')
+      .gte('percentual_transferido', 90)
+      .gte('data_transacao', dateFilter)
+      .not('valor_m2', 'is', null);
+
+    // Calculate global stats
+    let globalStats = {
+      totalTransacoes: 0,
+      avgValorM2: 0,
+      totalBairros: 0
+    };
+    
+    const bairroStats: Record<string, { sum: number; count: number; transacoes: number }> = {};
+    
+    if (globalData) {
+      globalData.forEach(row => {
+        globalStats.totalTransacoes += row.total_transacoes || 1;
+        if (row.bairro) {
+          if (!bairroStats[row.bairro]) {
+            bairroStats[row.bairro] = { sum: 0, count: 0, transacoes: 0 };
+          }
+          bairroStats[row.bairro].sum += (row.valor_m2 || 0);
+          bairroStats[row.bairro].count += 1;
+          bairroStats[row.bairro].transacoes += row.total_transacoes || 1;
+        }
+      });
+      
+      globalStats.totalBairros = Object.keys(bairroStats).length;
+      const totalSum = globalData.reduce((sum, r) => sum + (r.valor_m2 || 0), 0);
+      globalStats.avgValorM2 = globalData.length > 0 ? totalSum / globalData.length : 0;
+    }
+
+    // 2. Get TOP 20 neighborhoods by transaction volume
+    const bairroRanking = Object.entries(bairroStats)
+      .map(([bairro, stats]) => ({
+        bairro,
+        precoMedio: stats.count > 0 ? stats.sum / stats.count : 0,
+        transacoes: stats.transacoes
+      }))
+      .sort((a, b) => b.transacoes - a.transacoes)
+      .slice(0, 20);
+
+    // 3. Get TOP 10 most valued neighborhoods
+    const valorRanking = Object.entries(bairroStats)
+      .filter(([_, stats]) => stats.transacoes >= 10) // minimum transactions for reliability
+      .map(([bairro, stats]) => ({
+        bairro,
+        precoMedio: stats.count > 0 ? stats.sum / stats.count : 0,
+        transacoes: stats.transacoes
+      }))
+      .sort((a, b) => b.precoMedio - a.precoMedio)
+      .slice(0, 10);
+
+    // 4. Get data for selected bairro
+    const { data: selectedBairroData } = await supabase
+      .from('itbi_transactions')
+      .select('valor_m2, total_transacoes, tipologia')
       .eq('bairro', selectedBairro)
       .eq('uso', 'Residencial')
       .gte('percentual_transferido', 90)
-      .gte('data_transacao', twelveMonthsAgo.toISOString().split('T')[0])
+      .gte('data_transacao', dateFilter)
       .not('valor_m2', 'is', null);
 
-    // Get ranking data
-    const { data: rankingData } = await supabase
-      .from('view_ranking_microbairros')
-      .select('*')
-      .order('preco_medio_m2', { ascending: false })
-      .limit(10);
+    // 5. Get data for mentioned bairros (if any)
+    let mentionedBairrosData: Record<string, { avgM2: number; transacoes: number }> = {};
+    
+    if (mentionedBairros.length > 0) {
+      for (const mb of mentionedBairros) {
+        const stats = bairroStats[mb];
+        if (stats) {
+          mentionedBairrosData[mb] = {
+            avgM2: stats.count > 0 ? stats.sum / stats.count : 0,
+            transacoes: stats.transacoes
+          };
+        }
+      }
+    }
 
-    // Calculate statistics
-    let contextData = '';
-    if (kpiData && kpiData.length > 0) {
-      const totalTransacoes = kpiData.reduce((sum, r) => sum + (r.total_transacoes || 1), 0);
-      const avgValorM2 = kpiData.reduce((sum, r) => sum + (r.valor_m2 || 0), 0) / kpiData.length;
-      const valores = kpiData.map(r => r.valor_m2 || 0).sort((a, b) => a - b);
-      const minValor = valores[0];
-      const maxValor = valores[valores.length - 1];
+    // Build context data
+    let contextData = `
+RESUMO GERAL DO MERCADO IMOBILIÁRIO DO RIO DE JANEIRO (últimos 12 meses):
+- Total de bairros com dados: ${globalStats.totalBairros}
+- Total de transações residenciais: ${globalStats.totalTransacoes.toLocaleString('pt-BR')}
+- Preço médio geral R$/m²: R$ ${globalStats.avgValorM2.toLocaleString('pt-BR', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
+
+TOP 10 BAIRROS MAIS VALORIZADOS (mín. 10 transações):
+${valorRanking.map((r, i) => `${i + 1}. ${r.bairro}: R$ ${r.precoMedio.toLocaleString('pt-BR', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}/m² (${r.transacoes} transações)`).join('\n')}
+
+TOP 10 BAIRROS COM MAIOR LIQUIDEZ (volume de vendas):
+${bairroRanking.slice(0, 10).map((r, i) => `${i + 1}. ${r.bairro}: ${r.transacoes} transações (R$ ${r.precoMedio.toLocaleString('pt-BR', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}/m²)`).join('\n')}
+`;
+
+    // Add selected bairro details
+    if (selectedBairroData && selectedBairroData.length > 0) {
+      const totalTrans = selectedBairroData.reduce((sum, r) => sum + (r.total_transacoes || 1), 0);
+      const avgM2 = selectedBairroData.reduce((sum, r) => sum + (r.valor_m2 || 0), 0) / selectedBairroData.length;
+      const valores = selectedBairroData.map(r => r.valor_m2 || 0).sort((a, b) => a - b);
       
-      contextData = `
-DADOS DO MERCADO (últimos 12 meses - ${selectedBairro}):
-- Total de transações: ${totalTransacoes.toLocaleString('pt-BR')}
-- Preço médio R$/m²: R$ ${avgValorM2.toLocaleString('pt-BR', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
-- Faixa de preços: R$ ${minValor.toLocaleString('pt-BR', { minimumFractionDigits: 0 })} a R$ ${maxValor.toLocaleString('pt-BR', { minimumFractionDigits: 0 })} por m²
-`;
-    }
-
-    if (rankingData && rankingData.length > 0) {
+      // Calculate by tipologia
+      const aptos = selectedBairroData.filter(r => r.tipologia?.toLowerCase().includes('apartamento'));
+      const casas = selectedBairroData.filter(r => r.tipologia?.toLowerCase().includes('casa'));
+      
+      const avgApto = aptos.length > 0 ? aptos.reduce((s, r) => s + (r.valor_m2 || 0), 0) / aptos.length : 0;
+      const avgCasa = casas.length > 0 ? casas.reduce((s, r) => s + (r.valor_m2 || 0), 0) / casas.length : 0;
+      
       contextData += `
-RANKING DE MICROBAIRROS (por valorização):
-${rankingData.map((r, i) => `${i + 1}. ${r.microbairro}: R$ ${(r.preco_medio_m2 || 0).toLocaleString('pt-BR', { minimumFractionDigits: 0 })} /m² (${r.total_transacoes || 0} transações)`).join('\n')}
+DADOS DETALHADOS - ${selectedBairro} (bairro selecionado pelo usuário):
+- Total de transações: ${totalTrans.toLocaleString('pt-BR')}
+- Preço médio R$/m²: R$ ${avgM2.toLocaleString('pt-BR', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
+- Faixa de preços: R$ ${valores[0]?.toLocaleString('pt-BR', { minimumFractionDigits: 0 }) || 'N/A'} a R$ ${valores[valores.length - 1]?.toLocaleString('pt-BR', { minimumFractionDigits: 0 }) || 'N/A'} por m²
+- Apartamentos: R$ ${avgApto.toLocaleString('pt-BR', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}/m² (${aptos.length} registros)
+- Casas: R$ ${avgCasa.toLocaleString('pt-BR', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}/m² (${casas.length} registros)
 `;
     }
 
-    // Build messages with context
+    // Add mentioned bairros data for comparisons
+    if (Object.keys(mentionedBairrosData).length > 0) {
+      contextData += `
+DADOS DOS BAIRROS MENCIONADOS NA PERGUNTA:
+${Object.entries(mentionedBairrosData).map(([bairro, data]) => 
+  `- ${bairro}: R$ ${data.avgM2.toLocaleString('pt-BR', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}/m² (${data.transacoes} transações)`
+).join('\n')}
+`;
+    }
+
+    // Add list of all available bairros
+    const allBairros = Object.keys(bairroStats).sort();
+    contextData += `
+BAIRROS DISPONÍVEIS NA BASE DE DADOS (${allBairros.length} total):
+${allBairros.join(', ')}
+`;
+
     const systemMessage = {
       role: 'system',
       content: SYSTEM_PROMPT + '\n\n' + contextData
     };
 
-    console.log('Calling Lovable AI with context for:', selectedBairro);
+    console.log('Calling Lovable AI with multi-bairro context. Selected:', selectedBairro, 'Mentioned:', mentionedBairros);
 
     const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
       method: 'POST',
@@ -143,7 +263,6 @@ ${rankingData.map((r, i) => `${i + 1}. ${r.microbairro}: R$ ${(r.preco_medio_m2 
       throw new Error(`AI Gateway error: ${response.status}`);
     }
 
-    // Stream the response back
     return new Response(response.body, {
       headers: { ...corsHeaders, 'Content-Type': 'text/event-stream' },
     });

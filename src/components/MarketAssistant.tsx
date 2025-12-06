@@ -13,9 +13,9 @@ interface Message {
 
 const SUGGESTED_QUESTIONS = [
   { icon: DollarSign, text: "Qual o preço médio por m² atualmente?" },
-  { icon: TrendingUp, text: "Como está a tendência de preços?" },
-  { icon: MapPin, text: "Quais são os microbairros mais valorizados?" },
-  { icon: BarChart3, text: "Qual região tem mais vendas?" },
+  { icon: TrendingUp, text: "Quais são os 5 bairros mais valorizados do Rio?" },
+  { icon: MapPin, text: "Compare Barra da Tijuca com Recreio dos Bandeirantes" },
+  { icon: BarChart3, text: "Quais bairros têm mais liquidez no mercado?" },
 ];
 
 export function MarketAssistant() {
@@ -192,7 +192,7 @@ export function MarketAssistant() {
                 <Sparkles className="h-10 w-10 mx-auto text-accent mb-3" />
                 <h4 className="font-medium text-foreground">Olá! Sou seu assistente de mercado.</h4>
                 <p className="text-sm text-muted-foreground mt-1">
-                  Posso responder perguntas sobre o mercado imobiliário de {selectedBairro}.
+                  Posso responder sobre todos os 142 bairros do Rio de Janeiro.
                 </p>
               </div>
               
