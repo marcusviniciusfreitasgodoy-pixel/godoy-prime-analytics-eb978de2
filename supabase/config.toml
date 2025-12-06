@@ -17,3 +17,9 @@ verify_jwt = true
 
 [functions.seed-condominios]
 verify_jwt = true
+
+[functions.chat-mercado]
+verify_jwt = false
+
+[functions.analyze-document]
+verify_jwt = false

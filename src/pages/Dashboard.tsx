@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useLocation } from "react-router-dom";
 import { FileDown, Info, HelpCircle, Monitor, FileSpreadsheet, FileText, BarChart3, Search, TrendingUp, MapPin, Database, FileImage } from "lucide-react";
+import { MarketAssistant } from "@/components/MarketAssistant";
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { DashboardKPIs } from "@/components/DashboardKPIs";
@@ -475,6 +476,8 @@ export default function Dashboard() {
         </Alert>
       </div>
 
+      {/* Assistente de Mercado IA */}
+      <MarketAssistant />
     </div>
   );
 }
