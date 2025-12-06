@@ -25,6 +25,7 @@ import { FileText, HelpCircle, Save, Loader2, ChevronDown, User, Users } from "l
 import { useToast } from "@/hooks/use-toast";
 import jsPDF from "jspdf";
 import { formatDate } from "@/utils/exportUtils";
+import { DocumentAnalyzer } from "@/components/DocumentAnalyzer";
 
 interface DocumentItem {
   id: string;
@@ -435,12 +436,32 @@ export default function Documentacao() {
     setFlags(prev => ({ ...prev, comprador: { ...prev.comprador, [flag]: !prev.comprador[flag] } }));
   };
 
+  // Handler for checklist item suggestion from DocumentAnalyzer
+  const handleChecklistItemSuggested = (itemId: string) => {
+    // Find and mark the item as checked
+    setChecklist(prev =>
+      prev.map(category => ({
+        ...category,
+        items: category.items.map(item =>
+          item.id === itemId ? { ...item, checked: true } : item
+        ),
+      }))
+    );
+    toast({
+      title: "Item marcado",
+      description: "O documento foi vinculado ao item correspondente no checklist.",
+    });
+  };
+
   return (
     <div className="space-y-6">
       <div className="px-4 sm:px-0">
         <h2 className="text-2xl sm:text-3xl font-bold text-foreground">Documentação</h2>
         <p className="text-sm sm:text-base text-muted-foreground mt-1">Checklist para garantir segurança jurídica da transação</p>
       </div>
+
+      {/* Análise Inteligente de Documentos */}
+      <DocumentAnalyzer onChecklistItemSuggested={handleChecklistItemSuggested} />
 
       <Card>
         <CardHeader className="space-y-4">
