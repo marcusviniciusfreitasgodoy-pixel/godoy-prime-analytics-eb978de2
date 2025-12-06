@@ -30,15 +30,13 @@ export interface LocationSearchResult {
   }[];
 }
 
-export function useLocationSearch(params: LocationSearchParams, enabled: boolean = false) {
+export function useLocationSearch(params: LocationSearchParams) {
   const hasValidQuery = !!params.query && params.query.length >= 3;
   
   return useQuery<LocationSearchResult | null>({
     queryKey: ['location-search', params.query, params.tipologia, params.finalidade, params.areaMin, params.areaMax, params.periodoMeses],
     queryFn: async () => {
       if (!params.query || params.query.length < 3) return null;
-
-      console.log('Executando busca de localização:', params.query);
 
       // Período configurável (padrão: 12 meses)
       const meses = params.periodoMeses || 12;
@@ -159,10 +157,8 @@ export function useLocationSearch(params: LocationSearchParams, enabled: boolean
         })),
       };
     },
-    enabled: enabled && hasValidQuery,
-    staleTime: 1000 * 60 * 5, // 5 minutes
-    refetchOnMount: false,
-    refetchOnWindowFocus: false,
+    enabled: hasValidQuery,
+    staleTime: 0, // Sem cache para garantir dados frescos
   });
 }
 
