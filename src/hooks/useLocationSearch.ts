@@ -55,7 +55,19 @@ export function useLocationSearch(params: LocationSearchParams) {
         .replace(/^(ESTRADA|EST|EST\.)\s*/i, '')
         .replace(/^(ALAMEDA|AL|AL\.)\s*/i, '')
         .replace(/^(TRAVESSA|TV|TV\.)\s*/i, '')
+        .replace(/^DAS?\s+/i, '') // Remove "DAS" ou "DA" inicial após remover prefixo
         .trim();
+
+      // Criar variações de busca para cobrir diferentes formatos no banco
+      // Ex: "Avenida das Americas" -> buscar por "AMERICAS", "AVN DAS AMERICAS", "AV DAS AMERICAS"
+      const searchVariations = [
+        cleanedSearch, // Nome limpo (ex: "AMERICAS")
+        `AVN ${cleanedSearch}`, // Prefixo AVN
+        `AVN DAS ${cleanedSearch}`, // AVN DAS
+        `AV ${cleanedSearch}`, // AV
+        `AV DAS ${cleanedSearch}`, // AV DAS
+        searchTerm, // Termo original
+      ];
 
       // 1. Buscar na tabela de mapeamento de condomínios
       const { data: condominioMatch } = await supabase
@@ -66,7 +78,6 @@ export function useLocationSearch(params: LocationSearchParams) {
         .maybeSingle();
 
       // Se encontrou um condomínio, usar o logradouro padrão para a busca
-      const actualSearchLogradouro = condominioMatch?.logradouro_padrao || searchTerm;
       const condInfo = condominioMatch ? {
         nome_condominio: condominioMatch.nome_condominio,
         microbairro: condominioMatch.microbairro || undefined,
@@ -83,8 +94,9 @@ export function useLocationSearch(params: LocationSearchParams) {
         // Busca exata pelo logradouro do condomínio
         query = query.eq('logradouro', condominioMatch.logradouro_padrao);
       } else {
-        // Busca fuzzy pelo termo original
-        query = query.or(`logradouro.ilike.%${cleanedSearch}%,logradouro.ilike.%${searchTerm}%`);
+        // Busca fuzzy com múltiplas variações
+        const orConditions = searchVariations.map(v => `logradouro.ilike.%${v}%`).join(',');
+        query = query.or(orConditions);
       }
 
       // Apply filters
