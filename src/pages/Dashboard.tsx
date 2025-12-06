@@ -8,7 +8,7 @@ import { EvolutionChart } from "@/components/EvolutionChart";
 import { MicrobairroEvolutionChart } from "@/components/MicrobairroEvolutionChart";
 import { MicrobairroRanking } from "@/components/MicrobairroRanking";
 import { SearchTools } from "@/components/SearchTools";
-import { AdvancedSearchReport } from "@/components/AdvancedSearchReport";
+// AdvancedSearchReport removido - agora está embutido no SearchTools
 import { GuidedTour } from "@/components/GuidedTour";
 import { BairroSelector } from "@/components/BairroSelector";
 import { useBairro } from "@/contexts/BairroContext";
@@ -455,9 +455,6 @@ export default function Dashboard() {
         <SearchTools bairro={selectedBairro} vistoriaData={vistoriaData} />
       </div>
 
-      <div data-tour="advanced-report">
-        <AdvancedSearchReport />
-      </div>
 
       {/* Avisos - visíveis apenas em mobile, no final da página */}
       <div className="sm:hidden space-y-3">
