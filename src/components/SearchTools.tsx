@@ -89,7 +89,7 @@ export function SearchTools({ bairro = "BARRA DA TIJUCA", vistoriaData }: Search
   const [areaMin, setAreaMin] = useState<string>("");
   const [areaMax, setAreaMax] = useState<string>("");
   const [periodoMeses, setPeriodoMeses] = useState<string>("12");
-  const [searchLocation, setSearchLocation] = useState(false);
+  // searchLocation state removido - query executa automaticamente quando query >= 3 chars
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [showHistory, setShowHistory] = useState(false);
   const suggestionsRef = useRef<HTMLDivElement>(null);
@@ -110,17 +110,14 @@ export function SearchTools({ bairro = "BARRA DA TIJUCA", vistoriaData }: Search
   const [searchTransactions, setSearchTransactions] = useState(false);
 
   // Queries
-  const { data: locationResult, isLoading: locationLoading } = useLocationSearch(
-    {
-      query: locationQuery,
-      tipologia: tipologia === 'todas' ? undefined : tipologia || undefined,
-      finalidade: finalidade === 'todas' ? undefined : finalidade || undefined,
-      areaMin: areaMin ? parseFloat(areaMin) : undefined,
-      areaMax: areaMax ? parseFloat(areaMax) : undefined,
-      periodoMeses: parseInt(periodoMeses),
-    },
-    searchLocation
-  );
+  const { data: locationResult, isLoading: locationLoading } = useLocationSearch({
+    query: locationQuery,
+    tipologia: tipologia === 'todas' ? undefined : tipologia || undefined,
+    finalidade: finalidade === 'todas' ? undefined : finalidade || undefined,
+    areaMin: areaMin ? parseFloat(areaMin) : undefined,
+    areaMax: areaMax ? parseFloat(areaMax) : undefined,
+    periodoMeses: parseInt(periodoMeses),
+  });
 
   const { data: transactionResult, isLoading: transactionLoading } = useTransactionSearch(
     {
@@ -160,20 +157,17 @@ export function SearchTools({ bairro = "BARRA DA TIJUCA", vistoriaData }: Search
     setLocationQuery(logradouro);
     setShowSuggestions(false);
     setShowHistory(false);
-    setSearchLocation(true);
     addToHistory(logradouro, 'location');
   };
 
   const handleSelectFromHistory = (item: { query: string; type: string }) => {
     if (item.type === 'location') {
       setLocationQuery(item.query);
-      setSearchLocation(true);
     }
     setShowHistory(false);
   };
 
   const handleLocationSearch = () => {
-    setSearchLocation(true);
     if (locationQuery) {
       addToHistory(locationQuery, 'location');
     }
@@ -193,7 +187,6 @@ export function SearchTools({ bairro = "BARRA DA TIJUCA", vistoriaData }: Search
     setAreaMin("");
     setAreaMax("");
     setPeriodoMeses("12");
-    setSearchLocation(false);
     // Limpar cache da query
     queryClient.removeQueries({ queryKey: ['location-search'] });
   };
