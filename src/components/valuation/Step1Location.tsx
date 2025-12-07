@@ -1,9 +1,11 @@
 import { useState, useEffect } from "react";
 import { Input } from "@/components/ui/input";
+import { CurrencyInput } from "@/components/ui/currency-input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
-import { MapPin, TrendingUp, TrendingDown, Minus, Search, Building2 } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { MapPin, TrendingUp, TrendingDown, Minus, Search, Building2, Plus, X, Calculator } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import type { ValuationState } from "@/types/valuation";
 import type { CombinedPrices, ITBIData, AnuncioData } from "@/utils/valuationCalculations";
@@ -22,11 +24,22 @@ interface StreetSuggestion {
   max_m2: number;
 }
 
+interface AnuncioEntry {
+  id: string;
+  valor_total: number;
+  area_m2: number;
+}
+
 export function Step1Location({ state, updateState, combined }: Props) {
   const [searchTerm, setSearchTerm] = useState(state.logradouro);
   const [suggestions, setSuggestions] = useState<StreetSuggestion[]>([]);
   const [loading, setLoading] = useState(false);
   const [showSuggestions, setShowSuggestions] = useState(false);
+  
+  // Estado para anúncios de referência
+  const [anuncios, setAnuncios] = useState<AnuncioEntry[]>([
+    { id: "1", valor_total: 0, area_m2: 0 }
+  ]);
 
   // Buscar sugestões de ruas
   useEffect(() => {
@@ -96,6 +109,32 @@ export function Step1Location({ state, updateState, combined }: Props) {
     return () => clearTimeout(debounce);
   }, [searchTerm, state.bairro]);
 
+  // Calcula R$/m² dos anúncios quando mudam
+  useEffect(() => {
+    const validAnuncios = anuncios.filter(a => a.valor_total > 0 && a.area_m2 > 0);
+    
+    if (validAnuncios.length === 0) {
+      updateState({ anuncioData: null });
+      return;
+    }
+
+    // Calcula R$/m² para cada anúncio
+    const valoresM2 = validAnuncios.map(a => a.valor_total / a.area_m2).sort((a, b) => a - b);
+    
+    const min_m2 = valoresM2[0];
+    const max_m2 = valoresM2[valoresM2.length - 1];
+    const mid = Math.floor(valoresM2.length / 2);
+    const med_m2 = valoresM2.length % 2 ? valoresM2[mid] : (valoresM2[mid - 1] + valoresM2[mid]) / 2;
+
+    updateState({
+      anuncioData: {
+        min_m2: Math.round(min_m2),
+        med_m2: Math.round(med_m2),
+        max_m2: Math.round(max_m2),
+      }
+    });
+  }, [anuncios]);
+
   const handleSelectStreet = (suggestion: StreetSuggestion) => {
     const itbiData: ITBIData = {
       min_m2: Math.round(suggestion.min_m2),
@@ -110,6 +149,24 @@ export function Step1Location({ state, updateState, combined }: Props) {
     });
     setSearchTerm(suggestion.logradouro);
     setShowSuggestions(false);
+  };
+
+  const addAnuncio = () => {
+    if (anuncios.length < 5) {
+      setAnuncios([...anuncios, { id: Date.now().toString(), valor_total: 0, area_m2: 0 }]);
+    }
+  };
+
+  const removeAnuncio = (id: string) => {
+    if (anuncios.length > 1) {
+      setAnuncios(anuncios.filter(a => a.id !== id));
+    }
+  };
+
+  const updateAnuncio = (id: string, field: 'valor_total' | 'area_m2', value: number) => {
+    setAnuncios(anuncios.map(a => 
+      a.id === id ? { ...a, [field]: value } : a
+    ));
   };
 
   const formatCurrency = (value: number) => {
@@ -131,6 +188,14 @@ export function Step1Location({ state, updateState, combined }: Props) {
     : combined?.trend_direction === "DOWN"
     ? "text-red-600"
     : "text-muted-foreground";
+
+  // Calcula R$/m² para cada anúncio (para exibição)
+  const getAnuncioM2 = (anuncio: AnuncioEntry) => {
+    if (anuncio.valor_total > 0 && anuncio.area_m2 > 0) {
+      return anuncio.valor_total / anuncio.area_m2;
+    }
+    return null;
+  };
 
   return (
     <div className="space-y-6">
@@ -221,88 +286,112 @@ export function Step1Location({ state, updateState, combined }: Props) {
               </div>
             </div>
 
-            {/* Anúncios (opcional) */}
+            {/* Anúncios de Referência */}
             <div className="pt-4 border-t">
-              <Label className="text-sm mb-2 block">
-                Dados de Anúncios (opcional - 30% do cálculo)
-              </Label>
-              <p className="text-xs text-amber-600 mb-2 font-medium">
-                ⚠️ Informe valores em R$/m² (ex: 15.000), NÃO o valor total do imóvel
-              </p>
-              <div className="grid grid-cols-3 gap-2">
-                <div>
-                  <Label className="text-xs">Mín R$/m²</Label>
-                  <Input
-                    type="number"
-                    placeholder="Ex: 11000"
-                    value={state.anuncioData?.min_m2 || ""}
-                    onChange={(e) => {
-                      const numValue = Number(e.target.value) || 0;
-                      // Validação: valores por m² típicos estão entre 3.000 e 100.000
-                      const safeValue = numValue > 500000 ? 0 : numValue;
-                      updateState({
-                        anuncioData: {
-                          ...state.anuncioData,
-                          min_m2: safeValue,
-                          med_m2: state.anuncioData?.med_m2 || 0,
-                          max_m2: state.anuncioData?.max_m2 || 0,
-                        },
-                      });
-                    }}
-                    className="h-9"
-                  />
-                </div>
-                <div>
-                  <Label className="text-xs">Méd R$/m²</Label>
-                  <Input
-                    type="number"
-                    placeholder="Ex: 14500"
-                    value={state.anuncioData?.med_m2 || ""}
-                    onChange={(e) => {
-                      const numValue = Number(e.target.value) || 0;
-                      const safeValue = numValue > 500000 ? 0 : numValue;
-                      updateState({
-                        anuncioData: {
-                          ...state.anuncioData,
-                          min_m2: state.anuncioData?.min_m2 || 0,
-                          med_m2: safeValue,
-                          max_m2: state.anuncioData?.max_m2 || 0,
-                        },
-                      });
-                    }}
-                    className="h-9"
-                  />
-                </div>
-                <div>
-                  <Label className="text-xs">Máx R$/m²</Label>
-                  <Input
-                    type="number"
-                    placeholder="Ex: 17500"
-                    value={state.anuncioData?.max_m2 || ""}
-                    onChange={(e) => {
-                      const numValue = Number(e.target.value) || 0;
-                      const safeValue = numValue > 500000 ? 0 : numValue;
-                      updateState({
-                        anuncioData: {
-                          ...state.anuncioData,
-                          min_m2: state.anuncioData?.min_m2 || 0,
-                          med_m2: state.anuncioData?.med_m2 || 0,
-                          max_m2: safeValue,
-                        },
-                      });
-                    }}
-                    className="h-9"
-                  />
-                </div>
+              <div className="flex items-center justify-between mb-3">
+                <Label className="text-sm">
+                  Anúncios de Referência (opcional - 30% do cálculo)
+                </Label>
+                {anuncios.length < 5 && (
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    onClick={addAnuncio}
+                    className="h-7 text-xs"
+                  >
+                    <Plus className="h-3 w-3 mr-1" />
+                    Adicionar
+                  </Button>
+                )}
               </div>
+              
+              <p className="text-xs text-muted-foreground mb-3">
+                Informe imóveis similares anunciados para comparar com dados ITBI
+              </p>
+
+              <div className="space-y-3">
+                {anuncios.map((anuncio, index) => {
+                  const m2Calculado = getAnuncioM2(anuncio);
+                  return (
+                    <div key={anuncio.id} className="flex items-center gap-2 p-3 bg-background rounded-lg border">
+                      <span className="text-xs text-muted-foreground w-6">#{index + 1}</span>
+                      
+                      <div className="flex-1 grid grid-cols-2 gap-2">
+                        <div>
+                          <Label className="text-xs mb-1 block">Valor Anunciado</Label>
+                          <CurrencyInput
+                            placeholder="R$ 1.500.000"
+                            value={anuncio.valor_total?.toString() || ""}
+                            onChange={(value) => updateAnuncio(anuncio.id, 'valor_total', Number(value) || 0)}
+                            className="h-8 text-sm"
+                          />
+                        </div>
+                        <div>
+                          <Label className="text-xs mb-1 block">Área (m²)</Label>
+                          <Input
+                            type="number"
+                            placeholder="100"
+                            value={anuncio.area_m2 || ""}
+                            onChange={(e) => updateAnuncio(anuncio.id, 'area_m2', Number(e.target.value) || 0)}
+                            className="h-8 text-sm"
+                          />
+                        </div>
+                      </div>
+
+                      {/* R$/m² calculado */}
+                      {m2Calculado && (
+                        <div className="text-center px-2 min-w-[80px]">
+                          <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                            <Calculator className="h-3 w-3" />
+                            <span>R$/m²</span>
+                          </div>
+                          <p className="text-sm font-semibold text-primary">
+                            {formatCurrency(m2Calculado)}
+                          </p>
+                        </div>
+                      )}
+
+                      {anuncios.length > 1 && (
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-6 w-6 text-muted-foreground hover:text-destructive"
+                          onClick={() => removeAnuncio(anuncio.id)}
+                        >
+                          <X className="h-3 w-3" />
+                        </Button>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+
+              {/* Resumo dos anúncios calculados */}
+              {state.anuncioData && state.anuncioData.med_m2 > 0 && (
+                <div className="mt-3 p-3 bg-amber-50 dark:bg-amber-950/30 rounded-lg border border-amber-200 dark:border-amber-800">
+                  <p className="text-xs font-medium text-amber-800 dark:text-amber-200 mb-2">
+                    📊 Valores calculados dos anúncios:
+                  </p>
+                  <div className="grid grid-cols-3 gap-2 text-center">
+                    <div>
+                      <p className="text-xs text-muted-foreground">Mín</p>
+                      <p className="text-sm font-semibold">{formatCurrency(state.anuncioData.min_m2)}/m²</p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-muted-foreground">Méd</p>
+                      <p className="text-sm font-semibold text-primary">{formatCurrency(state.anuncioData.med_m2)}/m²</p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-muted-foreground">Máx</p>
+                      <p className="text-sm font-semibold">{formatCurrency(state.anuncioData.max_m2)}/m²</p>
+                    </div>
+                  </div>
+                </div>
+              )}
+
               <p className="text-xs text-muted-foreground mt-2">
                 Se preenchido, o sistema combinará 70% ITBI + 30% Anúncios
               </p>
-              {state.anuncioData && (state.anuncioData.min_m2 > 100000 || state.anuncioData.med_m2 > 100000 || state.anuncioData.max_m2 > 100000) && (
-                <p className="text-xs text-red-600 mt-1 font-medium">
-                  ⚠️ Valor acima de R$ 100.000/m² parece incorreto. Verifique se não é o valor total.
-                </p>
-              )}
             </div>
 
             {/* Trend indicator */}
