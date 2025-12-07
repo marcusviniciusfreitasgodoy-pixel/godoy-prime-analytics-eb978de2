@@ -95,35 +95,6 @@ export function Step3Questionnaire({
   return (
     <div className="space-y-6">
       <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="grid grid-cols-6 w-full">
-          {Object.entries(groupedChars).map(([key, category]) => {
-            const Icon = CATEGORY_ICONS[key] || Eye;
-            const adjustment = getCategoryAdjustment(key);
-            return (
-              <TabsTrigger
-                key={key}
-                value={key}
-                className="flex flex-col gap-1 py-2 text-xs"
-              >
-                <Icon className={`h-4 w-4 ${CATEGORY_COLORS[key]}`} />
-                <span className="hidden sm:inline">{key}</span>
-                {adjustment !== 0 && (
-                  <Badge 
-                    variant={adjustment > 0 ? "default" : "destructive"} 
-                    className="text-[10px] px-1"
-                  >
-                    {formatPercent(adjustment)}
-                  </Badge>
-                )}
-              </TabsTrigger>
-            );
-          })}
-          <TabsTrigger value="doc" className="flex flex-col gap-1 py-2 text-xs">
-            <FileText className="h-4 w-4 text-amber-600" />
-            <span className="hidden sm:inline">Doc</span>
-          </TabsTrigger>
-        </TabsList>
-
         {Object.entries(groupedChars).map(([key, category]) => (
           <TabsContent key={key} value={key} className="space-y-4 mt-4">
             <div className="flex items-center justify-between">
@@ -253,6 +224,41 @@ export function Step3Questionnaire({
             />
           </div>
         </TabsContent>
+
+        {/* TabsList movida para baixo */}
+        <TabsList className="grid grid-cols-6 w-full mt-4">
+          {Object.entries(groupedChars).map(([key, category]) => {
+            const Icon = CATEGORY_ICONS[key] || Eye;
+            const adjustment = getCategoryAdjustment(key);
+            return (
+              <TabsTrigger
+                key={key}
+                value={key}
+                className="flex flex-col gap-1 py-2 text-xs"
+              >
+                <Icon className={`h-4 w-4 ${CATEGORY_COLORS[key]}`} />
+                <span className="hidden sm:inline">{key}</span>
+                {adjustment !== 0 && (
+                  <Badge 
+                    variant={adjustment > 0 ? "default" : "destructive"} 
+                    className="text-[10px] px-1"
+                  >
+                    {formatPercent(adjustment)}
+                  </Badge>
+                )}
+              </TabsTrigger>
+            );
+          })}
+          <TabsTrigger value="doc" className="flex flex-col gap-1 py-2 text-xs">
+            <FileText className="h-4 w-4 text-amber-600" />
+            <span className="hidden sm:inline">Doc</span>
+            {state.docFactor < 1 && (
+              <Badge variant="destructive" className="text-[10px] px-1">
+                Ajuste: {formatPercent(state.docFactor - 1)}
+              </Badge>
+            )}
+          </TabsTrigger>
+        </TabsList>
       </Tabs>
 
       {/* Preview em tempo real */}
