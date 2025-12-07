@@ -57,6 +57,9 @@ export function Step1Location({ state, updateState, combined }: Props) {
           .replace(/^(AVENIDA|AVN|AV|RUA|R)\s*/i, "")
           .trim();
 
+        // Constante para filtro de outliers
+        const OUTLIER_MAX_M2 = 40000;
+
         const { data, error } = await supabase
           .from("itbi_transactions")
           .select("logradouro, valor_m2")
@@ -64,6 +67,7 @@ export function Step1Location({ state, updateState, combined }: Props) {
           .eq("uso", "Residencial")
           .gte("percentual_transferido", 90)
           .not("valor_m2", "is", null)
+          .lte("valor_m2", OUTLIER_MAX_M2) // Filtro de outliers
           .ilike("logradouro", `%${normalizedTerm}%`)
           .limit(500);
 

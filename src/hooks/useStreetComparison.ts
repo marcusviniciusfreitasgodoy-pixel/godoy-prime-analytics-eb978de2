@@ -1,6 +1,9 @@
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 
+// Constante para filtro de outliers
+const OUTLIER_MAX_M2 = 40000;
+
 export interface StreetComparisonData {
   logradouro: string;
   mediana_m2: number;
@@ -16,7 +19,7 @@ export interface StreetComparisonData {
 
 export function useStreetComparison(logradouros: string[], periodoMeses: number = 12) {
   return useQuery<StreetComparisonData[]>({
-    queryKey: ['street-comparison', logradouros, periodoMeses],
+    queryKey: ['street-comparison-v2', logradouros, periodoMeses],
     queryFn: async () => {
       if (logradouros.length === 0) return [];
 
@@ -43,7 +46,8 @@ export function useStreetComparison(logradouros: string[], periodoMeses: number 
           .ilike('logradouro', `%${logradouro}%`)
           .gte('percentual_transferido', 90)
           .gte('data_transacao', startDateStr)
-          .not('valor_m2', 'is', null);
+          .not('valor_m2', 'is', null)
+          .lte('valor_m2', OUTLIER_MAX_M2); // Filtro de outliers
 
         if (currentError) {
           console.error('Erro ao buscar dados:', currentError);
@@ -79,7 +83,8 @@ export function useStreetComparison(logradouros: string[], periodoMeses: number 
           .gte('percentual_transferido', 90)
           .gte('data_transacao', previousStartDate.toISOString().split('T')[0])
           .lt('data_transacao', previousEndDate.toISOString().split('T')[0])
-          .not('valor_m2', 'is', null);
+          .not('valor_m2', 'is', null)
+          .lte('valor_m2', OUTLIER_MAX_M2); // Filtro de outliers
 
         let variacao_periodo: number | null = null;
         if (previousData && previousData.length > 0) {

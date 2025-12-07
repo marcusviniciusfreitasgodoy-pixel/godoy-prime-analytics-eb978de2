@@ -1,6 +1,9 @@
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 
+// Constante para filtro de outliers
+const OUTLIER_MAX_M2 = 40000;
+
 export interface TransactionSearchParams {
   valorMin?: number;
   valorMax?: number;
@@ -19,7 +22,7 @@ export interface MicrobairroLiquidez {
 
 export function useTransactionSearch(params: TransactionSearchParams, enabled: boolean = false) {
   return useQuery<MicrobairroLiquidez[]>({
-    queryKey: ['transaction-search', params.valorMin, params.valorMax, params.bairro, params.tipologia, params.periodoMeses, params.areaMin, params.areaMax],
+    queryKey: ['transaction-search-v2', params.valorMin, params.valorMax, params.bairro, params.tipologia, params.periodoMeses, params.areaMin, params.areaMax],
     queryFn: async () => {
       // Período configurável (padrão: 12 meses)
       const meses = params.periodoMeses || 12;
@@ -32,6 +35,7 @@ export function useTransactionSearch(params: TransactionSearchParams, enabled: b
         .select('logradouro, valor_transacao, valor_m2, total_transacoes, data_transacao')
         .eq('uso', 'Residencial')
         .not('valor_m2', 'is', null)
+        .lte('valor_m2', OUTLIER_MAX_M2) // Filtro de outliers
         .gte('percentual_transferido', 90)
         .gte('data_transacao', startDate);
 

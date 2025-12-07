@@ -1,6 +1,9 @@
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 
+// Constante para filtro de outliers
+const OUTLIER_MAX_M2 = 40000;
+
 export interface EvolutionData {
   mes: string;
   geral: number;
@@ -11,10 +14,10 @@ export interface EvolutionData {
 
 export type GranularityType = 'semester' | 'annual';
 
-// Hook para dados de evolução com granularidade configurável (v6 - rebuild)
+// Hook para dados de evolução com granularidade configurável
 export function useEvolutionData(bairro: string = 'BARRA DA TIJUCA', granularity: GranularityType = 'semester') {
   return useQuery<EvolutionData[]>({
-    queryKey: ['evolution-data-v6', bairro, granularity],
+    queryKey: ['evolution-data-v7', bairro, granularity],
     staleTime: 0,
     refetchOnMount: 'always',
     queryFn: async () => {
@@ -32,6 +35,7 @@ export function useEvolutionData(bairro: string = 'BARRA DA TIJUCA', granularity
           .eq('uso', 'Residencial')
           .ilike('bairro', bairro)
           .not('valor_m2', 'is', null)
+          .lte('valor_m2', OUTLIER_MAX_M2) // Filtro de outliers
           .gte('percentual_transferido', 90)
           .gte('data_transacao', startDate)
           .order('data_transacao', { ascending: true })

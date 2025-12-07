@@ -1,6 +1,11 @@
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 
+// Constantes para filtros
+const OUTLIER_MAX_M2 = 40000; // R$ 40.000/m² máximo
+const MIN_REGISTROS_ANO_ATUAL = 30; // Mínimo de agregações
+const MIN_TRANSACOES_REAIS = 100; // Mínimo de transações reais
+
 export interface KPIStatsData {
   precoMedio: number;
   precoMedioApt: number;
@@ -16,7 +21,8 @@ export interface KPIStatsData {
   precoMedioBairroApt: number;
   precoMedioBairroCasa: number;
   variacaoMensal: string;
-  mesReferencia: string; // Mês de referência para a variação mensal
+  mesReferencia: string;
+  usandoDadosHistoricos?: boolean; // Indica se usou fallback para ano anterior
 }
 
 interface TransactionData {
@@ -43,58 +49,83 @@ const agruparPorMes = (transactions: TransactionData[]) => {
 
 export function useKPIStats(bairro: string = 'BARRA DA TIJUCA') {
   return useQuery<KPIStatsData>({
-    queryKey: ['kpi-stats-detailed-v3', bairro],
+    queryKey: ['kpi-stats-detailed-v4', bairro],
     staleTime: 0,
     refetchOnMount: 'always',
     queryFn: async () => {
-      // Datas dinâmicas baseadas na data atual
       const now = new Date();
+      const currentYear = now.getFullYear();
       
-      // Últimos 12 meses (período atual)
-      const twelveMonthsAgo = new Date(now);
-      twelveMonthsAgo.setMonth(twelveMonthsAgo.getMonth() - 12);
-      const startDate12Months = twelveMonthsAgo.toISOString().split('T')[0];
+      // Primeiro: tentar buscar apenas dados do ano atual
+      const startOfYear = `${currentYear}-01-01`;
       
-      // 24 meses atrás (para período anterior de comparação YoY)
-      const twentyFourMonthsAgo = new Date(now);
-      twentyFourMonthsAgo.setMonth(twentyFourMonthsAgo.getMonth() - 24);
-      const startDate24Months = twentyFourMonthsAgo.toISOString().split('T')[0];
-
-      // Último mês para variação mensal
-      const oneMonthAgo = new Date(now);
-      oneMonthAgo.setMonth(oneMonthAgo.getMonth() - 1);
-      const startDateLastMonth = oneMonthAgo.toISOString().split('T')[0];
-
-      // Dois meses atrás
-      const twoMonthsAgo = new Date(now);
-      twoMonthsAgo.setMonth(twoMonthsAgo.getMonth() - 2);
-      const startDateTwoMonths = twoMonthsAgo.toISOString().split('T')[0];
-
-      console.log('[KPI] Período atual:', startDate12Months, 'até hoje');
-      console.log('[KPI] Período anterior:', startDate24Months, 'até', startDate12Months);
-
-      // Buscar transações dos últimos 12 meses (período atual) - SOMENTE RESIDENCIAL
-      // METODOLOGIA PREFEITURA: Filtrar percentual_transferido >= 90%
-      // Usa ilike para filtro case-insensitive do bairro
-      const { data: currentPeriodData, error: currentError } = await supabase
+      // Buscar dados do ano atual - SOMENTE RESIDENCIAL + FILTRO OUTLIERS
+      const { data: currentYearData, error: currentYearError } = await supabase
         .from('itbi_transactions')
         .select('valor_m2, tipologia, data_transacao, total_transacoes')
         .eq('uso', 'Residencial')
         .ilike('bairro', bairro)
         .not('valor_m2', 'is', null)
+        .lte('valor_m2', OUTLIER_MAX_M2) // Filtro de outliers
         .gte('percentual_transferido', 90)
-        .gte('data_transacao', startDate12Months)
+        .gte('data_transacao', startOfYear)
         .limit(10000);
 
-      if (currentError) throw currentError;
+      if (currentYearError) throw currentYearError;
 
-      // Buscar transações dos 12 meses anteriores (para comparação YoY) - SOMENTE RESIDENCIAL
+      // Verificar se há amostragem suficiente no ano atual
+      const currentYearTransactions = currentYearData || [];
+      const totalTransacoesAnoAtual = currentYearTransactions.reduce((sum, t) => sum + (t.total_transacoes || 1), 0);
+      
+      const amostragemSuficiente = 
+        currentYearTransactions.length >= MIN_REGISTROS_ANO_ATUAL || 
+        totalTransacoesAnoAtual >= MIN_TRANSACOES_REAIS;
+
+      console.log(`[KPI] Ano atual ${currentYear}: ${currentYearTransactions.length} registros, ${totalTransacoesAnoAtual} transações reais`);
+      console.log(`[KPI] Amostragem suficiente: ${amostragemSuficiente}`);
+
+      let usandoDadosHistoricos = false;
+      let currentTransactions = currentYearTransactions;
+
+      // Se não houver amostragem suficiente, incluir ano anterior
+      if (!amostragemSuficiente) {
+        usandoDadosHistoricos = true;
+        const twelveMonthsAgo = new Date(now);
+        twelveMonthsAgo.setMonth(twelveMonthsAgo.getMonth() - 12);
+        const startDate12Months = twelveMonthsAgo.toISOString().split('T')[0];
+
+        const { data: extendedData, error: extendedError } = await supabase
+          .from('itbi_transactions')
+          .select('valor_m2, tipologia, data_transacao, total_transacoes')
+          .eq('uso', 'Residencial')
+          .ilike('bairro', bairro)
+          .not('valor_m2', 'is', null)
+          .lte('valor_m2', OUTLIER_MAX_M2) // Filtro de outliers
+          .gte('percentual_transferido', 90)
+          .gte('data_transacao', startDate12Months)
+          .limit(10000);
+
+        if (extendedError) throw extendedError;
+        currentTransactions = extendedData || [];
+        console.log(`[KPI] Usando fallback 12 meses: ${currentTransactions.length} registros`);
+      }
+
+      // Período anterior para comparação YoY (sempre 12-24 meses atrás)
+      const twelveMonthsAgo = new Date(now);
+      twelveMonthsAgo.setMonth(twelveMonthsAgo.getMonth() - 12);
+      const startDate12Months = twelveMonthsAgo.toISOString().split('T')[0];
+
+      const twentyFourMonthsAgo = new Date(now);
+      twentyFourMonthsAgo.setMonth(twentyFourMonthsAgo.getMonth() - 24);
+      const startDate24Months = twentyFourMonthsAgo.toISOString().split('T')[0];
+
       const { data: previousPeriodData, error: previousError } = await supabase
         .from('itbi_transactions')
         .select('valor_m2, tipologia, total_transacoes')
         .eq('uso', 'Residencial')
         .ilike('bairro', bairro)
         .not('valor_m2', 'is', null)
+        .lte('valor_m2', OUTLIER_MAX_M2) // Filtro de outliers
         .gte('percentual_transferido', 90)
         .gte('data_transacao', startDate24Months)
         .lt('data_transacao', startDate12Months)
@@ -102,7 +133,6 @@ export function useKPIStats(bairro: string = 'BARRA DA TIJUCA') {
 
       if (previousError) throw previousError;
 
-      const currentTransactions = currentPeriodData || [];
       const previousTransactions = previousPeriodData || [];
 
       console.log('[KPI] Registros período atual:', currentTransactions.length);
@@ -126,11 +156,10 @@ export function useKPIStats(bairro: string = 'BARRA DA TIJUCA') {
 
       // Transações agrupadas por mês para encontrar os últimos 2 meses com dados
       const transacoesPorMes = agruparPorMes(currentTransactions);
-      const mesesComDados = Object.keys(transacoesPorMes).sort().reverse(); // Mais recente primeiro
+      const mesesComDados = Object.keys(transacoesPorMes).sort().reverse();
       
       console.log('[KPI] Meses com dados:', mesesComDados);
 
-      // Pegar os dois últimos meses com dados
       const ultimoMes = mesesComDados[0] || null;
       const penultimoMes = mesesComDados[1] || null;
 
@@ -153,8 +182,6 @@ export function useKPIStats(bairro: string = 'BARRA DA TIJUCA') {
         return somaTransacoes > 0 ? somaValoresPonderados / somaTransacoes : 0;
       };
 
-      // Liquidez = soma de total_transacoes (número real de transações)
-      // Cada registro é uma agregação, total_transacoes indica quantas transações reais
       const calcLiquidez = (arr: TransactionData[]) => {
         return arr.reduce((sum, t) => sum + (t.total_transacoes || 1), 0);
       };
@@ -170,17 +197,13 @@ export function useKPIStats(bairro: string = 'BARRA DA TIJUCA') {
       const precoMedioLastMonth = calcMediaPonderada(lastMonthTransactions);
       const precoMedioPrevMonth = calcMediaPonderada(previousMonthTransactions);
 
-      // Calcular liquidez = soma de total_transacoes (transações reais)
       const liquidez = calcLiquidez(currentTransactions);
       const liquidezApt = calcLiquidez(currentApt);
       const liquidezCasa = calcLiquidez(currentCasa);
 
       console.log('[KPI] Liquidez (transações reais):', liquidez);
       console.log('[KPI] Preço médio ponderado:', precoMedio);
-      console.log('[KPI] Último mês com dados:', ultimoMes, '- Registros:', lastMonthTransactions.length);
-      console.log('[KPI] Penúltimo mês com dados:', penultimoMes, '- Registros:', previousMonthTransactions.length);
 
-      // Calcular variações - retorna null se não houver dados suficientes
       const calcVariacao = (atual: number, anterior: number): number | null => {
         if (atual === 0 && anterior === 0) return null;
         if (anterior === 0) return null;
@@ -191,12 +214,10 @@ export function useKPIStats(bairro: string = 'BARRA DA TIJUCA') {
       const variacaoAnualApt = calcVariacao(precoMedioApt, precoMedioAptAnterior);
       const variacaoAnualCasa = calcVariacao(precoMedioCasa, precoMedioCasaAnterior);
       
-      // Variação mensal: compara os dois últimos meses com dados
       const variacaoMensal = (lastMonthTransactions.length > 0 && previousMonthTransactions.length > 0)
         ? calcVariacao(precoMedioLastMonth, precoMedioPrevMonth)
         : null;
 
-      // Formatar nome do mês de referência
       const formatarMesReferencia = (mesAno: string | null) => {
         if (!mesAno) return 'N/A';
         const [ano, mes] = mesAno.split('-');
@@ -206,14 +227,13 @@ export function useKPIStats(bairro: string = 'BARRA DA TIJUCA') {
 
       const mesReferencia = ultimoMes ? formatarMesReferencia(ultimoMes) : 'N/A';
 
-      // Buscar região mais valorizada - dinâmico por bairro
+      // Buscar região mais valorizada
       let regiaoMaisValorizada = 'N/A';
       let precoMedioBairro = 0;
       let precoMedioBairroApt = 0;
       let precoMedioBairroCasa = 0;
 
       if (bairro.toUpperCase() === 'BARRA DA TIJUCA') {
-        // Para Barra da Tijuca, usar view otimizada de microbairros
         const { data: rankingData } = await supabase
           .from('view_ranking_microbairros')
           .select('microbairro, preco_medio_m2')
@@ -227,15 +247,15 @@ export function useKPIStats(bairro: string = 'BARRA DA TIJUCA') {
           precoMedioBairroApt = precoMedioBairro;
           precoMedioBairroCasa = precoMedioBairro * 0.9;
 
-          // Buscar breakdown por tipologia
           const { data: bairroTransactions } = await supabase
             .from('itbi_transactions')
             .select('valor_m2, tipologia, total_transacoes')
             .eq('uso', 'Residencial')
             .ilike('bairro', bairro)
             .gte('percentual_transferido', 90)
+            .lte('valor_m2', OUTLIER_MAX_M2)
             .ilike('logradouro', `%${rankingData.microbairro}%`)
-            .gte('data_transacao', startDate12Months);
+            .gte('data_transacao', startOfYear);
 
           if (bairroTransactions && bairroTransactions.length > 0) {
             const bairroApt = bairroTransactions.filter(t => 
@@ -254,18 +274,17 @@ export function useKPIStats(bairro: string = 'BARRA DA TIJUCA') {
           }
         }
       } else {
-        // Para outros bairros, calcular dinamicamente por logradouro
         const { data: logradouroData } = await supabase
           .from('itbi_transactions')
           .select('logradouro, valor_m2, tipologia, total_transacoes')
           .eq('uso', 'Residencial')
           .ilike('bairro', bairro)
           .not('valor_m2', 'is', null)
+          .lte('valor_m2', OUTLIER_MAX_M2)
           .gte('percentual_transferido', 90)
-          .gte('data_transacao', startDate12Months);
+          .gte('data_transacao', startOfYear);
 
         if (logradouroData && logradouroData.length > 0) {
-          // Agrupar por logradouro e calcular média ponderada
           const logradouroStats: Record<string, { somaValores: number; somaTransacoes: number; transacoes: TransactionData[] }> = {};
           
           for (const t of logradouroData) {
@@ -279,7 +298,6 @@ export function useKPIStats(bairro: string = 'BARRA DA TIJUCA') {
             logradouroStats[log].transacoes.push(t);
           }
 
-          // Encontrar logradouro com maior preço médio
           let maxPreco = 0;
           let melhorLogradouro = 'N/A';
           let melhorTransacoes: TransactionData[] = [];
@@ -296,7 +314,6 @@ export function useKPIStats(bairro: string = 'BARRA DA TIJUCA') {
           regiaoMaisValorizada = melhorLogradouro;
           precoMedioBairro = maxPreco;
 
-          // Calcular breakdown por tipologia
           const logApt = melhorTransacoes.filter(t => t.tipologia?.toLowerCase().includes('apartamento'));
           const logCasa = melhorTransacoes.filter(t => t.tipologia?.toLowerCase().includes('casa'));
           
@@ -321,6 +338,7 @@ export function useKPIStats(bairro: string = 'BARRA DA TIJUCA') {
         precoMedioBairroCasa: Math.round(precoMedioBairroCasa),
         variacaoMensal: variacaoMensal !== null ? variacaoMensal.toFixed(2) : 'N/A',
         mesReferencia,
+        usandoDadosHistoricos,
       };
     },
   });
