@@ -225,23 +225,24 @@ export function Step3Questionnaire({
           </div>
         </TabsContent>
 
-        {/* TabsList movida para baixo */}
-        <TabsList className="grid grid-cols-6 w-full mt-4">
+        {/* TabsList movida para baixo - responsiva */}
+        <TabsList className="flex flex-wrap justify-center gap-1 sm:grid sm:grid-cols-6 w-full mt-4 h-auto p-2">
           {Object.entries(groupedChars).map(([key, category]) => {
             const Icon = CATEGORY_ICONS[key] || Eye;
             const adjustment = getCategoryAdjustment(key);
+            const isActive = activeTab === key;
             return (
               <TabsTrigger
                 key={key}
                 value={key}
-                className="flex flex-col gap-1 py-2 text-xs"
+                className="flex flex-col items-center gap-0.5 py-1.5 px-2 sm:px-3 text-xs min-w-[45px] sm:min-w-0"
               >
-                <Icon className={`h-4 w-4 ${CATEGORY_COLORS[key]}`} />
-                <span className="hidden sm:inline">{key}</span>
+                <Icon className={`h-4 w-4 sm:h-5 sm:w-5 ${CATEGORY_COLORS[key]}`} />
+                <span className="text-[10px] sm:text-xs font-medium">{key}</span>
                 {adjustment !== 0 && (
                   <Badge 
                     variant={adjustment > 0 ? "default" : "destructive"} 
-                    className="text-[10px] px-1"
+                    className="text-[8px] sm:text-[10px] px-1 py-0 h-4"
                   >
                     {formatPercent(adjustment)}
                   </Badge>
@@ -249,12 +250,15 @@ export function Step3Questionnaire({
               </TabsTrigger>
             );
           })}
-          <TabsTrigger value="doc" className="flex flex-col gap-1 py-2 text-xs">
-            <FileText className="h-4 w-4 text-amber-600" />
-            <span className="hidden sm:inline">Doc</span>
+          <TabsTrigger 
+            value="doc" 
+            className="flex flex-col items-center gap-0.5 py-1.5 px-2 sm:px-3 text-xs min-w-[45px] sm:min-w-0"
+          >
+            <FileText className="h-4 w-4 sm:h-5 sm:w-5 text-amber-600" />
+            <span className="text-[10px] sm:text-xs font-medium">Doc</span>
             {state.docFactor < 1 && (
-              <Badge variant="destructive" className="text-[10px] px-1">
-                Ajuste: {formatPercent(state.docFactor - 1)}
+              <Badge variant="destructive" className="text-[8px] sm:text-[10px] px-1 py-0 h-4">
+                {formatPercent(state.docFactor - 1)}
               </Badge>
             )}
           </TabsTrigger>
