@@ -1,8 +1,28 @@
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 
-// Constante para filtro de outliers
-const OUTLIER_MAX_M2 = 40000;
+// Limites de outliers por bairro (baseados em percentil 99 + margem)
+const OUTLIER_LIMITS: Record<string, number> = {
+  'BARRA DA TIJUCA': 40000,
+  'RECREIO DOS BANDEIRANTES': 35000,
+  'LEBLON': 80000,
+  'IPANEMA': 70000,
+  'LAGOA': 50000,
+  'JARDIM BOTANICO': 50000,
+  'GAVEA': 50000,
+  'COPACABANA': 40000,
+  'BOTAFOGO': 40000,
+  'FLAMENGO': 35000,
+  'LARANJEIRAS': 35000,
+  'HUMAITA': 40000,
+  'TIJUCA': 30000,
+  'DEFAULT': 60000,
+};
+
+const getOutlierLimit = (bairro: string): number => {
+  const normalizedBairro = bairro.toUpperCase();
+  return OUTLIER_LIMITS[normalizedBairro] || OUTLIER_LIMITS['DEFAULT'];
+};
 
 export interface EvolutionData {
   mes: string;
@@ -14,14 +34,14 @@ export interface EvolutionData {
 
 export type GranularityType = 'semester' | 'annual';
 
-// Hook para dados de evolução com granularidade configurável
 export function useEvolutionData(bairro: string = 'BARRA DA TIJUCA', granularity: GranularityType = 'semester') {
   return useQuery<EvolutionData[]>({
-    queryKey: ['evolution-data-v7', bairro, granularity],
+    queryKey: ['evolution-data-v8', bairro, granularity],
     staleTime: 0,
     refetchOnMount: 'always',
     queryFn: async () => {
       const startDate = '2020-01-01';
+      const outlierLimit = getOutlierLimit(bairro);
 
       let allData: { data_transacao: string; valor_m2: number | null; tipologia: string | null }[] = [];
       let offset = 0;
@@ -35,7 +55,7 @@ export function useEvolutionData(bairro: string = 'BARRA DA TIJUCA', granularity
           .eq('uso', 'Residencial')
           .ilike('bairro', bairro)
           .not('valor_m2', 'is', null)
-          .lte('valor_m2', OUTLIER_MAX_M2) // Filtro de outliers
+          .lte('valor_m2', outlierLimit)
           .gte('percentual_transferido', 90)
           .gte('data_transacao', startDate)
           .order('data_transacao', { ascending: true })
@@ -52,13 +72,11 @@ export function useEvolutionData(bairro: string = 'BARRA DA TIJUCA', granularity
         }
       }
 
-      console.log(`[EvolutionData] Total registros para ${bairro}: ${allData.length}`);
-      const data = allData;
+      console.log(`[EvolutionData] ${bairro} (limite: R$ ${outlierLimit}/m²): ${allData.length} registros`);
 
-      if (!data || data.length === 0) return [];
+      if (!allData || allData.length === 0) return [];
 
-      // Agrupar por período (semestre ou ano)
-      const grouped = (data || []).reduce((acc, t) => {
+      const grouped = allData.reduce((acc, t) => {
         const date = new Date(t.data_transacao);
         const year = date.getFullYear();
         
@@ -86,7 +104,6 @@ export function useEvolutionData(bairro: string = 'BARRA DA TIJUCA', granularity
         return acc;
       }, {} as Record<string, { geral: number[], apartamento: number[], casa: number[] }>);
 
-      // Ordenar períodos cronologicamente
       const periods = Object.keys(grouped).sort((a, b) => {
         if (granularity === 'annual') {
           return parseInt(a) - parseInt(b);

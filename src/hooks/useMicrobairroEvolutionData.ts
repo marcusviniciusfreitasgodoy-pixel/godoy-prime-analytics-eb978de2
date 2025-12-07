@@ -1,8 +1,28 @@
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 
-// Constante para filtro de outliers
-const OUTLIER_MAX_M2 = 40000;
+// Limites de outliers por bairro
+const OUTLIER_LIMITS: Record<string, number> = {
+  'BARRA DA TIJUCA': 40000,
+  'RECREIO DOS BANDEIRANTES': 35000,
+  'LEBLON': 80000,
+  'IPANEMA': 70000,
+  'LAGOA': 50000,
+  'JARDIM BOTANICO': 50000,
+  'GAVEA': 50000,
+  'COPACABANA': 40000,
+  'BOTAFOGO': 40000,
+  'FLAMENGO': 35000,
+  'LARANJEIRAS': 35000,
+  'HUMAITA': 40000,
+  'TIJUCA': 30000,
+  'DEFAULT': 60000,
+};
+
+const getOutlierLimit = (bairro: string): number => {
+  const normalizedBairro = bairro.toUpperCase();
+  return OUTLIER_LIMITS[normalizedBairro] || OUTLIER_LIMITS['DEFAULT'];
+};
 
 export type GranularityType = 'semester' | 'annual';
 export type MetricType = 'valorization' | 'liquidity';
@@ -12,7 +32,6 @@ export interface MicrobairroEvolutionData {
   [microbairro: string]: string | number;
 }
 
-// Classificação específica para Barra da Tijuca
 const classificarMicrobairroBarra = (logradouro: string): string | null => {
   const log = logradouro.toUpperCase();
   
@@ -48,7 +67,6 @@ const classificarMicrobairroBarra = (logradouro: string): string | null => {
   return null;
 };
 
-// Para outros bairros, usar logradouro simplificado como região
 const simplificarLogradouro = (logradouro: string): string => {
   let nome = logradouro.toUpperCase()
     .replace(/^(AVENIDA|AVN|AV\.?|RUA|R\.?|ESTRADA|EST\.?|TRAVESSA|TV\.?|PRACA|PCA\.?|PRAÇA|ALAMEDA|AL\.?)\s+/i, '')
@@ -67,9 +85,10 @@ export const useMicrobairroEvolutionData = (
   metric: MetricType = 'valorization'
 ) => {
   return useQuery({
-    queryKey: ['microbairro-evolution-v2', bairro, granularity, metric],
+    queryKey: ['microbairro-evolution-v3', bairro, granularity, metric],
     queryFn: async () => {
       const startDate = new Date('2020-01-01');
+      const outlierLimit = getOutlierLimit(bairro);
       
       let allData: any[] = [];
       let from = 0;
@@ -84,7 +103,7 @@ export const useMicrobairroEvolutionData = (
           .eq('uso', 'Residencial')
           .gte('percentual_transferido', 90)
           .not('valor_m2', 'is', null)
-          .lte('valor_m2', OUTLIER_MAX_M2) // Filtro de outliers
+          .lte('valor_m2', outlierLimit)
           .gte('data_transacao', startDate.toISOString().split('T')[0])
           .range(from, from + pageSize - 1);
         

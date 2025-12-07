@@ -1,8 +1,28 @@
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 
-// Constante para filtro de outliers
-const OUTLIER_MAX_M2 = 40000;
+// Limites de outliers por bairro
+const OUTLIER_LIMITS: Record<string, number> = {
+  'BARRA DA TIJUCA': 40000,
+  'RECREIO DOS BANDEIRANTES': 35000,
+  'LEBLON': 80000,
+  'IPANEMA': 70000,
+  'LAGOA': 50000,
+  'JARDIM BOTANICO': 50000,
+  'GAVEA': 50000,
+  'COPACABANA': 40000,
+  'BOTAFOGO': 40000,
+  'FLAMENGO': 35000,
+  'LARANJEIRAS': 35000,
+  'HUMAITA': 40000,
+  'TIJUCA': 30000,
+  'DEFAULT': 60000,
+};
+
+const getOutlierLimit = (bairro: string): number => {
+  const normalizedBairro = bairro.toUpperCase();
+  return OUTLIER_LIMITS[normalizedBairro] || OUTLIER_LIMITS['DEFAULT'];
+};
 
 export interface StreetComparisonData {
   logradouro: string;
@@ -17,9 +37,9 @@ export interface StreetComparisonData {
   }[];
 }
 
-export function useStreetComparison(logradouros: string[], periodoMeses: number = 12) {
+export function useStreetComparison(logradouros: string[], periodoMeses: number = 12, bairro?: string) {
   return useQuery<StreetComparisonData[]>({
-    queryKey: ['street-comparison-v2', logradouros, periodoMeses],
+    queryKey: ['street-comparison-v3', logradouros, periodoMeses, bairro],
     queryFn: async () => {
       if (logradouros.length === 0) return [];
 
@@ -27,18 +47,19 @@ export function useStreetComparison(logradouros: string[], periodoMeses: number 
       startDate.setMonth(startDate.getMonth() - periodoMeses);
       const startDateStr = startDate.toISOString().split('T')[0];
 
-      // Data for previous period comparison
       const previousStartDate = new Date();
       previousStartDate.setMonth(previousStartDate.getMonth() - (periodoMeses * 2));
       const previousEndDate = new Date();
       previousEndDate.setMonth(previousEndDate.getMonth() - periodoMeses);
+      
+      // Usar limite dinâmico se bairro fornecido
+      const outlierLimit = bairro ? getOutlierLimit(bairro) : OUTLIER_LIMITS['DEFAULT'];
 
       const results: StreetComparisonData[] = [];
 
       for (const logradouro of logradouros) {
         if (!logradouro) continue;
 
-        // Current period data
         const { data: currentData, error: currentError } = await supabase
           .from('itbi_transactions')
           .select('valor_m2, total_transacoes, data_transacao')
@@ -47,7 +68,7 @@ export function useStreetComparison(logradouros: string[], periodoMeses: number 
           .gte('percentual_transferido', 90)
           .gte('data_transacao', startDateStr)
           .not('valor_m2', 'is', null)
-          .lte('valor_m2', OUTLIER_MAX_M2); // Filtro de outliers
+          .lte('valor_m2', outlierLimit);
 
         if (currentError) {
           console.error('Erro ao buscar dados:', currentError);
@@ -56,7 +77,6 @@ export function useStreetComparison(logradouros: string[], periodoMeses: number 
 
         if (!currentData || currentData.length === 0) continue;
 
-        // Calculate current period stats
         let somaValoresPonderados = 0;
         let somaPesos = 0;
         const valores: number[] = [];
@@ -74,7 +94,6 @@ export function useStreetComparison(logradouros: string[], periodoMeses: number 
           ? Math.round((valores[valores.length / 2 - 1] + valores[valores.length / 2]) / 2)
           : Math.round(valores[Math.floor(valores.length / 2)]);
 
-        // Previous period for variation calculation
         const { data: previousData } = await supabase
           .from('itbi_transactions')
           .select('valor_m2, total_transacoes')
@@ -84,7 +103,7 @@ export function useStreetComparison(logradouros: string[], periodoMeses: number 
           .gte('data_transacao', previousStartDate.toISOString().split('T')[0])
           .lt('data_transacao', previousEndDate.toISOString().split('T')[0])
           .not('valor_m2', 'is', null)
-          .lte('valor_m2', OUTLIER_MAX_M2); // Filtro de outliers
+          .lte('valor_m2', outlierLimit);
 
         let variacao_periodo: number | null = null;
         if (previousData && previousData.length > 0) {
@@ -101,7 +120,6 @@ export function useStreetComparison(logradouros: string[], periodoMeses: number 
           }
         }
 
-        // Monthly breakdown
         const mensalMap = new Map<string, { soma: number; peso: number; count: number }>();
         for (const t of currentData) {
           const mes = t.data_transacao.substring(0, 7);
@@ -122,7 +140,7 @@ export function useStreetComparison(logradouros: string[], periodoMeses: number 
           .sort((a, b) => a.mes.localeCompare(b.mes));
 
         results.push({
-          logradouro: currentData[0]?.data_transacao ? logradouro : logradouro,
+          logradouro,
           mediana_m2,
           media_m2,
           total_transacoes: somaPesos,
