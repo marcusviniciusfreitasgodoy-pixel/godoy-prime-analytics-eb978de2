@@ -1,6 +1,5 @@
 import { useState, useEffect } from "react";
 import { Input } from "@/components/ui/input";
-import { CurrencyInput } from "@/components/ui/currency-input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
@@ -227,18 +226,24 @@ export function Step1Location({ state, updateState, combined }: Props) {
               <Label className="text-sm mb-2 block">
                 Dados de Anúncios (opcional - 30% do cálculo)
               </Label>
+              <p className="text-xs text-amber-600 mb-2 font-medium">
+                ⚠️ Informe valores em R$/m² (ex: 15.000), NÃO o valor total do imóvel
+              </p>
               <div className="grid grid-cols-3 gap-2">
                 <div>
                   <Label className="text-xs">Mín R$/m²</Label>
-                  <CurrencyInput
-                    placeholder="R$ 11.000"
-                    value={state.anuncioData?.min_m2?.toString() || ""}
-                    onChange={(value) => {
-                      const numValue = Number(value) || 0;
+                  <Input
+                    type="number"
+                    placeholder="Ex: 11000"
+                    value={state.anuncioData?.min_m2 || ""}
+                    onChange={(e) => {
+                      const numValue = Number(e.target.value) || 0;
+                      // Validação: valores por m² típicos estão entre 3.000 e 100.000
+                      const safeValue = numValue > 500000 ? 0 : numValue;
                       updateState({
                         anuncioData: {
                           ...state.anuncioData,
-                          min_m2: numValue,
+                          min_m2: safeValue,
                           med_m2: state.anuncioData?.med_m2 || 0,
                           max_m2: state.anuncioData?.max_m2 || 0,
                         },
@@ -249,16 +254,18 @@ export function Step1Location({ state, updateState, combined }: Props) {
                 </div>
                 <div>
                   <Label className="text-xs">Méd R$/m²</Label>
-                  <CurrencyInput
-                    placeholder="R$ 14.500"
-                    value={state.anuncioData?.med_m2?.toString() || ""}
-                    onChange={(value) => {
-                      const numValue = Number(value) || 0;
+                  <Input
+                    type="number"
+                    placeholder="Ex: 14500"
+                    value={state.anuncioData?.med_m2 || ""}
+                    onChange={(e) => {
+                      const numValue = Number(e.target.value) || 0;
+                      const safeValue = numValue > 500000 ? 0 : numValue;
                       updateState({
                         anuncioData: {
                           ...state.anuncioData,
                           min_m2: state.anuncioData?.min_m2 || 0,
-                          med_m2: numValue,
+                          med_m2: safeValue,
                           max_m2: state.anuncioData?.max_m2 || 0,
                         },
                       });
@@ -268,17 +275,19 @@ export function Step1Location({ state, updateState, combined }: Props) {
                 </div>
                 <div>
                   <Label className="text-xs">Máx R$/m²</Label>
-                  <CurrencyInput
-                    placeholder="R$ 17.500"
-                    value={state.anuncioData?.max_m2?.toString() || ""}
-                    onChange={(value) => {
-                      const numValue = Number(value) || 0;
+                  <Input
+                    type="number"
+                    placeholder="Ex: 17500"
+                    value={state.anuncioData?.max_m2 || ""}
+                    onChange={(e) => {
+                      const numValue = Number(e.target.value) || 0;
+                      const safeValue = numValue > 500000 ? 0 : numValue;
                       updateState({
                         anuncioData: {
                           ...state.anuncioData,
                           min_m2: state.anuncioData?.min_m2 || 0,
                           med_m2: state.anuncioData?.med_m2 || 0,
-                          max_m2: numValue,
+                          max_m2: safeValue,
                         },
                       });
                     }}
@@ -289,6 +298,11 @@ export function Step1Location({ state, updateState, combined }: Props) {
               <p className="text-xs text-muted-foreground mt-2">
                 Se preenchido, o sistema combinará 70% ITBI + 30% Anúncios
               </p>
+              {state.anuncioData && (state.anuncioData.min_m2 > 100000 || state.anuncioData.med_m2 > 100000 || state.anuncioData.max_m2 > 100000) && (
+                <p className="text-xs text-red-600 mt-1 font-medium">
+                  ⚠️ Valor acima de R$ 100.000/m² parece incorreto. Verifique se não é o valor total.
+                </p>
+              )}
             </div>
 
             {/* Trend indicator */}
