@@ -1,8 +1,28 @@
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 
-// Constante para filtro de outliers
-const OUTLIER_MAX_M2 = 40000;
+// Limites de outliers por bairro
+const OUTLIER_LIMITS: Record<string, number> = {
+  'BARRA DA TIJUCA': 40000,
+  'RECREIO DOS BANDEIRANTES': 35000,
+  'LEBLON': 80000,
+  'IPANEMA': 70000,
+  'LAGOA': 50000,
+  'JARDIM BOTANICO': 50000,
+  'GAVEA': 50000,
+  'COPACABANA': 40000,
+  'BOTAFOGO': 40000,
+  'FLAMENGO': 35000,
+  'LARANJEIRAS': 35000,
+  'HUMAITA': 40000,
+  'TIJUCA': 30000,
+  'DEFAULT': 60000,
+};
+
+const getOutlierLimit = (bairro: string): number => {
+  const normalizedBairro = bairro.toUpperCase();
+  return OUTLIER_LIMITS[normalizedBairro] || OUTLIER_LIMITS['DEFAULT'];
+};
 
 export interface ITBITransaction {
   id: string;
@@ -43,11 +63,13 @@ export function useITBITransactions() {
   return useQuery<ITBITransaction[]>({
     queryKey: ['itbi-transactions'],
     queryFn: async () => {
+      const outlierLimit = getOutlierLimit('BARRA DA TIJUCA');
+      
       const { data, error } = await supabase
         .from('itbi_transactions')
         .select('*')
         .ilike('bairro', 'BARRA DA TIJUCA')
-        .lte('valor_m2', OUTLIER_MAX_M2) // Filtro de outliers
+        .lte('valor_m2', outlierLimit)
         .order('data_transacao', { ascending: false })
         .limit(100);
 
@@ -59,9 +81,11 @@ export function useITBITransactions() {
 
 export function useMicrobairroRanking(bairro: string = 'BARRA DA TIJUCA') {
   return useQuery<MicrobairroRanking[]>({
-    queryKey: ['microbairro-ranking-v2', bairro],
+    queryKey: ['microbairro-ranking-v3', bairro],
     queryFn: async () => {
-      // Para Barra da Tijuca, usar a view otimizada (já tem filtro de outliers)
+      const outlierLimit = getOutlierLimit(bairro);
+      
+      // Para Barra da Tijuca, usar a view otimizada (já tem filtro de outliers de R$ 40k)
       if (bairro.toUpperCase() === 'BARRA DA TIJUCA') {
         const { data, error } = await supabase
           .from('view_ranking_microbairros')
@@ -71,20 +95,19 @@ export function useMicrobairroRanking(bairro: string = 'BARRA DA TIJUCA') {
         return data as MicrobairroRanking[];
       }
       
-      // Para outros bairros, calcular dinamicamente por logradouro
+      // Para outros bairros, calcular dinamicamente com limite apropriado
       const { data: transactions, error } = await supabase
         .from('itbi_transactions')
         .select('logradouro, valor_m2, total_transacoes')
         .ilike('bairro', bairro)
         .eq('uso', 'Residencial')
         .not('valor_m2', 'is', null)
-        .lte('valor_m2', OUTLIER_MAX_M2) // Filtro de outliers
+        .lte('valor_m2', outlierLimit)
         .gte('percentual_transferido', 90)
         .limit(5000);
 
       if (error) throw error;
 
-      // Agrupar por logradouro
       const grouped = (transactions || []).reduce((acc, t) => {
         const key = t.logradouro;
         if (!acc[key]) {
@@ -95,7 +118,6 @@ export function useMicrobairroRanking(bairro: string = 'BARRA DA TIJUCA') {
         return acc;
       }, {} as Record<string, { valores: number[], total: number }>);
 
-      // Calcular métricas
       const result = Object.entries(grouped).map(([logradouro, data]) => {
         const sorted = [...data.valores].sort((a, b) => a - b);
         const mediana = sorted.length > 0 
@@ -116,37 +138,36 @@ export function useMicrobairroRanking(bairro: string = 'BARRA DA TIJUCA') {
       });
 
       return result
-        .filter(r => r.total_transacoes >= 3) // Mínimo de 3 transações
+        .filter(r => r.total_transacoes >= 3)
         .sort((a, b) => b.preco_medio_m2 - a.preco_medio_m2)
-        .slice(0, 10); // Top 10
+        .slice(0, 10);
     },
   });
 }
 
 export function useMicrobairroDetalhado(bairro: string = 'BARRA DA TIJUCA') {
   return useQuery<MicrobairroDetalhado[]>({
-    queryKey: ['microbairro-detalhado-v2', bairro],
+    queryKey: ['microbairro-detalhado-v3', bairro],
     queryFn: async () => {
-      // Últimos 24 meses para rankings e detalhes
       const twentyFourMonthsAgo = new Date();
       twentyFourMonthsAgo.setMonth(twentyFourMonthsAgo.getMonth() - 24);
       const startDate = twentyFourMonthsAgo.toISOString().split('T')[0];
+      
+      const outlierLimit = getOutlierLimit(bairro);
 
-      // Buscar transações residenciais dos últimos 24 meses
       const { data: transactions, error } = await supabase
         .from('itbi_transactions')
         .select('logradouro, valor_m2, tipologia')
         .eq('uso', 'Residencial')
         .ilike('bairro', bairro)
         .not('valor_m2', 'is', null)
-        .lte('valor_m2', OUTLIER_MAX_M2) // Filtro de outliers
+        .lte('valor_m2', outlierLimit)
         .not('logradouro', 'is', null)
         .gte('data_transacao', startDate)
         .limit(10000);
 
       if (error) throw error;
 
-      // Agrupar dados por microbairro
       const grouped = (transactions || []).reduce((acc, t) => {
         const micro = t.logradouro;
         if (!acc[micro]) {
@@ -168,7 +189,6 @@ export function useMicrobairroDetalhado(bairro: string = 'BARRA DA TIJUCA') {
         return acc;
       }, {} as Record<string, { total: number[], apartamentos: number[], casas: number[] }>);
 
-      // Calcular médias e criar array de resultados
       const result = Object.entries(grouped).map(([microbairro, dados]) => {
         const valor_m2_apt = dados.apartamentos.length > 0
           ? Math.round(dados.apartamentos.reduce((sum, v) => sum + v, 0) / dados.apartamentos.length)
@@ -215,8 +235,10 @@ export function useMicrobairroDetalhado(bairro: string = 'BARRA DA TIJUCA') {
 
 export function useKPIStats() {
   return useQuery({
-    queryKey: ['kpi-stats-v2'],
+    queryKey: ['kpi-stats-v3'],
     queryFn: async () => {
+      const outlierLimit = getOutlierLimit('BARRA DA TIJUCA');
+      
       const twentyFourMonthsAgo = new Date();
       twentyFourMonthsAgo.setMonth(twentyFourMonthsAgo.getMonth() - 24);
       const startDate24Months = twentyFourMonthsAgo.toISOString().split('T')[0];
@@ -231,7 +253,7 @@ export function useKPIStats() {
         .eq('uso', 'Residencial')
         .ilike('bairro', 'BARRA DA TIJUCA')
         .not('valor_m2', 'is', null)
-        .lte('valor_m2', OUTLIER_MAX_M2) // Filtro de outliers
+        .lte('valor_m2', outlierLimit)
         .gte('data_transacao', startDate12Months)
         .limit(10000);
 
@@ -243,7 +265,7 @@ export function useKPIStats() {
         .eq('uso', 'Residencial')
         .ilike('bairro', 'BARRA DA TIJUCA')
         .not('valor_m2', 'is', null)
-        .lte('valor_m2', OUTLIER_MAX_M2) // Filtro de outliers
+        .lte('valor_m2', outlierLimit)
         .gte('data_transacao', startDate24Months)
         .lt('data_transacao', startDate12Months)
         .limit(10000);
