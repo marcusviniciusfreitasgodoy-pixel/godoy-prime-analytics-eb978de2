@@ -152,6 +152,54 @@ export type Database = {
         }
         Relationships: []
       }
+      leads: {
+        Row: {
+          area_interesse: number | null
+          bairro_interesse: string | null
+          convertido: boolean | null
+          created_at: string
+          email: string
+          id: string
+          interesse: string | null
+          nome: string
+          notas: string | null
+          origem: string | null
+          telefone: string
+          updated_at: string
+          valor_interesse: number | null
+        }
+        Insert: {
+          area_interesse?: number | null
+          bairro_interesse?: string | null
+          convertido?: boolean | null
+          created_at?: string
+          email: string
+          id?: string
+          interesse?: string | null
+          nome: string
+          notas?: string | null
+          origem?: string | null
+          telefone: string
+          updated_at?: string
+          valor_interesse?: number | null
+        }
+        Update: {
+          area_interesse?: number | null
+          bairro_interesse?: string | null
+          convertido?: boolean | null
+          created_at?: string
+          email?: string
+          id?: string
+          interesse?: string | null
+          nome?: string
+          notas?: string | null
+          origem?: string | null
+          telefone?: string
+          updated_at?: string
+          valor_interesse?: number | null
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           created_at: string | null
