@@ -1,6 +1,9 @@
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 
+// Constante para filtro de outliers
+const OUTLIER_MAX_M2 = 40000;
+
 export type GranularityType = 'semester' | 'annual';
 export type MetricType = 'valorization' | 'liquidity';
 
@@ -47,12 +50,10 @@ const classificarMicrobairroBarra = (logradouro: string): string | null => {
 
 // Para outros bairros, usar logradouro simplificado como região
 const simplificarLogradouro = (logradouro: string): string => {
-  // Remove prefixos comuns e simplifica o nome
   let nome = logradouro.toUpperCase()
     .replace(/^(AVENIDA|AVN|AV\.?|RUA|R\.?|ESTRADA|EST\.?|TRAVESSA|TV\.?|PRACA|PCA\.?|PRAÇA|ALAMEDA|AL\.?)\s+/i, '')
     .trim();
   
-  // Limita o tamanho para melhor visualização
   if (nome.length > 25) {
     nome = nome.substring(0, 22) + '...';
   }
@@ -66,9 +67,8 @@ export const useMicrobairroEvolutionData = (
   metric: MetricType = 'valorization'
 ) => {
   return useQuery({
-    queryKey: ['microbairro-evolution', bairro, granularity, metric],
+    queryKey: ['microbairro-evolution-v2', bairro, granularity, metric],
     queryFn: async () => {
-      // Para liquidez acumulada, buscar desde 2020
       const startDate = new Date('2020-01-01');
       
       let allData: any[] = [];
@@ -84,6 +84,7 @@ export const useMicrobairroEvolutionData = (
           .eq('uso', 'Residencial')
           .gte('percentual_transferido', 90)
           .not('valor_m2', 'is', null)
+          .lte('valor_m2', OUTLIER_MAX_M2) // Filtro de outliers
           .gte('data_transacao', startDate.toISOString().split('T')[0])
           .range(from, from + pageSize - 1);
         
@@ -98,10 +99,8 @@ export const useMicrobairroEvolutionData = (
         }
       }
       
-      // Para bairros que não são Barra, primeiro identificar os logradouros mais frequentes
       const isBarra = bairro.toUpperCase().includes('BARRA DA TIJUCA');
       
-      // Contar transações por logradouro para encontrar os top 8
       const logradouroCount: Record<string, number> = {};
       if (!isBarra) {
         allData.forEach(item => {
@@ -110,7 +109,6 @@ export const useMicrobairroEvolutionData = (
         });
       }
       
-      // Pegar os 8 logradouros com mais transações para não-Barra
       const topLogradouros = !isBarra 
         ? Object.entries(logradouroCount)
             .sort((a, b) => b[1] - a[1])
@@ -118,7 +116,6 @@ export const useMicrobairroEvolutionData = (
             .map(([nome]) => nome)
         : [];
       
-      // Agrupar por período e microbairro/logradouro
       const grouped: Record<string, Record<string, { sum: number; count: number; transactions: number }>> = {};
       
       allData.forEach(item => {
@@ -159,7 +156,6 @@ export const useMicrobairroEvolutionData = (
         grouped[periodo][regiao].transactions += transacoes;
       });
       
-      // Converter para array ordenado
       const sortedPeriods = Object.keys(grouped).sort((a, b) => {
         if (granularity === 'semester') {
           const [semA, yearA] = a.split('/');
@@ -171,13 +167,11 @@ export const useMicrobairroEvolutionData = (
         return parseInt(a) - parseInt(b);
       });
       
-      // Identificar todos os microbairros presentes
       const allMicrobairros = new Set<string>();
       Object.values(grouped).forEach(periodData => {
         Object.keys(periodData).forEach(mb => allMicrobairros.add(mb));
       });
       
-      // Calcular valores acumulados para liquidez
       const cumulativeTransactions: Record<string, number> = {};
       allMicrobairros.forEach(mb => {
         cumulativeTransactions[mb] = 0;
@@ -193,7 +187,6 @@ export const useMicrobairroEvolutionData = (
               entry[microbairro] = Math.round(data.sum / data.count);
             }
           } else {
-            // Liquidez acumulada
             if (data) {
               cumulativeTransactions[microbairro] += data.transactions;
             }
