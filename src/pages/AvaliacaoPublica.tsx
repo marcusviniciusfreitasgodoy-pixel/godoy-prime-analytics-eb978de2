@@ -50,25 +50,21 @@ const DIFFERENTIALS = [
   {
     icon: FileCheck,
     title: "Transações Reais, Não Estimativas",
-    description: "Diferente de outras ferramentas que usam algoritmos e suposições, nossa avaliação é baseada em transações ITBI efetivamente realizadas e registradas na Prefeitura do Rio de Janeiro.",
+    description: "Diferente de outras ferramentas que usam algoritmos e suposições, nossa avaliação é baseada em transações ITBI efetivamente realizadas.",
+    highlights: ["Resultado instantâneo e gratuito", "Dados da Prefeitura do Rio de Janeiro"],
   },
   {
     icon: Shield,
     title: "Dados Oficiais do Governo",
-    description: "Acesso exclusivo a +80.000 registros oficiais de compra e venda de imóveis dos últimos 5 anos, atualizados mensalmente.",
+    description: "Acesso exclusivo a +80.000 registros oficiais de compra e venda de imóveis dos últimos 5 anos.",
+    highlights: ["Atualização mensal", "Análise específica por bairro, rua e tipologia"],
   },
   {
     icon: TrendingUp,
     title: "Precisão de Mercado",
-    description: "Valores baseados no que compradores realmente pagaram, não em preços de anúncios inflacionados ou estimativas genéricas.",
+    description: "Valores baseados no que compradores realmente pagaram, não em preços de anúncios inflacionados.",
+    highlights: ["Negocie com confiança", "Evite pagar a mais"],
   },
-];
-
-const BENEFITS = [
-  "Baseada em transações reais de compra e venda (ITBI)",
-  "Dados oficiais da Prefeitura do Rio de Janeiro",
-  "Análise específica por bairro, rua e tipologia",
-  "Resultado instantâneo e gratuito",
 ];
 
 export default function AvaliacaoPublica() {
@@ -148,85 +144,90 @@ export default function AvaliacaoPublica() {
 
         {/* Hero Section - Only on form step */}
         {step === "form" && (
-          <section className="py-8 px-4">
-            <div className="container mx-auto max-w-2xl text-center space-y-4">
-              {/* Differentiator Badge */}
-              <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-accent/10 border border-accent/30 text-accent text-sm font-medium">
-                <Sparkles className="h-4 w-4" />
-                Avaliação baseada em transações reais ITBI
-              </div>
-              
-              <h2 className="text-3xl md:text-4xl font-bold tracking-tight">
-                Quanto vale o imóvel que você quer{" "}
-                <span className="text-accent">comprar?</span>
-              </h2>
-              <p className="text-lg text-muted-foreground max-w-xl mx-auto">
-                Descubra o valor real de mercado baseado em{" "}
-                <strong className="text-foreground">transações oficiais de compra e venda</strong>, 
-                não em estimativas ou anúncios. Negocie com confiança.
-              </p>
-              
-              {/* Trust Badges */}
-              <div className="flex flex-wrap justify-center gap-3 pt-4">
-                {TRUST_BADGES.map((badge, index) => (
-                  <div 
-                    key={index}
-                    className="flex items-center gap-2 px-4 py-2 rounded-full bg-primary/5 border border-primary/10"
-                  >
-                    <badge.icon className="h-4 w-4 text-accent" />
-                    <span className="text-sm font-medium">{badge.text}</span>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </section>
-        )}
-
-        {/* Main Content */}
-        <main className="container mx-auto px-4 py-6 max-w-lg">
-          {step === "form" && (
-            <div className="space-y-8">
-              <QuickValuationForm onComplete={handleQuickValuationComplete} />
-              
-              {/* Benefits List */}
-              <div className="bg-card/50 backdrop-blur rounded-xl p-6 border border-primary/10">
-                <h3 className="font-semibold text-center mb-4">
-                  Por que usar nossa avaliação?
-                </h3>
-                <ul className="space-y-3">
-                  {BENEFITS.map((benefit, index) => (
-                    <li key={index} className="flex items-start gap-3">
-                      <CheckCircle className="h-5 w-5 text-accent shrink-0 mt-0.5" />
-                      <span className="text-sm text-muted-foreground">{benefit}</span>
-                    </li>
+          <>
+            <section className="py-8 px-4">
+              <div className="container mx-auto max-w-2xl text-center space-y-4">
+                {/* Differentiator Badge */}
+                <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-accent/10 border border-accent/30 text-accent text-sm font-medium">
+                  <Sparkles className="h-4 w-4" />
+                  Avaliação baseada em transações reais ITBI
+                </div>
+                
+                <h2 className="text-3xl md:text-4xl font-bold tracking-tight">
+                  Quanto vale o imóvel que você quer{" "}
+                  <span className="text-accent">comprar?</span>
+                </h2>
+                <p className="text-lg text-muted-foreground max-w-xl mx-auto">
+                  Descubra o valor real de mercado baseado em{" "}
+                  <strong className="text-foreground">transações oficiais de compra e venda</strong>, 
+                  não em estimativas ou anúncios. Negocie com confiança.
+                </p>
+                
+                {/* Trust Badges */}
+                <div className="flex flex-wrap justify-center gap-3 pt-4">
+                  {TRUST_BADGES.map((badge, index) => (
+                    <div 
+                      key={index}
+                      className="flex items-center gap-2 px-4 py-2 rounded-full bg-primary/5 border border-primary/10"
+                    >
+                      <badge.icon className="h-4 w-4 text-accent" />
+                      <span className="text-sm font-medium">{badge.text}</span>
+                    </div>
                   ))}
-                </ul>
+                </div>
               </div>
+            </section>
 
-              {/* Differentials Section */}
-              <div className="space-y-4">
-                <h3 className="font-semibold text-center text-lg">
-                  Nosso Diferencial
-                </h3>
-                <div className="space-y-3">
+            {/* Nosso Diferencial - Destacado */}
+            <section className="py-6 px-4 bg-gradient-to-b from-accent/5 to-transparent">
+              <div className="container mx-auto max-w-3xl">
+                <div className="text-center mb-6">
+                  <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-accent/20 text-accent text-xs font-semibold mb-3">
+                    <Award className="h-3.5 w-3.5" />
+                    EXCLUSIVO GODOY PRIME
+                  </div>
+                  <h3 className="text-2xl font-bold">
+                    Por que escolher nossa avaliação?
+                  </h3>
+                </div>
+                
+                <div className="grid md:grid-cols-3 gap-4">
                   {DIFFERENTIALS.map((diff, index) => (
                     <div 
                       key={index}
-                      className="bg-gradient-to-r from-accent/5 to-transparent rounded-lg p-4 border border-accent/20"
+                      className="bg-card rounded-xl p-5 border-2 border-accent/30 shadow-lg shadow-accent/5 hover:border-accent/50 transition-colors"
                     >
-                      <div className="flex items-start gap-3">
-                        <div className="p-2 rounded-lg bg-accent/10 shrink-0">
-                          <diff.icon className="h-5 w-5 text-accent" />
+                      <div className="flex flex-col items-center text-center space-y-3">
+                        <div className="p-3 rounded-full bg-gradient-to-br from-accent/20 to-accent/5 border border-accent/30">
+                          <diff.icon className="h-6 w-6 text-accent" />
                         </div>
-                        <div>
-                          <h4 className="font-medium text-sm">{diff.title}</h4>
-                          <p className="text-xs text-muted-foreground mt-1">{diff.description}</p>
+                        <h4 className="font-semibold text-sm">{diff.title}</h4>
+                        <p className="text-xs text-muted-foreground">{diff.description}</p>
+                        <div className="space-y-1.5 pt-2 w-full">
+                          {diff.highlights.map((highlight, hIndex) => (
+                            <div 
+                              key={hIndex}
+                              className="flex items-center gap-2 text-xs bg-accent/10 rounded-md px-2 py-1"
+                            >
+                              <CheckCircle className="h-3.5 w-3.5 text-accent shrink-0" />
+                              <span className="text-foreground/80">{highlight}</span>
+                            </div>
+                          ))}
                         </div>
                       </div>
                     </div>
                   ))}
                 </div>
               </div>
+            </section>
+          </>
+        )}
+
+        {/* Main Content */}
+        <main className="container mx-auto px-4 py-6 max-w-lg">
+          {step === "form" && (
+            <div className="space-y-6">
+              <QuickValuationForm onComplete={handleQuickValuationComplete} />
 
               {/* Disclaimer */}
               <div className="bg-muted/50 rounded-xl p-4 border border-border">
