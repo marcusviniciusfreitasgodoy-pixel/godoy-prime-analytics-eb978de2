@@ -6,7 +6,7 @@ import { Label } from "./ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "./ui/table";
 import { Badge } from "./ui/badge";
-import { Loader2, FileDown, Search, FileText, X, FileSpreadsheet, MapPin, Building, FileType, RotateCcw } from "lucide-react";
+import { Loader2, FileDown, Search, FileText, X, FileSpreadsheet, MapPin, Building, FileType, RotateCcw, Info } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { exportToCSV, exportToXLSX, exportToPDF } from "@/utils/exportUtils";
@@ -30,6 +30,14 @@ interface AdvancedSearchResult {
   valor_m2: number | null;
   tipologia: string | null;
   total_transacoes: number;
+}
+
+interface SearchResultsWithMeta {
+  results: AdvancedSearchResult[];
+  fuzzyCorrection?: {
+    original: string;
+    corrected: string;
+  };
 }
 
 const TIPOLOGIA_OPTIONS = [
@@ -87,11 +95,11 @@ export function EmbeddedAdvancedSearch({ defaultBairro = "BARRA DA TIJUCA" }: Em
     logradouro?: string;
   } | null>(null);
 
-  const { data: results, isLoading, isFetching } = useQuery<AdvancedSearchResult[]>({
+  const { data: searchData, isLoading, isFetching } = useQuery<SearchResultsWithMeta>({
     queryKey: ['embedded-advanced-search', searchParams],
     enabled: !!searchParams,
     queryFn: async () => {
-      if (!searchParams) return [];
+      if (!searchParams) return { results: [] };
       
       let query = supabase
         .from('itbi_transactions')
@@ -126,18 +134,41 @@ export function EmbeddedAdvancedSearch({ defaultBairro = "BARRA DA TIJUCA" }: Em
       if (searchParams.bairro) {
         query = query.ilike('bairro', `%${searchParams.bairro}%`);
       }
+      
+      let fuzzyCorrection: { original: string; corrected: string } | undefined;
+      
       if (searchParams.logradouro) {
         // Gerar variações fuzzy para tolerar erros de ortografia
         const variations = generateFuzzyVariations(searchParams.logradouro);
         const orConditions = variations.map(v => `logradouro.ilike.%${v}%`).join(',');
         query = query.or(orConditions);
+        
+        // Verificar se usou correção (se tem mais de uma variação)
+        if (variations.length > 1) {
+          const upperOriginal = searchParams.logradouro.toUpperCase();
+          // Encontrar qual variação é diferente do original
+          const correctedVariation = variations.find(v => v !== upperOriginal && v !== searchParams.logradouro);
+          if (correctedVariation) {
+            fuzzyCorrection = {
+              original: searchParams.logradouro,
+              corrected: correctedVariation,
+            };
+          }
+        }
       }
 
       const { data, error } = await query;
       if (error) throw error;
-      return data || [];
+      
+      return { 
+        results: data || [],
+        fuzzyCorrection: (data && data.length > 0) ? fuzzyCorrection : undefined,
+      };
     },
   });
+
+  const results = searchData?.results;
+  const fuzzyCorrection = searchData?.fuzzyCorrection;
 
   const handleSearch = () => {
     setSearchParams({
@@ -473,6 +504,15 @@ export function EmbeddedAdvancedSearch({ defaultBairro = "BARRA DA TIJUCA" }: Em
         </div>
       ) : results && results.length > 0 ? (
         <div className="space-y-3">
+          {/* Fuzzy correction notice */}
+          {fuzzyCorrection && (
+            <div className="flex items-center gap-2 p-2 bg-amber-500/10 border border-amber-500/30 rounded-lg text-sm">
+              <Info className="h-4 w-4 text-amber-500 flex-shrink-0" />
+              <span className="text-amber-700 dark:text-amber-400">
+                Correção automática: "<span className="line-through opacity-70">{fuzzyCorrection.original}</span>" → "<span className="font-semibold">{fuzzyCorrection.corrected}</span>"
+              </span>
+            </div>
+          )}
           {/* Summary */}
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 p-3 bg-muted/30 rounded-lg">
             <div className="text-center">
