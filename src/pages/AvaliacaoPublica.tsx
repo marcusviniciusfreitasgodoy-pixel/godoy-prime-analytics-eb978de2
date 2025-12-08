@@ -153,13 +153,18 @@ export default function AvaliacaoPublica() {
                 </div>
                 
                 <h2 className="text-3xl md:text-4xl font-bold tracking-tight">
-                  Quanto vale o imóvel que você quer{" "}
-                  <span className="text-accent">comprar?</span>
+                  Descubra o{" "}
+                  <span className="text-accent">valor real</span>{" "}
+                  do seu imóvel
                 </h2>
-                <p className="text-lg text-muted-foreground max-w-xl mx-auto">
-                  Descubra o valor real de mercado baseado em{" "}
-                  <strong className="text-foreground">transações oficiais de compra e venda</strong>, 
-                  não em estimativas ou anúncios. Negocie com confiança.
+                <p className="text-xl font-medium text-foreground/90">
+                  Vai <span className="text-accent">comprar</span> ou <span className="text-accent">vender</span>? 
+                  Negocie com segurança.
+                </p>
+                <p className="text-base text-muted-foreground max-w-xl mx-auto">
+                  Avaliação gratuita baseada em{" "}
+                  <strong className="text-foreground">+80.000 transações oficiais</strong> da 
+                  Prefeitura do Rio de Janeiro. Sem estimativas, sem achismos.
                 </p>
                 
                 {/* Trust Badges */}
