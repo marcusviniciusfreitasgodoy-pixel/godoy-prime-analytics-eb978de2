@@ -14,6 +14,10 @@ interface QuickValuationData {
   logradouro: string;
   area_m2: number;
   tipologia: string;
+  quartos?: number;
+  banheiros?: number;
+  suites?: number;
+  vagas?: number;
   itbiData: {
     min_m2: number;
     med_m2: number;
@@ -190,6 +194,10 @@ export default function AvaliacaoPublica() {
                 bairroInteresse={valuationData.bairro}
                 areaInteresse={valuationData.area_m2}
                 valorInteresse={valuationData.estimativa?.med}
+                quartos={valuationData.quartos}
+                banheiros={valuationData.banheiros}
+                suites={valuationData.suites}
+                vagas={valuationData.vagas}
                 origem="avaliacao_rapida"
                 onSuccess={handleLeadCaptureSuccess}
               />

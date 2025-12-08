@@ -25,6 +25,10 @@ interface LeadCaptureFormProps {
   bairroInteresse?: string;
   areaInteresse?: number;
   valorInteresse?: number;
+  quartos?: number;
+  banheiros?: number;
+  suites?: number;
+  vagas?: number;
   origem?: string;
   onSuccess: (leadData: LeadFormData) => void;
 }
@@ -33,6 +37,10 @@ export function LeadCaptureForm({
   bairroInteresse,
   areaInteresse,
   valorInteresse,
+  quartos,
+  banheiros,
+  suites,
+  vagas,
   origem = "avaliacao_rapida",
   onSuccess,
 }: LeadCaptureFormProps) {
@@ -66,6 +74,10 @@ export function LeadCaptureForm({
         bairro_interesse: bairroInteresse,
         area_interesse: areaInteresse,
         valor_interesse: valorInteresse,
+        quartos,
+        banheiros,
+        suites,
+        vagas,
         origem,
       });
 

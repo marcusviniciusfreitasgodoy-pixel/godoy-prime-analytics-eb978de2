@@ -156,6 +156,7 @@ export type Database = {
         Row: {
           area_interesse: number | null
           bairro_interesse: string | null
+          banheiros: number | null
           convertido: boolean | null
           created_at: string
           email: string
@@ -164,13 +165,17 @@ export type Database = {
           nome: string
           notas: string | null
           origem: string | null
+          quartos: number | null
+          suites: number | null
           telefone: string
           updated_at: string
+          vagas: number | null
           valor_interesse: number | null
         }
         Insert: {
           area_interesse?: number | null
           bairro_interesse?: string | null
+          banheiros?: number | null
           convertido?: boolean | null
           created_at?: string
           email: string
@@ -179,13 +184,17 @@ export type Database = {
           nome: string
           notas?: string | null
           origem?: string | null
+          quartos?: number | null
+          suites?: number | null
           telefone: string
           updated_at?: string
+          vagas?: number | null
           valor_interesse?: number | null
         }
         Update: {
           area_interesse?: number | null
           bairro_interesse?: string | null
+          banheiros?: number | null
           convertido?: boolean | null
           created_at?: string
           email?: string
@@ -194,8 +203,11 @@ export type Database = {
           nome?: string
           notas?: string | null
           origem?: string | null
+          quartos?: number | null
+          suites?: number | null
           telefone?: string
           updated_at?: string
+          vagas?: number | null
           valor_interesse?: number | null
         }
         Relationships: []
