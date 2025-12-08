@@ -230,18 +230,8 @@ const initialChecklist: ChecklistCategory[] = [
     ],
   },
   {
-    id: 'isolamento',
-    title: '16. Isolamento Acústico/Térmico',
-    items: [
-      { id: 'possui-isolamento', label: 'Imóvel possui sistema de isolamento (se não, marcar N/A nos demais)', status: 'nao-verificado' },
-      { id: 'ruido', label: 'Nível de ruído da rua com janelas fechadas', status: 'nao-verificado' },
-      { id: 'materiais', label: 'Materiais usados (vidro duplo, lã de rocha, etc.)', status: 'nao-verificado' },
-      { id: 'termico', label: 'Conforto térmico interno vs externo', status: 'nao-verificado' },
-    ],
-  },
-  {
     id: 'tecnologia',
-    title: '17. Tecnologia e Automação',
+    title: '16. Tecnologia e Automação',
     items: [
       { id: 'possui-automacao', label: 'Imóvel possui sistema de automação (se não, marcar N/A nos demais)', status: 'nao-verificado' },
       { id: 'automacao', label: 'Sistemas de automação (luz, som, persianas) respondendo', status: 'nao-verificado' },
@@ -251,7 +241,7 @@ const initialChecklist: ChecklistCategory[] = [
   },
   {
     id: 'acessibilidade',
-    title: '18. Acessibilidade',
+    title: '17. Acessibilidade',
     items: [
       { id: 'rampas', label: 'Rampas, portas largas ou elevadores', status: 'nao-verificado' },
       { id: 'circulacao', label: 'Circulação nos corredores e banheiros (cadeirante?)', status: 'nao-verificado' },
@@ -259,7 +249,7 @@ const initialChecklist: ChecklistCategory[] = [
   },
   {
     id: 'vizinhanca',
-    title: '19. Vizinhança e Entorno',
+    title: '18. Vizinhança e Entorno',
     items: [
       { id: 'vizinhos', label: 'Perfil das construções vizinhas e ruído (obras?)', status: 'nao-verificado' },
       { id: 'comercio', label: 'Proximidade de comércios e serviços', status: 'nao-verificado' },
@@ -268,7 +258,7 @@ const initialChecklist: ChecklistCategory[] = [
   },
   {
     id: 'documentacao',
-    title: '20. Documentação (Análise Prévia)',
+    title: '19. Documentação (Análise Prévia)',
     items: [
       { id: 'matricula', label: 'Matrícula do Imóvel atualizada', status: 'nao-verificado' },
       { id: 'area-prefeitura', label: 'Área construída na prefeitura corresponde à realidade', status: 'nao-verificado' },
@@ -277,7 +267,7 @@ const initialChecklist: ChecklistCategory[] = [
   },
   {
     id: 'sensacao',
-    title: '21. Sensação Geral (Feeling)',
+    title: '20. Sensação Geral (Feeling)',
     items: [
       { id: 'layout', label: 'Layout atende às necessidades da família', status: 'nao-verificado' },
       { id: 'bem-estar', label: 'Sensação de bem-estar e segurança no espaço', status: 'nao-verificado' },
