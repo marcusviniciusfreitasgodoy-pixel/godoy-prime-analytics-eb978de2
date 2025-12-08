@@ -12,17 +12,24 @@ import {
   SidebarTrigger,
   useSidebar,
 } from "@/components/ui/sidebar";
+import { useAuthContext } from "@/contexts/AuthContext";
 
-const items = [
+const baseItems = [
   { title: "Dashboard", url: "/", icon: Home },
   { title: "Microregiões", url: "/microbairros", icon: MapPin },
   { title: "Vistoria Digital", url: "/vistoria-digital", icon: ClipboardCheck },
   { title: "Documentação", url: "/documentacao", icon: FileText },
+];
+
+const adminItems = [
   { title: "Leads", url: "/leads", icon: Users },
 ];
 
 export function AppSidebar() {
   const { open } = useSidebar();
+  const { isAdmin } = useAuthContext();
+  
+  const items = isAdmin ? [...baseItems, ...adminItems] : baseItems;
 
   return (
     <div className="hidden lg:block">

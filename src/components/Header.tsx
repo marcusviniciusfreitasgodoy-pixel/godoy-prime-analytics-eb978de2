@@ -1,4 +1,4 @@
-import { MapPin, Menu, Home, ClipboardCheck, FileText } from "lucide-react";
+import { MapPin, Menu, Home, ClipboardCheck, FileText, LogOut, Users } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import logoSymbol from "@/assets/godoy-logo-symbol.png";
 import { SyncDataButton } from "./SyncDataButton";
@@ -6,6 +6,9 @@ import { SyncITBIButton } from "./SyncITBIButton";
 import { ImportCSVButton } from "./ImportCSVButton";
 import { Sheet, SheetContent, SheetTrigger } from "./ui/sheet";
 import { NavLink } from "./NavLink";
+import { useAuthContext } from "@/contexts/AuthContext";
+import { useNavigate } from "react-router-dom";
+import { useToast } from "@/hooks/use-toast";
 
 const navItems = [
   { title: "Dashboard", url: "/", icon: Home },
@@ -14,7 +17,26 @@ const navItems = [
   { title: "Documentação", url: "/documentacao", icon: FileText },
 ];
 
+const adminItems = [
+  { title: "Leads", url: "/leads", icon: Users },
+];
+
 export function Header() {
+  const { user, isAdmin, signOut } = useAuthContext();
+  const navigate = useNavigate();
+  const { toast } = useToast();
+
+  const handleLogout = async () => {
+    await signOut();
+    toast({
+      title: "Logout realizado",
+      description: "Você foi desconectado com sucesso.",
+    });
+    navigate("/auth");
+  };
+
+  const allNavItems = isAdmin ? [...navItems, ...adminItems] : navItems;
+
   return (
     <header className="h-16 sm:h-20 border-b border-border bg-primary sticky top-0 z-50 shadow-lg">
       <div className="h-full px-4 sm:px-8 flex items-center justify-between max-w-[1600px] mx-auto">
@@ -36,9 +58,29 @@ export function Header() {
             <MapPin className="h-4 w-4 text-accent" />
             <span className="font-semibold">Rio de Janeiro</span>
           </div>
-          <ImportCSVButton />
-          <SyncITBIButton />
-          <SyncDataButton />
+          
+          {isAdmin && (
+            <>
+              <ImportCSVButton />
+              <SyncITBIButton />
+              <SyncDataButton />
+            </>
+          )}
+          
+          <div className="flex items-center gap-3 pl-4 border-l border-accent/30">
+            <span className="text-xs text-primary-foreground/70 truncate max-w-[150px]">
+              {user?.email}
+            </span>
+            <Button 
+              variant="ghost" 
+              size="sm" 
+              onClick={handleLogout}
+              className="text-primary-foreground/80 hover:text-primary-foreground hover:bg-accent/20"
+            >
+              <LogOut className="h-4 w-4 mr-1" />
+              Sair
+            </Button>
+          </div>
         </div>
 
         {/* Mobile menu */}
@@ -55,9 +97,21 @@ export function Header() {
                 <span className="font-semibold">Rio de Janeiro</span>
               </div>
               
+              {/* User info */}
+              <div className="pb-4 border-b border-border">
+                <p className="text-xs text-primary-foreground/70 truncate">
+                  {user?.email}
+                </p>
+                {isAdmin && (
+                  <span className="text-[10px] bg-accent/20 text-accent px-2 py-0.5 rounded-full mt-1 inline-block">
+                    Administrador
+                  </span>
+                )}
+              </div>
+              
               {/* Navigation links */}
               <nav className="flex flex-col gap-1 pb-4 border-b border-border">
-                {navItems.map((item) => (
+                {allNavItems.map((item) => (
                   <NavLink
                     key={item.title}
                     to={item.url}
@@ -71,11 +125,22 @@ export function Header() {
                 ))}
               </nav>
               
-              <div className="flex flex-col gap-2">
-                <ImportCSVButton />
-                <SyncITBIButton />
-                <SyncDataButton />
-              </div>
+              {isAdmin && (
+                <div className="flex flex-col gap-2 pb-4 border-b border-border">
+                  <ImportCSVButton />
+                  <SyncITBIButton />
+                  <SyncDataButton />
+                </div>
+              )}
+              
+              <Button 
+                variant="ghost" 
+                onClick={handleLogout}
+                className="justify-start text-primary-foreground/80 hover:text-primary-foreground hover:bg-accent/20"
+              >
+                <LogOut className="h-4 w-4 mr-2" />
+                Sair
+              </Button>
             </div>
           </SheetContent>
         </Sheet>
