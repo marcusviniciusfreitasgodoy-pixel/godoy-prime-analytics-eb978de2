@@ -135,25 +135,25 @@ export function QuickValuationForm({ onComplete }: QuickValuationFormProps) {
   };
 
   return (
-    <Card className="border-primary/20 shadow-lg">
-      <CardHeader className="text-center">
-        <div className="mx-auto w-14 h-14 rounded-full bg-gradient-to-br from-primary/20 to-accent/20 flex items-center justify-center mb-3">
-          <Calculator className="h-7 w-7 text-primary" />
+    <Card className="border-accent/30 shadow-xl bg-card/80 backdrop-blur">
+      <CardHeader className="text-center pb-4">
+        <div className="mx-auto w-16 h-16 rounded-2xl bg-gradient-to-br from-accent/20 to-primary/20 flex items-center justify-center mb-4 shadow-lg">
+          <Calculator className="h-8 w-8 text-accent" />
         </div>
-        <CardTitle className="text-2xl">Avaliação Rápida de Imóvel</CardTitle>
+        <CardTitle className="text-2xl font-bold">Avaliação Rápida Gratuita</CardTitle>
         <CardDescription className="text-base">
-          Descubra o valor estimado do imóvel que você deseja comprar na Barra da Tijuca e região
+          Informe os dados do imóvel e descubra seu valor de mercado em segundos
         </CardDescription>
       </CardHeader>
       <CardContent>
         <form onSubmit={handleSubmit} className="space-y-5">
           <div className="space-y-2">
-            <Label htmlFor="bairro" className="flex items-center gap-2">
-              <MapPin className="h-4 w-4" />
+            <Label htmlFor="bairro" className="flex items-center gap-2 text-sm font-medium">
+              <MapPin className="h-4 w-4 text-accent" />
               Bairro *
             </Label>
             <Select value={bairro} onValueChange={setBairro}>
-              <SelectTrigger>
+              <SelectTrigger className="border-primary/20 focus:ring-accent/30">
                 <SelectValue placeholder="Selecione o bairro" />
               </SelectTrigger>
               <SelectContent>
@@ -167,8 +167,8 @@ export function QuickValuationForm({ onComplete }: QuickValuationFormProps) {
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="logradouro" className="flex items-center gap-2">
-              <MapPin className="h-4 w-4" />
+            <Label htmlFor="logradouro" className="flex items-center gap-2 text-sm font-medium">
+              <MapPin className="h-4 w-4 text-muted-foreground" />
               Rua / Endereço (opcional)
             </Label>
             <Input
@@ -176,13 +176,14 @@ export function QuickValuationForm({ onComplete }: QuickValuationFormProps) {
               placeholder="Ex: Avenida das Américas"
               value={logradouro}
               onChange={(e) => setLogradouro(e.target.value)}
+              className="border-primary/20 focus-visible:ring-accent/30"
             />
           </div>
 
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label htmlFor="area" className="flex items-center gap-2">
-                <Maximize2 className="h-4 w-4" />
+              <Label htmlFor="area" className="flex items-center gap-2 text-sm font-medium">
+                <Maximize2 className="h-4 w-4 text-accent" />
                 Área (m²) *
               </Label>
               <Input
@@ -193,16 +194,17 @@ export function QuickValuationForm({ onComplete }: QuickValuationFormProps) {
                 onChange={(e) => setArea(e.target.value)}
                 min="20"
                 max="2000"
+                className="border-primary/20 focus-visible:ring-accent/30"
               />
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="tipologia" className="flex items-center gap-2">
-                <Home className="h-4 w-4" />
+              <Label htmlFor="tipologia" className="flex items-center gap-2 text-sm font-medium">
+                <Home className="h-4 w-4 text-muted-foreground" />
                 Tipo
               </Label>
               <Select value={tipologia} onValueChange={setTipologia}>
-                <SelectTrigger>
+                <SelectTrigger className="border-primary/20 focus:ring-accent/30">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -217,25 +219,30 @@ export function QuickValuationForm({ onComplete }: QuickValuationFormProps) {
           </div>
 
           {error && (
-            <p className="text-sm text-destructive text-center">{error}</p>
+            <p className="text-sm text-destructive text-center bg-destructive/10 py-2 rounded-lg">{error}</p>
           )}
 
-          <Button type="submit" className="w-full" size="lg" disabled={isLoading}>
+          <Button 
+            type="submit" 
+            className="w-full bg-accent hover:bg-accent/90 text-accent-foreground shadow-lg" 
+            size="lg" 
+            disabled={isLoading}
+          >
             {isLoading ? (
               <>
                 <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-                Calculando...
+                Calculando valor...
               </>
             ) : (
               <>
-                Avaliar Imóvel
+                Descobrir Valor do Imóvel
                 <ArrowRight className="ml-2 h-5 w-5" />
               </>
             )}
           </Button>
 
-          <p className="text-xs text-muted-foreground text-center">
-            Avaliação baseada em dados oficiais de transações ITBI dos últimos 12 meses
+          <p className="text-xs text-muted-foreground text-center pt-2">
+            ⚡ Resultado instantâneo baseado em transações oficiais ITBI dos últimos 12 meses
           </p>
         </form>
       </CardContent>
