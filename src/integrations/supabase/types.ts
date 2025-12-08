@@ -160,6 +160,7 @@ export type Database = {
           convertido: boolean | null
           created_at: string
           email: string
+          evaluation_count: number | null
           id: string
           interesse: string | null
           nome: string
@@ -179,6 +180,7 @@ export type Database = {
           convertido?: boolean | null
           created_at?: string
           email: string
+          evaluation_count?: number | null
           id?: string
           interesse?: string | null
           nome: string
@@ -198,6 +200,7 @@ export type Database = {
           convertido?: boolean | null
           created_at?: string
           email?: string
+          evaluation_count?: number | null
           id?: string
           interesse?: string | null
           nome?: string
