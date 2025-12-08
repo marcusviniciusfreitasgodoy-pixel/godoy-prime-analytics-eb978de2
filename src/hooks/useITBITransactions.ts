@@ -1,5 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
+import { isTechnicalCode } from '@/lib/utils';
 
 // Limites de outliers por bairro
 const OUTLIER_LIMITS: Record<string, number> = {
@@ -57,6 +58,8 @@ export interface MicrobairroDetalhado {
   valor_m2_casa: number;
   rank: number;
   trend: "high" | "stable";
+  condominioNome?: string;
+  isTechnicalCode?: boolean;
 }
 
 export function useITBITransactions() {
@@ -147,7 +150,7 @@ export function useMicrobairroRanking(bairro: string = 'BARRA DA TIJUCA') {
 
 export function useMicrobairroDetalhado(bairro: string = 'BARRA DA TIJUCA') {
   return useQuery<MicrobairroDetalhado[]>({
-    queryKey: ['microbairro-detalhado-v3', bairro],
+    queryKey: ['microbairro-detalhado-v4', bairro],
     queryFn: async () => {
       const twentyFourMonthsAgo = new Date();
       twentyFourMonthsAgo.setMonth(twentyFourMonthsAgo.getMonth() - 24);
@@ -155,6 +158,7 @@ export function useMicrobairroDetalhado(bairro: string = 'BARRA DA TIJUCA') {
       
       const outlierLimit = getOutlierLimit(bairro);
 
+      // Buscar transações
       const { data: transactions, error } = await supabase
         .from('itbi_transactions')
         .select('logradouro, valor_m2, tipologia')
@@ -167,6 +171,19 @@ export function useMicrobairroDetalhado(bairro: string = 'BARRA DA TIJUCA') {
         .limit(10000);
 
       if (error) throw error;
+
+      // Buscar mapeamento de condomínios
+      const { data: condominios } = await supabase
+        .from('condominios_mapeamento')
+        .select('logradouro_padrao, nome_condominio');
+
+      // Criar mapa de logradouro -> nome condomínio
+      const condominioMap = new Map<string, string>();
+      (condominios || []).forEach(c => {
+        if (c.logradouro_padrao && c.nome_condominio) {
+          condominioMap.set(c.logradouro_padrao.toUpperCase(), c.nome_condominio);
+        }
+      });
 
       const grouped = (transactions || []).reduce((acc, t) => {
         const micro = t.logradouro;
@@ -211,6 +228,10 @@ export function useMicrobairroDetalhado(bairro: string = 'BARRA DA TIJUCA') {
           );
         }
 
+        // Verificar se é código técnico e buscar nome do condomínio
+        const isTechCode = isTechnicalCode(microbairro);
+        const condominioNome = condominioMap.get(microbairro.toUpperCase());
+
         return {
           microbairro,
           valor_m2,
@@ -219,6 +240,8 @@ export function useMicrobairroDetalhado(bairro: string = 'BARRA DA TIJUCA') {
           valor_m2_casa: valor_m2_casa || Math.round(valor_m2 * 0.92),
           rank: 0,
           trend: "stable" as const,
+          condominioNome,
+          isTechnicalCode: isTechCode,
         };
       });
 

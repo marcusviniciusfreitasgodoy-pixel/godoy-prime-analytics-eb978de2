@@ -1,6 +1,7 @@
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { BarChart3, Building2, Home, TrendingUp } from "lucide-react";
+import { BarChart3, Building2, Home, TrendingUp, MapPin } from "lucide-react";
+import { extractSimplifiedCode } from "@/lib/utils";
 
 interface MicrobairroCardProps {
   microbairro: string;
@@ -11,6 +12,8 @@ interface MicrobairroCardProps {
   rank: number;
   trend: "high" | "stable";
   maxTransacoes: number;
+  condominioNome?: string;
+  isTechnicalCode?: boolean;
 }
 
 export function MicrobairroCard({
@@ -22,9 +25,18 @@ export function MicrobairroCard({
   rank,
   trend,
   maxTransacoes,
+  condominioNome,
+  isTechnicalCode,
 }: MicrobairroCardProps) {
   const liquidezPercent = (total_transacoes / maxTransacoes) * 100;
   const isTopTier = rank <= 3;
+
+  // Determinar nome de exibição
+  const displayName = condominioNome 
+    ? condominioNome 
+    : isTechnicalCode 
+      ? extractSimplifiedCode(microbairro)
+      : microbairro;
 
   return (
     <Card className="hover:shadow-2xl transition-all duration-300 hover:-translate-y-1 overflow-hidden">
@@ -35,11 +47,20 @@ export function MicrobairroCard({
             <div className="flex items-start gap-2 sm:gap-3 min-w-0 flex-1">
               <span className="text-2xl sm:text-3xl font-bold text-muted-foreground flex-shrink-0">#{rank}</span>
               <div className="min-w-0 flex-1">
+                {/* Badge de condomínio para códigos técnicos */}
+                {(isTechnicalCode || condominioNome) && (
+                  <div className="flex items-center gap-1 mb-1">
+                    <MapPin className="h-3 w-3 text-amber-600" />
+                    <span className="text-[10px] sm:text-xs font-medium text-amber-700">
+                      {condominioNome ? 'Condomínio' : 'Possível Condomínio'}
+                    </span>
+                  </div>
+                )}
                 <h3 
                   className="text-sm sm:text-lg lg:text-xl font-bold text-foreground leading-tight break-words line-clamp-2 sm:line-clamp-none"
                   title={microbairro}
                 >
-                  {microbairro}
+                  {displayName}
                 </h3>
                 {isTopTier ? (
                   <Badge className="mt-1 text-[10px] sm:text-xs bg-emerald-500/20 text-emerald-700 border-emerald-300">
