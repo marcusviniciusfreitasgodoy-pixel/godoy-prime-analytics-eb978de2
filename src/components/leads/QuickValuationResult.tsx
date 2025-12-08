@@ -82,6 +82,7 @@ export function QuickValuationResult({
       // Send email notification via edge function
       const { error: emailError } = await supabase.functions.invoke('send-lead-notification', {
         body: {
+          type: 'complete',
           leadId: leadInfo.id || '',
           leadName: leadInfo.nome,
           leadEmail: leadInfo.email,
