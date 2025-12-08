@@ -1,4 +1,4 @@
-import { MapPin, Menu, Home, ClipboardCheck, FileText, LogOut, Users } from "lucide-react";
+import { MapPin, Menu, Home, ClipboardCheck, FileText, LogOut, Users, UserCog } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import logoSymbol from "@/assets/godoy-logo-symbol.png";
 import { SyncDataButton } from "./SyncDataButton";
@@ -19,6 +19,7 @@ const navItems = [
 
 const adminItems = [
   { title: "Leads", url: "/leads", icon: Users },
+  { title: "Usuários", url: "/usuarios", icon: UserCog },
 ];
 
 export function Header() {

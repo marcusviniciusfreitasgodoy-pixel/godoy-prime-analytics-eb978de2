@@ -16,6 +16,7 @@ import VistoriaDigital from "./pages/VistoriaDigital";
 import Documentacao from "./pages/Documentacao";
 import AvaliacaoPublica from "./pages/AvaliacaoPublica";
 import Leads from "./pages/Leads";
+import Usuarios from "./pages/Usuarios";
 import Auth from "./pages/Auth";
 import ResetPassword from "./pages/ResetPassword";
 import NotFound from "./pages/NotFound";
@@ -62,6 +63,14 @@ const App = () => {
                                   element={
                                     <ProtectedRoute requireAdmin>
                                       <Leads />
+                                    </ProtectedRoute>
+                                  } 
+                                />
+                                <Route 
+                                  path="/usuarios" 
+                                  element={
+                                    <ProtectedRoute requireAdmin>
+                                      <Usuarios />
                                     </ProtectedRoute>
                                   } 
                                 />
