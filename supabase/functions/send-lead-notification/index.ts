@@ -160,7 +160,7 @@ const handler = async (req: Request): Promise<Response> => {
 
     // Send email notification
     const emailResponse = await resend.emails.send({
-      from: "Godoy Prime <onboarding@resend.dev>",
+      from: "Godoy Prime <marcus@godoyprime.com.br>",
       to: ["contato@godoyprime.com.br"],
       subject: emailSubject,
       html: emailHtml,
