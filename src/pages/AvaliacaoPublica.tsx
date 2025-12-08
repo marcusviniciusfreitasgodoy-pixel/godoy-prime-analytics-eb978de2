@@ -298,19 +298,50 @@ export default function AvaliacaoPublica() {
 
         {/* Premium Footer */}
         <footer className="border-t border-accent/30 mt-auto py-8 bg-[#0C2340]">
-          <div className="container mx-auto px-4 text-center space-y-3">
+          <div className="container mx-auto px-4 text-center space-y-4">
             <img src={godoyLogo} alt="Godoy Prime" className="h-8 w-auto mx-auto" />
             <p className="text-sm text-white/80">
               © {new Date().getFullYear()} Godoy Prime Realty. CRECI 11841-PJ
             </p>
-            <p className="text-xs text-white/60 max-w-md mx-auto">
+            <p className="text-xs text-white/60 max-w-md mx-auto px-2">
               Dados baseados em +80.000 transações oficiais ITBI da Prefeitura do Rio de Janeiro. 
               Esta é uma estimativa automatizada e não substitui uma avaliação profissional.
             </p>
-            <div className="flex justify-center gap-4 pt-2 text-xs text-white/60">
-              <span>Av. das Américas, 10101 - Bloco 2, Sala 316</span>
-              <span>•</span>
-              <span>(21) 4040-0067</span>
+            
+            {/* Contact Info - Mobile Responsive */}
+            <div className="space-y-2 pt-2">
+              <p className="text-xs text-white/70">
+                Av. das Américas, 10101 - Bloco 2, Sala 316
+              </p>
+              <div className="flex flex-col sm:flex-row justify-center items-center gap-2 sm:gap-4 text-xs">
+                <a href="tel:+552140400067" className="text-white/80 hover:text-accent transition-colors">
+                  📞 (21) 4040-0067
+                </a>
+                <a href="https://wa.me/5521997250515" target="_blank" rel="noopener noreferrer" className="text-white/80 hover:text-accent transition-colors">
+                  💬 (21) 99725-0515 (WhatsApp)
+                </a>
+              </div>
+            </div>
+
+            {/* Links */}
+            <div className="flex flex-col sm:flex-row justify-center items-center gap-2 sm:gap-4 pt-3 text-xs">
+              <a 
+                href="https://godoyprime.com.br/" 
+                target="_blank" 
+                rel="noopener noreferrer"
+                className="text-accent hover:text-accent/80 underline transition-colors"
+              >
+                Imobiliária Godoy Prime
+              </a>
+              <span className="hidden sm:inline text-white/40">•</span>
+              <a 
+                href="https://personalshopperimobiliario.godoyprime.com.br/" 
+                target="_blank" 
+                rel="noopener noreferrer"
+                className="text-accent hover:text-accent/80 underline transition-colors"
+              >
+                Personal Shopper Imobiliário
+              </a>
             </div>
           </div>
         </footer>
