@@ -3,6 +3,7 @@ import { Helmet } from "react-helmet-async";
 import { QuickValuationForm } from "@/components/leads/QuickValuationForm";
 import { QuickValuationResult } from "@/components/leads/QuickValuationResult";
 import { LeadCaptureForm } from "@/components/leads/LeadCaptureForm";
+import { ThankYouStep } from "@/components/leads/ThankYouStep";
 import { ValuationEngine } from "@/components/valuation/ValuationEngine";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, Shield, TrendingUp, Award, CheckCircle } from "lucide-react";
@@ -26,7 +27,13 @@ interface QuickValuationData {
   } | null;
 }
 
-type Step = "form" | "lead-capture" | "result" | "complete-valuation";
+interface LeadData {
+  nome: string;
+  email: string;
+  telefone: string;
+}
+
+type Step = "form" | "lead-capture" | "thank-you" | "result" | "complete-valuation";
 
 const TRUST_BADGES = [
   { icon: Shield, text: "Dados Oficiais ITBI" },
@@ -44,6 +51,7 @@ const BENEFITS = [
 export default function AvaliacaoPublica() {
   const [step, setStep] = useState<Step>("form");
   const [valuationData, setValuationData] = useState<QuickValuationData | null>(null);
+  const [leadData, setLeadData] = useState<LeadData | null>(null);
   const [leadCaptured, setLeadCaptured] = useState(false);
 
   const handleQuickValuationComplete = (data: QuickValuationData) => {
@@ -55,8 +63,13 @@ export default function AvaliacaoPublica() {
     }
   };
 
-  const handleLeadCaptureSuccess = () => {
+  const handleLeadCaptureSuccess = (data: LeadData) => {
+    setLeadData(data);
     setLeadCaptured(true);
+    setStep("thank-you");
+  };
+
+  const handleThankYouContinue = () => {
     setStep("result");
   };
 
@@ -99,7 +112,7 @@ export default function AvaliacaoPublica() {
                 <p className="text-xs text-accent font-medium">Avaliação Imobiliária Premium</p>
               </div>
             </div>
-            {step !== "form" && step !== "lead-capture" && (
+            {step !== "form" && step !== "lead-capture" && step !== "thank-you" && (
               <Button 
                 variant="ghost" 
                 size="sm"
@@ -181,6 +194,13 @@ export default function AvaliacaoPublica() {
                 onSuccess={handleLeadCaptureSuccess}
               />
             </div>
+          )}
+
+          {step === "thank-you" && leadData && (
+            <ThankYouStep 
+              nome={leadData.nome} 
+              onContinue={handleThankYouContinue} 
+            />
           )}
 
           {step === "result" && valuationData && (
