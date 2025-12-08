@@ -101,6 +101,48 @@ export function LeadCaptureForm({
 
       if (error) throw error;
 
+      // Send notification email for new lead
+      try {
+        await supabase.functions.invoke('send-lead-notification', {
+          body: {
+            type: 'initial',
+            leadId: insertedLead.id,
+            leadName: data.nome.trim(),
+            leadEmail: data.email.trim().toLowerCase(),
+            leadPhone: data.telefone.replace(/\D/g, ""),
+            interesse: data.interesse,
+            bairro: bairroInteresse,
+            area: areaInteresse,
+            quartos,
+            banheiros,
+            suites,
+            vagas,
+            estimativaMin: valorInteresse ? valorInteresse * 0.9 : undefined,
+            estimativaMed: valorInteresse,
+            estimativaMax: valorInteresse ? valorInteresse * 1.1 : undefined,
+          }
+        });
+
+        // Open WhatsApp for immediate contact
+        const whatsappNumber = "5521964075124";
+        const isCompra = data.interesse === "compra";
+        const serviceType = isCompra ? "Personal Shopper Imobiliário" : "Captação de Imóveis";
+        const message = encodeURIComponent(
+          `🆕 NOVO LEAD - ${serviceType.toUpperCase()}\n\n` +
+          `Nome: ${data.nome.trim()}\n` +
+          `Telefone: ${data.telefone}\n` +
+          `Email: ${data.email.trim()}\n` +
+          `Interesse: ${isCompra ? 'Comprar Imóvel' : 'Vender Imóvel'}\n` +
+          `${bairroInteresse ? `Bairro: ${bairroInteresse}\n` : ''}` +
+          `${areaInteresse ? `Área: ${areaInteresse}m²\n` : ''}` +
+          `${valorInteresse ? `Valor estimado: R$ ${valorInteresse.toLocaleString('pt-BR')}\n` : ''}`
+        );
+        window.open(`https://wa.me/${whatsappNumber}?text=${message}`, '_blank');
+      } catch (notificationError) {
+        console.error('Error sending lead notification:', notificationError);
+        // Continue even if notification fails
+      }
+
       toast.success("Cadastro realizado com sucesso!");
       onSuccess({
         id: insertedLead.id,

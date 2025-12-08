@@ -10,6 +10,7 @@ const corsHeaders = {
 };
 
 interface LeadNotificationRequest {
+  type: "initial" | "complete"; // initial = cadastro, complete = solicitação avaliação completa
   leadId: string;
   leadName: string;
   leadEmail: string;
@@ -47,6 +48,18 @@ const handler = async (req: Request): Promise<Response> => {
       }).format(value);
     };
 
+    const isCompra = data.interesse === "compra";
+    const notificationType = data.type || "initial";
+
+    // Determine service type based on interest
+    const serviceType = isCompra 
+      ? "Personal Shopper Imobiliário" 
+      : "Captação de Imóveis";
+    
+    const serviceDescription = isCompra
+      ? "O cliente está buscando um imóvel para compra. Oportunidade para oferecer os serviços de Personal Shopper Imobiliário da Godoy Prime Realty."
+      : "O cliente deseja vender um imóvel. Oportunidade para oferecer os serviços de Captação de Imóveis da Godoy Prime Realty.";
+
     const propertyDetails = `
       <ul style="margin: 0; padding-left: 20px;">
         ${data.bairro ? `<li><strong>Bairro:</strong> ${data.bairro}</li>` : ""}
@@ -68,6 +81,19 @@ const handler = async (req: Request): Promise<Response> => {
       </div>
     ` : "";
 
+    // Different email content based on notification type
+    const emailSubject = notificationType === "initial"
+      ? `🆕 Novo Lead - ${serviceType} - ${data.leadName}`
+      : `🏠 Solicitação Avaliação Completa - ${data.leadName}`;
+
+    const ctaTitle = notificationType === "initial"
+      ? `🆕 NOVO LEAD - ${serviceType.toUpperCase()}`
+      : `⚡ SOLICITAÇÃO DE AVALIAÇÃO COMPLETA`;
+
+    const actionMessage = notificationType === "initial"
+      ? serviceDescription
+      : `O cliente solicitou uma Avaliação Completa. Entre em contato para agendar.`;
+
     const emailHtml = `
       <!DOCTYPE html>
       <html>
@@ -81,6 +107,7 @@ const handler = async (req: Request): Promise<Response> => {
           .content { background: #ffffff; padding: 20px; border: 1px solid #ddd; border-top: none; border-radius: 0 0 8px 8px; }
           .cta { background: #D4AF37; color: #0C2340; padding: 15px; text-align: center; margin: 20px 0; border-radius: 8px; font-weight: bold; }
           .contact-info { background: #e8f4f8; padding: 15px; border-radius: 8px; margin: 15px 0; }
+          .service-box { background: ${isCompra ? '#e8f4e8' : '#fff3e8'}; padding: 15px; border-radius: 8px; margin: 15px 0; border-left: 4px solid ${isCompra ? '#22c55e' : '#f59e0b'}; }
           .footer { text-align: center; color: #666; font-size: 12px; margin-top: 20px; }
         </style>
       </head>
@@ -88,12 +115,17 @@ const handler = async (req: Request): Promise<Response> => {
         <div class="container">
           <div class="header">
             <h1>🏠 Godoy Prime Realty</h1>
-            <p style="margin: 10px 0 0 0;">Nova Solicitação de Avaliação Completa</p>
+            <p style="margin: 10px 0 0 0;">${notificationType === 'initial' ? 'Novo Lead Capturado' : 'Solicitação de Avaliação Completa'}</p>
           </div>
           
           <div class="content">
             <div class="cta">
-              ⚡ NOVO LEAD - AVALIAÇÃO COMPLETA
+              ${ctaTitle}
+            </div>
+
+            <div class="service-box">
+              <h4 style="margin: 0 0 10px 0; color: #0C2340;">💼 Serviço Recomendado: ${serviceType}</h4>
+              <p style="margin: 0; font-size: 14px;">${actionMessage}</p>
             </div>
             
             <h3 style="color: #0C2340;">Dados do Cliente:</h3>
@@ -101,7 +133,7 @@ const handler = async (req: Request): Promise<Response> => {
               <p style="margin: 5px 0;"><strong>Nome:</strong> ${data.leadName}</p>
               <p style="margin: 5px 0;"><strong>Email:</strong> ${data.leadEmail}</p>
               <p style="margin: 5px 0;"><strong>Telefone:</strong> ${data.leadPhone}</p>
-              <p style="margin: 5px 0;"><strong>Interesse:</strong> ${data.interesse === 'venda' ? 'Vender Imóvel' : 'Comprar Imóvel'}</p>
+              <p style="margin: 5px 0;"><strong>Interesse:</strong> ${isCompra ? '🏠 Comprar Imóvel' : '💰 Vender Imóvel'}</p>
             </div>
             
             <h3 style="color: #0C2340;">Detalhes do Imóvel:</h3>
@@ -109,10 +141,12 @@ const handler = async (req: Request): Promise<Response> => {
             
             ${estimativaDetails}
             
-            <p style="margin-top: 20px; padding: 15px; background: #fff3cd; border-radius: 8px; border-left: 4px solid #D4AF37;">
-              <strong>Mensagem do cliente:</strong><br>
-              "Quero contato para agendar uma Avaliação Completa"
-            </p>
+            ${notificationType === 'complete' ? `
+              <p style="margin-top: 20px; padding: 15px; background: #fff3cd; border-radius: 8px; border-left: 4px solid #D4AF37;">
+                <strong>Mensagem do cliente:</strong><br>
+                "Quero contato para agendar uma Avaliação Completa"
+              </p>
+            ` : ''}
             
             <div class="footer">
               <p>Este email foi enviado automaticamente pelo sistema Godoy Prime Analytics.</p>
@@ -128,7 +162,7 @@ const handler = async (req: Request): Promise<Response> => {
     const emailResponse = await resend.emails.send({
       from: "Godoy Prime <onboarding@resend.dev>",
       to: ["contato@godoyprime.com.br"],
-      subject: `🏠 Nova Solicitação de Avaliação Completa - ${data.leadName}`,
+      subject: emailSubject,
       html: emailHtml,
     });
 
@@ -138,7 +172,8 @@ const handler = async (req: Request): Promise<Response> => {
       JSON.stringify({ 
         success: true, 
         message: "Notificação enviada com sucesso",
-        emailId: emailResponse.data?.id 
+        emailId: emailResponse.data?.id,
+        serviceType,
       }),
       {
         status: 200,
