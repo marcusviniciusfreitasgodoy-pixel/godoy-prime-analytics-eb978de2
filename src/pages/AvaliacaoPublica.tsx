@@ -147,21 +147,21 @@ export default function AvaliacaoPublica() {
             <section className="py-8 px-4">
               <div className="container mx-auto max-w-2xl text-center space-y-4">
                 {/* Differentiator Badge */}
-                <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-accent/10 border border-accent/30 text-accent text-sm font-medium">
-                  <Sparkles className="h-4 w-4" />
+                <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-accent/10 border border-accent/30 text-accent text-sm font-medium animate-fade-in">
+                  <Sparkles className="h-4 w-4 animate-pulse" />
                   Avaliação baseada em transações reais ITBI
                 </div>
                 
-                <h2 className="text-3xl md:text-4xl font-bold tracking-tight">
+                <h2 className="text-3xl md:text-4xl font-bold tracking-tight animate-fade-in [animation-delay:150ms]">
                   Descubra o{" "}
                   <span className="text-accent">valor real</span>{" "}
                   do seu imóvel
                 </h2>
-                <p className="text-xl font-medium text-foreground/90">
+                <p className="text-xl font-medium text-foreground/90 animate-fade-in [animation-delay:300ms]">
                   Vai <span className="text-accent">comprar</span> ou <span className="text-accent">vender</span>? 
                   Negocie com segurança.
                 </p>
-                <p className="text-base text-muted-foreground max-w-xl mx-auto">
+                <p className="text-base text-muted-foreground max-w-xl mx-auto animate-fade-in [animation-delay:450ms]">
                   Avaliação gratuita baseada em{" "}
                   <strong className="text-foreground">+80.000 transações oficiais</strong> da 
                   Prefeitura do Rio de Janeiro. Sem estimativas, sem achismos.
@@ -172,7 +172,8 @@ export default function AvaliacaoPublica() {
                   {TRUST_BADGES.map((badge, index) => (
                     <div 
                       key={index}
-                      className="flex items-center gap-2 px-4 py-2 rounded-full bg-primary/5 border border-primary/10"
+                      className="flex items-center gap-2 px-4 py-2 rounded-full bg-primary/5 border border-primary/10 animate-fade-in hover-scale"
+                      style={{ animationDelay: `${600 + index * 100}ms` }}
                     >
                       <badge.icon className="h-4 w-4 text-accent" />
                       <span className="text-sm font-medium">{badge.text}</span>
