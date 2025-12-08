@@ -82,28 +82,28 @@ export function LeadCaptureForm({
   };
 
   return (
-    <Card className="border-primary/30 bg-card/50 backdrop-blur">
+    <Card className="border-accent/30 bg-gradient-to-b from-card to-card/80 backdrop-blur shadow-xl">
       <CardHeader className="text-center pb-4">
-        <div className="mx-auto w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center mb-3">
-          <Lock className="h-6 w-6 text-primary" />
+        <div className="mx-auto w-14 h-14 rounded-full bg-gradient-to-br from-accent/20 to-primary/20 flex items-center justify-center mb-3 shadow-lg">
+          <Lock className="h-7 w-7 text-accent" />
         </div>
-        <CardTitle className="text-xl">Visualizar Resultado da Avaliação</CardTitle>
+        <CardTitle className="text-xl font-bold">🎉 Sua Avaliação Está Pronta!</CardTitle>
         <CardDescription className="text-base">
-          Cadastre-se para acessar o resultado completo da sua avaliação imobiliária
+          Preencha seus dados para ver o resultado completo e receber oportunidades exclusivas
         </CardDescription>
       </CardHeader>
       <CardContent>
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
           <div className="space-y-2">
-            <Label htmlFor="nome" className="flex items-center gap-2">
-              <User className="h-4 w-4" />
+            <Label htmlFor="nome" className="flex items-center gap-2 text-sm font-medium">
+              <User className="h-4 w-4 text-accent" />
               Nome Completo *
             </Label>
             <Input
               id="nome"
               placeholder="Seu nome completo"
               {...register("nome")}
-              className={errors.nome ? "border-destructive" : ""}
+              className={`border-primary/20 focus-visible:ring-accent/30 ${errors.nome ? "border-destructive" : ""}`}
             />
             {errors.nome && (
               <p className="text-sm text-destructive">{errors.nome.message}</p>
@@ -111,8 +111,8 @@ export function LeadCaptureForm({
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="email" className="flex items-center gap-2">
-              <Mail className="h-4 w-4" />
+            <Label htmlFor="email" className="flex items-center gap-2 text-sm font-medium">
+              <Mail className="h-4 w-4 text-accent" />
               E-mail *
             </Label>
             <Input
@@ -120,7 +120,7 @@ export function LeadCaptureForm({
               type="email"
               placeholder="seu@email.com"
               {...register("email")}
-              className={errors.email ? "border-destructive" : ""}
+              className={`border-primary/20 focus-visible:ring-accent/30 ${errors.email ? "border-destructive" : ""}`}
             />
             {errors.email && (
               <p className="text-sm text-destructive">{errors.email.message}</p>
@@ -128,8 +128,8 @@ export function LeadCaptureForm({
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="telefone" className="flex items-center gap-2">
-              <Phone className="h-4 w-4" />
+            <Label htmlFor="telefone" className="flex items-center gap-2 text-sm font-medium">
+              <Phone className="h-4 w-4 text-accent" />
               Telefone / WhatsApp *
             </Label>
             <Input
@@ -141,27 +141,34 @@ export function LeadCaptureForm({
                   e.target.value = formatPhone(e.target.value);
                 },
               })}
-              className={errors.telefone ? "border-destructive" : ""}
+              className={`border-primary/20 focus-visible:ring-accent/30 ${errors.telefone ? "border-destructive" : ""}`}
             />
             {errors.telefone && (
               <p className="text-sm text-destructive">{errors.telefone.message}</p>
             )}
           </div>
 
-          <Button type="submit" className="w-full" disabled={isSubmitting}>
+          <Button 
+            type="submit" 
+            className="w-full bg-accent hover:bg-accent/90 text-accent-foreground shadow-lg" 
+            size="lg"
+            disabled={isSubmitting}
+          >
             {isSubmitting ? (
               <>
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Cadastrando...
+                <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                Processando...
               </>
             ) : (
-              "Ver Minha Avaliação"
+              "Ver Minha Avaliação Gratuita"
             )}
           </Button>
 
-          <p className="text-xs text-muted-foreground text-center mt-4">
-            Ao se cadastrar, você concorda em receber comunicações sobre oportunidades imobiliárias na região de interesse.
-          </p>
+          <div className="bg-muted/30 rounded-lg p-3 mt-4">
+            <p className="text-xs text-muted-foreground text-center">
+              🔒 Seus dados estão seguros. Ao se cadastrar, você receberá oportunidades de imóveis compatíveis com seu interesse.
+            </p>
+          </div>
         </form>
       </CardContent>
     </Card>
