@@ -44,3 +44,47 @@ export interface FormattedLogradouro {
   condominioNome?: string;
   codigoTecnico?: string;
 }
+
+// Gera variações fuzzy de um termo de busca (letras duplicadas/simples)
+export function generateFuzzyVariations(term: string): string[] {
+  const variations: string[] = [term];
+  const upperTerm = term.toUpperCase();
+  
+  // Correções conhecidas
+  const corrections: Record<string, string> = {
+    'ESTELITA': 'ESTELLITA',
+    'ESTELLITA': 'ESTELITA',
+  };
+  
+  // Aplicar correção conhecida se existir
+  Object.entries(corrections).forEach(([from, to]) => {
+    if (upperTerm.includes(from)) {
+      const corrected = upperTerm.replace(new RegExp(from, 'g'), to);
+      if (!variations.includes(corrected)) variations.push(corrected);
+    }
+  });
+  
+  // Padrões de letras que frequentemente são duplicadas
+  const duplicatePatterns = [
+    { single: 'L', double: 'LL' },
+    { single: 'R', double: 'RR' },
+    { single: 'S', double: 'SS' },
+    { single: 'T', double: 'TT' },
+    { single: 'N', double: 'NN' },
+  ];
+  
+  duplicatePatterns.forEach(({ single, double }) => {
+    // Adicionar variação com letra duplicada
+    if (upperTerm.includes(single) && !upperTerm.includes(double)) {
+      const withDouble = upperTerm.replace(new RegExp(single, 'g'), double);
+      if (!variations.includes(withDouble)) variations.push(withDouble);
+    }
+    // Adicionar variação com letra simples
+    if (upperTerm.includes(double)) {
+      const withSingle = upperTerm.replace(new RegExp(double, 'g'), single);
+      if (!variations.includes(withSingle)) variations.push(withSingle);
+    }
+  });
+  
+  return variations;
+}
