@@ -88,23 +88,23 @@ export function QuickValuationResult({
                 Faixa de Valor Estimada
               </h3>
               
-              <div className="grid grid-cols-3 gap-3">
-                <div className="text-center p-4 rounded-lg bg-muted/50">
-                  <TrendingDown className="h-5 w-5 mx-auto mb-2 text-yellow-600" />
-                  <p className="text-xs text-muted-foreground mb-1">Mínimo</p>
-                  <p className="font-bold text-lg">{formatCurrency(data.estimativa!.min)}</p>
+              <div className="grid grid-cols-3 gap-2">
+                <div className="text-center p-3 rounded-lg bg-muted/50">
+                  <TrendingDown className="h-4 w-4 mx-auto mb-1 text-yellow-600" />
+                  <p className="text-[10px] text-muted-foreground mb-0.5">Mínimo</p>
+                  <p className="font-bold text-sm">{formatCurrency(data.estimativa!.min)}</p>
                 </div>
                 
-                <div className="text-center p-4 rounded-lg bg-primary/10 border border-primary/20">
-                  <Calculator className="h-5 w-5 mx-auto mb-2 text-primary" />
-                  <p className="text-xs text-muted-foreground mb-1">Médio</p>
-                  <p className="font-bold text-xl text-primary">{formatCurrency(data.estimativa!.med)}</p>
+                <div className="text-center p-3 rounded-lg bg-primary/10 border border-primary/20">
+                  <Calculator className="h-4 w-4 mx-auto mb-1 text-primary" />
+                  <p className="text-[10px] text-muted-foreground mb-0.5">Médio</p>
+                  <p className="font-bold text-base text-primary">{formatCurrency(data.estimativa!.med)}</p>
                 </div>
                 
-                <div className="text-center p-4 rounded-lg bg-muted/50">
-                  <TrendingUp className="h-5 w-5 mx-auto mb-2 text-green-600" />
-                  <p className="text-xs text-muted-foreground mb-1">Máximo</p>
-                  <p className="font-bold text-lg">{formatCurrency(data.estimativa!.max)}</p>
+                <div className="text-center p-3 rounded-lg bg-muted/50">
+                  <TrendingUp className="h-4 w-4 mx-auto mb-1 text-green-600" />
+                  <p className="text-[10px] text-muted-foreground mb-0.5">Máximo</p>
+                  <p className="font-bold text-sm">{formatCurrency(data.estimativa!.max)}</p>
                 </div>
               </div>
 
