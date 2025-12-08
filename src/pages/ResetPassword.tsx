@@ -1,0 +1,135 @@
+import { useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { supabase } from "@/integrations/supabase/client";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { useToast } from "@/hooks/use-toast";
+import { Loader2, ArrowLeft } from "lucide-react";
+import godoyLogo from "@/assets/godoy-logo-symbol.png";
+
+export default function ResetPassword() {
+  const [isLoading, setIsLoading] = useState(false);
+  const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const navigate = useNavigate();
+  const { toast } = useToast();
+
+  const handleResetPassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (password !== confirmPassword) {
+      toast({
+        title: "Senhas não coincidem",
+        description: "Por favor, verifique se as senhas são iguais.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (password.length < 6) {
+      toast({
+        title: "Senha muito curta",
+        description: "A senha deve ter pelo menos 6 caracteres.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsLoading(true);
+
+    try {
+      const { error } = await supabase.auth.updateUser({
+        password: password,
+      });
+
+      if (error) {
+        toast({
+          title: "Erro ao redefinir senha",
+          description: error.message,
+          variant: "destructive",
+        });
+        return;
+      }
+
+      toast({
+        title: "Senha redefinida!",
+        description: "Sua senha foi alterada com sucesso.",
+      });
+      navigate("/");
+    } catch (error) {
+      toast({
+        title: "Erro",
+        description: "Ocorreu um erro ao redefinir sua senha.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  return (
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-primary via-primary/95 to-primary/90 p-4">
+      <Card className="w-full max-w-md border-accent/20 shadow-2xl">
+        <CardHeader className="text-center space-y-4">
+          <div className="flex justify-center">
+            <img src={godoyLogo} alt="Godoy Prime" className="h-16 w-auto" />
+          </div>
+          <CardTitle className="text-2xl font-bold text-primary">Redefinir Senha</CardTitle>
+          <CardDescription>
+            Digite sua nova senha abaixo
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <form onSubmit={handleResetPassword} className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="password">Nova Senha</Label>
+              <Input
+                id="password"
+                type="password"
+                placeholder="Mínimo 6 caracteres"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                minLength={6}
+                required
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="confirm-password">Confirmar Senha</Label>
+              <Input
+                id="confirm-password"
+                type="password"
+                placeholder="Repita a senha"
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
+                minLength={6}
+                required
+              />
+            </div>
+            <Button type="submit" className="w-full" disabled={isLoading}>
+              {isLoading ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Redefinindo...
+                </>
+              ) : (
+                "Redefinir Senha"
+              )}
+            </Button>
+          </form>
+          
+          <div className="mt-6 text-center">
+            <a
+              href="/auth"
+              className="text-sm text-muted-foreground hover:text-accent transition-colors inline-flex items-center gap-1"
+            >
+              <ArrowLeft className="h-3 w-3" />
+              Voltar para o login
+            </a>
+          </div>
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
