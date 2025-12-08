@@ -7,7 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2, ArrowLeft } from "lucide-react";
-import godoyLogo from "@/assets/godoy-logo-symbol.png";
+import godoyLogo from "@/assets/godoy-logo-pdf.png";
 
 export default function ResetPassword() {
   const [isLoading, setIsLoading] = useState(false);
@@ -72,11 +72,10 @@ export default function ResetPassword() {
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-primary via-primary/95 to-primary/90 p-4">
       <Card className="w-full max-w-md border-accent/20 shadow-2xl">
-        <CardHeader className="text-center space-y-4">
+        <CardHeader className="text-center space-y-2">
           <div className="flex justify-center">
-            <img src={godoyLogo} alt="Godoy Prime" className="h-16 w-auto" />
+            <img src={godoyLogo} alt="Godoy Prime" className="h-12 w-auto" />
           </div>
-          <CardTitle className="text-2xl font-bold text-primary">Redefinir Senha</CardTitle>
           <CardDescription>
             Digite sua nova senha abaixo
           </CardDescription>
