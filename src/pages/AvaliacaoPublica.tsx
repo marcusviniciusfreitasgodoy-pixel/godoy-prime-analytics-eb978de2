@@ -5,7 +5,7 @@ import { QuickValuationResult } from "@/components/leads/QuickValuationResult";
 import { LeadCaptureForm } from "@/components/leads/LeadCaptureForm";
 import { ThankYouStep } from "@/components/leads/ThankYouStep";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, Shield, TrendingUp, Award, CheckCircle, FileCheck, AlertCircle, Sparkles } from "lucide-react";
+import { ArrowLeft, Shield, TrendingUp, Award, CheckCircle, FileCheck, AlertCircle, Sparkles, MessageCircle } from "lucide-react";
 import godoyLogo from "@/assets/godoy-logo-symbol.png";
 
 interface QuickValuationData {
@@ -351,6 +351,18 @@ export default function AvaliacaoPublica() {
             </div>
           </div>
         </footer>
+
+        {/* Floating WhatsApp Button */}
+        <a
+          href="https://wa.me/5521964075124?text=Ol%C3%A1!%20Gostaria%20de%20mais%20informa%C3%A7%C3%B5es%20sobre%20avalia%C3%A7%C3%A3o%20de%20im%C3%B3veis."
+          target="_blank"
+          rel="noopener noreferrer"
+          className="fixed bottom-6 right-6 z-50 flex items-center gap-2 bg-[#25D366] hover:bg-[#20BA5C] text-white px-4 py-3 rounded-full shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105 animate-fade-in group"
+          aria-label="Contato via WhatsApp"
+        >
+          <MessageCircle className="h-6 w-6" />
+          <span className="font-medium text-sm hidden sm:inline group-hover:inline">Fale Conosco</span>
+        </a>
       </div>
     </>
   );
