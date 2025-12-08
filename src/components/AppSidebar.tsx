@@ -1,4 +1,4 @@
-import { Home, ClipboardCheck, FileText, MapPin } from "lucide-react";
+import { Home, ClipboardCheck, FileText, MapPin, Users } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import {
   Sidebar,
@@ -18,6 +18,7 @@ const items = [
   { title: "Microregiões", url: "/microbairros", icon: MapPin },
   { title: "Vistoria Digital", url: "/vistoria-digital", icon: ClipboardCheck },
   { title: "Documentação", url: "/documentacao", icon: FileText },
+  { title: "Leads", url: "/leads", icon: Users },
 ];
 
 export function AppSidebar() {

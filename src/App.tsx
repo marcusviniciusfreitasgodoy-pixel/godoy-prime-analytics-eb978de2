@@ -13,6 +13,7 @@ import Microbairros from "./pages/Microbairros";
 import VistoriaDigital from "./pages/VistoriaDigital";
 import Documentacao from "./pages/Documentacao";
 import AvaliacaoPublica from "./pages/AvaliacaoPublica";
+import Leads from "./pages/Leads";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -44,6 +45,7 @@ const App = () => {
                             <Route path="/microbairros" element={<Microbairros />} />
                             <Route path="/vistoria-digital" element={<VistoriaDigital />} />
                             <Route path="/documentacao" element={<Documentacao />} />
+                            <Route path="/leads" element={<Leads />} />
                             <Route path="*" element={<NotFound />} />
                           </Routes>
                         </main>

@@ -6,9 +6,10 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { User, Mail, Phone, Loader2, Lock } from "lucide-react";
+import { User, Mail, Phone, Loader2, Lock, Home, DollarSign } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { cn } from "@/lib/utils";
 
 const leadSchema = z.object({
   nome: z.string().min(3, "Nome deve ter pelo menos 3 caracteres").max(100),
@@ -17,6 +18,9 @@ const leadSchema = z.object({
     .min(10, "Telefone deve ter pelo menos 10 dígitos")
     .max(15, "Telefone inválido")
     .regex(/^[\d\s\-\(\)]+$/, "Formato de telefone inválido"),
+  interesse: z.enum(["compra", "venda"], {
+    required_error: "Selecione seu interesse"
+  }),
 });
 
 type LeadFormData = z.infer<typeof leadSchema>;
@@ -45,13 +49,18 @@ export function LeadCaptureForm({
   onSuccess,
 }: LeadCaptureFormProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [interesse, setInteresse] = useState<"compra" | "venda">("compra");
 
   const {
     register,
     handleSubmit,
+    setValue,
     formState: { errors },
   } = useForm<LeadFormData>({
     resolver: zodResolver(leadSchema),
+    defaultValues: {
+      interesse: "compra",
+    },
   });
 
   const formatPhone = (value: string) => {
@@ -78,6 +87,7 @@ export function LeadCaptureForm({
         banheiros,
         suites,
         vagas,
+        interesse: data.interesse,
         origem,
       });
 
@@ -106,6 +116,50 @@ export function LeadCaptureForm({
       </CardHeader>
       <CardContent>
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+          {/* Seletor de Interesse */}
+          <div className="space-y-2">
+            <Label className="flex items-center gap-2 text-sm font-medium">
+              Qual seu objetivo? *
+            </Label>
+            <div className="grid grid-cols-2 gap-3">
+              <button
+                type="button"
+                onClick={() => {
+                  setInteresse("compra");
+                  setValue("interesse", "compra");
+                }}
+                className={cn(
+                  "flex flex-col items-center gap-2 p-4 rounded-xl border-2 transition-all",
+                  interesse === "compra"
+                    ? "border-accent bg-accent/10 text-accent"
+                    : "border-primary/20 hover:border-accent/50 hover:bg-accent/5"
+                )}
+              >
+                <Home className="h-6 w-6" />
+                <span className="font-semibold text-sm">Quero Comprar</span>
+                <span className="text-xs text-muted-foreground">Busco um imóvel</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setInteresse("venda");
+                  setValue("interesse", "venda");
+                }}
+                className={cn(
+                  "flex flex-col items-center gap-2 p-4 rounded-xl border-2 transition-all",
+                  interesse === "venda"
+                    ? "border-accent bg-accent/10 text-accent"
+                    : "border-primary/20 hover:border-accent/50 hover:bg-accent/5"
+                )}
+              >
+                <DollarSign className="h-6 w-6" />
+                <span className="font-semibold text-sm">Quero Vender</span>
+                <span className="text-xs text-muted-foreground">Tenho um imóvel</span>
+              </button>
+            </div>
+            <input type="hidden" {...register("interesse")} />
+          </div>
+
           <div className="space-y-2">
             <Label htmlFor="nome" className="flex items-center gap-2 text-sm font-medium">
               <User className="h-4 w-4 text-accent" />
