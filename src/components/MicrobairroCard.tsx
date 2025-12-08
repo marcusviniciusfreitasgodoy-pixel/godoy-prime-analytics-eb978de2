@@ -31,11 +31,16 @@ export function MicrobairroCard({
       <CardContent className="p-0">
         {/* Topo do Cartão */}
         <div className="p-4 sm:p-6 pb-3 sm:pb-4 border-b border-border">
-          <div className="flex items-start justify-between mb-2 sm:mb-3 gap-2">
-            <div className="flex items-center gap-2 sm:gap-3 min-w-0">
-              <span className="text-2xl sm:text-3xl font-bold text-muted-foreground">#{rank}</span>
-              <div className="min-w-0">
-                <h3 className="text-base sm:text-lg lg:text-xl font-bold text-foreground truncate">{microbairro}</h3>
+          <div className="flex items-start justify-between mb-2 sm:mb-3 gap-3">
+            <div className="flex items-start gap-2 sm:gap-3 min-w-0 flex-1">
+              <span className="text-2xl sm:text-3xl font-bold text-muted-foreground flex-shrink-0">#{rank}</span>
+              <div className="min-w-0 flex-1">
+                <h3 
+                  className="text-sm sm:text-lg lg:text-xl font-bold text-foreground leading-tight break-words line-clamp-2 sm:line-clamp-none"
+                  title={microbairro}
+                >
+                  {microbairro}
+                </h3>
                 {isTopTier ? (
                   <Badge className="mt-1 text-[10px] sm:text-xs bg-emerald-500/20 text-emerald-700 border-emerald-300">
                     Alta Valorização
