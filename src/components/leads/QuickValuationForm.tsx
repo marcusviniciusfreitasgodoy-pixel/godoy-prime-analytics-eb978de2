@@ -4,7 +4,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Calculator, MapPin, Maximize2, Home, ArrowRight, Loader2, Building2, Search } from "lucide-react";
+import { Calculator, MapPin, Maximize2, Home, ArrowRight, Loader2, Building2, Search, BedDouble, Bath, Sparkles, Car } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/integrations/supabase/client";
 import { useStreetSuggestions } from "@/hooks/useStreetSuggestions";
@@ -14,6 +14,10 @@ interface QuickValuationData {
   logradouro: string;
   area_m2: number;
   tipologia: string;
+  quartos?: number;
+  banheiros?: number;
+  suites?: number;
+  vagas?: number;
   itbiData: {
     min_m2: number;
     med_m2: number;
@@ -54,6 +58,10 @@ export function QuickValuationForm({ onComplete }: QuickValuationFormProps) {
   const [logradouro, setLogradouro] = useState("");
   const [area, setArea] = useState("");
   const [tipologia, setTipologia] = useState("Apartamento");
+  const [quartos, setQuartos] = useState("");
+  const [banheiros, setBanheiros] = useState("");
+  const [suites, setSuites] = useState("");
+  const [vagas, setVagas] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
   const [showSuggestions, setShowSuggestions] = useState(false);
@@ -152,6 +160,10 @@ export function QuickValuationForm({ onComplete }: QuickValuationFormProps) {
         logradouro: logradouro.trim(),
         area_m2: areaNum,
         tipologia,
+        quartos: quartos ? parseInt(quartos) : undefined,
+        banheiros: banheiros ? parseInt(banheiros) : undefined,
+        suites: suites ? parseInt(suites) : undefined,
+        vagas: vagas ? parseInt(vagas) : undefined,
         itbiData,
         estimativa,
       });
@@ -293,7 +305,80 @@ export function QuickValuationForm({ onComplete }: QuickValuationFormProps) {
                 max="2000"
                 className="border-primary/20 focus-visible:ring-accent/30"
               />
+          </div>
+
+          {/* Características do Imóvel */}
+          <div className="space-y-3">
+            <Label className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
+              Características do Imóvel (opcional)
+            </Label>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1.5">
+                <Label htmlFor="quartos" className="flex items-center gap-1.5 text-xs">
+                  <BedDouble className="h-3.5 w-3.5 text-accent" />
+                  Quartos
+                </Label>
+                <Input
+                  id="quartos"
+                  type="number"
+                  placeholder="0"
+                  value={quartos}
+                  onChange={(e) => setQuartos(e.target.value)}
+                  min="0"
+                  max="10"
+                  className="border-primary/20 focus-visible:ring-accent/30 h-9"
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="banheiros" className="flex items-center gap-1.5 text-xs">
+                  <Bath className="h-3.5 w-3.5 text-accent" />
+                  Banheiros
+                </Label>
+                <Input
+                  id="banheiros"
+                  type="number"
+                  placeholder="0"
+                  value={banheiros}
+                  onChange={(e) => setBanheiros(e.target.value)}
+                  min="0"
+                  max="10"
+                  className="border-primary/20 focus-visible:ring-accent/30 h-9"
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="suites" className="flex items-center gap-1.5 text-xs">
+                  <Sparkles className="h-3.5 w-3.5 text-accent" />
+                  Suítes
+                </Label>
+                <Input
+                  id="suites"
+                  type="number"
+                  placeholder="0"
+                  value={suites}
+                  onChange={(e) => setSuites(e.target.value)}
+                  min="0"
+                  max="10"
+                  className="border-primary/20 focus-visible:ring-accent/30 h-9"
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="vagas" className="flex items-center gap-1.5 text-xs">
+                  <Car className="h-3.5 w-3.5 text-accent" />
+                  Vagas
+                </Label>
+                <Input
+                  id="vagas"
+                  type="number"
+                  placeholder="0"
+                  value={vagas}
+                  onChange={(e) => setVagas(e.target.value)}
+                  min="0"
+                  max="10"
+                  className="border-primary/20 focus-visible:ring-accent/30 h-9"
+                />
+              </div>
             </div>
+          </div>
 
             <div className="space-y-2">
               <Label htmlFor="tipologia" className="flex items-center gap-2 text-sm font-medium">
