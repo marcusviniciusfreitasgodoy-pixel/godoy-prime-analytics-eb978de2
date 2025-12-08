@@ -4,7 +4,6 @@ import { QuickValuationForm } from "@/components/leads/QuickValuationForm";
 import { QuickValuationResult } from "@/components/leads/QuickValuationResult";
 import { LeadCaptureForm } from "@/components/leads/LeadCaptureForm";
 import { ThankYouStep } from "@/components/leads/ThankYouStep";
-import { ValuationEngine } from "@/components/valuation/ValuationEngine";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, Shield, TrendingUp, Award, CheckCircle, FileCheck, AlertCircle, Sparkles } from "lucide-react";
 import godoyLogo from "@/assets/godoy-logo-symbol.png";
@@ -32,12 +31,14 @@ interface QuickValuationData {
 }
 
 interface LeadData {
+  id: string;
   nome: string;
   email: string;
   telefone: string;
+  interesse: "compra" | "venda";
 }
 
-type Step = "form" | "lead-capture" | "thank-you" | "result" | "complete-valuation";
+type Step = "form" | "lead-capture" | "thank-you" | "result";
 
 const TRUST_BADGES = [
   { icon: Shield, text: "Dados Oficiais ITBI" },
@@ -98,18 +99,15 @@ export default function AvaliacaoPublica() {
   const handleProceedToComplete = () => {
     if (!leadCaptured) {
       setStep("lead-capture");
-    } else {
-      setStep("complete-valuation");
     }
+    // If lead is captured, the QuickValuationResult handles the WhatsApp/email flow
   };
 
   const handleNewValuation = () => {
     setValuationData(null);
+    setLeadData(null);
+    setLeadCaptured(false);
     setStep("form");
-  };
-
-  const handleBackToResult = () => {
-    setStep("result");
   };
 
   return (
@@ -134,15 +132,15 @@ export default function AvaliacaoPublica() {
                 <p className="text-xs text-accent font-medium">Avaliação Imobiliária Premium</p>
               </div>
             </div>
-            {step !== "form" && step !== "lead-capture" && step !== "thank-you" && (
+            {step === "result" && (
               <Button 
                 variant="ghost" 
                 size="sm"
-                onClick={step === "complete-valuation" ? handleBackToResult : handleNewValuation}
-                className="hover:bg-primary/10"
+                onClick={handleNewValuation}
+                className="hover:bg-primary/10 text-white"
               >
                 <ArrowLeft className="mr-2 h-4 w-4" />
-                Voltar
+                Nova Avaliação
               </Button>
             )}
           </div>
@@ -284,15 +282,16 @@ export default function AvaliacaoPublica() {
           {step === "result" && valuationData && (
             <QuickValuationResult
               data={valuationData}
+              leadInfo={leadData ? {
+                id: leadData.id,
+                nome: leadData.nome,
+                email: leadData.email,
+                telefone: leadData.telefone,
+                interesse: leadData.interesse
+              } : undefined}
               onProceedToComplete={handleProceedToComplete}
               onNewValuation={handleNewValuation}
             />
-          )}
-
-          {step === "complete-valuation" && valuationData && (
-            <div className="max-w-3xl mx-auto">
-              <ValuationEngine bairro={valuationData.bairro} />
-            </div>
           )}
         </main>
 

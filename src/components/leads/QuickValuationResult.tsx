@@ -1,14 +1,21 @@
+import { useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
-import { TrendingUp, TrendingDown, MapPin, Maximize2, Home, Calculator, ArrowRight, AlertCircle } from "lucide-react";
+import { TrendingUp, TrendingDown, MapPin, Maximize2, Home, Calculator, ArrowRight, AlertCircle, MessageCircle, Loader2, CheckCircle } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 
 interface QuickValuationData {
   bairro: string;
   logradouro: string;
   area_m2: number;
   tipologia: string;
+  quartos?: number;
+  banheiros?: number;
+  suites?: number;
+  vagas?: number;
   itbiData: {
     min_m2: number;
     med_m2: number;
@@ -22,17 +29,30 @@ interface QuickValuationData {
   } | null;
 }
 
+interface LeadInfo {
+  id?: string;
+  nome: string;
+  email: string;
+  telefone: string;
+  interesse: string;
+}
+
 interface QuickValuationResultProps {
   data: QuickValuationData;
+  leadInfo?: LeadInfo;
   onProceedToComplete: () => void;
   onNewValuation: () => void;
 }
 
 export function QuickValuationResult({ 
   data, 
+  leadInfo,
   onProceedToComplete, 
   onNewValuation 
 }: QuickValuationResultProps) {
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [requestSent, setRequestSent] = useState(false);
+
   const formatCurrency = (value: number, compact = false) => {
     if (compact && value >= 1000000) {
       return `R$ ${(value / 1000000).toFixed(1).replace('.', ',')} mi`;
@@ -49,6 +69,71 @@ export function QuickValuationResult({
   };
 
   const hasData = data.itbiData && data.estimativa;
+
+  const handleRequestCompleteValuation = async () => {
+    if (!leadInfo) {
+      onProceedToComplete();
+      return;
+    }
+
+    setIsSubmitting(true);
+
+    try {
+      // Send email notification via edge function
+      const { error: emailError } = await supabase.functions.invoke('send-lead-notification', {
+        body: {
+          leadId: leadInfo.id || '',
+          leadName: leadInfo.nome,
+          leadEmail: leadInfo.email,
+          leadPhone: leadInfo.telefone,
+          interesse: leadInfo.interesse,
+          bairro: data.bairro,
+          area: data.area_m2,
+          tipologia: data.tipologia,
+          quartos: data.quartos,
+          banheiros: data.banheiros,
+          suites: data.suites,
+          vagas: data.vagas,
+          estimativaMin: data.estimativa?.min,
+          estimativaMed: data.estimativa?.med,
+          estimativaMax: data.estimativa?.max,
+        }
+      });
+
+      if (emailError) {
+        console.error('Error sending email notification:', emailError);
+      }
+
+      // Update lead with note about complete valuation request
+      if (leadInfo.id) {
+        await supabase
+          .from('leads')
+          .update({ 
+            notas: 'Solicitou Avaliação Completa via página pública',
+            origem: 'avaliacao_completa'
+          })
+          .eq('id', leadInfo.id);
+      }
+
+      setRequestSent(true);
+      toast.success('Solicitação enviada! Entraremos em contato em breve.');
+
+      // Open WhatsApp after a brief delay
+      setTimeout(() => {
+        const whatsappNumber = "5521964075124";
+        const message = encodeURIComponent(
+          `Olá! Sou ${leadInfo.nome}.\n\nQuero contato para agendar uma Avaliação Completa.\n\nImóvel: ${data.tipologia} de ${data.area_m2}m² em ${data.bairro}\nEstimativa: ${formatCurrency(data.estimativa?.med || 0)}\n\nMeu telefone: ${leadInfo.telefone}\nMeu email: ${leadInfo.email}`
+        );
+        window.open(`https://wa.me/${whatsappNumber}?text=${message}`, '_blank');
+      }, 1000);
+
+    } catch (error) {
+      console.error('Error requesting complete valuation:', error);
+      toast.error('Erro ao enviar solicitação. Tente novamente.');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
 
   return (
     <Card className="border-primary/20 shadow-lg">
@@ -141,18 +226,50 @@ export function QuickValuationResult({
 
             {/* CTA for Complete Valuation */}
             <div className="space-y-3">
-              <div className="bg-accent/10 border border-accent/20 rounded-lg p-4">
-                <h4 className="font-medium text-center mb-2">
-                  Deseja uma avaliação mais precisa?
-                </h4>
-                <p className="text-sm text-muted-foreground text-center mb-4">
-                  Nossa ferramenta completa analisa 26 características do imóvel para uma estimativa mais detalhada com recomendações personalizadas.
-                </p>
-                <Button onClick={onProceedToComplete} className="w-full" size="lg">
-                  Fazer Avaliação Completa
-                  <ArrowRight className="ml-2 h-5 w-5" />
-                </Button>
-              </div>
+              {requestSent ? (
+                <div className="bg-green-50 border border-green-200 rounded-lg p-4 text-center">
+                  <CheckCircle className="h-10 w-10 mx-auto text-green-600 mb-3" />
+                  <h4 className="font-medium text-green-800 mb-2">
+                    Solicitação Enviada!
+                  </h4>
+                  <p className="text-sm text-green-700 mb-4">
+                    Nossa equipe entrará em contato em breve para agendar sua Avaliação Completa.
+                  </p>
+                  <p className="text-xs text-green-600">
+                    Também abrimos o WhatsApp para você enviar uma mensagem direta.
+                  </p>
+                </div>
+              ) : (
+                <div className="bg-accent/10 border border-accent/20 rounded-lg p-4">
+                  <h4 className="font-medium text-center mb-2">
+                    Deseja uma avaliação mais precisa?
+                  </h4>
+                  <p className="text-sm text-muted-foreground text-center mb-4">
+                    Nosso avaliador especializado fará uma análise completa com 26 características do imóvel e recomendações personalizadas.
+                  </p>
+                  <Button 
+                    onClick={handleRequestCompleteValuation} 
+                    className="w-full gap-2" 
+                    size="lg"
+                    disabled={isSubmitting}
+                  >
+                    {isSubmitting ? (
+                      <>
+                        <Loader2 className="h-5 w-5 animate-spin" />
+                        Enviando...
+                      </>
+                    ) : (
+                      <>
+                        <MessageCircle className="h-5 w-5" />
+                        Solicitar Avaliação Completa
+                      </>
+                    )}
+                  </Button>
+                  <p className="text-xs text-muted-foreground text-center mt-2">
+                    Você será redirecionado para o WhatsApp
+                  </p>
+                </div>
+              )}
               
               <Button variant="outline" onClick={onNewValuation} className="w-full">
                 Nova Avaliação Rápida
