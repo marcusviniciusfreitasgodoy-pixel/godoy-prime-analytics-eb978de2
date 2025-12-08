@@ -242,9 +242,10 @@ export default function AvaliacaoPublica() {
                     <p className="text-xs text-muted-foreground">
                       <strong className="text-foreground">Avaliação Rápida:</strong> Esta é uma estimativa simplificada 
                       baseada em dados históricos de transações ITBI. Para uma análise mais completa e personalizada, 
-                      oferecemos nossa <strong className="text-accent">Avaliação Completa</strong>, que inclui também 
-                      análise dos imóveis anunciados no mercado atual, tendências de valorização e características 
-                      específicas do seu imóvel.
+                      oferecemos nossa <strong className="text-accent">Avaliação Completa</strong>, feita por um 
+                      <strong className="text-foreground"> PERITO AVALIADOR</strong>, que inclui também análise dos 
+                      imóveis anunciados no mercado atual, tendências de valorização e características específicas 
+                      do seu imóvel.
                     </p>
                     <p className="text-xs text-muted-foreground">
                       Preencha o formulário acima para receber sua avaliação rápida gratuita e, se desejar, 
