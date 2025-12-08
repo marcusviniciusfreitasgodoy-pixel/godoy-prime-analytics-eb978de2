@@ -1,4 +1,4 @@
-import { Home, ClipboardCheck, FileText, MapPin, Users } from "lucide-react";
+import { Home, ClipboardCheck, FileText, MapPin, Users, UserCog } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import {
   Sidebar,
@@ -23,6 +23,7 @@ const baseItems = [
 
 const adminItems = [
   { title: "Leads", url: "/leads", icon: Users },
+  { title: "Usuários", url: "/usuarios", icon: UserCog },
 ];
 
 export function AppSidebar() {
