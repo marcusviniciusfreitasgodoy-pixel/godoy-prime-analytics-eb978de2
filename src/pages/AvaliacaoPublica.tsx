@@ -49,7 +49,7 @@ const DIFFERENTIALS = [
   {
     icon: FileCheck,
     title: "Transações Reais, Não Estimativas",
-    description: "Diferente de outras ferramentas que usam algoritmos e suposições, nossa avaliação é baseada em transações ITBI efetivamente realizadas.",
+    description: "Diferente de outras ferramentas que usam algoritmos e suposições, nossa avaliação é a única no mercado baseada em transações ITBI efetivamente realizadas.",
     highlights: ["Resultado instantâneo e gratuito", "Dados da Prefeitura do Rio de Janeiro"],
   },
   {
