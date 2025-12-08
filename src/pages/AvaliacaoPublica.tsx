@@ -6,7 +6,7 @@ import { LeadCaptureForm } from "@/components/leads/LeadCaptureForm";
 import { ThankYouStep } from "@/components/leads/ThankYouStep";
 import { ValuationEngine } from "@/components/valuation/ValuationEngine";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, Shield, TrendingUp, Award, CheckCircle } from "lucide-react";
+import { ArrowLeft, Shield, TrendingUp, Award, CheckCircle, FileCheck, AlertCircle, Sparkles } from "lucide-react";
 import godoyLogo from "@/assets/godoy-logo-symbol.png";
 
 interface QuickValuationData {
@@ -41,14 +41,32 @@ type Step = "form" | "lead-capture" | "thank-you" | "result" | "complete-valuati
 
 const TRUST_BADGES = [
   { icon: Shield, text: "Dados Oficiais ITBI" },
-  { icon: TrendingUp, text: "+80.000 Transações" },
+  { icon: TrendingUp, text: "+80.000 Transações Reais" },
   { icon: Award, text: "CRECI 11841-PJ" },
 ];
 
+const DIFFERENTIALS = [
+  {
+    icon: FileCheck,
+    title: "Transações Reais, Não Estimativas",
+    description: "Diferente de outras ferramentas que usam algoritmos e suposições, nossa avaliação é baseada em transações ITBI efetivamente realizadas e registradas na Prefeitura do Rio de Janeiro.",
+  },
+  {
+    icon: Shield,
+    title: "Dados Oficiais do Governo",
+    description: "Acesso exclusivo a +80.000 registros oficiais de compra e venda de imóveis dos últimos 5 anos, atualizados mensalmente.",
+  },
+  {
+    icon: TrendingUp,
+    title: "Precisão de Mercado",
+    description: "Valores baseados no que compradores realmente pagaram, não em preços de anúncios inflacionados ou estimativas genéricas.",
+  },
+];
+
 const BENEFITS = [
-  "Estimativa baseada em transações reais de compra e venda",
+  "Baseada em transações reais de compra e venda (ITBI)",
   "Dados oficiais da Prefeitura do Rio de Janeiro",
-  "Análise específica por bairro e tipologia",
+  "Análise específica por bairro, rua e tipologia",
   "Resultado instantâneo e gratuito",
 ];
 
@@ -134,17 +152,24 @@ export default function AvaliacaoPublica() {
         {step === "form" && (
           <section className="py-8 px-4">
             <div className="container mx-auto max-w-2xl text-center space-y-4">
+              {/* Differentiator Badge */}
+              <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-accent/10 border border-accent/30 text-accent text-sm font-medium">
+                <Sparkles className="h-4 w-4" />
+                Avaliação baseada em transações reais ITBI
+              </div>
+              
               <h2 className="text-3xl md:text-4xl font-bold tracking-tight">
                 Quanto vale o imóvel que você quer{" "}
                 <span className="text-accent">comprar?</span>
               </h2>
               <p className="text-lg text-muted-foreground max-w-xl mx-auto">
-                Descubra em segundos o valor de mercado baseado em transações reais. 
-                Negocie com confiança.
+                Descubra o valor real de mercado baseado em{" "}
+                <strong className="text-foreground">transações oficiais de compra e venda</strong>, 
+                não em estimativas ou anúncios. Negocie com confiança.
               </p>
               
               {/* Trust Badges */}
-              <div className="flex flex-wrap justify-center gap-4 pt-4">
+              <div className="flex flex-wrap justify-center gap-3 pt-4">
                 {TRUST_BADGES.map((badge, index) => (
                   <div 
                     key={index}
@@ -178,6 +203,51 @@ export default function AvaliacaoPublica() {
                     </li>
                   ))}
                 </ul>
+              </div>
+
+              {/* Differentials Section */}
+              <div className="space-y-4">
+                <h3 className="font-semibold text-center text-lg">
+                  Nosso Diferencial
+                </h3>
+                <div className="space-y-3">
+                  {DIFFERENTIALS.map((diff, index) => (
+                    <div 
+                      key={index}
+                      className="bg-gradient-to-r from-accent/5 to-transparent rounded-lg p-4 border border-accent/20"
+                    >
+                      <div className="flex items-start gap-3">
+                        <div className="p-2 rounded-lg bg-accent/10 shrink-0">
+                          <diff.icon className="h-5 w-5 text-accent" />
+                        </div>
+                        <div>
+                          <h4 className="font-medium text-sm">{diff.title}</h4>
+                          <p className="text-xs text-muted-foreground mt-1">{diff.description}</p>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Disclaimer */}
+              <div className="bg-muted/50 rounded-xl p-4 border border-border">
+                <div className="flex items-start gap-3">
+                  <AlertCircle className="h-5 w-5 text-muted-foreground shrink-0 mt-0.5" />
+                  <div className="space-y-2">
+                    <p className="text-xs text-muted-foreground">
+                      <strong className="text-foreground">Avaliação Rápida:</strong> Esta é uma estimativa simplificada 
+                      baseada em dados históricos de transações ITBI. Para uma análise mais completa e personalizada, 
+                      oferecemos nossa <strong className="text-accent">Avaliação Completa</strong>, que inclui também 
+                      análise dos imóveis anunciados no mercado atual, tendências de valorização e características 
+                      específicas do seu imóvel.
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      Preencha o formulário acima para receber sua avaliação rápida gratuita e, se desejar, 
+                      solicitar uma avaliação completa com um de nossos especialistas.
+                    </p>
+                  </div>
+                </div>
               </div>
             </div>
           )}
