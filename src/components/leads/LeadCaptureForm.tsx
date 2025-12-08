@@ -84,9 +84,67 @@ export function LeadCaptureForm({
   const onSubmit = async (data: LeadFormData) => {
     setIsSubmitting(true);
     try {
+      const normalizedEmail = data.email.trim().toLowerCase();
+      
+      // Check if this email already exists and has reached the limit
+      const { data: existingLead } = await supabase
+        .from("leads")
+        .select("id, evaluation_count")
+        .eq("email", normalizedEmail)
+        .maybeSingle();
+
+      if (existingLead) {
+        // Update existing lead with incremented count
+        const newCount = (existingLead.evaluation_count || 1) + 1;
+        
+        if (newCount > 2) {
+          // Limit reached - show message
+          toast.error("Limite de avaliações gratuitas atingido. Entre em contato para liberar mais consultas.");
+          
+          // Open WhatsApp for contact
+          const whatsappNumber = "5521964075124";
+          const message = encodeURIComponent(
+            `Olá! Sou ${data.nome.trim()}.\n\nAtingi o limite de avaliações gratuitas e gostaria de solicitar a liberação de mais consultas.\n\nMeu email: ${normalizedEmail}\nMeu telefone: ${data.telefone}`
+          );
+          window.open(`https://wa.me/${whatsappNumber}?text=${message}`, '_blank');
+          return;
+        }
+        
+        await supabase
+          .from("leads")
+          .update({ 
+            evaluation_count: newCount,
+            updated_at: new Date().toISOString(),
+            // Update other info
+            nome: data.nome.trim(),
+            telefone: data.telefone.replace(/\D/g, ""),
+            bairro_interesse: bairroInteresse,
+            area_interesse: areaInteresse,
+            valor_interesse: valorInteresse,
+            quartos,
+            banheiros,
+            suites,
+            vagas,
+            interesse: data.interesse,
+          })
+          .eq("id", existingLead.id);
+
+        toast.success(`Avaliação ${newCount} de 2 gratuitas utilizada.`);
+        
+        onSuccess({
+          id: existingLead.id,
+          nome: data.nome.trim(),
+          email: normalizedEmail,
+          telefone: data.telefone.replace(/\D/g, ""),
+          interesse: data.interesse,
+        });
+        return;
+      }
+
+      // New lead - insert with count = 1
       const { data: insertedLead, error } = await supabase.from("leads").insert({
         nome: data.nome.trim(),
-        email: data.email.trim().toLowerCase(),
+        email: normalizedEmail,
         telefone: data.telefone.replace(/\D/g, ""),
         bairro_interesse: bairroInteresse,
         area_interesse: areaInteresse,
@@ -97,6 +155,7 @@ export function LeadCaptureForm({
         vagas,
         interesse: data.interesse,
         origem,
+        evaluation_count: 1,
       }).select('id').single();
 
       if (error) throw error;
@@ -108,7 +167,7 @@ export function LeadCaptureForm({
             type: 'initial',
             leadId: insertedLead.id,
             leadName: data.nome.trim(),
-            leadEmail: data.email.trim().toLowerCase(),
+            leadEmail: normalizedEmail,
             leadPhone: data.telefone.replace(/\D/g, ""),
             interesse: data.interesse,
             bairro: bairroInteresse,
@@ -122,32 +181,15 @@ export function LeadCaptureForm({
             estimativaMax: valorInteresse ? valorInteresse * 1.1 : undefined,
           }
         });
-
-        // Open WhatsApp for immediate contact
-        const whatsappNumber = "5521964075124";
-        const isCompra = data.interesse === "compra";
-        const serviceType = isCompra ? "Personal Shopper Imobiliário" : "Captação de Imóveis";
-        const message = encodeURIComponent(
-          `🆕 NOVO LEAD - ${serviceType.toUpperCase()}\n\n` +
-          `Nome: ${data.nome.trim()}\n` +
-          `Telefone: ${data.telefone}\n` +
-          `Email: ${data.email.trim()}\n` +
-          `Interesse: ${isCompra ? 'Comprar Imóvel' : 'Vender Imóvel'}\n` +
-          `${bairroInteresse ? `Bairro: ${bairroInteresse}\n` : ''}` +
-          `${areaInteresse ? `Área: ${areaInteresse}m²\n` : ''}` +
-          `${valorInteresse ? `Valor estimado: R$ ${valorInteresse.toLocaleString('pt-BR')}\n` : ''}`
-        );
-        window.open(`https://wa.me/${whatsappNumber}?text=${message}`, '_blank');
       } catch (notificationError) {
         console.error('Error sending lead notification:', notificationError);
-        // Continue even if notification fails
       }
 
-      toast.success("Cadastro realizado com sucesso!");
+      toast.success("Cadastro realizado! Você tem 2 avaliações gratuitas.");
       onSuccess({
         id: insertedLead.id,
         nome: data.nome.trim(),
-        email: data.email.trim().toLowerCase(),
+        email: normalizedEmail,
         telefone: data.telefone.replace(/\D/g, ""),
         interesse: data.interesse,
       });
