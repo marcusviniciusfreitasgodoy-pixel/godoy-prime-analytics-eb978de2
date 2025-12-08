@@ -17,6 +17,7 @@ import Documentacao from "./pages/Documentacao";
 import AvaliacaoPublica from "./pages/AvaliacaoPublica";
 import Leads from "./pages/Leads";
 import Auth from "./pages/Auth";
+import ResetPassword from "./pages/ResetPassword";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -36,6 +37,9 @@ const App = () => {
                 
                 {/* Página de autenticação */}
                 <Route path="/auth" element={<Auth />} />
+                
+                {/* Página de redefinir senha */}
+                <Route path="/reset-password" element={<ResetPassword />} />
                 
                 {/* Páginas protegidas com layout completo */}
                 <Route
