@@ -219,17 +219,17 @@ export default function AvaliacaoPublica() {
         </main>
 
         {/* Premium Footer */}
-        <footer className="border-t border-primary/10 mt-auto py-8 bg-card/50 backdrop-blur">
+        <footer className="border-t border-accent/30 mt-auto py-8 bg-[#0C2340]">
           <div className="container mx-auto px-4 text-center space-y-3">
-            <img src={godoyLogo} alt="Godoy Prime" className="h-8 w-auto mx-auto opacity-80" />
-            <p className="text-sm text-muted-foreground">
+            <img src={godoyLogo} alt="Godoy Prime" className="h-8 w-auto mx-auto" />
+            <p className="text-sm text-white/80">
               © {new Date().getFullYear()} Godoy Prime Realty. CRECI 11841-PJ
             </p>
-            <p className="text-xs text-muted-foreground max-w-md mx-auto">
+            <p className="text-xs text-white/60 max-w-md mx-auto">
               Dados baseados em +80.000 transações oficiais ITBI da Prefeitura do Rio de Janeiro. 
               Esta é uma estimativa automatizada e não substitui uma avaliação profissional.
             </p>
-            <div className="flex justify-center gap-4 pt-2 text-xs text-muted-foreground">
+            <div className="flex justify-center gap-4 pt-2 text-xs text-white/60">
               <span>Av. das Américas, 10101 - Bloco 2, Sala 316</span>
               <span>•</span>
               <span>(21) 4040-0067</span>
