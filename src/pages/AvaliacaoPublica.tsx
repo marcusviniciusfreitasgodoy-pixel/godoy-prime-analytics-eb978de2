@@ -103,12 +103,12 @@ export default function AvaliacaoPublica() {
 
       <div className="min-h-screen bg-gradient-to-br from-[hsl(var(--primary)/0.05)] via-background to-[hsl(var(--accent)/0.05)]">
         {/* Premium Header */}
-        <header className="border-b border-primary/10 bg-card/90 backdrop-blur-md sticky top-0 z-50">
+        <header className="border-b border-accent/30 bg-[#0C2340] sticky top-0 z-50">
           <div className="container mx-auto px-4 py-4 flex items-center justify-between">
             <div className="flex items-center gap-3">
               <img src={godoyLogo} alt="Godoy Prime" className="h-12 w-auto drop-shadow-lg" />
               <div>
-                <h1 className="font-semibold text-lg tracking-tight">Godoy Prime Realty</h1>
+                <h1 className="font-semibold text-lg tracking-tight text-white">Godoy Prime Realty</h1>
                 <p className="text-xs text-accent font-medium">Avaliação Imobiliária Premium</p>
               </div>
             </div>

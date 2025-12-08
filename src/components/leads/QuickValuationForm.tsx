@@ -1,11 +1,13 @@
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Calculator, MapPin, Maximize2, Home, ArrowRight, Loader2 } from "lucide-react";
+import { Calculator, MapPin, Maximize2, Home, ArrowRight, Loader2, Building2, Search } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/integrations/supabase/client";
+import { useStreetSuggestions } from "@/hooks/useStreetSuggestions";
 
 interface QuickValuationData {
   bairro: string;
@@ -55,6 +57,34 @@ export function QuickValuationForm({ onComplete }: QuickValuationFormProps) {
   const [tipologia, setTipologia] = useState("Apartamento");
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
+  const [showSuggestions, setShowSuggestions] = useState(false);
+  const inputRef = useRef<HTMLInputElement>(null);
+  const suggestionsRef = useRef<HTMLDivElement>(null);
+
+  // Hook de busca de sugestões de ruas
+  const { data: suggestions, isLoading: suggestionsLoading } = useStreetSuggestions(logradouro, bairro);
+
+  // Fechar dropdown ao clicar fora
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (
+        suggestionsRef.current &&
+        !suggestionsRef.current.contains(event.target as Node) &&
+        inputRef.current &&
+        !inputRef.current.contains(event.target as Node)
+      ) {
+        setShowSuggestions(false);
+      }
+    };
+
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  const handleSelectSuggestion = (suggestion: { logradouro: string; nome_condominio?: string }) => {
+    setLogradouro(suggestion.nome_condominio || suggestion.logradouro);
+    setShowSuggestions(false);
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -166,18 +196,86 @@ export function QuickValuationForm({ onComplete }: QuickValuationFormProps) {
             </Select>
           </div>
 
-          <div className="space-y-2">
+          {/* Campo de rua com autocomplete */}
+          <div className="space-y-2 relative">
             <Label htmlFor="logradouro" className="flex items-center gap-2 text-sm font-medium">
-              <MapPin className="h-4 w-4 text-muted-foreground" />
-              Rua / Endereço (opcional)
+              <Building2 className="h-4 w-4 text-accent" />
+              Rua / Condomínio
             </Label>
-            <Input
-              id="logradouro"
-              placeholder="Ex: Avenida das Américas"
-              value={logradouro}
-              onChange={(e) => setLogradouro(e.target.value)}
-              className="border-primary/20 focus-visible:ring-accent/30"
-            />
+            <div className="relative">
+              <Input
+                ref={inputRef}
+                id="logradouro"
+                placeholder="Digite o nome da rua ou condomínio..."
+                value={logradouro}
+                onChange={(e) => {
+                  setLogradouro(e.target.value);
+                  setShowSuggestions(true);
+                }}
+                onFocus={() => setShowSuggestions(true)}
+                className="border-primary/20 focus-visible:ring-accent/30 pr-10"
+                autoComplete="off"
+              />
+              {suggestionsLoading && logradouro.length >= 2 && (
+                <Loader2 className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 animate-spin text-muted-foreground" />
+              )}
+              {!suggestionsLoading && logradouro.length >= 2 && (
+                <Search className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              )}
+            </div>
+
+            {/* Dropdown de sugestões */}
+            {showSuggestions && suggestions && suggestions.length > 0 && logradouro.length >= 2 && (
+              <div 
+                ref={suggestionsRef}
+                className="absolute z-50 w-full mt-1 bg-card border border-border rounded-lg shadow-xl max-h-64 overflow-y-auto"
+              >
+                {suggestions.map((suggestion, index) => (
+                  <button
+                    key={`${suggestion.logradouro}-${index}`}
+                    type="button"
+                    onClick={() => handleSelectSuggestion(suggestion)}
+                    className="w-full px-4 py-3 text-left hover:bg-accent/10 border-b border-border/50 last:border-0 transition-colors"
+                  >
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="flex-1 min-w-0">
+                        {suggestion.nome_condominio ? (
+                          <>
+                            <p className="font-medium text-sm truncate text-foreground">
+                              {suggestion.nome_condominio}
+                            </p>
+                            <p className="text-xs text-muted-foreground truncate">
+                              {suggestion.logradouro}
+                            </p>
+                          </>
+                        ) : (
+                          <p className="font-medium text-sm truncate text-foreground">
+                            {suggestion.logradouro}
+                          </p>
+                        )}
+                        {suggestion.microbairro && (
+                          <p className="text-xs text-accent mt-0.5">
+                            {suggestion.microbairro}
+                          </p>
+                        )}
+                      </div>
+                      <Badge 
+                        variant="secondary" 
+                        className="shrink-0 text-xs bg-primary/10 text-primary"
+                      >
+                        {suggestion.total_transacoes} trans.
+                      </Badge>
+                    </div>
+                  </button>
+                ))}
+              </div>
+            )}
+
+            {showSuggestions && logradouro.length >= 2 && suggestions?.length === 0 && !suggestionsLoading && (
+              <div className="absolute z-50 w-full mt-1 bg-card border border-border rounded-lg shadow-xl p-4 text-center text-sm text-muted-foreground">
+                Nenhum resultado encontrado para "{logradouro}"
+              </div>
+            )}
           </div>
 
           <div className="grid grid-cols-2 gap-4">
