@@ -47,7 +47,6 @@ const BAIRROS_POPULARES = [
 const TIPOLOGIAS = [
   { value: "Apartamento", label: "Apartamento" },
   { value: "Casa", label: "Casa" },
-  { value: "Cobertura", label: "Cobertura" },
 ];
 
 export function QuickValuationForm({ onComplete }: QuickValuationFormProps) {
