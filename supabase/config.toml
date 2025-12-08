@@ -23,3 +23,6 @@ verify_jwt = false
 
 [functions.analyze-document]
 verify_jwt = false
+
+[functions.send-lead-notification]
+verify_jwt = false

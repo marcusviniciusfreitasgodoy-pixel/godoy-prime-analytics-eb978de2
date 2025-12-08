@@ -25,6 +25,14 @@ const leadSchema = z.object({
 
 type LeadFormData = z.infer<typeof leadSchema>;
 
+interface LeadCaptureFormResult {
+  id: string;
+  nome: string;
+  email: string;
+  telefone: string;
+  interesse: "compra" | "venda";
+}
+
 interface LeadCaptureFormProps {
   bairroInteresse?: string;
   areaInteresse?: number;
@@ -34,7 +42,7 @@ interface LeadCaptureFormProps {
   suites?: number;
   vagas?: number;
   origem?: string;
-  onSuccess: (leadData: LeadFormData) => void;
+  onSuccess: (leadData: LeadCaptureFormResult) => void;
 }
 
 export function LeadCaptureForm({
@@ -76,7 +84,7 @@ export function LeadCaptureForm({
   const onSubmit = async (data: LeadFormData) => {
     setIsSubmitting(true);
     try {
-      const { error } = await supabase.from("leads").insert({
+      const { data: insertedLead, error } = await supabase.from("leads").insert({
         nome: data.nome.trim(),
         email: data.email.trim().toLowerCase(),
         telefone: data.telefone.replace(/\D/g, ""),
@@ -89,12 +97,18 @@ export function LeadCaptureForm({
         vagas,
         interesse: data.interesse,
         origem,
-      });
+      }).select('id').single();
 
       if (error) throw error;
 
       toast.success("Cadastro realizado com sucesso!");
-      onSuccess(data);
+      onSuccess({
+        id: insertedLead.id,
+        nome: data.nome.trim(),
+        email: data.email.trim().toLowerCase(),
+        telefone: data.telefone.replace(/\D/g, ""),
+        interesse: data.interesse,
+      });
     } catch (error) {
       console.error("Erro ao cadastrar lead:", error);
       toast.error("Erro ao realizar cadastro. Tente novamente.");
