@@ -91,6 +91,14 @@ export function useStreetSuggestions(query: string, bairro: string = 'BARRA DA T
         'PINHEIRO': 'PINHEIRO',
         'PINHERO': 'PINHEIRO',
         
+        // Sobrenomes com letras duplicadas - variações comuns
+        'ESTELITA': 'ESTELLITA',
+        'ESTELLITA': 'ESTELLITA',
+        'ESTELITÃ': 'ESTELLITA',
+        'ESTRELITA': 'ESTELLITA',
+        'ROSAURO': 'ROSAURO',
+        'ROZAURO': 'ROSAURO',
+        
         // Locais específicos Barra/RJ
         'AMERICAS': 'AMERICAS',
         'AMERCIAS': 'AMERICAS',
@@ -173,6 +181,37 @@ export function useStreetSuggestions(query: string, bairro: string = 'BARRA DA T
         'BUENO': 'BUENO',
         'BUEÑO': 'BUENO',
       };
+      
+      // Função para gerar variações com letras duplicadas/simples
+      const generateDuplicateVariations = (word: string): string[] => {
+        const variations: string[] = [word];
+        // Padrões de letras que frequentemente são duplicadas
+        const duplicatePatterns = [
+          { single: 'L', double: 'LL' },
+          { single: 'R', double: 'RR' },
+          { single: 'S', double: 'SS' },
+          { single: 'T', double: 'TT' },
+          { single: 'N', double: 'NN' },
+          { single: 'C', double: 'CC' },
+          { single: 'P', double: 'PP' },
+          { single: 'F', double: 'FF' },
+        ];
+        
+        duplicatePatterns.forEach(({ single, double }) => {
+          // Adicionar variação com letra duplicada
+          if (word.includes(single) && !word.includes(double)) {
+            const withDouble = word.replace(new RegExp(single, 'g'), double);
+            if (!variations.includes(withDouble)) variations.push(withDouble);
+          }
+          // Adicionar variação com letra simples
+          if (word.includes(double)) {
+            const withSingle = word.replace(new RegExp(double, 'g'), single);
+            if (!variations.includes(withSingle)) variations.push(withSingle);
+          }
+        });
+        
+        return variations;
+      };
 
       // Aplicar correções de digitação
       let correctedSearch = cleanedSearch;
@@ -180,8 +219,20 @@ export function useStreetSuggestions(query: string, bairro: string = 'BARRA DA T
         correctedSearch = correctedSearch.replace(new RegExp(typo, 'gi'), correction);
       });
 
-      // Gerar variações de busca baseadas em abreviações
+      // Gerar variações de busca baseadas em abreviações e letras duplicadas
       const searchVariations: string[] = [cleanedSearch, correctedSearch];
+      
+      // Adicionar variações com letras duplicadas/simples
+      const duplicateVars = generateDuplicateVariations(cleanedSearch);
+      duplicateVars.forEach(v => {
+        if (!searchVariations.includes(v)) searchVariations.push(v);
+      });
+      
+      const correctedDuplicateVars = generateDuplicateVariations(correctedSearch);
+      correctedDuplicateVars.forEach(v => {
+        if (!searchVariations.includes(v)) searchVariations.push(v);
+      });
+      
       const words = cleanedSearch.split(/\s+/);
       
       words.forEach(word => {
@@ -194,6 +245,17 @@ export function useStreetSuggestions(query: string, bairro: string = 'BARRA DA T
             }
           });
         }
+        
+        // Também gerar variações de letras duplicadas para cada palavra
+        const wordDuplicateVars = generateDuplicateVariations(word);
+        wordDuplicateVars.forEach(variation => {
+          if (variation !== word) {
+            const newSearch = cleanedSearch.replace(new RegExp(`\\b${word}\\b`, 'gi'), variation);
+            if (!searchVariations.includes(newSearch)) {
+              searchVariations.push(newSearch);
+            }
+          }
+        });
       });
 
       // Também aplicar correções nas variações

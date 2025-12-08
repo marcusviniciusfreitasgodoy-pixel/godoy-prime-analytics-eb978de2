@@ -10,6 +10,7 @@ import { Loader2, FileDown, Search, FileText, X, FileSpreadsheet, MapPin, Buildi
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { exportToCSV, exportToXLSX, exportToPDF } from "@/utils/exportUtils";
+import { generateFuzzyVariations } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
 import { ScrollArea } from "./ui/scroll-area";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "./ui/dropdown-menu";
@@ -126,7 +127,10 @@ export function EmbeddedAdvancedSearch({ defaultBairro = "BARRA DA TIJUCA" }: Em
         query = query.ilike('bairro', `%${searchParams.bairro}%`);
       }
       if (searchParams.logradouro) {
-        query = query.ilike('logradouro', `%${searchParams.logradouro}%`);
+        // Gerar variações fuzzy para tolerar erros de ortografia
+        const variations = generateFuzzyVariations(searchParams.logradouro);
+        const orConditions = variations.map(v => `logradouro.ilike.%${v}%`).join(',');
+        query = query.or(orConditions);
       }
 
       const { data, error } = await query;
