@@ -33,7 +33,13 @@ export function QuickValuationResult({
   onProceedToComplete, 
   onNewValuation 
 }: QuickValuationResultProps) {
-  const formatCurrency = (value: number) => {
+  const formatCurrency = (value: number, compact = false) => {
+    if (compact && value >= 1000000) {
+      return `R$ ${(value / 1000000).toFixed(1).replace('.', ',')} mi`;
+    }
+    if (compact && value >= 1000) {
+      return `R$ ${(value / 1000).toFixed(0)} mil`;
+    }
     return new Intl.NumberFormat("pt-BR", {
       style: "currency",
       currency: "BRL",
@@ -88,44 +94,44 @@ export function QuickValuationResult({
                 Faixa de Valor Estimada
               </h3>
               
-              <div className="grid grid-cols-3 gap-2">
-                <div className="text-center p-3 rounded-lg bg-muted/50">
-                  <TrendingDown className="h-4 w-4 mx-auto mb-1 text-yellow-600" />
-                  <p className="text-[10px] text-muted-foreground mb-0.5">Mínimo</p>
-                  <p className="font-bold text-sm">{formatCurrency(data.estimativa!.min)}</p>
+              <div className="grid grid-cols-3 gap-1.5 sm:gap-2">
+                <div className="text-center p-2 sm:p-3 rounded-lg bg-muted/50">
+                  <TrendingDown className="h-3 w-3 sm:h-4 sm:w-4 mx-auto mb-0.5 sm:mb-1 text-yellow-600" />
+                  <p className="text-[9px] sm:text-[10px] text-muted-foreground">Mínimo</p>
+                  <p className="font-bold text-[11px] sm:text-sm leading-tight">{formatCurrency(data.estimativa!.min, true)}</p>
                 </div>
                 
-                <div className="text-center p-3 rounded-lg bg-primary/10 border border-primary/20">
-                  <Calculator className="h-4 w-4 mx-auto mb-1 text-primary" />
-                  <p className="text-[10px] text-muted-foreground mb-0.5">Médio</p>
-                  <p className="font-bold text-base text-primary">{formatCurrency(data.estimativa!.med)}</p>
+                <div className="text-center p-2 sm:p-3 rounded-lg bg-primary/10 border border-primary/20">
+                  <Calculator className="h-3 w-3 sm:h-4 sm:w-4 mx-auto mb-0.5 sm:mb-1 text-primary" />
+                  <p className="text-[9px] sm:text-[10px] text-muted-foreground">Médio</p>
+                  <p className="font-bold text-xs sm:text-base text-primary leading-tight">{formatCurrency(data.estimativa!.med, true)}</p>
                 </div>
                 
-                <div className="text-center p-3 rounded-lg bg-muted/50">
-                  <TrendingUp className="h-4 w-4 mx-auto mb-1 text-green-600" />
-                  <p className="text-[10px] text-muted-foreground mb-0.5">Máximo</p>
-                  <p className="font-bold text-sm">{formatCurrency(data.estimativa!.max)}</p>
+                <div className="text-center p-2 sm:p-3 rounded-lg bg-muted/50">
+                  <TrendingUp className="h-3 w-3 sm:h-4 sm:w-4 mx-auto mb-0.5 sm:mb-1 text-green-600" />
+                  <p className="text-[9px] sm:text-[10px] text-muted-foreground">Máximo</p>
+                  <p className="font-bold text-[11px] sm:text-sm leading-tight">{formatCurrency(data.estimativa!.max, true)}</p>
                 </div>
               </div>
 
               {/* Market Reference */}
-              <div className="bg-muted/30 rounded-lg p-4 space-y-2">
-                <h4 className="text-sm font-medium">Referência de Mercado (R$/m²)</h4>
-                <div className="grid grid-cols-3 gap-2 text-center text-sm">
+              <div className="bg-muted/30 rounded-lg p-3 sm:p-4 space-y-2">
+                <h4 className="text-xs sm:text-sm font-medium text-center">Referência de Mercado (R$/m²)</h4>
+                <div className="grid grid-cols-3 gap-1 text-center text-xs sm:text-sm">
                   <div>
-                    <p className="text-muted-foreground">Mín</p>
-                    <p className="font-medium">{formatCurrency(data.itbiData!.min_m2)}</p>
+                    <p className="text-[10px] sm:text-xs text-muted-foreground">Mín</p>
+                    <p className="font-medium text-[11px] sm:text-sm">{formatCurrency(data.itbiData!.min_m2, true)}</p>
                   </div>
                   <div>
-                    <p className="text-muted-foreground">Méd</p>
-                    <p className="font-medium">{formatCurrency(data.itbiData!.med_m2)}</p>
+                    <p className="text-[10px] sm:text-xs text-muted-foreground">Méd</p>
+                    <p className="font-medium text-[11px] sm:text-sm">{formatCurrency(data.itbiData!.med_m2, true)}</p>
                   </div>
                   <div>
-                    <p className="text-muted-foreground">Máx</p>
-                    <p className="font-medium">{formatCurrency(data.itbiData!.max_m2)}</p>
+                    <p className="text-[10px] sm:text-xs text-muted-foreground">Máx</p>
+                    <p className="font-medium text-[11px] sm:text-sm">{formatCurrency(data.itbiData!.max_m2, true)}</p>
                   </div>
                 </div>
-                <p className="text-xs text-muted-foreground text-center pt-2">
+                <p className="text-[10px] sm:text-xs text-muted-foreground text-center pt-1 sm:pt-2">
                   Baseado em {data.itbiData!.transaction_count} transações dos últimos 12 meses
                 </p>
               </div>
