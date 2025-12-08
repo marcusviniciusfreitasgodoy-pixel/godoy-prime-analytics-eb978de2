@@ -58,6 +58,8 @@ export default function Microbairros() {
             rank={item.rank}
             trend={item.trend}
             maxTransacoes={maxTransacoes}
+            condominioNome={item.condominioNome}
+            isTechnicalCode={item.isTechnicalCode}
           />
         ))}
       </div>
