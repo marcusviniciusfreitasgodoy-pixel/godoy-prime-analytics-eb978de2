@@ -43,7 +43,6 @@ type Step = "form" | "lead-capture" | "thank-you" | "result";
 const TRUST_BADGES = [
   { icon: Shield, text: "Dados Oficiais ITBI" },
   { icon: TrendingUp, text: "+80.000 Transações Reais" },
-  { icon: Award, text: "CRECI 11841-PJ" },
 ];
 
 const DIFFERENTIALS = [
