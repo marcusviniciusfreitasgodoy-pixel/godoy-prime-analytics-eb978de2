@@ -289,30 +289,50 @@ export function QuickValuationForm({ onComplete }: QuickValuationFormProps) {
             )}
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="area" className="flex items-center gap-2 text-sm font-medium">
-                <Maximize2 className="h-4 w-4 text-accent" />
-                Área (m²) *
-              </Label>
-              <Input
-                id="area"
-                type="number"
-                placeholder="Ex: 120"
-                value={area}
-                onChange={(e) => setArea(e.target.value)}
-                min="20"
-                max="2000"
-                className="border-primary/20 focus-visible:ring-accent/30"
-              />
+          {/* Tipo - linha separada */}
+          <div className="space-y-2">
+            <Label htmlFor="tipologia" className="flex items-center gap-2 text-sm font-medium">
+              <Home className="h-4 w-4 text-accent" />
+              Tipo de Imóvel *
+            </Label>
+            <Select value={tipologia} onValueChange={setTipologia}>
+              <SelectTrigger className="border-primary/20 focus:ring-accent/30">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {TIPOLOGIAS.map((t) => (
+                  <SelectItem key={t.value} value={t.value}>
+                    {t.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
 
-          {/* Características do Imóvel */}
+          {/* Área */}
+          <div className="space-y-2">
+            <Label htmlFor="area" className="flex items-center gap-2 text-sm font-medium">
+              <Maximize2 className="h-4 w-4 text-accent" />
+              Área (m²) *
+            </Label>
+            <Input
+              id="area"
+              type="number"
+              placeholder="Ex: 120"
+              value={area}
+              onChange={(e) => setArea(e.target.value)}
+              min="20"
+              max="2000"
+              className="border-primary/20 focus-visible:ring-accent/30"
+            />
+          </div>
+
+          {/* Características do Imóvel - Grid responsivo */}
           <div className="space-y-3">
             <Label className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
               Características do Imóvel (opcional)
             </Label>
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
               <div className="space-y-1.5">
                 <Label htmlFor="quartos" className="flex items-center gap-1.5 text-xs">
                   <BedDouble className="h-3.5 w-3.5 text-accent" />
@@ -377,26 +397,6 @@ export function QuickValuationForm({ onComplete }: QuickValuationFormProps) {
                   className="border-primary/20 focus-visible:ring-accent/30 h-9"
                 />
               </div>
-            </div>
-          </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="tipologia" className="flex items-center gap-2 text-sm font-medium">
-                <Home className="h-4 w-4 text-muted-foreground" />
-                Tipo
-              </Label>
-              <Select value={tipologia} onValueChange={setTipologia}>
-                <SelectTrigger className="border-primary/20 focus:ring-accent/30">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {TIPOLOGIAS.map((t) => (
-                    <SelectItem key={t.value} value={t.value}>
-                      {t.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
             </div>
           </div>
 
