@@ -79,6 +79,22 @@ export function Step3Questionnaire({
     return total;
   };
 
+  // Calcula progresso de respostas por categoria
+  const getCategoryProgress = (category: string) => {
+    const categoryChars = characteristics.filter((c) => c.category === category);
+    const answered = categoryChars.filter((char) => 
+      state.responses.some((r) => r.char_id === char.id)
+    ).length;
+    return { answered, total: categoryChars.length };
+  };
+
+  // Progresso total
+  const totalProgress = useMemo(() => {
+    const answered = state.responses.length;
+    const total = characteristics.length;
+    return { answered, total, percentage: total > 0 ? Math.round((answered / total) * 100) : 0 };
+  }, [state.responses.length, characteristics.length]);
+
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat("pt-BR", {
       style: "currency",
@@ -94,6 +110,33 @@ export function Step3Questionnaire({
 
   return (
     <div className="space-y-6">
+      {/* Barra de progresso geral */}
+      <div className="flex items-center gap-3 p-3 bg-muted/30 rounded-lg">
+        <div className="flex-1">
+          <div className="flex items-center justify-between mb-1">
+            <span className="text-sm font-medium">Progresso das Respostas</span>
+            <span className="text-sm text-muted-foreground">
+              {totalProgress.answered}/{totalProgress.total} respondidas
+            </span>
+          </div>
+          <div className="h-2 bg-muted rounded-full overflow-hidden">
+            <div 
+              className={`h-full transition-all duration-300 ${
+                totalProgress.percentage === 100 ? 'bg-emerald-500' : 'bg-primary'
+              }`}
+              style={{ width: `${totalProgress.percentage}%` }}
+            />
+          </div>
+        </div>
+        {totalProgress.percentage === 100 ? (
+          <Badge className="bg-emerald-500">✓ Completo</Badge>
+        ) : (
+          <Badge variant="outline" className="text-amber-600 border-amber-600">
+            {totalProgress.total - totalProgress.answered} pendentes
+          </Badge>
+        )}
+      </div>
+
       <Tabs value={activeTab} onValueChange={setActiveTab}>
         {Object.entries(groupedChars).map(([key, category]) => (
           <TabsContent key={key} value={key} className="space-y-4 mt-4">
@@ -230,12 +273,13 @@ export function Step3Questionnaire({
           {Object.entries(groupedChars).map(([key, category]) => {
             const Icon = CATEGORY_ICONS[key] || Eye;
             const adjustment = getCategoryAdjustment(key);
-            const isActive = activeTab === key;
+            const progress = getCategoryProgress(key);
+            const isComplete = progress.answered === progress.total;
             return (
               <TabsTrigger
                 key={key}
                 value={key}
-                className="flex flex-col items-center gap-0.5 py-1.5 px-2 sm:px-3 text-xs min-w-[45px] sm:min-w-0"
+                className="flex flex-col items-center gap-0.5 py-1.5 px-2 sm:px-3 text-xs min-w-[45px] sm:min-w-0 relative"
               >
                 <Icon className={`h-4 w-4 sm:h-5 sm:w-5 ${CATEGORY_COLORS[key]}`} />
                 <span className="text-[10px] sm:text-xs font-medium">{key}</span>
@@ -246,6 +290,10 @@ export function Step3Questionnaire({
                   >
                     {formatPercent(adjustment)}
                   </Badge>
+                )}
+                {/* Indicador de completude */}
+                {isComplete && (
+                  <span className="absolute -top-1 -right-1 w-3 h-3 bg-emerald-500 rounded-full flex items-center justify-center text-[8px] text-white">✓</span>
                 )}
               </TabsTrigger>
             );
