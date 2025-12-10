@@ -90,11 +90,11 @@ export function ValuationEngine({ bairro = "BARRA DA TIJUCA", vistoriaData }: Pr
       case 2:
         return state.area_m2 > 0;
       case 3:
-        // Exige que todos os 26 quesitos sejam respondidos E status de documentação selecionado
-        const totalCharacteristics = characteristics?.length || 26;
-        const hasAllResponses = state.responses.length >= totalCharacteristics;
+        // Exige pelo menos 1 resposta e status de documentação selecionado
+        // Respostas "nao_aplica" também contam como respondidas
+        const hasAtLeastOneResponse = state.responses.length > 0;
         const hasDocStatus = state.docStatus && state.docStatus.trim() !== "";
-        return hasAllResponses && hasDocStatus;
+        return hasAtLeastOneResponse && hasDocStatus;
       case 4:
         return state.result !== null;
       default:
