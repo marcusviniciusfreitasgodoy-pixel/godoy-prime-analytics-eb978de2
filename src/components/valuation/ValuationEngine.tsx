@@ -54,9 +54,24 @@ export function ValuationEngine({ bairro = "BARRA DA TIJUCA", vistoriaData }: Pr
   const [currentStep, setCurrentStep] = useState(1);
   const [state, setState] = useState<ValuationState>({ ...initialValuationState, bairro });
   const [fromVistoria, setFromVistoria] = useState(false);
+  const [responsesInitialized, setResponsesInitialized] = useState(false);
   
   const { data: characteristics, isLoading: loadingChars } = useValuationCharacteristics();
   const { data: docFactors, isLoading: loadingDocs } = useDocumentationFactors();
+
+  // Inicializar todas as respostas como "nao" quando características carregarem
+  useEffect(() => {
+    if (characteristics && characteristics.length > 0 && !responsesInitialized && state.responses.length === 0) {
+      const initialResponses = characteristics.map((char) => ({
+        char_id: char.id,
+        char_code: char.char_code,
+        response: "nao" as const,
+        weight_applied: 0,
+      }));
+      updateState({ responses: initialResponses });
+      setResponsesInitialized(true);
+    }
+  }, [characteristics, responsesInitialized, state.responses.length]);
 
   // Check for vistoria data from navigation or props
   useEffect(() => {
@@ -90,11 +105,11 @@ export function ValuationEngine({ bairro = "BARRA DA TIJUCA", vistoriaData }: Pr
       case 2:
         return state.area_m2 > 0;
       case 3:
-        // Exige pelo menos 1 resposta e status de documentação selecionado
-        // Respostas "nao_aplica" também contam como respondidas
-        const hasAtLeastOneResponse = state.responses.length > 0;
+        // Exige que todas as características sejam respondidas E status de documentação selecionado
+        const totalCharacteristics = characteristics?.length || 26;
+        const hasAllResponses = state.responses.length >= totalCharacteristics;
         const hasDocStatus = state.docStatus && state.docStatus.trim() !== "";
-        return hasAtLeastOneResponse && hasDocStatus;
+        return hasAllResponses && hasDocStatus;
       case 4:
         return state.result !== null;
       default:
