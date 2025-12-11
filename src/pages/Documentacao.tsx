@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Accordion,
@@ -21,8 +21,11 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { FileText, HelpCircle, Save, Loader2, ChevronDown, User, Users } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { FileText, HelpCircle, Save, Loader2, ChevronDown, ChevronLeft, ChevronRight, User, Users } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { useSwipeGesture } from "@/hooks/useSwipeGesture";
+import { useIsMobile } from "@/hooks/use-mobile";
 import jsPDF from "jspdf";
 import { formatDate } from "@/utils/exportUtils";
 import { DocumentAnalyzer } from "@/components/DocumentAnalyzer";
@@ -171,7 +174,28 @@ export default function Documentacao() {
   const [flags, setFlags] = useState<AllFlags>(initialFlags);
   const [checklist, setChecklist] = useState<DocumentCategory[]>(() => getInitialChecklist(initialFlags));
   const [isGeneratingPDF, setIsGeneratingPDF] = useState(false);
+  const [currentSectionIndex, setCurrentSectionIndex] = useState(0);
   const { toast } = useToast();
+  const isMobile = useIsMobile();
+
+  // Swipe navigation for mobile
+  const goToNextSection = () => {
+    if (currentSectionIndex < checklist.length - 1) {
+      setCurrentSectionIndex(prev => prev + 1);
+    }
+  };
+
+  const goToPrevSection = () => {
+    if (currentSectionIndex > 0) {
+      setCurrentSectionIndex(prev => prev - 1);
+    }
+  };
+
+  const { handlers: swipeHandlers } = useSwipeGesture({
+    onSwipeLeft: goToNextSection,
+    onSwipeRight: goToPrevSection,
+    minSwipeDistance: 50,
+  });
 
   // Update checklist when flags change
   useEffect(() => {
@@ -617,31 +641,78 @@ export default function Documentacao() {
       <Card className="rounded-none sm:rounded-lg border-x-0 sm:border-x">
         <CardContent className="pt-4 sm:pt-6 px-2 sm:px-6">
           <TooltipProvider>
-            <Accordion type="multiple" className="w-full text-left">
-              {checklist.map((category) => (
-                <AccordionItem key={category.id} value={category.id}>
-                  <AccordionTrigger className="text-base sm:text-lg font-semibold text-left">
-                    {category.title}
-                  </AccordionTrigger>
-                  <AccordionContent>
-                    <div className="space-y-2 sm:space-y-3 pt-2">
-                      {category.items.map((item) => (
+            {/* Mobile: Swipe Navigation Mode */}
+            {isMobile ? (
+              <div className="space-y-3">
+                {/* Navigation Header */}
+                <div className="flex items-center justify-between gap-2 pb-2 border-b">
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8"
+                    onClick={goToPrevSection}
+                    disabled={currentSectionIndex === 0}
+                  >
+                    <ChevronLeft className="h-5 w-5" />
+                  </Button>
+                  <div className="flex-1 text-center">
+                    <p className="text-xs text-muted-foreground">
+                      {currentSectionIndex + 1} de {checklist.length}
+                    </p>
+                    <h3 className="text-sm font-semibold truncate">
+                      {checklist[currentSectionIndex]?.title}
+                    </h3>
+                  </div>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8"
+                    onClick={goToNextSection}
+                    disabled={currentSectionIndex === checklist.length - 1}
+                  >
+                    <ChevronRight className="h-5 w-5" />
+                  </Button>
+                </div>
+
+                {/* Section Dots */}
+                <div className="flex justify-center gap-1.5">
+                  {checklist.map((_, idx) => (
+                    <button
+                      key={idx}
+                      onClick={() => setCurrentSectionIndex(idx)}
+                      className={`w-2 h-2 rounded-full transition-colors ${
+                        idx === currentSectionIndex 
+                          ? 'bg-primary' 
+                          : 'bg-muted-foreground/30'
+                      }`}
+                    />
+                  ))}
+                </div>
+
+                {/* Swipeable Content */}
+                <div 
+                  {...swipeHandlers}
+                  className="min-h-[200px] touch-pan-y"
+                >
+                  {checklist[currentSectionIndex] && (
+                    <div className="space-y-2 pt-2 animate-fade-in">
+                      {checklist[currentSectionIndex].items.map((item) => (
                         <div
                           key={item.id}
-                          className={`flex items-start sm:items-center gap-2 p-2.5 sm:p-3 rounded-lg border bg-card ${
+                          className={`flex items-start gap-2 p-2.5 rounded-lg border bg-card ${
                             item.conditionalOn ? 'border-l-4 border-l-primary/50 bg-primary/5' : ''
                           }`}
                         >
-                          <div className="flex items-start sm:items-center gap-2.5 sm:gap-3 flex-1 min-w-0">
+                          <div className="flex items-start gap-2.5 flex-1 min-w-0">
                             <Checkbox
                               id={item.id}
                               checked={item.checked}
-                              onCheckedChange={() => toggleItemChecked(category.id, item.id)}
-                              className="mt-0.5 sm:mt-0"
+                              onCheckedChange={() => toggleItemChecked(checklist[currentSectionIndex].id, item.id)}
+                              className="mt-0.5"
                             />
                             <label
                               htmlFor={item.id}
-                              className={`font-medium cursor-pointer flex-1 text-sm sm:text-base leading-tight ${
+                              className={`font-medium cursor-pointer flex-1 text-sm leading-tight ${
                                 item.checked ? 'line-through text-muted-foreground' : ''
                               }`}
                             >
@@ -661,10 +732,65 @@ export default function Documentacao() {
                         </div>
                       ))}
                     </div>
-                  </AccordionContent>
-                </AccordionItem>
-              ))}
-            </Accordion>
+                  )}
+                </div>
+
+                {/* Swipe Hint */}
+                <p className="text-[10px] text-center text-muted-foreground">
+                  ← Deslize para navegar →
+                </p>
+              </div>
+            ) : (
+              /* Desktop: Accordion Mode */
+              <Accordion type="multiple" className="w-full text-left">
+                {checklist.map((category) => (
+                  <AccordionItem key={category.id} value={category.id}>
+                    <AccordionTrigger className="text-base sm:text-lg font-semibold text-left">
+                      {category.title}
+                    </AccordionTrigger>
+                    <AccordionContent>
+                      <div className="space-y-2 sm:space-y-3 pt-2">
+                        {category.items.map((item) => (
+                          <div
+                            key={item.id}
+                            className={`flex items-start sm:items-center gap-2 p-2.5 sm:p-3 rounded-lg border bg-card ${
+                              item.conditionalOn ? 'border-l-4 border-l-primary/50 bg-primary/5' : ''
+                            }`}
+                          >
+                            <div className="flex items-start sm:items-center gap-2.5 sm:gap-3 flex-1 min-w-0">
+                              <Checkbox
+                                id={item.id}
+                                checked={item.checked}
+                                onCheckedChange={() => toggleItemChecked(category.id, item.id)}
+                                className="mt-0.5 sm:mt-0"
+                              />
+                              <label
+                                htmlFor={item.id}
+                                className={`font-medium cursor-pointer flex-1 text-sm sm:text-base leading-tight ${
+                                  item.checked ? 'line-through text-muted-foreground' : ''
+                                }`}
+                              >
+                                {item.label}
+                              </label>
+                            </div>
+                            {item.tooltip && (
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <HelpCircle className="h-4 w-4 text-muted-foreground cursor-help flex-shrink-0" />
+                                </TooltipTrigger>
+                                <TooltipContent className="max-w-xs">
+                                  <p>{item.tooltip}</p>
+                                </TooltipContent>
+                              </Tooltip>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    </AccordionContent>
+                  </AccordionItem>
+                ))}
+              </Accordion>
+            )}
           </TooltipProvider>
         </CardContent>
       </Card>
