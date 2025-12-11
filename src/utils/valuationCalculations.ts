@@ -52,12 +52,47 @@ export const calculateCombinedPrices = (
   };
 };
 
-// Calcula ajuste total com cap por categoria
+// Caps diferenciados por tipo de imóvel e categoria
+const CATEGORY_CAPS = {
+  casa: {
+    A: { max: 0.15, min: -0.12 },  // Posição/Vista/Luz
+    B: { max: 0.10, min: -0.08 },  // Conservação
+    C: { max: 0.10, min: -0.06 },  // Conforto
+    D: { max: 0.06, min: -0.06 },  // Segurança
+    E: { max: 0.08, min: -0.04 },  // Funcionalidade
+  },
+  apartamento: {
+    A: { max: 0.12, min: -0.12 },  // Posição/Vista/Luz
+    B: { max: 0.08, min: -0.08 },  // Conservação
+    C: { max: 0.06, min: -0.06 },  // Conforto
+    D: { max: 0.04, min: -0.06 },  // Segurança
+    E: { max: 0.04, min: -0.04 },  // Funcionalidade
+  },
+};
+
+// Cap global por tipo de imóvel
+const GLOBAL_CAPS = {
+  casa: { max: 0.35, min: -0.35 },
+  apartamento: { max: 0.30, min: -0.30 },
+};
+
+// Determina se o tipo de imóvel é casa
+const isCasaType = (tipoImovel: string): boolean => {
+  const tipoLower = tipoImovel.toLowerCase();
+  return tipoLower.includes('casa') || tipoLower.includes('cobertura');
+};
+
+// Calcula ajuste total com cap por categoria (diferenciado por tipo de imóvel)
 export const calculateTotalAdjustment = (
   responses: CharacteristicResponse[],
   characteristics: ValuationCharacteristic[],
-  bonusTerreno: number = 0
-): { total: number; auto_capped: boolean; by_category: Record<string, number> } => {
+  bonusTerreno: number = 0,
+  tipoImovel: string = "Apartamento"
+): { total: number; auto_capped: boolean; by_category: Record<string, number>; global_cap: number } => {
+  const propertyType = isCasaType(tipoImovel) ? 'casa' : 'apartamento';
+  const categoryCaps = CATEGORY_CAPS[propertyType];
+  const globalCap = GLOBAL_CAPS[propertyType];
+  
   // Agrupa respostas por categoria
   const byCategory: Record<string, number> = {};
 
@@ -73,17 +108,27 @@ export const calculateTotalAdjustment = (
     byCategory[char.category] += char.weight_value;
   });
 
-  // Aplica cap por categoria
+  // Aplica cap por categoria (diferenciado por tipo de imóvel)
   const cappedByCategory: Record<string, number> = {};
   Object.entries(byCategory).forEach(([category, value]) => {
-    const char = characteristics.find((c) => c.category === category);
-    if (!char) {
-      cappedByCategory[category] = value;
-      return;
+    const customCap = categoryCaps[category as keyof typeof categoryCaps];
+    
+    // Usa caps customizados se disponíveis, senão usa os do banco de dados
+    let cap_max: number;
+    let cap_min: number;
+    
+    if (customCap) {
+      cap_max = customCap.max;
+      cap_min = customCap.min;
+    } else {
+      const char = characteristics.find((c) => c.category === category);
+      if (!char) {
+        cappedByCategory[category] = value;
+        return;
+      }
+      cap_max = char.category_cap_max;
+      cap_min = char.category_cap_min;
     }
-
-    const cap_max = char.category_cap_max;
-    const cap_min = char.category_cap_min;
 
     if (value > cap_max) {
       cappedByCategory[category] = cap_max;
@@ -102,16 +147,16 @@ export const calculateTotalAdjustment = (
   
   let auto_capped = false;
 
-  // Cap global ±30% (inclui bônus terreno)
-  if (total > 0.3) {
-    total = 0.3;
+  // Cap global diferenciado por tipo (Casa: ±35%, Apartamento: ±30%)
+  if (total > globalCap.max) {
+    total = globalCap.max;
     auto_capped = true;
-  } else if (total < -0.3) {
-    total = -0.3;
+  } else if (total < globalCap.min) {
+    total = globalCap.min;
     auto_capped = true;
   }
 
-  return { total, auto_capped, by_category: cappedByCategory };
+  return { total, auto_capped, by_category: cappedByCategory, global_cap: globalCap.max };
 };
 
 // Calcula os 3 valores finais
@@ -322,13 +367,19 @@ export const calculateValuation = (
   characteristics: ValuationCharacteristic[],
   doc_status: string,
   doc_factor: number,
-  bonusTerreno: number = 0
+  bonusTerreno: number = 0,
+  tipoImovel: string = "Apartamento"
 ): ValuationResult => {
   // 1. Combina preços
   const combined = calculateCombinedPrices(itbi, anuncio);
 
-  // 2. Calcula ajuste total (inclui bônus terreno para casas)
-  const { total: adjustment, auto_capped } = calculateTotalAdjustment(responses, characteristics, bonusTerreno);
+  // 2. Calcula ajuste total (com caps diferenciados por tipo de imóvel)
+  const { total: adjustment, auto_capped } = calculateTotalAdjustment(
+    responses, 
+    characteristics, 
+    bonusTerreno,
+    tipoImovel
+  );
 
   // 3. Calcula valores finais
   const { pessimista, provavel, otimista } = calculateFinalValues(
