@@ -270,38 +270,38 @@ export function DocumentAnalyzer({ onChecklistItemSuggested }: DocumentAnalyzerP
   };
 
   return (
-    <Card className="border-accent/20">
-      <CardHeader className="pb-3">
-        <div className="flex items-center justify-between">
-          <CardTitle className="text-lg flex items-center gap-2">
-            <Sparkles className="h-5 w-5 text-accent" />
-            Análise Inteligente de Documentos
+    <Card className="border-accent/20 overflow-hidden">
+      <CardHeader className="pb-3 px-3 sm:px-6">
+        <div className="flex items-center justify-between gap-2">
+          <CardTitle className="text-base sm:text-lg flex items-center gap-2">
+            <Sparkles className="h-4 w-4 sm:h-5 sm:w-5 text-accent shrink-0" />
+            <span className="truncate">Análise Inteligente de Documentos</span>
           </CardTitle>
           {documents.length > 0 && (
-            <Button variant="ghost" size="sm" onClick={resetAll} className="text-xs">
+            <Button variant="ghost" size="sm" onClick={resetAll} className="text-xs shrink-0">
               <RefreshCw className="h-3 w-3 mr-1" />
-              Limpar
+              <span className="hidden sm:inline">Limpar</span>
             </Button>
           )}
         </div>
       </CardHeader>
-      <CardContent className="space-y-4">
+      <CardContent className="space-y-4 px-3 sm:px-6">
         {/* Upload Area */}
         <div
           onDragOver={handleDragOver}
           onDragLeave={handleDragLeave}
           onDrop={handleDrop}
           className={cn(
-            "border-2 border-dashed rounded-lg p-6 text-center transition-colors",
+            "border-2 border-dashed rounded-lg p-4 sm:p-6 text-center transition-colors",
             isDragging ? "border-accent bg-accent/5" : "border-border hover:border-accent/50"
           )}
         >
-          <Upload className="h-8 w-8 mx-auto text-muted-foreground mb-2" />
-          <p className="text-sm text-foreground font-medium mb-1">
+          <Upload className="h-6 w-6 sm:h-8 sm:w-8 mx-auto text-muted-foreground mb-2" />
+          <p className="text-xs sm:text-sm text-foreground font-medium mb-1">
             Arraste documentos ou clique para selecionar
           </p>
-          <p className="text-xs text-muted-foreground mb-3">
-            Suporta múltiplos arquivos: JPG, PNG, WebP, PDF (máx. 10MB cada)
+          <p className="text-[10px] sm:text-xs text-muted-foreground mb-3">
+            JPG, PNG, WebP, PDF (máx. 10MB)
           </p>
           <input
             type="file"
@@ -313,8 +313,8 @@ export function DocumentAnalyzer({ onChecklistItemSuggested }: DocumentAnalyzerP
           />
           <label htmlFor="document-upload">
             <Button variant="outline" size="sm" asChild>
-              <span className="cursor-pointer">
-                <FileText className="h-4 w-4 mr-2" />
+              <span className="cursor-pointer text-xs sm:text-sm">
+                <FileText className="h-3.5 w-3.5 sm:h-4 sm:w-4 mr-1.5 sm:mr-2" />
                 Selecionar arquivos
               </span>
             </Button>
@@ -323,11 +323,11 @@ export function DocumentAnalyzer({ onChecklistItemSuggested }: DocumentAnalyzerP
 
         {/* Documents List */}
         {documents.length > 0 && (
-          <div className="space-y-4">
+          <div className="space-y-3 sm:space-y-4">
             {/* Progress and Actions */}
-            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 p-3 bg-muted/50 rounded-lg">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 sm:gap-3 p-2 sm:p-3 bg-muted/50 rounded-lg">
               <div className="flex-1 w-full sm:w-auto">
-                <div className="flex items-center justify-between text-sm mb-1">
+                <div className="flex items-center justify-between text-xs sm:text-sm mb-1">
                   <span className="text-muted-foreground">Progresso da Análise</span>
                   <span className="font-medium">{getProgress()}%</span>
                 </div>
@@ -337,17 +337,19 @@ export function DocumentAnalyzer({ onChecklistItemSuggested }: DocumentAnalyzerP
                 onClick={analyzeAllDocuments} 
                 disabled={isAnalyzingBatch || summaryStats.pending === 0}
                 size="sm"
-                className="gap-1.5"
+                className="gap-1 sm:gap-1.5 text-xs sm:text-sm w-full sm:w-auto"
               >
                 {isAnalyzingBatch ? (
                   <>
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                    Analisando...
+                    <Loader2 className="h-3.5 w-3.5 sm:h-4 sm:w-4 animate-spin" />
+                    <span className="hidden sm:inline">Analisando...</span>
+                    <span className="sm:hidden">Analisando</span>
                   </>
                 ) : (
                   <>
-                    <Sparkles className="h-4 w-4" />
-                    Analisar Todos ({summaryStats.pending + summaryStats.error})
+                    <Sparkles className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+                    <span className="hidden sm:inline">Analisar Todos ({summaryStats.pending + summaryStats.error})</span>
+                    <span className="sm:hidden">Analisar ({summaryStats.pending + summaryStats.error})</span>
                   </>
                 )}
               </Button>
@@ -379,7 +381,7 @@ export function DocumentAnalyzer({ onChecklistItemSuggested }: DocumentAnalyzerP
             )}
 
             {/* Document Cards */}
-            <div className="space-y-2 max-h-[500px] overflow-y-auto pr-1">
+            <div className="space-y-2 max-h-[400px] sm:max-h-[500px] overflow-y-auto">
               {documents.map((doc) => (
                 <Collapsible 
                   key={doc.id} 
@@ -388,25 +390,25 @@ export function DocumentAnalyzer({ onChecklistItemSuggested }: DocumentAnalyzerP
                 >
                   <div className="border rounded-lg overflow-hidden">
                     {/* Document Header */}
-                    <div className="flex items-center gap-3 p-3 bg-background">
+                    <div className="flex items-center gap-2 sm:gap-3 p-2 sm:p-3 bg-background">
                       {/* Thumbnail */}
-                      <div className="w-12 h-12 rounded overflow-hidden bg-muted shrink-0 border">
+                      <div className="w-10 h-10 sm:w-12 sm:h-12 rounded overflow-hidden bg-muted shrink-0 border">
                         {doc.preview.startsWith('data:image') ? (
                           <img src={doc.preview} alt="Preview" className="w-full h-full object-cover" />
                         ) : (
                           <div className="w-full h-full flex items-center justify-center">
-                            <FileText className="h-6 w-6 text-muted-foreground" />
+                            <FileText className="h-5 w-5 sm:h-6 sm:w-6 text-muted-foreground" />
                           </div>
                         )}
                       </div>
 
                       {/* Info */}
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium truncate">{doc.file.name}</p>
-                        <div className="flex items-center gap-2 mt-1">
+                      <div className="flex-1 min-w-0 overflow-hidden">
+                        <p className="text-xs sm:text-sm font-medium truncate max-w-[120px] sm:max-w-none">{doc.file.name}</p>
+                        <div className="flex flex-wrap items-center gap-1 sm:gap-2 mt-0.5 sm:mt-1">
                           {getDocStatusBadge(doc)}
                           {doc.result && (
-                            <span className="text-xs text-muted-foreground">
+                            <span className="text-[10px] sm:text-xs text-muted-foreground truncate max-w-[80px] sm:max-w-none">
                               {doc.result.tipo_documento}
                             </span>
                           )}
@@ -414,14 +416,14 @@ export function DocumentAnalyzer({ onChecklistItemSuggested }: DocumentAnalyzerP
                       </div>
 
                       {/* Actions */}
-                      <div className="flex items-center gap-1">
+                      <div className="flex items-center gap-0.5 sm:gap-1 shrink-0">
                         {doc.status === 'done' && doc.result && (
                           <CollapsibleTrigger asChild>
-                            <Button variant="ghost" size="icon" className="h-8 w-8">
+                            <Button variant="ghost" size="icon" className="h-7 w-7 sm:h-8 sm:w-8">
                               {expandedDoc === doc.id ? (
-                                <ChevronUp className="h-4 w-4" />
+                                <ChevronUp className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
                               ) : (
-                                <ChevronDown className="h-4 w-4" />
+                                <ChevronDown className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
                               )}
                             </Button>
                           </CollapsibleTrigger>
@@ -429,11 +431,11 @@ export function DocumentAnalyzer({ onChecklistItemSuggested }: DocumentAnalyzerP
                         <Button 
                           variant="ghost" 
                           size="icon" 
-                          className="h-8 w-8 text-muted-foreground hover:text-destructive"
+                          className="h-7 w-7 sm:h-8 sm:w-8 text-muted-foreground hover:text-destructive"
                           onClick={() => removeDocument(doc.id)}
                           disabled={doc.status === 'analyzing'}
                         >
-                          <Trash2 className="h-4 w-4" />
+                          <Trash2 className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
                         </Button>
                       </div>
                     </div>
@@ -441,17 +443,17 @@ export function DocumentAnalyzer({ onChecklistItemSuggested }: DocumentAnalyzerP
                     {/* Expanded Content */}
                     <CollapsibleContent>
                       {doc.result && (
-                        <div className="p-3 border-t bg-muted/30 space-y-3">
+                        <div className="p-2 sm:p-3 border-t bg-muted/30 space-y-2 sm:space-y-3">
                           {/* Status Motivo */}
                           {doc.result.status_motivo && (
-                            <p className="text-sm text-muted-foreground">{doc.result.status_motivo}</p>
+                            <p className="text-xs sm:text-sm text-muted-foreground">{doc.result.status_motivo}</p>
                           )}
 
                           {/* Extracted Data */}
                           {Object.keys(doc.result.dados_extraidos).length > 0 && (
                             <div className="p-2 rounded bg-background">
-                              <p className="text-xs text-muted-foreground mb-1 font-medium">Dados Extraídos</p>
-                              <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-xs">
+                              <p className="text-[10px] sm:text-xs text-muted-foreground mb-1 font-medium">Dados Extraídos</p>
+                              <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-0.5 sm:gap-y-1 text-[10px] sm:text-xs">
                                 {Object.entries(doc.result.dados_extraidos).map(([key, value]) => (
                                   <div key={key} className="truncate">
                                     <span className="text-muted-foreground">{key}: </span>
@@ -464,9 +466,9 @@ export function DocumentAnalyzer({ onChecklistItemSuggested }: DocumentAnalyzerP
 
                           {/* Alerts */}
                           {doc.result.alertas.length > 0 && (
-                            <div className="p-2 rounded bg-yellow-500/10 border border-yellow-500/20">
-                              <p className="text-xs text-yellow-600 font-medium mb-1">Alertas</p>
-                              <ul className="text-xs space-y-0.5">
+                            <div className="p-1.5 sm:p-2 rounded bg-yellow-500/10 border border-yellow-500/20">
+                              <p className="text-[10px] sm:text-xs text-yellow-600 font-medium mb-0.5 sm:mb-1">Alertas</p>
+                              <ul className="text-[10px] sm:text-xs space-y-0.5">
                                 {doc.result.alertas.map((alerta, i) => (
                                   <li key={i} className="text-yellow-700">• {alerta}</li>
                                 ))}
@@ -476,9 +478,9 @@ export function DocumentAnalyzer({ onChecklistItemSuggested }: DocumentAnalyzerP
 
                           {/* Next Steps */}
                           {doc.result.proximos_passos.length > 0 && (
-                            <div className="p-2 rounded bg-accent/10">
-                              <p className="text-xs text-accent font-medium mb-1">Próximos Passos</p>
-                              <ul className="text-xs space-y-0.5">
+                            <div className="p-1.5 sm:p-2 rounded bg-accent/10">
+                              <p className="text-[10px] sm:text-xs text-accent font-medium mb-0.5 sm:mb-1">Próximos Passos</p>
+                              <ul className="text-[10px] sm:text-xs space-y-0.5">
                                 {doc.result.proximos_passos.map((passo, i) => (
                                   <li key={i}>• {passo}</li>
                                 ))}
@@ -492,7 +494,7 @@ export function DocumentAnalyzer({ onChecklistItemSuggested }: DocumentAnalyzerP
                               variant="outline"
                               size="sm"
                               onClick={() => onChecklistItemSuggested(doc.result!.checklist_item!)}
-                              className="w-full text-xs"
+                              className="w-full text-[10px] sm:text-xs"
                             >
                               <CheckCircle className="h-3 w-3 mr-1" />
                               Marcar item no checklist
@@ -502,8 +504,8 @@ export function DocumentAnalyzer({ onChecklistItemSuggested }: DocumentAnalyzerP
                       )}
 
                       {doc.status === 'error' && doc.error && (
-                        <div className="p-3 border-t bg-red-500/5">
-                          <p className="text-xs text-red-600">{doc.error}</p>
+                        <div className="p-2 sm:p-3 border-t bg-red-500/5">
+                          <p className="text-[10px] sm:text-xs text-red-600">{doc.error}</p>
                         </div>
                       )}
                     </CollapsibleContent>
