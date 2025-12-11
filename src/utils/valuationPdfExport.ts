@@ -22,46 +22,110 @@ export function exportValuationEnginePDF(
   const marginLeft = 20;
   const contentWidth = pageWidth - marginLeft * 2;
 
-  // Header
-  let yPos = drawGodoyHeader(doc, 'Relatório de Avaliação Imobiliária');
+  const isSimplified = state.tipoAvaliacao === "simples";
+  const reportTitle = isSimplified 
+    ? 'Avaliação Imobiliária Simplificada' 
+    : 'Relatório de Avaliação Imobiliária';
 
-  // 1. LOCALIZAÇÃO
-  yPos = drawSectionTitle(doc, 'Localização', yPos, marginLeft);
-  doc.setFontSize(11);
-  doc.setFont('helvetica', 'normal');
-  doc.setTextColor(...BRAND_COLORS.darkGray);
-  doc.text(state.logradouro || 'Não informado', marginLeft, yPos);
-  
-  if (state.bairro) {
+  // Header
+  let yPos = drawGodoyHeader(doc, reportTitle);
+
+  // AVISO DE AVALIAÇÃO SIMPLIFICADA
+  if (isSimplified) {
     yPos += 5;
-    doc.setFontSize(9);
-    doc.setTextColor(...BRAND_COLORS.gray);
-    doc.text(`Bairro: ${state.bairro}`, marginLeft, yPos);
+    
+    // Box de aviso amarelo/laranja
+    doc.setFillColor(255, 243, 205); // Amarelo claro
+    doc.setDrawColor(255, 193, 7); // Amarelo
+    doc.roundedRect(marginLeft - 5, yPos - 3, contentWidth + 10, 50, 2, 2, 'FD');
+    
+    doc.setFontSize(11);
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(133, 100, 4); // Marrom/amarelo escuro
+    doc.text('⚠️ AVALIAÇÃO SIMPLIFICADA', marginLeft, yPos + 5);
+    
+    doc.setFontSize(8);
+    doc.setFont('helvetica', 'normal');
+    doc.setTextColor(102, 77, 3);
+    
+    const disclaimerText = [
+      'Este relatório apresenta uma estimativa de valor baseada em:',
+      '• Dados ITBI de transações reais (últimos 12 meses)',
+      '• Características declaradas do imóvel',
+      '• Análise estatística de mercado',
+      '',
+      'IMPORTANTE: Para uma avaliação mais assertiva e próxima da realidade de mercado,',
+      'recomenda-se complementar com a Vistoria Digital, que pode ajustar o valor em',
+      'até ±15% com base nas condições reais verificadas in loco.',
+    ];
+    
+    disclaimerText.forEach((line, index) => {
+      doc.text(line, marginLeft, yPos + 12 + (index * 4));
+    });
+    
+    yPos += 55;
   }
 
-  // 2. DADOS DO IMÓVEL
-  yPos += 12;
-  yPos = drawSectionTitle(doc, 'Dados do Imóvel', yPos, marginLeft);
+  // 1. IDENTIFICAÇÃO DO IMÓVEL
+  yPos = drawSectionTitle(doc, 'Identificação do Imóvel', yPos, marginLeft);
   doc.setFontSize(10);
   doc.setTextColor(...BRAND_COLORS.darkGray);
   
-  const propertyData = [
-    ['Área:', `${state.area_m2} m²`],
-    ['Base de Preço:', state.baseSelected === 'min' ? 'Conservador' : 
-                      state.baseSelected === 'max' ? 'Otimista' : 
-                      state.baseSelected === 'custom' ? 'Personalizado' : 'Mediana'],
-    ['Documentação:', getDocStatusLabel(state.docStatus)],
+  const endereco = [
+    state.logradouro,
+    state.numero ? `nº ${state.numero}` : '',
+    state.complemento,
+  ].filter(Boolean).join(', ');
+  
+  const identificationData = [
+    ['Endereço:', endereco || 'Não informado'],
+    ['Bairro:', state.bairro || 'Não informado'],
+    ['Condomínio:', state.nomeCondominio || '-'],
+    ['Tipo:', state.tipoImovel || 'Não informado'],
   ];
 
-  propertyData.forEach((item) => {
+  identificationData.forEach((item) => {
     doc.setFont('helvetica', 'normal');
     doc.text(item[0], marginLeft + 5, yPos);
     doc.setFont('helvetica', 'bold');
-    doc.text(item[1], marginLeft + 50, yPos);
-    yPos += 6;
+    const textValue = doc.splitTextToSize(item[1], contentWidth - 55);
+    doc.text(textValue, marginLeft + 50, yPos);
+    yPos += textValue.length > 1 ? 10 : 6;
   });
 
-  // 3. REFERÊNCIA DE MERCADO
+  // Características físicas em linha
+  yPos += 2;
+  doc.setFontSize(9);
+  doc.setFont('helvetica', 'normal');
+  const caracteristicas = [
+    `Área: ${state.area_m2} m²`,
+    state.quartos ? `${state.quartos} quartos` : null,
+    state.suites ? `${state.suites} suítes` : null,
+    state.banheiros ? `${state.banheiros} banheiros` : null,
+    state.vagas ? `${state.vagas} vagas` : null,
+    state.andar ? `Andar: ${state.andar}` : null,
+  ].filter(Boolean).join(' | ');
+  doc.text(caracteristicas, marginLeft + 5, yPos);
+  yPos += 8;
+
+  // Proprietário (se informado)
+  if (state.proprietario) {
+    doc.setFontSize(9);
+    doc.setTextColor(...BRAND_COLORS.gray);
+    doc.text(`Proprietário: ${state.proprietario}${state.telefone ? ` | Tel: ${state.telefone}` : ''}`, marginLeft + 5, yPos);
+    yPos += 6;
+  }
+
+  // Data da avaliação
+  if (state.dataAvaliacao) {
+    doc.setFontSize(9);
+    doc.setTextColor(...BRAND_COLORS.gray);
+    const dataFormatada = new Date(state.dataAvaliacao + 'T00:00:00').toLocaleDateString('pt-BR');
+    doc.text(`Data da Avaliação: ${dataFormatada}`, marginLeft + 5, yPos);
+    yPos += 6;
+  }
+
+  // 2. REFERÊNCIA DE MERCADO
   if (combined) {
     yPos += 6;
     yPos = drawSectionTitle(doc, 'Referência de Mercado', yPos, marginLeft);
@@ -84,7 +148,7 @@ export function exportValuationEnginePDF(
     });
   }
 
-  // 4. RESULTADO DA AVALIAÇÃO - Box destacado
+  // 3. RESULTADO DA AVALIAÇÃO - Box destacado
   yPos += 8;
   yPos = drawResultBox(
     doc,
@@ -99,7 +163,7 @@ export function exportValuationEnginePDF(
     marginLeft
   );
 
-  // 5. MÉTRICAS DE CONFIANÇA
+  // 4. MÉTRICAS DE CONFIANÇA
   yPos = drawSectionTitle(doc, 'Métricas de Confiança', yPos, marginLeft);
   doc.setFontSize(10);
   doc.setTextColor(...BRAND_COLORS.darkGray);
@@ -123,7 +187,7 @@ export function exportValuationEnginePDF(
     yPos += 6;
   });
 
-  // 6. CARACTERÍSTICAS APLICADAS
+  // 5. CARACTERÍSTICAS APLICADAS
   const appliedChars = state.responses.filter(r => r.response === 'sim' && r.weight_applied !== 0);
   if (appliedChars.length > 0) {
     yPos += 6;
@@ -142,7 +206,7 @@ export function exportValuationEnginePDF(
     yPos += splitChars.length * 4 + 4;
   }
 
-  // 7. ESTRATÉGIA DE PREÇO
+  // 6. ESTRATÉGIA DE PREÇO
   yPos += 4;
   yPos = drawSectionTitle(doc, 'Estratégia de Preço', yPos, marginLeft);
   doc.setFontSize(10);
@@ -169,7 +233,7 @@ export function exportValuationEnginePDF(
     yPos += 7;
   });
 
-  // 8. RECOMENDAÇÃO
+  // 7. RECOMENDAÇÃO
   yPos += 6;
   doc.setFillColor(...BRAND_COLORS.lightGray);
   const recBoxY = yPos - 3;
@@ -201,14 +265,40 @@ export function exportValuationEnginePDF(
     yPos = 20;
   }
 
-  // 9. DISCLAIMER
+  // 8. DISCLAIMER ADICIONAL PARA AVALIAÇÃO SIMPLIFICADA
+  if (isSimplified) {
+    doc.setFillColor(240, 240, 240);
+    doc.roundedRect(marginLeft - 5, yPos - 3, contentWidth + 10, 35, 2, 2, 'F');
+    
+    doc.setFontSize(9);
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(100, 100, 100);
+    doc.text('PARA MAIOR PRECISÃO:', marginLeft, yPos + 5);
+    
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(8);
+    const vistoriaInfo = [
+      'A Vistoria Digital analisa 21 categorias detalhadas incluindo:',
+      '• Instalações elétricas e hidráulicas • Acabamentos e materiais',
+      '• Estrutura e fundações • Climatização e segurança',
+      'Realize a vistoria completa para uma avaliação mais assertiva.',
+    ];
+    vistoriaInfo.forEach((line, i) => {
+      doc.text(line, marginLeft, yPos + 12 + (i * 4));
+    });
+    
+    yPos += 40;
+  }
+
+  // 9. DISCLAIMER PADRÃO
   drawDisclaimer(doc, yPos, marginLeft);
 
   // Apply footers to all pages
   applyFootersToAllPages(doc);
 
   // Save
-  const filename = `avaliacao_${state.logradouro?.replace(/\s+/g, '_').substring(0, 25) || 'imovel'}_${new Date().toISOString().split('T')[0]}.pdf`;
+  const tipoSuffix = isSimplified ? '_simplificada' : '';
+  const filename = `avaliacao${tipoSuffix}_${state.logradouro?.replace(/\s+/g, '_').substring(0, 25) || 'imovel'}_${new Date().toISOString().split('T')[0]}.pdf`;
   doc.save(filename);
 }
 

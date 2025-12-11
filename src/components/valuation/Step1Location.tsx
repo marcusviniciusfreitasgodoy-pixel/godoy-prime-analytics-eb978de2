@@ -31,15 +31,24 @@ interface AnuncioEntry {
 }
 
 export function Step1Location({ state, updateState, combined }: Props) {
-  const [searchTerm, setSearchTerm] = useState(state.logradouro);
+  // Usa logradouro do Step 0 se disponível, senão permite busca
+  const [searchTerm, setSearchTerm] = useState(state.logradouro || "");
   const [suggestions, setSuggestions] = useState<StreetSuggestion[]>([]);
   const [loading, setLoading] = useState(false);
   const [showSuggestions, setShowSuggestions] = useState(false);
+  const [useCustomSearch, setUseCustomSearch] = useState(!state.logradouro);
   
   // Estado para anúncios de referência
   const [anuncios, setAnuncios] = useState<AnuncioEntry[]>([
     { id: "1", valor_total: 0, area_m2: 0 }
   ]);
+
+  // Sincroniza searchTerm quando logradouro muda
+  useEffect(() => {
+    if (state.logradouro && !useCustomSearch) {
+      setSearchTerm(state.logradouro);
+    }
+  }, [state.logradouro, useCustomSearch]);
 
   // Buscar sugestões de ruas
   useEffect(() => {
@@ -203,6 +212,19 @@ export function Step1Location({ state, updateState, combined }: Props) {
 
   return (
     <div className="space-y-6">
+      {/* Info quando logradouro veio do Step 0 */}
+      {state.logradouro && !useCustomSearch && (
+        <div className="bg-primary/10 border border-primary/20 rounded-lg p-3">
+          <p className="text-sm flex items-center gap-2">
+            <MapPin className="h-4 w-4 text-primary" />
+            <span>Buscando dados ITBI para: <strong>{state.logradouro}</strong></span>
+          </p>
+          <p className="text-xs text-muted-foreground mt-1">
+            Endereço informado na identificação do imóvel
+          </p>
+        </div>
+      )}
+
       {/* Search input */}
       <div className="space-y-2">
         <Label htmlFor="street-search" className="flex items-center gap-2">
@@ -217,6 +239,7 @@ export function Step1Location({ state, updateState, combined }: Props) {
             onChange={(e) => {
               setSearchTerm(e.target.value);
               setShowSuggestions(true);
+              setUseCustomSearch(true);
             }}
             onFocus={() => setShowSuggestions(true)}
             placeholder="Digite o nome da rua, avenida ou condomínio..."

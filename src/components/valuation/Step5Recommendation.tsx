@@ -1,3 +1,5 @@
+import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -10,7 +12,9 @@ import {
   AlertTriangle,
   Clock,
   Wrench,
-  XCircle
+  XCircle,
+  ClipboardCheck,
+  FileText
 } from "lucide-react";
 import { toast } from "sonner";
 import type { ValuationResult, CombinedPrices } from "@/utils/valuationCalculations";
@@ -25,6 +29,9 @@ interface Props {
 }
 
 export function Step5Recommendation({ result, state, combined, onReset }: Props) {
+  const navigate = useNavigate();
+  const [decisionMade, setDecisionMade] = useState<"sim" | "nao" | null>(null);
+
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat("pt-BR", {
       style: "currency",
@@ -75,14 +82,62 @@ export function Step5Recommendation({ result, state, combined, onReset }: Props)
     ? TrendingDown
     : Minus;
 
-  const handleExportPDF = () => {
+  const handleExportPDF = (isSimplified: boolean = false) => {
     try {
-      exportValuationEnginePDF(result, state, combined);
+      const stateWithType: ValuationState = {
+        ...state,
+        tipoAvaliacao: isSimplified ? "simples" : "completa"
+      };
+      exportValuationEnginePDF(result, stateWithType, combined);
       toast.success("PDF exportado com sucesso!");
     } catch (error) {
       console.error("Erro ao exportar PDF:", error);
       toast.error("Erro ao exportar PDF");
     }
+  };
+
+  const handleGoToVistoria = () => {
+    setDecisionMade("sim");
+    
+    // Prepara dados para transferir para Vistoria Digital
+    const vistoriaData = {
+      logradouro: state.logradouro,
+      numero: state.numero,
+      complemento: state.complemento,
+      bairro: state.bairro,
+      nomeCondominio: state.nomeCondominio,
+      tipoImovel: state.tipoImovel,
+      areaM2: state.area_m2.toString(),
+      quartos: state.quartos.toString(),
+      suites: state.suites.toString(),
+      banheiros: state.banheiros.toString(),
+      vagas: state.vagas.toString(),
+      proprietario: state.proprietario,
+      telefone: state.telefone,
+      observacoes: state.observacoesImovel,
+      // Dados da avaliação para referência
+      avaliacaoData: {
+        valorProvavel: result.provavel,
+        valorPessimista: result.pessimista,
+        valorOtimista: result.otimista,
+        confidenceLevel: result.confidence_level,
+        dataAvaliacao: state.dataAvaliacao,
+      }
+    };
+
+    toast.success("Dados transferidos para Vistoria Digital!");
+    
+    navigate("/vistoria-digital", {
+      state: {
+        fromAvaliacao: true,
+        propertyData: vistoriaData
+      }
+    });
+  };
+
+  const handleGenerateSimpleReport = () => {
+    setDecisionMade("nao");
+    handleExportPDF(true);
   };
 
   // Calcula valores para estratégia de preço
@@ -236,13 +291,71 @@ export function Step5Recommendation({ result, state, combined, onReset }: Props)
         </CardContent>
       </Card>
 
-      {/* Ações */}
-      <div className="flex justify-center">
-        <Button onClick={handleExportPDF} variant="outline" className="w-full max-w-xs">
-          <FileDown className="mr-2 h-4 w-4" />
-          Baixar PDF
-        </Button>
-      </div>
+      {/* DECISÃO: Prosseguir para Vistoria? */}
+      <Card className="border-2 border-primary">
+        <CardHeader className="pb-2">
+          <CardTitle className="text-lg flex items-center gap-2">
+            <ClipboardCheck className="h-5 w-5 text-primary" />
+            Deseja Realizar Vistoria Completa?
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <p className="text-sm text-muted-foreground">
+            A <strong>Vistoria Digital</strong> permite uma análise detalhada do estado de conservação do imóvel 
+            (instalações elétricas, hidráulicas, acabamentos, etc.), tornando a avaliação mais precisa 
+            e próxima da realidade de mercado.
+          </p>
+          
+          <div className="bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 rounded-lg p-3">
+            <p className="text-xs text-amber-800 dark:text-amber-200">
+              💡 <strong>Dica:</strong> A vistoria pode ajustar o valor em até ±15% com base nas condições reais verificadas in loco.
+            </p>
+          </div>
+
+          {decisionMade === null ? (
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
+              <Button 
+                onClick={handleGoToVistoria} 
+                className="flex items-center gap-2"
+              >
+                <CheckCircle className="h-4 w-4" />
+                Sim, prosseguir para Vistoria
+              </Button>
+              <Button 
+                onClick={handleGenerateSimpleReport} 
+                variant="outline"
+                className="flex items-center gap-2"
+              >
+                <FileText className="h-4 w-4" />
+                Não, gerar relatório simplificado
+              </Button>
+            </div>
+          ) : decisionMade === "nao" ? (
+            <div className="space-y-4">
+              <div className="bg-green-50 dark:bg-green-950/30 border border-green-200 dark:border-green-800 rounded-lg p-4">
+                <p className="text-sm text-green-800 dark:text-green-200 flex items-center gap-2">
+                  <CheckCircle className="h-4 w-4" />
+                  Relatório simplificado gerado com sucesso!
+                </p>
+              </div>
+              
+              <div className="flex gap-2">
+                <Button onClick={() => handleExportPDF(true)} variant="outline" className="flex-1">
+                  <FileDown className="mr-2 h-4 w-4" />
+                  Baixar PDF Novamente
+                </Button>
+              </div>
+            </div>
+          ) : (
+            <div className="bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
+              <p className="text-sm text-blue-800 dark:text-blue-200 flex items-center gap-2">
+                <ClipboardCheck className="h-4 w-4" />
+                Redirecionando para Vistoria Digital...
+              </p>
+            </div>
+          )}
+        </CardContent>
+      </Card>
 
       {/* Disclaimer */}
       <p className="text-xs text-muted-foreground text-center">
