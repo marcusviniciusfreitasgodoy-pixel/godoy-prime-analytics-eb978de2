@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from "react";
-import { useNavigate, useLocation } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Accordion,
@@ -7,14 +7,13 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from "@/components/ui/accordion";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import { CheckCircle2, AlertTriangle, XCircle, Circle, FileText, Loader2, MinusCircle, Building2, Camera, Image, X, Calculator, ClipboardCheck } from "lucide-react";
+import { CheckCircle2, AlertTriangle, XCircle, Circle, FileText, Loader2, MinusCircle, Building2, Camera, Image, X, Calculator } from "lucide-react";
 import {
   Tooltip,
   TooltipContent,
@@ -30,7 +29,6 @@ import {
 import { useToast } from "@/hooks/use-toast";
 import jsPDF from "jspdf";
 import { formatDate } from "@/utils/exportUtils";
-import { ValuationEngine } from "@/components/valuation/ValuationEngine";
 
 interface PropertyData {
   logradouro: string;
@@ -304,21 +302,10 @@ export default function VistoriaDigital() {
   const [photoDialogOpen, setPhotoDialogOpen] = useState(false);
   const [viewPhotoUrl, setViewPhotoUrl] = useState<string | null>(null);
   const [hasLoadedFromStorage, setHasLoadedFromStorage] = useState(false);
-  const [activeTab, setActiveTab] = useState<string>("inspecao");
   const fileInputRef = useRef<HTMLInputElement>(null);
   const cameraInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
   const navigate = useNavigate();
-  const location = useLocation();
-
-  // Check if navigated to valuation tab
-  useEffect(() => {
-    const state = location.state as { activeTab?: string } | null;
-    if (state?.activeTab === 'valuation') {
-      setActiveTab('avaliacao');
-      window.history.replaceState({}, document.title);
-    }
-  }, [location.state]);
 
   // Load from localStorage on mount
   useEffect(() => {
@@ -415,20 +402,6 @@ export default function VistoriaDigital() {
       0
     );
   };
-
-  // Vistoria data for valuation engine
-  const getVistoriaDataForValuation = () => ({
-    logradouro: propertyData.logradouro,
-    bairro: propertyData.bairro,
-    area_m2: propertyData.areaM2 ? parseFloat(propertyData.areaM2) : undefined,
-    tipoImovel: propertyData.tipoImovel,
-    nomeCondominio: propertyData.nomeCondominio,
-    checklistSummary: {
-      criticalCount: getCriticalCount(),
-      attentionCount: getAttentionCount(),
-      progress: getProgress(),
-    }
-  });
 
   // Photo functions
   const handlePhotoCapture = (categoryId: string, itemId: string, label: string) => {
@@ -784,22 +757,10 @@ export default function VistoriaDigital() {
     <div className="space-y-6">
       <div>
         <h2 className="text-2xl sm:text-3xl font-bold text-foreground">Vistoria Digital</h2>
-        <p className="text-sm sm:text-base text-muted-foreground mt-1">Inspeção e avaliação de imóveis</p>
+        <p className="text-sm sm:text-base text-muted-foreground mt-1">Checklist de inspeção de imóveis</p>
       </div>
 
-      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="grid w-full grid-cols-2 h-auto">
-          <TabsTrigger value="inspecao" className="text-xs sm:text-sm py-2 px-1 sm:px-3">
-            <ClipboardCheck className="h-4 w-4 sm:mr-2" />
-            <span className="hidden sm:inline">Inspeção</span>
-          </TabsTrigger>
-          <TabsTrigger value="avaliacao" className="text-xs sm:text-sm py-2 px-1 sm:px-3">
-            <Calculator className="h-4 w-4 sm:mr-2" />
-            <span className="hidden sm:inline">Avaliação</span>
-          </TabsTrigger>
-        </TabsList>
-
-        <TabsContent value="inspecao" className="space-y-6 mt-4">
+      <div className="space-y-6">
           <Card>
             <CardHeader className="space-y-4">
               <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
@@ -828,7 +789,7 @@ export default function VistoriaDigital() {
                     <span className="hidden xs:inline">Gerar</span> Relatório
                   </Button>
                   <Button 
-                    onClick={() => setActiveTab('avaliacao')} 
+                    onClick={() => navigate('/avaliacao-imobiliaria')} 
                     size="sm" 
                     variant="secondary"
                     className="gap-1.5 text-xs sm:text-sm"
@@ -1146,12 +1107,7 @@ export default function VistoriaDigital() {
         onChange={handleFileSelect}
       />
 
-        </TabsContent>
-
-        <TabsContent value="avaliacao" className="mt-4">
-          <ValuationEngine bairro={propertyData.bairro || "BARRA DA TIJUCA"} vistoriaData={getVistoriaDataForValuation()} />
-        </TabsContent>
-      </Tabs>
+      </div>
 
       {/* Photo capture dialog */}
       <Dialog open={photoDialogOpen} onOpenChange={setPhotoDialogOpen}>

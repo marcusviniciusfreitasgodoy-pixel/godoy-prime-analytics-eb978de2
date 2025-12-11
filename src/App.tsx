@@ -13,13 +13,14 @@ import { ProtectedRoute } from "@/components/ProtectedRoute";
 import Dashboard from "./pages/Dashboard";
 import Microbairros from "./pages/Microbairros";
 import PesquisasMercado from "./pages/PesquisasMercado";
+import AvaliacaoImobiliaria from "./pages/AvaliacaoImobiliaria";
 import VistoriaDigital from "./pages/VistoriaDigital";
 import Documentacao from "./pages/Documentacao";
-import AvaliacaoPublica from "./pages/AvaliacaoPublica";
 import Leads from "./pages/Leads";
 import Usuarios from "./pages/Usuarios";
 import Auth from "./pages/Auth";
 import ResetPassword from "./pages/ResetPassword";
+import AvaliacaoPublica from "./pages/AvaliacaoPublica";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -58,6 +59,7 @@ const App = () => {
                                 <Route path="/" element={<Dashboard />} />
                                 <Route path="/microbairros" element={<Microbairros />} />
                                 <Route path="/pesquisas-mercado" element={<PesquisasMercado />} />
+                                <Route path="/avaliacao-imobiliaria" element={<AvaliacaoImobiliaria />} />
                                 <Route path="/vistoria-digital" element={<VistoriaDigital />} />
                                 <Route path="/documentacao" element={<Documentacao />} />
                                 <Route 

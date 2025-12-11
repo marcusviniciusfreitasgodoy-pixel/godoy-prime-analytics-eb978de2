@@ -1,4 +1,4 @@
-import { MapPin, Menu, Home, ClipboardCheck, FileText, LogOut, Users, UserCog, Search } from "lucide-react";
+import { MapPin, Menu, Home, ClipboardCheck, FileText, LogOut, Users, UserCog, Search, Calculator } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import logoSymbol from "@/assets/godoy-logo-symbol.png";
 import { SyncDataButton } from "./SyncDataButton";
@@ -14,6 +14,7 @@ const navItems = [
   { title: "Dashboard", url: "/", icon: Home },
   { title: "Microregiões", url: "/microbairros", icon: MapPin },
   { title: "Pesquisas de Mercado", url: "/pesquisas-mercado", icon: Search },
+  { title: "Avaliação Imobiliária", url: "/avaliacao-imobiliaria", icon: Calculator },
   { title: "Vistoria Digital", url: "/vistoria-digital", icon: ClipboardCheck },
   { title: "Documentação", url: "/documentacao", icon: FileText },
 ];
