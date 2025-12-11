@@ -338,7 +338,7 @@ const checklistCasa: ChecklistCategory[] = [
 const checklistApartamento: ChecklistCategory[] = [
   {
     id: 'fundacoes',
-    title: '1. Fundações e Estrutura',
+    title: '1. Estrutura e Conservação',
     weight: 10,
     items: [
       { id: 'trincas', label: 'Trincas ou fissuras grandes (>3mm) em paredes, pisos e tetos', score: null },
@@ -355,7 +355,7 @@ const checklistApartamento: ChecklistCategory[] = [
       { id: 'quadro', label: 'Quadro de disjuntores: identificado, organizado e moderno', score: null },
       { id: 'tomadas', label: 'Teste de tomadas e interruptores', score: null },
       { id: 'fios-expostos', label: 'Fios expostos ou emendas visíveis', tooltip: 'Risco de segurança', score: null },
-      { id: 'carga', label: 'Carga suporta equipamentos modernos', score: null },
+      { id: 'carga', label: 'Carga suporta equipamentos modernos (Ar condicionado, etc.)', score: null },
     ],
   },
   {
@@ -366,7 +366,7 @@ const checklistApartamento: ChecklistCategory[] = [
       { id: 'pressao', label: 'Pressão da água em torneiras e chuveiros', score: null },
       { id: 'vazamentos-vaso', label: 'Vazamentos na base dos vasos sanitários', score: null },
       { id: 'manchas-vazamento', label: 'Manchas de vazamento sob pias e em paredes', score: null },
-      { id: 'tubulacoes', label: 'Tubulações com corrosão visível', score: null },
+      { id: 'tubulacoes', label: 'Tubulações com corrosão visível', tooltip: 'Indica idade avançada do sistema', score: null },
     ],
   },
   {
@@ -375,7 +375,7 @@ const checklistApartamento: ChecklistCategory[] = [
     weight: 10,
     items: [
       { id: 'piso', label: 'Qualidade do piso (riscos, peças soltas, manchas)', score: null },
-      { id: 'pintura', label: 'Pintura de paredes e tetos', score: null },
+      { id: 'pintura', label: 'Pintura de paredes e tetos (bolhas, descascados)', score: null },
       { id: 'mofo', label: 'Mofo ou manchas de umidade em ambientes', tooltip: 'Impacta saúde e negociação', score: null },
       { id: 'rodapes', label: 'Estado de rodapés, guarnições e forros de gesso', score: null },
     ],
@@ -383,11 +383,12 @@ const checklistApartamento: ChecklistCategory[] = [
   {
     id: 'esquadrias',
     title: '5. Esquadrias (Portas e Janelas)',
-    weight: 8,
+    weight: 7,
     items: [
       { id: 'vedacao', label: 'Vedação e funcionamento das ferragens', score: null },
       { id: 'infiltracao', label: 'Sinais de infiltração ao redor dos caixilhos', score: null },
       { id: 'vidros', label: 'Estado dos vidros (riscos, trincas)', score: null },
+      { id: 'esquadrias-novas', label: 'Esquadrias de alumínio/PVC modernas', tooltip: 'Valoriza o imóvel', score: null },
     ],
   },
   {
@@ -398,11 +399,22 @@ const checklistApartamento: ChecklistCategory[] = [
       { id: 'estado-varanda', label: 'Estado da varanda/sacada (piso, paredes, teto)', tooltip: 'Diferencial de venda importante', score: null },
       { id: 'vistas', label: 'Vistas e privacidade', tooltip: 'Valoriza ou desvaloriza o imóvel', score: null },
       { id: 'fechamento', label: 'Fechamento de vidro (se houver)', score: null },
+      { id: 'varanda-ampla', label: 'Varanda ampla e utilizável', tooltip: 'Varanda grande é diferencial', score: null },
+    ],
+  },
+  {
+    id: 'posicao',
+    title: '7. Posição e Orientação',
+    weight: 6,
+    items: [
+      { id: 'andar-alto', label: 'Andar alto (acima do 10º)', tooltip: 'Andares altos geralmente são mais valorizados', score: null },
+      { id: 'sol-manha', label: 'Sol da manhã (face leste)', tooltip: 'Mais valorizado que sol da tarde', score: null },
+      { id: 'frente-fundos', label: 'Posição frente vs fundos', tooltip: 'Frente geralmente mais valorizado', score: null },
     ],
   },
   {
     id: 'ventilacao',
-    title: '7. Ventilação e Iluminação',
+    title: '8. Ventilação e Iluminação',
     weight: 5,
     items: [
       { id: 'luz-natural', label: 'Iluminação natural suficiente nos ambientes', score: null },
@@ -412,7 +424,7 @@ const checklistApartamento: ChecklistCategory[] = [
   },
   {
     id: 'climatizacao',
-    title: '8. Climatização',
+    title: '9. Climatização',
     weight: 4,
     items: [
       { id: 'possui-climatizacao', label: 'Imóvel possui sistema de climatização', score: null },
@@ -422,7 +434,7 @@ const checklistApartamento: ChecklistCategory[] = [
   },
   {
     id: 'seguranca',
-    title: '9. Segurança do Apartamento',
+    title: '10. Segurança do Apartamento',
     weight: 4,
     items: [
       { id: 'porta-blindada', label: 'Porta blindada ou reforçada', score: null },
@@ -432,7 +444,7 @@ const checklistApartamento: ChecklistCategory[] = [
   },
   {
     id: 'garagem',
-    title: '10. Garagem',
+    title: '11. Garagem',
     weight: 5,
     items: [
       { id: 'localizacao-vaga', label: 'Localização das vagas (cobertas, perto do elevador)', score: null },
@@ -442,17 +454,18 @@ const checklistApartamento: ChecklistCategory[] = [
   },
   {
     id: 'marcenaria',
-    title: '11. Marcenaria e Planejados',
-    weight: 6,
+    title: '12. Marcenaria e Planejados',
+    weight: 5,
     items: [
       { id: 'ferragens', label: 'Ferragens e corrediças de portas e gavetas', score: null },
       { id: 'cupim', label: 'Estufamento, descolamento ou sinais de cupim', score: null },
       { id: 'conservacao-armarios', label: 'Qualidade geral e estado de conservação', score: null },
+      { id: 'closet', label: 'Closet na suíte master', tooltip: 'Diferencial valorizado', score: null },
     ],
   },
   {
     id: 'loucas',
-    title: '12. Louças e Metais',
+    title: '13. Louças e Metais',
     weight: 4,
     items: [
       { id: 'loucas', label: 'Trincas ou manchas em pias, cubas e vasos', score: null },
@@ -462,7 +475,7 @@ const checklistApartamento: ChecklistCategory[] = [
   },
   {
     id: 'tecnologia',
-    title: '13. Tecnologia e Automação',
+    title: '14. Tecnologia',
     weight: 3,
     items: [
       { id: 'interfone', label: 'Interfone/videofone funcional', tooltip: 'Importante para segurança', score: null },
@@ -472,8 +485,8 @@ const checklistApartamento: ChecklistCategory[] = [
   },
   {
     id: 'acessibilidade',
-    title: '14. Acessibilidade e Elevadores',
-    weight: 6,
+    title: '15. Acessibilidade e Elevadores',
+    weight: 5,
     items: [
       { id: 'quantidade-elevadores', label: 'Quantidade de elevadores adequada ao prédio', tooltip: 'Prédio alto com poucos elevadores = problema de espera', score: null },
       { id: 'separacao-elevadores', label: 'Separação entre elevador social e de serviço/carga', tooltip: 'Condomínios premium geralmente têm separação', score: null },
@@ -482,8 +495,8 @@ const checklistApartamento: ChecklistCategory[] = [
   },
   {
     id: 'areas-comuns',
-    title: '15. Áreas Comuns do Condomínio',
-    weight: 6,
+    title: '16. Áreas Comuns do Condomínio',
+    weight: 5,
     items: [
       { id: 'portaria', label: 'Portaria e recepção (organização, segurança)', score: null },
       { id: 'piscina-cond', label: 'Piscina do condomínio (estado e manutenção)', score: null },
@@ -493,18 +506,18 @@ const checklistApartamento: ChecklistCategory[] = [
   },
   {
     id: 'vizinhanca',
-    title: '16. Vizinhança e Entorno',
-    weight: 5,
+    title: '17. Vizinhança e Entorno',
+    weight: 4,
     items: [
       { id: 'vizinhos', label: 'Perfil do prédio e vizinhança', score: null },
       { id: 'comercio', label: 'Proximidade de comércios e serviços', score: null },
-      { id: 'transporte', label: 'Transporte público próximo', score: null },
-      { id: 'seguranca-rua', label: 'Sensação de segurança na região', score: null },
+      { id: 'transporte', label: 'Transporte público próximo', tooltip: 'Valoriza o imóvel', score: null },
+      { id: 'seguranca-rua', label: 'Sensação de segurança na região', tooltip: 'Impacta decisão de compra', score: null },
     ],
   },
   {
     id: 'documentacao',
-    title: '17. Documentação',
+    title: '18. Documentação',
     weight: 4,
     items: [
       { id: 'matricula', label: 'Matrícula do Imóvel atualizada', score: null },
@@ -514,7 +527,7 @@ const checklistApartamento: ChecklistCategory[] = [
   },
   {
     id: 'sensacao',
-    title: '18. Sensação Geral',
+    title: '19. Sensação Geral',
     weight: 3,
     items: [
       { id: 'layout', label: 'Layout atende às necessidades', score: null },
