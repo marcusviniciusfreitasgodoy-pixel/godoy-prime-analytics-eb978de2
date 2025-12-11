@@ -206,17 +206,17 @@ export function ValuationEngine({ bairro = "BARRA DA TIJUCA", vistoriaData }: Pr
 
   return (
     <Card className="border-primary/20">
-      <CardHeader className="pb-4">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <Calculator className="h-6 w-6 text-primary" />
-            <div>
-              <CardTitle className="text-lg flex items-center gap-2">
-                Ferramenta de Avaliação
+      <CardHeader className="pb-3 sm:pb-4 px-3 sm:px-6">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+          <div className="flex items-center gap-2 sm:gap-3">
+            <Calculator className="h-5 w-5 sm:h-6 sm:w-6 text-primary shrink-0" />
+            <div className="min-w-0">
+              <CardTitle className="text-base sm:text-lg flex items-center gap-2 flex-wrap">
+                <span className="whitespace-nowrap">Ferramenta de Avaliação</span>
                 <TooltipProvider>
                   <Tooltip>
                     <TooltipTrigger asChild>
-                      <Info className="h-4 w-4 text-muted-foreground cursor-help" />
+                      <Info className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-muted-foreground cursor-help shrink-0" />
                     </TooltipTrigger>
                     <TooltipContent side="bottom" className="max-w-xs">
                       <p className="text-sm">
@@ -226,28 +226,28 @@ export function ValuationEngine({ bairro = "BARRA DA TIJUCA", vistoriaData }: Pr
                   </Tooltip>
                 </TooltipProvider>
                 {fromVistoria && (
-                  <Badge variant="secondary" className="text-xs">
+                  <Badge variant="secondary" className="text-[10px] sm:text-xs">
                     <ClipboardCheck className="h-3 w-3 mr-1" />
-                    Via Vistoria
+                    <span className="hidden xs:inline">Via</span> Vistoria
                   </Badge>
                 )}
               </CardTitle>
-              <p className="text-sm text-muted-foreground">
+              <p className="text-xs sm:text-sm text-muted-foreground">
                 {STEPS[currentStep].description}
               </p>
             </div>
           </div>
-          <div className="text-right">
-            <span className="text-sm font-medium">
-              Etapa {currentStep + 1} de 6
-            </span>
-          </div>
+          <Badge variant="outline" className="w-fit text-xs">
+            Etapa {currentStep + 1}/6
+          </Badge>
         </div>
         
         {/* Progress bar */}
-        <div className="mt-4 space-y-2">
-          <Progress value={progress} className="h-2" />
-          <div className="flex justify-between">
+        <div className="mt-3 sm:mt-4 space-y-2">
+          <Progress value={progress} className="h-1.5 sm:h-2" />
+          
+          {/* Desktop: text labels */}
+          <div className="hidden sm:flex justify-between">
             {STEPS.map((step) => (
               <button
                 key={step.id}
@@ -265,10 +265,28 @@ export function ValuationEngine({ bairro = "BARRA DA TIJUCA", vistoriaData }: Pr
               </button>
             ))}
           </div>
+          
+          {/* Mobile: visual indicators */}
+          <div className="flex sm:hidden justify-center gap-1.5">
+            {STEPS.map((step) => (
+              <button
+                key={step.id}
+                onClick={() => step.id <= currentStep && setCurrentStep(step.id)}
+                disabled={step.id > currentStep}
+                className={`h-2 rounded-full transition-all ${
+                  step.id === currentStep
+                    ? "w-6 bg-primary"
+                    : step.id < currentStep
+                    ? "w-2 bg-primary/60"
+                    : "w-2 bg-muted"
+                }`}
+              />
+            ))}
+          </div>
         </div>
       </CardHeader>
 
-      <CardContent className="space-y-6">
+      <CardContent className="space-y-4 sm:space-y-6 px-3 sm:px-6">
         {/* Step content */}
         {currentStep === 0 && (
           <Step0Identification
@@ -321,26 +339,31 @@ export function ValuationEngine({ bairro = "BARRA DA TIJUCA", vistoriaData }: Pr
         )}
 
         {/* Navigation */}
-        <div className="flex justify-between pt-4 border-t">
+        <div className="flex justify-between pt-3 sm:pt-4 border-t gap-2">
           <Button
             variant="outline"
             onClick={handleBack}
             disabled={currentStep === 0}
+            size="sm"
+            className="h-10 sm:h-9 px-3 sm:px-4"
           >
-            <ArrowLeft className="mr-2 h-4 w-4" />
-            Voltar
+            <ArrowLeft className="mr-1 sm:mr-2 h-4 w-4" />
+            <span className="hidden xs:inline">Voltar</span>
           </Button>
 
           {currentStep < 5 ? (
             <Button
               onClick={handleNext}
               disabled={!canProceed()}
+              size="sm"
+              className="h-10 sm:h-9 px-3 sm:px-4"
             >
-              Próximo
-              <ArrowRight className="ml-2 h-4 w-4" />
+              <span className="hidden xs:inline">Próximo</span>
+              <span className="xs:hidden">Avançar</span>
+              <ArrowRight className="ml-1 sm:ml-2 h-4 w-4" />
             </Button>
           ) : (
-            <Button onClick={handleReset} variant="outline">
+            <Button onClick={handleReset} variant="outline" size="sm" className="h-10 sm:h-9">
               Nova Avaliação
             </Button>
           )}

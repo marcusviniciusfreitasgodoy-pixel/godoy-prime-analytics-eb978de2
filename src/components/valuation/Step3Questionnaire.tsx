@@ -113,29 +113,29 @@ export function Step3Questionnaire({
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 sm:space-y-6">
       {/* Barra de progresso geral */}
-      <div className="flex items-center gap-3 p-3 bg-muted/30 rounded-lg">
-        <div className="flex-1">
-          <div className="flex items-center justify-between mb-1">
+      <div className="flex items-center gap-2 sm:gap-3 p-2 sm:p-3 bg-muted/30 rounded-lg">
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center justify-between mb-1 gap-2">
             <div className="flex items-center gap-1">
-              <span className="text-sm font-medium">Progresso das Respostas</span>
+              <span className="text-xs sm:text-sm font-medium">Progresso</span>
               <TooltipProvider>
                 <Tooltip>
                   <TooltipTrigger asChild>
-                    <Info className="h-3.5 w-3.5 text-muted-foreground cursor-help" />
+                    <Info className="h-3 w-3 sm:h-3.5 sm:w-3.5 text-muted-foreground cursor-help" />
                   </TooltipTrigger>
                   <TooltipContent side="top" className="max-w-[250px]">
-                    <p className="text-xs">Itens não respondidos são automaticamente considerados como "Não" no cálculo da avaliação.</p>
+                    <p className="text-xs">Itens não respondidos são automaticamente considerados como "Não".</p>
                   </TooltipContent>
                 </Tooltip>
               </TooltipProvider>
             </div>
-            <span className="text-sm text-muted-foreground">
-              {totalProgress.answered}/{totalProgress.total} respondidas
+            <span className="text-[10px] sm:text-sm text-muted-foreground">
+              {totalProgress.answered}/{totalProgress.total}
             </span>
           </div>
-          <div className="h-2 bg-muted rounded-full overflow-hidden">
+          <div className="h-1.5 sm:h-2 bg-muted rounded-full overflow-hidden">
             <div 
               className={`h-full transition-all duration-300 ${
                 totalProgress.percentage === 100 ? 'bg-emerald-500' : 'bg-primary'
@@ -144,12 +144,12 @@ export function Step3Questionnaire({
             />
           </div>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-1 sm:gap-2 shrink-0">
           {totalProgress.percentage === 100 ? (
-            <Badge className="bg-emerald-500">✓ Completo</Badge>
+            <Badge className="bg-emerald-500 text-[10px] sm:text-xs px-1.5 sm:px-2">✓</Badge>
           ) : (
-            <Badge variant="outline" className="text-amber-600 border-amber-600">
-              {totalProgress.total - totalProgress.answered} pendentes
+            <Badge variant="outline" className="text-amber-600 border-amber-600 text-[10px] sm:text-xs px-1.5 sm:px-2">
+              {totalProgress.total - totalProgress.answered}
             </Badge>
           )}
           {state.responses.length > 0 && (
@@ -159,14 +159,14 @@ export function Step3Questionnaire({
                   <Button
                     variant="ghost"
                     size="icon"
-                    className="h-7 w-7"
+                    className="h-7 w-7 sm:h-7 sm:w-7"
                     onClick={() => updateState({ responses: [] })}
                   >
-                    <RotateCcw className="h-3.5 w-3.5" />
+                    <RotateCcw className="h-3 w-3 sm:h-3.5 sm:w-3.5" />
                   </Button>
                 </TooltipTrigger>
                 <TooltipContent side="top">
-                  <p className="text-xs">Limpar todas as respostas</p>
+                  <p className="text-xs">Limpar todas</p>
                 </TooltipContent>
               </Tooltip>
             </TooltipProvider>
@@ -176,44 +176,44 @@ export function Step3Questionnaire({
 
       <Tabs value={activeTab} onValueChange={setActiveTab}>
         {Object.entries(groupedChars).map(([key, category]) => (
-          <TabsContent key={key} value={key} className="space-y-4 mt-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <h4 className="font-semibold">{category.name}</h4>
+          <TabsContent key={key} value={key} className="space-y-3 sm:space-y-4 mt-3 sm:mt-4">
+            <div className="flex items-center justify-between gap-2">
+              <div className="min-w-0">
+                <h4 className="font-semibold text-sm sm:text-base truncate">{category.name}</h4>
                 {isAdmin && (
-                  <p className="text-xs text-muted-foreground">
+                  <p className="text-[10px] sm:text-xs text-muted-foreground">
                     Cap: {formatPercent(category.cap_max)} / {formatPercent(category.cap_min)}
                   </p>
                 )}
               </div>
               {isAdmin && (
-                <Badge variant="outline">
-                  Ajuste: {formatPercent(getCategoryAdjustment(key))}
+                <Badge variant="outline" className="text-[10px] sm:text-xs shrink-0">
+                  {formatPercent(getCategoryAdjustment(key))}
                 </Badge>
               )}
             </div>
 
-            <div className="space-y-3">
+            <div className="space-y-2 sm:space-y-3">
               {category.items.map((char, index) => (
                 <Card key={char.id} className="bg-muted/20">
-                  <CardContent className="py-3 px-4">
-                    <div className="flex items-start justify-between gap-4">
-                      <div className="flex-1">
-                        <div className="flex items-center gap-2">
-                          <span className="text-sm font-medium">
+                  <CardContent className="py-2.5 sm:py-3 px-3 sm:px-4">
+                    <div className="flex flex-col sm:flex-row sm:items-start gap-2 sm:gap-4">
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap">
+                          <span className="text-xs sm:text-sm font-medium">
                             {index + 1}. {char.char_name}
                           </span>
                           {isAdmin && (
                             <Badge
                               variant={char.char_type === "positive" ? "default" : "destructive"}
-                              className="text-xs"
+                              className="text-[10px] sm:text-xs px-1.5"
                             >
                               {formatPercent(char.weight_value)}
                             </Badge>
                           )}
                         </div>
                         {char.char_description && (
-                          <p className="text-xs text-muted-foreground mt-1">
+                          <p className="text-[10px] sm:text-xs text-muted-foreground mt-0.5 sm:mt-1">
                             {char.char_description}
                           </p>
                         )}
@@ -228,16 +228,16 @@ export function Step3Questionnaire({
                             char.weight_value
                           )
                         }
-                        className="flex gap-3"
+                        className="flex gap-4 sm:gap-3 shrink-0"
                       >
-                        <div className="flex items-center space-x-1">
-                          <SimpleRadioItem value="nao" id={`${char.id}-nao`} />
+                        <div className="flex items-center space-x-1.5 sm:space-x-1">
+                          <SimpleRadioItem value="nao" id={`${char.id}-nao`} className="h-5 w-5 sm:h-4 sm:w-4" />
                           <Label htmlFor={`${char.id}-nao`} className="text-xs cursor-pointer">
                             Não
                           </Label>
                         </div>
-                        <div className="flex items-center space-x-1">
-                          <SimpleRadioItem value="sim" id={`${char.id}-sim`} />
+                        <div className="flex items-center space-x-1.5 sm:space-x-1">
+                          <SimpleRadioItem value="sim" id={`${char.id}-sim`} className="h-5 w-5 sm:h-4 sm:w-4" />
                           <Label htmlFor={`${char.id}-sim`} className="text-xs cursor-pointer">
                             Sim
                           </Label>
@@ -252,11 +252,11 @@ export function Step3Questionnaire({
         ))}
 
         {/* Tab de Documentação */}
-        <TabsContent value="doc" className="space-y-4 mt-4">
+        <TabsContent value="doc" className="space-y-3 sm:space-y-4 mt-3 sm:mt-4">
           <div>
-            <h4 className="font-semibold">Status da Documentação</h4>
-            <p className="text-xs text-muted-foreground">
-              Afeta diretamente o valor final (multiplicador)
+            <h4 className="font-semibold text-sm sm:text-base">Status da Documentação</h4>
+            <p className="text-[10px] sm:text-xs text-muted-foreground">
+              Afeta diretamente o valor final
             </p>
           </div>
 
@@ -270,7 +270,7 @@ export function Step3Questionnaire({
               });
             }}
           >
-            <SelectTrigger>
+            <SelectTrigger className="h-10 sm:h-9">
               <SelectValue placeholder="Selecione o status" />
             </SelectTrigger>
             <SelectContent>
@@ -278,7 +278,7 @@ export function Step3Questionnaire({
                 <SelectItem key={factor.status_code} value={factor.status_code}>
                   <div className="flex items-center gap-2">
                     <span
-                      className={`w-2 h-2 rounded-full ${
+                      className={`w-2 h-2 rounded-full shrink-0 ${
                         factor.severity === "green"
                           ? "bg-emerald-500"
                           : factor.severity === "yellow"
@@ -288,10 +288,10 @@ export function Step3Questionnaire({
                           : "bg-red-500"
                       }`}
                     />
-                    <span>{factor.status_name}</span>
+                    <span className="text-xs sm:text-sm">{factor.status_name}</span>
                     {isAdmin && factor.factor !== null && factor.factor < 1 && (
-                      <span className="text-xs text-red-600">
-                        ({((1 - factor.factor) * 100).toFixed(0)}% desconto)
+                      <span className="text-[10px] sm:text-xs text-red-600">
+                        ({((1 - factor.factor) * 100).toFixed(0)}%)
                       </span>
                     )}
                   </div>
@@ -301,18 +301,19 @@ export function Step3Questionnaire({
           </Select>
 
           <div className="space-y-2">
-            <Label>Observações sobre documentação</Label>
+            <Label className="text-xs sm:text-sm">Observações</Label>
             <Textarea
               value={state.docNotes}
               onChange={(e) => updateState({ docNotes: e.target.value })}
-              placeholder="Descreva detalhes sobre pendências, se houver..."
+              placeholder="Detalhes sobre pendências..."
               rows={3}
+              className="text-sm"
             />
           </div>
         </TabsContent>
 
         {/* TabsList movida para baixo - responsiva */}
-        <TabsList className="flex flex-wrap justify-center gap-1 sm:grid sm:grid-cols-6 w-full mt-4 h-auto p-2">
+        <TabsList className="grid grid-cols-6 w-full mt-3 sm:mt-4 h-auto p-1 sm:p-2 gap-0.5 sm:gap-1">
           {Object.entries(groupedChars).map(([key, category]) => {
             const Icon = CATEGORY_ICONS[key] || Eye;
             const adjustment = getCategoryAdjustment(key);
@@ -322,33 +323,32 @@ export function Step3Questionnaire({
               <TabsTrigger
                 key={key}
                 value={key}
-                className="flex flex-col items-center gap-0.5 py-1.5 px-2 sm:px-3 text-xs min-w-[45px] sm:min-w-0 relative"
+                className="flex flex-col items-center gap-0 sm:gap-0.5 py-1.5 sm:py-2 px-1 sm:px-3 text-xs relative"
               >
                 <Icon className={`h-4 w-4 sm:h-5 sm:w-5 ${CATEGORY_COLORS[key]}`} />
-                <span className="text-[10px] sm:text-xs font-medium">{key}</span>
+                <span className="text-[9px] sm:text-xs font-medium">{key}</span>
                 {isAdmin && adjustment !== 0 && (
                   <Badge 
                     variant={adjustment > 0 ? "default" : "destructive"} 
-                    className="text-[8px] sm:text-[10px] px-1 py-0 h-4"
+                    className="text-[7px] sm:text-[10px] px-0.5 sm:px-1 py-0 h-3 sm:h-4 hidden sm:flex"
                   >
                     {formatPercent(adjustment)}
                   </Badge>
                 )}
-                {/* Indicador de completude */}
                 {isComplete && (
-                  <span className="absolute -top-1 -right-1 w-3 h-3 bg-emerald-500 rounded-full flex items-center justify-center text-[8px] text-white">✓</span>
+                  <span className="absolute -top-0.5 -right-0.5 sm:-top-1 sm:-right-1 w-2.5 h-2.5 sm:w-3 sm:h-3 bg-emerald-500 rounded-full flex items-center justify-center text-[6px] sm:text-[8px] text-white">✓</span>
                 )}
               </TabsTrigger>
             );
           })}
           <TabsTrigger 
             value="doc" 
-            className="flex flex-col items-center gap-0.5 py-1.5 px-2 sm:px-3 text-xs min-w-[45px] sm:min-w-0"
+            className="flex flex-col items-center gap-0 sm:gap-0.5 py-1.5 sm:py-2 px-1 sm:px-3 text-xs"
           >
             <FileText className="h-4 w-4 sm:h-5 sm:w-5 text-amber-600" />
-            <span className="text-[10px] sm:text-xs font-medium">Doc</span>
+            <span className="text-[9px] sm:text-xs font-medium">Doc</span>
             {isAdmin && state.docFactor < 1 && (
-              <Badge variant="destructive" className="text-[8px] sm:text-[10px] px-1 py-0 h-4">
+              <Badge variant="destructive" className="text-[7px] sm:text-[10px] px-0.5 sm:px-1 py-0 h-3 sm:h-4 hidden sm:flex">
                 {formatPercent(state.docFactor - 1)}
               </Badge>
             )}
@@ -359,46 +359,46 @@ export function Step3Questionnaire({
       {/* Preview em tempo real */}
       {preview && (
         <Card className="bg-gradient-to-br from-primary/5 to-primary/10 border-primary/20">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm flex items-center gap-2">
-              📊 Preview em Tempo Real
+          <CardHeader className="pb-1 sm:pb-2 px-3 sm:px-6">
+            <CardTitle className="text-xs sm:text-sm flex items-center gap-2">
+              📊 Preview
             </CardTitle>
           </CardHeader>
-          <CardContent className="space-y-3">
-            <div className="grid grid-cols-3 gap-2 text-center">
-              <div className="p-2 bg-background rounded">
-                <p className="text-xs text-muted-foreground">Pessimista</p>
-                <p className="font-semibold text-red-600 text-sm">
+          <CardContent className="space-y-2 sm:space-y-3 px-3 sm:px-6 pb-3 sm:pb-4">
+            <div className="grid grid-cols-3 gap-1.5 sm:gap-2 text-center">
+              <div className="p-1.5 sm:p-2 bg-background rounded">
+                <p className="text-[10px] sm:text-xs text-muted-foreground">Pess.</p>
+                <p className="font-semibold text-red-600 text-[11px] sm:text-sm">
                   {formatCurrency(preview.pessimista)}
                 </p>
               </div>
-              <div className="p-2 bg-primary/10 rounded border border-primary/30">
-                <p className="text-xs text-muted-foreground">Provável</p>
-                <p className="font-bold text-primary">
+              <div className="p-1.5 sm:p-2 bg-primary/10 rounded border border-primary/30">
+                <p className="text-[10px] sm:text-xs text-muted-foreground">Prov.</p>
+                <p className="font-bold text-primary text-xs sm:text-base">
                   {formatCurrency(preview.provavel)}
                 </p>
               </div>
-              <div className="p-2 bg-background rounded">
-                <p className="text-xs text-muted-foreground">Otimista</p>
-                <p className="font-semibold text-emerald-600 text-sm">
+              <div className="p-1.5 sm:p-2 bg-background rounded">
+                <p className="text-[10px] sm:text-xs text-muted-foreground">Otim.</p>
+                <p className="font-semibold text-emerald-600 text-[11px] sm:text-sm">
                   {formatCurrency(preview.otimista)}
                 </p>
               </div>
             </div>
             
-            <div className="flex items-center justify-between text-xs">
+            <div className="flex items-center justify-between text-[10px] sm:text-xs gap-2 flex-wrap">
               {isAdmin ? (
-                <span>
-                  Ajuste Total: {formatPercent(preview.total_adjustment)}
+                <span className="flex items-center gap-1 flex-wrap">
+                  Ajuste: {formatPercent(preview.total_adjustment)}
                   {preview.auto_capped && (
-                    <Badge variant="outline" className="ml-2 text-[10px]">
-                      CAP aplicado
+                    <Badge variant="outline" className="text-[8px] sm:text-[10px] px-1">
+                      CAP
                     </Badge>
                   )}
                 </span>
               ) : (
                 <span className="text-muted-foreground">
-                  {state.responses.filter(r => r.response === "sim").length} características aplicadas
+                  {state.responses.filter(r => r.response === "sim").length} aplicadas
                 </span>
               )}
               <Badge
@@ -409,10 +409,11 @@ export function Step3Questionnaire({
                     ? "destructive"
                     : "secondary"
                 }
+                className="text-[10px] sm:text-xs"
               >
-                {isAdmin ? `Confiança: ${preview.confidence_score}%` : 
-                  preview.confidence_level === "green" ? "Alta Confiança" : 
-                  preview.confidence_level === "red" ? "Baixa Confiança" : "Média Confiança"
+                {isAdmin ? `${preview.confidence_score}%` : 
+                  preview.confidence_level === "green" ? "Alta" : 
+                  preview.confidence_level === "red" ? "Baixa" : "Média"
                 }
               </Badge>
             </div>

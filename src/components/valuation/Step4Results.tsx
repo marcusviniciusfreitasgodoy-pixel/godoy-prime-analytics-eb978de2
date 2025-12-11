@@ -69,57 +69,54 @@ export function Step4Results({ result, state, combined }: Props) {
     : Minus;
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 sm:space-y-6">
       <div className="text-center">
-        <CheckCircle className="h-12 w-12 text-emerald-600 mx-auto mb-2" />
-        <h3 className="text-xl font-bold">Avaliação Concluída</h3>
-        <p className="text-sm text-muted-foreground">
+        <CheckCircle className="h-10 w-10 sm:h-12 sm:w-12 text-emerald-600 mx-auto mb-2" />
+        <h3 className="text-lg sm:text-xl font-bold">Avaliação Concluída</h3>
+        <p className="text-xs sm:text-sm text-muted-foreground truncate px-2">
           {state.logradouro} • {state.area_m2} m²
         </p>
       </div>
 
       {/* 3 Cenários */}
-      <div className="space-y-4">
-        <h4 className="font-semibold text-center">📊 Três Cenários de Valor</h4>
+      <div className="space-y-3 sm:space-y-4">
+        <h4 className="font-semibold text-center text-sm sm:text-base">📊 Três Cenários de Valor</h4>
         
         {/* Pessimista */}
         <Card className="border-red-200 bg-red-50/50 dark:bg-red-950/20">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm text-red-700 dark:text-red-400 flex items-center gap-2">
-              🔴 Cenário Pessimista (Venda Urgente)
+          <CardHeader className="pb-1 sm:pb-2 px-3 sm:px-6">
+            <CardTitle className="text-xs sm:text-sm text-red-700 dark:text-red-400 flex items-center gap-1.5 sm:gap-2">
+              🔴 <span className="hidden xs:inline">Cenário</span> Pessimista
             </CardTitle>
           </CardHeader>
-          <CardContent>
-            <p className="text-2xl font-bold text-red-600">
+          <CardContent className="px-3 sm:px-6 pb-3 sm:pb-4">
+            <p className="text-xl sm:text-2xl font-bold text-red-600">
               {formatCurrency(result.pessimista)}
             </p>
-            <p className="text-xs text-muted-foreground mt-2">
-              Use quando: precisa de dinheiro rápido, mercado em baixa, ou há urgência
+            <p className="text-[10px] sm:text-xs text-muted-foreground mt-1 sm:mt-2">
+              Venda urgente ou mercado em baixa
             </p>
           </CardContent>
         </Card>
 
         {/* Provável */}
         <Card className="border-2 border-primary bg-primary/5">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm text-primary flex items-center gap-2">
-              🟡 Cenário Provável (Expectativa Realista)
-              <Badge className="bg-primary">RECOMENDADO</Badge>
+          <CardHeader className="pb-1 sm:pb-2 px-3 sm:px-6">
+            <CardTitle className="text-xs sm:text-sm text-primary flex items-center gap-1.5 sm:gap-2 flex-wrap">
+              🟡 <span className="hidden xs:inline">Cenário</span> Provável
+              <Badge className="bg-primary text-[10px] sm:text-xs">RECOMENDADO</Badge>
             </CardTitle>
           </CardHeader>
-          <CardContent>
-            <p className="text-3xl font-bold text-primary">
+          <CardContent className="px-3 sm:px-6 pb-3 sm:pb-4">
+            <p className="text-2xl sm:text-3xl font-bold text-primary">
               {formatCurrency(result.provavel)}
             </p>
-            <div className="text-xs text-muted-foreground mt-2 space-y-1">
-              <p>Este é o valor mais provável com base em:</p>
-              <ul className="list-disc list-inside ml-2">
-                <li>Dados históricos ITBI ({state.anuncioData?.med_m2 ? "70%" : "100%"})</li>
-                {state.anuncioData?.med_m2 && <li>Tendência de anúncios (30%)</li>}
-                <li>Características do imóvel ({formatPercent(result.total_adjustment)})</li>
-                {combined && combined.trend_percentage !== 0 && (
-                  <li>Trend de mercado ({combined.trend_percentage > 0 ? "+" : ""}{combined.trend_percentage.toFixed(1)}%)</li>
-                )}
+            <div className="text-[10px] sm:text-xs text-muted-foreground mt-1 sm:mt-2 space-y-0.5 sm:space-y-1">
+              <p>Baseado em:</p>
+              <ul className="list-disc list-inside ml-1 sm:ml-2">
+                <li>ITBI histórico ({state.anuncioData?.med_m2 ? "70%" : "100%"})</li>
+                {state.anuncioData?.med_m2 && <li>Anúncios (30%)</li>}
+                <li>Características ({formatPercent(result.total_adjustment)})</li>
               </ul>
             </div>
           </CardContent>
@@ -127,17 +124,17 @@ export function Step4Results({ result, state, combined }: Props) {
 
         {/* Otimista */}
         <Card className="border-emerald-200 bg-emerald-50/50 dark:bg-emerald-950/20">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm text-emerald-700 dark:text-emerald-400 flex items-center gap-2">
-              🟢 Cenário Otimista (Buyer Premium)
+          <CardHeader className="pb-1 sm:pb-2 px-3 sm:px-6">
+            <CardTitle className="text-xs sm:text-sm text-emerald-700 dark:text-emerald-400 flex items-center gap-1.5 sm:gap-2">
+              🟢 <span className="hidden xs:inline">Cenário</span> Otimista
             </CardTitle>
           </CardHeader>
-          <CardContent>
-            <p className="text-2xl font-bold text-emerald-600">
+          <CardContent className="px-3 sm:px-6 pb-3 sm:pb-4">
+            <p className="text-xl sm:text-2xl font-bold text-emerald-600">
               {formatCurrency(result.otimista)}
             </p>
-            <p className="text-xs text-muted-foreground mt-2">
-              Use quando: pode esperar o comprador certo, mercado em alta forte
+            <p className="text-[10px] sm:text-xs text-muted-foreground mt-1 sm:mt-2">
+              Comprador premium ou mercado em alta
             </p>
           </CardContent>
         </Card>
@@ -145,24 +142,24 @@ export function Step4Results({ result, state, combined }: Props) {
 
       {/* Intervalo */}
       <Card className="bg-muted/30">
-        <CardContent className="pt-6">
-          <h4 className="font-semibold mb-3">📈 Intervalo Recomendado</h4>
-          <div className="space-y-2 text-sm">
+        <CardContent className="pt-4 sm:pt-6 px-3 sm:px-6">
+          <h4 className="font-semibold mb-2 sm:mb-3 text-sm sm:text-base">📈 Intervalo Recomendado</h4>
+          <div className="space-y-1.5 sm:space-y-2 text-xs sm:text-sm">
             <div className="flex justify-between">
-              <span className="text-muted-foreground">Mínimo Aceitável:</span>
+              <span className="text-muted-foreground">Mínimo:</span>
               <span className="font-medium">{formatCurrency(result.pessimista)}</span>
             </div>
             <div className="flex justify-between">
-              <span className="text-muted-foreground">Valor Central:</span>
+              <span className="text-muted-foreground">Central:</span>
               <span className="font-bold text-primary">{formatCurrency(result.provavel)}</span>
             </div>
             <div className="flex justify-between">
-              <span className="text-muted-foreground">Máximo Esperado:</span>
+              <span className="text-muted-foreground">Máximo:</span>
               <span className="font-medium">{formatCurrency(result.otimista)}</span>
             </div>
-            <div className="flex justify-between pt-2 border-t">
-              <span className="text-muted-foreground">Spread (intervalo):</span>
-              <Badge variant="outline">{result.spread_percentage.toFixed(1)}%</Badge>
+            <div className="flex justify-between pt-1.5 sm:pt-2 border-t">
+              <span className="text-muted-foreground">Spread:</span>
+              <Badge variant="outline" className="text-[10px] sm:text-xs">{result.spread_percentage.toFixed(1)}%</Badge>
             </div>
           </div>
         </CardContent>
@@ -170,44 +167,44 @@ export function Step4Results({ result, state, combined }: Props) {
 
       {/* Confiança */}
       <Card>
-        <CardContent className="pt-6">
-          <h4 className="font-semibold mb-3 flex items-center gap-2">
-            🎯 Nível de Confiança na Avaliação
+        <CardContent className="pt-4 sm:pt-6 px-3 sm:px-6">
+          <h4 className="font-semibold mb-2 sm:mb-3 flex items-center gap-2 text-sm sm:text-base">
+            🎯 Nível de Confiança
           </h4>
           
-          <div className="flex items-center gap-3 mb-4">
+          <div className="flex items-center gap-2 sm:gap-3 mb-3 sm:mb-4">
             {getConfidenceIcon()}
-            <div className="flex-1">
-              <div className="flex items-center justify-between mb-1">
-                <span className="font-medium">{getConfidenceLabel()}</span>
-                <span className="text-lg font-bold">{result.confidence_score}%</span>
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center justify-between mb-1 gap-2">
+                <span className="font-medium text-xs sm:text-sm truncate">{getConfidenceLabel()}</span>
+                <span className="text-base sm:text-lg font-bold shrink-0">{result.confidence_score}%</span>
               </div>
               <Progress
                 value={result.confidence_score}
-                className="h-2"
+                className="h-1.5 sm:h-2"
               />
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-2 text-xs">
-            <div className="flex items-center gap-2">
-              <CheckCircle className="h-3 w-3 text-emerald-500" />
-              <span>Ajustes: {formatPercent(result.total_adjustment)}</span>
+          <div className="grid grid-cols-2 gap-1.5 sm:gap-2 text-[10px] sm:text-xs">
+            <div className="flex items-center gap-1.5 sm:gap-2">
+              <CheckCircle className="h-3 w-3 text-emerald-500 shrink-0" />
+              <span className="truncate">Ajustes: {formatPercent(result.total_adjustment)}</span>
               {result.auto_capped && (
-                <Badge variant="outline" className="text-[10px]">CAP</Badge>
+                <Badge variant="outline" className="text-[8px] sm:text-[10px] px-1 hidden sm:inline">CAP</Badge>
               )}
             </div>
-            <div className="flex items-center gap-2">
-              <CheckCircle className="h-3 w-3 text-emerald-500" />
+            <div className="flex items-center gap-1.5 sm:gap-2">
+              <CheckCircle className="h-3 w-3 text-emerald-500 shrink-0" />
               <span>Spread: {result.spread_percentage.toFixed(1)}%</span>
             </div>
-            <div className="flex items-center gap-2">
-              <CheckCircle className="h-3 w-3 text-emerald-500" />
-              <span>Doc: {state.docFactor === 1 ? "OK" : `${((1 - state.docFactor) * 100).toFixed(0)}% desconto`}</span>
+            <div className="flex items-center gap-1.5 sm:gap-2">
+              <CheckCircle className="h-3 w-3 text-emerald-500 shrink-0" />
+              <span className="truncate">Doc: {state.docFactor === 1 ? "OK" : `${((1 - state.docFactor) * 100).toFixed(0)}%`}</span>
             </div>
             {combined && (
-              <div className="flex items-center gap-2">
-                <TrendIcon className={`h-3 w-3 ${
+              <div className="flex items-center gap-1.5 sm:gap-2">
+                <TrendIcon className={`h-3 w-3 shrink-0 ${
                   combined.trend_direction === "UP" ? "text-emerald-500" :
                   combined.trend_direction === "DOWN" ? "text-red-500" :
                   "text-muted-foreground"
