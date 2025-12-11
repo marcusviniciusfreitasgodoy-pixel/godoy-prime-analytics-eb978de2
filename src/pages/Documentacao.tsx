@@ -454,19 +454,19 @@ export default function Documentacao() {
   };
 
   return (
-    <div className="space-y-6">
-      <div className="px-4 sm:px-0">
-        <h2 className="text-2xl sm:text-3xl font-bold text-foreground">Documentação</h2>
-        <p className="text-sm sm:text-base text-muted-foreground mt-1">Checklist para garantir segurança jurídica da transação</p>
+    <div className="space-y-4 sm:space-y-6 -mx-1 sm:mx-0">
+      <div className="px-2 sm:px-0">
+        <h2 className="text-xl sm:text-3xl font-bold text-foreground">Documentação</h2>
+        <p className="text-xs sm:text-base text-muted-foreground mt-1">Checklist para garantir segurança jurídica da transação</p>
       </div>
 
       {/* Análise Inteligente de Documentos */}
       <DocumentAnalyzer onChecklistItemSuggested={handleChecklistItemSuggested} />
 
-      <Card>
-        <CardHeader className="space-y-4">
-          <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
-            <CardTitle className="text-lg sm:text-xl text-left">Progresso da Documentação</CardTitle>
+      <Card className="rounded-none sm:rounded-lg border-x-0 sm:border-x">
+        <CardHeader className="space-y-3 sm:space-y-4 px-3 sm:px-6">
+          <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-2 sm:gap-3">
+            <CardTitle className="text-base sm:text-xl text-left">Progresso da Documentação</CardTitle>
             <div className="flex flex-wrap gap-2">
               <Button variant="outline" onClick={resetChecklist} size="sm" className="text-xs sm:text-sm">
                 Resetar
@@ -514,11 +514,11 @@ export default function Documentacao() {
         </CardHeader>
       </Card>
 
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-lg sm:text-xl text-left">Perfil do Vendedor</CardTitle>
+      <Card className="rounded-none sm:rounded-lg border-x-0 sm:border-x">
+        <CardHeader className="px-3 sm:px-6">
+          <CardTitle className="text-base sm:text-xl text-left">Perfil do Vendedor</CardTitle>
         </CardHeader>
-        <CardContent className="space-y-4">
+        <CardContent className="space-y-4 px-3 sm:px-6">
           <div className="flex flex-col gap-4">
             <div className="flex items-center gap-3">
               <Checkbox
@@ -564,11 +564,11 @@ export default function Documentacao() {
         </CardContent>
       </Card>
 
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-lg sm:text-xl text-left">Perfil do Comprador</CardTitle>
+      <Card className="rounded-none sm:rounded-lg border-x-0 sm:border-x">
+        <CardHeader className="px-3 sm:px-6">
+          <CardTitle className="text-base sm:text-xl text-left">Perfil do Comprador</CardTitle>
         </CardHeader>
-        <CardContent className="space-y-4">
+        <CardContent className="space-y-4 px-3 sm:px-6">
           <div className="flex flex-col gap-4">
             <div className="flex items-center gap-3">
               <Checkbox
@@ -614,8 +614,8 @@ export default function Documentacao() {
         </CardContent>
       </Card>
 
-      <Card>
-        <CardContent className="pt-6">
+      <Card className="rounded-none sm:rounded-lg border-x-0 sm:border-x">
+        <CardContent className="pt-4 sm:pt-6 px-2 sm:px-6">
           <TooltipProvider>
             <Accordion type="multiple" className="w-full text-left">
               {checklist.map((category) => (
