@@ -147,33 +147,33 @@ export function Step5Recommendation({ result, state, combined, onReset }: Props)
   const minAcceptable = result.pessimista;
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 sm:space-y-6">
       {/* Análise de Mercado */}
       {combined && combined.trend_percentage !== 0 && (
         <Card className="bg-muted/30">
-          <CardContent className="pt-6">
-            <h4 className="font-semibold mb-3 flex items-center gap-2">
+          <CardContent className="pt-4 sm:pt-6 px-3 sm:px-6">
+            <h4 className="font-semibold mb-2 sm:mb-3 flex items-center gap-2 text-sm sm:text-base">
               📊 Análise de Mercado
             </h4>
-            <div className={`flex items-center gap-3 p-3 rounded-lg ${
+            <div className={`flex items-center gap-2 sm:gap-3 p-2 sm:p-3 rounded-lg ${
               combined.trend_direction === "UP" ? "bg-emerald-100 dark:bg-emerald-950/50" :
               combined.trend_direction === "DOWN" ? "bg-red-100 dark:bg-red-950/50" :
               "bg-muted"
             }`}>
-              <TrendIcon className={`h-6 w-6 ${
+              <TrendIcon className={`h-5 w-5 sm:h-6 sm:w-6 shrink-0 ${
                 combined.trend_direction === "UP" ? "text-emerald-600" :
                 combined.trend_direction === "DOWN" ? "text-red-600" :
                 "text-muted-foreground"
               }`} />
-              <div>
-                <p className="font-medium">
+              <div className="min-w-0">
+                <p className="font-medium text-xs sm:text-sm">
                   Trend: {combined.trend_percentage > 0 ? "+" : ""}{combined.trend_percentage.toFixed(1)}%
-                  <span className="ml-2 text-sm font-normal text-muted-foreground">
-                    (Mercado em {combined.trend_direction === "UP" ? "ALTA" : combined.trend_direction === "DOWN" ? "BAIXA" : "ESTÁVEL"})
+                  <span className="ml-1 sm:ml-2 text-[10px] sm:text-sm font-normal text-muted-foreground">
+                    ({combined.trend_direction === "UP" ? "ALTA" : combined.trend_direction === "DOWN" ? "BAIXA" : "ESTÁVEL"})
                   </span>
                 </p>
-                <p className="text-xs text-muted-foreground">
-                  Diferença entre preços de anúncios e transações ITBI
+                <p className="text-[10px] sm:text-xs text-muted-foreground">
+                  Diferença anúncios vs ITBI
                 </p>
               </div>
             </div>
@@ -184,17 +184,17 @@ export function Step5Recommendation({ result, state, combined, onReset }: Props)
       {/* Características aplicadas - apenas para admin */}
       {isAdmin && state.responses.filter(r => r.response === "sim").length > 0 && (
         <Card className="bg-muted/30">
-          <CardContent className="pt-6">
-            <h4 className="font-semibold mb-3">✅ Análise do Imóvel (Admin)</h4>
-            <p className="text-sm mb-2">
-              Ajuste aplicado: <strong>{result.total_adjustment > 0 ? "+" : ""}{(result.total_adjustment * 100).toFixed(0)}%</strong> 
+          <CardContent className="pt-4 sm:pt-6 px-3 sm:px-6">
+            <h4 className="font-semibold mb-2 sm:mb-3 text-sm sm:text-base">✅ Análise (Admin)</h4>
+            <p className="text-xs sm:text-sm mb-2">
+              Ajuste: <strong>{result.total_adjustment > 0 ? "+" : ""}{(result.total_adjustment * 100).toFixed(0)}%</strong> 
               {result.total_adjustment > 0 ? " ACIMA" : result.total_adjustment < 0 ? " ABAIXO" : " NA"} da referência
             </p>
             <div className="flex flex-wrap gap-1">
               {state.responses
                 .filter(r => r.response === "sim" && r.weight_applied !== 0)
                 .map(r => (
-                  <Badge key={r.char_id} variant={r.weight_applied > 0 ? "default" : "destructive"} className="text-xs">
+                  <Badge key={r.char_id} variant={r.weight_applied > 0 ? "default" : "destructive"} className="text-[10px] sm:text-xs">
                     {r.char_code.replace(/_/g, " ")} ({r.weight_applied > 0 ? "+" : ""}{(r.weight_applied * 100).toFixed(0)}%)
                   </Badge>
                 ))
@@ -207,13 +207,13 @@ export function Step5Recommendation({ result, state, combined, onReset }: Props)
       {/* Para não-admin: mostrar apenas contagem de características */}
       {!isAdmin && state.responses.filter(r => r.response === "sim").length > 0 && (
         <Card className="bg-muted/30">
-          <CardContent className="pt-6">
-            <h4 className="font-semibold mb-3">✅ Características do Imóvel</h4>
-            <p className="text-sm text-muted-foreground">
-              {state.responses.filter(r => r.response === "sim").length} características positivas identificadas
+          <CardContent className="pt-4 sm:pt-6 px-3 sm:px-6">
+            <h4 className="font-semibold mb-2 sm:mb-3 text-sm sm:text-base">✅ Características</h4>
+            <p className="text-xs sm:text-sm text-muted-foreground">
+              {state.responses.filter(r => r.response === "sim").length} características positivas
               {state.responses.filter(r => r.response === "sim" && r.weight_applied < 0).length > 0 && (
                 <span className="ml-1 text-amber-600">
-                  ({state.responses.filter(r => r.response === "sim" && r.weight_applied < 0).length} pontos de atenção)
+                  ({state.responses.filter(r => r.response === "sim" && r.weight_applied < 0).length} atenção)
                 </span>
               )}
             </p>
@@ -223,23 +223,23 @@ export function Step5Recommendation({ result, state, combined, onReset }: Props)
 
       {/* Recomendação Principal */}
       <Card className={getRecommendationColor()}>
-        <CardHeader className="pb-2">
-          <CardTitle className="text-lg flex items-center gap-3">
+        <CardHeader className="pb-1 sm:pb-2 px-3 sm:px-6">
+          <CardTitle className="text-sm sm:text-lg flex items-center gap-2 sm:gap-3">
             {getRecommendationIcon()}
-            <span>{result.recommendation.title}</span>
+            <span className="truncate">{result.recommendation.title}</span>
           </CardTitle>
         </CardHeader>
-        <CardContent className="space-y-4">
-          <p className="text-sm">{result.recommendation.message}</p>
+        <CardContent className="space-y-3 sm:space-y-4 px-3 sm:px-6">
+          <p className="text-xs sm:text-sm">{result.recommendation.message}</p>
           
           {result.recommendation.details && (
-            <div className="space-y-2">
-              <p className="text-xs font-medium text-muted-foreground">Próximos passos:</p>
-              <ul className="text-sm space-y-1">
+            <div className="space-y-1.5 sm:space-y-2">
+              <p className="text-[10px] sm:text-xs font-medium text-muted-foreground">Próximos passos:</p>
+              <ul className="text-xs sm:text-sm space-y-0.5 sm:space-y-1">
                 {result.recommendation.details.map((detail, i) => (
-                  <li key={i} className="flex items-start gap-2">
-                    <span className="text-primary">✓</span>
-                    {detail}
+                  <li key={i} className="flex items-start gap-1.5 sm:gap-2">
+                    <span className="text-primary shrink-0">✓</span>
+                    <span>{detail}</span>
                   </li>
                 ))}
               </ul>
@@ -247,10 +247,9 @@ export function Step5Recommendation({ result, state, combined, onReset }: Props)
           )}
 
           {result.recommendation.potential_gain && (
-            <div className="p-3 bg-emerald-100 dark:bg-emerald-950/50 rounded-lg">
-              <p className="text-sm">
-                <strong>Potencial de ganho:</strong>{" "}
-                {formatCurrency(result.recommendation.potential_gain)}
+            <div className="p-2 sm:p-3 bg-emerald-100 dark:bg-emerald-950/50 rounded-lg">
+              <p className="text-xs sm:text-sm">
+                <strong>Potencial:</strong> {formatCurrency(result.recommendation.potential_gain)}
               </p>
             </div>
           )}
@@ -259,41 +258,32 @@ export function Step5Recommendation({ result, state, combined, onReset }: Props)
 
       {/* Estratégia de Preço */}
       <Card>
-        <CardContent className="pt-6">
-          <h4 className="font-semibold mb-4">💰 Estratégia de Preço</h4>
-          <div className="space-y-3 text-sm">
-            <div className="flex justify-between items-center p-2 bg-muted/50 rounded">
-              <span>Anunciar por:</span>
+        <CardContent className="pt-4 sm:pt-6 px-3 sm:px-6">
+          <h4 className="font-semibold mb-3 sm:mb-4 text-sm sm:text-base">💰 Estratégia de Preço</h4>
+          <div className="space-y-2 sm:space-y-3 text-xs sm:text-sm">
+            <div className="flex justify-between items-center p-1.5 sm:p-2 bg-muted/50 rounded">
+              <span>Anunciar:</span>
               <span className="font-bold">{formatCurrency(listPrice)}</span>
             </div>
-            <p className="text-xs text-muted-foreground ml-2">
-              ↳ Ligeiramente acima para deixar espaço de negociação
-            </p>
 
-            <div className="flex justify-between items-center p-2 bg-primary/10 rounded">
-              <span>Valor Target:</span>
+            <div className="flex justify-between items-center p-1.5 sm:p-2 bg-primary/10 rounded">
+              <span>Target:</span>
               <span className="font-bold text-primary">{formatCurrency(result.provavel)}</span>
             </div>
-            <p className="text-xs text-muted-foreground ml-2">
-              ↳ Expectativa realista para fechamento
-            </p>
 
-            <div className="flex justify-between items-center p-2 bg-muted/50 rounded">
-              <span>Mínimo Aceitável:</span>
+            <div className="flex justify-between items-center p-1.5 sm:p-2 bg-muted/50 rounded">
+              <span>Mínimo:</span>
               <span className="font-semibold text-red-600">{formatCurrency(minAcceptable)}</span>
             </div>
-            <p className="text-xs text-muted-foreground ml-2">
-              ↳ Piso para negociação (não aceitar abaixo)
-            </p>
           </div>
         </CardContent>
       </Card>
 
       {/* Timeline */}
       <Card className="bg-muted/30">
-        <CardContent className="pt-6">
-          <h4 className="font-semibold mb-3">⏱️ Timeline Esperada</h4>
-          <div className="space-y-2 text-sm">
+        <CardContent className="pt-4 sm:pt-6 px-3 sm:px-6">
+          <h4 className="font-semibold mb-2 sm:mb-3 text-sm sm:text-base">⏱️ Timeline</h4>
+          <div className="space-y-1.5 sm:space-y-2 text-xs sm:text-sm">
             <div className="flex justify-between">
               <span>Exposição:</span>
               <span>30-45 dias</span>
@@ -302,8 +292,8 @@ export function Step5Recommendation({ result, state, combined, onReset }: Props)
               <span>Negociação:</span>
               <span>15-30 dias</span>
             </div>
-            <div className="flex justify-between font-medium pt-2 border-t">
-              <span>Total estimado:</span>
+            <div className="flex justify-between font-medium pt-1.5 sm:pt-2 border-t">
+              <span>Total:</span>
               <span>45-75 dias</span>
             </div>
           </div>
@@ -312,64 +302,60 @@ export function Step5Recommendation({ result, state, combined, onReset }: Props)
 
       {/* DECISÃO: Prosseguir para Vistoria? */}
       <Card className="border-2 border-primary">
-        <CardHeader className="pb-2">
-          <CardTitle className="text-lg flex items-center gap-2">
-            <ClipboardCheck className="h-5 w-5 text-primary" />
-            Deseja Realizar Vistoria Completa?
+        <CardHeader className="pb-1 sm:pb-2 px-3 sm:px-6">
+          <CardTitle className="text-sm sm:text-lg flex items-center gap-2">
+            <ClipboardCheck className="h-4 w-4 sm:h-5 sm:w-5 text-primary shrink-0" />
+            <span className="truncate">Realizar Vistoria Completa?</span>
           </CardTitle>
         </CardHeader>
-        <CardContent className="space-y-4">
-          <p className="text-sm text-muted-foreground">
-            A <strong>Vistoria Digital</strong> permite uma análise detalhada do estado de conservação do imóvel 
-            (instalações elétricas, hidráulicas, acabamentos, etc.), tornando a avaliação mais precisa 
-            e próxima da realidade de mercado.
+        <CardContent className="space-y-3 sm:space-y-4 px-3 sm:px-6">
+          <p className="text-xs sm:text-sm text-muted-foreground">
+            A <strong>Vistoria Digital</strong> permite análise detalhada do estado de conservação.
           </p>
           
-          <div className="bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 rounded-lg p-3">
-            <p className="text-xs text-amber-800 dark:text-amber-200">
-              💡 <strong>Dica:</strong> A vistoria pode ajustar o valor em até ±15% com base nas condições reais verificadas in loco.
+          <div className="bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 rounded-lg p-2 sm:p-3">
+            <p className="text-[10px] sm:text-xs text-amber-800 dark:text-amber-200">
+              💡 A vistoria pode ajustar o valor em até ±15%
             </p>
           </div>
 
           {decisionMade === null ? (
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
+            <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 sm:gap-3 pt-1 sm:pt-2">
               <Button 
                 onClick={handleGoToVistoria} 
-                className="flex items-center gap-2"
+                className="flex items-center justify-center gap-2 h-11 sm:h-10 text-xs sm:text-sm"
               >
                 <CheckCircle className="h-4 w-4" />
-                Sim, prosseguir para Vistoria
+                <span className="truncate">Sim, prosseguir</span>
               </Button>
               <Button 
                 onClick={handleGenerateSimpleReport} 
                 variant="outline"
-                className="flex items-center gap-2"
+                className="flex items-center justify-center gap-2 h-11 sm:h-10 text-xs sm:text-sm"
               >
                 <FileText className="h-4 w-4" />
-                Não, gerar relatório simplificado
+                <span className="truncate">Não, gerar relatório</span>
               </Button>
             </div>
           ) : decisionMade === "nao" ? (
-            <div className="space-y-4">
-              <div className="bg-green-50 dark:bg-green-950/30 border border-green-200 dark:border-green-800 rounded-lg p-4">
-                <p className="text-sm text-green-800 dark:text-green-200 flex items-center gap-2">
-                  <CheckCircle className="h-4 w-4" />
-                  Relatório simplificado gerado com sucesso!
+            <div className="space-y-3 sm:space-y-4">
+              <div className="bg-green-50 dark:bg-green-950/30 border border-green-200 dark:border-green-800 rounded-lg p-3 sm:p-4">
+                <p className="text-xs sm:text-sm text-green-800 dark:text-green-200 flex items-center gap-2">
+                  <CheckCircle className="h-4 w-4 shrink-0" />
+                  Relatório gerado!
                 </p>
               </div>
               
-              <div className="flex gap-2">
-                <Button onClick={() => handleExportPDF(true)} variant="outline" className="flex-1">
-                  <FileDown className="mr-2 h-4 w-4" />
-                  Baixar PDF Novamente
-                </Button>
-              </div>
+              <Button onClick={() => handleExportPDF(true)} variant="outline" className="w-full h-10 sm:h-9">
+                <FileDown className="mr-2 h-4 w-4" />
+                Baixar PDF
+              </Button>
             </div>
           ) : (
-            <div className="bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
-              <p className="text-sm text-blue-800 dark:text-blue-200 flex items-center gap-2">
-                <ClipboardCheck className="h-4 w-4" />
-                Redirecionando para Vistoria Digital...
+            <div className="bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800 rounded-lg p-3 sm:p-4">
+              <p className="text-xs sm:text-sm text-blue-800 dark:text-blue-200 flex items-center gap-2">
+                <ClipboardCheck className="h-4 w-4 shrink-0" />
+                Redirecionando...
               </p>
             </div>
           )}
@@ -377,9 +363,8 @@ export function Step5Recommendation({ result, state, combined, onReset }: Props)
       </Card>
 
       {/* Disclaimer */}
-      <p className="text-xs text-muted-foreground text-center">
-        ⚠️ Esta é uma ferramenta estatística e não substitui laudo técnico PTAM (NBR 14653-2).
-        Os valores são referências de mercado baseadas em transações ITBI reais.
+      <p className="text-[10px] sm:text-xs text-muted-foreground text-center px-2">
+        ⚠️ Ferramenta estatística. Não substitui laudo PTAM (NBR 14653-2).
       </p>
     </div>
   );
