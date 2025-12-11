@@ -7,7 +7,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { Eye, Sun, Wrench, Sofa, Shield, LayoutGrid, FileText, Info } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Eye, Sun, Wrench, Sofa, Shield, LayoutGrid, FileText, Info, RotateCcw } from "lucide-react";
 import type { ValuationState } from "@/types/valuation";
 import type { ValuationCharacteristic, DocumentationFactor } from "@/hooks/useValuationCharacteristics";
 import { groupCharacteristicsByCategory } from "@/hooks/useValuationCharacteristics";
@@ -141,13 +142,34 @@ export function Step3Questionnaire({
             />
           </div>
         </div>
-        {totalProgress.percentage === 100 ? (
-          <Badge className="bg-emerald-500">✓ Completo</Badge>
-        ) : (
-          <Badge variant="outline" className="text-amber-600 border-amber-600">
-            {totalProgress.total - totalProgress.answered} pendentes
-          </Badge>
-        )}
+        <div className="flex items-center gap-2">
+          {totalProgress.percentage === 100 ? (
+            <Badge className="bg-emerald-500">✓ Completo</Badge>
+          ) : (
+            <Badge variant="outline" className="text-amber-600 border-amber-600">
+              {totalProgress.total - totalProgress.answered} pendentes
+            </Badge>
+          )}
+          {state.responses.length > 0 && (
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-7 w-7"
+                    onClick={() => updateState({ responses: [] })}
+                  >
+                    <RotateCcw className="h-3.5 w-3.5" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent side="top">
+                  <p className="text-xs">Limpar todas as respostas</p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          )}
+        </div>
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab}>
