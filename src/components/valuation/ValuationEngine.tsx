@@ -287,56 +287,61 @@ export function ValuationEngine({ bairro = "BARRA DA TIJUCA", vistoriaData }: Pr
       </CardHeader>
 
       <CardContent className="space-y-4 sm:space-y-6 px-3 sm:px-6">
-        {/* Step content */}
-        {currentStep === 0 && (
-          <Step0Identification
-            state={state}
-            updateState={updateState}
-          />
-        )}
-        
-        {currentStep === 1 && (
-          <Step1Location
-            state={state}
-            updateState={updateState}
-            combined={combined}
-          />
-        )}
-        
-        {currentStep === 2 && (
-          <Step2BasicData
-            state={state}
-            updateState={updateState}
-            combined={combined}
-          />
-        )}
-        
-        {currentStep === 3 && characteristics && docFactors && (
-          <Step3Questionnaire
-            state={state}
-            updateState={updateState}
-            characteristics={characteristics}
-            docFactors={docFactors}
-            preview={getPreview()}
-          />
-        )}
-        
-        {currentStep === 4 && state.result && (
-          <Step4Results
-            result={state.result}
-            state={state}
-            combined={combined}
-          />
-        )}
-        
-        {currentStep === 5 && state.result && (
-          <Step5Recommendation
-            result={state.result}
-            state={state}
-            combined={combined}
-            onReset={handleReset}
-          />
-        )}
+        {/* Step content with transition animation */}
+        <div 
+          key={currentStep}
+          className="animate-fade-in"
+        >
+          {currentStep === 0 && (
+            <Step0Identification
+              state={state}
+              updateState={updateState}
+            />
+          )}
+          
+          {currentStep === 1 && (
+            <Step1Location
+              state={state}
+              updateState={updateState}
+              combined={combined}
+            />
+          )}
+          
+          {currentStep === 2 && (
+            <Step2BasicData
+              state={state}
+              updateState={updateState}
+              combined={combined}
+            />
+          )}
+          
+          {currentStep === 3 && characteristics && docFactors && (
+            <Step3Questionnaire
+              state={state}
+              updateState={updateState}
+              characteristics={characteristics}
+              docFactors={docFactors}
+              preview={getPreview()}
+            />
+          )}
+          
+          {currentStep === 4 && state.result && (
+            <Step4Results
+              result={state.result}
+              state={state}
+              combined={combined}
+            />
+          )}
+          
+          {currentStep === 5 && state.result && (
+            <Step5Recommendation
+              result={state.result}
+              state={state}
+              combined={combined}
+              onReset={handleReset}
+            />
+          )}
+        </div>
 
         {/* Navigation */}
         <div className="flex justify-between pt-3 sm:pt-4 border-t gap-2">
