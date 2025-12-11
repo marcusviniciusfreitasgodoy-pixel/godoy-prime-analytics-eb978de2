@@ -14,6 +14,8 @@ import Dashboard from "./pages/Dashboard";
 import Microbairros from "./pages/Microbairros";
 import PesquisasMercado from "./pages/PesquisasMercado";
 import AvaliacaoImobiliaria from "./pages/AvaliacaoImobiliaria";
+import HistoricoAvaliacoes from "./pages/HistoricoAvaliacoes";
+import CalibradorAvaliacao from "./pages/CalibradorAvaliacao";
 import VistoriaDigital from "./pages/VistoriaDigital";
 import Documentacao from "./pages/Documentacao";
 import Leads from "./pages/Leads";
@@ -60,8 +62,17 @@ const App = () => {
                                 <Route path="/microbairros" element={<Microbairros />} />
                                 <Route path="/pesquisas-mercado" element={<PesquisasMercado />} />
                                 <Route path="/avaliacao-imobiliaria" element={<AvaliacaoImobiliaria />} />
+                                <Route path="/historico-avaliacoes" element={<HistoricoAvaliacoes />} />
                                 <Route path="/vistoria-digital" element={<VistoriaDigital />} />
                                 <Route path="/documentacao" element={<Documentacao />} />
+                                <Route 
+                                  path="/calibrador-avaliacao" 
+                                  element={
+                                    <ProtectedRoute requireAdmin>
+                                      <CalibradorAvaliacao />
+                                    </ProtectedRoute>
+                                  } 
+                                />
                                 <Route 
                                   path="/leads" 
                                   element={
