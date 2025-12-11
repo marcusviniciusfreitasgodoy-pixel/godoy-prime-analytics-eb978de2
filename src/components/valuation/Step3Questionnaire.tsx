@@ -54,15 +54,35 @@ export function Step3Questionnaire({
     [characteristics]
   );
 
+  // Grupos mutuamente exclusivos (se seleciona um, desmarca os outros do grupo)
+  const MUTUALLY_EXCLUSIVE_GROUPS: Record<string, string[]> = {
+    conservacao: ['totalmente_reformado', 'estado_otimo', 'conservacao_regular'],
+  };
+
   const handleResponseChange = (charId: string, charCode: string, value: "sim" | "nao" | "nao_aplica", weight: number) => {
-    const existing = state.responses.filter((r) => r.char_id !== charId);
+    let updatedResponses = state.responses.filter((r) => r.char_id !== charId);
+    
+    // Se marcando "sim", verificar se pertence a um grupo mutuamente exclusivo
+    if (value === "sim") {
+      for (const [, groupCodes] of Object.entries(MUTUALLY_EXCLUSIVE_GROUPS)) {
+        if (groupCodes.includes(charCode)) {
+          // Desmarcar outros itens do mesmo grupo
+          const otherCharIds = characteristics
+            .filter(c => groupCodes.includes(c.char_code) && c.char_code !== charCode)
+            .map(c => c.id);
+          updatedResponses = updatedResponses.filter(r => !otherCharIds.includes(r.char_id));
+          break;
+        }
+      }
+    }
+    
     const newResponse: CharacteristicResponse = {
       char_id: charId,
       char_code: charCode,
       response: value,
       weight_applied: value === "sim" ? weight : 0,
     };
-    updateState({ responses: [...existing, newResponse] });
+    updateState({ responses: [...updatedResponses, newResponse] });
   };
 
   const getResponse = (charId: string): "sim" | "nao" | "nao_aplica" => {
