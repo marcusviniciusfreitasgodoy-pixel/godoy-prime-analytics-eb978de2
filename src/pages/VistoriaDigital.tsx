@@ -15,7 +15,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import { FileText, Loader2, Building2, Camera, Image, X, Calculator, TrendingUp, Home, Building, RotateCcw, Star, AlertCircle, ChevronLeft, ChevronRight } from "lucide-react";
+import { FileText, Loader2, Building2, Camera, Image, X, Calculator, TrendingUp, Home, Building, RotateCcw, Star, AlertCircle, ChevronLeft, ChevronRight, Search, MapPin } from "lucide-react";
 import {
   Tooltip,
   TooltipContent,
@@ -42,6 +42,14 @@ import {
 import { useToast } from "@/hooks/use-toast";
 import { formatDate } from "@/utils/exportUtils";
 import { generateVistoriaPDF } from "@/utils/vistoriaPdfExport";
+import { supabase } from "@/integrations/supabase/client";
+
+// Street suggestion type
+interface StreetSuggestion {
+  logradouro: string;
+  count: number;
+  med_m2: number;
+}
 
 // Types
 interface AvaliacaoData {
@@ -570,6 +578,12 @@ export default function VistoriaDigital() {
   const location = useLocation();
   const isMobile = useIsMobile();
   
+  // Street autocomplete state
+  const [streetSearchTerm, setStreetSearchTerm] = useState("");
+  const [streetSuggestions, setStreetSuggestions] = useState<StreetSuggestion[]>([]);
+  const [showStreetSuggestions, setShowStreetSuggestions] = useState(false);
+  const [loadingStreets, setLoadingStreets] = useState(false);
+  
   // Mobile category navigation
   const [currentCategoryIndex, setCurrentCategoryIndex] = useState(0);
   
@@ -588,6 +602,91 @@ export default function VistoriaDigital() {
     onSwipeRight: goToPrevCategory,
     minSwipeDistance: 50,
   });
+  
+  // Fetch street suggestions from ITBI data
+  useEffect(() => {
+    const fetchStreetSuggestions = async () => {
+      if (streetSearchTerm.length < 2) {
+        setStreetSuggestions([]);
+        return;
+      }
+
+      setLoadingStreets(true);
+      try {
+        // Normalize search term - remove common prefixes
+        const normalizedTerm = streetSearchTerm
+          .toUpperCase()
+          .replace(/^(AVENIDA|AVN|AV|RUA|R)\s*/i, "")
+          .trim();
+
+        const bairro = propertyData.bairro?.toUpperCase() || "BARRA DA TIJUCA";
+        const OUTLIER_MAX_M2 = 40000;
+
+        const { data, error } = await supabase
+          .from("itbi_transactions")
+          .select("logradouro, valor_m2")
+          .eq("bairro", bairro)
+          .eq("uso", "Residencial")
+          .gte("percentual_transferido", 90)
+          .not("valor_m2", "is", null)
+          .lte("valor_m2", OUTLIER_MAX_M2)
+          .ilike("logradouro", `%${normalizedTerm}%`)
+          .limit(500);
+
+        if (error) throw error;
+
+        // Group by logradouro and calculate stats
+        const grouped = data.reduce((acc, item) => {
+          const key = item.logradouro;
+          if (!acc[key]) {
+            acc[key] = { values: [], count: 0 };
+          }
+          acc[key].values.push(Number(item.valor_m2));
+          acc[key].count++;
+          return acc;
+        }, {} as Record<string, { values: number[]; count: number }>);
+
+        // Calculate median for each street
+        const results: StreetSuggestion[] = Object.entries(grouped)
+          .filter(([_, data]) => data.count >= 2) // Min 2 transactions
+          .map(([logradouro, data]) => {
+            const sorted = data.values.sort((a, b) => a - b);
+            const mid = Math.floor(sorted.length / 2);
+            const med_m2 = sorted.length % 2 ? sorted[mid] : (sorted[mid - 1] + sorted[mid]) / 2;
+            return {
+              logradouro,
+              count: data.count,
+              med_m2,
+            };
+          })
+          .sort((a, b) => b.count - a.count)
+          .slice(0, 8);
+
+        setStreetSuggestions(results);
+      } catch (error) {
+        console.error("Erro ao buscar sugestões:", error);
+      } finally {
+        setLoadingStreets(false);
+      }
+    };
+
+    const debounce = setTimeout(fetchStreetSuggestions, 300);
+    return () => clearTimeout(debounce);
+  }, [streetSearchTerm, propertyData.bairro]);
+  
+  const handleSelectStreet = (suggestion: StreetSuggestion) => {
+    updatePropertyData('logradouro', suggestion.logradouro);
+    setStreetSearchTerm(suggestion.logradouro);
+    setShowStreetSuggestions(false);
+  };
+  
+  const formatCurrency = (value: number) => {
+    return new Intl.NumberFormat("pt-BR", {
+      style: "currency",
+      currency: "BRL",
+      maximumFractionDigits: 0,
+    }).format(value);
+  };
 
   // Check for data from Avaliação Imobiliária
   useEffect(() => {
@@ -1089,13 +1188,63 @@ export default function VistoriaDigital() {
           <CardContent className="space-y-4">
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
               <div className="sm:col-span-2 lg:col-span-2">
-                <Label htmlFor="logradouro">Logradouro *</Label>
-                <Input
-                  id="logradouro"
-                  value={propertyData.logradouro}
-                  onChange={(e) => updatePropertyData('logradouro', e.target.value)}
-                  placeholder="Ex: Av. das Américas"
-                />
+                <Label htmlFor="logradouro" className="flex items-center gap-2">
+                  <MapPin className="h-3.5 w-3.5" />
+                  Logradouro *
+                </Label>
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    id="logradouro"
+                    value={streetSearchTerm || propertyData.logradouro}
+                    onChange={(e) => {
+                      setStreetSearchTerm(e.target.value);
+                      updatePropertyData('logradouro', e.target.value);
+                      setShowStreetSuggestions(true);
+                    }}
+                    onFocus={() => setShowStreetSuggestions(true)}
+                    onBlur={() => setTimeout(() => setShowStreetSuggestions(false), 200)}
+                    placeholder="Digite o nome da rua..."
+                    className="pl-10"
+                  />
+                  
+                  {/* Street suggestions dropdown */}
+                  {showStreetSuggestions && streetSuggestions.length > 0 && (
+                    <Card className="absolute z-50 w-full mt-1 shadow-lg max-h-[50vh] overflow-y-auto">
+                      <CardContent className="p-0">
+                        {streetSuggestions.map((suggestion) => (
+                          <button
+                            key={suggestion.logradouro}
+                            onClick={() => handleSelectStreet(suggestion)}
+                            className="w-full px-3 py-2.5 text-left hover:bg-muted/50 border-b last:border-0 transition-colors"
+                          >
+                            <div className="flex items-center justify-between gap-2">
+                              <div className="flex items-center gap-2 min-w-0 flex-1">
+                                <Building2 className="h-4 w-4 text-muted-foreground shrink-0" />
+                                <span className="font-medium text-sm truncate">{suggestion.logradouro}</span>
+                              </div>
+                              <Badge variant="secondary" className="text-[10px] shrink-0">
+                                {suggestion.count} trans.
+                              </Badge>
+                            </div>
+                            <div className="mt-1 text-[10px] text-muted-foreground ml-6">
+                              Mediana: {formatCurrency(suggestion.med_m2)}/m²
+                            </div>
+                          </button>
+                        ))}
+                      </CardContent>
+                    </Card>
+                  )}
+                  
+                  {loadingStreets && streetSearchTerm.length >= 2 && (
+                    <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                      <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+                    </div>
+                  )}
+                </div>
+                <p className="text-[10px] text-muted-foreground mt-1">
+                  Sugestões baseadas em dados ITBI
+                </p>
               </div>
               <div className="grid grid-cols-2 gap-2">
                 <div>
