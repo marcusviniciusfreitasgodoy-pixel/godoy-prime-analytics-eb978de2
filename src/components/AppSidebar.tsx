@@ -1,4 +1,4 @@
-import { Home, ClipboardCheck, FileText, MapPin, Users, UserCog } from "lucide-react";
+import { Home, ClipboardCheck, FileText, MapPin, Users, UserCog, Search } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import {
   Sidebar,
@@ -17,6 +17,7 @@ import { useAuthContext } from "@/contexts/AuthContext";
 const baseItems = [
   { title: "Dashboard", url: "/", icon: Home },
   { title: "Microregiões", url: "/microbairros", icon: MapPin },
+  { title: "Pesquisas de Mercado", url: "/pesquisas-mercado", icon: Search },
   { title: "Vistoria Digital", url: "/vistoria-digital", icon: ClipboardCheck },
   { title: "Documentação", url: "/documentacao", icon: FileText },
 ];
