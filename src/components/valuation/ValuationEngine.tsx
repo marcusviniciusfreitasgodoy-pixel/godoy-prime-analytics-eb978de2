@@ -134,7 +134,8 @@ export function ValuationEngine({ bairro = "BARRA DA TIJUCA", vistoriaData }: Pr
         characteristics,
         state.docStatus,
         state.docFactor,
-        state.bonus_terreno // Passa bônus de terreno para casas
+        state.bonus_terreno,
+        state.tipoImovel // Passa tipo de imóvel para caps diferenciados
       );
       updateState({ result });
     }
@@ -167,7 +168,8 @@ export function ValuationEngine({ bairro = "BARRA DA TIJUCA", vistoriaData }: Pr
       characteristics,
       state.docStatus,
       state.docFactor,
-      state.bonus_terreno // Passa bônus de terreno para casas
+      state.bonus_terreno,
+      state.tipoImovel // Passa tipo de imóvel para caps diferenciados
     );
   };
 
