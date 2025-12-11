@@ -1290,7 +1290,7 @@ export default function VistoriaDigital() {
                                   </div>
                                 </div>
                                 <TooltipProvider delayDuration={300}>
-                                  <div className="flex gap-1 flex-shrink-0 ml-9 sm:ml-0">
+                                  <div className="flex flex-wrap gap-1 flex-shrink-0 ml-9 sm:ml-0">
                                     {([1, 2, 3, 4, 5] as const).map((score) => {
                                       const config = scoreConfig[score];
                                       return (
@@ -1300,7 +1300,7 @@ export default function VistoriaDigital() {
                                               variant={item.score === score ? "default" : "outline"}
                                               size="sm"
                                               onClick={() => updateItemScore(category.id, item.id, score)}
-                                              className={`h-8 w-8 p-0 text-xs font-bold ${item.score === score ? config.color : ''}`}
+                                              className={`h-7 w-7 sm:h-8 sm:w-8 p-0 text-xs font-bold ${item.score === score ? config.color : ''}`}
                                             >
                                               {score}
                                             </Button>
@@ -1318,7 +1318,7 @@ export default function VistoriaDigital() {
                                           variant={item.score === 'na' ? "default" : "outline"}
                                           size="sm"
                                           onClick={() => updateItemScore(category.id, item.id, 'na')}
-                                          className={`h-8 w-8 p-0 text-[10px] font-medium ${item.score === 'na' ? scoreConfig['na'].color : ''}`}
+                                          className={`h-7 w-7 sm:h-8 sm:w-8 p-0 text-[9px] sm:text-[10px] font-medium ${item.score === 'na' ? scoreConfig['na'].color : ''}`}
                                         >
                                           N/A
                                         </Button>
@@ -1334,9 +1334,9 @@ export default function VistoriaDigital() {
                                           variant={itemPhotos.length > 0 ? "secondary" : "outline"}
                                           size="sm"
                                           onClick={() => handlePhotoCapture(category.id, item.id, item.label)}
-                                          className="h-8 w-8 p-0"
+                                          className="h-7 w-7 sm:h-8 sm:w-8 p-0"
                                         >
-                                          <Camera className="h-4 w-4" />
+                                          <Camera className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
                                         </Button>
                                       </TooltipTrigger>
                                       <TooltipContent side="top">
