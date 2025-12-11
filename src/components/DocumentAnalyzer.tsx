@@ -270,7 +270,7 @@ export function DocumentAnalyzer({ onChecklistItemSuggested }: DocumentAnalyzerP
   };
 
   return (
-    <Card className="border-accent/20 overflow-hidden">
+    <Card className="border-accent/20 overflow-hidden rounded-none sm:rounded-lg border-x-0 sm:border-x">
       <CardHeader className="pb-3 px-3 sm:px-6">
         <div className="flex items-center justify-between gap-2">
           <CardTitle className="text-base sm:text-lg flex items-center gap-2">
