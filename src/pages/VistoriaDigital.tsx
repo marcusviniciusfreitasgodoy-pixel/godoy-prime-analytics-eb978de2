@@ -43,6 +43,7 @@ import { useToast } from "@/hooks/use-toast";
 import { formatDate } from "@/utils/exportUtils";
 import { generateVistoriaPDF } from "@/utils/vistoriaPdfExport";
 import { supabase } from "@/integrations/supabase/client";
+import { normalizeStreetSearchTerm } from "@/lib/utils";
 
 // Street suggestion type
 interface StreetSuggestion {
@@ -613,11 +614,8 @@ export default function VistoriaDigital() {
 
       setLoadingStreets(true);
       try {
-        // Normalize search term - remove common prefixes
-        const normalizedTerm = streetSearchTerm
-          .toUpperCase()
-          .replace(/^(AVENIDA|AVN|AV|RUA|R)\s*/i, "")
-          .trim();
+        // Normalize search term (remove acentos, prefixos e aplica correções)
+        const normalizedTerm = normalizeStreetSearchTerm(streetSearchTerm);
 
         const bairro = propertyData.bairro?.toUpperCase() || "BARRA DA TIJUCA";
         const OUTLIER_MAX_M2 = 40000;

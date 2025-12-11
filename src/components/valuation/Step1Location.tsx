@@ -7,6 +7,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { MapPin, TrendingUp, TrendingDown, Minus, Search, Building2, Plus, X, Calculator } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { normalizeStreetSearchTerm } from "@/lib/utils";
 import type { ValuationState } from "@/types/valuation";
 import type { CombinedPrices, ITBIData, AnuncioData } from "@/utils/valuationCalculations";
 
@@ -60,11 +61,8 @@ export function Step1Location({ state, updateState, combined }: Props) {
 
       setLoading(true);
       try {
-        // Normaliza o termo de busca
-        const normalizedTerm = searchTerm
-          .toUpperCase()
-          .replace(/^(AVENIDA|AVN|AV|RUA|R)\s*/i, "")
-          .trim();
+        // Normaliza o termo de busca (remove acentos, prefixos e aplica correções)
+        const normalizedTerm = normalizeStreetSearchTerm(searchTerm);
 
         // Constante para filtro de outliers
         const OUTLIER_MAX_M2 = 40000;
