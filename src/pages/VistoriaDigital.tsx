@@ -827,9 +827,32 @@ export default function VistoriaDigital() {
   return (
     <div className="space-y-6">
       <div>
-        <h2 className="text-2xl sm:text-3xl font-bold text-foreground">Vistoria Digital</h2>
+        <div className="flex items-center gap-3 flex-wrap">
+          <h2 className="text-2xl sm:text-3xl font-bold text-foreground">Vistoria Digital</h2>
+          {fromAvaliacao && (
+            <Badge variant="secondary" className="bg-primary/10 text-primary border-primary/20">
+              <Calculator className="h-3 w-3 mr-1" />
+              Dados da Avaliação
+            </Badge>
+          )}
+        </div>
         <p className="text-sm sm:text-base text-muted-foreground mt-1">Checklist de inspeção de imóveis</p>
       </div>
+
+      {/* Aviso quando dados vieram da Avaliação */}
+      {fromAvaliacao && (
+        <Card className="bg-primary/5 border-primary/20">
+          <CardContent className="pt-4 pb-4">
+            <p className="text-sm flex items-center gap-2">
+              <Calculator className="h-4 w-4 text-primary" />
+              <span>
+                Os dados do imóvel foram pré-preenchidos a partir da <strong>Avaliação Imobiliária</strong>. 
+                Complete a vistoria para obter uma avaliação mais precisa.
+              </span>
+            </p>
+          </CardContent>
+        </Card>
+      )}
 
       <div className="space-y-6">
           <Card>
