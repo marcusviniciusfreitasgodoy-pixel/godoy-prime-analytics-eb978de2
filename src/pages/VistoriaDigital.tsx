@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Accordion,
@@ -302,13 +302,84 @@ export default function VistoriaDigital() {
   const [photoDialogOpen, setPhotoDialogOpen] = useState(false);
   const [viewPhotoUrl, setViewPhotoUrl] = useState<string | null>(null);
   const [hasLoadedFromStorage, setHasLoadedFromStorage] = useState(false);
+  const [fromAvaliacao, setFromAvaliacao] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const cameraInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
   const navigate = useNavigate();
+  const location = useLocation();
+
+  // Check for data from Avaliação Imobiliária
+  useEffect(() => {
+    const locationState = location.state as { 
+      fromAvaliacao?: boolean; 
+      propertyData?: {
+        logradouro?: string;
+        numero?: string;
+        complemento?: string;
+        bairro?: string;
+        nomeCondominio?: string;
+        tipoImovel?: string;
+        areaM2?: string;
+        quartos?: string;
+        suites?: string;
+        banheiros?: string;
+        vagas?: string;
+        proprietario?: string;
+        telefone?: string;
+        observacoes?: string;
+        avaliacaoData?: {
+          valorProvavel: number;
+          valorPessimista: number;
+          valorOtimista: number;
+          confidenceLevel: string;
+          dataAvaliacao: string;
+        };
+      };
+    } | null;
+    
+    if (locationState?.fromAvaliacao && locationState?.propertyData) {
+      setFromAvaliacao(true);
+      const data = locationState.propertyData;
+      
+      setPropertyData(prev => ({
+        ...prev,
+        logradouro: data.logradouro || prev.logradouro,
+        numero: data.numero || prev.numero,
+        complemento: data.complemento || prev.complemento,
+        bairro: data.bairro || prev.bairro,
+        nomeCondominio: data.nomeCondominio || prev.nomeCondominio,
+        tipoImovel: data.tipoImovel || prev.tipoImovel,
+        areaM2: data.areaM2 || prev.areaM2,
+        quartos: data.quartos || prev.quartos,
+        suites: data.suites || prev.suites,
+        banheiros: data.banheiros || prev.banheiros,
+        vagas: data.vagas || prev.vagas,
+        proprietario: data.proprietario || prev.proprietario,
+        telefone: data.telefone || prev.telefone,
+        observacoes: data.observacoes 
+          ? `${data.observacoes}${data.avaliacaoData ? `\n\n--- Dados da Avaliação ---\nValor Provável: R$ ${data.avaliacaoData.valorProvavel.toLocaleString('pt-BR')}\nData: ${data.avaliacaoData.dataAvaliacao}` : ''}`
+          : prev.observacoes,
+      }));
+      
+      // Clear location state after using it
+      window.history.replaceState({}, document.title);
+      
+      toast({
+        title: "Dados importados da Avaliação",
+        description: "Os dados do imóvel foram pré-preenchidos automaticamente.",
+      });
+    }
+  }, [location.state, toast]);
 
   // Load from localStorage on mount
   useEffect(() => {
+    // Skip localStorage load if coming from Avaliação
+    if (fromAvaliacao) {
+      setHasLoadedFromStorage(true);
+      return;
+    }
+    
     try {
       const saved = localStorage.getItem(STORAGE_KEY);
       if (saved) {
@@ -321,7 +392,7 @@ export default function VistoriaDigital() {
       console.error('Error loading from localStorage:', error);
     }
     setHasLoadedFromStorage(true);
-  }, []);
+  }, [fromAvaliacao]);
 
   // Show toast after loading from storage (separate effect to avoid toast dependency issues)
   useEffect(() => {

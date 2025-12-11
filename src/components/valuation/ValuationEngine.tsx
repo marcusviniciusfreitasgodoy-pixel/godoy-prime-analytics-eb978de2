@@ -8,6 +8,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 import { useValuationCharacteristics, useDocumentationFactors } from "@/hooks/useValuationCharacteristics";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
+import { Step0Identification } from "./Step0Identification";
 import { Step1Location } from "./Step1Location";
 import { Step2BasicData } from "./Step2BasicData";
 import { Step3Questionnaire } from "./Step3Questionnaire";
@@ -17,7 +18,8 @@ import { calculateValuation, calculateCombinedPrices } from "@/utils/valuationCa
 import { ValuationState, initialValuationState } from "@/types/valuation";
 
 const STEPS = [
-  { id: 1, title: "Localização", description: "Selecione o endereço" },
+  { id: 0, title: "Identificação", description: "Dados do imóvel" },
+  { id: 1, title: "Localização", description: "Referência de mercado" },
   { id: 2, title: "Dados Básicos", description: "Área e base de preço" },
   { id: 3, title: "Características", description: "26 fatores de avaliação" },
   { id: 4, title: "Resultados", description: "3 cenários de valor" },
@@ -30,6 +32,14 @@ interface VistoriaData {
   area_m2?: number;
   tipoImovel?: string;
   nomeCondominio?: string;
+  numero?: string;
+  complemento?: string;
+  quartos?: number;
+  suites?: number;
+  banheiros?: number;
+  vagas?: number;
+  proprietario?: string;
+  telefone?: string;
   checklistSummary?: {
     criticalCount: number;
     attentionCount: number;
@@ -51,7 +61,7 @@ interface Props {
 
 export function ValuationEngine({ bairro = "BARRA DA TIJUCA", vistoriaData }: Props) {
   const location = useLocation();
-  const [currentStep, setCurrentStep] = useState(1);
+  const [currentStep, setCurrentStep] = useState(0);
   const [state, setState] = useState<ValuationState>({ ...initialValuationState, bairro });
   const [fromVistoria, setFromVistoria] = useState(false);
   
@@ -70,6 +80,16 @@ export function ValuationEngine({ bairro = "BARRA DA TIJUCA", vistoriaData }: Pr
         logradouro: data.logradouro || prev.logradouro,
         bairro: data.bairro || prev.bairro,
         area_m2: data.area_m2 || prev.area_m2,
+        tipoImovel: data.tipoImovel || prev.tipoImovel,
+        nomeCondominio: data.nomeCondominio || prev.nomeCondominio,
+        numero: data.numero || prev.numero,
+        complemento: data.complemento || prev.complemento,
+        quartos: data.quartos || prev.quartos,
+        suites: data.suites || prev.suites,
+        banheiros: data.banheiros || prev.banheiros,
+        vagas: data.vagas || prev.vagas,
+        proprietario: data.proprietario || prev.proprietario,
+        telefone: data.telefone || prev.telefone,
       }));
       
       // Clear location state after using it
@@ -85,8 +105,11 @@ export function ValuationEngine({ bairro = "BARRA DA TIJUCA", vistoriaData }: Pr
 
   const canProceed = () => {
     switch (currentStep) {
+      case 0:
+        // Requer logradouro, tipo de imóvel e área
+        return state.logradouro.trim() !== "" && state.tipoImovel !== "" && state.area_m2 > 0;
       case 1:
-        return state.logradouro && state.itbiData;
+        return state.itbiData !== null;
       case 2:
         return state.area_m2 > 0;
       case 3:
@@ -121,14 +144,14 @@ export function ValuationEngine({ bairro = "BARRA DA TIJUCA", vistoriaData }: Pr
   };
 
   const handleBack = () => {
-    if (currentStep > 1) {
+    if (currentStep > 0) {
       setCurrentStep(currentStep - 1);
     }
   };
 
   const handleReset = () => {
     setState({ ...initialValuationState, bairro });
-    setCurrentStep(1);
+    setCurrentStep(0);
   };
 
   // Calcula preview em tempo real
@@ -176,7 +199,7 @@ export function ValuationEngine({ bairro = "BARRA DA TIJUCA", vistoriaData }: Pr
     );
   }
 
-  const progress = (currentStep / 5) * 100;
+  const progress = ((currentStep + 1) / 6) * 100;
   const combined = state.itbiData 
     ? calculateCombinedPrices(state.itbiData, state.anuncioData || undefined)
     : null;
@@ -210,13 +233,13 @@ export function ValuationEngine({ bairro = "BARRA DA TIJUCA", vistoriaData }: Pr
                 )}
               </CardTitle>
               <p className="text-sm text-muted-foreground">
-                {STEPS[currentStep - 1].description}
+                {STEPS[currentStep].description}
               </p>
             </div>
           </div>
           <div className="text-right">
             <span className="text-sm font-medium">
-              Etapa {currentStep} de 5
+              Etapa {currentStep + 1} de 6
             </span>
           </div>
         </div>
@@ -247,6 +270,13 @@ export function ValuationEngine({ bairro = "BARRA DA TIJUCA", vistoriaData }: Pr
 
       <CardContent className="space-y-6">
         {/* Step content */}
+        {currentStep === 0 && (
+          <Step0Identification
+            state={state}
+            updateState={updateState}
+          />
+        )}
+        
         {currentStep === 1 && (
           <Step1Location
             state={state}
@@ -295,7 +325,7 @@ export function ValuationEngine({ bairro = "BARRA DA TIJUCA", vistoriaData }: Pr
           <Button
             variant="outline"
             onClick={handleBack}
-            disabled={currentStep === 1}
+            disabled={currentStep === 0}
           >
             <ArrowLeft className="mr-2 h-4 w-4" />
             Voltar

@@ -42,6 +42,21 @@ export interface ValuationResult {
 }
 
 export interface ValuationState {
+  // Step 0: Identificação do Imóvel
+  numero: string;
+  complemento: string;
+  nomeCondominio: string;
+  tipoImovel: string;
+  quartos: number;
+  suites: number;
+  banheiros: number;
+  vagas: number;
+  andar: string;
+  proprietario: string;
+  telefone: string;
+  dataAvaliacao: string;
+  observacoesImovel: string;
+  
   // Step 1: Location
   logradouro: string;
   bairro: string;
@@ -63,19 +78,49 @@ export interface ValuationState {
   
   // Results
   result: ValuationResult | null;
+  
+  // Tipo de avaliação
+  tipoAvaliacao: "simples" | "completa";
 }
 
 export const initialValuationState: ValuationState = {
+  // Step 0: Identificação
+  numero: "",
+  complemento: "",
+  nomeCondominio: "",
+  tipoImovel: "",
+  quartos: 0,
+  suites: 0,
+  banheiros: 0,
+  vagas: 0,
+  andar: "",
+  proprietario: "",
+  telefone: "",
+  dataAvaliacao: new Date().toISOString().split('T')[0],
+  observacoesImovel: "",
+  
+  // Step 1: Location
   logradouro: "",
   bairro: "BARRA DA TIJUCA",
   itbiData: null,
   anuncioData: null,
+  
+  // Step 2: Basic Data
   area_m2: 0,
   baseSelected: "med",
   customBaseM2: null,
+  
+  // Step 3: Questionnaire
   responses: [],
+  
+  // Step 4-5: Documentation
   docStatus: "ok",
   docFactor: 1.0,
   docNotes: "",
+  
+  // Results
   result: null,
+  
+  // Tipo de avaliação
+  tipoAvaliacao: "simples",
 };
