@@ -71,6 +71,127 @@ const scoreLabels: Record<number | string, { label: string; color: [number, numb
   'na': { label: 'N/A', color: [148, 163, 184] },
 };
 
+// Calculate category average scores for radar chart
+function calculateCategoryScores(checklist: ChecklistCategory[]): { name: string; score: number; weight: number }[] {
+  return checklist.map(category => {
+    const scoredItems = category.items.filter(item => item.score !== null && item.score !== 'na');
+    if (scoredItems.length === 0) return { name: category.title.replace(/^\d+\.\s*/, ''), score: 0, weight: category.weight };
+    
+    const sum = scoredItems.reduce((acc, item) => acc + (item.score as number), 0);
+    const avg = (sum / scoredItems.length) * 20; // Convert 1-5 to 0-100 scale
+    return { name: category.title.replace(/^\d+\.\s*/, ''), score: Math.round(avg), weight: category.weight };
+  }).filter(cat => cat.score > 0);
+}
+
+// Draw radar chart on PDF
+function drawRadarChart(doc: jsPDF, centerX: number, centerY: number, radius: number, categoryScores: { name: string; score: number }[]): void {
+  if (categoryScores.length < 3) return;
+  
+  const numCategories = Math.min(categoryScores.length, 8); // Limit to 8 categories for readability
+  const topCategories = categoryScores.slice(0, numCategories);
+  const angleStep = (2 * Math.PI) / numCategories;
+  
+  // Draw background circles (20, 40, 60, 80, 100)
+  doc.setDrawColor(200, 200, 200);
+  doc.setLineWidth(0.2);
+  for (let i = 1; i <= 5; i++) {
+    const r = (radius / 5) * i;
+    drawPolygon(doc, centerX, centerY, r, numCategories, false);
+  }
+  
+  // Draw axis lines
+  doc.setDrawColor(180, 180, 180);
+  doc.setLineWidth(0.3);
+  for (let i = 0; i < numCategories; i++) {
+    const angle = -Math.PI / 2 + i * angleStep;
+    const x = centerX + Math.cos(angle) * radius;
+    const y = centerY + Math.sin(angle) * radius;
+    doc.line(centerX, centerY, x, y);
+  }
+  
+  // Draw data polygon
+  doc.setDrawColor(...BRAND_COLORS.gold);
+  doc.setFillColor(212, 175, 55, 0.3);
+  doc.setLineWidth(1.5);
+  
+  const points: { x: number; y: number }[] = [];
+  for (let i = 0; i < numCategories; i++) {
+    const angle = -Math.PI / 2 + i * angleStep;
+    const scoreRadius = (topCategories[i].score / 100) * radius;
+    const x = centerX + Math.cos(angle) * scoreRadius;
+    const y = centerY + Math.sin(angle) * scoreRadius;
+    points.push({ x, y });
+  }
+  
+  // Draw filled polygon
+  if (points.length >= 3) {
+    doc.setFillColor(212, 175, 55);
+    doc.setGState(new (doc as any).GState({ opacity: 0.25 }));
+    doc.moveTo(points[0].x, points[0].y);
+    for (let i = 1; i < points.length; i++) {
+      doc.lineTo(points[i].x, points[i].y);
+    }
+    doc.lineTo(points[0].x, points[0].y);
+    doc.fill();
+    doc.setGState(new (doc as any).GState({ opacity: 1 }));
+    
+    // Draw outline
+    doc.setDrawColor(...BRAND_COLORS.gold);
+    doc.setLineWidth(1.5);
+    for (let i = 0; i < points.length; i++) {
+      const next = (i + 1) % points.length;
+      doc.line(points[i].x, points[i].y, points[next].x, points[next].y);
+    }
+    
+    // Draw points
+    doc.setFillColor(...BRAND_COLORS.gold);
+    for (const point of points) {
+      doc.circle(point.x, point.y, 2, 'F');
+    }
+  }
+  
+  // Draw category labels
+  doc.setFontSize(6);
+  doc.setTextColor(...BRAND_COLORS.navy);
+  doc.setFont('helvetica', 'bold');
+  
+  for (let i = 0; i < numCategories; i++) {
+    const angle = -Math.PI / 2 + i * angleStep;
+    const labelRadius = radius + 12;
+    const x = centerX + Math.cos(angle) * labelRadius;
+    const y = centerY + Math.sin(angle) * labelRadius;
+    
+    // Truncate long names
+    let name = topCategories[i].name;
+    if (name.length > 12) name = name.substring(0, 11) + '...';
+    
+    // Adjust text alignment based on position
+    let align: 'center' | 'left' | 'right' = 'center';
+    if (Math.cos(angle) < -0.3) align = 'right';
+    else if (Math.cos(angle) > 0.3) align = 'left';
+    
+    doc.text(name, x, y, { align });
+  }
+}
+
+function drawPolygon(doc: jsPDF, cx: number, cy: number, r: number, sides: number, fill: boolean = false): void {
+  const angleStep = (2 * Math.PI) / sides;
+  const points: { x: number; y: number }[] = [];
+  
+  for (let i = 0; i < sides; i++) {
+    const angle = -Math.PI / 2 + i * angleStep;
+    points.push({
+      x: cx + Math.cos(angle) * r,
+      y: cy + Math.sin(angle) * r,
+    });
+  }
+  
+  for (let i = 0; i < points.length; i++) {
+    const next = (i + 1) % points.length;
+    doc.line(points[i].x, points[i].y, points[next].x, points[next].y);
+  }
+}
+
 export async function generateVistoriaPDF(params: VistoriaPDFParams): Promise<void> {
   const { propertyData, checklist, photos, tipoVistoria, finalScore, progress, criticalCount, avaliacaoData } = params;
   
@@ -124,10 +245,24 @@ export async function generateVistoriaPDF(params: VistoriaPDFParams): Promise<vo
   
   yPos += summaryBoxHeight + 15;
   
+  // ========== RADAR CHART ==========
+  const categoryScores = calculateCategoryScores(checklist);
+  if (categoryScores.length >= 3) {
+    yPos = drawSectionTitle(doc, 'Diagnóstico por Categoria', yPos, marginLeft);
+    
+    const radarCenterX = pageWidth / 2;
+    const radarCenterY = yPos + 45;
+    const radarRadius = 35;
+    
+    drawRadarChart(doc, radarCenterX, radarCenterY, radarRadius, categoryScores);
+    
+    yPos = radarCenterY + radarRadius + 25;
+  }
+  
   // ========== PROPERTY IDENTIFICATION ==========
   yPos = drawSectionTitle(doc, 'Identificação do Imóvel', yPos, marginLeft);
   
-  doc.setFontSize(10);
+  doc.setFontSize(9);
   doc.setTextColor(...BRAND_COLORS.darkGray);
   
   const configuracao = [
@@ -145,42 +280,42 @@ export async function generateVistoriaPDF(params: VistoriaPDFParams): Promise<vo
     ['Área:', propertyData.areaM2 ? `${propertyData.areaM2} m²` : 'Não informada'],
     ['Configuração:', configuracao || 'Não informada'],
     ['Vistoriador:', propertyData.vistoriador || 'Não informado'],
-    ['Data Vistoria:', propertyData.dataVistoria ? new Date(propertyData.dataVistoria).toLocaleDateString('pt-BR') : new Date().toLocaleDateString('pt-BR')],
+    ['Data:', propertyData.dataVistoria ? new Date(propertyData.dataVistoria).toLocaleDateString('pt-BR') : new Date().toLocaleDateString('pt-BR')],
   ];
   
   propertyInfo.forEach(([label, value]) => {
     doc.setFont('helvetica', 'normal');
     doc.text(label, marginLeft + 5, yPos);
     doc.setFont('helvetica', 'bold');
-    const splitValue = doc.splitTextToSize(value, contentWidth - 50);
-    doc.text(splitValue[0], marginLeft + 40, yPos);
-    yPos += 6;
+    const splitValue = doc.splitTextToSize(value, contentWidth - 45);
+    doc.text(splitValue[0], marginLeft + 35, yPos);
+    yPos += 5;
   });
   
   // ========== VALUATION REFERENCE (if available) ==========
   if (avaliacaoData) {
     yPos += 5;
     doc.setFillColor(240, 253, 244);
-    doc.roundedRect(marginLeft - 5, yPos, contentWidth + 10, 25, 2, 2, 'F');
-    
-    doc.setFontSize(9);
-    doc.setFont('helvetica', 'bold');
-    doc.setTextColor(5, 150, 105);
-    doc.text('Valores de Referência da Avaliação', marginLeft, yPos + 7);
+    doc.roundedRect(marginLeft - 5, yPos, contentWidth + 10, 20, 2, 2, 'F');
     
     doc.setFontSize(8);
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(5, 150, 105);
+    doc.text('Valores de Referência da Avaliação', marginLeft, yPos + 6);
+    
+    doc.setFontSize(7);
     doc.setFont('helvetica', 'normal');
     doc.setTextColor(...BRAND_COLORS.darkGray);
     
     const formatCurrency = (v: number) => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 0 }).format(v);
-    doc.text(`Pessimista: ${formatCurrency(avaliacaoData.valorPessimista)}`, marginLeft, yPos + 15);
-    doc.text(`Provável: ${formatCurrency(avaliacaoData.valorProvavel)}`, marginLeft + 55, yPos + 15);
-    doc.text(`Otimista: ${formatCurrency(avaliacaoData.valorOtimista)}`, marginLeft + 110, yPos + 15);
+    doc.text(`Pessimista: ${formatCurrency(avaliacaoData.valorPessimista)}`, marginLeft, yPos + 13);
+    doc.text(`Provável: ${formatCurrency(avaliacaoData.valorProvavel)}`, marginLeft + 50, yPos + 13);
+    doc.text(`Otimista: ${formatCurrency(avaliacaoData.valorOtimista)}`, marginLeft + 100, yPos + 13);
     
-    yPos += 30;
+    yPos += 25;
   }
   
-  // ========== TOP 3 CRITICAL ITEMS ==========
+  // ========== TOP 5 CRITICAL ITEMS ==========
   const criticalItems: { category: string; label: string; score: number }[] = [];
   checklist.forEach(cat => {
     cat.items.forEach(item => {
@@ -191,22 +326,22 @@ export async function generateVistoriaPDF(params: VistoriaPDFParams): Promise<vo
   });
   
   if (criticalItems.length > 0) {
-    yPos += 5;
+    yPos += 3;
     yPos = drawSectionTitle(doc, 'Pontos Críticos', yPos, marginLeft);
     
     criticalItems.slice(0, 5).forEach((item) => {
-      if (yPos > getMaxContentY() - 20) return;
+      if (yPos > getMaxContentY() - 15) return;
       
       const config = scoreLabels[item.score];
       doc.setFillColor(...config.color);
-      doc.circle(marginLeft + 3, yPos - 1, 2, 'F');
+      doc.circle(marginLeft + 3, yPos - 1, 1.5, 'F');
       
-      doc.setFontSize(9);
+      doc.setFontSize(8);
       doc.setTextColor(...BRAND_COLORS.darkGray);
       doc.setFont('helvetica', 'normal');
-      const text = doc.splitTextToSize(item.label, contentWidth - 15);
-      doc.text(text[0], marginLeft + 10, yPos);
-      yPos += 7;
+      const text = doc.splitTextToSize(item.label, contentWidth - 12);
+      doc.text(text[0], marginLeft + 8, yPos);
+      yPos += 6;
     });
   }
   
@@ -220,29 +355,29 @@ export async function generateVistoriaPDF(params: VistoriaPDFParams): Promise<vo
     const scoredItems = category.items.filter(i => i.score !== null);
     if (scoredItems.length === 0) continue;
     
-    if (yPos > getMaxContentY() - 30) {
+    if (yPos > getMaxContentY() - 25) {
       doc.addPage();
       yPos = 20;
     }
     
     // Category header
     doc.setFillColor(...BRAND_COLORS.lightGray);
-    doc.rect(marginLeft - 5, yPos - 4, contentWidth + 10, 8, 'F');
+    doc.rect(marginLeft - 5, yPos - 3, contentWidth + 10, 7, 'F');
     
     doc.setFont('helvetica', 'bold');
-    doc.setFontSize(10);
+    doc.setFontSize(9);
     doc.setTextColor(...BRAND_COLORS.navy);
-    doc.text(category.title, marginLeft, yPos);
-    yPos += 10;
+    doc.text(category.title, marginLeft, yPos + 1);
+    yPos += 8;
     
     // Items
     doc.setFont('helvetica', 'normal');
-    doc.setFontSize(9);
+    doc.setFontSize(8);
     
     for (const item of category.items) {
       if (item.score === null) continue;
       
-      if (yPos > getMaxContentY() - 10) {
+      if (yPos > getMaxContentY() - 8) {
         doc.addPage();
         yPos = 20;
       }
@@ -251,20 +386,20 @@ export async function generateVistoriaPDF(params: VistoriaPDFParams): Promise<vo
       
       // Score badge
       doc.setFillColor(...config.color);
-      doc.roundedRect(marginLeft, yPos - 3, 12, 5, 1, 1, 'F');
-      doc.setFontSize(7);
+      doc.roundedRect(marginLeft, yPos - 2.5, 10, 4, 1, 1, 'F');
+      doc.setFontSize(6);
       doc.setTextColor(255, 255, 255);
-      doc.text(item.score === 'na' ? 'N/A' : String(item.score), marginLeft + 6, yPos, { align: 'center' });
+      doc.text(item.score === 'na' ? 'N/A' : String(item.score), marginLeft + 5, yPos, { align: 'center' });
       
       // Item label
-      doc.setFontSize(9);
+      doc.setFontSize(8);
       doc.setTextColor(...BRAND_COLORS.darkGray);
-      const splitLabel = doc.splitTextToSize(item.label, contentWidth - 25);
-      doc.text(splitLabel[0], marginLeft + 16, yPos);
-      yPos += splitLabel.length > 1 ? 8 : 6;
+      const splitLabel = doc.splitTextToSize(item.label, contentWidth - 20);
+      doc.text(splitLabel[0], marginLeft + 14, yPos);
+      yPos += 5;
     }
     
-    yPos += 4;
+    yPos += 3;
   }
   
   // ========== PHOTOS SECTION (if any) ==========
@@ -274,19 +409,19 @@ export async function generateVistoriaPDF(params: VistoriaPDFParams): Promise<vo
     
     yPos = drawSectionTitle(doc, 'Registro Fotográfico', yPos, marginLeft);
     
-    doc.setFontSize(9);
+    doc.setFontSize(8);
     doc.setTextColor(...BRAND_COLORS.gray);
     doc.text(`${photos.length} foto(s) registrada(s)`, marginLeft, yPos);
-    yPos += 10;
+    yPos += 8;
     
-    const imgWidth = 55;
-    const imgHeight = 42;
+    const imgWidth = 50;
+    const imgHeight = 38;
     let xPos = marginLeft;
     
     for (const photo of photos) {
       if (xPos + imgWidth > pageWidth - marginLeft) {
         xPos = marginLeft;
-        yPos += imgHeight + 15;
+        yPos += imgHeight + 12;
       }
       
       if (yPos + imgHeight > getMaxContentY()) {
@@ -299,33 +434,33 @@ export async function generateVistoriaPDF(params: VistoriaPDFParams): Promise<vo
         doc.addImage(photo.dataUrl, 'JPEG', xPos, yPos, imgWidth, imgHeight);
         
         // Caption
-        doc.setFontSize(6);
+        doc.setFontSize(5);
         doc.setTextColor(80, 80, 80);
         const captionLines = doc.splitTextToSize(photo.caption, imgWidth);
-        doc.text(captionLines.slice(0, 2), xPos, yPos + imgHeight + 4);
+        doc.text(captionLines.slice(0, 2), xPos, yPos + imgHeight + 3);
         
-        xPos += imgWidth + 8;
+        xPos += imgWidth + 6;
       } catch (imgError) {
         console.error('Error adding image:', imgError);
-        xPos += imgWidth + 8;
+        xPos += imgWidth + 6;
       }
     }
   }
   
   // ========== OBSERVATIONS (if any) ==========
   if (propertyData.observacoes) {
-    if (yPos > getMaxContentY() - 40) {
+    if (yPos > getMaxContentY() - 30) {
       doc.addPage();
       yPos = 20;
     }
     
-    yPos += 10;
+    yPos += 8;
     yPos = drawSectionTitle(doc, 'Observações Gerais', yPos, marginLeft);
     
-    doc.setFontSize(9);
+    doc.setFontSize(8);
     doc.setTextColor(...BRAND_COLORS.darkGray);
     const splitObs = doc.splitTextToSize(propertyData.observacoes, contentWidth);
-    doc.text(splitObs, marginLeft, yPos);
+    doc.text(splitObs.slice(0, 10), marginLeft, yPos);
   }
   
   // Apply footers to all pages
