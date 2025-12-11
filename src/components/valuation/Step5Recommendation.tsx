@@ -20,6 +20,7 @@ import { toast } from "sonner";
 import type { ValuationResult, CombinedPrices } from "@/utils/valuationCalculations";
 import type { ValuationState } from "@/types/valuation";
 import { exportValuationEnginePDF } from "@/utils/valuationPdfExport";
+import { useAuth } from "@/hooks/useAuth";
 
 interface Props {
   result: ValuationResult;
@@ -30,6 +31,7 @@ interface Props {
 
 export function Step5Recommendation({ result, state, combined, onReset }: Props) {
   const navigate = useNavigate();
+  const { isAdmin } = useAuth();
   const [decisionMade, setDecisionMade] = useState<"sim" | "nao" | null>(null);
 
   const formatCurrency = (value: number) => {
@@ -179,13 +181,13 @@ export function Step5Recommendation({ result, state, combined, onReset }: Props)
         </Card>
       )}
 
-      {/* Características aplicadas */}
-      {state.responses.filter(r => r.response === "sim").length > 0 && (
+      {/* Características aplicadas - apenas para admin */}
+      {isAdmin && state.responses.filter(r => r.response === "sim").length > 0 && (
         <Card className="bg-muted/30">
           <CardContent className="pt-6">
-            <h4 className="font-semibold mb-3">✅ Análise do Imóvel</h4>
+            <h4 className="font-semibold mb-3">✅ Análise do Imóvel (Admin)</h4>
             <p className="text-sm mb-2">
-              Seu imóvel está <strong>{result.total_adjustment > 0 ? "+" : ""}{(result.total_adjustment * 100).toFixed(0)}%</strong> 
+              Ajuste aplicado: <strong>{result.total_adjustment > 0 ? "+" : ""}{(result.total_adjustment * 100).toFixed(0)}%</strong> 
               {result.total_adjustment > 0 ? " ACIMA" : result.total_adjustment < 0 ? " ABAIXO" : " NA"} da referência
             </p>
             <div className="flex flex-wrap gap-1">
@@ -198,6 +200,23 @@ export function Step5Recommendation({ result, state, combined, onReset }: Props)
                 ))
               }
             </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Para não-admin: mostrar apenas contagem de características */}
+      {!isAdmin && state.responses.filter(r => r.response === "sim").length > 0 && (
+        <Card className="bg-muted/30">
+          <CardContent className="pt-6">
+            <h4 className="font-semibold mb-3">✅ Características do Imóvel</h4>
+            <p className="text-sm text-muted-foreground">
+              {state.responses.filter(r => r.response === "sim").length} características positivas identificadas
+              {state.responses.filter(r => r.response === "sim" && r.weight_applied < 0).length > 0 && (
+                <span className="ml-1 text-amber-600">
+                  ({state.responses.filter(r => r.response === "sim" && r.weight_applied < 0).length} pontos de atenção)
+                </span>
+              )}
+            </p>
           </CardContent>
         </Card>
       )}
