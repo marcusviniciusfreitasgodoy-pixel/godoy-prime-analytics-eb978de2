@@ -55,7 +55,8 @@ export const calculateCombinedPrices = (
 // Calcula ajuste total com cap por categoria
 export const calculateTotalAdjustment = (
   responses: CharacteristicResponse[],
-  characteristics: ValuationCharacteristic[]
+  characteristics: ValuationCharacteristic[],
+  bonusTerreno: number = 0
 ): { total: number; auto_capped: boolean; by_category: Record<string, number> } => {
   // Agrupa respostas por categoria
   const byCategory: Record<string, number> = {};
@@ -93,11 +94,15 @@ export const calculateTotalAdjustment = (
     }
   });
 
-  // Soma total
+  // Soma total das categorias
   let total = Object.values(cappedByCategory).reduce((sum, val) => sum + val, 0);
+  
+  // Adiciona bônus/penalidade de terreno (para casas)
+  total += bonusTerreno;
+  
   let auto_capped = false;
 
-  // Cap global ±30%
+  // Cap global ±30% (inclui bônus terreno)
   if (total > 0.3) {
     total = 0.3;
     auto_capped = true;
@@ -316,13 +321,14 @@ export const calculateValuation = (
   responses: CharacteristicResponse[],
   characteristics: ValuationCharacteristic[],
   doc_status: string,
-  doc_factor: number
+  doc_factor: number,
+  bonusTerreno: number = 0
 ): ValuationResult => {
   // 1. Combina preços
   const combined = calculateCombinedPrices(itbi, anuncio);
 
-  // 2. Calcula ajuste total
-  const { total: adjustment, auto_capped } = calculateTotalAdjustment(responses, characteristics);
+  // 2. Calcula ajuste total (inclui bônus terreno para casas)
+  const { total: adjustment, auto_capped } = calculateTotalAdjustment(responses, characteristics, bonusTerreno);
 
   // 3. Calcula valores finais
   const { pessimista, provavel, otimista } = calculateFinalValues(
