@@ -6,7 +6,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
-import { Eye, Sun, Wrench, Sofa, Shield, LayoutGrid, FileText } from "lucide-react";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { Eye, Sun, Wrench, Sofa, Shield, LayoutGrid, FileText, Info } from "lucide-react";
 import type { ValuationState } from "@/types/valuation";
 import type { ValuationCharacteristic, DocumentationFactor } from "@/hooks/useValuationCharacteristics";
 import { groupCharacteristicsByCategory } from "@/hooks/useValuationCharacteristics";
@@ -114,7 +115,19 @@ export function Step3Questionnaire({
       <div className="flex items-center gap-3 p-3 bg-muted/30 rounded-lg">
         <div className="flex-1">
           <div className="flex items-center justify-between mb-1">
-            <span className="text-sm font-medium">Progresso das Respostas</span>
+            <div className="flex items-center gap-1">
+              <span className="text-sm font-medium">Progresso das Respostas</span>
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Info className="h-3.5 w-3.5 text-muted-foreground cursor-help" />
+                  </TooltipTrigger>
+                  <TooltipContent side="top" className="max-w-[250px]">
+                    <p className="text-xs">Itens não respondidos são automaticamente considerados como "Não" no cálculo da avaliação.</p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+            </div>
             <span className="text-sm text-muted-foreground">
               {totalProgress.answered}/{totalProgress.total} respondidas
             </span>
