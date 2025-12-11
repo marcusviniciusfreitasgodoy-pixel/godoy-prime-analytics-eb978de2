@@ -1,5 +1,4 @@
 import { useState, useEffect } from "react";
-import { useLocation } from "react-router-dom";
 import { FileDown, Info, HelpCircle, Monitor, FileSpreadsheet, FileText, BarChart3, Search, TrendingUp, MapPin, Database, FileImage, Video } from "lucide-react";
 import { MarketAssistant } from "@/components/MarketAssistant";
 import { Button } from "@/components/ui/button";
@@ -8,8 +7,6 @@ import { DashboardKPIs } from "@/components/DashboardKPIs";
 import { EvolutionChart } from "@/components/EvolutionChart";
 import { MicrobairroEvolutionChart } from "@/components/MicrobairroEvolutionChart";
 import { MicrobairroRanking } from "@/components/MicrobairroRanking";
-import { SearchTools } from "@/components/SearchTools";
-// AdvancedSearchReport removido - agora está embutido no SearchTools
 import { GuidedTour } from "@/components/GuidedTour";
 import { BairroSelector } from "@/components/BairroSelector";
 import { useBairro } from "@/contexts/BairroContext";
@@ -29,17 +26,6 @@ export default function Dashboard() {
   const [isExporting, setIsExporting] = useState(false);
   const { selectedBairro, setSelectedBairro } = useBairro();
   const { toast } = useToast();
-  const location = useLocation();
-
-  // Check for vistoria data from navigation
-  const vistoriaData = (location.state as { vistoriaData?: any })?.vistoriaData;
-
-  // Clear location state after reading it
-  useEffect(() => {
-    if (vistoriaData) {
-      window.history.replaceState({}, document.title);
-    }
-  }, [vistoriaData]);
 
   // Hooks para dados do dashboard (usados na exportação completa)
   const { data: kpiStats } = useKPIStats(selectedBairro);
@@ -471,10 +457,6 @@ export default function Dashboard() {
 
       <div data-tour="microbairro-evolution">
         <MicrobairroEvolutionChart bairro={selectedBairro} />
-      </div>
-
-      <div data-tour="search-tools">
-        <SearchTools bairro={selectedBairro} vistoriaData={vistoriaData} />
       </div>
 
 
