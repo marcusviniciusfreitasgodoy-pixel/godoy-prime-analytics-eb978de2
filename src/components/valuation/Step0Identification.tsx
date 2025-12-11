@@ -4,14 +4,22 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Building2, User, Calendar, MapPin, Home, TrendingUp, TrendingDown, Minus } from "lucide-react";
+import { Building2, User, Calendar, MapPin, Home, TrendingUp, TrendingDown, Minus, Search, Loader2 } from "lucide-react";
 import type { ValuationState } from "@/types/valuation";
 import { isCasaType, calculateTerrainBonus } from "@/hooks/useValuationCharacteristics";
-import { useEffect } from "react";
+import { useEffect, useState, useRef } from "react";
+import { supabase } from "@/integrations/supabase/client";
+import { normalizeStreetSearchTerm, normalizeAccents } from "@/lib/utils";
 
 interface Props {
   state: ValuationState;
   updateState: (updates: Partial<ValuationState>) => void;
+}
+
+interface StreetSuggestion {
+  logradouro: string;
+  transactionCount: number;
+  nomeCondominio?: string;
 }
 
 const TIPOS_IMOVEL = [
@@ -27,6 +35,14 @@ const TIPOS_IMOVEL = [
 
 export function Step0Identification({ state, updateState }: Props) {
   const showTerrainField = isCasaType(state.tipoImovel);
+  
+  // Street autocomplete states
+  const [searchTerm, setSearchTerm] = useState(state.logradouro || "");
+  const [suggestions, setSuggestions] = useState<StreetSuggestion[]>([]);
+  const [showSuggestions, setShowSuggestions] = useState(false);
+  const [loadingSuggestions, setLoadingSuggestions] = useState(false);
+  const inputRef = useRef<HTMLInputElement>(null);
+  const suggestionsRef = useRef<HTMLDivElement>(null);
   
   // Calcular bônus de terreno automaticamente quando área construída ou terreno mudam
   useEffect(() => {
@@ -45,6 +61,113 @@ export function Step0Identification({ state, updateState }: Props) {
       });
     }
   }, [state.area_m2, state.area_terreno_m2, showTerrainField]);
+
+  // Fetch street suggestions
+  useEffect(() => {
+    const fetchSuggestions = async () => {
+      if (searchTerm.length < 2) {
+        setSuggestions([]);
+        return;
+      }
+
+      setLoadingSuggestions(true);
+      try {
+        const normalizedTerm = normalizeStreetSearchTerm(searchTerm);
+        const bairro = state.bairro?.toUpperCase() || "BARRA DA TIJUCA";
+
+        // Fetch from ITBI transactions
+        const { data, error } = await supabase
+          .from("itbi_transactions")
+          .select("logradouro, total_transacoes")
+          .eq("bairro", bairro)
+          .gte("percentual_transferido", 90)
+          .not("valor_m2", "is", null)
+          .ilike("logradouro", `%${normalizedTerm}%`)
+          .order("total_transacoes", { ascending: false })
+          .limit(100);
+
+        if (error) throw error;
+
+        // Also check with accent-normalized version
+        const normalizedNoAccents = normalizeAccents(normalizedTerm);
+        const { data: dataNoAccents } = await supabase
+          .from("itbi_transactions")
+          .select("logradouro, total_transacoes")
+          .eq("bairro", bairro)
+          .gte("percentual_transferido", 90)
+          .not("valor_m2", "is", null)
+          .ilike("logradouro", `%${normalizedNoAccents}%`)
+          .order("total_transacoes", { ascending: false })
+          .limit(100);
+
+        // Combine and deduplicate
+        const allData = [...(data || []), ...(dataNoAccents || [])];
+        
+        // Group by logradouro and sum transactions
+        const grouped = new Map<string, number>();
+        allData.forEach((item) => {
+          const key = item.logradouro;
+          grouped.set(key, (grouped.get(key) || 0) + (item.total_transacoes || 1));
+        });
+
+        // Fetch condominium mappings
+        const { data: condominios } = await supabase
+          .from("condominios_mapeamento")
+          .select("logradouro_padrao, nome_condominio")
+          .or(`logradouro_padrao.ilike.%${normalizedTerm}%,nome_condominio.ilike.%${normalizedTerm}%`);
+
+        const condominioMap = new Map<string, string>();
+        condominios?.forEach((c) => {
+          condominioMap.set(c.logradouro_padrao, c.nome_condominio);
+        });
+
+        // Build suggestions with condominium names
+        const suggestionsList: StreetSuggestion[] = Array.from(grouped.entries())
+          .map(([logradouro, count]) => ({
+            logradouro,
+            transactionCount: count,
+            nomeCondominio: condominioMap.get(logradouro),
+          }))
+          .sort((a, b) => b.transactionCount - a.transactionCount)
+          .slice(0, 10);
+
+        setSuggestions(suggestionsList);
+      } catch (err) {
+        console.error("Error fetching suggestions:", err);
+        setSuggestions([]);
+      } finally {
+        setLoadingSuggestions(false);
+      }
+    };
+
+    const debounce = setTimeout(fetchSuggestions, 300);
+    return () => clearTimeout(debounce);
+  }, [searchTerm, state.bairro]);
+
+  // Handle click outside to close suggestions
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (
+        suggestionsRef.current &&
+        !suggestionsRef.current.contains(e.target as Node) &&
+        inputRef.current &&
+        !inputRef.current.contains(e.target as Node)
+      ) {
+        setShowSuggestions(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  const handleSelectSuggestion = (suggestion: StreetSuggestion) => {
+    setSearchTerm(suggestion.logradouro);
+    updateState({ 
+      logradouro: suggestion.logradouro,
+      nomeCondominio: suggestion.nomeCondominio || state.nomeCondominio
+    });
+    setShowSuggestions(false);
+  };
 
   const terrainInfo = calculateTerrainBonus(state.area_m2, state.area_terreno_m2);
   
@@ -71,15 +194,59 @@ export function Step0Identification({ state, updateState }: Props) {
           </h4>
           
           <div className="grid grid-cols-1 gap-3 sm:gap-4">
-            <div>
+            {/* Logradouro with autocomplete */}
+            <div className="relative">
               <Label htmlFor="logradouro" className="text-xs sm:text-sm">Logradouro *</Label>
-              <Input
-                id="logradouro"
-                value={state.logradouro}
-                onChange={(e) => updateState({ logradouro: e.target.value })}
-                placeholder="Ex: Avenida Lúcio Costa"
-                className="h-10 sm:h-9"
-              />
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input
+                  ref={inputRef}
+                  id="logradouro"
+                  value={searchTerm}
+                  onChange={(e) => {
+                    setSearchTerm(e.target.value);
+                    updateState({ logradouro: e.target.value });
+                    setShowSuggestions(true);
+                  }}
+                  onFocus={() => setShowSuggestions(true)}
+                  placeholder="Digite o nome da rua ou condomínio..."
+                  className="h-10 sm:h-9 pl-9"
+                />
+                {loadingSuggestions && (
+                  <Loader2 className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 animate-spin text-muted-foreground" />
+                )}
+              </div>
+              
+              {/* Suggestions dropdown */}
+              {showSuggestions && suggestions.length > 0 && (
+                <div
+                  ref={suggestionsRef}
+                  className="absolute z-50 w-full mt-1 bg-background border rounded-lg shadow-lg max-h-60 overflow-auto"
+                >
+                  {suggestions.map((suggestion, idx) => (
+                    <button
+                      key={idx}
+                      type="button"
+                      className="w-full px-3 py-2 text-left hover:bg-muted/50 flex items-center justify-between gap-2 border-b last:border-b-0"
+                      onClick={() => handleSelectSuggestion(suggestion)}
+                    >
+                      <div className="flex-1 min-w-0">
+                        <div className="font-medium text-sm truncate">
+                          {suggestion.nomeCondominio || suggestion.logradouro}
+                        </div>
+                        {suggestion.nomeCondominio && (
+                          <div className="text-xs text-muted-foreground truncate">
+                            {suggestion.logradouro}
+                          </div>
+                        )}
+                      </div>
+                      <Badge variant="secondary" className="shrink-0 text-xs">
+                        {suggestion.transactionCount} transações
+                      </Badge>
+                    </button>
+                  ))}
+                </div>
+              )}
             </div>
             
             <div className="grid grid-cols-2 gap-2 sm:gap-3">
