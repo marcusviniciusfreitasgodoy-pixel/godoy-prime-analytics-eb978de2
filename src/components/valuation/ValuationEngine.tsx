@@ -65,7 +65,7 @@ export function ValuationEngine({ bairro = "BARRA DA TIJUCA", vistoriaData }: Pr
   const [state, setState] = useState<ValuationState>({ ...initialValuationState, bairro });
   const [fromVistoria, setFromVistoria] = useState(false);
   
-  const { data: characteristics, isLoading: loadingChars } = useValuationCharacteristics();
+  const { data: characteristics, isLoading: loadingChars } = useValuationCharacteristics(state.tipoImovel);
   const { data: docFactors, isLoading: loadingDocs } = useDocumentationFactors();
 
   // Check for vistoria data from navigation or props
@@ -133,7 +133,8 @@ export function ValuationEngine({ bairro = "BARRA DA TIJUCA", vistoriaData }: Pr
         state.responses,
         characteristics,
         state.docStatus,
-        state.docFactor
+        state.docFactor,
+        state.bonus_terreno // Passa bônus de terreno para casas
       );
       updateState({ result });
     }
@@ -165,7 +166,8 @@ export function ValuationEngine({ bairro = "BARRA DA TIJUCA", vistoriaData }: Pr
       state.responses,
       characteristics,
       state.docStatus,
-      state.docFactor
+      state.docFactor,
+      state.bonus_terreno // Passa bônus de terreno para casas
     );
   };
 

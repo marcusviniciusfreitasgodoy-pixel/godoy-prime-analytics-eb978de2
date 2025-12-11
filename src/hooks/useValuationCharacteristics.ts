@@ -14,6 +14,7 @@ export interface ValuationCharacteristic {
   category_cap_min: number;
   display_order: number;
   is_active: boolean | null;
+  applies_to: "casa" | "apartamento" | "ambos";
 }
 
 export interface DocumentationFactor {
@@ -28,15 +29,63 @@ export interface DocumentationFactor {
   display_order: number;
 }
 
-export const useValuationCharacteristics = () => {
+// Determina se o tipo de imóvel é casa
+export const isCasaType = (tipoImovel: string): boolean => {
+  const tipoLower = tipoImovel.toLowerCase();
+  return tipoLower.includes('casa') || tipoLower.includes('cobertura');
+};
+
+// Calcula bônus/penalidade por proporção terreno/construção
+export const calculateTerrainBonus = (areaConstruida: number, areaTerreno: number): { proporcao: number; bonus: number; label: string } => {
+  if (!areaTerreno || areaTerreno <= 0 || !areaConstruida || areaConstruida <= 0) {
+    return { proporcao: 0, bonus: 0, label: "Não informado" };
+  }
+  
+  const proporcao = areaTerreno / areaConstruida;
+  
+  let bonus = 0;
+  let label = "";
+  
+  if (proporcao >= 3.0) {
+    bonus = 0.06;
+    label = "Terreno Excepcional";
+  } else if (proporcao >= 2.5) {
+    bonus = 0.04;
+    label = "Terreno Amplo";
+  } else if (proporcao >= 2.0) {
+    bonus = 0.02;
+    label = "Terreno Bom";
+  } else if (proporcao >= 1.5) {
+    bonus = 0;
+    label = "Terreno Padrão";
+  } else if (proporcao >= 1.2) {
+    bonus = -0.02;
+    label = "Terreno Apertado";
+  } else {
+    bonus = -0.04;
+    label = "Terreno Muito Apertado";
+  }
+  
+  return { proporcao: Math.round(proporcao * 100) / 100, bonus, label };
+};
+
+export const useValuationCharacteristics = (tipoImovel?: string) => {
+  const appliesTo = tipoImovel ? (isCasaType(tipoImovel) ? 'casa' : 'apartamento') : null;
+  
   return useQuery({
-    queryKey: ["valuation-characteristics"],
+    queryKey: ["valuation-characteristics", appliesTo],
     queryFn: async () => {
-      const { data, error } = await supabase
+      let query = supabase
         .from("valuation_characteristics")
         .select("*")
-        .eq("is_active", true)
-        .order("display_order");
+        .eq("is_active", true);
+      
+      // Filtrar por tipo de imóvel se especificado
+      if (appliesTo) {
+        query = query.or(`applies_to.eq.ambos,applies_to.eq.${appliesTo}`);
+      }
+      
+      const { data, error } = await query.order("display_order");
 
       if (error) throw error;
       return data as ValuationCharacteristic[];

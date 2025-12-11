@@ -262,6 +262,7 @@ export type Database = {
       }
       valuation_characteristics: {
         Row: {
+          applies_to: string | null
           category: string
           category_cap_max: number
           category_cap_min: number
@@ -278,6 +279,7 @@ export type Database = {
           weight_value: number
         }
         Insert: {
+          applies_to?: string | null
           category: string
           category_cap_max: number
           category_cap_min: number
@@ -294,6 +296,7 @@ export type Database = {
           weight_value: number
         }
         Update: {
+          applies_to?: string | null
           category?: string
           category_cap_max?: number
           category_cap_min?: number
@@ -400,10 +403,12 @@ export type Database = {
           anuncio_max_m2: number | null
           anuncio_med_m2: number | null
           anuncio_min_m2: number | null
+          area_terreno_m2: number | null
           auto_capped: boolean | null
           bairro: string
           base_price_custom_m2: number | null
           base_price_selected: string | null
+          bonus_terreno: number | null
           combined_max_m2: number
           combined_med_m2: number
           combined_min_m2: number
@@ -426,6 +431,7 @@ export type Database = {
           pdf_generated: boolean | null
           property_area_m2: number
           property_type: string | null
+          proporcao_terreno: number | null
           recommendation_action: string | null
           recommendation_details: Json | null
           recommendation_title: string | null
@@ -440,10 +446,12 @@ export type Database = {
           anuncio_max_m2?: number | null
           anuncio_med_m2?: number | null
           anuncio_min_m2?: number | null
+          area_terreno_m2?: number | null
           auto_capped?: boolean | null
           bairro?: string
           base_price_custom_m2?: number | null
           base_price_selected?: string | null
+          bonus_terreno?: number | null
           combined_max_m2: number
           combined_med_m2: number
           combined_min_m2: number
@@ -466,6 +474,7 @@ export type Database = {
           pdf_generated?: boolean | null
           property_area_m2: number
           property_type?: string | null
+          proporcao_terreno?: number | null
           recommendation_action?: string | null
           recommendation_details?: Json | null
           recommendation_title?: string | null
@@ -480,10 +489,12 @@ export type Database = {
           anuncio_max_m2?: number | null
           anuncio_med_m2?: number | null
           anuncio_min_m2?: number | null
+          area_terreno_m2?: number | null
           auto_capped?: boolean | null
           bairro?: string
           base_price_custom_m2?: number | null
           base_price_selected?: string | null
+          bonus_terreno?: number | null
           combined_max_m2?: number
           combined_med_m2?: number
           combined_min_m2?: number
@@ -506,6 +517,7 @@ export type Database = {
           pdf_generated?: boolean | null
           property_area_m2?: number
           property_type?: string | null
+          proporcao_terreno?: number | null
           recommendation_action?: string | null
           recommendation_details?: Json | null
           recommendation_title?: string | null

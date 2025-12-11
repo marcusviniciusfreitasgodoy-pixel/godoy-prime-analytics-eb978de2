@@ -68,6 +68,11 @@ export interface ValuationState {
   baseSelected: "min" | "med" | "max" | "custom";
   customBaseM2: number | null;
   
+  // Campos específicos para Casas (terreno)
+  area_terreno_m2: number;
+  proporcao_terreno: number;
+  bonus_terreno: number;
+  
   // Step 3: Questionnaire
   responses: CharacteristicResponse[];
   
@@ -109,6 +114,11 @@ export const initialValuationState: ValuationState = {
   area_m2: 0,
   baseSelected: "med",
   customBaseM2: null,
+  
+  // Campos específicos para Casas (terreno)
+  area_terreno_m2: 0,
+  proporcao_terreno: 0,
+  bonus_terreno: 0,
   
   // Step 3: Questionnaire
   responses: [],

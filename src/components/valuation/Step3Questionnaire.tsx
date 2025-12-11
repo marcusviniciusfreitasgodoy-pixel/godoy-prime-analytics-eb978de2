@@ -8,10 +8,10 @@ import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Button } from "@/components/ui/button";
-import { Eye, Sun, Wrench, Sofa, Shield, LayoutGrid, FileText, Info, RotateCcw } from "lucide-react";
+import { Eye, Sun, Wrench, Sofa, Shield, LayoutGrid, FileText, Info, RotateCcw, Home, TrendingUp, TrendingDown, Minus } from "lucide-react";
 import type { ValuationState } from "@/types/valuation";
 import type { ValuationCharacteristic, DocumentationFactor } from "@/hooks/useValuationCharacteristics";
-import { groupCharacteristicsByCategory } from "@/hooks/useValuationCharacteristics";
+import { groupCharacteristicsByCategory, isCasaType, calculateTerrainBonus } from "@/hooks/useValuationCharacteristics";
 import type { ValuationResult, CharacteristicResponse } from "@/utils/valuationCalculations";
 import { useAuth } from "@/hooks/useAuth";
 
