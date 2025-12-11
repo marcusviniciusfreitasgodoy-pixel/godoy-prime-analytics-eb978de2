@@ -13,6 +13,7 @@ import type { ValuationState } from "@/types/valuation";
 import type { ValuationCharacteristic, DocumentationFactor } from "@/hooks/useValuationCharacteristics";
 import { groupCharacteristicsByCategory } from "@/hooks/useValuationCharacteristics";
 import type { ValuationResult, CharacteristicResponse } from "@/utils/valuationCalculations";
+import { useAuth } from "@/hooks/useAuth";
 
 interface Props {
   state: ValuationState;
@@ -45,6 +46,7 @@ export function Step3Questionnaire({
   docFactors,
   preview 
 }: Props) {
+  const { isAdmin } = useAuth();
   const [activeTab, setActiveTab] = useState("A");
   
   const groupedChars = useMemo(() => 
@@ -178,13 +180,17 @@ export function Step3Questionnaire({
             <div className="flex items-center justify-between">
               <div>
                 <h4 className="font-semibold">{category.name}</h4>
-                <p className="text-xs text-muted-foreground">
-                  Cap: {formatPercent(category.cap_max)} / {formatPercent(category.cap_min)}
-                </p>
+                {isAdmin && (
+                  <p className="text-xs text-muted-foreground">
+                    Cap: {formatPercent(category.cap_max)} / {formatPercent(category.cap_min)}
+                  </p>
+                )}
               </div>
-              <Badge variant="outline">
-                Ajuste: {formatPercent(getCategoryAdjustment(key))}
-              </Badge>
+              {isAdmin && (
+                <Badge variant="outline">
+                  Ajuste: {formatPercent(getCategoryAdjustment(key))}
+                </Badge>
+              )}
             </div>
 
             <div className="space-y-3">
@@ -197,12 +203,14 @@ export function Step3Questionnaire({
                           <span className="text-sm font-medium">
                             {index + 1}. {char.char_name}
                           </span>
-                          <Badge
-                            variant={char.char_type === "positive" ? "default" : "destructive"}
-                            className="text-xs"
-                          >
-                            {formatPercent(char.weight_value)}
-                          </Badge>
+                          {isAdmin && (
+                            <Badge
+                              variant={char.char_type === "positive" ? "default" : "destructive"}
+                              className="text-xs"
+                            >
+                              {formatPercent(char.weight_value)}
+                            </Badge>
+                          )}
                         </div>
                         {char.char_description && (
                           <p className="text-xs text-muted-foreground mt-1">
@@ -281,7 +289,7 @@ export function Step3Questionnaire({
                       }`}
                     />
                     <span>{factor.status_name}</span>
-                    {factor.factor !== null && factor.factor < 1 && (
+                    {isAdmin && factor.factor !== null && factor.factor < 1 && (
                       <span className="text-xs text-red-600">
                         ({((1 - factor.factor) * 100).toFixed(0)}% desconto)
                       </span>
@@ -318,7 +326,7 @@ export function Step3Questionnaire({
               >
                 <Icon className={`h-4 w-4 sm:h-5 sm:w-5 ${CATEGORY_COLORS[key]}`} />
                 <span className="text-[10px] sm:text-xs font-medium">{key}</span>
-                {adjustment !== 0 && (
+                {isAdmin && adjustment !== 0 && (
                   <Badge 
                     variant={adjustment > 0 ? "default" : "destructive"} 
                     className="text-[8px] sm:text-[10px] px-1 py-0 h-4"
@@ -339,7 +347,7 @@ export function Step3Questionnaire({
           >
             <FileText className="h-4 w-4 sm:h-5 sm:w-5 text-amber-600" />
             <span className="text-[10px] sm:text-xs font-medium">Doc</span>
-            {state.docFactor < 1 && (
+            {isAdmin && state.docFactor < 1 && (
               <Badge variant="destructive" className="text-[8px] sm:text-[10px] px-1 py-0 h-4">
                 {formatPercent(state.docFactor - 1)}
               </Badge>
@@ -379,14 +387,20 @@ export function Step3Questionnaire({
             </div>
             
             <div className="flex items-center justify-between text-xs">
-              <span>
-                Ajuste Total: {formatPercent(preview.total_adjustment)}
-                {preview.auto_capped && (
-                  <Badge variant="outline" className="ml-2 text-[10px]">
-                    CAP aplicado
-                  </Badge>
-                )}
-              </span>
+              {isAdmin ? (
+                <span>
+                  Ajuste Total: {formatPercent(preview.total_adjustment)}
+                  {preview.auto_capped && (
+                    <Badge variant="outline" className="ml-2 text-[10px]">
+                      CAP aplicado
+                    </Badge>
+                  )}
+                </span>
+              ) : (
+                <span className="text-muted-foreground">
+                  {state.responses.filter(r => r.response === "sim").length} características aplicadas
+                </span>
+              )}
               <Badge
                 variant={
                   preview.confidence_level === "green"
@@ -396,7 +410,10 @@ export function Step3Questionnaire({
                     : "secondary"
                 }
               >
-                Confiança: {preview.confidence_score}%
+                {isAdmin ? `Confiança: ${preview.confidence_score}%` : 
+                  preview.confidence_level === "green" ? "Alta Confiança" : 
+                  preview.confidence_level === "red" ? "Baixa Confiança" : "Média Confiança"
+                }
               </Badge>
             </div>
           </CardContent>

@@ -13,7 +13,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import { CheckCircle2, AlertTriangle, XCircle, Circle, FileText, Loader2, MinusCircle, Building2, Camera, Image, X, Calculator } from "lucide-react";
+import { CheckCircle2, AlertTriangle, XCircle, Circle, FileText, Loader2, MinusCircle, Building2, Camera, Image, X, Calculator, TrendingUp } from "lucide-react";
 import {
   Tooltip,
   TooltipContent,
@@ -29,6 +29,14 @@ import {
 import { useToast } from "@/hooks/use-toast";
 import jsPDF from "jspdf";
 import { formatDate } from "@/utils/exportUtils";
+
+interface AvaliacaoData {
+  valorProvavel: number;
+  valorPessimista: number;
+  valorOtimista: number;
+  confidenceLevel: string;
+  dataAvaliacao: string;
+}
 
 interface PropertyData {
   logradouro: string;
@@ -303,6 +311,7 @@ export default function VistoriaDigital() {
   const [viewPhotoUrl, setViewPhotoUrl] = useState<string | null>(null);
   const [hasLoadedFromStorage, setHasLoadedFromStorage] = useState(false);
   const [fromAvaliacao, setFromAvaliacao] = useState(false);
+  const [avaliacaoData, setAvaliacaoData] = useState<AvaliacaoData | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const cameraInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
@@ -342,6 +351,11 @@ export default function VistoriaDigital() {
       setFromAvaliacao(true);
       const data = locationState.propertyData;
       
+      // Armazenar dados da avaliação separadamente
+      if (data.avaliacaoData) {
+        setAvaliacaoData(data.avaliacaoData);
+      }
+      
       setPropertyData(prev => ({
         ...prev,
         logradouro: data.logradouro || prev.logradouro,
@@ -357,9 +371,7 @@ export default function VistoriaDigital() {
         vagas: data.vagas || prev.vagas,
         proprietario: data.proprietario || prev.proprietario,
         telefone: data.telefone || prev.telefone,
-        observacoes: data.observacoes 
-          ? `${data.observacoes}${data.avaliacaoData ? `\n\n--- Dados da Avaliação ---\nValor Provável: R$ ${data.avaliacaoData.valorProvavel.toLocaleString('pt-BR')}\nData: ${data.avaliacaoData.dataAvaliacao}` : ''}`
-          : prev.observacoes,
+        observacoes: data.observacoes || prev.observacoes,
       }));
       
       // Clear location state after using it
@@ -854,6 +866,58 @@ export default function VistoriaDigital() {
         </Card>
       )}
 
+      {/* Card de valores da avaliação para referência */}
+      {fromAvaliacao && avaliacaoData && (
+        <Card className="bg-gradient-to-br from-emerald-50 to-blue-50 dark:from-emerald-950/30 dark:to-blue-950/30 border-emerald-200 dark:border-emerald-800">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm flex items-center gap-2">
+              <TrendingUp className="h-4 w-4 text-emerald-600" />
+              Valores de Referência da Avaliação
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            <div className="grid grid-cols-3 gap-2 text-center">
+              <div className="p-2 bg-background/80 rounded">
+                <p className="text-xs text-muted-foreground">Pessimista</p>
+                <p className="font-semibold text-red-600 text-sm">
+                  {new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL", maximumFractionDigits: 0 }).format(avaliacaoData.valorPessimista)}
+                </p>
+              </div>
+              <div className="p-2 bg-primary/10 rounded border border-primary/30">
+                <p className="text-xs text-muted-foreground">Provável</p>
+                <p className="font-bold text-primary">
+                  {new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL", maximumFractionDigits: 0 }).format(avaliacaoData.valorProvavel)}
+                </p>
+              </div>
+              <div className="p-2 bg-background/80 rounded">
+                <p className="text-xs text-muted-foreground">Otimista</p>
+                <p className="font-semibold text-emerald-600 text-sm">
+                  {new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL", maximumFractionDigits: 0 }).format(avaliacaoData.valorOtimista)}
+                </p>
+              </div>
+            </div>
+            <div className="flex items-center justify-between text-xs pt-1">
+              <span className="text-muted-foreground">
+                Data da Avaliação: {avaliacaoData.dataAvaliacao}
+              </span>
+              <Badge 
+                variant={
+                  avaliacaoData.confidenceLevel === "green" ? "default" :
+                  avaliacaoData.confidenceLevel === "red" ? "destructive" : "secondary"
+                }
+                className="text-[10px]"
+              >
+                {avaliacaoData.confidenceLevel === "green" ? "Alta Confiança" :
+                 avaliacaoData.confidenceLevel === "red" ? "Baixa Confiança" : "Média Confiança"}
+              </Badge>
+            </div>
+            <p className="text-xs text-muted-foreground border-t pt-2">
+              💡 Use estes valores como referência durante a inspeção. A vistoria pode ajustar o valor final.
+            </p>
+          </CardContent>
+        </Card>
+      )}
+
       <div className="space-y-6">
           <Card>
             <CardHeader className="space-y-4">
@@ -883,7 +947,34 @@ export default function VistoriaDigital() {
                     <span className="hidden xs:inline">Gerar</span> Relatório
                   </Button>
                   <Button 
-                    onClick={() => navigate('/avaliacao-imobiliaria')} 
+                    onClick={() => {
+                      // Prepara dados para transferir para Avaliação
+                      const vistoriaToAvaliacaoData = {
+                        logradouro: propertyData.logradouro,
+                        numero: propertyData.numero,
+                        complemento: propertyData.complemento,
+                        bairro: propertyData.bairro,
+                        nomeCondominio: propertyData.nomeCondominio,
+                        tipoImovel: propertyData.tipoImovel,
+                        area_m2: propertyData.areaM2 ? parseFloat(propertyData.areaM2) : undefined,
+                        quartos: propertyData.quartos ? parseInt(propertyData.quartos) : undefined,
+                        suites: propertyData.suites ? parseInt(propertyData.suites) : undefined,
+                        banheiros: propertyData.banheiros ? parseInt(propertyData.banheiros) : undefined,
+                        vagas: propertyData.vagas ? parseInt(propertyData.vagas) : undefined,
+                        proprietario: propertyData.proprietario,
+                        telefone: propertyData.telefone,
+                        checklistSummary: {
+                          criticalCount: getCriticalCount(),
+                          progress: getProgress(),
+                        }
+                      };
+                      navigate('/avaliacao-imobiliaria', {
+                        state: {
+                          fromVistoria: true,
+                          vistoriaData: vistoriaToAvaliacaoData
+                        }
+                      });
+                    }} 
                     size="sm" 
                     variant="secondary"
                     className="gap-1.5 text-xs sm:text-sm"
