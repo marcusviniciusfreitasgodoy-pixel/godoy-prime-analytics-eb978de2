@@ -1,4 +1,6 @@
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
+import { useSwipeGesture } from "@/hooks/useSwipeGesture";
+import { useIsMobile } from "@/hooks/use-mobile";
 import { useNavigate, useLocation } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
@@ -13,7 +15,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import { FileText, Loader2, Building2, Camera, Image, X, Calculator, TrendingUp, Home, Building, RotateCcw, Star, AlertCircle } from "lucide-react";
+import { FileText, Loader2, Building2, Camera, Image, X, Calculator, TrendingUp, Home, Building, RotateCcw, Star, AlertCircle, ChevronLeft, ChevronRight } from "lucide-react";
 import {
   Tooltip,
   TooltipContent,
@@ -566,6 +568,26 @@ export default function VistoriaDigital() {
   const { toast } = useToast();
   const navigate = useNavigate();
   const location = useLocation();
+  const isMobile = useIsMobile();
+  
+  // Mobile category navigation
+  const [currentCategoryIndex, setCurrentCategoryIndex] = useState(0);
+  
+  const goToNextCategory = useCallback(() => {
+    setCurrentCategoryIndex(prev => 
+      prev < checklist.length - 1 ? prev + 1 : prev
+    );
+  }, [checklist.length]);
+  
+  const goToPrevCategory = useCallback(() => {
+    setCurrentCategoryIndex(prev => prev > 0 ? prev - 1 : prev);
+  }, []);
+  
+  const { handlers: swipeHandlers } = useSwipeGesture({
+    onSwipeLeft: goToNextCategory,
+    onSwipeRight: goToPrevCategory,
+    minSwipeDistance: 50,
+  });
 
   // Check for data from Avaliação Imobiliária
   useEffect(() => {
@@ -1242,33 +1264,77 @@ export default function VistoriaDigital() {
                 ))}
               </div>
             </div>
+            {/* Mobile category navigation indicator */}
+            {isMobile && (
+              <div className="flex items-center justify-between mt-3 pt-3 border-t">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={goToPrevCategory}
+                  disabled={currentCategoryIndex === 0}
+                  className="h-8 px-2"
+                >
+                  <ChevronLeft className="h-4 w-4" />
+                </Button>
+                <div className="flex flex-col items-center flex-1 mx-2">
+                  <span className="text-xs text-muted-foreground">
+                    {currentCategoryIndex + 1} / {checklist.length}
+                  </span>
+                  <div className="flex gap-1 mt-1">
+                    {checklist.map((_, idx) => (
+                      <button
+                        key={idx}
+                        onClick={() => setCurrentCategoryIndex(idx)}
+                        className={`h-1.5 rounded-full transition-all ${
+                          idx === currentCategoryIndex 
+                            ? 'w-4 bg-primary' 
+                            : 'w-1.5 bg-muted-foreground/30 hover:bg-muted-foreground/50'
+                        }`}
+                      />
+                    ))}
+                  </div>
+                </div>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={goToNextCategory}
+                  disabled={currentCategoryIndex === checklist.length - 1}
+                  className="h-8 px-2"
+                >
+                  <ChevronRight className="h-4 w-4" />
+                </Button>
+              </div>
+            )}
           </CardHeader>
           <CardContent className="pt-0">
-            <Accordion type="multiple" className="w-full">
-              {checklist.map((category) => {
-                const scoredItems = category.items.filter(i => i.score !== null);
-                const categoryProgress = Math.round((scoredItems.length / category.items.length) * 100);
-                
-                return (
-                  <AccordionItem key={category.id} value={category.id}>
-                    <AccordionTrigger className="text-sm sm:text-base font-semibold text-left justify-start hover:no-underline">
-                      <div className="flex items-center gap-3 flex-1">
-                        <span>{category.title}</span>
+            {/* Mobile: Swipe carousel view */}
+            {isMobile ? (
+              <div 
+                {...swipeHandlers}
+                className="touch-pan-y"
+              >
+                {checklist[currentCategoryIndex] && (() => {
+                  const category = checklist[currentCategoryIndex];
+                  const scoredItems = category.items.filter(i => i.score !== null);
+                  const categoryProgress = Math.round((scoredItems.length / category.items.length) * 100);
+                  
+                  return (
+                    <div className="space-y-4">
+                      <div className="flex items-center justify-between">
+                        <h3 className="font-semibold text-base">{category.title}</h3>
                         {categoryProgress > 0 && (
                           <Badge variant="outline" className="text-[10px] px-1.5 py-0">
                             {categoryProgress}%
                           </Badge>
                         )}
                       </div>
-                    </AccordionTrigger>
-                    <AccordionContent>
-                      <div className="space-y-3 pt-2">
+                      <div className="space-y-3">
                         {category.items.map((item) => {
                           const itemPhotos = getPhotosForItem(category.id, item.id);
                           return (
                             <div key={item.id} className="space-y-2">
-                              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 p-3 rounded-lg border bg-card">
-                                <div className="flex items-start sm:items-center gap-3 flex-1 min-w-0">
+                              <div className="flex flex-col gap-3 p-3 rounded-lg border bg-card">
+                                <div className="flex items-start gap-3 flex-1 min-w-0">
                                   {item.score !== null && item.score !== 'na' ? (
                                     <span className={`w-6 h-6 rounded flex items-center justify-center text-xs font-bold ${scoreConfig[item.score].color.split(' ')[0]} text-white flex-shrink-0`}>
                                       {item.score}
@@ -1283,71 +1349,44 @@ export default function VistoriaDigital() {
                                     </span>
                                   )}
                                   <div className="flex-1 min-w-0">
-                                    <span className="font-medium text-sm sm:text-base leading-tight block">{item.label}</span>
+                                    <span className="font-medium text-sm leading-tight block">{item.label}</span>
                                     {item.tooltip && (
                                       <span className="text-xs text-muted-foreground">{item.tooltip}</span>
                                     )}
                                   </div>
                                 </div>
-                                <TooltipProvider delayDuration={300}>
-                                  <div className="flex flex-wrap gap-1 flex-shrink-0 ml-9 sm:ml-0">
-                                    {([1, 2, 3, 4, 5] as const).map((score) => {
-                                      const config = scoreConfig[score];
-                                      return (
-                                        <Tooltip key={score}>
-                                          <TooltipTrigger asChild>
-                                            <Button
-                                              variant={item.score === score ? "default" : "outline"}
-                                              size="sm"
-                                              onClick={() => updateItemScore(category.id, item.id, score)}
-                                              className={`h-7 w-7 sm:h-8 sm:w-8 p-0 text-xs font-bold ${item.score === score ? config.color : ''}`}
-                                            >
-                                              {score}
-                                            </Button>
-                                          </TooltipTrigger>
-                                          <TooltipContent side="top" className="text-center">
-                                            <p className="font-medium">{config.label}</p>
-                                            <p className="text-xs text-muted-foreground">{config.description}</p>
-                                          </TooltipContent>
-                                        </Tooltip>
-                                      );
-                                    })}
-                                    <Tooltip>
-                                      <TooltipTrigger asChild>
-                                        <Button
-                                          variant={item.score === 'na' ? "default" : "outline"}
-                                          size="sm"
-                                          onClick={() => updateItemScore(category.id, item.id, 'na')}
-                                          className={`h-7 w-7 sm:h-8 sm:w-8 p-0 text-[9px] sm:text-[10px] font-medium ${item.score === 'na' ? scoreConfig['na'].color : ''}`}
-                                        >
-                                          N/A
-                                        </Button>
-                                      </TooltipTrigger>
-                                      <TooltipContent side="top">
-                                        <p className="font-medium">Não se Aplica</p>
-                                        <p className="text-xs text-muted-foreground">Este item não se aplica ao imóvel</p>
-                                      </TooltipContent>
-                                    </Tooltip>
-                                    <Tooltip>
-                                      <TooltipTrigger asChild>
-                                        <Button
-                                          variant={itemPhotos.length > 0 ? "secondary" : "outline"}
-                                          size="sm"
-                                          onClick={() => handlePhotoCapture(category.id, item.id, item.label)}
-                                          className="h-7 w-7 sm:h-8 sm:w-8 p-0"
-                                        >
-                                          <Camera className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
-                                        </Button>
-                                      </TooltipTrigger>
-                                      <TooltipContent side="top">
-                                        <p className="font-medium">Adicionar Foto</p>
-                                        {itemPhotos.length > 0 && (
-                                          <p className="text-xs text-muted-foreground">{itemPhotos.length} foto(s)</p>
-                                        )}
-                                      </TooltipContent>
-                                    </Tooltip>
-                                  </div>
-                                </TooltipProvider>
+                                <div className="flex flex-wrap gap-1 ml-9">
+                                  {([1, 2, 3, 4, 5] as const).map((score) => {
+                                    const config = scoreConfig[score];
+                                    return (
+                                      <Button
+                                        key={score}
+                                        variant={item.score === score ? "default" : "outline"}
+                                        size="sm"
+                                        onClick={() => updateItemScore(category.id, item.id, score)}
+                                        className={`h-8 w-8 p-0 text-xs font-bold ${item.score === score ? config.color : ''}`}
+                                      >
+                                        {score}
+                                      </Button>
+                                    );
+                                  })}
+                                  <Button
+                                    variant={item.score === 'na' ? "default" : "outline"}
+                                    size="sm"
+                                    onClick={() => updateItemScore(category.id, item.id, 'na')}
+                                    className={`h-8 w-8 p-0 text-[10px] font-medium ${item.score === 'na' ? scoreConfig['na'].color : ''}`}
+                                  >
+                                    N/A
+                                  </Button>
+                                  <Button
+                                    variant={itemPhotos.length > 0 ? "secondary" : "outline"}
+                                    size="sm"
+                                    onClick={() => handlePhotoCapture(category.id, item.id, item.label)}
+                                    className="h-8 w-8 p-0"
+                                  >
+                                    <Camera className="h-4 w-4" />
+                                  </Button>
+                                </div>
                               </div>
                               {itemPhotos.length > 0 && (
                                 <div className="flex gap-2 flex-wrap ml-9 pl-3">
@@ -1362,7 +1401,7 @@ export default function VistoriaDigital() {
                                       <Button
                                         variant="destructive"
                                         size="icon"
-                                        className="absolute -top-2 -right-2 h-5 w-5 opacity-0 group-hover:opacity-100 transition-opacity"
+                                        className="absolute -top-2 -right-2 h-5 w-5"
                                         onClick={() => removePhoto(photo.id)}
                                       >
                                         <X className="h-3 w-3" />
@@ -1375,11 +1414,152 @@ export default function VistoriaDigital() {
                           );
                         })}
                       </div>
-                    </AccordionContent>
-                  </AccordionItem>
-                );
-              })}
-            </Accordion>
+                      <p className="text-xs text-muted-foreground text-center pt-2">
+                        ← Deslize para navegar entre categorias →
+                      </p>
+                    </div>
+                  );
+                })()}
+              </div>
+            ) : (
+              /* Desktop: Accordion view */
+              <Accordion type="multiple" className="w-full">
+                {checklist.map((category) => {
+                  const scoredItems = category.items.filter(i => i.score !== null);
+                  const categoryProgress = Math.round((scoredItems.length / category.items.length) * 100);
+                  
+                  return (
+                    <AccordionItem key={category.id} value={category.id}>
+                      <AccordionTrigger className="text-sm sm:text-base font-semibold text-left justify-start hover:no-underline">
+                        <div className="flex items-center gap-3 flex-1">
+                          <span>{category.title}</span>
+                          {categoryProgress > 0 && (
+                            <Badge variant="outline" className="text-[10px] px-1.5 py-0">
+                              {categoryProgress}%
+                            </Badge>
+                          )}
+                        </div>
+                      </AccordionTrigger>
+                      <AccordionContent>
+                        <div className="space-y-3 pt-2">
+                          {category.items.map((item) => {
+                            const itemPhotos = getPhotosForItem(category.id, item.id);
+                            return (
+                              <div key={item.id} className="space-y-2">
+                                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 p-3 rounded-lg border bg-card">
+                                  <div className="flex items-start sm:items-center gap-3 flex-1 min-w-0">
+                                    {item.score !== null && item.score !== 'na' ? (
+                                      <span className={`w-6 h-6 rounded flex items-center justify-center text-xs font-bold ${scoreConfig[item.score].color.split(' ')[0]} text-white flex-shrink-0`}>
+                                        {item.score}
+                                      </span>
+                                    ) : item.score === 'na' ? (
+                                      <span className="w-6 h-6 rounded flex items-center justify-center text-[10px] font-medium bg-slate-400 text-white flex-shrink-0">
+                                        N/A
+                                      </span>
+                                    ) : (
+                                      <span className="w-6 h-6 rounded flex items-center justify-center text-xs font-medium bg-muted text-muted-foreground flex-shrink-0">
+                                        ?
+                                      </span>
+                                    )}
+                                    <div className="flex-1 min-w-0">
+                                      <span className="font-medium text-sm sm:text-base leading-tight block">{item.label}</span>
+                                      {item.tooltip && (
+                                        <span className="text-xs text-muted-foreground">{item.tooltip}</span>
+                                      )}
+                                    </div>
+                                  </div>
+                                  <TooltipProvider delayDuration={300}>
+                                    <div className="flex flex-wrap gap-1 flex-shrink-0 ml-9 sm:ml-0">
+                                      {([1, 2, 3, 4, 5] as const).map((score) => {
+                                        const config = scoreConfig[score];
+                                        return (
+                                          <Tooltip key={score}>
+                                            <TooltipTrigger asChild>
+                                              <Button
+                                                variant={item.score === score ? "default" : "outline"}
+                                                size="sm"
+                                                onClick={() => updateItemScore(category.id, item.id, score)}
+                                                className={`h-7 w-7 sm:h-8 sm:w-8 p-0 text-xs font-bold ${item.score === score ? config.color : ''}`}
+                                              >
+                                                {score}
+                                              </Button>
+                                            </TooltipTrigger>
+                                            <TooltipContent side="top" className="text-center">
+                                              <p className="font-medium">{config.label}</p>
+                                              <p className="text-xs text-muted-foreground">{config.description}</p>
+                                            </TooltipContent>
+                                          </Tooltip>
+                                        );
+                                      })}
+                                      <Tooltip>
+                                        <TooltipTrigger asChild>
+                                          <Button
+                                            variant={item.score === 'na' ? "default" : "outline"}
+                                            size="sm"
+                                            onClick={() => updateItemScore(category.id, item.id, 'na')}
+                                            className={`h-7 w-7 sm:h-8 sm:w-8 p-0 text-[9px] sm:text-[10px] font-medium ${item.score === 'na' ? scoreConfig['na'].color : ''}`}
+                                          >
+                                            N/A
+                                          </Button>
+                                        </TooltipTrigger>
+                                        <TooltipContent side="top">
+                                          <p className="font-medium">Não se Aplica</p>
+                                          <p className="text-xs text-muted-foreground">Este item não se aplica ao imóvel</p>
+                                        </TooltipContent>
+                                      </Tooltip>
+                                      <Tooltip>
+                                        <TooltipTrigger asChild>
+                                          <Button
+                                            variant={itemPhotos.length > 0 ? "secondary" : "outline"}
+                                            size="sm"
+                                            onClick={() => handlePhotoCapture(category.id, item.id, item.label)}
+                                            className="h-7 w-7 sm:h-8 sm:w-8 p-0"
+                                          >
+                                            <Camera className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+                                          </Button>
+                                        </TooltipTrigger>
+                                        <TooltipContent side="top">
+                                          <p className="font-medium">Adicionar Foto</p>
+                                          {itemPhotos.length > 0 && (
+                                            <p className="text-xs text-muted-foreground">{itemPhotos.length} foto(s)</p>
+                                          )}
+                                        </TooltipContent>
+                                      </Tooltip>
+                                    </div>
+                                  </TooltipProvider>
+                                </div>
+                                {itemPhotos.length > 0 && (
+                                  <div className="flex gap-2 flex-wrap ml-9 pl-3">
+                                    {itemPhotos.map((photo) => (
+                                      <div key={photo.id} className="relative group">
+                                        <img
+                                          src={photo.dataUrl}
+                                          alt={photo.caption}
+                                          className="w-16 h-16 object-cover rounded-md border cursor-pointer hover:opacity-90"
+                                          onClick={() => setViewPhotoUrl(photo.dataUrl)}
+                                        />
+                                        <Button
+                                          variant="destructive"
+                                          size="icon"
+                                          className="absolute -top-2 -right-2 h-5 w-5 opacity-0 group-hover:opacity-100 transition-opacity"
+                                          onClick={() => removePhoto(photo.id)}
+                                        >
+                                          <X className="h-3 w-3" />
+                                        </Button>
+                                      </div>
+                                    ))}
+                                  </div>
+                                )}
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </AccordionContent>
+                    </AccordionItem>
+                  );
+                })}
+              </Accordion>
+            )}
           </CardContent>
         </Card>
 
