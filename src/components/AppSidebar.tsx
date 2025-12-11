@@ -1,4 +1,4 @@
-import { Home, ClipboardCheck, FileText, MapPin, Users, UserCog, Search } from "lucide-react";
+import { Home, ClipboardCheck, FileText, MapPin, Users, UserCog, Search, Calculator } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import {
   Sidebar,
@@ -18,6 +18,7 @@ const baseItems = [
   { title: "Dashboard", url: "/", icon: Home },
   { title: "Microregiões", url: "/microbairros", icon: MapPin },
   { title: "Pesquisas de Mercado", url: "/pesquisas-mercado", icon: Search },
+  { title: "Avaliação Imobiliária", url: "/avaliacao-imobiliaria", icon: Calculator },
   { title: "Vistoria Digital", url: "/vistoria-digital", icon: ClipboardCheck },
   { title: "Documentação", url: "/documentacao", icon: FileText },
 ];
