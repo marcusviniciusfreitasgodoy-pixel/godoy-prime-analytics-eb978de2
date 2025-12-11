@@ -13,7 +13,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import { CheckCircle2, AlertTriangle, XCircle, Circle, FileText, Loader2, MinusCircle, Building2, Camera, Image, X, Calculator, TrendingUp } from "lucide-react";
+import { FileText, Loader2, Building2, Camera, Image, X, Calculator, TrendingUp, Home, Building, RotateCcw, Star, AlertCircle } from "lucide-react";
 import {
   Tooltip,
   TooltipContent,
@@ -25,11 +25,23 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
+  DialogDescription,
 } from "@/components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { useToast } from "@/hooks/use-toast";
-import jsPDF from "jspdf";
 import { formatDate } from "@/utils/exportUtils";
+import { generateVistoriaPDF } from "@/utils/vistoriaPdfExport";
 
+// Types
 interface AvaliacaoData {
   valorProvavel: number;
   valorPessimista: number;
@@ -57,6 +69,42 @@ interface PropertyData {
   observacoes: string;
 }
 
+type TipoVistoria = 'casa' | 'apartamento' | null;
+type ItemScore = 1 | 2 | 3 | 4 | 5 | 'na' | null;
+
+interface ChecklistItem {
+  id: string;
+  label: string;
+  tooltip?: string;
+  score: ItemScore;
+}
+
+interface ChecklistCategory {
+  id: string;
+  title: string;
+  weight: number; // Peso para cálculo do score final
+  items: ChecklistItem[];
+}
+
+interface PhotoItem {
+  id: string;
+  categoryId: string;
+  itemId: string;
+  dataUrl: string;
+  timestamp: string;
+  caption: string;
+}
+
+// Score configuration
+const scoreConfig = {
+  5: { label: 'Excelente', color: 'bg-emerald-600 hover:bg-emerald-700 text-white', textColor: 'text-emerald-600', description: 'Novo/impecável' },
+  4: { label: 'Bom', color: 'bg-green-500 hover:bg-green-600 text-white', textColor: 'text-green-500', description: 'Acima do esperado' },
+  3: { label: 'Adequado', color: 'bg-yellow-500 hover:bg-yellow-600 text-white', textColor: 'text-yellow-600', description: 'Normal para idade/uso' },
+  2: { label: 'Atenção', color: 'bg-orange-500 hover:bg-orange-600 text-white', textColor: 'text-orange-500', description: 'Problema identificado' },
+  1: { label: 'Crítico', color: 'bg-red-600 hover:bg-red-700 text-white', textColor: 'text-red-600', description: 'Precisa reparo urgente' },
+  'na': { label: 'N/A', color: 'bg-slate-400 hover:bg-slate-500 text-white', textColor: 'text-slate-500', description: 'Não se aplica' },
+};
+
 const initialPropertyData: PropertyData = {
   logradouro: '',
   numero: '',
@@ -76,233 +124,421 @@ const initialPropertyData: PropertyData = {
   observacoes: '',
 };
 
-type ItemStatus = 'ok' | 'atencao' | 'critico' | 'nao-verificado' | 'nao-aplica';
-
-interface ChecklistItem {
-  id: string;
-  label: string;
-  status: ItemStatus;
-}
-
-interface ChecklistCategory {
-  id: string;
-  title: string;
-  items: ChecklistItem[];
-}
-
-interface PhotoItem {
-  id: string;
-  categoryId: string;
-  itemId: string;
-  dataUrl: string;
-  timestamp: string;
-  caption: string;
-}
-
-const initialChecklist: ChecklistCategory[] = [
+// ========== CHECKLIST CASA (20 categorias, ~55 itens) ==========
+const checklistCasa: ChecklistCategory[] = [
   {
     id: 'fundacoes',
     title: '1. Fundações e Estrutura',
+    weight: 12,
     items: [
-      { id: 'trincas', label: 'Trincas ou fissuras grandes (>3mm) em paredes, pisos e tetos', status: 'nao-verificado' },
-      { id: 'umidade-base', label: 'Sinais de umidade ascendente nas bases das paredes', status: 'nao-verificado' },
-      { id: 'portas-janelas', label: 'Portas e janelas fecham corretamente', status: 'nao-verificado' },
+      { id: 'trincas', label: 'Trincas ou fissuras grandes (>3mm) em paredes, pisos e tetos', score: null },
+      { id: 'desaprumo', label: 'Desaprumo ou inclinações visíveis nas paredes', tooltip: 'Observe se as paredes parecem tortas ou inclinadas', score: null },
+      { id: 'umidade-base', label: 'Sinais de umidade ascendente nas bases das paredes', score: null },
+      { id: 'portas-janelas', label: 'Portas e janelas fecham corretamente', score: null },
     ],
   },
   {
     id: 'cobertura',
     title: '2. Cobertura e Telhado',
+    weight: 10,
     items: [
-      { id: 'manchas-teto', label: 'Manchas de umidade ou mofo no teto do último andar', status: 'nao-verificado' },
-      { id: 'calhas', label: 'Calhas e rufos: danos ou entupimento', status: 'nao-verificado' },
-      { id: 'telhas', label: 'Estado geral das telhas', status: 'nao-verificado' },
-      { id: 'acesso-cobertura', label: 'Acesso à cobertura (em apartamentos marcar N/A)', status: 'nao-verificado' },
+      { id: 'manchas-teto', label: 'Manchas de umidade ou mofo no teto', score: null },
+      { id: 'calhas', label: 'Calhas e rufos: danos ou entupimento', score: null },
+      { id: 'telhas', label: 'Estado geral das telhas (quebradas, deslocadas)', score: null },
+      { id: 'estrutura-telhado', label: 'Estrutura do telhado visível em bom estado', score: null },
     ],
   },
   {
     id: 'eletrica',
     title: '3. Instalações Elétricas',
+    weight: 8,
     items: [
-      { id: 'quadro', label: 'Quadro de disjuntores: identificado, organizado e moderno', status: 'nao-verificado' },
-      { id: 'tomadas', label: 'Teste de tomadas e interruptores (funcionamento e fixação)', status: 'nao-verificado' },
-      { id: 'carga', label: 'Carga suporta equipamentos modernos (Ar condicionado, etc.)', status: 'nao-verificado' },
+      { id: 'quadro', label: 'Quadro de disjuntores: identificado, organizado e moderno', score: null },
+      { id: 'tomadas', label: 'Teste de tomadas e interruptores (funcionamento e fixação)', score: null },
+      { id: 'fios-expostos', label: 'Fios expostos ou emendas visíveis', tooltip: 'Risco de segurança se houver fios aparentes', score: null },
+      { id: 'carga', label: 'Carga suporta equipamentos modernos (Ar condicionado, etc.)', score: null },
     ],
   },
   {
     id: 'hidraulica',
     title: '4. Instalações Hidráulicas',
+    weight: 8,
     items: [
-      { id: 'pressao', label: 'Pressão da água em torneiras e chuveiros', status: 'nao-verificado' },
-      { id: 'vazamentos-vaso', label: 'Vazamentos na base dos vasos sanitários ao acionar descarga', status: 'nao-verificado' },
-      { id: 'manchas-vazamento', label: 'Manchas de vazamento sob pias e em paredes de áreas molhadas', status: 'nao-verificado' },
+      { id: 'pressao', label: 'Pressão da água em torneiras e chuveiros', score: null },
+      { id: 'vazamentos-vaso', label: 'Vazamentos na base dos vasos sanitários', score: null },
+      { id: 'manchas-vazamento', label: 'Manchas de vazamento sob pias e em paredes de áreas molhadas', score: null },
+      { id: 'tubulacoes', label: 'Tubulações com corrosão visível', tooltip: 'Indica idade avançada do sistema', score: null },
     ],
   },
   {
     id: 'acabamentos',
     title: '5. Acabamentos Internos',
+    weight: 7,
     items: [
-      { id: 'piso', label: 'Qualidade do piso (riscos, peças soltas, manchas)', status: 'nao-verificado' },
-      { id: 'pintura', label: 'Pintura de paredes e tetos (bolhas, descascados, sujeira)', status: 'nao-verificado' },
-      { id: 'rodapes', label: 'Estado de rodapés, guarnições e forros de gesso', status: 'nao-verificado' },
+      { id: 'piso', label: 'Qualidade do piso (riscos, peças soltas, manchas)', score: null },
+      { id: 'pintura', label: 'Pintura de paredes e tetos (bolhas, descascados)', score: null },
+      { id: 'mofo', label: 'Mofo ou manchas de umidade em ambientes', tooltip: 'Impacta saúde e negociação', score: null },
+      { id: 'rodapes', label: 'Estado de rodapés, guarnições e forros de gesso', score: null },
     ],
   },
   {
     id: 'esquadrias',
     title: '6. Esquadrias (Portas e Janelas)',
+    weight: 6,
     items: [
-      { id: 'vedacao', label: 'Vedação e funcionamento das ferragens ao abrir/fechar', status: 'nao-verificado' },
-      { id: 'infiltracao', label: 'Sinais de infiltração ao redor dos caixilhos', status: 'nao-verificado' },
-      { id: 'vidros', label: 'Estado dos vidros (riscos, trincas)', status: 'nao-verificado' },
+      { id: 'vedacao', label: 'Vedação e funcionamento das ferragens', score: null },
+      { id: 'infiltracao', label: 'Sinais de infiltração ao redor dos caixilhos', score: null },
+      { id: 'vidros', label: 'Estado dos vidros (riscos, trincas)', score: null },
     ],
   },
   {
     id: 'ventilacao',
     title: '7. Ventilação e Iluminação',
+    weight: 5,
     items: [
-      { id: 'luz-natural', label: 'Iluminação natural suficiente nos ambientes', status: 'nao-verificado' },
-      { id: 'ventilacao-cruzada', label: 'Ventilação cruzada adequada (banheiros e cozinha sem mofo)', status: 'nao-verificado' },
-      { id: 'exaustao', label: 'Sistemas de exaustão (coifas, depuradores) funcionando', status: 'nao-verificado' },
+      { id: 'luz-natural', label: 'Iluminação natural suficiente nos ambientes', score: null },
+      { id: 'ventilacao-cruzada', label: 'Ventilação cruzada adequada', score: null },
+      { id: 'exaustao', label: 'Sistemas de exaustão (coifas, depuradores) funcionando', score: null },
     ],
   },
   {
     id: 'area-externa',
     title: '8. Área Externa e Fachada',
+    weight: 7,
     items: [
-      { id: 'fachada', label: 'Revestimento da fachada (trincas, descolamento de pastilhas)', status: 'nao-verificado' },
-      { id: 'muros', label: 'Estado de muros, portões e grades (ferrugem)', status: 'nao-verificado' },
-      { id: 'calcadas', label: 'Condição de calçadas e acessos (pedras soltas)', status: 'nao-verificado' },
+      { id: 'fachada', label: 'Revestimento da fachada (trincas, descolamento)', score: null },
+      { id: 'muros', label: 'Estado de muros, portões e grades (ferrugem)', score: null },
+      { id: 'drenagem', label: 'Drenagem do terreno (poças após chuva)', tooltip: 'Problema de terreno pode ser caro para resolver', score: null },
+      { id: 'iluminacao-noturna', label: 'Iluminação noturna externa', tooltip: 'Impacta segurança', score: null },
     ],
   },
   {
     id: 'climatizacao',
-    title: '9. Climatização (Aquecimento/Ar)',
+    title: '9. Climatização',
+    weight: 4,
     items: [
-      { id: 'possui-climatizacao', label: 'Imóvel possui sistema de climatização (se não, marcar N/A nos demais)', status: 'nao-verificado' },
-      { id: 'ar-funcionamento', label: 'Funcionamento dos equipamentos de ar condicionado', status: 'nao-verificado' },
-      { id: 'filtros', label: 'Manutenção e limpeza dos filtros', status: 'nao-verificado' },
-      { id: 'ruidos', label: 'Ruídos anormais durante a operação', status: 'nao-verificado' },
+      { id: 'possui-climatizacao', label: 'Imóvel possui sistema de climatização', tooltip: 'Se não possuir, marque N/A nos demais', score: null },
+      { id: 'ar-funcionamento', label: 'Funcionamento dos equipamentos de ar condicionado', score: null },
+      { id: 'filtros', label: 'Manutenção e limpeza dos filtros', score: null },
     ],
   },
   {
     id: 'seguranca',
     title: '10. Segurança',
+    weight: 5,
     items: [
-      { id: 'alarmes', label: 'Alarmes, câmeras e cercas elétricas (estado visual)', status: 'nao-verificado' },
-      { id: 'portas-seguras', label: 'Robustez de portas, fechaduras e portões', status: 'nao-verificado' },
-      { id: 'incendio', label: 'Equipamentos de combate a incêndio (validade extintores)', status: 'nao-verificado' },
+      { id: 'alarmes', label: 'Alarmes, câmeras e cercas elétricas (estado visual)', score: null },
+      { id: 'portas-seguras', label: 'Robustez de portas, fechaduras e portões', score: null },
+      { id: 'incendio', label: 'Equipamentos de combate a incêndio (validade extintores)', score: null },
     ],
   },
   {
     id: 'garagem',
     title: '11. Garagem',
+    weight: 4,
     items: [
-      { id: 'piso-garagem', label: 'Estado do piso e infiltrações no teto', status: 'nao-verificado' },
-      { id: 'portao', label: 'Portão automático (tempo de abertura/fechamento)', status: 'nao-verificado' },
-      { id: 'manobra', label: 'Espaço de manobra e tamanho das vagas', status: 'nao-verificado' },
+      { id: 'piso-garagem', label: 'Estado do piso e infiltrações no teto', score: null },
+      { id: 'portao', label: 'Portão automático (funcionamento)', score: null },
+      { id: 'manobra', label: 'Espaço de manobra e tamanho das vagas', score: null },
     ],
   },
   {
     id: 'lazer',
-    title: '12. Áreas de Lazer (Privativas)',
+    title: '12. Lazer Privativo',
+    weight: 5,
     items: [
-      { id: 'piscina', label: 'Revestimento da piscina e casa de máquinas', status: 'nao-verificado' },
-      { id: 'churrasqueira', label: 'Estrutura da churrasqueira, coifas e bancadas', status: 'nao-verificado' },
-      { id: 'gourmet', label: 'Iluminação e pontos de água/esgoto na área gourmet', status: 'nao-verificado' },
+      { id: 'piscina', label: 'Revestimento da piscina e casa de máquinas', score: null },
+      { id: 'churrasqueira', label: 'Estrutura da churrasqueira, coifas e bancadas', score: null },
+      { id: 'gourmet', label: 'Iluminação e pontos de água/esgoto na área gourmet', score: null },
     ],
   },
   {
     id: 'paisagismo',
     title: '13. Paisagismo e Jardins',
+    weight: 4,
     items: [
-      { id: 'plantas', label: 'Saúde geral das plantas e do gramado', status: 'nao-verificado' },
-      { id: 'irrigacao', label: 'Sistema de irrigação (automático?)', status: 'nao-verificado' },
-      { id: 'iluminacao-jardim', label: 'Iluminação externa e caminhos de jardim', status: 'nao-verificado' },
+      { id: 'plantas', label: 'Saúde geral das plantas e do gramado', score: null },
+      { id: 'irrigacao', label: 'Sistema de irrigação (automático?)', score: null },
+      { id: 'iluminacao-jardim', label: 'Iluminação externa e caminhos de jardim', score: null },
     ],
   },
   {
     id: 'marcenaria',
     title: '14. Marcenaria e Planejados',
+    weight: 5,
     items: [
-      { id: 'ferragens', label: 'Ferragens e corrediças de portas e gavetas', status: 'nao-verificado' },
-      { id: 'cupim', label: 'Estufamento, descolamento ou sinais de cupim', status: 'nao-verificado' },
-      { id: 'conservacao-armarios', label: 'Qualidade geral e estado de conservação dos armários', status: 'nao-verificado' },
+      { id: 'ferragens', label: 'Ferragens e corrediças de portas e gavetas', score: null },
+      { id: 'cupim', label: 'Estufamento, descolamento ou sinais de cupim', score: null },
+      { id: 'conservacao-armarios', label: 'Qualidade geral e estado de conservação', score: null },
     ],
   },
   {
     id: 'loucas',
     title: '15. Louças e Metais',
+    weight: 4,
     items: [
-      { id: 'loucas', label: 'Trincas ou manchas em pias, cubas e vasos', status: 'nao-verificado' },
-      { id: 'torneiras', label: 'Funcionamento de torneiras e registros (pingando?)', status: 'nao-verificado' },
-      { id: 'metais', label: 'Ferrugem ou descascados nos metais', status: 'nao-verificado' },
+      { id: 'loucas', label: 'Trincas ou manchas em pias, cubas e vasos', score: null },
+      { id: 'torneiras', label: 'Funcionamento de torneiras e registros', score: null },
+      { id: 'metais', label: 'Ferrugem ou descascados nos metais', score: null },
     ],
   },
   {
     id: 'tecnologia',
     title: '16. Tecnologia e Automação',
+    weight: 3,
     items: [
-      { id: 'possui-automacao', label: 'Imóvel possui sistema de automação (se não, marcar N/A nos demais)', status: 'nao-verificado' },
-      { id: 'automacao', label: 'Sistemas de automação (luz, som, persianas) respondendo', status: 'nao-verificado' },
-      { id: 'wifi', label: 'Sinal de Wi-Fi e pontos de rede nos quartos', status: 'nao-verificado' },
-      { id: 'central', label: 'Central de controle e documentação técnica disponível', status: 'nao-verificado' },
+      { id: 'possui-automacao', label: 'Imóvel possui sistema de automação', tooltip: 'Se não possuir, marque N/A nos demais', score: null },
+      { id: 'automacao', label: 'Sistemas de automação (luz, som, persianas)', score: null },
+      { id: 'wifi', label: 'Sinal de Wi-Fi e pontos de rede', score: null },
     ],
   },
   {
     id: 'acessibilidade',
     title: '17. Acessibilidade',
+    weight: 2,
     items: [
-      { id: 'rampas', label: 'Rampas, portas largas ou elevadores', status: 'nao-verificado' },
-      { id: 'circulacao', label: 'Circulação nos corredores e banheiros (cadeirante?)', status: 'nao-verificado' },
+      { id: 'rampas', label: 'Rampas e portas largas', score: null },
+      { id: 'circulacao', label: 'Circulação adequada nos corredores e banheiros', score: null },
     ],
   },
   {
     id: 'vizinhanca',
     title: '18. Vizinhança e Entorno',
+    weight: 5,
     items: [
-      { id: 'vizinhos', label: 'Perfil das construções vizinhas e ruído (obras?)', status: 'nao-verificado' },
-      { id: 'comercio', label: 'Proximidade de comércios e serviços', status: 'nao-verificado' },
-      { id: 'seguranca-rua', label: 'Sensação de segurança e fluxo de veículos na rua', status: 'nao-verificado' },
+      { id: 'vizinhos', label: 'Perfil das construções vizinhas e ruído', score: null },
+      { id: 'comercio', label: 'Proximidade de comércios e serviços', score: null },
+      { id: 'transporte', label: 'Transporte público próximo', tooltip: 'Valoriza o imóvel', score: null },
+      { id: 'seguranca-rua', label: 'Sensação de segurança na rua', tooltip: 'Impacta decisão de compra', score: null },
     ],
   },
   {
     id: 'documentacao',
-    title: '19. Documentação (Análise Prévia)',
+    title: '19. Documentação',
+    weight: 4,
     items: [
-      { id: 'matricula', label: 'Matrícula do Imóvel atualizada', status: 'nao-verificado' },
-      { id: 'area-prefeitura', label: 'Área construída na prefeitura corresponde à realidade', status: 'nao-verificado' },
-      { id: 'certidoes', label: 'Certidões Negativas (IPTU, Condomínio em dia?)', status: 'nao-verificado' },
+      { id: 'matricula', label: 'Matrícula do Imóvel atualizada', score: null },
+      { id: 'area-prefeitura', label: 'Área construída corresponde à realidade', score: null },
+      { id: 'certidoes', label: 'Certidões Negativas (IPTU, Condomínio em dia)', score: null },
     ],
   },
   {
     id: 'sensacao',
-    title: '20. Sensação Geral (Feeling)',
+    title: '20. Sensação Geral',
+    weight: 3,
     items: [
-      { id: 'layout', label: 'Layout atende às necessidades da família', status: 'nao-verificado' },
-      { id: 'bem-estar', label: 'Sensação de bem-estar e segurança no espaço', status: 'nao-verificado' },
-      { id: 'rotina', label: 'Imagina a rotina diária acontecendo ali', status: 'nao-verificado' },
+      { id: 'layout', label: 'Layout atende às necessidades', score: null },
+      { id: 'bem-estar', label: 'Sensação de bem-estar e segurança no espaço', score: null },
+      { id: 'rotina', label: 'Imagina a rotina diária acontecendo ali', score: null },
     ],
   },
 ];
 
-const statusConfig = {
-  'ok': { icon: CheckCircle2, color: 'text-green-600', label: 'Conforme', pdfColor: [34, 197, 94] as [number, number, number], tooltip: 'Item em conformidade, sem problemas identificados' },
-  'atencao': { icon: AlertTriangle, color: 'text-yellow-600', label: 'Atenção', pdfColor: [234, 179, 8] as [number, number, number], tooltip: 'Requer atenção ou pequenos reparos' },
-  'critico': { icon: XCircle, color: 'text-red-600', label: 'Crítico', pdfColor: [239, 68, 68] as [number, number, number], tooltip: 'Problema grave que impacta a avaliação' },
-  'nao-verificado': { icon: Circle, color: 'text-muted-foreground', label: 'Não Verificado', pdfColor: [156, 163, 175] as [number, number, number], tooltip: 'Ainda não foi verificado' },
-  'nao-aplica': { icon: MinusCircle, color: 'text-blue-500', label: 'N/A', pdfColor: [59, 130, 246] as [number, number, number], tooltip: 'Não se aplica a este imóvel (não impacta a avaliação)' },
-};
+// ========== CHECKLIST APARTAMENTO (18 categorias, ~50 itens) ==========
+const checklistApartamento: ChecklistCategory[] = [
+  {
+    id: 'fundacoes',
+    title: '1. Fundações e Estrutura',
+    weight: 10,
+    items: [
+      { id: 'trincas', label: 'Trincas ou fissuras grandes (>3mm) em paredes, pisos e tetos', score: null },
+      { id: 'desaprumo', label: 'Desaprumo ou inclinações visíveis nas paredes', tooltip: 'Observe se as paredes parecem tortas ou inclinadas', score: null },
+      { id: 'umidade-base', label: 'Sinais de umidade em paredes e teto', score: null },
+      { id: 'portas-janelas', label: 'Portas e janelas fecham corretamente', score: null },
+    ],
+  },
+  {
+    id: 'eletrica',
+    title: '2. Instalações Elétricas',
+    weight: 8,
+    items: [
+      { id: 'quadro', label: 'Quadro de disjuntores: identificado, organizado e moderno', score: null },
+      { id: 'tomadas', label: 'Teste de tomadas e interruptores', score: null },
+      { id: 'fios-expostos', label: 'Fios expostos ou emendas visíveis', tooltip: 'Risco de segurança', score: null },
+      { id: 'carga', label: 'Carga suporta equipamentos modernos', score: null },
+    ],
+  },
+  {
+    id: 'hidraulica',
+    title: '3. Instalações Hidráulicas',
+    weight: 8,
+    items: [
+      { id: 'pressao', label: 'Pressão da água em torneiras e chuveiros', score: null },
+      { id: 'vazamentos-vaso', label: 'Vazamentos na base dos vasos sanitários', score: null },
+      { id: 'manchas-vazamento', label: 'Manchas de vazamento sob pias e em paredes', score: null },
+      { id: 'tubulacoes', label: 'Tubulações com corrosão visível', score: null },
+    ],
+  },
+  {
+    id: 'acabamentos',
+    title: '4. Acabamentos Internos',
+    weight: 10,
+    items: [
+      { id: 'piso', label: 'Qualidade do piso (riscos, peças soltas, manchas)', score: null },
+      { id: 'pintura', label: 'Pintura de paredes e tetos', score: null },
+      { id: 'mofo', label: 'Mofo ou manchas de umidade em ambientes', tooltip: 'Impacta saúde e negociação', score: null },
+      { id: 'rodapes', label: 'Estado de rodapés, guarnições e forros de gesso', score: null },
+    ],
+  },
+  {
+    id: 'esquadrias',
+    title: '5. Esquadrias (Portas e Janelas)',
+    weight: 8,
+    items: [
+      { id: 'vedacao', label: 'Vedação e funcionamento das ferragens', score: null },
+      { id: 'infiltracao', label: 'Sinais de infiltração ao redor dos caixilhos', score: null },
+      { id: 'vidros', label: 'Estado dos vidros (riscos, trincas)', score: null },
+    ],
+  },
+  {
+    id: 'varanda',
+    title: '6. Varanda/Sacada',
+    weight: 7,
+    items: [
+      { id: 'estado-varanda', label: 'Estado da varanda/sacada (piso, paredes, teto)', tooltip: 'Diferencial de venda importante', score: null },
+      { id: 'vistas', label: 'Vistas e privacidade', tooltip: 'Valoriza ou desvaloriza o imóvel', score: null },
+      { id: 'fechamento', label: 'Fechamento de vidro (se houver)', score: null },
+    ],
+  },
+  {
+    id: 'ventilacao',
+    title: '7. Ventilação e Iluminação',
+    weight: 5,
+    items: [
+      { id: 'luz-natural', label: 'Iluminação natural suficiente nos ambientes', score: null },
+      { id: 'ventilacao-cruzada', label: 'Ventilação cruzada adequada', score: null },
+      { id: 'exaustao', label: 'Sistemas de exaustão (coifas, depuradores)', score: null },
+    ],
+  },
+  {
+    id: 'climatizacao',
+    title: '8. Climatização',
+    weight: 4,
+    items: [
+      { id: 'possui-climatizacao', label: 'Imóvel possui sistema de climatização', score: null },
+      { id: 'ar-funcionamento', label: 'Funcionamento dos equipamentos de ar condicionado', score: null },
+      { id: 'infraestrutura', label: 'Infraestrutura para instalação de splits', score: null },
+    ],
+  },
+  {
+    id: 'seguranca',
+    title: '9. Segurança do Apartamento',
+    weight: 4,
+    items: [
+      { id: 'porta-blindada', label: 'Porta blindada ou reforçada', score: null },
+      { id: 'fechaduras', label: 'Qualidade das fechaduras', score: null },
+      { id: 'olho-magico', label: 'Olho mágico ou câmera na porta', score: null },
+    ],
+  },
+  {
+    id: 'garagem',
+    title: '10. Garagem',
+    weight: 5,
+    items: [
+      { id: 'localizacao-vaga', label: 'Localização das vagas (cobertas, perto do elevador)', score: null },
+      { id: 'tamanho-vaga', label: 'Tamanho das vagas (comporta SUV/utilitário)', score: null },
+      { id: 'acesso', label: 'Facilidade de acesso e manobra', score: null },
+    ],
+  },
+  {
+    id: 'marcenaria',
+    title: '11. Marcenaria e Planejados',
+    weight: 6,
+    items: [
+      { id: 'ferragens', label: 'Ferragens e corrediças de portas e gavetas', score: null },
+      { id: 'cupim', label: 'Estufamento, descolamento ou sinais de cupim', score: null },
+      { id: 'conservacao-armarios', label: 'Qualidade geral e estado de conservação', score: null },
+    ],
+  },
+  {
+    id: 'loucas',
+    title: '12. Louças e Metais',
+    weight: 4,
+    items: [
+      { id: 'loucas', label: 'Trincas ou manchas em pias, cubas e vasos', score: null },
+      { id: 'torneiras', label: 'Funcionamento de torneiras e registros', score: null },
+      { id: 'metais', label: 'Ferrugem ou descascados nos metais', score: null },
+    ],
+  },
+  {
+    id: 'tecnologia',
+    title: '13. Tecnologia e Automação',
+    weight: 3,
+    items: [
+      { id: 'interfone', label: 'Interfone/videofone funcional', tooltip: 'Importante para segurança', score: null },
+      { id: 'automacao', label: 'Sistemas de automação (se houver)', score: null },
+      { id: 'wifi', label: 'Sinal de Wi-Fi e pontos de rede', score: null },
+    ],
+  },
+  {
+    id: 'acessibilidade',
+    title: '14. Acessibilidade e Elevadores',
+    weight: 6,
+    items: [
+      { id: 'quantidade-elevadores', label: 'Quantidade de elevadores adequada ao prédio', tooltip: 'Prédio alto com poucos elevadores = problema de espera', score: null },
+      { id: 'separacao-elevadores', label: 'Separação entre elevador social e de serviço/carga', tooltip: 'Condomínios premium geralmente têm separação', score: null },
+      { id: 'circulacao', label: 'Circulação adequada nos corredores', score: null },
+    ],
+  },
+  {
+    id: 'areas-comuns',
+    title: '15. Áreas Comuns do Condomínio',
+    weight: 6,
+    items: [
+      { id: 'portaria', label: 'Portaria e recepção (organização, segurança)', score: null },
+      { id: 'piscina-cond', label: 'Piscina do condomínio (estado e manutenção)', score: null },
+      { id: 'academia-salao', label: 'Academia/Salão de festas em bom estado', tooltip: 'Diferencial do condomínio', score: null },
+      { id: 'manutencao-geral', label: 'Manutenção geral das áreas comuns', score: null },
+    ],
+  },
+  {
+    id: 'vizinhanca',
+    title: '16. Vizinhança e Entorno',
+    weight: 5,
+    items: [
+      { id: 'vizinhos', label: 'Perfil do prédio e vizinhança', score: null },
+      { id: 'comercio', label: 'Proximidade de comércios e serviços', score: null },
+      { id: 'transporte', label: 'Transporte público próximo', score: null },
+      { id: 'seguranca-rua', label: 'Sensação de segurança na região', score: null },
+    ],
+  },
+  {
+    id: 'documentacao',
+    title: '17. Documentação',
+    weight: 4,
+    items: [
+      { id: 'matricula', label: 'Matrícula do Imóvel atualizada', score: null },
+      { id: 'area-prefeitura', label: 'Área construída corresponde à realidade', score: null },
+      { id: 'certidoes', label: 'Certidões Negativas (IPTU, Condomínio em dia)', score: null },
+    ],
+  },
+  {
+    id: 'sensacao',
+    title: '18. Sensação Geral',
+    weight: 3,
+    items: [
+      { id: 'layout', label: 'Layout atende às necessidades', score: null },
+      { id: 'bem-estar', label: 'Sensação de bem-estar no espaço', score: null },
+      { id: 'rotina', label: 'Imagina a rotina diária acontecendo ali', score: null },
+    ],
+  },
+];
 
-const STORAGE_KEY = 'godoy_vistoria_data';
+const STORAGE_KEY = 'godoy_vistoria_data_v2';
 
 interface SavedVistoriaData {
   propertyData: PropertyData;
   checklist: ChecklistCategory[];
   photos: PhotoItem[];
+  tipoVistoria: TipoVistoria;
   savedAt: string;
 }
 
 export default function VistoriaDigital() {
-  const [checklist, setChecklist] = useState<ChecklistCategory[]>(initialChecklist);
+  const [tipoVistoria, setTipoVistoria] = useState<TipoVistoria>(null);
+  const [showTypeDialog, setShowTypeDialog] = useState(false);
+  const [showResetDialog, setShowResetDialog] = useState(false);
+  const [checklist, setChecklist] = useState<ChecklistCategory[]>([]);
   const [propertyData, setPropertyData] = useState<PropertyData>(initialPropertyData);
   const [isGeneratingPDF, setIsGeneratingPDF] = useState(false);
   const [photos, setPhotos] = useState<PhotoItem[]>([]);
@@ -337,13 +573,7 @@ export default function VistoriaDigital() {
         proprietario?: string;
         telefone?: string;
         observacoes?: string;
-        avaliacaoData?: {
-          valorProvavel: number;
-          valorPessimista: number;
-          valorOtimista: number;
-          confidenceLevel: string;
-          dataAvaliacao: string;
-        };
+        avaliacaoData?: AvaliacaoData;
       };
     } | null;
     
@@ -351,7 +581,6 @@ export default function VistoriaDigital() {
       setFromAvaliacao(true);
       const data = locationState.propertyData;
       
-      // Armazenar dados da avaliação separadamente
       if (data.avaliacaoData) {
         setAvaliacaoData(data.avaliacaoData);
       }
@@ -374,7 +603,18 @@ export default function VistoriaDigital() {
         observacoes: data.observacoes || prev.observacoes,
       }));
       
-      // Clear location state after using it
+      // Auto-select tipo based on tipoImovel from Avaliação
+      const tipo = data.tipoImovel?.toLowerCase();
+      if (tipo === 'casa' || tipo === 'terreno') {
+        setTipoVistoria('casa');
+        setChecklist(JSON.parse(JSON.stringify(checklistCasa)));
+      } else if (tipo === 'apartamento' || tipo === 'cobertura') {
+        setTipoVistoria('apartamento');
+        setChecklist(JSON.parse(JSON.stringify(checklistApartamento)));
+      } else {
+        setShowTypeDialog(true);
+      }
+      
       window.history.replaceState({}, document.title);
       
       toast({
@@ -386,7 +626,6 @@ export default function VistoriaDigital() {
 
   // Load from localStorage on mount
   useEffect(() => {
-    // Skip localStorage load if coming from Avaliação
     if (fromAvaliacao) {
       setHasLoadedFromStorage(true);
       return;
@@ -399,41 +638,35 @@ export default function VistoriaDigital() {
         setPropertyData(data.propertyData);
         setChecklist(data.checklist);
         setPhotos(data.photos || []);
+        setTipoVistoria(data.tipoVistoria);
+        setHasLoadedFromStorage(true);
+        
+        if (data.tipoVistoria && data.propertyData.logradouro) {
+          toast({
+            title: "Vistoria recuperada",
+            description: `Dados salvos em ${new Date(data.savedAt).toLocaleString("pt-BR")}`,
+          });
+        }
+      } else {
+        setShowTypeDialog(true);
+        setHasLoadedFromStorage(true);
       }
     } catch (error) {
       console.error('Error loading from localStorage:', error);
+      setShowTypeDialog(true);
+      setHasLoadedFromStorage(true);
     }
-    setHasLoadedFromStorage(true);
-  }, [fromAvaliacao]);
-
-  // Show toast after loading from storage (separate effect to avoid toast dependency issues)
-  useEffect(() => {
-    if (hasLoadedFromStorage) {
-      const saved = localStorage.getItem(STORAGE_KEY);
-      if (saved) {
-        try {
-          const data: SavedVistoriaData = JSON.parse(saved);
-          if (data.propertyData.logradouro) {
-            toast({
-              title: "Vistoria recuperada",
-              description: `Dados salvos em ${new Date(data.savedAt).toLocaleString("pt-BR")}`,
-            });
-          }
-        } catch {
-          // Ignore parse errors for toast
-        }
-      }
-    }
-  }, [hasLoadedFromStorage, toast]);
+  }, [fromAvaliacao, toast]);
 
   // Save to localStorage when data changes
   useEffect(() => {
-    if (!hasLoadedFromStorage) return;
+    if (!hasLoadedFromStorage || !tipoVistoria) return;
     
     const dataToSave: SavedVistoriaData = {
       propertyData,
       checklist,
       photos,
+      tipoVistoria,
       savedAt: new Date().toISOString(),
     };
     
@@ -442,20 +675,31 @@ export default function VistoriaDigital() {
     } catch (error) {
       console.error('Error saving to localStorage:', error);
     }
-  }, [propertyData, checklist, photos, hasLoadedFromStorage]);
+  }, [propertyData, checklist, photos, tipoVistoria, hasLoadedFromStorage]);
+
+  const handleSelectTipoVistoria = (tipo: 'casa' | 'apartamento') => {
+    setTipoVistoria(tipo);
+    setChecklist(JSON.parse(JSON.stringify(tipo === 'casa' ? checklistCasa : checklistApartamento)));
+    setShowTypeDialog(false);
+    
+    // Update tipoImovel based on selection
+    if (!propertyData.tipoImovel) {
+      setPropertyData(prev => ({ ...prev, tipoImovel: tipo }));
+    }
+  };
 
   const updatePropertyData = (field: keyof PropertyData, value: string) => {
     setPropertyData(prev => ({ ...prev, [field]: value }));
   };
 
-  const updateItemStatus = (categoryId: string, itemId: string, newStatus: ItemStatus) => {
+  const updateItemScore = (categoryId: string, itemId: string, newScore: ItemScore) => {
     setChecklist(prev =>
       prev.map(category =>
         category.id === categoryId
           ? {
               ...category,
               items: category.items.map(item =>
-                item.id === itemId ? { ...item, status: newStatus } : item
+                item.id === itemId ? { ...item, score: newScore } : item
               ),
             }
           : category
@@ -466,24 +710,36 @@ export default function VistoriaDigital() {
   const getProgress = () => {
     const totalItems = checklist.reduce((sum, cat) => sum + cat.items.length, 0);
     const verifiedItems = checklist.reduce(
-      (sum, cat) => sum + cat.items.filter(item => item.status !== 'nao-verificado').length,
+      (sum, cat) => sum + cat.items.filter(item => item.score !== null).length,
       0
     );
-    return Math.round((verifiedItems / totalItems) * 100);
+    return totalItems > 0 ? Math.round((verifiedItems / totalItems) * 100) : 0;
   };
 
   const getCriticalCount = () => {
     return checklist.reduce(
-      (sum, cat) => sum + cat.items.filter(item => item.status === 'critico').length,
+      (sum, cat) => sum + cat.items.filter(item => item.score === 1 || item.score === 2).length,
       0
     );
   };
 
-  const getAttentionCount = () => {
-    return checklist.reduce(
-      (sum, cat) => sum + cat.items.filter(item => item.status === 'atencao').length,
-      0
-    );
+  // Calculate final score (0-100)
+  const calculateFinalScore = (): number => {
+    let totalWeight = 0;
+    let weightedScore = 0;
+    
+    for (const category of checklist) {
+      const scoredItems = category.items.filter(item => item.score !== null && item.score !== 'na');
+      if (scoredItems.length === 0) continue;
+      
+      const categoryAvg = scoredItems.reduce((sum, item) => sum + (item.score as number), 0) / scoredItems.length;
+      const normalizedScore = ((categoryAvg - 1) / 4) * 100; // Convert 1-5 to 0-100
+      
+      weightedScore += normalizedScore * category.weight;
+      totalWeight += category.weight;
+    }
+    
+    return totalWeight > 0 ? Math.round(weightedScore / totalWeight) : 0;
   };
 
   // Photo functions
@@ -544,49 +800,19 @@ export default function VistoriaDigital() {
     return photos.filter(p => p.categoryId === categoryId && p.itemId === itemId);
   };
 
-  // Integração com Ferramenta de Avaliação
-  const handleGenerateValuation = () => {
-    // Pass property data to Ferramenta de Avaliação via navigation state
-    navigate('/', {
-      state: {
-        fromVistoria: true,
-        vistoriaData: {
-          logradouro: propertyData.logradouro,
-          bairro: propertyData.bairro,
-          area_m2: propertyData.areaM2 ? parseFloat(propertyData.areaM2) : 0,
-          tipoImovel: propertyData.tipoImovel,
-          nomeCondominio: propertyData.nomeCondominio,
-          // Map inspection results to suggested characteristics
-          checklistSummary: {
-            criticalCount: getCriticalCount(),
-            attentionCount: getAttentionCount(),
-            progress: getProgress(),
-            // Extract relevant inspection categories for valuation suggestions
-            eletrica: checklist.find(c => c.id === 'eletrica')?.items.every(i => i.status === 'ok' || i.status === 'nao-aplica'),
-            hidraulica: checklist.find(c => c.id === 'hidraulica')?.items.every(i => i.status === 'ok' || i.status === 'nao-aplica'),
-            acabamentos: checklist.find(c => c.id === 'acabamentos')?.items.every(i => i.status === 'ok' || i.status === 'nao-aplica'),
-            climatizacao: checklist.find(c => c.id === 'climatizacao')?.items.some(i => i.status === 'ok'),
-            seguranca: checklist.find(c => c.id === 'seguranca')?.items.every(i => i.status === 'ok' || i.status === 'nao-aplica'),
-            lazer: checklist.find(c => c.id === 'lazer')?.items.some(i => i.status === 'ok'),
-            automacao: checklist.find(c => c.id === 'tecnologia')?.items.some(i => i.status === 'ok'),
-          },
-        },
-      },
-    });
-    toast({
-      title: "Redirecionando para Avaliação",
-      description: "Os dados do imóvel serão pré-preenchidos na Ferramenta de Avaliação.",
-    });
-  };
-
   const resetChecklist = () => {
-    setChecklist(initialChecklist);
+    setShowResetDialog(false);
+    setChecklist(JSON.parse(JSON.stringify(tipoVistoria === 'casa' ? checklistCasa : checklistApartamento)));
     setPropertyData(initialPropertyData);
     setPhotos([]);
+    setTipoVistoria(null);
+    setFromAvaliacao(false);
+    setAvaliacaoData(null);
     localStorage.removeItem(STORAGE_KEY);
+    setShowTypeDialog(true);
     toast({
-      title: "Checklist resetado",
-      description: "Todos os itens, dados e fotos foram limpos.",
+      title: "Vistoria reiniciada",
+      description: "Todos os dados foram limpos.",
     });
   };
 
@@ -594,231 +820,16 @@ export default function VistoriaDigital() {
     setIsGeneratingPDF(true);
     
     try {
-      // Dynamic import for PDF template functions
-      const { drawGodoyHeader, drawSectionTitle, applyFootersToAllPages, BRAND_COLORS, getMaxContentY } = await import('@/utils/pdfTemplate');
-      
-      const doc = new jsPDF();
-      const pageWidth = doc.internal.pageSize.getWidth();
-      const marginLeft = 20;
-      
-      // Header padronizado
-      let yPos = drawGodoyHeader(doc, 'Relatório de Vistoria Digital');
-      
-      // Identificação do Imóvel
-      yPos = drawSectionTitle(doc, 'Identificação do Imóvel', yPos, marginLeft);
-      
-      doc.setFontSize(10);
-      doc.setTextColor(...BRAND_COLORS.darkGray);
-      
-      const configuracao = [
-        propertyData.quartos ? `${propertyData.quartos} Qts` : null,
-        propertyData.suites ? `${propertyData.suites} Stes` : null,
-        propertyData.banheiros ? `${propertyData.banheiros} Bnh` : null,
-        propertyData.vagas ? `${propertyData.vagas} Vgs` : null,
-      ].filter(Boolean).join(' | ');
-      
-      const propertyInfo = [
-        ['Endereço:', `${propertyData.logradouro || 'Não informado'}${propertyData.numero ? ', ' + propertyData.numero : ''}${propertyData.complemento ? ' - ' + propertyData.complemento : ''}`],
-        ['Condomínio:', propertyData.nomeCondominio || '-'],
-        ['Bairro:', propertyData.bairro || 'Não informado'],
-        ['Tipo:', propertyData.tipoImovel || 'Não informado'],
-        ['Área:', propertyData.areaM2 ? `${propertyData.areaM2} m²` : 'Não informada'],
-        ['Configuração:', configuracao || 'Não informada'],
-        ['Proprietário:', propertyData.proprietario || 'Não informado'],
-        ['Telefone:', propertyData.telefone || 'Não informado'],
-        ['Vistoriador:', propertyData.vistoriador || 'Não informado'],
-        ['Data Vistoria:', propertyData.dataVistoria ? new Date(propertyData.dataVistoria).toLocaleDateString('pt-BR') : formatDate(new Date())],
-      ];
-      
-      propertyInfo.forEach(([label, value]) => {
-        doc.setFont('helvetica', 'normal');
-        doc.text(label, marginLeft + 5, yPos);
-        doc.setFont('helvetica', 'bold');
-        doc.text(value, marginLeft + 45, yPos);
-        yPos += 6;
+      await generateVistoriaPDF({
+        propertyData,
+        checklist,
+        photos,
+        tipoVistoria,
+        finalScore: calculateFinalScore(),
+        progress: getProgress(),
+        criticalCount: getCriticalCount(),
+        avaliacaoData,
       });
-      
-      if (propertyData.observacoes) {
-        yPos += 2;
-        doc.setFont('helvetica', 'normal');
-        doc.text('Observações:', marginLeft + 5, yPos);
-        yPos += 5;
-        doc.setFontSize(9);
-        const splitObs = doc.splitTextToSize(propertyData.observacoes, pageWidth - 50);
-        doc.text(splitObs, marginLeft + 5, yPos);
-        yPos += splitObs.length * 4;
-      }
-      
-      yPos += 8;
-      
-      // Resumo da Vistoria
-      yPos = drawSectionTitle(doc, 'Resumo da Vistoria', yPos, marginLeft);
-      
-      doc.setFontSize(10);
-      doc.setTextColor(...BRAND_COLORS.darkGray);
-      doc.setFont('helvetica', 'normal');
-      doc.text(`Progresso: ${getProgress()}%`, marginLeft + 5, yPos);
-      yPos += 6;
-      
-      const criticalCount = getCriticalCount();
-      const attentionCount = getAttentionCount();
-      
-      if (criticalCount > 0) {
-        doc.setTextColor(220, 38, 38);
-        doc.text(`Itens Críticos: ${criticalCount}`, marginLeft + 5, yPos);
-        yPos += 6;
-      }
-      
-      if (attentionCount > 0) {
-        doc.setTextColor(202, 138, 4);
-        doc.text(`Itens com Atenção: ${attentionCount}`, marginLeft + 5, yPos);
-        yPos += 6;
-      }
-      
-      doc.setTextColor(...BRAND_COLORS.darkGray);
-      yPos += 8;
-      
-      // Categories
-      for (const category of checklist) {
-        const verifiedInCategory = category.items.filter(i => i.status !== 'nao-verificado');
-        if (verifiedInCategory.length === 0) continue;
-        
-        if (yPos > getMaxContentY() - 20) {
-          doc.addPage();
-          yPos = 20;
-        }
-        
-        doc.setFillColor(...BRAND_COLORS.lightGray);
-        doc.rect(15, yPos - 4, pageWidth - 30, 8, 'F');
-        
-        doc.setFont('helvetica', 'bold');
-        doc.setFontSize(10);
-        doc.setTextColor(...BRAND_COLORS.navy);
-        doc.text(category.title, marginLeft, yPos);
-        yPos += 10;
-        
-        doc.setFont('helvetica', 'normal');
-        doc.setFontSize(9);
-        
-        for (const item of category.items) {
-          if (item.status === 'nao-verificado') continue;
-          
-          if (yPos > getMaxContentY()) {
-            doc.addPage();
-            yPos = 20;
-          }
-          
-          const config = statusConfig[item.status];
-          doc.setTextColor(...config.pdfColor);
-          doc.text(`[${config.label.toUpperCase()}]`, marginLeft, yPos);
-          
-          doc.setTextColor(...BRAND_COLORS.darkGray);
-          const splitLabel = doc.splitTextToSize(item.label, pageWidth - 80);
-          doc.text(splitLabel, marginLeft + 35, yPos);
-          yPos += splitLabel.length * 4 + 2;
-          
-          // Check for photos attached to this item
-          const itemPhotos = photos.filter(p => p.categoryId === category.id && p.itemId === item.id);
-          if (itemPhotos.length > 0) {
-            doc.setFontSize(8);
-            doc.setTextColor(...BRAND_COLORS.gray);
-            doc.text(`[${itemPhotos.length} foto(s) anexada(s)]`, marginLeft + 35, yPos);
-            yPos += 4;
-          }
-        }
-        
-        yPos += 4;
-      }
-      
-      // Photos section (if any)
-      if (photos.length > 0) {
-        doc.addPage();
-        yPos = 20;
-        
-        yPos = drawSectionTitle(doc, 'Anexo: Registro Fotográfico', yPos, marginLeft);
-        
-        doc.setFontSize(9);
-        doc.setTextColor(...BRAND_COLORS.gray);
-        doc.text(`Total de ${photos.length} foto(s) registrada(s) durante a vistoria`, marginLeft, yPos);
-        yPos += 10;
-        
-        // Group photos by category
-        const photosByCategory: Record<string, PhotoItem[]> = {};
-        photos.forEach(photo => {
-          const key = photo.categoryId;
-          if (!photosByCategory[key]) {
-            photosByCategory[key] = [];
-          }
-          photosByCategory[key].push(photo);
-        });
-        
-        // Add photos to PDF
-        const imgWidth = 80;
-        const imgHeight = 60;
-        
-        for (const [categoryId, categoryPhotos] of Object.entries(photosByCategory)) {
-          const category = checklist.find(c => c.id === categoryId);
-          if (!category) continue;
-          
-          if (yPos > 200) {
-            doc.addPage();
-            yPos = 20;
-          }
-          
-          // Category header
-          doc.setFontSize(10);
-          doc.setFont('helvetica', 'bold');
-          doc.setTextColor(...BRAND_COLORS.navy);
-          doc.text(category.title, marginLeft, yPos);
-          yPos += 8;
-          
-          let xPos = marginLeft;
-          
-          for (const photo of categoryPhotos) {
-            if (xPos + imgWidth > pageWidth - marginLeft) {
-              xPos = marginLeft;
-              yPos += imgHeight + 15;
-            }
-            
-            if (yPos + imgHeight > getMaxContentY()) {
-              doc.addPage();
-              yPos = 20;
-              xPos = marginLeft;
-            }
-            
-            try {
-              // Add photo
-              doc.addImage(photo.dataUrl, 'JPEG', xPos, yPos, imgWidth, imgHeight);
-              
-              // Add caption below photo
-              doc.setFontSize(7);
-              doc.setFont('helvetica', 'normal');
-              doc.setTextColor(80, 80, 80);
-              const captionLines = doc.splitTextToSize(photo.caption, imgWidth);
-              doc.text(captionLines.slice(0, 2), xPos, yPos + imgHeight + 4);
-              
-              xPos += imgWidth + 10;
-            } catch (imgError) {
-              console.error('Error adding image to PDF:', imgError);
-              // Add placeholder for failed image
-              doc.setFillColor(...BRAND_COLORS.lightGray);
-              doc.rect(xPos, yPos, imgWidth, imgHeight, 'F');
-              doc.setFontSize(8);
-              doc.setTextColor(150, 150, 150);
-              doc.text('Imagem indisponível', xPos + 15, yPos + 30);
-              xPos += imgWidth + 10;
-            }
-          }
-          
-          yPos += imgHeight + 20;
-        }
-      }
-      
-      // Apply footers to all pages
-      applyFootersToAllPages(doc);
-      
-      const filename = `vistoria_${propertyData.logradouro?.replace(/\s+/g, '_').substring(0, 20) || 'imovel'}_${new Date().toISOString().split('T')[0]}.pdf`;
-      doc.save(filename);
       
       toast({
         title: "PDF gerado com sucesso",
@@ -836,35 +847,97 @@ export default function VistoriaDigital() {
     }
   };
 
+  const handleNavigateToAvaliacao = () => {
+    const vistoriaToAvaliacaoData = {
+      logradouro: propertyData.logradouro,
+      numero: propertyData.numero,
+      complemento: propertyData.complemento,
+      bairro: propertyData.bairro,
+      nomeCondominio: propertyData.nomeCondominio,
+      tipoImovel: propertyData.tipoImovel,
+      area_m2: propertyData.areaM2 ? parseFloat(propertyData.areaM2) : undefined,
+      quartos: propertyData.quartos ? parseInt(propertyData.quartos) : undefined,
+      suites: propertyData.suites ? parseInt(propertyData.suites) : undefined,
+      banheiros: propertyData.banheiros ? parseInt(propertyData.banheiros) : undefined,
+      vagas: propertyData.vagas ? parseInt(propertyData.vagas) : undefined,
+      proprietario: propertyData.proprietario,
+      telefone: propertyData.telefone,
+      checklistSummary: {
+        criticalCount: getCriticalCount(),
+        progress: getProgress(),
+        finalScore: calculateFinalScore(),
+        tipoVistoria,
+      }
+    };
+    navigate('/avaliacao-imobiliaria', {
+      state: {
+        fromVistoria: true,
+        vistoriaData: vistoriaToAvaliacaoData
+      }
+    });
+  };
+
+  // Show type selection dialog if no type selected
+  if (!tipoVistoria && hasLoadedFromStorage) {
+    return (
+      <div className="flex items-center justify-center min-h-[60vh]">
+        <Card className="w-full max-w-md">
+          <CardHeader className="text-center">
+            <CardTitle className="text-xl">Nova Vistoria Digital</CardTitle>
+            <p className="text-muted-foreground text-sm mt-2">
+              Selecione o tipo de imóvel para iniciar
+            </p>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="grid grid-cols-2 gap-4">
+              <Button
+                variant="outline"
+                className="h-32 flex-col gap-3 hover:border-primary hover:bg-primary/5"
+                onClick={() => handleSelectTipoVistoria('casa')}
+              >
+                <Home className="h-10 w-10 text-primary" />
+                <span className="font-semibold">Casa</span>
+                <span className="text-xs text-muted-foreground">20 categorias</span>
+              </Button>
+              <Button
+                variant="outline"
+                className="h-32 flex-col gap-3 hover:border-primary hover:bg-primary/5"
+                onClick={() => handleSelectTipoVistoria('apartamento')}
+              >
+                <Building className="h-10 w-10 text-primary" />
+                <span className="font-semibold">Apartamento</span>
+                <span className="text-xs text-muted-foreground">18 categorias</span>
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  const finalScore = calculateFinalScore();
+  const scoreColor = finalScore >= 80 ? 'text-emerald-600' : finalScore >= 60 ? 'text-yellow-600' : 'text-red-600';
+
   return (
     <div className="space-y-6">
       <div>
         <div className="flex items-center gap-3 flex-wrap">
           <h2 className="text-2xl sm:text-3xl font-bold text-foreground">Vistoria Digital</h2>
+          {tipoVistoria && (
+            <Badge variant="outline" className="text-xs">
+              {tipoVistoria === 'casa' ? <Home className="h-3 w-3 mr-1" /> : <Building className="h-3 w-3 mr-1" />}
+              {tipoVistoria === 'casa' ? 'Casa' : 'Apartamento'}
+            </Badge>
+          )}
           {fromAvaliacao && (
             <Badge variant="secondary" className="bg-primary/10 text-primary border-primary/20">
               <Calculator className="h-3 w-3 mr-1" />
-              Dados da Avaliação
+              Via Avaliação
             </Badge>
           )}
         </div>
-        <p className="text-sm sm:text-base text-muted-foreground mt-1">Checklist de inspeção de imóveis</p>
+        <p className="text-sm sm:text-base text-muted-foreground mt-1">Checklist de inspeção com scoring 1-5</p>
       </div>
-
-      {/* Aviso quando dados vieram da Avaliação */}
-      {fromAvaliacao && (
-        <Card className="bg-primary/5 border-primary/20">
-          <CardContent className="pt-4 pb-4">
-            <p className="text-sm flex items-center gap-2">
-              <Calculator className="h-4 w-4 text-primary" />
-              <span>
-                Os dados do imóvel foram pré-preenchidos a partir da <strong>Avaliação Imobiliária</strong>. 
-                Complete a vistoria para obter uma avaliação mais precisa.
-              </span>
-            </p>
-          </CardContent>
-        </Card>
-      )}
 
       {/* Card de valores da avaliação para referência */}
       {fromAvaliacao && avaliacaoData && (
@@ -896,402 +969,423 @@ export default function VistoriaDigital() {
                 </p>
               </div>
             </div>
-            <div className="flex items-center justify-between text-xs pt-1">
-              <span className="text-muted-foreground">
-                Data da Avaliação: {avaliacaoData.dataAvaliacao}
-              </span>
-              <Badge 
-                variant={
-                  avaliacaoData.confidenceLevel === "green" ? "default" :
-                  avaliacaoData.confidenceLevel === "red" ? "destructive" : "secondary"
-                }
-                className="text-[10px]"
-              >
-                {avaliacaoData.confidenceLevel === "green" ? "Alta Confiança" :
-                 avaliacaoData.confidenceLevel === "red" ? "Baixa Confiança" : "Média Confiança"}
-              </Badge>
-            </div>
-            <p className="text-xs text-muted-foreground border-t pt-2">
-              💡 Use estes valores como referência durante a inspeção. A vistoria pode ajustar o valor final.
+            <p className="text-xs text-muted-foreground text-center">
+              💡 Use estes valores como referência durante a inspeção
             </p>
           </CardContent>
         </Card>
       )}
 
       <div className="space-y-6">
-          <Card>
-            <CardHeader className="space-y-4">
-              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-                <CardTitle className="text-lg sm:text-xl">Progresso da Vistoria</CardTitle>
-                <div className="flex flex-wrap gap-2">
-                  {getCriticalCount() > 0 && (
-                    <Badge variant="destructive" className="text-xs sm:text-sm">
-                      {getCriticalCount()} Crítico{getCriticalCount() > 1 ? 's' : ''}
+        {/* Progress Card */}
+        <Card>
+          <CardHeader className="space-y-4">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+              <div className="flex items-center gap-4">
+                <CardTitle className="text-lg sm:text-xl">Progresso</CardTitle>
+                {getProgress() === 100 && (
+                  <div className="flex items-center gap-2">
+                    <Badge variant="outline" className={`${scoreColor} border-current`}>
+                      <Star className="h-3 w-3 mr-1" />
+                      Score: {finalScore}/100
                     </Badge>
-                  )}
-                  {photos.length > 0 && (
-                    <Badge variant="secondary" className="text-xs sm:text-sm">
-                      <Image className="h-3 w-3 mr-1" />
-                      {photos.length} Foto{photos.length > 1 ? 's' : ''}
-                    </Badge>
-                  )}
-                  <Button variant="outline" onClick={resetChecklist} size="sm" className="text-xs sm:text-sm">
-                    Resetar
-                  </Button>
-                  <Button onClick={generateReport} size="sm" className="gap-1.5 text-xs sm:text-sm" disabled={isGeneratingPDF}>
-                    {isGeneratingPDF ? (
-                      <Loader2 className="h-3.5 w-3.5 sm:h-4 sm:w-4 animate-spin" />
-                    ) : (
-                      <FileText className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
-                    )}
-                    <span className="hidden xs:inline">Gerar</span> Relatório
-                  </Button>
-                  <Button 
-                    onClick={() => {
-                      // Prepara dados para transferir para Avaliação
-                      const vistoriaToAvaliacaoData = {
-                        logradouro: propertyData.logradouro,
-                        numero: propertyData.numero,
-                        complemento: propertyData.complemento,
-                        bairro: propertyData.bairro,
-                        nomeCondominio: propertyData.nomeCondominio,
-                        tipoImovel: propertyData.tipoImovel,
-                        area_m2: propertyData.areaM2 ? parseFloat(propertyData.areaM2) : undefined,
-                        quartos: propertyData.quartos ? parseInt(propertyData.quartos) : undefined,
-                        suites: propertyData.suites ? parseInt(propertyData.suites) : undefined,
-                        banheiros: propertyData.banheiros ? parseInt(propertyData.banheiros) : undefined,
-                        vagas: propertyData.vagas ? parseInt(propertyData.vagas) : undefined,
-                        proprietario: propertyData.proprietario,
-                        telefone: propertyData.telefone,
-                        checklistSummary: {
-                          criticalCount: getCriticalCount(),
-                          progress: getProgress(),
-                        }
-                      };
-                      navigate('/avaliacao-imobiliaria', {
-                        state: {
-                          fromVistoria: true,
-                          vistoriaData: vistoriaToAvaliacaoData
-                        }
-                      });
-                    }} 
-                    size="sm" 
-                    variant="secondary"
-                    className="gap-1.5 text-xs sm:text-sm"
-                  >
-                    <Calculator className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
-                    <span className="hidden xs:inline">Ir para</span> Avaliação
-                  </Button>
-                </div>
+                  </div>
+                )}
               </div>
-              <div>
-                <div className="flex items-center justify-between text-sm mb-2">
-                  <span className="text-muted-foreground">Progresso</span>
-                  <span className="font-semibold text-primary">{getProgress()}%</span>
+              <div className="flex flex-wrap gap-2">
+                {getCriticalCount() > 0 && (
+                  <Badge variant="destructive" className="text-xs sm:text-sm">
+                    <AlertCircle className="h-3 w-3 mr-1" />
+                    {getCriticalCount()} Crítico{getCriticalCount() > 1 ? 's' : ''}
+                  </Badge>
+                )}
+                {photos.length > 0 && (
+                  <Badge variant="secondary" className="text-xs sm:text-sm">
+                    <Image className="h-3 w-3 mr-1" />
+                    {photos.length} Foto{photos.length > 1 ? 's' : ''}
+                  </Badge>
+                )}
+                <Button variant="outline" onClick={() => setShowResetDialog(true)} size="sm" className="text-xs sm:text-sm gap-1">
+                  <RotateCcw className="h-3.5 w-3.5" />
+                  Reiniciar
+                </Button>
+                <Button onClick={generateReport} size="sm" className="gap-1.5 text-xs sm:text-sm" disabled={isGeneratingPDF || getProgress() < 50}>
+                  {isGeneratingPDF ? (
+                    <Loader2 className="h-3.5 w-3.5 sm:h-4 sm:w-4 animate-spin" />
+                  ) : (
+                    <FileText className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+                  )}
+                  Relatório
+                </Button>
+                <Button 
+                  onClick={handleNavigateToAvaliacao}
+                  size="sm" 
+                  variant="secondary"
+                  className="gap-1.5 text-xs sm:text-sm"
+                >
+                  <Calculator className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+                  Avaliação
+                </Button>
+              </div>
+            </div>
+            <div>
+              <div className="flex items-center justify-between text-sm mb-2">
+                <span className="text-muted-foreground">Progresso</span>
+                <span className="font-semibold text-primary">{getProgress()}%</span>
+              </div>
+              <div className="w-full bg-muted rounded-full h-3">
+                <div
+                  className="bg-primary h-3 rounded-full transition-all duration-300"
+                  style={{ width: `${getProgress()}%` }}
+                />
+              </div>
+            </div>
+          </CardHeader>
+        </Card>
+
+        {/* Identificação do Imóvel */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-lg sm:text-xl flex items-center gap-2">
+              <Building2 className="h-5 w-5" />
+              Identificação do Imóvel
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+              <div className="sm:col-span-2 lg:col-span-2">
+                <Label htmlFor="logradouro">Logradouro *</Label>
+                <Input
+                  id="logradouro"
+                  value={propertyData.logradouro}
+                  onChange={(e) => updatePropertyData('logradouro', e.target.value)}
+                  placeholder="Ex: Av. das Américas"
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <Label htmlFor="numero">Número</Label>
+                  <Input
+                    id="numero"
+                    value={propertyData.numero}
+                    onChange={(e) => updatePropertyData('numero', e.target.value)}
+                    placeholder="1000"
+                  />
                 </div>
-                <div className="w-full bg-muted rounded-full h-3">
-                  <div
-                    className="bg-primary h-3 rounded-full transition-all duration-300"
-                    style={{ width: `${getProgress()}%` }}
+                <div>
+                  <Label htmlFor="complemento">Complemento</Label>
+                  <Input
+                    id="complemento"
+                    value={propertyData.complemento}
+                    onChange={(e) => updatePropertyData('complemento', e.target.value)}
+                    placeholder="Apto 101"
                   />
                 </div>
               </div>
-            </CardHeader>
-          </Card>
-
-      {/* Identificação do Imóvel */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-lg sm:text-xl flex items-center gap-2">
-            <Building2 className="h-5 w-5" />
-            Identificação do Imóvel
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-            <div className="sm:col-span-2 lg:col-span-2">
-              <Label htmlFor="logradouro">Logradouro *</Label>
-              <Input
-                id="logradouro"
-                value={propertyData.logradouro}
-                onChange={(e) => updatePropertyData('logradouro', e.target.value)}
-                placeholder="Ex: Av. das Américas"
-              />
-            </div>
-            <div className="grid grid-cols-2 gap-2">
               <div>
-                <Label htmlFor="numero">Número</Label>
+                <Label htmlFor="bairro">Bairro</Label>
                 <Input
-                  id="numero"
-                  value={propertyData.numero}
-                  onChange={(e) => updatePropertyData('numero', e.target.value)}
-                  placeholder="1000"
+                  id="bairro"
+                  value={propertyData.bairro}
+                  onChange={(e) => updatePropertyData('bairro', e.target.value)}
+                  placeholder="Barra da Tijuca"
+                />
+              </div>
+              <div className="sm:col-span-2">
+                <Label htmlFor="nomeCondominio">Nome do Condomínio</Label>
+                <Input
+                  id="nomeCondominio"
+                  value={propertyData.nomeCondominio}
+                  onChange={(e) => updatePropertyData('nomeCondominio', e.target.value)}
+                  placeholder="Ex: Riserva Golf"
                 />
               </div>
               <div>
-                <Label htmlFor="complemento">Complemento</Label>
+                <Label htmlFor="tipoImovel">Tipo do Imóvel</Label>
+                <Select value={propertyData.tipoImovel} onValueChange={(v) => updatePropertyData('tipoImovel', v)}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Selecione..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="apartamento">Apartamento</SelectItem>
+                    <SelectItem value="casa">Casa</SelectItem>
+                    <SelectItem value="cobertura">Cobertura</SelectItem>
+                    <SelectItem value="sala_comercial">Sala Comercial</SelectItem>
+                    <SelectItem value="loja">Loja</SelectItem>
+                    <SelectItem value="terreno">Terreno</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label htmlFor="areaM2">Área (m²)</Label>
                 <Input
-                  id="complemento"
-                  value={propertyData.complemento}
-                  onChange={(e) => updatePropertyData('complemento', e.target.value)}
-                  placeholder="Apto 101"
+                  id="areaM2"
+                  value={propertyData.areaM2}
+                  onChange={(e) => updatePropertyData('areaM2', e.target.value)}
+                  placeholder="150"
+                  type="number"
+                />
+              </div>
+              <div>
+                <Label htmlFor="quartos">Quartos</Label>
+                <Input
+                  id="quartos"
+                  value={propertyData.quartos}
+                  onChange={(e) => updatePropertyData('quartos', e.target.value)}
+                  placeholder="3"
+                  type="number"
+                />
+              </div>
+              <div>
+                <Label htmlFor="suites">Suítes</Label>
+                <Input
+                  id="suites"
+                  value={propertyData.suites}
+                  onChange={(e) => updatePropertyData('suites', e.target.value)}
+                  placeholder="1"
+                  type="number"
+                />
+              </div>
+              <div>
+                <Label htmlFor="banheiros">Banheiros</Label>
+                <Input
+                  id="banheiros"
+                  value={propertyData.banheiros}
+                  onChange={(e) => updatePropertyData('banheiros', e.target.value)}
+                  placeholder="2"
+                  type="number"
+                />
+              </div>
+              <div>
+                <Label htmlFor="vagas">Vagas de Garagem</Label>
+                <Input
+                  id="vagas"
+                  value={propertyData.vagas}
+                  onChange={(e) => updatePropertyData('vagas', e.target.value)}
+                  placeholder="2"
+                  type="number"
+                />
+              </div>
+              <div>
+                <Label htmlFor="proprietario">Proprietário / Contato</Label>
+                <Input
+                  id="proprietario"
+                  value={propertyData.proprietario}
+                  onChange={(e) => updatePropertyData('proprietario', e.target.value)}
+                  placeholder="Nome do proprietário"
+                />
+              </div>
+              <div>
+                <Label htmlFor="telefone">Telefone</Label>
+                <Input
+                  id="telefone"
+                  value={propertyData.telefone}
+                  onChange={(e) => updatePropertyData('telefone', e.target.value)}
+                  placeholder="(21) 99999-9999"
+                />
+              </div>
+              <div>
+                <Label htmlFor="vistoriador">Vistoriador</Label>
+                <Input
+                  id="vistoriador"
+                  value={propertyData.vistoriador}
+                  onChange={(e) => updatePropertyData('vistoriador', e.target.value)}
+                  placeholder="Nome do corretor"
+                />
+              </div>
+              <div>
+                <Label htmlFor="dataVistoria">Data da Vistoria</Label>
+                <Input
+                  id="dataVistoria"
+                  type="date"
+                  value={propertyData.dataVistoria}
+                  onChange={(e) => updatePropertyData('dataVistoria', e.target.value)}
                 />
               </div>
             </div>
             <div>
-              <Label htmlFor="bairro">Bairro</Label>
-              <Input
-                id="bairro"
-                value={propertyData.bairro}
-                onChange={(e) => updatePropertyData('bairro', e.target.value)}
-                placeholder="Barra da Tijuca"
+              <Label htmlFor="observacoes">Observações Gerais</Label>
+              <Textarea
+                id="observacoes"
+                value={propertyData.observacoes}
+                onChange={(e) => updatePropertyData('observacoes', e.target.value)}
+                placeholder="Informações adicionais sobre o imóvel..."
+                rows={3}
               />
             </div>
-            <div className="sm:col-span-2">
-              <Label htmlFor="nomeCondominio">Nome do Condomínio</Label>
-              <Input
-                id="nomeCondominio"
-                value={propertyData.nomeCondominio}
-                onChange={(e) => updatePropertyData('nomeCondominio', e.target.value)}
-                placeholder="Ex: Riserva Golf"
-              />
-            </div>
-            <div>
-              <Label htmlFor="tipoImovel">Tipo do Imóvel</Label>
-              <Select value={propertyData.tipoImovel} onValueChange={(v) => updatePropertyData('tipoImovel', v)}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Selecione..." />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="apartamento">Apartamento</SelectItem>
-                  <SelectItem value="casa">Casa</SelectItem>
-                  <SelectItem value="cobertura">Cobertura</SelectItem>
-                  <SelectItem value="sala_comercial">Sala Comercial</SelectItem>
-                  <SelectItem value="loja">Loja</SelectItem>
-                  <SelectItem value="terreno">Terreno</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div>
-              <Label htmlFor="areaM2">Área (m²)</Label>
-              <Input
-                id="areaM2"
-                value={propertyData.areaM2}
-                onChange={(e) => updatePropertyData('areaM2', e.target.value)}
-                placeholder="150"
-                type="number"
-              />
-            </div>
-            <div>
-              <Label htmlFor="quartos">Quartos</Label>
-              <Input
-                id="quartos"
-                value={propertyData.quartos}
-                onChange={(e) => updatePropertyData('quartos', e.target.value)}
-                placeholder="3"
-                type="number"
-              />
-            </div>
-            <div>
-              <Label htmlFor="suites">Suítes</Label>
-              <Input
-                id="suites"
-                value={propertyData.suites}
-                onChange={(e) => updatePropertyData('suites', e.target.value)}
-                placeholder="1"
-                type="number"
-              />
-            </div>
-            <div>
-              <Label htmlFor="banheiros">Banheiros</Label>
-              <Input
-                id="banheiros"
-                value={propertyData.banheiros}
-                onChange={(e) => updatePropertyData('banheiros', e.target.value)}
-                placeholder="2"
-                type="number"
-              />
-            </div>
-            <div>
-              <Label htmlFor="vagas">Vagas de Garagem</Label>
-              <Input
-                id="vagas"
-                value={propertyData.vagas}
-                onChange={(e) => updatePropertyData('vagas', e.target.value)}
-                placeholder="2"
-                type="number"
-              />
-            </div>
-            <div>
-              <Label htmlFor="proprietario">Proprietário / Contato</Label>
-              <Input
-                id="proprietario"
-                value={propertyData.proprietario}
-                onChange={(e) => updatePropertyData('proprietario', e.target.value)}
-                placeholder="Nome do proprietário"
-              />
-            </div>
-            <div>
-              <Label htmlFor="telefone">Telefone</Label>
-              <Input
-                id="telefone"
-                value={propertyData.telefone}
-                onChange={(e) => updatePropertyData('telefone', e.target.value)}
-                placeholder="(21) 99999-9999"
-              />
-            </div>
-            <div>
-              <Label htmlFor="vistoriador">Vistoriador</Label>
-              <Input
-                id="vistoriador"
-                value={propertyData.vistoriador}
-                onChange={(e) => updatePropertyData('vistoriador', e.target.value)}
-                placeholder="Nome do corretor"
-              />
-            </div>
-            <div>
-              <Label htmlFor="dataVistoria">Data da Vistoria</Label>
-              <Input
-                id="dataVistoria"
-                type="date"
-                value={propertyData.dataVistoria}
-                onChange={(e) => updatePropertyData('dataVistoria', e.target.value)}
-              />
-            </div>
-          </div>
-          <div>
-            <Label htmlFor="observacoes">Observações Gerais</Label>
-            <Textarea
-              id="observacoes"
-              value={propertyData.observacoes}
-              onChange={(e) => updatePropertyData('observacoes', e.target.value)}
-              placeholder="Informações adicionais sobre o imóvel..."
-              rows={3}
-            />
-          </div>
-        </CardContent>
-      </Card>
+          </CardContent>
+        </Card>
 
-      <Card>
-        <CardContent className="pt-6">
-          <Accordion type="multiple" className="w-full">
-            {checklist.map((category) => (
-              <AccordionItem key={category.id} value={category.id}>
-                <AccordionTrigger className="text-sm sm:text-lg font-semibold text-left justify-start">
-                  {category.title}
-                </AccordionTrigger>
-                <AccordionContent>
-                  <div className="space-y-3 pt-2">
-                    {category.items.map((item) => {
-                      const StatusIcon = statusConfig[item.status].icon;
-                      const itemPhotos = getPhotosForItem(category.id, item.id);
-                      return (
-                        <div key={item.id} className="space-y-2">
-                          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 p-3 rounded-lg border bg-card">
-                            <div className="flex items-start sm:items-center gap-3 flex-1 min-w-0">
-                              <StatusIcon className={`h-5 w-5 flex-shrink-0 mt-0.5 sm:mt-0 ${statusConfig[item.status].color}`} />
-                              <span className="font-medium text-sm sm:text-base leading-tight">{item.label}</span>
-                            </div>
-                            <TooltipProvider delayDuration={300}>
-                              <div className="flex gap-1.5 sm:gap-2 flex-shrink-0 ml-8 sm:ml-0">
-                                {(Object.keys(statusConfig) as ItemStatus[]).map((status) => {
-                                  const config = statusConfig[status];
-                                  const Icon = config.icon;
-                                  return (
-                                    <Tooltip key={status}>
+        {/* Checklist */}
+        <Card>
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <CardTitle className="text-lg sm:text-xl">Checklist de Inspeção</CardTitle>
+              <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                {[1, 2, 3, 4, 5].map((n) => (
+                  <span key={n} className={`w-5 h-5 rounded flex items-center justify-center text-[10px] font-medium ${scoreConfig[n as 1|2|3|4|5].color.split(' ')[0]}`}>
+                    {n}
+                  </span>
+                ))}
+              </div>
+            </div>
+          </CardHeader>
+          <CardContent className="pt-0">
+            <Accordion type="multiple" className="w-full">
+              {checklist.map((category) => {
+                const scoredItems = category.items.filter(i => i.score !== null);
+                const categoryProgress = Math.round((scoredItems.length / category.items.length) * 100);
+                
+                return (
+                  <AccordionItem key={category.id} value={category.id}>
+                    <AccordionTrigger className="text-sm sm:text-base font-semibold text-left justify-start hover:no-underline">
+                      <div className="flex items-center gap-3 flex-1">
+                        <span>{category.title}</span>
+                        {categoryProgress > 0 && (
+                          <Badge variant="outline" className="text-[10px] px-1.5 py-0">
+                            {categoryProgress}%
+                          </Badge>
+                        )}
+                      </div>
+                    </AccordionTrigger>
+                    <AccordionContent>
+                      <div className="space-y-3 pt-2">
+                        {category.items.map((item) => {
+                          const itemPhotos = getPhotosForItem(category.id, item.id);
+                          return (
+                            <div key={item.id} className="space-y-2">
+                              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 p-3 rounded-lg border bg-card">
+                                <div className="flex items-start sm:items-center gap-3 flex-1 min-w-0">
+                                  {item.score !== null && item.score !== 'na' ? (
+                                    <span className={`w-6 h-6 rounded flex items-center justify-center text-xs font-bold ${scoreConfig[item.score].color.split(' ')[0]} text-white flex-shrink-0`}>
+                                      {item.score}
+                                    </span>
+                                  ) : item.score === 'na' ? (
+                                    <span className="w-6 h-6 rounded flex items-center justify-center text-[10px] font-medium bg-slate-400 text-white flex-shrink-0">
+                                      N/A
+                                    </span>
+                                  ) : (
+                                    <span className="w-6 h-6 rounded flex items-center justify-center text-xs font-medium bg-muted text-muted-foreground flex-shrink-0">
+                                      ?
+                                    </span>
+                                  )}
+                                  <div className="flex-1 min-w-0">
+                                    <span className="font-medium text-sm sm:text-base leading-tight block">{item.label}</span>
+                                    {item.tooltip && (
+                                      <span className="text-xs text-muted-foreground">{item.tooltip}</span>
+                                    )}
+                                  </div>
+                                </div>
+                                <TooltipProvider delayDuration={300}>
+                                  <div className="flex gap-1 flex-shrink-0 ml-9 sm:ml-0">
+                                    {([1, 2, 3, 4, 5] as const).map((score) => {
+                                      const config = scoreConfig[score];
+                                      return (
+                                        <Tooltip key={score}>
+                                          <TooltipTrigger asChild>
+                                            <Button
+                                              variant={item.score === score ? "default" : "outline"}
+                                              size="sm"
+                                              onClick={() => updateItemScore(category.id, item.id, score)}
+                                              className={`h-8 w-8 p-0 text-xs font-bold ${item.score === score ? config.color : ''}`}
+                                            >
+                                              {score}
+                                            </Button>
+                                          </TooltipTrigger>
+                                          <TooltipContent side="top" className="text-center">
+                                            <p className="font-medium">{config.label}</p>
+                                            <p className="text-xs text-muted-foreground">{config.description}</p>
+                                          </TooltipContent>
+                                        </Tooltip>
+                                      );
+                                    })}
+                                    <Tooltip>
                                       <TooltipTrigger asChild>
                                         <Button
-                                          variant={item.status === status ? "default" : "outline"}
+                                          variant={item.score === 'na' ? "default" : "outline"}
                                           size="sm"
-                                          onClick={() => updateItemStatus(category.id, item.id, status)}
-                                          className="h-8 w-8 sm:h-9 sm:w-auto sm:px-3 p-0 sm:gap-1"
+                                          onClick={() => updateItemScore(category.id, item.id, 'na')}
+                                          className={`h-8 w-8 p-0 text-[10px] font-medium ${item.score === 'na' ? scoreConfig['na'].color : ''}`}
                                         >
-                                          <Icon className="h-4 w-4" />
+                                          N/A
                                         </Button>
                                       </TooltipTrigger>
-                                      <TooltipContent side="top" className="max-w-[200px] text-center">
-                                        <p className="font-medium">{config.label}</p>
-                                        <p className="text-xs text-muted-foreground">{config.tooltip}</p>
+                                      <TooltipContent side="top">
+                                        <p className="font-medium">Não se Aplica</p>
+                                        <p className="text-xs text-muted-foreground">Este item não se aplica ao imóvel</p>
                                       </TooltipContent>
                                     </Tooltip>
-                                  );
-                                })}
-                                {/* Photo button */}
-                                <Tooltip>
-                                  <TooltipTrigger asChild>
-                                    <Button
-                                      variant={itemPhotos.length > 0 ? "secondary" : "outline"}
-                                      size="sm"
-                                      onClick={() => handlePhotoCapture(category.id, item.id, item.label)}
-                                      className="h-8 w-8 sm:h-9 sm:w-auto sm:px-3 p-0 sm:gap-1"
-                                    >
-                                      <Camera className="h-4 w-4" />
-                                      {itemPhotos.length > 0 && (
-                                        <span className="hidden sm:inline text-xs ml-1">{itemPhotos.length}</span>
-                                      )}
-                                    </Button>
-                                  </TooltipTrigger>
-                                  <TooltipContent side="top">
-                                    <p className="font-medium">Adicionar Foto</p>
-                                    <p className="text-xs text-muted-foreground">
-                                      {itemPhotos.length > 0 ? `${itemPhotos.length} foto(s) anexada(s)` : 'Capture ou anexe fotos'}
-                                    </p>
-                                  </TooltipContent>
-                                </Tooltip>
+                                    <Tooltip>
+                                      <TooltipTrigger asChild>
+                                        <Button
+                                          variant={itemPhotos.length > 0 ? "secondary" : "outline"}
+                                          size="sm"
+                                          onClick={() => handlePhotoCapture(category.id, item.id, item.label)}
+                                          className="h-8 w-8 p-0"
+                                        >
+                                          <Camera className="h-4 w-4" />
+                                        </Button>
+                                      </TooltipTrigger>
+                                      <TooltipContent side="top">
+                                        <p className="font-medium">Adicionar Foto</p>
+                                        {itemPhotos.length > 0 && (
+                                          <p className="text-xs text-muted-foreground">{itemPhotos.length} foto(s)</p>
+                                        )}
+                                      </TooltipContent>
+                                    </Tooltip>
+                                  </div>
+                                </TooltipProvider>
                               </div>
-                            </TooltipProvider>
-                          </div>
-                          {/* Display photos for this item */}
-                          {itemPhotos.length > 0 && (
-                            <div className="flex gap-2 flex-wrap ml-8 pl-3">
-                              {itemPhotos.map((photo) => (
-                                <div key={photo.id} className="relative group">
-                                  <img
-                                    src={photo.dataUrl}
-                                    alt={photo.caption}
-                                    className="w-16 h-16 object-cover rounded-md border cursor-pointer hover:opacity-90"
-                                    onClick={() => setViewPhotoUrl(photo.dataUrl)}
-                                  />
-                                  <Button
-                                    variant="destructive"
-                                    size="icon"
-                                    className="absolute -top-2 -right-2 h-5 w-5 opacity-0 group-hover:opacity-100 transition-opacity"
-                                    onClick={() => removePhoto(photo.id)}
-                                  >
-                                    <X className="h-3 w-3" />
-                                  </Button>
+                              {itemPhotos.length > 0 && (
+                                <div className="flex gap-2 flex-wrap ml-9 pl-3">
+                                  {itemPhotos.map((photo) => (
+                                    <div key={photo.id} className="relative group">
+                                      <img
+                                        src={photo.dataUrl}
+                                        alt={photo.caption}
+                                        className="w-16 h-16 object-cover rounded-md border cursor-pointer hover:opacity-90"
+                                        onClick={() => setViewPhotoUrl(photo.dataUrl)}
+                                      />
+                                      <Button
+                                        variant="destructive"
+                                        size="icon"
+                                        className="absolute -top-2 -right-2 h-5 w-5 opacity-0 group-hover:opacity-100 transition-opacity"
+                                        onClick={() => removePhoto(photo.id)}
+                                      >
+                                        <X className="h-3 w-3" />
+                                      </Button>
+                                    </div>
+                                  ))}
                                 </div>
-                              ))}
+                              )}
                             </div>
-                          )}
-                        </div>
-                      );
-                    })}
-                  </div>
-                </AccordionContent>
-              </AccordionItem>
-            ))}
-          </Accordion>
-        </CardContent>
-      </Card>
+                          );
+                        })}
+                      </div>
+                    </AccordionContent>
+                  </AccordionItem>
+                );
+              })}
+            </Accordion>
+          </CardContent>
+        </Card>
 
-      {/* Hidden file inputs */}
-      <input
-        type="file"
-        ref={fileInputRef}
-        accept="image/*"
-        className="hidden"
-        onChange={handleFileSelect}
-      />
-      <input
-        type="file"
-        ref={cameraInputRef}
-        accept="image/*"
-        capture="environment"
-        className="hidden"
-        onChange={handleFileSelect}
-      />
-
+        {/* Hidden file inputs */}
+        <input
+          type="file"
+          ref={fileInputRef}
+          accept="image/*"
+          className="hidden"
+          onChange={handleFileSelect}
+        />
+        <input
+          type="file"
+          ref={cameraInputRef}
+          accept="image/*"
+          capture="environment"
+          className="hidden"
+          onChange={handleFileSelect}
+        />
       </div>
 
       {/* Photo capture dialog */}
@@ -1339,6 +1433,56 @@ export default function VistoriaDigital() {
               className="w-full h-auto max-h-[80vh] object-contain rounded-md"
             />
           )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Reset confirmation dialog */}
+      <AlertDialog open={showResetDialog} onOpenChange={setShowResetDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Reiniciar Vistoria?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Esta ação irá apagar todos os dados, fotos e avaliações da vistoria atual. Esta ação não pode ser desfeita.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={resetChecklist} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+              Reiniciar
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Type selection dialog (for manual trigger if needed) */}
+      <Dialog open={showTypeDialog} onOpenChange={setShowTypeDialog}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Selecione o Tipo de Imóvel</DialogTitle>
+            <DialogDescription>
+              Escolha o tipo para carregar o checklist apropriado
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid grid-cols-2 gap-4 pt-4">
+            <Button
+              variant="outline"
+              className="h-32 flex-col gap-3 hover:border-primary hover:bg-primary/5"
+              onClick={() => handleSelectTipoVistoria('casa')}
+            >
+              <Home className="h-10 w-10 text-primary" />
+              <span className="font-semibold">Casa</span>
+              <span className="text-xs text-muted-foreground">20 categorias</span>
+            </Button>
+            <Button
+              variant="outline"
+              className="h-32 flex-col gap-3 hover:border-primary hover:bg-primary/5"
+              onClick={() => handleSelectTipoVistoria('apartamento')}
+            >
+              <Building className="h-10 w-10 text-primary" />
+              <span className="font-semibold">Apartamento</span>
+              <span className="text-xs text-muted-foreground">18 categorias</span>
+            </Button>
+          </div>
         </DialogContent>
       </Dialog>
     </div>
