@@ -1,9 +1,10 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
-import { CheckCircle, AlertTriangle, XCircle, TrendingUp, TrendingDown, Minus } from "lucide-react";
+import { CheckCircle, AlertTriangle, XCircle, TrendingUp, TrendingDown, Minus, Home, Building2 } from "lucide-react";
 import type { ValuationResult, CombinedPrices } from "@/utils/valuationCalculations";
 import type { ValuationState } from "@/types/valuation";
+import { isCasaType, calculateTerrainBonus } from "@/hooks/useValuationCharacteristics";
 
 interface Props {
   result: ValuationResult;
@@ -12,6 +13,12 @@ interface Props {
 }
 
 export function Step4Results({ result, state, combined }: Props) {
+  const isCasa = isCasaType(state.tipoImovel);
+  const globalCap = isCasa ? 35 : 30;
+  const terrainInfo = isCasa && state.area_m2 > 0 && state.area_terreno_m2 > 0 
+    ? calculateTerrainBonus(state.area_m2, state.area_terreno_m2)
+    : null;
+
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat("pt-BR", {
       style: "currency",
@@ -49,19 +56,6 @@ export function Step4Results({ result, state, combined }: Props) {
     }
   };
 
-  const getConfidenceColor = () => {
-    switch (result.confidence_level) {
-      case "green":
-        return "bg-emerald-500";
-      case "yellow_high":
-        return "bg-amber-400";
-      case "yellow_medium":
-        return "bg-orange-500";
-      case "red":
-        return "bg-red-500";
-    }
-  };
-
   const TrendIcon = combined?.trend_direction === "UP"
     ? TrendingUp
     : combined?.trend_direction === "DOWN"
@@ -76,6 +70,29 @@ export function Step4Results({ result, state, combined }: Props) {
         <p className="text-xs sm:text-sm text-muted-foreground truncate px-2">
           {state.logradouro} • {state.area_m2} m²
         </p>
+        {/* Badges de tipo e caps */}
+        <div className="flex flex-wrap items-center justify-center gap-2 mt-2">
+          <Badge variant="outline" className="text-xs">
+            {isCasa ? <Home className="h-3 w-3 mr-1" /> : <Building2 className="h-3 w-3 mr-1" />}
+            {state.tipoImovel || (isCasa ? "Casa" : "Apartamento")}
+          </Badge>
+          <Badge variant="secondary" className="text-xs">
+            Cap ±{globalCap}%
+          </Badge>
+          {terrainInfo && terrainInfo.proporcao > 0 && (
+            <Badge 
+              className={`text-xs ${
+                terrainInfo.bonus > 0 
+                  ? "bg-green-500/20 text-green-700 border-green-500/30" 
+                  : terrainInfo.bonus < 0 
+                  ? "bg-red-500/20 text-red-700 border-red-500/30"
+                  : "bg-muted text-muted-foreground"
+              }`}
+            >
+              Terreno {terrainInfo.proporcao.toFixed(1)}:1 ({terrainInfo.bonus > 0 ? '+' : ''}{(terrainInfo.bonus * 100).toFixed(0)}%)
+            </Badge>
+          )}
+        </div>
       </div>
 
       {/* 3 Cenários */}
@@ -117,6 +134,9 @@ export function Step4Results({ result, state, combined }: Props) {
                 <li>ITBI histórico ({state.anuncioData?.med_m2 ? "70%" : "100%"})</li>
                 {state.anuncioData?.med_m2 && <li>Anúncios (30%)</li>}
                 <li>Características ({formatPercent(result.total_adjustment)})</li>
+                {terrainInfo && terrainInfo.bonus !== 0 && (
+                  <li>Bônus Terreno ({terrainInfo.bonus > 0 ? '+' : ''}{(terrainInfo.bonus * 100).toFixed(0)}%)</li>
+                )}
               </ul>
             </div>
           </CardContent>
@@ -165,6 +185,61 @@ export function Step4Results({ result, state, combined }: Props) {
         </CardContent>
       </Card>
 
+      {/* Resumo de Ajustes Aplicados */}
+      <Card className="bg-muted/30">
+        <CardContent className="pt-4 sm:pt-6 px-3 sm:px-6">
+          <h4 className="font-semibold mb-2 sm:mb-3 text-sm sm:text-base">⚙️ Ajustes Aplicados</h4>
+          <div className="space-y-1.5 sm:space-y-2 text-xs sm:text-sm">
+            <div className="flex justify-between items-center">
+              <span className="text-muted-foreground">Tipo de Imóvel:</span>
+              <Badge variant="outline" className="text-xs">
+                {isCasa ? "🏠 Casa" : "🏢 Apartamento"}
+              </Badge>
+            </div>
+            <div className="flex justify-between items-center">
+              <span className="text-muted-foreground">Cap Global:</span>
+              <Badge variant="secondary" className="text-xs">±{globalCap}%</Badge>
+            </div>
+            <div className="flex justify-between items-center">
+              <span className="text-muted-foreground">Ajuste Total:</span>
+              <Badge 
+                variant={result.total_adjustment > 0 ? "default" : result.total_adjustment < 0 ? "destructive" : "outline"}
+                className="text-xs"
+              >
+                {formatPercent(result.total_adjustment)}
+                {result.auto_capped && " (CAP)"}
+              </Badge>
+            </div>
+            {terrainInfo && terrainInfo.proporcao > 0 && (
+              <>
+                <div className="flex justify-between items-center">
+                  <span className="text-muted-foreground">Proporção Terreno:</span>
+                  <span className="font-medium">{terrainInfo.proporcao.toFixed(1)}:1</span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-muted-foreground">Bônus Terreno:</span>
+                  <Badge 
+                    className={`text-xs ${
+                      terrainInfo.bonus > 0 
+                        ? "bg-green-500/20 text-green-700" 
+                        : terrainInfo.bonus < 0 
+                        ? "bg-red-500/20 text-red-700"
+                        : "bg-muted text-muted-foreground"
+                    }`}
+                  >
+                    {terrainInfo.bonus > 0 ? '+' : ''}{(terrainInfo.bonus * 100).toFixed(0)}% ({terrainInfo.label})
+                  </Badge>
+                </div>
+              </>
+            )}
+            <div className="flex justify-between items-center">
+              <span className="text-muted-foreground">Fator Documentação:</span>
+              <span className="font-medium">{state.docFactor === 1 ? "100% (OK)" : `${(state.docFactor * 100).toFixed(0)}%`}</span>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
       {/* Confiança */}
       <Card>
         <CardContent className="pt-4 sm:pt-6 px-3 sm:px-6">
@@ -190,9 +265,6 @@ export function Step4Results({ result, state, combined }: Props) {
             <div className="flex items-center gap-1.5 sm:gap-2">
               <CheckCircle className="h-3 w-3 text-emerald-500 shrink-0" />
               <span className="truncate">Ajustes: {formatPercent(result.total_adjustment)}</span>
-              {result.auto_capped && (
-                <Badge variant="outline" className="text-[8px] sm:text-[10px] px-1 hidden sm:inline">CAP</Badge>
-              )}
             </div>
             <div className="flex items-center gap-1.5 sm:gap-2">
               <CheckCircle className="h-3 w-3 text-emerald-500 shrink-0" />
