@@ -99,6 +99,13 @@ export function Step3Questionnaire({
     return { answered, total, percentage: total > 0 ? Math.round((answered / total) * 100) : 0 };
   }, [state.responses.length, characteristics.length]);
 
+  // Determina caps baseado no tipo de imóvel
+  const isCasa = isCasaType(state.tipoImovel);
+  const globalCap = isCasa ? 35 : 30;
+  const terrainInfo = isCasa && state.area_m2 > 0 && state.area_terreno_m2 > 0 
+    ? calculateTerrainBonus(state.area_m2, state.area_terreno_m2)
+    : null;
+
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat("pt-BR", {
       style: "currency",
@@ -111,9 +118,35 @@ export function Step3Questionnaire({
     const pct = value * 100;
     return `${pct >= 0 ? "+" : ""}${pct.toFixed(0)}%`;
   };
+  
+  const getBonusColor = (bonus: number) => {
+    if (bonus > 0) return "bg-green-500/20 text-green-700 border-green-500/30";
+    if (bonus < 0) return "bg-red-500/20 text-red-700 border-red-500/30";
+    return "bg-muted text-muted-foreground";
+  };
 
   return (
     <div className="space-y-4 sm:space-y-6">
+      {/* Info do tipo de imóvel e cap global */}
+      <div className="flex flex-wrap items-center gap-2 p-2 sm:p-3 bg-muted/30 rounded-lg">
+        <Badge variant="outline" className="text-xs">
+          {isCasa ? "🏠 Casa" : "🏢 Apartamento"}
+        </Badge>
+        <Badge variant="secondary" className="text-xs">
+          Cap Global: ±{globalCap}%
+        </Badge>
+        {terrainInfo && terrainInfo.proporcao > 0 && (
+          <Badge className={`text-xs ${getBonusColor(terrainInfo.bonus)}`}>
+            <Home className="h-3 w-3 mr-1" />
+            Terreno {terrainInfo.proporcao.toFixed(1)}:1 ({terrainInfo.bonus > 0 ? '+' : ''}{(terrainInfo.bonus * 100).toFixed(0)}%)
+          </Badge>
+        )}
+        <div className="flex-1" />
+        <span className="text-[10px] sm:text-xs text-muted-foreground">
+          {characteristics.length} características
+        </span>
+      </div>
+      
       {/* Barra de progresso geral */}
       <div className="flex items-center gap-2 sm:gap-3 p-2 sm:p-3 bg-muted/30 rounded-lg">
         <div className="flex-1 min-w-0">
