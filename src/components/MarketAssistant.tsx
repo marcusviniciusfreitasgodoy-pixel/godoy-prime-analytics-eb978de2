@@ -72,11 +72,20 @@ export function MarketAssistant() {
                    user?.email?.split('@')[0] || 
                    null;
 
-  useEffect(() => {
+  // Auto-scroll helper function
+  const scrollToBottom = useCallback(() => {
     if (scrollRef.current) {
-      scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+      scrollRef.current.scrollTo({
+        top: scrollRef.current.scrollHeight,
+        behavior: 'smooth'
+      });
     }
-  }, [messages]);
+  }, []);
+
+  // Scroll when messages change
+  useEffect(() => {
+    scrollToBottom();
+  }, [messages, scrollToBottom]);
 
   useEffect(() => {
     if (isOpen && inputRef.current) {
@@ -303,6 +312,8 @@ export function MarketAssistant() {
                 }
                 return updated;
               });
+              // Auto-scroll as text streams in
+              scrollToBottom();
             }
           } catch {
             // Incomplete JSON, put back and wait
