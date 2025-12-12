@@ -172,7 +172,7 @@ export function MarketAssistant() {
           <div className="flex items-center gap-2">
             <Sparkles className="h-5 w-5" />
             <div>
-              <h3 className="font-semibold text-sm">Assistente de Mercado</h3>
+              <h3 className="font-semibold text-sm">Sofia - Assistente de Mercado</h3>
               <p className="text-xs opacity-80">{selectedBairro}</p>
             </div>
           </div>
@@ -191,15 +191,28 @@ export function MarketAssistant() {
           {messages.length === 0 ? (
             <div className="space-y-4">
               <div className="text-center py-4">
-                <Sparkles className="h-10 w-10 mx-auto text-accent mb-3" />
-                <h4 className="font-medium text-foreground">Olá! Sou seu assistente de mercado.</h4>
-                <p className="text-sm text-muted-foreground mt-1">
-                  Posso responder sobre todos os 142 bairros do Rio de Janeiro.
+                <div className="w-16 h-16 mx-auto mb-3 rounded-full bg-accent/10 flex items-center justify-center">
+                  <Sparkles className="h-8 w-8 text-accent" />
+                </div>
+                <h4 className="font-semibold text-foreground text-lg">Olá! Eu sou a Sofia 👋</h4>
+                <p className="text-sm text-muted-foreground mt-2 max-w-[280px] mx-auto">
+                  Sou sua assistente especializada em mercado imobiliário do Rio de Janeiro.
                 </p>
               </div>
               
+              <div className="bg-muted/40 rounded-lg p-3 text-sm text-foreground space-y-2">
+                <p className="font-medium">Como posso te ajudar:</p>
+                <ul className="text-muted-foreground space-y-1 text-xs">
+                  <li>📊 Consultar preços por m² de qualquer bairro ou rua</li>
+                  <li>🏢 Buscar dados de condomínios específicos</li>
+                  <li>📈 Comparar valorização entre regiões</li>
+                  <li>🏠 Filtrar por casas, apartamentos, área e valor</li>
+                  <li>📍 Analisar os 142 bairros do Rio</li>
+                </ul>
+              </div>
+              
               <div className="space-y-2">
-                <p className="text-xs text-muted-foreground font-medium">Sugestões:</p>
+                <p className="text-xs text-muted-foreground font-medium">Experimente perguntar:</p>
                 {SUGGESTED_QUESTIONS.map((q, i) => (
                   <button
                     key={i}
