@@ -239,26 +239,42 @@ export function MarketAssistant() {
                 <div
                   key={i}
                   className={cn(
-                    "flex",
+                    "flex gap-2",
                     msg.role === 'user' ? "justify-end" : "justify-start"
                   )}
                 >
+                  {msg.role === 'assistant' && (
+                    <img src={sofiaAvatar} alt="Sofia" className="h-7 w-7 rounded-full shrink-0 mt-0.5" />
+                  )}
                   <div
                     className={cn(
-                      "max-w-[85%] rounded-lg px-3 py-2 text-sm",
+                      "max-w-[80%] rounded-lg px-3 py-2 text-sm",
                       msg.role === 'user'
                         ? "bg-accent text-accent-foreground"
                         : "bg-muted text-foreground"
                     )}
                   >
-                    <p className="whitespace-pre-wrap">{msg.content || (isLoading && i === messages.length - 1 ? '...' : '')}</p>
+                    {msg.content ? (
+                      <p className="whitespace-pre-wrap">{msg.content}</p>
+                    ) : isLoading && i === messages.length - 1 ? (
+                      <div className="flex items-center gap-1 py-1">
+                        <span className="w-2 h-2 bg-foreground/40 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
+                        <span className="w-2 h-2 bg-foreground/40 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
+                        <span className="w-2 h-2 bg-foreground/40 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
+                      </div>
+                    ) : null}
                   </div>
                 </div>
               ))}
               {isLoading && messages[messages.length - 1]?.role !== 'assistant' && (
-                <div className="flex justify-start">
+                <div className="flex gap-2 justify-start">
+                  <img src={sofiaAvatar} alt="Sofia" className="h-7 w-7 rounded-full shrink-0 mt-0.5" />
                   <div className="bg-muted rounded-lg px-3 py-2">
-                    <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+                    <div className="flex items-center gap-1 py-1">
+                      <span className="w-2 h-2 bg-foreground/40 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
+                      <span className="w-2 h-2 bg-foreground/40 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
+                      <span className="w-2 h-2 bg-foreground/40 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
+                    </div>
                   </div>
                 </div>
               )}
