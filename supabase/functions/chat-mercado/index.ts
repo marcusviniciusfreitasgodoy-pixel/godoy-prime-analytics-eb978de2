@@ -305,25 +305,25 @@ serve(async (req) => {
         }
       }
     }
-    const twelveMonthsAgo = new Date();
-    twelveMonthsAgo.setMonth(twelveMonthsAgo.getMonth() - 12);
-    const dateFilter = twelveMonthsAgo.toISOString().split('T')[0];
+    // Usar ano atual (YTD) como padrão - alinhado com KPIs do Dashboard
+    const currentYearStart = `${currentYear}-01-01`;
+    const currentDateStr = new Date().toISOString().split('T')[0];
     
-    // Filtro por ano específico se solicitado
-    let yearStartDate = dateFilter;
-    let yearEndDate = new Date().toISOString().split('T')[0];
-    if (requestedYear) {
+    // Filtro por ano específico se solicitado, senão usar ano atual
+    let yearStartDate = currentYearStart;
+    let yearEndDate = currentDateStr;
+    if (requestedYear && requestedYear !== currentYear) {
       yearStartDate = `${requestedYear}-01-01`;
       yearEndDate = `${requestedYear}-12-31`;
     }
 
-    // 1. Get global Rio de Janeiro summary
+    // 1. Get global Rio de Janeiro summary (ano atual YTD)
     const { data: globalData } = await supabase
       .from('itbi_transactions')
       .select('valor_m2, total_transacoes, bairro, valor_transacao, tipologia')
       .eq('uso', 'Residencial')
       .gte('percentual_transferido', 90)
-      .gte('data_transacao', dateFilter)
+      .gte('data_transacao', currentYearStart)
       .not('valor_m2', 'is', null);
 
     // Calculate global stats using WEIGHTED AVERAGES
@@ -381,14 +381,14 @@ serve(async (req) => {
       .sort((a, b) => b.precoMedio - a.precoMedio)
       .slice(0, 10);
 
-    // 4. Get data for selected bairro
+    // 4. Get data for selected bairro (ano atual YTD)
     const { data: selectedBairroData } = await supabase
       .from('itbi_transactions')
       .select('valor_m2, total_transacoes, tipologia, valor_transacao')
       .eq('bairro', selectedBairro)
       .eq('uso', 'Residencial')
       .gte('percentual_transferido', 90)
-      .gte('data_transacao', dateFilter)
+      .gte('data_transacao', currentYearStart)
       .not('valor_m2', 'is', null);
 
     // 5. Query específica para a pergunta do usuário (com filtros de ano, valor e tipologia)
@@ -456,7 +456,7 @@ serve(async (req) => {
           .ilike('logradouro', `%${logradouro}%`)
           .eq('uso', 'Residencial')
           .gte('percentual_transferido', 90)
-          .gte('data_transacao', dateFilter)
+          .gte('data_transacao', currentYearStart)
           .not('valor_m2', 'is', null)
           .limit(500);
         
@@ -501,7 +501,7 @@ serve(async (req) => {
               .ilike('logradouro', `%${log}%`)
               .eq('uso', 'Residencial')
               .gte('percentual_transferido', 90)
-              .gte('data_transacao', dateFilter)
+              .gte('data_transacao', currentYearStart)
               .not('valor_m2', 'is', null)
               .limit(200);
             
@@ -534,7 +534,7 @@ serve(async (req) => {
     let contextData = `
 DATA ATUAL: ${new Date().toLocaleDateString('pt-BR')} - ANO ${currentYear}
 
-RESUMO GERAL DO MERCADO IMOBILIÁRIO DO RIO DE JANEIRO (últimos 12 meses):
+RESUMO GERAL DO MERCADO IMOBILIÁRIO DO RIO DE JANEIRO (${currentYear} YTD - acumulado do ano):
 - Total de bairros com dados: ${globalStats.totalBairros}
 - Total de transações residenciais: ${globalStats.totalTransacoes.toLocaleString('pt-BR')}
 - Preço médio geral R$/m²: R$ ${globalStats.avgValorM2.toLocaleString('pt-BR', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
