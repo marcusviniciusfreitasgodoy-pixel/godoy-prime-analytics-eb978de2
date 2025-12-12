@@ -8,20 +8,24 @@ const corsHeaders = {
 
 const SYSTEM_PROMPT = `Você é um assistente especializado em mercado imobiliário do Rio de Janeiro, com acesso a dados oficiais de transações ITBI (Imposto de Transmissão de Bens Imóveis) da Prefeitura do Rio de Janeiro.
 
+DATA ATUAL: ${new Date().toLocaleDateString('pt-BR')} (${new Date().getFullYear()})
+
 COBERTURA DE DADOS:
 - Você tem acesso a dados de TODOS os 142 bairros do Rio de Janeiro
-- Dados históricos desde 2020 até o presente
+- Dados históricos desde 2020 até ${new Date().getFullYear()} (ano atual)
 - Mais de 80.000 transações reais registradas
-- Dados incluem: preço por m², volume de transações, tipologia (apartamento/casa)
+- Dados incluem: preço por m², volume de transações, tipologia (apartamento/casa), valor total da transação
 
 Suas capacidades incluem:
 - Informar preços médios por m² de QUALQUER bairro do Rio de Janeiro
+- Filtrar transações por valor (acima de X, abaixo de Y, faixa específica)
+- Filtrar por tipologia (apenas casas, apenas apartamentos)
+- Filtrar por ano específico (2020, 2021, 2022, 2023, 2024, 2025)
 - Comparar valorização entre diferentes bairros e zonas (Sul, Norte, Oeste, Centro)
 - Analisar tendências de mercado por região
 - Identificar bairros com maior liquidez (volume de vendas)
-- Responder sobre tipologias (apartamentos, casas)
 - Fazer rankings comparativos entre bairros
-- Fornecer contexto sobre diferentes segmentos de mercado
+- Fornecer contexto sobre diferentes segmentos de mercado (luxo, alto padrão, médio padrão)
 
 Regras importantes:
 1. Sempre baseie suas respostas nos dados fornecidos no contexto
@@ -32,6 +36,7 @@ Regras importantes:
 6. Cite os períodos dos dados quando relevante
 7. Para comparações, destaque as diferenças percentuais entre os bairros
 8. Mencione a quantidade de transações para dar contexto sobre a confiabilidade dos dados
+9. IMPORTANTE: O ano atual é ${new Date().getFullYear()}. Dados de ${new Date().getFullYear()} são dados ATUAIS, não futuros.
 
 Formato de resposta:
 - Use parágrafos curtos
@@ -83,14 +88,44 @@ serve(async (req) => {
     const lastUserMessage = messages[messages.length - 1]?.content || '';
     const mentionedBairros = extractBairrosFromMessage(lastUserMessage);
     
+    // Detectar filtros na mensagem do usuário
+    const currentYear = new Date().getFullYear();
+    const yearMatch = lastUserMessage.match(/\b(202[0-5])\b/);
+    const requestedYear = yearMatch ? parseInt(yearMatch[1]) : null;
+    
+    // Detectar valor mínimo/máximo
+    const valorMatch = lastUserMessage.match(/(?:acima|maior|superior|mais)\s*(?:de|que)?\s*R?\$?\s*([\d.,]+)\s*(?:mil|milhões?|mi|M)?/i);
+    let valorMinimo = 0;
+    if (valorMatch) {
+      let valor = parseFloat(valorMatch[1].replace(/\./g, '').replace(',', '.'));
+      if (lastUserMessage.toLowerCase().includes('milh') || lastUserMessage.toLowerCase().includes(' mi')) {
+        valor *= 1000000;
+      } else if (lastUserMessage.toLowerCase().includes('mil')) {
+        valor *= 1000;
+      }
+      valorMinimo = valor;
+    }
+    
+    // Detectar tipologia
+    const wantsCasas = /\bcasas?\b/i.test(lastUserMessage);
+    const wantsAptos = /\b(?:apartamentos?|aptos?)\b/i.test(lastUserMessage);
+    
     const twelveMonthsAgo = new Date();
     twelveMonthsAgo.setMonth(twelveMonthsAgo.getMonth() - 12);
     const dateFilter = twelveMonthsAgo.toISOString().split('T')[0];
+    
+    // Filtro por ano específico se solicitado
+    let yearStartDate = dateFilter;
+    let yearEndDate = new Date().toISOString().split('T')[0];
+    if (requestedYear) {
+      yearStartDate = `${requestedYear}-01-01`;
+      yearEndDate = `${requestedYear}-12-31`;
+    }
 
     // 1. Get global Rio de Janeiro summary
     const { data: globalData } = await supabase
       .from('itbi_transactions')
-      .select('valor_m2, total_transacoes, bairro')
+      .select('valor_m2, total_transacoes, bairro, valor_transacao, tipologia')
       .eq('uso', 'Residencial')
       .gte('percentual_transferido', 90)
       .gte('data_transacao', dateFilter)
@@ -147,14 +182,45 @@ serve(async (req) => {
     // 4. Get data for selected bairro
     const { data: selectedBairroData } = await supabase
       .from('itbi_transactions')
-      .select('valor_m2, total_transacoes, tipologia')
+      .select('valor_m2, total_transacoes, tipologia, valor_transacao')
       .eq('bairro', selectedBairro)
       .eq('uso', 'Residencial')
       .gte('percentual_transferido', 90)
       .gte('data_transacao', dateFilter)
       .not('valor_m2', 'is', null);
 
-    // 5. Get data for mentioned bairros (if any)
+    // 5. Query específica para a pergunta do usuário (com filtros de ano, valor e tipologia)
+    let specificQuery = supabase
+      .from('itbi_transactions')
+      .select('valor_m2, total_transacoes, tipologia, valor_transacao, bairro, data_transacao')
+      .eq('uso', 'Residencial')
+      .gte('percentual_transferido', 90)
+      .gte('data_transacao', yearStartDate)
+      .lte('data_transacao', yearEndDate)
+      .not('valor_m2', 'is', null);
+    
+    // Aplicar filtro de bairro se mencionado
+    if (mentionedBairros.length > 0) {
+      specificQuery = specificQuery.in('bairro', mentionedBairros);
+    } else if (selectedBairro) {
+      specificQuery = specificQuery.eq('bairro', selectedBairro);
+    }
+    
+    // Aplicar filtro de valor
+    if (valorMinimo > 0) {
+      specificQuery = specificQuery.gte('valor_transacao', valorMinimo);
+    }
+    
+    // Aplicar filtro de tipologia
+    if (wantsCasas && !wantsAptos) {
+      specificQuery = specificQuery.ilike('tipologia', '%casa%');
+    } else if (wantsAptos && !wantsCasas) {
+      specificQuery = specificQuery.ilike('tipologia', '%apartamento%');
+    }
+    
+    const { data: specificData } = await specificQuery.limit(5000);
+
+    // 6. Get data for mentioned bairros (if any)
     let mentionedBairrosData: Record<string, { avgM2: number; transacoes: number }> = {};
     
     if (mentionedBairros.length > 0) {
@@ -171,6 +237,8 @@ serve(async (req) => {
 
     // Build context data
     let contextData = `
+DATA ATUAL: ${new Date().toLocaleDateString('pt-BR')} - ANO ${currentYear}
+
 RESUMO GERAL DO MERCADO IMOBILIÁRIO DO RIO DE JANEIRO (últimos 12 meses):
 - Total de bairros com dados: ${globalStats.totalBairros}
 - Total de transações residenciais: ${globalStats.totalTransacoes.toLocaleString('pt-BR')}
@@ -182,6 +250,37 @@ ${valorRanking.map((r, i) => `${i + 1}. ${r.bairro}: R$ ${r.precoMedio.toLocaleS
 TOP 10 BAIRROS COM MAIOR LIQUIDEZ (volume de vendas):
 ${bairroRanking.slice(0, 10).map((r, i) => `${i + 1}. ${r.bairro}: ${r.transacoes} transações (R$ ${r.precoMedio.toLocaleString('pt-BR', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}/m²)`).join('\n')}
 `;
+
+    // Add specific query results if filters were applied
+    if (specificData && (requestedYear || valorMinimo > 0 || wantsCasas || wantsAptos)) {
+      const totalTrans = specificData.reduce((sum, r) => sum + (r.total_transacoes || 1), 0);
+      const avgM2 = specificData.length > 0 ? specificData.reduce((sum, r) => sum + (r.valor_m2 || 0), 0) / specificData.length : 0;
+      const avgValorTotal = specificData.length > 0 ? specificData.reduce((sum, r) => sum + (r.valor_transacao || 0), 0) / specificData.length : 0;
+      
+      // Contar casas vs apartamentos
+      const casas = specificData.filter(r => r.tipologia?.toLowerCase().includes('casa'));
+      const aptos = specificData.filter(r => r.tipologia?.toLowerCase().includes('apartamento'));
+      const totalCasas = casas.reduce((sum, r) => sum + (r.total_transacoes || 1), 0);
+      const totalAptos = aptos.reduce((sum, r) => sum + (r.total_transacoes || 1), 0);
+      
+      let filterDesc = [];
+      if (requestedYear) filterDesc.push(`ano ${requestedYear}`);
+      if (valorMinimo > 0) filterDesc.push(`valor > R$ ${valorMinimo.toLocaleString('pt-BR')}`);
+      if (wantsCasas && !wantsAptos) filterDesc.push('apenas casas');
+      if (wantsAptos && !wantsCasas) filterDesc.push('apenas apartamentos');
+      if (mentionedBairros.length > 0) filterDesc.push(`bairro: ${mentionedBairros.join(', ')}`);
+      else filterDesc.push(`bairro: ${selectedBairro}`);
+      
+      contextData += `
+DADOS FILTRADOS PARA A PERGUNTA DO USUÁRIO (${filterDesc.join(', ')}):
+- Total de transações encontradas: ${totalTrans.toLocaleString('pt-BR')}
+- Registros agregados: ${specificData.length}
+- Preço médio R$/m²: R$ ${avgM2.toLocaleString('pt-BR', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
+- Valor médio total das transações: R$ ${avgValorTotal.toLocaleString('pt-BR', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
+- Casas: ${totalCasas.toLocaleString('pt-BR')} transações
+- Apartamentos: ${totalAptos.toLocaleString('pt-BR')} transações
+`;
+    }
 
     // Add selected bairro details
     if (selectedBairroData && selectedBairroData.length > 0) {
@@ -195,14 +294,16 @@ ${bairroRanking.slice(0, 10).map((r, i) => `${i + 1}. ${r.bairro}: ${r.transacoe
       
       const avgApto = aptos.length > 0 ? aptos.reduce((s, r) => s + (r.valor_m2 || 0), 0) / aptos.length : 0;
       const avgCasa = casas.length > 0 ? casas.reduce((s, r) => s + (r.valor_m2 || 0), 0) / casas.length : 0;
+      const totalCasas = casas.reduce((sum, r) => sum + (r.total_transacoes || 1), 0);
+      const totalAptos = aptos.reduce((sum, r) => sum + (r.total_transacoes || 1), 0);
       
       contextData += `
-DADOS DETALHADOS - ${selectedBairro} (bairro selecionado pelo usuário):
+DADOS DETALHADOS - ${selectedBairro} (bairro selecionado pelo usuário, últimos 12 meses):
 - Total de transações: ${totalTrans.toLocaleString('pt-BR')}
 - Preço médio R$/m²: R$ ${avgM2.toLocaleString('pt-BR', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
 - Faixa de preços: R$ ${valores[0]?.toLocaleString('pt-BR', { minimumFractionDigits: 0 }) || 'N/A'} a R$ ${valores[valores.length - 1]?.toLocaleString('pt-BR', { minimumFractionDigits: 0 }) || 'N/A'} por m²
-- Apartamentos: R$ ${avgApto.toLocaleString('pt-BR', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}/m² (${aptos.length} registros)
-- Casas: R$ ${avgCasa.toLocaleString('pt-BR', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}/m² (${casas.length} registros)
+- Apartamentos: ${totalAptos.toLocaleString('pt-BR')} transações, R$ ${avgApto.toLocaleString('pt-BR', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}/m²
+- Casas: ${totalCasas.toLocaleString('pt-BR')} transações, R$ ${avgCasa.toLocaleString('pt-BR', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}/m²
 `;
     }
 
