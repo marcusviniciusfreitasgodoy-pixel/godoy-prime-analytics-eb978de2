@@ -126,22 +126,39 @@ export function useWebSpeech(options: UseWebSpeechOptions = {}): UseWebSpeechRet
 
     const utterance = new SpeechSynthesisUtterance(text);
     utterance.lang = voiceLang;
-    utterance.rate = 1.0;
-    utterance.pitch = 1.0;
+    utterance.rate = 0.95; // Slightly slower for clarity
+    utterance.pitch = 1.05; // Slightly higher for warmth
     utterance.volume = 1.0;
 
-    // Try to find a Portuguese voice
+    // Get best available Portuguese voice with priority ranking
     const voices = window.speechSynthesis.getVoices();
-    const ptVoice = voices.find(voice => 
-      voice.lang.startsWith('pt') && voice.name.includes('Google')
-    ) || voices.find(voice => 
-      voice.lang.startsWith('pt')
-    ) || voices.find(voice => 
-      voice.lang === 'pt-BR'
-    );
+    
+    // Priority order for premium voices
+    const voicePriority = [
+      // Google premium voices (best quality)
+      (v: SpeechSynthesisVoice) => v.name.includes('Google') && v.lang === 'pt-BR',
+      // Microsoft premium voices
+      (v: SpeechSynthesisVoice) => v.name.includes('Microsoft') && v.lang.startsWith('pt'),
+      // Apple premium voices
+      (v: SpeechSynthesisVoice) => v.name.includes('Luciana') && v.lang.startsWith('pt'),
+      (v: SpeechSynthesisVoice) => v.name.includes('Fernanda') && v.lang.startsWith('pt'),
+      // Any Brazilian Portuguese female voice
+      (v: SpeechSynthesisVoice) => v.lang === 'pt-BR' && (v.name.toLowerCase().includes('female') || v.name.includes('Luciana') || v.name.includes('Fernanda')),
+      // Any Brazilian Portuguese voice
+      (v: SpeechSynthesisVoice) => v.lang === 'pt-BR',
+      // Any Portuguese voice
+      (v: SpeechSynthesisVoice) => v.lang.startsWith('pt'),
+    ];
 
-    if (ptVoice) {
-      utterance.voice = ptVoice;
+    let selectedVoice: SpeechSynthesisVoice | null = null;
+    for (const matcher of voicePriority) {
+      selectedVoice = voices.find(matcher) || null;
+      if (selectedVoice) break;
+    }
+
+    if (selectedVoice) {
+      utterance.voice = selectedVoice;
+      console.log('Selected voice:', selectedVoice.name, selectedVoice.lang);
     }
 
     utterance.onstart = () => {
