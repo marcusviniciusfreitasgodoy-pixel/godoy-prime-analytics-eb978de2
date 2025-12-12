@@ -107,6 +107,7 @@ export function MarketAssistant() {
       // Stop any previous audio
       if (audioRef.current) {
         audioRef.current.pause();
+        audioRef.current.src = '';
       }
 
       // Voice IDs: Laura (PT-BR female) or Roger (male)
@@ -114,7 +115,7 @@ export function MarketAssistant() {
         ? 'CwhRBWXzGAHq8TQ4Fs17' // Roger - male
         : 'FGY2WhTYpPnrIDTdsKH5'; // Laura - PT-BR female
 
-      console.log('Requesting TTS for:', text.substring(0, 50));
+      console.log('[TTS] Requesting audio for:', text.substring(0, 50));
 
       const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/elevenlabs-tts`, {
         method: 'POST',
@@ -126,51 +127,72 @@ export function MarketAssistant() {
       });
 
       if (!response.ok) {
+        const errorText = await response.text();
+        console.error('[TTS] Request failed:', response.status, errorText);
         throw new Error('TTS request failed');
       }
 
       const audioBlob = await response.blob();
-      const audioUrl = URL.createObjectURL(audioBlob);
+      console.log('[TTS] Audio blob received, size:', audioBlob.size, 'type:', audioBlob.type);
       
-      console.log('Audio blob received, size:', audioBlob.size);
-      
-      // Create new audio element with mobile-friendly attributes
-      const audio = new Audio();
-      audio.setAttribute('playsinline', 'true');
-      audio.setAttribute('webkit-playsinline', 'true');
-      audio.preload = 'auto';
-      audio.volume = 1.0;
-      audioRef.current = audio;
-
-      audio.onended = () => {
-        console.log('Audio playback ended');
-        setIsSpeakingElevenLabs(false);
-        URL.revokeObjectURL(audioUrl);
-      };
-
-      audio.onerror = (e) => {
-        console.error('Audio playback error:', e);
-        setIsSpeakingElevenLabs(false);
-        URL.revokeObjectURL(audioUrl);
-      };
-
-      // Set source and play
-      audio.src = audioUrl;
-      
-      // Try to play, with fallback to Web Speech API
-      try {
-        console.log('Attempting audio.play()');
-        await audio.play();
-        console.log('Audio playing successfully');
-      } catch (playError) {
-        console.error('Play failed, trying Web Speech fallback:', playError);
-        setIsSpeakingElevenLabs(false);
-        URL.revokeObjectURL(audioUrl);
-        // Fallback to Web Speech API which may work better on some mobile browsers
-        speak(text);
+      if (audioBlob.size === 0) {
+        throw new Error('Empty audio blob received');
       }
+
+      // Convert blob to base64 data URL for better mobile compatibility
+      const reader = new FileReader();
+      
+      reader.onloadend = async () => {
+        const base64Audio = reader.result as string;
+        console.log('[TTS] Audio converted to base64, length:', base64Audio.length);
+        
+        // Create audio element
+        const audio = new Audio();
+        audio.setAttribute('playsinline', 'true');
+        audio.setAttribute('webkit-playsinline', 'true');
+        audio.preload = 'auto';
+        audio.volume = 1.0;
+        audioRef.current = audio;
+
+        audio.onended = () => {
+          console.log('[TTS] Playback ended');
+          setIsSpeakingElevenLabs(false);
+        };
+
+        audio.onerror = (e) => {
+          console.error('[TTS] Playback error:', e);
+          setIsSpeakingElevenLabs(false);
+          // Try Web Speech fallback
+          speak(text);
+        };
+
+        audio.oncanplaythrough = async () => {
+          console.log('[TTS] Audio ready, attempting play...');
+          try {
+            await audio.play();
+            console.log('[TTS] Playing successfully!');
+          } catch (playError) {
+            console.error('[TTS] Play failed:', playError);
+            setIsSpeakingElevenLabs(false);
+            speak(text);
+          }
+        };
+
+        // Use base64 data URL instead of blob URL
+        audio.src = base64Audio;
+        audio.load();
+      };
+
+      reader.onerror = () => {
+        console.error('[TTS] FileReader error');
+        setIsSpeakingElevenLabs(false);
+        speak(text);
+      };
+
+      reader.readAsDataURL(audioBlob);
+      
     } catch (error) {
-      console.error('ElevenLabs TTS error:', error);
+      console.error('[TTS] Error:', error);
       setIsSpeakingElevenLabs(false);
       // Fallback to Web Speech API
       speak(text);
