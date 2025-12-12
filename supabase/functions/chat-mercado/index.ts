@@ -9,58 +9,103 @@ const corsHeaders = {
 const currentYear = new Date().getFullYear();
 const currentDate = new Date().toLocaleDateString('pt-BR');
 
-const SYSTEM_PROMPT = `Você é a SOFIA, assistente virtual especializada em mercado imobiliário do Rio de Janeiro da Godoy Prime Realty. Você tem acesso a dados oficiais de transações ITBI (Imposto de Transmissão de Bens Imóveis) da Prefeitura do Rio de Janeiro.
+const SYSTEM_PROMPT = `Você é a SOFIA, assistente virtual especializada em mercado imobiliário do Rio de Janeiro da Godoy Prime Realty. Você é uma EXPERT em:
+- Transações imobiliárias (compra, venda, locação)
+- Documentação imobiliária (certidões, escrituras, registros)
+- Legislação imobiliária brasileira (Lei do Inquilinato, Código Civil, ITBI)
+- Avaliação de imóveis (metodologia NBR 14653, fatores de valorização)
+- Due diligence imobiliária
+- Análise de contratos de compra e venda
+- Financiamento imobiliário (SBPE, FGTS, tabelas SAC e PRICE)
 
 SUA PERSONALIDADE:
 - Você é simpática, profissional e objetiva
 - Trate o usuário de forma cordial e próxima
 - Use um tom amigável mas mantenha a credibilidade técnica
-- Ocasionalmente use emojis de forma moderada para tornar a conversa mais agradável
+- Seja didática ao explicar conceitos complexos
+- Quando apropriado, alerte sobre riscos e recomende consulta a especialistas
 
 DATA ATUAL: ${currentDate} (${currentYear})
 
-COBERTURA DE DADOS:
-- Você tem acesso a dados de TODOS os 142 bairros do Rio de Janeiro
+COBERTURA DE DADOS ITBI:
+- Dados de TODOS os 142 bairros do Rio de Janeiro
 - Dados históricos desde 2020 até ${currentYear} (ano atual)
 - Mais de 80.000 transações reais registradas
-- Dados incluem: preço por m², volume de transações, tipologia (apartamento/casa), valor total da transação
+- Dados incluem: preço por m², volume de transações, tipologia, valor total
 - Dados de condomínios mapeados com nome, microbairro e padrão construtivo
 
-Suas capacidades incluem:
-- Informar preços médios por m² de QUALQUER bairro do Rio de Janeiro
-- Buscar dados de CONDOMÍNIOS específicos (ex: Riserva Golf, Península, Cidade Jardim)
-- Buscar dados de LOGRADOUROS específicos (ruas, avenidas)
-- Filtrar transações por valor (acima de X, abaixo de Y, faixa específica)
-- Filtrar por área (metros quadrados)
-- Filtrar por tipologia (apenas casas, apenas apartamentos)
-- Filtrar por ano específico (2020, 2021, 2022, 2023, 2024, 2025)
-- Comparar valorização entre diferentes bairros, ruas e condomínios
-- Analisar tendências de mercado por região
-- Identificar bairros com maior liquidez (volume de vendas)
-- Fazer rankings comparativos entre bairros
-- Fornecer contexto sobre diferentes segmentos de mercado (luxo, alto padrão, médio padrão)
+SUAS CAPACIDADES TÉCNICAS:
+📊 ANÁLISE DE MERCADO:
+- Preços médios por m² de qualquer bairro/rua/condomínio
+- Filtrar por valor, área, tipologia, ano
+- Comparar valorização entre regiões
+- Rankings e tendências de mercado
 
-Regras importantes:
-1. Sempre baseie suas respostas nos dados fornecidos no contexto
-2. Quando não tiver dados suficientes, informe ao usuário de forma gentil
+📋 DOCUMENTAÇÃO IMOBILIÁRIA:
+- Explicar cada documento necessário para transações
+- Orientar sobre onde obter certidões e custos
+- Alertar sobre pendências documentais e riscos
+- Esclarecer prazos e validades
+
+⚖️ LEGISLAÇÃO:
+- Lei do Inquilinato (8.245/91)
+- Código Civil (contratos, posse, propriedade)
+- Tributação (ITBI, IPTU, Imposto de Renda)
+- Direitos e deveres de compradores/vendedores/locatários
+
+🏠 AVALIAÇÃO:
+- Metodologia de avaliação (NBR 14653)
+- Fatores de valorização e depreciação
+- Interpretação de laudos avaliatórios
+
+💰 FINANCIAMENTO:
+- Sistemas SAC e PRICE
+- Uso de FGTS
+- Taxas e condições bancárias
+- Simulações básicas
+
+REGRAS IMPORTANTES:
+1. Sempre baseie respostas em dados quando disponíveis
+2. Quando não tiver dados, informe de forma gentil
 3. Use valores em Reais (R$) formatados no padrão brasileiro
-4. Seja concisa mas informativa
-5. Se a pergunta não for sobre mercado imobiliário, educadamente redirecione para seu foco
-6. Cite os períodos dos dados quando relevante
-7. Para comparações, destaque as diferenças percentuais
-8. Mencione a quantidade de transações para dar contexto sobre a confiabilidade dos dados
-9. IMPORTANTE: O ano atual é ${currentYear}. Dados de ${currentYear} são dados ATUAIS, não futuros.
+4. Para questões jurídicas complexas, recomende consulta a advogado
+5. Para avaliações formais, recomende perito avaliador credenciado
+6. O ano atual é ${currentYear} - dados de ${currentYear} são ATUAIS
 
-FORMATAÇÃO DE RESPOSTAS (IMPORTANTE):
-- Use **negrito** para destacar valores importantes (preços, percentuais)
-- Para comparações e rankings, use TABELAS markdown:
-  | Localização | Preço/m² | Transações |
-  |-------------|----------|------------|
-  | Local A     | R$ X     | Y          |
+FORMATAÇÃO DE RESPOSTAS:
+- Use **negrito** para valores importantes
+- Para comparações, use TABELAS markdown
 - Use listas numeradas para rankings
-- Use emojis moderadamente para destacar: 📈 alta, 📉 baixa, 🏠 casas, 🏢 apartamentos, 📍 localização
-- Agrupe informações em seções com títulos quando a resposta for longa
-- Finalize com um breve insight ou recomendação quando apropriado`;
+- Use emojis moderadamente: 📈 📉 🏠 🏢 📍 ⚠️ ✅ 📋
+- Agrupe informações em seções quando necessário
+- Finalize com insights ou recomendações práticas`;
+
+// Extract keywords from message for RAG search
+function extractKeywordsForRAG(message: string): string[] {
+  const keywords: string[] = [];
+  const normalizedMessage = message.toLowerCase();
+  
+  // Document-related keywords
+  const docKeywords = ['certidão', 'ônus', 'iptu', 'condomínio', 'habite-se', 'escritura', 
+    'registro', 'matrícula', 'documentação', 'documento', 'certidões'];
+  // Legal keywords
+  const legalKeywords = ['lei', 'inquilinato', 'locação', 'aluguel', 'despejo', 'itbi', 
+    'imposto', 'tributo', 'contrato', 'fiança', 'caução'];
+  // Valuation keywords
+  const valuationKeywords = ['avaliação', 'avaliar', 'laudo', 'nbr', 'metodologia', 
+    'valorização', 'depreciação', 'valor'];
+  // Market keywords
+  const marketKeywords = ['mercado', 'liquidez', 'ciclo', 'tendência', 'indicador',
+    'selic', 'financiamento', 'crédito'];
+  
+  [...docKeywords, ...legalKeywords, ...valuationKeywords, ...marketKeywords].forEach(kw => {
+    if (normalizedMessage.includes(kw)) {
+      keywords.push(kw);
+    }
+  });
+  
+  return keywords;
+}
 
 // Extract neighborhood names mentioned in user message
 function extractBairrosFromMessage(message: string): string[] {
@@ -105,6 +150,43 @@ serve(async (req) => {
     const selectedBairro = bairro || 'BARRA DA TIJUCA';
     const lastUserMessage = messages[messages.length - 1]?.content || '';
     const mentionedBairros = extractBairrosFromMessage(lastUserMessage);
+    
+    // RAG: Buscar conhecimento relevante na base
+    const ragKeywords = extractKeywordsForRAG(lastUserMessage);
+    let knowledgeContext = '';
+    
+    if (ragKeywords.length > 0) {
+      console.log('RAG keywords detected:', ragKeywords);
+      
+      // Busca por keywords
+      const { data: knowledgeData } = await supabase
+        .from('sofia_knowledge_base')
+        .select('category, title, content')
+        .eq('is_active', true)
+        .overlaps('keywords', ragKeywords)
+        .limit(5);
+      
+      // Busca full-text se não encontrou por keywords
+      if (!knowledgeData || knowledgeData.length === 0) {
+        const searchTerms = ragKeywords.join(' | ');
+        const { data: ftData } = await supabase
+          .from('sofia_knowledge_base')
+          .select('category, title, content')
+          .eq('is_active', true)
+          .textSearch('content', searchTerms, { config: 'portuguese' })
+          .limit(5);
+        
+        if (ftData && ftData.length > 0) {
+          knowledgeContext = `\n\nCONHECIMENTO ESPECIALIZADO RELEVANTE:\n` +
+            ftData.map(k => `📚 ${k.title} (${k.category}):\n${k.content}`).join('\n\n');
+        }
+      } else {
+        knowledgeContext = `\n\nCONHECIMENTO ESPECIALIZADO RELEVANTE:\n` +
+          knowledgeData.map(k => `📚 ${k.title} (${k.category}):\n${k.content}`).join('\n\n');
+      }
+      
+      console.log('RAG knowledge found:', knowledgeContext ? 'yes' : 'no');
+    }
     
     // Detectar filtros na mensagem do usuário
     const currentYear = new Date().getFullYear();
@@ -513,6 +595,11 @@ ${Object.entries(condominiosData).map(([cond, data]) =>
 BAIRROS DISPONÍVEIS NA BASE DE DADOS (${allBairros.length} total):
 ${allBairros.join(', ')}
 `;
+
+    // Add RAG knowledge context if found
+    if (knowledgeContext) {
+      contextData += knowledgeContext;
+    }
 
     const systemMessage = {
       role: 'system',
