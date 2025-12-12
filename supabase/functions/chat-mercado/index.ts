@@ -66,11 +66,13 @@ SUAS CAPACIDADES TÉCNICAS:
 
 REGRAS IMPORTANTES:
 1. Sempre baseie respostas em dados quando disponíveis
-2. Quando não tiver dados, informe de forma gentil
-3. Use valores em Reais (R$) formatados no padrão brasileiro
-4. Para questões jurídicas complexas, recomende consulta a advogado
-5. Para avaliações formais, recomende perito avaliador credenciado
-6. O ano atual é ${currentYear} - dados de ${currentYear} são ATUAIS`;
+2. Quando não tiver dados de um condomínio específico, informe que NÃO HÁ DADOS NA BASE para aquele condomínio - NÃO invente desculpas sobre "privacidade" ou "políticas de segurança"
+3. Os dados do ITBI são PÚBLICOS (fonte: Prefeitura do Rio) - você pode e deve compartilhá-los
+4. Use valores em Reais (R$) formatados no padrão brasileiro
+5. Para questões jurídicas complexas, recomende consulta a advogado
+6. Para avaliações formais, recomende perito avaliador credenciado
+7. O ano atual é ${currentYear} - dados de ${currentYear} são ATUAIS
+8. NUNCA diga que não pode fornecer dados por "privacidade" - os dados do ITBI são registros públicos oficiais`;
 
 const TEXT_FORMAT_INSTRUCTIONS = `
 FORMATAÇÃO DE RESPOSTAS (TEXTO):
@@ -284,6 +286,9 @@ serve(async (req) => {
       'NOVA IPANEMA', 'RIVIERA', 'OCEAN FRONT', 'MAUI', 'MONACO',
       'PORTOFINO', 'BARRA BALI', 'JARDIM OCEANICO', 'GRAND HYATT',
       'LE PARC', 'VIA BARRA', 'AREIA BRASIL', 'JARDIM DA BARRA',
+      'MANSOES', 'MANSÕES', 'CONDOMINIO MANSOES', 'CONDOMÍNIO MANSÕES',
+      'SANTA CECILIA', 'VILA DO PAN', 'BARRA LIFE', 'BARRAMARES',
+      'WIND', 'ART LIFE', 'JARDINS DA BARRA', 'SAINT MICHEL',
     ];
     
     let mentionedCondominios: string[] = [];
@@ -295,12 +300,12 @@ serve(async (req) => {
     }
     
     // Também tentar detectar padrão "condomínio X" ou "no X"
-    const condPattern = /(?:condomínio|cond\.?|no|do)\s+([a-záéíóúâêîôûãõç\s]+?)(?:\s|,|\.|$)/gi;
+    const condPattern = /(?:condomínio|condominio|cond\.?)\s+([a-záéíóúâêîôûãõç\s]+?)(?:\s|,|\.|$)/gi;
     const condMatches = lastUserMessage.matchAll(condPattern);
     for (const match of condMatches) {
       if (match[1] && match[1].trim().length > 3) {
         const nome = match[1].trim().toUpperCase();
-        if (!mentionedCondominios.includes(nome) && !['BARRA', 'TIJUCA', 'RIO', 'JANEIRO'].includes(nome)) {
+        if (!mentionedCondominios.includes(nome) && !['BARRA', 'TIJUCA', 'RIO', 'JANEIRO', 'DA', 'DO', 'DE'].includes(nome)) {
           mentionedCondominios.push(nome);
         }
       }
