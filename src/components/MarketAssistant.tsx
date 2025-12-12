@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect, useCallback } from "react";
-import { MessageSquare, X, Send, Loader2, TrendingUp, MapPin, DollarSign, BarChart3, Home, Ruler, Paperclip, FileText, Image, Mic, MicOff, Volume2, User, UserRound } from "lucide-react";
+import { MessageSquare, X, Send, Loader2, TrendingUp, MapPin, DollarSign, BarChart3, Home, Ruler, Paperclip, FileText, Image, Mic, MicOff } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -9,19 +9,11 @@ import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import sofiaAvatar from "@/assets/sofia-avatar.png";
-import { useWebSpeech, VoiceGender } from "@/hooks/useWebSpeech";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+import { useWebSpeech } from "@/hooks/useWebSpeech";
 
 interface Message {
   role: 'user' | 'assistant';
   content: string;
-  wasVoiceInput?: boolean; // Track if this message came from voice input
-  audioUrl?: string; // Store audio URL for manual playback
   attachment?: {
     type: 'document' | 'image';
     name: string;
@@ -50,26 +42,15 @@ export function MarketAssistant() {
   const inputRef = useRef<HTMLInputElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [uploadingFile, setUploadingFile] = useState(false);
-  const [voiceGender, setVoiceGender] = useState<VoiceGender>('female');
-  const lastVoiceInputRef = useRef(false);
-  const [isSpeakingElevenLabs, setIsSpeakingElevenLabs] = useState(false);
-  const [isPreparingVoice, setIsPreparingVoice] = useState(false);
-  const [pendingAudioUrl, setPendingAudioUrl] = useState<string | null>(null);
-  const audioRef = useRef<HTMLAudioElement | null>(null);
 
-  // Web Speech API integration
+  // Web Speech API integration - only STT (Speech-to-Text)
   const {
     isListening,
     transcript,
     startListening,
     stopListening,
     isSTTSupported,
-    isSpeaking,
-    speak,
-    stopSpeaking,
-    isTTSSupported,
-    availableVoices,
-  } = useWebSpeech({ lang: 'pt-BR', voiceLang: 'pt-BR', voiceGender });
+  } = useWebSpeech({ lang: 'pt-BR' });
 
   // Get user's first name from metadata or email
   const userName = user?.user_metadata?.full_name?.split(' ')[0] || 
@@ -79,20 +60,13 @@ export function MarketAssistant() {
   // Auto-scroll helper function - uses viewport ref directly
   const scrollToBottom = useCallback(() => {
     const viewport = viewportRef.current;
-    console.log('[SCROLL DEBUG] scrollToBottom called, viewport:', !!viewport);
     
     if (viewport) {
-      console.log('[SCROLL DEBUG] scrollHeight:', viewport.scrollHeight, 'clientHeight:', viewport.clientHeight);
-      
       // Use setTimeout to ensure DOM is fully updated
       setTimeout(() => {
-        // Try scrollTop assignment as fallback (more compatible)
         const targetScroll = viewport.scrollHeight - viewport.clientHeight;
-        console.log('[SCROLL DEBUG] Setting scrollTop to:', targetScroll);
         viewport.scrollTop = targetScroll;
       }, 100);
-    } else {
-      console.log('[SCROLL DEBUG] viewport ref is null!');
     }
   }, []);
 
@@ -107,213 +81,13 @@ export function MarketAssistant() {
     }
   }, [isOpen]);
 
-  // Track if audio was unlocked by user gesture
-  const audioUnlockedRef = useRef(false);
-  const audioContextRef = useRef<AudioContext | null>(null);
-  
-  // CRITICAL for iOS: Use Web Audio API which is more reliable
-  // Must be called during user gesture to unlock audio context
-  const unlockAudioForMobile = useCallback(() => {
-    // Create AudioContext on first user gesture
-    if (!audioContextRef.current) {
-      audioContextRef.current = new (window.AudioContext || (window as any).webkitAudioContext)();
-      console.log('[Audio] AudioContext created, state:', audioContextRef.current.state);
-    }
-    
-    // Resume AudioContext if suspended (iOS suspends by default)
-    if (audioContextRef.current.state === 'suspended') {
-      audioContextRef.current.resume().then(() => {
-        console.log('[Audio] AudioContext resumed successfully');
-        audioUnlockedRef.current = true;
-      }).catch(e => {
-        console.log('[Audio] AudioContext resume failed:', e.message);
-      });
-    } else {
-      audioUnlockedRef.current = true;
-    }
-    
-    // Also create and unlock a regular Audio element as backup
-    if (!audioRef.current) {
-      const audio = new Audio();
-      audio.setAttribute('playsinline', 'true');
-      audio.setAttribute('webkit-playsinline', 'true');
-      audio.preload = 'auto';
-      audio.volume = 1.0;
-      audioRef.current = audio;
-      
-      // Play silent audio to unlock
-      audio.src = 'data:audio/mp3;base64,SUQzBAAAAAAAI1RTU0UAAAAPAAADTGF2ZjU4Ljc2LjEwMAAAAAAAAAAAAAAA//tQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAWGluZwAAAA8AAAACAAABhgC7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7//////////////////////////////////////////////////////////////////8AAAAATGF2YzU4LjEzAAAAAAAAAAAAAAAAJAAAAAAAAAAAAYYoRwmHAAAAAAD/+9DEAAAIAANIAAAAgAADSAAAAEQAAANIAAAAAAAAA0gAAABEREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREQ==';
-      audio.play().then(() => {
-        audio.pause();
-        console.log('[Audio] HTML5 Audio element unlocked');
-      }).catch(() => {});
-    }
-  }, []);
-
-  const speakWithElevenLabs = async (text: string) => {
-    try {
-      setIsSpeakingElevenLabs(true);
-      
-      // Stop any previous audio
-      if (audioRef.current) {
-        audioRef.current.pause();
-      }
-
-      // Voice IDs: Laura (PT-BR female) or Roger (male)
-      const voiceId = voiceGender === 'male' 
-        ? 'CwhRBWXzGAHq8TQ4Fs17' // Roger - male
-        : 'FGY2WhTYpPnrIDTdsKH5'; // Laura - PT-BR female
-
-      console.log('[TTS] Requesting audio for:', text.substring(0, 50));
-
-      const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/elevenlabs-tts`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
-        },
-        body: JSON.stringify({ text, voiceId }),
-      });
-
-      if (!response.ok) {
-        const errorText = await response.text();
-        console.error('[TTS] Request failed:', response.status, errorText);
-        throw new Error('TTS request failed');
-      }
-
-      const arrayBuffer = await response.arrayBuffer();
-      console.log('[TTS] Audio received, size:', arrayBuffer.byteLength);
-      
-      if (arrayBuffer.byteLength === 0) {
-        throw new Error('Empty audio received');
-      }
-
-      // Try Web Audio API first (more reliable on iOS)
-      if (audioContextRef.current) {
-        try {
-          // Resume context if suspended
-          if (audioContextRef.current.state === 'suspended') {
-            await audioContextRef.current.resume();
-          }
-          
-          console.log('[TTS] Using Web Audio API, context state:', audioContextRef.current.state);
-          
-          // Decode the audio data
-          const audioBuffer = await audioContextRef.current.decodeAudioData(arrayBuffer.slice(0));
-          
-          // Create a buffer source and play
-          const source = audioContextRef.current.createBufferSource();
-          source.buffer = audioBuffer;
-          source.connect(audioContextRef.current.destination);
-          
-          source.onended = () => {
-            console.log('[TTS] Web Audio playback ended');
-            setIsSpeakingElevenLabs(false);
-          };
-          
-          source.start(0);
-          console.log('[TTS] Web Audio playing successfully!');
-          return;
-        } catch (webAudioError) {
-          console.warn('[TTS] Web Audio API failed, falling back to HTML5 Audio:', webAudioError);
-        }
-      }
-
-      // Fallback to HTML5 Audio with blob URL
-      const audioBlob = new Blob([arrayBuffer], { type: 'audio/mpeg' });
-      const audioUrl = URL.createObjectURL(audioBlob);
-      
-      // Store URL for manual playback if autoplay fails (iOS)
-      setPendingAudioUrl(audioUrl);
-      
-      let audio = audioRef.current;
-      if (!audio) {
-        audio = new Audio();
-        audio.setAttribute('playsinline', 'true');
-        audio.setAttribute('webkit-playsinline', 'true');
-        audioRef.current = audio;
-      }
-      
-      audio.volume = 1.0;
-
-      audio.onended = () => {
-        console.log('[TTS] HTML5 Audio playback ended');
-        setIsSpeakingElevenLabs(false);
-        setPendingAudioUrl(null);
-        URL.revokeObjectURL(audioUrl);
-      };
-
-      audio.onerror = (e) => {
-        console.error('[TTS] HTML5 Audio playback error:', e);
-        setIsSpeakingElevenLabs(false);
-        // Keep pendingAudioUrl for manual retry button
-      };
-
-      audio.src = audioUrl;
-      
-      try {
-        await audio.play();
-        console.log('[TTS] HTML5 Audio playing successfully!');
-        setPendingAudioUrl(null); // Clear since autoplay worked
-      } catch (playError) {
-        console.error('[TTS] HTML5 Audio play blocked - showing play button:', playError);
-        setIsSpeakingElevenLabs(false);
-        // Keep pendingAudioUrl so user can tap play button
-      }
-      
-    } catch (error) {
-      console.error('[TTS] Error:', error);
-      setIsSpeakingElevenLabs(false);
-      speak(text); // Fallback to Web Speech API
-    }
-  };
-
-  const stopElevenLabsSpeaking = () => {
-    if (audioRef.current) {
-      audioRef.current.pause();
-    }
-    setIsSpeakingElevenLabs(false);
-  };
-
-  // Manual play function - called from user tap on play button (solves iOS autoplay restriction)
-  const playPendingAudio = useCallback(() => {
-    if (!pendingAudioUrl) return;
-    
-    setIsSpeakingElevenLabs(true);
-    
-    const audio = new Audio(pendingAudioUrl);
-    audio.setAttribute('playsinline', 'true');
-    audio.volume = 1.0;
-    audioRef.current = audio;
-    
-    audio.onended = () => {
-      setIsSpeakingElevenLabs(false);
-      setPendingAudioUrl(null);
-      URL.revokeObjectURL(pendingAudioUrl);
-    };
-    
-    audio.onerror = () => {
-      setIsSpeakingElevenLabs(false);
-      toast.error('Não foi possível reproduzir o áudio');
-    };
-    
-    audio.play().then(() => {
-      console.log('[TTS] Manual play successful!');
-    }).catch((e) => {
-      console.error('[TTS] Manual play failed:', e);
-      setIsSpeakingElevenLabs(false);
-      toast.error('Erro ao reproduzir áudio');
-    });
-  }, [pendingAudioUrl]);
-
-  const sendMessage = async (messageText: string, wasVoiceInput = false) => {
+  const sendMessage = async (messageText: string) => {
     if (!messageText.trim() || isLoading) return;
 
     const userMessage: Message = { role: 'user', content: messageText };
     setMessages(prev => [...prev, userMessage]);
     setInput("");
     setIsLoading(true);
-    lastVoiceInputRef.current = wasVoiceInput;
 
     let assistantContent = "";
 
@@ -327,7 +101,7 @@ export function MarketAssistant() {
         body: JSON.stringify({
           messages: [...messages, userMessage].map(m => ({ role: m.role, content: m.content })),
           bairro: selectedBairro,
-          voiceInput: wasVoiceInput,
+          voiceInput: false, // Always text response now
         }),
       });
 
@@ -390,20 +164,6 @@ export function MarketAssistant() {
         }
       }
 
-      // Only speak if input was voice (text input = text response, voice input = voice response)
-      if (wasVoiceInput && assistantContent) {
-        // Clean text for speech (remove markdown formatting)
-        const cleanText = assistantContent
-          .replace(/\*\*/g, '')
-          .replace(/\*/g, '')
-          .replace(/#{1,6}\s/g, '')
-          .replace(/`/g, '')
-          .replace(/\n+/g, '. ')
-          .trim();
-        // Use ElevenLabs for premium voice
-        speakWithElevenLabs(cleanText);
-      }
-
     } catch (error) {
       console.error('Chat error:', error);
       setMessages(prev => [...prev, { 
@@ -417,37 +177,26 @@ export function MarketAssistant() {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    sendMessage(input, false);
+    sendMessage(input);
   };
 
   const handleSuggestion = (text: string) => {
-    sendMessage(text, false);
+    sendMessage(text);
   };
 
   // Handle voice input
   const handleVoiceInput = () => {
-    // Initialize audio for mobile on user gesture (unlocks audio playback)
-    unlockAudioForMobile();
-    
     if (isListening) {
       stopListening();
     } else {
-      stopSpeaking(); // Stop Web Speech
-      stopElevenLabsSpeaking(); // Stop ElevenLabs
       startListening();
     }
   };
 
-  // Combined speaking state
-  const isCurrentlySpeaking = isSpeaking || isSpeakingElevenLabs;
-  
-  // Voice response is being prepared when loading after voice input
-  const isVoiceResponsePending = isLoading && lastVoiceInputRef.current;
-
   // Send transcript when listening stops
   useEffect(() => {
     if (!isListening && transcript) {
-      sendMessage(transcript, true);
+      sendMessage(transcript);
     }
   }, [isListening, transcript]);
 
@@ -675,50 +424,12 @@ export function MarketAssistant() {
                 <div className="flex gap-2 justify-start">
                   <img src={sofiaAvatar} alt="Sofia" className="h-7 w-7 rounded-full shrink-0 mt-0.5" />
                   <div className="bg-muted rounded-lg px-3 py-2">
-                    <div className="flex items-center gap-2 py-1">
+                    <div className="flex items-center gap-1 py-1">
                       <span className="w-2 h-2 bg-foreground/40 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
                       <span className="w-2 h-2 bg-foreground/40 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
                       <span className="w-2 h-2 bg-foreground/40 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
-                      {isVoiceResponsePending && (
-                        <span className="text-xs text-muted-foreground ml-1 flex items-center gap-1">
-                          <Volume2 className="h-3 w-3 animate-pulse" />
-                          Preparando voz...
-                        </span>
-                      )}
                     </div>
                   </div>
-                </div>
-              )}
-              {/* Voice speaking indicator */}
-              {isCurrentlySpeaking && !isLoading && (
-                <div className="flex gap-2 justify-start animate-fade-in">
-                  <img src={sofiaAvatar} alt="Sofia" className="h-7 w-7 rounded-full shrink-0 mt-0.5" />
-                  <div className="bg-accent/10 border border-accent/30 rounded-lg px-3 py-2">
-                    <div className="flex items-center gap-2 text-xs text-accent">
-                      <Volume2 className="h-4 w-4 animate-pulse" />
-                      <span>Falando...</span>
-                      <button 
-                        onClick={() => { stopSpeaking(); stopElevenLabsSpeaking(); }}
-                        className="ml-1 text-muted-foreground hover:text-foreground transition-colors"
-                      >
-                        Parar
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              )}
-              
-              {/* Manual play button when audio is pending (iOS autoplay blocked) */}
-              {pendingAudioUrl && !isCurrentlySpeaking && !isLoading && (
-                <div className="flex gap-2 justify-start animate-fade-in">
-                  <img src={sofiaAvatar} alt="Sofia" className="h-7 w-7 rounded-full shrink-0 mt-0.5" />
-                  <button
-                    onClick={playPendingAudio}
-                    className="bg-accent text-accent-foreground rounded-lg px-4 py-2 flex items-center gap-2 hover:bg-accent/90 transition-colors shadow-md"
-                  >
-                    <Volume2 className="h-5 w-5" />
-                    <span className="text-sm font-medium">🔊 Ouvir resposta</span>
-                  </button>
                 </div>
               )}
             </div>
@@ -769,57 +480,13 @@ export function MarketAssistant() {
               disabled={isLoading || uploadingFile || isListening}
               className="flex-1 bg-background"
             />
-            
-            {/* Voice Gender Selection & Stop Button */}
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button 
-                  type="button" 
-                  variant="ghost"
-                  size="icon"
-                  onClick={(e) => {
-                    if (isCurrentlySpeaking) {
-                      e.preventDefault();
-                      stopSpeaking();
-                      stopElevenLabsSpeaking();
-                    }
-                  }}
-                  title={isCurrentlySpeaking ? "Parar de falar" : `Voz ${voiceGender === 'female' ? 'feminina' : 'masculina'}`}
-                  className={cn(isCurrentlySpeaking && "text-accent")}
-                >
-                  {isCurrentlySpeaking ? (
-                    <Volume2 className="h-4 w-4 animate-pulse" />
-                  ) : voiceGender === 'female' ? (
-                    <UserRound className="h-4 w-4" />
-                  ) : (
-                    <User className="h-4 w-4" />
-                  )}
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-48">
-                <DropdownMenuItem 
-                  onClick={() => setVoiceGender('female')}
-                  className={cn("gap-2", voiceGender === 'female' && "bg-accent/10")}
-                >
-                  <UserRound className="h-4 w-4" />
-                  Voz Feminina
-                </DropdownMenuItem>
-                <DropdownMenuItem 
-                  onClick={() => setVoiceGender('male')}
-                  className={cn("gap-2", voiceGender === 'male' && "bg-accent/10")}
-                >
-                  <User className="h-4 w-4" />
-                  Voz Masculina
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
 
             <Button type="submit" size="icon" disabled={isLoading || uploadingFile || isListening || !input.trim()}>
               {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
             </Button>
           </div>
           <p className="text-xs text-muted-foreground mt-2 text-center">
-            {isSTTSupported ? "🎤 Fale e receba resposta em voz • ⌨️ Digite e receba em texto" : "📎 Envie PDFs ou imagens para análise"}
+            {isSTTSupported ? "🎤 Fale ou ⌨️ digite sua pergunta" : "📎 Envie PDFs ou imagens para análise"}
           </p>
         </form>
       </div>
