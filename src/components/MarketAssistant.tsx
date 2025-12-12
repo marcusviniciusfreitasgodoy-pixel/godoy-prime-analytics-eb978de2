@@ -95,10 +95,10 @@ export function MarketAssistant() {
         audioRef.current = null;
       }
 
-      // Voice IDs: Laura (PT-BR female) or Roger (male)
+      // Voice IDs: Ana (PT-BR female) or Roger (male)
       const voiceId = voiceGender === 'male' 
         ? 'CwhRBWXzGAHq8TQ4Fs17' // Roger - male
-        : 'FGY2WhTYpPnrIDTdsKH5'; // Laura - PT-BR female
+        : 'agent_01jzn2nt8cepqae7pkp9y227qh'; // Ana - PT-BR female
 
       const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/elevenlabs-tts`, {
         method: 'POST',
