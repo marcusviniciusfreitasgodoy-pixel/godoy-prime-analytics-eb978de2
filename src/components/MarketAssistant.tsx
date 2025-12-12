@@ -1,10 +1,12 @@
 import { useState, useRef, useEffect } from "react";
-import { MessageSquare, X, Send, Loader2, Sparkles, TrendingUp, MapPin, DollarSign, BarChart3, Home, Ruler } from "lucide-react";
+import { MessageSquare, X, Send, Loader2, TrendingUp, MapPin, DollarSign, BarChart3, Home, Ruler } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useBairro } from "@/contexts/BairroContext";
+import { useAuthContext } from "@/contexts/AuthContext";
 import { cn } from "@/lib/utils";
+import sofiaAvatar from "@/assets/sofia-avatar.png";
 
 interface Message {
   role: 'user' | 'assistant';
@@ -26,8 +28,14 @@ export function MarketAssistant() {
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const { selectedBairro } = useBairro();
+  const { user } = useAuthContext();
   const scrollRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+
+  // Get user's first name from metadata or email
+  const userName = user?.user_metadata?.full_name?.split(' ')[0] || 
+                   user?.email?.split('@')[0] || 
+                   null;
 
   useEffect(() => {
     if (scrollRef.current) {
@@ -147,14 +155,14 @@ export function MarketAssistant() {
       <Button
         onClick={() => setIsOpen(true)}
         className={cn(
-          "fixed bottom-4 right-4 z-50 h-14 w-14 rounded-full shadow-lg",
-          "bg-accent hover:bg-accent/90 text-accent-foreground",
+          "fixed bottom-4 right-4 z-50 h-14 w-14 rounded-full shadow-lg p-0 overflow-hidden",
+          "bg-accent hover:bg-accent/90",
           "transition-all duration-300 hover:scale-110",
           isOpen && "scale-0 opacity-0"
         )}
         size="icon"
       >
-        <MessageSquare className="h-6 w-6" />
+        <img src={sofiaAvatar} alt="Sofia" className="w-full h-full object-cover" />
       </Button>
 
       {/* Chat Panel */}
@@ -169,11 +177,11 @@ export function MarketAssistant() {
       >
         {/* Header */}
         <div className="flex items-center justify-between p-4 border-b bg-primary text-primary-foreground">
-          <div className="flex items-center gap-2">
-            <Sparkles className="h-5 w-5" />
+          <div className="flex items-center gap-3">
+            <img src={sofiaAvatar} alt="Sofia" className="h-10 w-10 rounded-full border-2 border-primary-foreground/20" />
             <div>
-              <h3 className="font-semibold text-sm">Sofia - Assistente de Mercado</h3>
-              <p className="text-xs opacity-80">{selectedBairro}</p>
+              <h3 className="font-semibold text-sm">Sofia</h3>
+              <p className="text-xs opacity-80">Assistente de Mercado</p>
             </div>
           </div>
           <Button
@@ -191,12 +199,12 @@ export function MarketAssistant() {
           {messages.length === 0 ? (
             <div className="space-y-4">
               <div className="text-center py-4">
-                <div className="w-16 h-16 mx-auto mb-3 rounded-full bg-accent/10 flex items-center justify-center">
-                  <Sparkles className="h-8 w-8 text-accent" />
-                </div>
-                <h4 className="font-semibold text-foreground text-lg">Olá! Eu sou a Sofia 👋</h4>
-                <p className="text-sm text-muted-foreground mt-2 max-w-[280px] mx-auto">
-                  Sou sua assistente especializada em mercado imobiliário do Rio de Janeiro.
+                <img src={sofiaAvatar} alt="Sofia" className="w-20 h-20 mx-auto mb-3 rounded-full border-4 border-accent/20" />
+                <h4 className="font-semibold text-foreground text-lg">
+                  {userName ? `Olá, ${userName}! 👋` : 'Olá! 👋'}
+                </h4>
+                <p className="text-sm text-muted-foreground mt-1">
+                  Eu sou a Sofia, sua assistente de mercado imobiliário.
                 </p>
               </div>
               
