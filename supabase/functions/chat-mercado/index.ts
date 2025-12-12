@@ -294,50 +294,57 @@ serve(async (req) => {
       .gte('data_transacao', dateFilter)
       .not('valor_m2', 'is', null);
 
-    // Calculate global stats
+    // Calculate global stats using WEIGHTED AVERAGES
     let globalStats = {
       totalTransacoes: 0,
       avgValorM2: 0,
       totalBairros: 0
     };
     
-    const bairroStats: Record<string, { sum: number; count: number; transacoes: number }> = {};
+    const bairroStats: Record<string, { weightedSum: number; totalTrans: number }> = {};
     
     if (globalData) {
+      let globalWeightedSum = 0;
+      let globalTotalTrans = 0;
+      
       globalData.forEach(row => {
-        globalStats.totalTransacoes += row.total_transacoes || 1;
+        const trans = row.total_transacoes || 1;
+        const valorM2 = row.valor_m2 || 0;
+        
+        globalStats.totalTransacoes += trans;
+        globalWeightedSum += valorM2 * trans;
+        globalTotalTrans += trans;
+        
         if (row.bairro) {
           if (!bairroStats[row.bairro]) {
-            bairroStats[row.bairro] = { sum: 0, count: 0, transacoes: 0 };
+            bairroStats[row.bairro] = { weightedSum: 0, totalTrans: 0 };
           }
-          bairroStats[row.bairro].sum += (row.valor_m2 || 0);
-          bairroStats[row.bairro].count += 1;
-          bairroStats[row.bairro].transacoes += row.total_transacoes || 1;
+          bairroStats[row.bairro].weightedSum += valorM2 * trans;
+          bairroStats[row.bairro].totalTrans += trans;
         }
       });
       
       globalStats.totalBairros = Object.keys(bairroStats).length;
-      const totalSum = globalData.reduce((sum, r) => sum + (r.valor_m2 || 0), 0);
-      globalStats.avgValorM2 = globalData.length > 0 ? totalSum / globalData.length : 0;
+      globalStats.avgValorM2 = globalTotalTrans > 0 ? globalWeightedSum / globalTotalTrans : 0;
     }
 
-    // 2. Get TOP 20 neighborhoods by transaction volume
+    // 2. Get TOP 20 neighborhoods by transaction volume (using weighted averages)
     const bairroRanking = Object.entries(bairroStats)
       .map(([bairro, stats]) => ({
         bairro,
-        precoMedio: stats.count > 0 ? stats.sum / stats.count : 0,
-        transacoes: stats.transacoes
+        precoMedio: stats.totalTrans > 0 ? stats.weightedSum / stats.totalTrans : 0,
+        transacoes: stats.totalTrans
       }))
       .sort((a, b) => b.transacoes - a.transacoes)
       .slice(0, 20);
 
-    // 3. Get TOP 10 most valued neighborhoods
+    // 3. Get TOP 10 most valued neighborhoods (using weighted averages)
     const valorRanking = Object.entries(bairroStats)
-      .filter(([_, stats]) => stats.transacoes >= 10) // minimum transactions for reliability
+      .filter(([_, stats]) => stats.totalTrans >= 10) // minimum transactions for reliability
       .map(([bairro, stats]) => ({
         bairro,
-        precoMedio: stats.count > 0 ? stats.sum / stats.count : 0,
-        transacoes: stats.transacoes
+        precoMedio: stats.totalTrans > 0 ? stats.weightedSum / stats.totalTrans : 0,
+        transacoes: stats.totalTrans
       }))
       .sort((a, b) => b.precoMedio - a.precoMedio)
       .slice(0, 10);
@@ -399,8 +406,8 @@ serve(async (req) => {
         const stats = bairroStats[mb];
         if (stats) {
           mentionedBairrosData[mb] = {
-            avgM2: stats.count > 0 ? stats.sum / stats.count : 0,
-            transacoes: stats.transacoes
+            avgM2: stats.totalTrans > 0 ? stats.weightedSum / stats.totalTrans : 0,
+            transacoes: stats.totalTrans
           };
         }
       }
@@ -423,8 +430,11 @@ serve(async (req) => {
         
         if (logData && logData.length > 0) {
           const totalTrans = logData.reduce((sum, r) => sum + (r.total_transacoes || 1), 0);
-          const avgM2 = logData.reduce((sum, r) => sum + (r.valor_m2 || 0), 0) / logData.length;
-          const avgValor = logData.reduce((sum, r) => sum + (r.valor_transacao || 0), 0) / logData.length;
+          // Use weighted averages
+          const weightedSumM2 = logData.reduce((sum, r) => sum + (r.valor_m2 || 0) * (r.total_transacoes || 1), 0);
+          const avgM2 = totalTrans > 0 ? weightedSumM2 / totalTrans : 0;
+          const weightedSumValor = logData.reduce((sum, r) => sum + (r.valor_transacao || 0) * (r.total_transacoes || 1), 0);
+          const avgValor = totalTrans > 0 ? weightedSumValor / totalTrans : 0;
           
           logradourosData[logradouro] = {
             avgM2,
@@ -470,8 +480,11 @@ serve(async (req) => {
           
           if (allCondData.length > 0) {
             const totalTrans = allCondData.reduce((sum, r) => sum + (r.total_transacoes || 1), 0);
-            const avgM2 = allCondData.reduce((sum, r) => sum + (r.valor_m2 || 0), 0) / allCondData.length;
-            const avgValor = allCondData.reduce((sum, r) => sum + (r.valor_transacao || 0), 0) / allCondData.length;
+            // Use weighted averages
+            const weightedSumM2 = allCondData.reduce((sum, r) => sum + (r.valor_m2 || 0) * (r.total_transacoes || 1), 0);
+            const avgM2 = totalTrans > 0 ? weightedSumM2 / totalTrans : 0;
+            const weightedSumValor = allCondData.reduce((sum, r) => sum + (r.valor_transacao || 0) * (r.total_transacoes || 1), 0);
+            const avgValor = totalTrans > 0 ? weightedSumValor / totalTrans : 0;
             
             condominiosData[condMapping[0].nome_condominio || cond] = {
               avgM2,
@@ -504,8 +517,11 @@ ${bairroRanking.slice(0, 10).map((r, i) => `${i + 1}. ${r.bairro}: ${r.transacoe
     // Add specific query results if filters were applied
     if (specificData && (requestedYear || valorMinimo > 0 || areaMinimo > 0 || areaMaximo > 0 || wantsCasas || wantsAptos)) {
       const totalTrans = specificData.reduce((sum, r) => sum + (r.total_transacoes || 1), 0);
-      const avgM2 = specificData.length > 0 ? specificData.reduce((sum, r) => sum + (r.valor_m2 || 0), 0) / specificData.length : 0;
-      const avgValorTotal = specificData.length > 0 ? specificData.reduce((sum, r) => sum + (r.valor_transacao || 0), 0) / specificData.length : 0;
+      // Use weighted average: SUM(valor_m2 * total_transacoes) / SUM(total_transacoes)
+      const weightedSumM2 = specificData.reduce((sum, r) => sum + (r.valor_m2 || 0) * (r.total_transacoes || 1), 0);
+      const avgM2 = totalTrans > 0 ? weightedSumM2 / totalTrans : 0;
+      const weightedSumValor = specificData.reduce((sum, r) => sum + (r.valor_transacao || 0) * (r.total_transacoes || 1), 0);
+      const avgValorTotal = totalTrans > 0 ? weightedSumValor / totalTrans : 0;
       
       // Contar casas vs apartamentos
       const casas = specificData.filter(r => r.tipologia?.toLowerCase().includes('casa'));
@@ -537,17 +553,21 @@ DADOS FILTRADOS PARA A PERGUNTA DO USUÁRIO (${filterDesc.join(', ')}):
     // Add selected bairro details
     if (selectedBairroData && selectedBairroData.length > 0) {
       const totalTrans = selectedBairroData.reduce((sum, r) => sum + (r.total_transacoes || 1), 0);
-      const avgM2 = selectedBairroData.reduce((sum, r) => sum + (r.valor_m2 || 0), 0) / selectedBairroData.length;
+      // Use weighted average: SUM(valor_m2 * total_transacoes) / SUM(total_transacoes)
+      const weightedSumM2 = selectedBairroData.reduce((sum, r) => sum + (r.valor_m2 || 0) * (r.total_transacoes || 1), 0);
+      const avgM2 = totalTrans > 0 ? weightedSumM2 / totalTrans : 0;
       const valores = selectedBairroData.map(r => r.valor_m2 || 0).sort((a, b) => a - b);
       
-      // Calculate by tipologia
+      // Calculate by tipologia using weighted averages
       const aptos = selectedBairroData.filter(r => r.tipologia?.toLowerCase().includes('apartamento'));
       const casas = selectedBairroData.filter(r => r.tipologia?.toLowerCase().includes('casa'));
       
-      const avgApto = aptos.length > 0 ? aptos.reduce((s, r) => s + (r.valor_m2 || 0), 0) / aptos.length : 0;
-      const avgCasa = casas.length > 0 ? casas.reduce((s, r) => s + (r.valor_m2 || 0), 0) / casas.length : 0;
-      const totalCasas = casas.reduce((sum, r) => sum + (r.total_transacoes || 1), 0);
       const totalAptos = aptos.reduce((sum, r) => sum + (r.total_transacoes || 1), 0);
+      const totalCasas = casas.reduce((sum, r) => sum + (r.total_transacoes || 1), 0);
+      const weightedSumApto = aptos.reduce((s, r) => s + (r.valor_m2 || 0) * (r.total_transacoes || 1), 0);
+      const weightedSumCasa = casas.reduce((s, r) => s + (r.valor_m2 || 0) * (r.total_transacoes || 1), 0);
+      const avgApto = totalAptos > 0 ? weightedSumApto / totalAptos : 0;
+      const avgCasa = totalCasas > 0 ? weightedSumCasa / totalCasas : 0;
       
       contextData += `
 DADOS DETALHADOS - ${selectedBairro} (bairro selecionado pelo usuário, últimos 12 meses):
