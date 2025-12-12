@@ -166,6 +166,7 @@ export function MarketAssistant() {
         body: JSON.stringify({
           messages: [...messages, userMessage].map(m => ({ role: m.role, content: m.content })),
           bairro: selectedBairro,
+          voiceInput: wasVoiceInput,
         }),
       });
 
