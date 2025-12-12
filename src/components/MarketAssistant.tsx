@@ -117,18 +117,34 @@ export function MarketAssistant() {
       const audioUrl = URL.createObjectURL(audioBlob);
       const audio = new Audio(audioUrl);
       audioRef.current = audio;
+      
+      // Mobile fix: set attributes before play
+      audio.setAttribute('playsinline', 'true');
+      audio.preload = 'auto';
 
       audio.onended = () => {
         setIsSpeakingElevenLabs(false);
         URL.revokeObjectURL(audioUrl);
       };
 
-      audio.onerror = () => {
+      audio.onerror = (e) => {
+        console.error('Audio playback error:', e);
         setIsSpeakingElevenLabs(false);
         URL.revokeObjectURL(audioUrl);
       };
 
-      await audio.play();
+      // Wait for audio to be ready before playing (important for mobile)
+      await new Promise<void>((resolve, reject) => {
+        audio.oncanplaythrough = () => resolve();
+        audio.onerror = () => reject(new Error('Audio load failed'));
+        audio.load();
+      });
+      
+      // Use a promise-based play with user gesture simulation for mobile
+      const playPromise = audio.play();
+      if (playPromise !== undefined) {
+        await playPromise;
+      }
     } catch (error) {
       console.error('ElevenLabs TTS error:', error);
       setIsSpeakingElevenLabs(false);
