@@ -95,40 +95,52 @@ export function MarketAssistant() {
 
   // Track if audio was unlocked by user gesture
   const audioUnlockedRef = useRef(false);
+  const audioContextRef = useRef<AudioContext | null>(null);
   
-  // CRITICAL for iOS: Create and "unlock" audio element during user gesture (touchstart/click)
-  // The Audio element MUST be created and have play() called during the original user gesture
+  // CRITICAL for iOS: Use Web Audio API which is more reliable
+  // Must be called during user gesture to unlock audio context
   const unlockAudioForMobile = useCallback(() => {
-    if (audioUnlockedRef.current) return;
+    // Create AudioContext on first user gesture
+    if (!audioContextRef.current) {
+      audioContextRef.current = new (window.AudioContext || (window as any).webkitAudioContext)();
+      console.log('[Audio] AudioContext created, state:', audioContextRef.current.state);
+    }
     
-    // Create the audio element during user gesture
-    const audio = new Audio();
-    audio.setAttribute('playsinline', 'true');
-    audio.setAttribute('webkit-playsinline', 'true');
-    (audio as any).webkitPreservesPitch = true;
-    audio.preload = 'auto';
-    audio.volume = 1.0;
-    audioRef.current = audio;
-    
-    // Play silent audio immediately during user gesture to "unlock" audio context
-    // This is the key: iOS requires play() during the original gesture
-    audio.src = 'data:audio/mp3;base64,SUQzBAAAAAAAI1RTU0UAAAAPAAADTGF2ZjU4Ljc2LjEwMAAAAAAAAAAAAAAA//tQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAWGluZwAAAA8AAAACAAABhgC7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7//////////////////////////////////////////////////////////////////8AAAAATGF2YzU4LjEzAAAAAAAAAAAAAAAAJAAAAAAAAAAAAYYoRwmHAAAAAAD/+9DEAAAIAANIAAAAgAADSAAAAEQAAANIAAAAAAAAA0gAAABEREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREQ==';
-    
-    audio.play()
-      .then(() => {
-        console.log('[Audio] Mobile audio unlocked successfully');
+    // Resume AudioContext if suspended (iOS suspends by default)
+    if (audioContextRef.current.state === 'suspended') {
+      audioContextRef.current.resume().then(() => {
+        console.log('[Audio] AudioContext resumed successfully');
         audioUnlockedRef.current = true;
-      })
-      .catch((e) => {
-        console.log('[Audio] Silent play failed (expected on some browsers):', e.message);
+      }).catch(e => {
+        console.log('[Audio] AudioContext resume failed:', e.message);
       });
+    } else {
+      audioUnlockedRef.current = true;
+    }
+    
+    // Also create and unlock a regular Audio element as backup
+    if (!audioRef.current) {
+      const audio = new Audio();
+      audio.setAttribute('playsinline', 'true');
+      audio.setAttribute('webkit-playsinline', 'true');
+      audio.preload = 'auto';
+      audio.volume = 1.0;
+      audioRef.current = audio;
+      
+      // Play silent audio to unlock
+      audio.src = 'data:audio/mp3;base64,SUQzBAAAAAAAI1RTU0UAAAAPAAADTGF2ZjU4Ljc2LjEwMAAAAAAAAAAAAAAA//tQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAWGluZwAAAA8AAAACAAABhgC7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7//////////////////////////////////////////////////////////////////8AAAAATGF2YzU4LjEzAAAAAAAAAAAAAAAAJAAAAAAAAAAAAYYoRwmHAAAAAAD/+9DEAAAIAANIAAAAgAADSAAAAEQAAANIAAAAAAAAA0gAAABEREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREQ==';
+      audio.play().then(() => {
+        audio.pause();
+        console.log('[Audio] HTML5 Audio element unlocked');
+      }).catch(() => {});
+    }
   }, []);
 
   const speakWithElevenLabs = async (text: string) => {
     try {
       setIsSpeakingElevenLabs(true);
       
-      // Stop any previous audio (but keep the element for reuse)
+      // Stop any previous audio
       if (audioRef.current) {
         audioRef.current.pause();
       }
@@ -155,79 +167,87 @@ export function MarketAssistant() {
         throw new Error('TTS request failed');
       }
 
-      const audioBlob = await response.blob();
-      console.log('[TTS] Audio blob received, size:', audioBlob.size, 'type:', audioBlob.type);
+      const arrayBuffer = await response.arrayBuffer();
+      console.log('[TTS] Audio received, size:', arrayBuffer.byteLength);
       
-      if (audioBlob.size === 0) {
-        throw new Error('Empty audio blob received');
+      if (arrayBuffer.byteLength === 0) {
+        throw new Error('Empty audio received');
       }
 
-      // Convert blob to base64 data URL for better mobile compatibility
-      const reader = new FileReader();
-      
-      reader.onloadend = async () => {
-        const base64Audio = reader.result as string;
-        console.log('[TTS] Audio converted to base64, length:', base64Audio.length);
-        
-        // CRITICAL: Reuse the audio element that was unlocked during user gesture
-        // Creating a new Audio() here would lose the unlocked state on iOS
-        let audio = audioRef.current;
-        
-        if (!audio) {
-          // Fallback: create new audio (may not work on iOS if not in gesture context)
-          console.warn('[TTS] No pre-unlocked audio, creating new (may fail on iOS)');
-          audio = new Audio();
-          audio.setAttribute('playsinline', 'true');
-          audio.setAttribute('webkit-playsinline', 'true');
-          audioRef.current = audio;
-        }
-        
-        audio.volume = 1.0;
-
-        audio.onended = () => {
-          console.log('[TTS] Playback ended');
-          setIsSpeakingElevenLabs(false);
-        };
-
-        audio.onerror = (e) => {
-          console.error('[TTS] Playback error:', e);
-          setIsSpeakingElevenLabs(false);
-          // Try Web Speech fallback
-          speak(text);
-        };
-
-        // Set the source and play
-        audio.src = base64Audio;
-        
-        // For iOS, we need to wait for the audio to be ready
-        audio.oncanplaythrough = async () => {
-          console.log('[TTS] Audio ready, attempting play...');
-          try {
-            await audio!.play();
-            console.log('[TTS] Playing successfully!');
-          } catch (playError) {
-            console.error('[TTS] Play failed:', playError);
-            setIsSpeakingElevenLabs(false);
-            speak(text);
+      // Try Web Audio API first (more reliable on iOS)
+      if (audioContextRef.current) {
+        try {
+          // Resume context if suspended
+          if (audioContextRef.current.state === 'suspended') {
+            await audioContextRef.current.resume();
           }
-        };
-        
-        audio.load();
-      };
+          
+          console.log('[TTS] Using Web Audio API, context state:', audioContextRef.current.state);
+          
+          // Decode the audio data
+          const audioBuffer = await audioContextRef.current.decodeAudioData(arrayBuffer.slice(0));
+          
+          // Create a buffer source and play
+          const source = audioContextRef.current.createBufferSource();
+          source.buffer = audioBuffer;
+          source.connect(audioContextRef.current.destination);
+          
+          source.onended = () => {
+            console.log('[TTS] Web Audio playback ended');
+            setIsSpeakingElevenLabs(false);
+          };
+          
+          source.start(0);
+          console.log('[TTS] Web Audio playing successfully!');
+          return;
+        } catch (webAudioError) {
+          console.warn('[TTS] Web Audio API failed, falling back to HTML5 Audio:', webAudioError);
+        }
+      }
 
-      reader.onerror = () => {
-        console.error('[TTS] FileReader error');
+      // Fallback to HTML5 Audio with blob URL
+      const audioBlob = new Blob([arrayBuffer], { type: 'audio/mpeg' });
+      const audioUrl = URL.createObjectURL(audioBlob);
+      
+      let audio = audioRef.current;
+      if (!audio) {
+        audio = new Audio();
+        audio.setAttribute('playsinline', 'true');
+        audio.setAttribute('webkit-playsinline', 'true');
+        audioRef.current = audio;
+      }
+      
+      audio.volume = 1.0;
+
+      audio.onended = () => {
+        console.log('[TTS] HTML5 Audio playback ended');
         setIsSpeakingElevenLabs(false);
-        speak(text);
+        URL.revokeObjectURL(audioUrl);
       };
 
-      reader.readAsDataURL(audioBlob);
+      audio.onerror = (e) => {
+        console.error('[TTS] HTML5 Audio playback error:', e);
+        setIsSpeakingElevenLabs(false);
+        URL.revokeObjectURL(audioUrl);
+        speak(text); // Fallback to Web Speech
+      };
+
+      audio.src = audioUrl;
+      
+      try {
+        await audio.play();
+        console.log('[TTS] HTML5 Audio playing successfully!');
+      } catch (playError) {
+        console.error('[TTS] HTML5 Audio play failed:', playError);
+        setIsSpeakingElevenLabs(false);
+        URL.revokeObjectURL(audioUrl);
+        speak(text); // Fallback to Web Speech
+      }
       
     } catch (error) {
       console.error('[TTS] Error:', error);
       setIsSpeakingElevenLabs(false);
-      // Fallback to Web Speech API
-      speak(text);
+      speak(text); // Fallback to Web Speech API
     }
   };
 
