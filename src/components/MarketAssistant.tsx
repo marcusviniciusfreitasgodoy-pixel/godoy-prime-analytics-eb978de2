@@ -46,6 +46,7 @@ export function MarketAssistant() {
   const { selectedBairro } = useBairro();
   const { user } = useAuthContext();
   const scrollRef = useRef<HTMLDivElement>(null);
+  const viewportRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [uploadingFile, setUploadingFile] = useState(false);
@@ -75,20 +76,17 @@ export function MarketAssistant() {
                    user?.email?.split('@')[0] || 
                    null;
 
-  // Auto-scroll helper function - finds the actual scrollable viewport inside ScrollArea
+  // Auto-scroll helper function - uses viewport ref directly
   const scrollToBottom = useCallback(() => {
-    if (scrollRef.current) {
-      // ScrollArea uses a viewport div inside - find it
-      const viewport = scrollRef.current.querySelector('[data-radix-scroll-area-viewport]');
-      const scrollTarget = viewport || scrollRef.current;
-      
-      // Use requestAnimationFrame to ensure DOM is updated
-      requestAnimationFrame(() => {
-        scrollTarget.scrollTo({
-          top: scrollTarget.scrollHeight,
+    const viewport = viewportRef.current;
+    if (viewport) {
+      // Use setTimeout to ensure DOM is fully updated
+      setTimeout(() => {
+        viewport.scrollTo({
+          top: viewport.scrollHeight,
           behavior: 'smooth'
         });
-      });
+      }, 50);
     }
   }, []);
 
@@ -596,7 +594,7 @@ export function MarketAssistant() {
         </div>
 
         {/* Messages */}
-        <ScrollArea className="flex-1 p-4" ref={scrollRef}>
+        <ScrollArea className="flex-1 p-4" ref={scrollRef} viewportRef={viewportRef}>
           {messages.length === 0 ? (
             <div className="space-y-4">
               <div className="text-center py-4">
