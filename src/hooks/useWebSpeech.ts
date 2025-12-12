@@ -114,7 +114,9 @@ export function useWebSpeech(options: UseWebSpeechOptions = {}): UseWebSpeechRet
           break;
           
         case 'audio-capture':
-          toast.error('Microfone não disponível. Verifique se está conectado e permitido.');
+          toast.error('Microfone não detectado. Use o microfone do próprio computador (não do iPhone). Verifique Preferências do Sistema > Som > Entrada.', {
+            duration: 8000
+          });
           setIsListening(false);
           shouldRestartRef.current = false;
           break;
