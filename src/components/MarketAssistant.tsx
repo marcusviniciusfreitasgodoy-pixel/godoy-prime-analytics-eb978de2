@@ -50,6 +50,7 @@ export function MarketAssistant() {
   const [voiceGender, setVoiceGender] = useState<VoiceGender>('female');
   const lastVoiceInputRef = useRef(false);
   const [isSpeakingElevenLabs, setIsSpeakingElevenLabs] = useState(false);
+  const [isPreparingVoice, setIsPreparingVoice] = useState(false);
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
   // Web Speech API integration
@@ -273,6 +274,9 @@ export function MarketAssistant() {
 
   // Combined speaking state
   const isCurrentlySpeaking = isSpeaking || isSpeakingElevenLabs;
+  
+  // Voice response is being prepared when loading after voice input
+  const isVoiceResponsePending = isLoading && lastVoiceInputRef.current;
 
   // Send transcript when listening stops
   useEffect(() => {
@@ -505,10 +509,34 @@ export function MarketAssistant() {
                 <div className="flex gap-2 justify-start">
                   <img src={sofiaAvatar} alt="Sofia" className="h-7 w-7 rounded-full shrink-0 mt-0.5" />
                   <div className="bg-muted rounded-lg px-3 py-2">
-                    <div className="flex items-center gap-1 py-1">
+                    <div className="flex items-center gap-2 py-1">
                       <span className="w-2 h-2 bg-foreground/40 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
                       <span className="w-2 h-2 bg-foreground/40 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
                       <span className="w-2 h-2 bg-foreground/40 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
+                      {isVoiceResponsePending && (
+                        <span className="text-xs text-muted-foreground ml-1 flex items-center gap-1">
+                          <Volume2 className="h-3 w-3 animate-pulse" />
+                          Preparando voz...
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              )}
+              {/* Voice speaking indicator */}
+              {isCurrentlySpeaking && !isLoading && (
+                <div className="flex gap-2 justify-start animate-fade-in">
+                  <img src={sofiaAvatar} alt="Sofia" className="h-7 w-7 rounded-full shrink-0 mt-0.5" />
+                  <div className="bg-accent/10 border border-accent/30 rounded-lg px-3 py-2">
+                    <div className="flex items-center gap-2 text-xs text-accent">
+                      <Volume2 className="h-4 w-4 animate-pulse" />
+                      <span>Falando...</span>
+                      <button 
+                        onClick={() => { stopSpeaking(); stopElevenLabsSpeaking(); }}
+                        className="ml-1 text-muted-foreground hover:text-foreground transition-colors"
+                      >
+                        Parar
+                      </button>
                     </div>
                   </div>
                 </div>
