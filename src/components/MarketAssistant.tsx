@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from "react";
-import { MessageSquare, X, Send, Loader2, TrendingUp, MapPin, DollarSign, BarChart3, Home, Ruler, Paperclip, FileText, Image, Mic, MicOff, Volume2, VolumeX } from "lucide-react";
+import { MessageSquare, X, Send, Loader2, TrendingUp, MapPin, DollarSign, BarChart3, Home, Ruler, Paperclip, FileText, Image, Mic, MicOff, Volume2, VolumeX, User, UserRound } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -9,7 +9,13 @@ import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import sofiaAvatar from "@/assets/sofia-avatar.png";
-import { useWebSpeech } from "@/hooks/useWebSpeech";
+import { useWebSpeech, VoiceGender } from "@/hooks/useWebSpeech";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 interface Message {
   role: 'user' | 'assistant';
@@ -42,6 +48,7 @@ export function MarketAssistant() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [uploadingFile, setUploadingFile] = useState(false);
   const [voiceEnabled, setVoiceEnabled] = useState(true);
+  const [voiceGender, setVoiceGender] = useState<VoiceGender>('female');
   const lastVoiceInputRef = useRef(false);
 
   // Web Speech API integration
@@ -55,7 +62,8 @@ export function MarketAssistant() {
     speak,
     stopSpeaking,
     isTTSSupported,
-  } = useWebSpeech({ lang: 'pt-BR', voiceLang: 'pt-BR' });
+    availableVoices,
+  } = useWebSpeech({ lang: 'pt-BR', voiceLang: 'pt-BR', voiceGender });
 
   // Get user's first name from metadata or email
   const userName = user?.user_metadata?.full_name?.split(' ')[0] || 
@@ -486,24 +494,58 @@ export function MarketAssistant() {
               className="flex-1 bg-background"
             />
             
-            {/* Voice Output Toggle */}
+            {/* Voice Output Toggle with Gender Selection */}
             {isTTSSupported && (
-              <Button 
-                type="button" 
-                variant="ghost"
-                size="icon"
-                onClick={() => {
-                  if (isSpeaking) {
-                    stopSpeaking();
-                  } else {
-                    setVoiceEnabled(!voiceEnabled);
-                  }
-                }}
-                title={isSpeaking ? "Parar de falar" : voiceEnabled ? "Desativar voz" : "Ativar voz"}
-                className={cn(isSpeaking && "text-accent")}
-              >
-                {isSpeaking ? <Volume2 className="h-4 w-4 animate-pulse" /> : voiceEnabled ? <Volume2 className="h-4 w-4" /> : <VolumeX className="h-4 w-4" />}
-              </Button>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button 
+                    type="button" 
+                    variant="ghost"
+                    size="icon"
+                    onClick={(e) => {
+                      if (isSpeaking) {
+                        e.preventDefault();
+                        stopSpeaking();
+                      }
+                    }}
+                    title={isSpeaking ? "Parar de falar" : `Voz ${voiceGender === 'female' ? 'feminina' : voiceGender === 'male' ? 'masculina' : 'automática'}`}
+                    className={cn(isSpeaking && "text-accent", !voiceEnabled && "opacity-50")}
+                  >
+                    {isSpeaking ? (
+                      <Volume2 className="h-4 w-4 animate-pulse" />
+                    ) : voiceGender === 'female' ? (
+                      <UserRound className="h-4 w-4" />
+                    ) : voiceGender === 'male' ? (
+                      <User className="h-4 w-4" />
+                    ) : (
+                      <Volume2 className="h-4 w-4" />
+                    )}
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-48">
+                  <DropdownMenuItem 
+                    onClick={() => setVoiceEnabled(!voiceEnabled)}
+                    className="gap-2"
+                  >
+                    {voiceEnabled ? <VolumeX className="h-4 w-4" /> : <Volume2 className="h-4 w-4" />}
+                    {voiceEnabled ? "Desativar voz" : "Ativar voz"}
+                  </DropdownMenuItem>
+                  <DropdownMenuItem 
+                    onClick={() => setVoiceGender('female')}
+                    className={cn("gap-2", voiceGender === 'female' && "bg-accent/10")}
+                  >
+                    <UserRound className="h-4 w-4" />
+                    Voz Feminina
+                  </DropdownMenuItem>
+                  <DropdownMenuItem 
+                    onClick={() => setVoiceGender('male')}
+                    className={cn("gap-2", voiceGender === 'male' && "bg-accent/10")}
+                  >
+                    <User className="h-4 w-4" />
+                    Voz Masculina
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
             )}
 
             <Button type="submit" size="icon" disabled={isLoading || uploadingFile || isListening || !input.trim()}>
@@ -511,7 +553,7 @@ export function MarketAssistant() {
             </Button>
           </div>
           <p className="text-xs text-muted-foreground mt-2 text-center">
-            {isSTTSupported ? "🎤 Fale ou digite • 📎 Envie documentos para análise" : "📎 Envie PDFs ou imagens para análise"}
+            {isSTTSupported ? "🎤 Fale ou digite • 📎 Documentos • 🔊 Clique no ícone para opções de voz" : "📎 Envie PDFs ou imagens para análise"}
           </p>
         </form>
       </div>
