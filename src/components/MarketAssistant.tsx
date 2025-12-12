@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from "react";
-import { MessageSquare, X, Send, Loader2, Sparkles, TrendingUp, MapPin, DollarSign, BarChart3 } from "lucide-react";
+import { MessageSquare, X, Send, Loader2, Sparkles, TrendingUp, MapPin, DollarSign, BarChart3, Home, Ruler } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -12,7 +12,9 @@ interface Message {
 }
 
 const SUGGESTED_QUESTIONS = [
-  { icon: DollarSign, text: "Qual o preço médio por m² atualmente?" },
+  { icon: Home, text: "Quantas casas acima de R$ 5 milhões foram vendidas em 2025?" },
+  { icon: Ruler, text: "Qual o preço médio de apartamentos com mais de 150m²?" },
+  { icon: DollarSign, text: "Qual o preço médio por m² na Barra da Tijuca?" },
   { icon: TrendingUp, text: "Quais são os 5 bairros mais valorizados do Rio?" },
   { icon: MapPin, text: "Compare Barra da Tijuca com Recreio dos Bandeirantes" },
   { icon: BarChart3, text: "Quais bairros têm mais liquidez no mercado?" },

@@ -106,6 +106,16 @@ serve(async (req) => {
       valorMinimo = valor;
     }
     
+    // Detectar área mínima/máxima
+    const areaMinMatch = lastUserMessage.match(/(?:acima|maior|mais|superior)\s*(?:de|que)?\s*(\d+)\s*(?:m²|m2|metros?)/i);
+    const areaMaxMatch = lastUserMessage.match(/(?:abaixo|menor|menos|inferior|até)\s*(?:de|que)?\s*(\d+)\s*(?:m²|m2|metros?)/i);
+    const areaMinimo = areaMinMatch ? parseInt(areaMinMatch[1]) : 0;
+    const areaMaximo = areaMaxMatch ? parseInt(areaMaxMatch[1]) : 0;
+    
+    // Detectar número de quartos
+    const quartosMatch = lastUserMessage.match(/(\d+)\s*(?:quartos?|qts?|dormitórios?)/i);
+    const quartos = quartosMatch ? parseInt(quartosMatch[1]) : 0;
+    
     // Detectar tipologia
     const wantsCasas = /\bcasas?\b/i.test(lastUserMessage);
     const wantsAptos = /\b(?:apartamentos?|aptos?)\b/i.test(lastUserMessage);
@@ -211,6 +221,14 @@ serve(async (req) => {
       specificQuery = specificQuery.gte('valor_transacao', valorMinimo);
     }
     
+    // Aplicar filtro de área
+    if (areaMinimo > 0) {
+      specificQuery = specificQuery.gte('area_m2', areaMinimo);
+    }
+    if (areaMaximo > 0) {
+      specificQuery = specificQuery.lte('area_m2', areaMaximo);
+    }
+    
     // Aplicar filtro de tipologia
     if (wantsCasas && !wantsAptos) {
       specificQuery = specificQuery.ilike('tipologia', '%casa%');
@@ -252,7 +270,7 @@ ${bairroRanking.slice(0, 10).map((r, i) => `${i + 1}. ${r.bairro}: ${r.transacoe
 `;
 
     // Add specific query results if filters were applied
-    if (specificData && (requestedYear || valorMinimo > 0 || wantsCasas || wantsAptos)) {
+    if (specificData && (requestedYear || valorMinimo > 0 || areaMinimo > 0 || areaMaximo > 0 || wantsCasas || wantsAptos)) {
       const totalTrans = specificData.reduce((sum, r) => sum + (r.total_transacoes || 1), 0);
       const avgM2 = specificData.length > 0 ? specificData.reduce((sum, r) => sum + (r.valor_m2 || 0), 0) / specificData.length : 0;
       const avgValorTotal = specificData.length > 0 ? specificData.reduce((sum, r) => sum + (r.valor_transacao || 0), 0) / specificData.length : 0;
@@ -266,6 +284,8 @@ ${bairroRanking.slice(0, 10).map((r, i) => `${i + 1}. ${r.bairro}: ${r.transacoe
       let filterDesc = [];
       if (requestedYear) filterDesc.push(`ano ${requestedYear}`);
       if (valorMinimo > 0) filterDesc.push(`valor > R$ ${valorMinimo.toLocaleString('pt-BR')}`);
+      if (areaMinimo > 0) filterDesc.push(`área > ${areaMinimo}m²`);
+      if (areaMaximo > 0) filterDesc.push(`área < ${areaMaximo}m²`);
       if (wantsCasas && !wantsAptos) filterDesc.push('apenas casas');
       if (wantsAptos && !wantsCasas) filterDesc.push('apenas apartamentos');
       if (mentionedBairros.length > 0) filterDesc.push(`bairro: ${mentionedBairros.join(', ')}`);
