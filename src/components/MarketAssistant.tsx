@@ -50,6 +50,8 @@ export function MarketAssistant() {
   const [voiceEnabled, setVoiceEnabled] = useState(true);
   const [voiceGender, setVoiceGender] = useState<VoiceGender>('female');
   const lastVoiceInputRef = useRef(false);
+  const [isSpeakingElevenLabs, setIsSpeakingElevenLabs] = useState(false);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
 
   // Web Speech API integration
   const {
@@ -81,6 +83,67 @@ export function MarketAssistant() {
       inputRef.current.focus();
     }
   }, [isOpen]);
+
+  // ElevenLabs TTS function
+  const speakWithElevenLabs = async (text: string) => {
+    try {
+      setIsSpeakingElevenLabs(true);
+      
+      // Stop any previous audio
+      if (audioRef.current) {
+        audioRef.current.pause();
+        audioRef.current = null;
+      }
+
+      // Voice IDs: Laura (PT-BR female) or Roger (male)
+      const voiceId = voiceGender === 'male' 
+        ? 'CwhRBWXzGAHq8TQ4Fs17' // Roger - male
+        : 'FGY2WhTYpPnrIDTdsKH5'; // Laura - PT-BR female
+
+      const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/elevenlabs-tts`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+        },
+        body: JSON.stringify({ text, voiceId }),
+      });
+
+      if (!response.ok) {
+        throw new Error('TTS request failed');
+      }
+
+      const audioBlob = await response.blob();
+      const audioUrl = URL.createObjectURL(audioBlob);
+      const audio = new Audio(audioUrl);
+      audioRef.current = audio;
+
+      audio.onended = () => {
+        setIsSpeakingElevenLabs(false);
+        URL.revokeObjectURL(audioUrl);
+      };
+
+      audio.onerror = () => {
+        setIsSpeakingElevenLabs(false);
+        URL.revokeObjectURL(audioUrl);
+      };
+
+      await audio.play();
+    } catch (error) {
+      console.error('ElevenLabs TTS error:', error);
+      setIsSpeakingElevenLabs(false);
+      // Fallback to Web Speech API
+      speak(text);
+    }
+  };
+
+  const stopElevenLabsSpeaking = () => {
+    if (audioRef.current) {
+      audioRef.current.pause();
+      audioRef.current = null;
+    }
+    setIsSpeakingElevenLabs(false);
+  };
 
   const sendMessage = async (messageText: string, wasVoiceInput = false) => {
     if (!messageText.trim() || isLoading) return;
@@ -164,7 +227,7 @@ export function MarketAssistant() {
       }
 
       // Speak the response if voice input was used and voice is enabled
-      if (wasVoiceInput && voiceEnabled && assistantContent && isTTSSupported) {
+      if (wasVoiceInput && voiceEnabled && assistantContent) {
         // Clean text for speech (remove markdown formatting)
         const cleanText = assistantContent
           .replace(/\*\*/g, '')
@@ -173,7 +236,8 @@ export function MarketAssistant() {
           .replace(/`/g, '')
           .replace(/\n+/g, '. ')
           .trim();
-        speak(cleanText);
+        // Use ElevenLabs for premium voice
+        speakWithElevenLabs(cleanText);
       }
 
     } catch (error) {
@@ -201,10 +265,14 @@ export function MarketAssistant() {
     if (isListening) {
       stopListening();
     } else {
-      stopSpeaking(); // Stop any ongoing speech
+      stopSpeaking(); // Stop Web Speech
+      stopElevenLabsSpeaking(); // Stop ElevenLabs
       startListening();
     }
   };
+
+  // Combined speaking state
+  const isCurrentlySpeaking = isSpeaking || isSpeakingElevenLabs;
 
   // Send transcript when listening stops
   useEffect(() => {
@@ -495,58 +563,55 @@ export function MarketAssistant() {
             />
             
             {/* Voice Output Toggle with Gender Selection */}
-            {isTTSSupported && (
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button 
-                    type="button" 
-                    variant="ghost"
-                    size="icon"
-                    onClick={(e) => {
-                      if (isSpeaking) {
-                        e.preventDefault();
-                        stopSpeaking();
-                      }
-                    }}
-                    title={isSpeaking ? "Parar de falar" : `Voz ${voiceGender === 'female' ? 'feminina' : voiceGender === 'male' ? 'masculina' : 'automática'}`}
-                    className={cn(isSpeaking && "text-accent", !voiceEnabled && "opacity-50")}
-                  >
-                    {isSpeaking ? (
-                      <Volume2 className="h-4 w-4 animate-pulse" />
-                    ) : voiceGender === 'female' ? (
-                      <UserRound className="h-4 w-4" />
-                    ) : voiceGender === 'male' ? (
-                      <User className="h-4 w-4" />
-                    ) : (
-                      <Volume2 className="h-4 w-4" />
-                    )}
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-48">
-                  <DropdownMenuItem 
-                    onClick={() => setVoiceEnabled(!voiceEnabled)}
-                    className="gap-2"
-                  >
-                    {voiceEnabled ? <VolumeX className="h-4 w-4" /> : <Volume2 className="h-4 w-4" />}
-                    {voiceEnabled ? "Desativar voz" : "Ativar voz"}
-                  </DropdownMenuItem>
-                  <DropdownMenuItem 
-                    onClick={() => setVoiceGender('female')}
-                    className={cn("gap-2", voiceGender === 'female' && "bg-accent/10")}
-                  >
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button 
+                  type="button" 
+                  variant="ghost"
+                  size="icon"
+                  onClick={(e) => {
+                    if (isCurrentlySpeaking) {
+                      e.preventDefault();
+                      stopSpeaking();
+                      stopElevenLabsSpeaking();
+                    }
+                  }}
+                  title={isCurrentlySpeaking ? "Parar de falar" : `Voz ${voiceGender === 'female' ? 'feminina' : 'masculina'}`}
+                  className={cn(isCurrentlySpeaking && "text-accent", !voiceEnabled && "opacity-50")}
+                >
+                  {isCurrentlySpeaking ? (
+                    <Volume2 className="h-4 w-4 animate-pulse" />
+                  ) : voiceGender === 'female' ? (
                     <UserRound className="h-4 w-4" />
-                    Voz Feminina
-                  </DropdownMenuItem>
-                  <DropdownMenuItem 
-                    onClick={() => setVoiceGender('male')}
-                    className={cn("gap-2", voiceGender === 'male' && "bg-accent/10")}
-                  >
+                  ) : (
                     <User className="h-4 w-4" />
-                    Voz Masculina
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
-            )}
+                  )}
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-48">
+                <DropdownMenuItem 
+                  onClick={() => setVoiceEnabled(!voiceEnabled)}
+                  className="gap-2"
+                >
+                  {voiceEnabled ? <VolumeX className="h-4 w-4" /> : <Volume2 className="h-4 w-4" />}
+                  {voiceEnabled ? "Desativar voz" : "Ativar voz"}
+                </DropdownMenuItem>
+                <DropdownMenuItem 
+                  onClick={() => setVoiceGender('female')}
+                  className={cn("gap-2", voiceGender === 'female' && "bg-accent/10")}
+                >
+                  <UserRound className="h-4 w-4" />
+                  Voz Feminina
+                </DropdownMenuItem>
+                <DropdownMenuItem 
+                  onClick={() => setVoiceGender('male')}
+                  className={cn("gap-2", voiceGender === 'male' && "bg-accent/10")}
+                >
+                  <User className="h-4 w-4" />
+                  Voz Masculina
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
 
             <Button type="submit" size="icon" disabled={isLoading || uploadingFile || isListening || !input.trim()}>
               {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
