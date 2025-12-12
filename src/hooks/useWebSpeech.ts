@@ -1,10 +1,13 @@
 import { useState, useCallback, useRef, useEffect } from 'react';
 
+export type VoiceGender = 'female' | 'male' | 'auto';
+
 interface UseWebSpeechOptions {
   lang?: string;
   continuous?: boolean;
   interimResults?: boolean;
   voiceLang?: string;
+  voiceGender?: VoiceGender;
 }
 
 interface UseWebSpeechReturn {
@@ -20,6 +23,9 @@ interface UseWebSpeechReturn {
   speak: (text: string) => void;
   stopSpeaking: () => void;
   isTTSSupported: boolean;
+  
+  // Available voices
+  availableVoices: SpeechSynthesisVoice[];
 }
 
 export function useWebSpeech(options: UseWebSpeechOptions = {}): UseWebSpeechReturn {
@@ -27,7 +33,8 @@ export function useWebSpeech(options: UseWebSpeechOptions = {}): UseWebSpeechRet
     lang = 'pt-BR',
     continuous = false,
     interimResults = true,
-    voiceLang = 'pt-BR'
+    voiceLang = 'pt-BR',
+    voiceGender = 'female'
   } = options;
 
   // STT State
@@ -39,6 +46,7 @@ export function useWebSpeech(options: UseWebSpeechOptions = {}): UseWebSpeechRet
   // TTS State
   const [isSpeaking, setIsSpeaking] = useState(false);
   const utteranceRef = useRef<SpeechSynthesisUtterance | null>(null);
+  const [availableVoices, setAvailableVoices] = useState<SpeechSynthesisVoice[]>([]);
 
   // Check browser support
   const isSTTSupported = typeof window !== 'undefined' && 
@@ -127,26 +135,42 @@ export function useWebSpeech(options: UseWebSpeechOptions = {}): UseWebSpeechRet
     const utterance = new SpeechSynthesisUtterance(text);
     utterance.lang = voiceLang;
     utterance.rate = 0.95; // Slightly slower for clarity
-    utterance.pitch = 1.05; // Slightly higher for warmth
+    utterance.pitch = voiceGender === 'male' ? 0.9 : 1.1; // Adjust pitch based on gender
     utterance.volume = 1.0;
 
     // Get best available Portuguese voice with priority ranking
     const voices = window.speechSynthesis.getVoices();
     
-    // Priority order for premium voices
+    // Known female voice names
+    const femaleNames = ['Luciana', 'Fernanda', 'Maria', 'Ana', 'Francisca', 'female', 'Female'];
+    // Known male voice names
+    const maleNames = ['Daniel', 'Felipe', 'Ricardo', 'João', 'male', 'Male'];
+    
+    const genderMatch = (v: SpeechSynthesisVoice) => {
+      if (voiceGender === 'auto') return true;
+      const nameLower = v.name.toLowerCase();
+      if (voiceGender === 'female') {
+        return femaleNames.some(name => v.name.includes(name) || nameLower.includes(name.toLowerCase()));
+      } else {
+        return maleNames.some(name => v.name.includes(name) || nameLower.includes(name.toLowerCase()));
+      }
+    };
+    
+    // Priority order for premium voices with gender preference
     const voicePriority = [
-      // Google premium voices (best quality)
+      // Google premium voices (best quality) with gender match
+      (v: SpeechSynthesisVoice) => v.name.includes('Google') && v.lang === 'pt-BR' && genderMatch(v),
+      // Microsoft premium voices with gender match
+      (v: SpeechSynthesisVoice) => v.name.includes('Microsoft') && v.lang.startsWith('pt') && genderMatch(v),
+      // Apple premium voices with gender match
+      (v: SpeechSynthesisVoice) => v.lang.startsWith('pt') && genderMatch(v),
+      // Any Brazilian Portuguese voice with gender match
+      (v: SpeechSynthesisVoice) => v.lang === 'pt-BR' && genderMatch(v),
+      // Fallback: Any Google Portuguese voice
       (v: SpeechSynthesisVoice) => v.name.includes('Google') && v.lang === 'pt-BR',
-      // Microsoft premium voices
-      (v: SpeechSynthesisVoice) => v.name.includes('Microsoft') && v.lang.startsWith('pt'),
-      // Apple premium voices
-      (v: SpeechSynthesisVoice) => v.name.includes('Luciana') && v.lang.startsWith('pt'),
-      (v: SpeechSynthesisVoice) => v.name.includes('Fernanda') && v.lang.startsWith('pt'),
-      // Any Brazilian Portuguese female voice
-      (v: SpeechSynthesisVoice) => v.lang === 'pt-BR' && (v.name.toLowerCase().includes('female') || v.name.includes('Luciana') || v.name.includes('Fernanda')),
-      // Any Brazilian Portuguese voice
+      // Fallback: Any Brazilian Portuguese voice
       (v: SpeechSynthesisVoice) => v.lang === 'pt-BR',
-      // Any Portuguese voice
+      // Fallback: Any Portuguese voice
       (v: SpeechSynthesisVoice) => v.lang.startsWith('pt'),
     ];
 
@@ -158,7 +182,7 @@ export function useWebSpeech(options: UseWebSpeechOptions = {}): UseWebSpeechRet
 
     if (selectedVoice) {
       utterance.voice = selectedVoice;
-      console.log('Selected voice:', selectedVoice.name, selectedVoice.lang);
+      console.log('Selected voice:', selectedVoice.name, selectedVoice.lang, 'Gender preference:', voiceGender);
     }
 
     utterance.onstart = () => {
@@ -176,7 +200,7 @@ export function useWebSpeech(options: UseWebSpeechOptions = {}): UseWebSpeechRet
 
     utteranceRef.current = utterance;
     window.speechSynthesis.speak(utterance);
-  }, [isTTSSupported, voiceLang]);
+  }, [isTTSSupported, voiceLang, voiceGender]);
 
   const stopSpeaking = useCallback(() => {
     if (!isTTSSupported) return;
@@ -189,7 +213,10 @@ export function useWebSpeech(options: UseWebSpeechOptions = {}): UseWebSpeechRet
     if (!isTTSSupported) return;
 
     const loadVoices = () => {
-      window.speechSynthesis.getVoices();
+      const voices = window.speechSynthesis.getVoices();
+      // Filter to Portuguese voices only
+      const ptVoices = voices.filter(v => v.lang.startsWith('pt'));
+      setAvailableVoices(ptVoices);
     };
 
     loadVoices();
@@ -213,6 +240,9 @@ export function useWebSpeech(options: UseWebSpeechOptions = {}): UseWebSpeechRet
     speak,
     stopSpeaking,
     isTTSSupported,
+    
+    // Available voices
+    availableVoices,
   };
 }
 
