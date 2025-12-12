@@ -84,30 +84,44 @@ export function MarketAssistant() {
     }
   }, [isOpen]);
 
-  // ElevenLabs TTS function
-  // Pre-initialize audio element for mobile (must be created from user gesture context)
-  const initAudioForMobile = useCallback(() => {
-    if (!audioRef.current) {
-      const audio = new Audio();
-      audio.setAttribute('playsinline', 'true');
-      audio.setAttribute('webkit-playsinline', 'true');
-      audio.preload = 'auto';
-      audio.volume = 1.0;
-      audioRef.current = audio;
-    }
-    // Play silent audio to "unlock" audio on mobile
-    audioRef.current.src = 'data:audio/mp3;base64,SUQzBAAAAAAAI1RTU0UAAAAPAAADTGF2ZjU4Ljc2LjEwMAAAAAAAAAAAAAAA//tQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAWGluZwAAAA8AAAACAAABhgC7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7//////////////////////////////////////////////////////////////////8AAAAATGF2YzU4LjEzAAAAAAAAAAAAAAAAJAAAAAAAAAAAAYYoRwmHAAAAAAD/+9DEAAAIAANIAAAAgAADSAAAAEQAAANIAAAAAAAAA0gAAABEREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREQ==';
-    audioRef.current.play().catch(() => {});
+  // Track if audio was unlocked by user gesture
+  const audioUnlockedRef = useRef(false);
+  
+  // CRITICAL for iOS: Create and "unlock" audio element during user gesture (touchstart/click)
+  // The Audio element MUST be created and have play() called during the original user gesture
+  const unlockAudioForMobile = useCallback(() => {
+    if (audioUnlockedRef.current) return;
+    
+    // Create the audio element during user gesture
+    const audio = new Audio();
+    audio.setAttribute('playsinline', 'true');
+    audio.setAttribute('webkit-playsinline', 'true');
+    (audio as any).webkitPreservesPitch = true;
+    audio.preload = 'auto';
+    audio.volume = 1.0;
+    audioRef.current = audio;
+    
+    // Play silent audio immediately during user gesture to "unlock" audio context
+    // This is the key: iOS requires play() during the original gesture
+    audio.src = 'data:audio/mp3;base64,SUQzBAAAAAAAI1RTU0UAAAAPAAADTGF2ZjU4Ljc2LjEwMAAAAAAAAAAAAAAA//tQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAWGluZwAAAA8AAAACAAABhgC7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7//////////////////////////////////////////////////////////////////8AAAAATGF2YzU4LjEzAAAAAAAAAAAAAAAAJAAAAAAAAAAAAYYoRwmHAAAAAAD/+9DEAAAIAANIAAAAgAADSAAAAEQAAANIAAAAAAAAA0gAAABEREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREQ==';
+    
+    audio.play()
+      .then(() => {
+        console.log('[Audio] Mobile audio unlocked successfully');
+        audioUnlockedRef.current = true;
+      })
+      .catch((e) => {
+        console.log('[Audio] Silent play failed (expected on some browsers):', e.message);
+      });
   }, []);
 
   const speakWithElevenLabs = async (text: string) => {
     try {
       setIsSpeakingElevenLabs(true);
       
-      // Stop any previous audio
+      // Stop any previous audio (but keep the element for reuse)
       if (audioRef.current) {
         audioRef.current.pause();
-        audioRef.current.src = '';
       }
 
       // Voice IDs: Laura (PT-BR female) or Roger (male)
@@ -146,13 +160,20 @@ export function MarketAssistant() {
         const base64Audio = reader.result as string;
         console.log('[TTS] Audio converted to base64, length:', base64Audio.length);
         
-        // Create audio element
-        const audio = new Audio();
-        audio.setAttribute('playsinline', 'true');
-        audio.setAttribute('webkit-playsinline', 'true');
-        audio.preload = 'auto';
+        // CRITICAL: Reuse the audio element that was unlocked during user gesture
+        // Creating a new Audio() here would lose the unlocked state on iOS
+        let audio = audioRef.current;
+        
+        if (!audio) {
+          // Fallback: create new audio (may not work on iOS if not in gesture context)
+          console.warn('[TTS] No pre-unlocked audio, creating new (may fail on iOS)');
+          audio = new Audio();
+          audio.setAttribute('playsinline', 'true');
+          audio.setAttribute('webkit-playsinline', 'true');
+          audioRef.current = audio;
+        }
+        
         audio.volume = 1.0;
-        audioRef.current = audio;
 
         audio.onended = () => {
           console.log('[TTS] Playback ended');
@@ -166,10 +187,14 @@ export function MarketAssistant() {
           speak(text);
         };
 
+        // Set the source and play
+        audio.src = base64Audio;
+        
+        // For iOS, we need to wait for the audio to be ready
         audio.oncanplaythrough = async () => {
           console.log('[TTS] Audio ready, attempting play...');
           try {
-            await audio.play();
+            await audio!.play();
             console.log('[TTS] Playing successfully!');
           } catch (playError) {
             console.error('[TTS] Play failed:', playError);
@@ -177,9 +202,7 @@ export function MarketAssistant() {
             speak(text);
           }
         };
-
-        // Use base64 data URL instead of blob URL
-        audio.src = base64Audio;
+        
         audio.load();
       };
 
@@ -202,7 +225,7 @@ export function MarketAssistant() {
   const stopElevenLabsSpeaking = () => {
     if (audioRef.current) {
       audioRef.current.pause();
-      audioRef.current = null;
+      // Don't null the ref - we need to keep the unlocked audio element for iOS
     }
     setIsSpeakingElevenLabs(false);
   };
@@ -326,7 +349,7 @@ export function MarketAssistant() {
   // Handle voice input
   const handleVoiceInput = () => {
     // Initialize audio for mobile on user gesture (unlocks audio playback)
-    initAudioForMobile();
+    unlockAudioForMobile();
     
     if (isListening) {
       stopListening();
