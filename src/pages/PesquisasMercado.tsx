@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Search, DollarSign, Loader2, FileDown, RotateCcw, Trash2, FileSpreadsheet, FileText } from "lucide-react";
+import { Search, DollarSign, Loader2, FileDown, RotateCcw, Trash2, FileSpreadsheet, FileText, Building2 } from "lucide-react";
 import { Label } from "@/components/ui/label";
 import {
   Select,
@@ -22,6 +22,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { EmbeddedAdvancedSearch } from "@/components/EmbeddedAdvancedSearch";
 import { useBairro } from "@/contexts/BairroContext";
+import { CondominioSearch } from "@/components/CondominioSearch";
 
 const PERIODO_OPTIONS = [
   { value: '6', label: 'Últimos 6 meses' },
@@ -198,10 +199,14 @@ export default function PesquisasMercado() {
         </CardHeader>
         <CardContent>
           <Tabs defaultValue="localizacao" className="w-full">
-            <TabsList className="grid w-full grid-cols-2 h-auto">
+            <TabsList className="grid w-full grid-cols-3 h-auto">
               <TabsTrigger value="localizacao" className="text-xs sm:text-sm py-2 px-1 sm:px-3">
                 <Search className="h-4 w-4 sm:mr-2" />
                 <span className="hidden sm:inline">Localização</span>
+              </TabsTrigger>
+              <TabsTrigger value="condominios" className="text-xs sm:text-sm py-2 px-1 sm:px-3">
+                <Building2 className="h-4 w-4 sm:mr-2" />
+                <span className="hidden sm:inline">Condomínios</span>
               </TabsTrigger>
               <TabsTrigger value="transacoes" className="text-xs sm:text-sm py-2 px-1 sm:px-3">
                 <DollarSign className="h-4 w-4 sm:mr-2" />
@@ -212,6 +217,11 @@ export default function PesquisasMercado() {
             {/* Aba Localização */}
             <TabsContent value="localizacao" className="space-y-4 mt-4">
               <EmbeddedAdvancedSearch defaultBairro={selectedBairro} />
+            </TabsContent>
+
+            {/* Aba Condomínios */}
+            <TabsContent value="condominios" className="space-y-4 mt-4">
+              <CondominioSearch />
             </TabsContent>
 
             {/* Aba Transações */}
