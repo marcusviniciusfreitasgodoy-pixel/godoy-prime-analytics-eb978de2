@@ -79,14 +79,20 @@ export function MarketAssistant() {
   // Auto-scroll helper function - uses viewport ref directly
   const scrollToBottom = useCallback(() => {
     const viewport = viewportRef.current;
+    console.log('[SCROLL DEBUG] scrollToBottom called, viewport:', !!viewport);
+    
     if (viewport) {
+      console.log('[SCROLL DEBUG] scrollHeight:', viewport.scrollHeight, 'clientHeight:', viewport.clientHeight);
+      
       // Use setTimeout to ensure DOM is fully updated
       setTimeout(() => {
-        viewport.scrollTo({
-          top: viewport.scrollHeight,
-          behavior: 'smooth'
-        });
-      }, 50);
+        // Try scrollTop assignment as fallback (more compatible)
+        const targetScroll = viewport.scrollHeight - viewport.clientHeight;
+        console.log('[SCROLL DEBUG] Setting scrollTop to:', targetScroll);
+        viewport.scrollTop = targetScroll;
+      }, 100);
+    } else {
+      console.log('[SCROLL DEBUG] viewport ref is null!');
     }
   }, []);
 
