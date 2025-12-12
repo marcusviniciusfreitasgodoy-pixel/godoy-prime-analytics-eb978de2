@@ -12,12 +12,12 @@ interface Message {
 }
 
 const SUGGESTED_QUESTIONS = [
+  { icon: MapPin, text: "Qual o preço médio na Avenida Lúcio Costa?" },
   { icon: Home, text: "Quantas casas acima de R$ 5 milhões foram vendidas em 2025?" },
   { icon: Ruler, text: "Qual o preço médio de apartamentos com mais de 150m²?" },
   { icon: DollarSign, text: "Qual o preço médio por m² na Barra da Tijuca?" },
   { icon: TrendingUp, text: "Quais são os 5 bairros mais valorizados do Rio?" },
-  { icon: MapPin, text: "Compare Barra da Tijuca com Recreio dos Bandeirantes" },
-  { icon: BarChart3, text: "Quais bairros têm mais liquidez no mercado?" },
+  { icon: BarChart3, text: "Compare Rua Olegário Maciel com Avenida das Américas" },
 ];
 
 export function MarketAssistant() {
