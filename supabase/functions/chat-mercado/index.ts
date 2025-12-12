@@ -9,7 +9,7 @@ const corsHeaders = {
 const currentYear = new Date().getFullYear();
 const currentDate = new Date().toLocaleDateString('pt-BR');
 
-const SYSTEM_PROMPT = `Você é a SOFIA, assistente virtual especializada em mercado imobiliário do Rio de Janeiro da Godoy Prime Realty. Você é uma EXPERT em:
+const SYSTEM_PROMPT_BASE = `Você é a SOFIA, assistente virtual especializada em mercado imobiliário do Rio de Janeiro da Godoy Prime Realty. Você é uma EXPERT em:
 - Transações imobiliárias (compra, venda, locação)
 - Documentação imobiliária (certidões, escrituras, registros)
 - Legislação imobiliária brasileira (Lei do Inquilinato, Código Civil, ITBI)
@@ -70,15 +70,47 @@ REGRAS IMPORTANTES:
 3. Use valores em Reais (R$) formatados no padrão brasileiro
 4. Para questões jurídicas complexas, recomende consulta a advogado
 5. Para avaliações formais, recomende perito avaliador credenciado
-6. O ano atual é ${currentYear} - dados de ${currentYear} são ATUAIS
+6. O ano atual é ${currentYear} - dados de ${currentYear} são ATUAIS`;
 
-FORMATAÇÃO DE RESPOSTAS:
+const TEXT_FORMAT_INSTRUCTIONS = `
+FORMATAÇÃO DE RESPOSTAS (TEXTO):
 - Use **negrito** para valores importantes
 - Para comparações, use TABELAS markdown
 - Use listas numeradas para rankings
 - Use emojis moderadamente: 📈 📉 🏠 🏢 📍 ⚠️ ✅ 📋
 - Agrupe informações em seções quando necessário
 - Finalize com insights ou recomendações práticas`;
+
+const VOICE_FORMAT_INSTRUCTIONS = `
+FORMATAÇÃO DE RESPOSTAS (VOZ - MUITO IMPORTANTE):
+Esta resposta será FALADA em voz alta, então siga estas regras OBRIGATÓRIAS:
+
+1. NUNCA use símbolos ou abreviações - escreva por extenso:
+   - "R$" → "reais"
+   - "m²" → "metros quadrados" 
+   - "%" → "por cento"
+   - "/" → use palavras como "de", "por", "em"
+   - Números grandes: "10.839" → "dez mil oitocentos e trinta e nove"
+
+2. SEJA EXTREMAMENTE CONCISA - máximo 3 frases curtas
+   - Responda APENAS o que foi perguntado
+   - Não adicione contexto extra ou explicações desnecessárias
+   - Vá direto ao ponto
+
+3. Use linguagem NATURAL e FLUIDA para fala:
+   - Evite listas ou bullet points
+   - Use frases conectadas naturalmente
+   - Tom conversacional e amigável
+
+4. NÃO use formatação markdown (negrito, itálico, listas)
+
+5. Exemplo de resposta ideal para voz:
+   Pergunta: "Qual o preço médio na Barra?"
+   Resposta: "O preço médio na Barra da Tijuca está em torno de dez mil e oitocentos reais por metro quadrado, com base em mais de duas mil transações deste ano."`;
+
+function getSystemPrompt(isVoiceInput: boolean): string {
+  return SYSTEM_PROMPT_BASE + (isVoiceInput ? VOICE_FORMAT_INSTRUCTIONS : TEXT_FORMAT_INSTRUCTIONS);
+}
 
 // Extract keywords from message for RAG search
 function extractKeywordsForRAG(message: string): string[] {
@@ -132,7 +164,7 @@ serve(async (req) => {
   }
 
   try {
-    const { messages, bairro } = await req.json();
+    const { messages, bairro, voiceInput } = await req.json();
     
     if (!messages || !Array.isArray(messages)) {
       throw new Error('Messages array is required');
@@ -623,7 +655,7 @@ ${allBairros.join(', ')}
 
     const systemMessage = {
       role: 'system',
-      content: SYSTEM_PROMPT + '\n\n' + contextData
+      content: getSystemPrompt(voiceInput === true) + '\n\n' + contextData
     };
 
     console.log('Calling Lovable AI with multi-bairro context. Selected:', selectedBairro, 'Mentioned:', mentionedBairros);
