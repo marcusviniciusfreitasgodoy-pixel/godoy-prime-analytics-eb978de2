@@ -12,12 +12,12 @@ interface Message {
 }
 
 const SUGGESTED_QUESTIONS = [
+  { icon: Home, text: "Qual o preço médio no condomínio Riserva Golf?" },
   { icon: MapPin, text: "Qual o preço médio na Avenida Lúcio Costa?" },
-  { icon: Home, text: "Quantas casas acima de R$ 5 milhões foram vendidas em 2025?" },
-  { icon: Ruler, text: "Qual o preço médio de apartamentos com mais de 150m²?" },
-  { icon: DollarSign, text: "Qual o preço médio por m² na Barra da Tijuca?" },
-  { icon: TrendingUp, text: "Quais são os 5 bairros mais valorizados do Rio?" },
-  { icon: BarChart3, text: "Compare Rua Olegário Maciel com Avenida das Américas" },
+  { icon: Ruler, text: "Apartamentos acima de 200m² na Barra em 2025?" },
+  { icon: DollarSign, text: "Casas acima de R$ 5 milhões vendidas em 2024?" },
+  { icon: TrendingUp, text: "Compare Riserva com Península" },
+  { icon: BarChart3, text: "Top 5 bairros mais valorizados do Rio" },
 ];
 
 export function MarketAssistant() {

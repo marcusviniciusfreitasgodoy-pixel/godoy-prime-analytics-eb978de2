@@ -6,22 +6,29 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+const currentYear = new Date().getFullYear();
+const currentDate = new Date().toLocaleDateString('pt-BR');
+
 const SYSTEM_PROMPT = `Você é um assistente especializado em mercado imobiliário do Rio de Janeiro, com acesso a dados oficiais de transações ITBI (Imposto de Transmissão de Bens Imóveis) da Prefeitura do Rio de Janeiro.
 
-DATA ATUAL: ${new Date().toLocaleDateString('pt-BR')} (${new Date().getFullYear()})
+DATA ATUAL: ${currentDate} (${currentYear})
 
 COBERTURA DE DADOS:
 - Você tem acesso a dados de TODOS os 142 bairros do Rio de Janeiro
-- Dados históricos desde 2020 até ${new Date().getFullYear()} (ano atual)
+- Dados históricos desde 2020 até ${currentYear} (ano atual)
 - Mais de 80.000 transações reais registradas
 - Dados incluem: preço por m², volume de transações, tipologia (apartamento/casa), valor total da transação
+- Dados de condomínios mapeados com nome, microbairro e padrão construtivo
 
 Suas capacidades incluem:
 - Informar preços médios por m² de QUALQUER bairro do Rio de Janeiro
+- Buscar dados de CONDOMÍNIOS específicos (ex: Riserva Golf, Península, Cidade Jardim)
+- Buscar dados de LOGRADOUROS específicos (ruas, avenidas)
 - Filtrar transações por valor (acima de X, abaixo de Y, faixa específica)
+- Filtrar por área (metros quadrados)
 - Filtrar por tipologia (apenas casas, apenas apartamentos)
 - Filtrar por ano específico (2020, 2021, 2022, 2023, 2024, 2025)
-- Comparar valorização entre diferentes bairros e zonas (Sul, Norte, Oeste, Centro)
+- Comparar valorização entre diferentes bairros, ruas e condomínios
 - Analisar tendências de mercado por região
 - Identificar bairros com maior liquidez (volume de vendas)
 - Fazer rankings comparativos entre bairros
@@ -29,20 +36,25 @@ Suas capacidades incluem:
 
 Regras importantes:
 1. Sempre baseie suas respostas nos dados fornecidos no contexto
-2. Quando não tiver dados suficientes para um bairro específico, informe ao usuário
+2. Quando não tiver dados suficientes, informe ao usuário
 3. Use valores em Reais (R$) formatados no padrão brasileiro
 4. Seja conciso mas informativo
 5. Se a pergunta não for sobre mercado imobiliário, educadamente redirecione para seu foco
 6. Cite os períodos dos dados quando relevante
-7. Para comparações, destaque as diferenças percentuais entre os bairros
+7. Para comparações, destaque as diferenças percentuais
 8. Mencione a quantidade de transações para dar contexto sobre a confiabilidade dos dados
-9. IMPORTANTE: O ano atual é ${new Date().getFullYear()}. Dados de ${new Date().getFullYear()} são dados ATUAIS, não futuros.
+9. IMPORTANTE: O ano atual é ${currentYear}. Dados de ${currentYear} são dados ATUAIS, não futuros.
 
-Formato de resposta:
-- Use parágrafos curtos
-- Para comparações e rankings, use listas ou tabelas quando apropriado
-- Destaque valores importantes
-- Finalize com insights úteis quando possível`;
+FORMATAÇÃO DE RESPOSTAS (IMPORTANTE):
+- Use **negrito** para destacar valores importantes (preços, percentuais)
+- Para comparações e rankings, use TABELAS markdown:
+  | Localização | Preço/m² | Transações |
+  |-------------|----------|------------|
+  | Local A     | R$ X     | Y          |
+- Use listas numeradas para rankings
+- Use emojis moderadamente para destacar: 📈 alta, 📉 baixa, 🏠 casas, 🏢 apartamentos, 📍 localização
+- Agrupe informações em seções com títulos quando a resposta for longa
+- Finalize com um breve insight ou recomendação quando apropriado`;
 
 // Extract neighborhood names mentioned in user message
 function extractBairrosFromMessage(message: string): string[] {
@@ -142,6 +154,37 @@ serve(async (req) => {
       }
     }
     
+    // Detectar condomínios mencionados
+    // Lista de condomínios conhecidos para detecção direta
+    const condominiosConhecidos = [
+      'RISERVA', 'RISERVA GOLF', 'RISERVA UNO', 'RISERVA PREMIUN',
+      'PENINSULA', 'CIDADE JARDIM', 'MANDALA', 'ATLANTICO SUL',
+      'WATERWAYS', 'BLUE', 'STRICTA', 'LONDON GREEN', 'SANTA MONICA',
+      'AMERICAS PARK', 'BARRA BONITA', 'GOLDEN GREEN', 'PEDRA DE ITAUNA',
+      'NOVA IPANEMA', 'RIVIERA', 'OCEAN FRONT', 'MAUI', 'MONACO',
+      'PORTOFINO', 'BARRA BALI', 'JARDIM OCEANICO', 'GRAND HYATT',
+      'LE PARC', 'VIA BARRA', 'AREIA BRASIL', 'JARDIM DA BARRA',
+    ];
+    
+    let mentionedCondominios: string[] = [];
+    const upperMessage = lastUserMessage.toUpperCase();
+    for (const cond of condominiosConhecidos) {
+      if (upperMessage.includes(cond)) {
+        mentionedCondominios.push(cond);
+      }
+    }
+    
+    // Também tentar detectar padrão "condomínio X" ou "no X"
+    const condPattern = /(?:condomínio|cond\.?|no|do)\s+([a-záéíóúâêîôûãõç\s]+?)(?:\s|,|\.|$)/gi;
+    const condMatches = lastUserMessage.matchAll(condPattern);
+    for (const match of condMatches) {
+      if (match[1] && match[1].trim().length > 3) {
+        const nome = match[1].trim().toUpperCase();
+        if (!mentionedCondominios.includes(nome) && !['BARRA', 'TIJUCA', 'RIO', 'JANEIRO'].includes(nome)) {
+          mentionedCondominios.push(nome);
+        }
+      }
+    }
     const twelveMonthsAgo = new Date();
     twelveMonthsAgo.setMonth(twelveMonthsAgo.getMonth() - 12);
     const dateFilter = twelveMonthsAgo.toISOString().split('T')[0];
@@ -304,6 +347,56 @@ serve(async (req) => {
       }
     }
 
+    // 8. Get data for mentioned condominios
+    let condominiosData: Record<string, { avgM2: number; transacoes: number; valorMedio: number; microbairro: string; padrao: string }> = {};
+    
+    if (mentionedCondominios.length > 0) {
+      for (const cond of mentionedCondominios) {
+        // Primeiro buscar o mapeamento do condomínio
+        const { data: condMapping } = await supabase
+          .from('condominios_mapeamento')
+          .select('logradouro_padrao, microbairro, padrao_construtivo, nome_condominio')
+          .ilike('nome_condominio', `%${cond}%`)
+          .limit(5);
+        
+        if (condMapping && condMapping.length > 0) {
+          // Buscar transações dos logradouros mapeados
+          const logradouros = condMapping.map(c => c.logradouro_padrao);
+          
+          let allCondData: any[] = [];
+          for (const log of logradouros) {
+            const { data: condTransactions } = await supabase
+              .from('itbi_transactions')
+              .select('valor_m2, total_transacoes, valor_transacao')
+              .ilike('logradouro', `%${log}%`)
+              .eq('uso', 'Residencial')
+              .gte('percentual_transferido', 90)
+              .gte('data_transacao', dateFilter)
+              .not('valor_m2', 'is', null)
+              .limit(200);
+            
+            if (condTransactions) {
+              allCondData = [...allCondData, ...condTransactions];
+            }
+          }
+          
+          if (allCondData.length > 0) {
+            const totalTrans = allCondData.reduce((sum, r) => sum + (r.total_transacoes || 1), 0);
+            const avgM2 = allCondData.reduce((sum, r) => sum + (r.valor_m2 || 0), 0) / allCondData.length;
+            const avgValor = allCondData.reduce((sum, r) => sum + (r.valor_transacao || 0), 0) / allCondData.length;
+            
+            condominiosData[condMapping[0].nome_condominio || cond] = {
+              avgM2,
+              transacoes: totalTrans,
+              valorMedio: avgValor,
+              microbairro: condMapping[0].microbairro || 'N/A',
+              padrao: condMapping[0].padrao_construtivo || 'N/A'
+            };
+          }
+        }
+      }
+    }
+
     // Build context data
     let contextData = `
 DATA ATUAL: ${new Date().toLocaleDateString('pt-BR')} - ANO ${currentYear}
@@ -394,6 +487,16 @@ ${Object.entries(mentionedBairrosData).map(([bairro, data]) =>
 DADOS DOS LOGRADOUROS (RUAS/AVENIDAS) MENCIONADOS NA PERGUNTA:
 ${Object.entries(logradourosData).map(([logradouro, data]) => 
   `- ${logradouro}: R$ ${data.avgM2.toLocaleString('pt-BR', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}/m² | ${data.transacoes} transações | Valor médio: R$ ${data.valorMedio.toLocaleString('pt-BR', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`
+).join('\n')}
+`;
+    }
+
+    // Add mentioned condominios data
+    if (Object.keys(condominiosData).length > 0) {
+      contextData += `
+DADOS DOS CONDOMÍNIOS MENCIONADOS NA PERGUNTA:
+${Object.entries(condominiosData).map(([cond, data]) => 
+  `- ${cond}: R$ ${data.avgM2.toLocaleString('pt-BR', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}/m² | ${data.transacoes} transações | Valor médio: R$ ${data.valorMedio.toLocaleString('pt-BR', { minimumFractionDigits: 0, maximumFractionDigits: 0 })} | Microbairro: ${data.microbairro} | Padrão: ${data.padrao}`
 ).join('\n')}
 `;
     }
