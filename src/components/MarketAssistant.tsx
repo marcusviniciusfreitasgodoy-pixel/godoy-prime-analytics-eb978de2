@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from "react";
-import { MessageSquare, X, Send, Loader2, TrendingUp, MapPin, DollarSign, BarChart3, Home, Ruler, Paperclip, FileText, Image } from "lucide-react";
+import { MessageSquare, X, Send, Loader2, TrendingUp, MapPin, DollarSign, BarChart3, Home, Ruler, Paperclip, FileText, Image, Mic, MicOff, Volume2, VolumeX } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -9,6 +9,7 @@ import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import sofiaAvatar from "@/assets/sofia-avatar.png";
+import { useWebSpeech } from "@/hooks/useWebSpeech";
 
 interface Message {
   role: 'user' | 'assistant';
@@ -40,6 +41,21 @@ export function MarketAssistant() {
   const inputRef = useRef<HTMLInputElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [uploadingFile, setUploadingFile] = useState(false);
+  const [voiceEnabled, setVoiceEnabled] = useState(true);
+  const lastVoiceInputRef = useRef(false);
+
+  // Web Speech API integration
+  const {
+    isListening,
+    transcript,
+    startListening,
+    stopListening,
+    isSTTSupported,
+    isSpeaking,
+    speak,
+    stopSpeaking,
+    isTTSSupported,
+  } = useWebSpeech({ lang: 'pt-BR', voiceLang: 'pt-BR' });
 
   // Get user's first name from metadata or email
   const userName = user?.user_metadata?.full_name?.split(' ')[0] || 
@@ -58,13 +74,14 @@ export function MarketAssistant() {
     }
   }, [isOpen]);
 
-  const sendMessage = async (messageText: string) => {
+  const sendMessage = async (messageText: string, wasVoiceInput = false) => {
     if (!messageText.trim() || isLoading) return;
 
     const userMessage: Message = { role: 'user', content: messageText };
     setMessages(prev => [...prev, userMessage]);
     setInput("");
     setIsLoading(true);
+    lastVoiceInputRef.current = wasVoiceInput;
 
     let assistantContent = "";
 
@@ -138,6 +155,19 @@ export function MarketAssistant() {
         }
       }
 
+      // Speak the response if voice input was used and voice is enabled
+      if (wasVoiceInput && voiceEnabled && assistantContent && isTTSSupported) {
+        // Clean text for speech (remove markdown formatting)
+        const cleanText = assistantContent
+          .replace(/\*\*/g, '')
+          .replace(/\*/g, '')
+          .replace(/#{1,6}\s/g, '')
+          .replace(/`/g, '')
+          .replace(/\n+/g, '. ')
+          .trim();
+        speak(cleanText);
+      }
+
     } catch (error) {
       console.error('Chat error:', error);
       setMessages(prev => [...prev, { 
@@ -151,12 +181,29 @@ export function MarketAssistant() {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    sendMessage(input);
+    sendMessage(input, false);
   };
 
   const handleSuggestion = (text: string) => {
-    sendMessage(text);
+    sendMessage(text, false);
   };
+
+  // Handle voice input
+  const handleVoiceInput = () => {
+    if (isListening) {
+      stopListening();
+    } else {
+      stopSpeaking(); // Stop any ongoing speech
+      startListening();
+    }
+  };
+
+  // Send transcript when listening stops
+  useEffect(() => {
+    if (!isListening && transcript) {
+      sendMessage(transcript, true);
+    }
+  }, [isListening, transcript]);
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -409,25 +456,62 @@ export function MarketAssistant() {
               variant="outline" 
               size="icon"
               onClick={() => fileInputRef.current?.click()}
-              disabled={isLoading || uploadingFile}
+              disabled={isLoading || uploadingFile || isListening}
               title="Enviar documento para análise"
             >
               {uploadingFile ? <Loader2 className="h-4 w-4 animate-spin" /> : <Paperclip className="h-4 w-4" />}
             </Button>
+            
+            {/* Voice Input Button */}
+            {isSTTSupported && (
+              <Button 
+                type="button" 
+                variant={isListening ? "destructive" : "outline"}
+                size="icon"
+                onClick={handleVoiceInput}
+                disabled={isLoading || uploadingFile}
+                title={isListening ? "Parar gravação" : "Falar com Sofia"}
+                className={cn(isListening && "animate-pulse")}
+              >
+                {isListening ? <MicOff className="h-4 w-4" /> : <Mic className="h-4 w-4" />}
+              </Button>
+            )}
+
             <Input
               ref={inputRef}
-              value={input}
+              value={isListening ? transcript : input}
               onChange={(e) => setInput(e.target.value)}
-              placeholder="Pergunte sobre o mercado..."
-              disabled={isLoading || uploadingFile}
+              placeholder={isListening ? "Ouvindo..." : "Pergunte sobre o mercado..."}
+              disabled={isLoading || uploadingFile || isListening}
               className="flex-1 bg-background"
             />
-            <Button type="submit" size="icon" disabled={isLoading || uploadingFile || !input.trim()}>
+            
+            {/* Voice Output Toggle */}
+            {isTTSSupported && (
+              <Button 
+                type="button" 
+                variant="ghost"
+                size="icon"
+                onClick={() => {
+                  if (isSpeaking) {
+                    stopSpeaking();
+                  } else {
+                    setVoiceEnabled(!voiceEnabled);
+                  }
+                }}
+                title={isSpeaking ? "Parar de falar" : voiceEnabled ? "Desativar voz" : "Ativar voz"}
+                className={cn(isSpeaking && "text-accent")}
+              >
+                {isSpeaking ? <Volume2 className="h-4 w-4 animate-pulse" /> : voiceEnabled ? <Volume2 className="h-4 w-4" /> : <VolumeX className="h-4 w-4" />}
+              </Button>
+            )}
+
+            <Button type="submit" size="icon" disabled={isLoading || uploadingFile || isListening || !input.trim()}>
               {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
             </Button>
           </div>
           <p className="text-xs text-muted-foreground mt-2 text-center">
-            📎 Envie PDFs ou imagens para análise de documentos
+            {isSTTSupported ? "🎤 Fale ou digite • 📎 Envie documentos para análise" : "📎 Envie PDFs ou imagens para análise"}
           </p>
         </form>
       </div>
