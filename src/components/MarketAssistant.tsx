@@ -20,6 +20,8 @@ import {
 interface Message {
   role: 'user' | 'assistant';
   content: string;
+  wasVoiceInput?: boolean; // Track if this message came from voice input
+  audioUrl?: string; // Store audio URL for manual playback
   attachment?: {
     type: 'document' | 'image';
     name: string;
@@ -51,6 +53,7 @@ export function MarketAssistant() {
   const lastVoiceInputRef = useRef(false);
   const [isSpeakingElevenLabs, setIsSpeakingElevenLabs] = useState(false);
   const [isPreparingVoice, setIsPreparingVoice] = useState(false);
+  const [pendingAudioUrl, setPendingAudioUrl] = useState<string | null>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
   // Web Speech API integration
@@ -209,6 +212,9 @@ export function MarketAssistant() {
       const audioBlob = new Blob([arrayBuffer], { type: 'audio/mpeg' });
       const audioUrl = URL.createObjectURL(audioBlob);
       
+      // Store URL for manual playback if autoplay fails (iOS)
+      setPendingAudioUrl(audioUrl);
+      
       let audio = audioRef.current;
       if (!audio) {
         audio = new Audio();
@@ -222,14 +228,14 @@ export function MarketAssistant() {
       audio.onended = () => {
         console.log('[TTS] HTML5 Audio playback ended');
         setIsSpeakingElevenLabs(false);
+        setPendingAudioUrl(null);
         URL.revokeObjectURL(audioUrl);
       };
 
       audio.onerror = (e) => {
         console.error('[TTS] HTML5 Audio playback error:', e);
         setIsSpeakingElevenLabs(false);
-        URL.revokeObjectURL(audioUrl);
-        speak(text); // Fallback to Web Speech
+        // Keep pendingAudioUrl for manual retry button
       };
 
       audio.src = audioUrl;
@@ -237,11 +243,11 @@ export function MarketAssistant() {
       try {
         await audio.play();
         console.log('[TTS] HTML5 Audio playing successfully!');
+        setPendingAudioUrl(null); // Clear since autoplay worked
       } catch (playError) {
-        console.error('[TTS] HTML5 Audio play failed:', playError);
+        console.error('[TTS] HTML5 Audio play blocked - showing play button:', playError);
         setIsSpeakingElevenLabs(false);
-        URL.revokeObjectURL(audioUrl);
-        speak(text); // Fallback to Web Speech
+        // Keep pendingAudioUrl so user can tap play button
       }
       
     } catch (error) {
@@ -254,10 +260,40 @@ export function MarketAssistant() {
   const stopElevenLabsSpeaking = () => {
     if (audioRef.current) {
       audioRef.current.pause();
-      // Don't null the ref - we need to keep the unlocked audio element for iOS
     }
     setIsSpeakingElevenLabs(false);
   };
+
+  // Manual play function - called from user tap on play button (solves iOS autoplay restriction)
+  const playPendingAudio = useCallback(() => {
+    if (!pendingAudioUrl) return;
+    
+    setIsSpeakingElevenLabs(true);
+    
+    const audio = new Audio(pendingAudioUrl);
+    audio.setAttribute('playsinline', 'true');
+    audio.volume = 1.0;
+    audioRef.current = audio;
+    
+    audio.onended = () => {
+      setIsSpeakingElevenLabs(false);
+      setPendingAudioUrl(null);
+      URL.revokeObjectURL(pendingAudioUrl);
+    };
+    
+    audio.onerror = () => {
+      setIsSpeakingElevenLabs(false);
+      toast.error('Não foi possível reproduzir o áudio');
+    };
+    
+    audio.play().then(() => {
+      console.log('[TTS] Manual play successful!');
+    }).catch((e) => {
+      console.error('[TTS] Manual play failed:', e);
+      setIsSpeakingElevenLabs(false);
+      toast.error('Erro ao reproduzir áudio');
+    });
+  }, [pendingAudioUrl]);
 
   const sendMessage = async (messageText: string, wasVoiceInput = false) => {
     if (!messageText.trim() || isLoading) return;
@@ -658,6 +694,20 @@ export function MarketAssistant() {
                       </button>
                     </div>
                   </div>
+                </div>
+              )}
+              
+              {/* Manual play button when audio is pending (iOS autoplay blocked) */}
+              {pendingAudioUrl && !isCurrentlySpeaking && !isLoading && (
+                <div className="flex gap-2 justify-start animate-fade-in">
+                  <img src={sofiaAvatar} alt="Sofia" className="h-7 w-7 rounded-full shrink-0 mt-0.5" />
+                  <button
+                    onClick={playPendingAudio}
+                    className="bg-accent text-accent-foreground rounded-lg px-4 py-2 flex items-center gap-2 hover:bg-accent/90 transition-colors shadow-md"
+                  >
+                    <Volume2 className="h-5 w-5" />
+                    <span className="text-sm font-medium">🔊 Ouvir resposta</span>
+                  </button>
                 </div>
               )}
             </div>
