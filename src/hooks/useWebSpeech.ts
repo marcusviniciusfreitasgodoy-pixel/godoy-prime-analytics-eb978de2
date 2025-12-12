@@ -1,13 +1,11 @@
 import { useState, useCallback, useRef, useEffect } from 'react';
+import { toast } from 'sonner';
 
 interface UseWebSpeechOptions {
   lang?: string;
-  continuous?: boolean;
-  interimResults?: boolean;
 }
 
 interface UseWebSpeechReturn {
-  // STT (Speech-to-Text)
   isListening: boolean;
   transcript: string;
   startListening: () => void;
@@ -16,22 +14,33 @@ interface UseWebSpeechReturn {
 }
 
 export function useWebSpeech(options: UseWebSpeechOptions = {}): UseWebSpeechReturn {
-  const {
-    lang = 'pt-BR',
-  } = options;
+  const { lang = 'pt-BR' } = options;
 
-  // STT State
   const [isListening, setIsListening] = useState(false);
   const [transcript, setTranscript] = useState('');
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const recognitionRef = useRef<any>(null);
   const shouldRestartRef = useRef(false);
   const retryCountRef = useRef(0);
-  const maxRetries = 3;
+  const maxRetries = 5; // Increased retries
+  const silenceTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
-  // Check browser support
   const isSTTSupported = typeof window !== 'undefined' && 
     ('SpeechRecognition' in window || 'webkitSpeechRecognition' in window);
+
+  // Request microphone permission explicitly
+  const requestMicrophonePermission = useCallback(async (): Promise<boolean> => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      // Stop the stream immediately, we just needed permission
+      stream.getTracks().forEach(track => track.stop());
+      return true;
+    } catch (error) {
+      console.error('Microphone permission denied:', error);
+      toast.error('Permissão de microfone negada. Verifique as configurações do navegador.');
+      return false;
+    }
+  }, []);
 
   // Initialize STT
   useEffect(() => {
@@ -41,10 +50,8 @@ export function useWebSpeech(options: UseWebSpeechOptions = {}): UseWebSpeechRet
     const recognition = new SpeechRecognition();
     
     recognition.lang = lang;
-    // Mobile fix: use continuous mode and keep listening
     recognition.continuous = true;
     recognition.interimResults = true;
-    // Mobile fix: increase max alternatives for better accuracy
     recognition.maxAlternatives = 3;
 
     recognition.onstart = () => {
@@ -52,21 +59,42 @@ export function useWebSpeech(options: UseWebSpeechOptions = {}): UseWebSpeechRet
       setIsListening(true);
       setTranscript('');
       retryCountRef.current = 0;
+      
+      // Set a longer silence timeout (30 seconds)
+      if (silenceTimeoutRef.current) {
+        clearTimeout(silenceTimeoutRef.current);
+      }
+      silenceTimeoutRef.current = setTimeout(() => {
+        if (shouldRestartRef.current) {
+          console.log('Silence timeout - still listening');
+        }
+      }, 30000);
     };
 
     recognition.onend = () => {
-      console.log('Speech recognition ended, shouldRestart:', shouldRestartRef.current);
-      // Mobile fix: auto-restart if user hasn't explicitly stopped
+      console.log('Speech recognition ended, shouldRestart:', shouldRestartRef.current, 'retryCount:', retryCountRef.current);
+      
+      if (silenceTimeoutRef.current) {
+        clearTimeout(silenceTimeoutRef.current);
+      }
+      
+      // Auto-restart if user hasn't explicitly stopped
       if (shouldRestartRef.current && retryCountRef.current < maxRetries) {
         retryCountRef.current++;
         console.log('Auto-restarting speech recognition, attempt:', retryCountRef.current);
-        try {
-          recognition.start();
-        } catch (error) {
-          console.log('Could not restart:', error);
-          setIsListening(false);
-          shouldRestartRef.current = false;
-        }
+        
+        // Small delay before restart for mobile stability
+        setTimeout(() => {
+          if (shouldRestartRef.current) {
+            try {
+              recognition.start();
+            } catch (error) {
+              console.log('Could not restart:', error);
+              setIsListening(false);
+              shouldRestartRef.current = false;
+            }
+          }
+        }, 200);
       } else {
         setIsListening(false);
         shouldRestartRef.current = false;
@@ -75,16 +103,43 @@ export function useWebSpeech(options: UseWebSpeechOptions = {}): UseWebSpeechRet
 
     recognition.onerror = (event) => {
       console.error('Speech recognition error:', event.error);
-      // Mobile fix: handle "no-speech" error by restarting
-      if (event.error === 'no-speech' && shouldRestartRef.current && retryCountRef.current < maxRetries) {
-        console.log('No speech detected, will retry...');
-        // Don't stop listening, let onend handle restart
-        return;
-      }
-      // For other errors, stop completely
-      if (event.error !== 'aborted' && event.error !== 'no-speech') {
-        setIsListening(false);
-        shouldRestartRef.current = false;
+      
+      switch (event.error) {
+        case 'no-speech':
+          // Don't show error, just keep listening if user wants
+          if (shouldRestartRef.current && retryCountRef.current < maxRetries) {
+            console.log('No speech detected, will retry...');
+            return; // Let onend handle restart
+          }
+          break;
+          
+        case 'audio-capture':
+          toast.error('Microfone não disponível. Verifique se está conectado e permitido.');
+          setIsListening(false);
+          shouldRestartRef.current = false;
+          break;
+          
+        case 'not-allowed':
+          toast.error('Permissão de microfone negada. Clique no ícone de cadeado na barra de endereços.');
+          setIsListening(false);
+          shouldRestartRef.current = false;
+          break;
+          
+        case 'network':
+          toast.error('Erro de rede. Verifique sua conexão com a internet.');
+          setIsListening(false);
+          shouldRestartRef.current = false;
+          break;
+          
+        case 'aborted':
+          // User aborted, no error needed
+          break;
+          
+        default:
+          if (event.error !== 'no-speech') {
+            setIsListening(false);
+            shouldRestartRef.current = false;
+          }
       }
     };
 
@@ -93,19 +148,18 @@ export function useWebSpeech(options: UseWebSpeechOptions = {}): UseWebSpeechRet
       let interimTranscript = '';
 
       for (let i = event.resultIndex; i < event.results.length; i++) {
-        const transcript = event.results[i][0].transcript;
+        const transcriptText = event.results[i][0].transcript;
         if (event.results[i].isFinal) {
-          finalTranscript += transcript;
+          finalTranscript += transcriptText;
         } else {
-          interimTranscript += transcript;
+          interimTranscript += transcriptText;
         }
       }
 
       const result = finalTranscript || interimTranscript;
       if (result) {
         setTranscript(result);
-        // Reset retry count when we get results
-        retryCountRef.current = 0;
+        retryCountRef.current = 0; // Reset retry count when we get results
       }
     };
 
@@ -113,18 +167,30 @@ export function useWebSpeech(options: UseWebSpeechOptions = {}): UseWebSpeechRet
 
     return () => {
       shouldRestartRef.current = false;
+      if (silenceTimeoutRef.current) {
+        clearTimeout(silenceTimeoutRef.current);
+      }
       if (recognitionRef.current) {
-        recognitionRef.current.abort();
+        try {
+          recognitionRef.current.abort();
+        } catch (e) {
+          // Ignore abort errors
+        }
       }
     };
   }, [lang, isSTTSupported]);
 
-  // STT Controls
-  const startListening = useCallback(() => {
-    if (!recognitionRef.current) return;
+  const startListening = useCallback(async () => {
+    if (!recognitionRef.current) {
+      toast.error('Reconhecimento de voz não suportado neste navegador.');
+      return;
+    }
     
-    // If already listening, don't restart
     if (isListening) return;
+    
+    // Request microphone permission first
+    const hasPermission = await requestMicrophonePermission();
+    if (!hasPermission) return;
     
     try {
       setTranscript('');
@@ -133,21 +199,33 @@ export function useWebSpeech(options: UseWebSpeechOptions = {}): UseWebSpeechRet
       recognitionRef.current.start();
     } catch (error) {
       console.error('Failed to start speech recognition:', error);
+      
       // Try to abort and restart
       try {
         recognitionRef.current.abort();
         setTimeout(() => {
-          recognitionRef.current.start();
-        }, 100);
+          if (shouldRestartRef.current) {
+            try {
+              recognitionRef.current.start();
+            } catch (e) {
+              console.error('Failed to restart after abort:', e);
+              toast.error('Não foi possível iniciar o microfone. Tente novamente.');
+            }
+          }
+        }, 300);
       } catch (e) {
         console.error('Failed to restart after abort:', e);
+        toast.error('Erro ao iniciar reconhecimento de voz.');
       }
     }
-  }, [isListening]);
+  }, [isListening, requestMicrophonePermission]);
 
   const stopListening = useCallback(() => {
-    // Always mark that we should stop
     shouldRestartRef.current = false;
+    
+    if (silenceTimeoutRef.current) {
+      clearTimeout(silenceTimeoutRef.current);
+    }
     
     if (!recognitionRef.current) return;
     
