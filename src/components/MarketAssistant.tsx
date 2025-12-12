@@ -75,12 +75,19 @@ export function MarketAssistant() {
                    user?.email?.split('@')[0] || 
                    null;
 
-  // Auto-scroll helper function
+  // Auto-scroll helper function - finds the actual scrollable viewport inside ScrollArea
   const scrollToBottom = useCallback(() => {
     if (scrollRef.current) {
-      scrollRef.current.scrollTo({
-        top: scrollRef.current.scrollHeight,
-        behavior: 'smooth'
+      // ScrollArea uses a viewport div inside - find it
+      const viewport = scrollRef.current.querySelector('[data-radix-scroll-area-viewport]');
+      const scrollTarget = viewport || scrollRef.current;
+      
+      // Use requestAnimationFrame to ensure DOM is updated
+      requestAnimationFrame(() => {
+        scrollTarget.scrollTo({
+          top: scrollTarget.scrollHeight,
+          behavior: 'smooth'
+        });
       });
     }
   }, []);
