@@ -16,6 +16,7 @@ import PesquisasMercado from "./pages/PesquisasMercado";
 import AvaliacaoImobiliaria from "./pages/AvaliacaoImobiliaria";
 import HistoricoAvaliacoes from "./pages/HistoricoAvaliacoes";
 import CalibradorAvaliacao from "./pages/CalibradorAvaliacao";
+import BaseConhecimento from "./pages/BaseConhecimento";
 import VistoriaDigital from "./pages/VistoriaDigital";
 import Documentacao from "./pages/Documentacao";
 import Leads from "./pages/Leads";
@@ -66,6 +67,14 @@ const App = () => {
                                 <Route path="/vistoria-digital" element={<VistoriaDigital />} />
                                 <Route path="/documentacao" element={<Documentacao />} />
                                 <Route 
+                                  path="/base-conhecimento" 
+                                  element={
+                                    <ProtectedRoute requireAdmin>
+                                      <BaseConhecimento />
+                                    </ProtectedRoute>
+                                  } 
+                                />
+                                <Route 
                                   path="/calibrador-avaliacao" 
                                   element={
                                     <ProtectedRoute requireAdmin>
@@ -73,7 +82,7 @@ const App = () => {
                                     </ProtectedRoute>
                                   } 
                                 />
-                                <Route 
+                                <Route
                                   path="/leads" 
                                   element={
                                     <ProtectedRoute requireAdmin>

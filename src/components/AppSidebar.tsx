@@ -1,4 +1,4 @@
-import { Home, ClipboardCheck, FileText, MapPin, Users, UserCog, Search, Calculator, Settings, History } from "lucide-react";
+import { Home, ClipboardCheck, FileText, MapPin, Users, UserCog, Search, Calculator, Settings, History, Brain } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import {
   Sidebar,
@@ -25,6 +25,7 @@ const baseItems = [
 ];
 
 const adminItems = [
+  { title: "Base Conhecimento Sofia", url: "/base-conhecimento", icon: Brain },
   { title: "Calibrador Avaliação", url: "/calibrador-avaliacao", icon: Settings },
   { title: "Leads", url: "/leads", icon: Users },
   { title: "Usuários", url: "/usuarios", icon: UserCog },
