@@ -50,7 +50,9 @@ export function MarketAssistant() {
     startListening,
     stopListening,
     isSTTSupported,
-  } = useWebSpeech({ lang: 'pt-BR' });
+    autoStopped,
+    silenceCountdown,
+  } = useWebSpeech({ lang: 'pt-BR', silenceTimeout: 2500 });
 
   // Get user's first name from metadata or email
   const userName = user?.user_metadata?.full_name?.split(' ')[0] || 
@@ -193,12 +195,12 @@ export function MarketAssistant() {
     }
   };
 
-  // Send transcript when listening stops
+  // Send transcript when auto-stopped due to silence
   useEffect(() => {
-    if (!isListening && transcript) {
+    if (autoStopped && transcript) {
       sendMessage(transcript);
     }
-  }, [isListening, transcript]);
+  }, [autoStopped, transcript]);
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -457,19 +459,26 @@ export function MarketAssistant() {
               {uploadingFile ? <Loader2 className="h-4 w-4 animate-spin" /> : <Paperclip className="h-4 w-4" />}
             </Button>
             
-            {/* Voice Input Button */}
+            {/* Voice Input Button with Countdown */}
             {isSTTSupported && (
-              <Button 
-                type="button" 
-                variant={isListening ? "destructive" : "outline"}
-                size="icon"
-                onClick={handleVoiceInput}
-                disabled={isLoading || uploadingFile}
-                title={isListening ? "Parar gravação" : "Falar com Sofia"}
-                className={cn(isListening && "animate-pulse")}
-              >
-                {isListening ? <MicOff className="h-4 w-4" /> : <Mic className="h-4 w-4" />}
-              </Button>
+              <div className="relative">
+                <Button 
+                  type="button" 
+                  variant={isListening ? "destructive" : "outline"}
+                  size="icon"
+                  onClick={handleVoiceInput}
+                  disabled={isLoading || uploadingFile}
+                  title={isListening ? "Parar e enviar" : "Falar com Sofia (envio automático)"}
+                  className={cn(isListening && "animate-pulse")}
+                >
+                  {isListening ? <MicOff className="h-4 w-4" /> : <Mic className="h-4 w-4" />}
+                </Button>
+                {silenceCountdown > 0 && (
+                  <span className="absolute -top-2 -right-2 bg-accent text-accent-foreground text-xs rounded-full w-5 h-5 flex items-center justify-center font-bold">
+                    {silenceCountdown}
+                  </span>
+                )}
+              </div>
             )}
 
             <Input
