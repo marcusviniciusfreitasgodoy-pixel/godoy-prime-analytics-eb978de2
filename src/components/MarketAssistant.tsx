@@ -1,16 +1,23 @@
 import { useState, useRef, useEffect } from "react";
-import { MessageSquare, X, Send, Loader2, TrendingUp, MapPin, DollarSign, BarChart3, Home, Ruler } from "lucide-react";
+import { MessageSquare, X, Send, Loader2, TrendingUp, MapPin, DollarSign, BarChart3, Home, Ruler, Paperclip, FileText, Image } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useBairro } from "@/contexts/BairroContext";
 import { useAuthContext } from "@/contexts/AuthContext";
 import { cn } from "@/lib/utils";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 import sofiaAvatar from "@/assets/sofia-avatar.png";
 
 interface Message {
   role: 'user' | 'assistant';
   content: string;
+  attachment?: {
+    type: 'document' | 'image';
+    name: string;
+    analyzing?: boolean;
+  };
 }
 
 const SUGGESTED_QUESTIONS = [
@@ -31,6 +38,8 @@ export function MarketAssistant() {
   const { user } = useAuthContext();
   const scrollRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [uploadingFile, setUploadingFile] = useState(false);
 
   // Get user's first name from metadata or email
   const userName = user?.user_metadata?.full_name?.split(' ')[0] || 
@@ -147,6 +156,109 @@ export function MarketAssistant() {
 
   const handleSuggestion = (text: string) => {
     sendMessage(text);
+  };
+
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // Validate file type
+    const validTypes = ['application/pdf', 'image/jpeg', 'image/png', 'image/webp'];
+    if (!validTypes.includes(file.type)) {
+      toast.error("Formato não suportado. Use PDF, JPG, PNG ou WebP.");
+      return;
+    }
+
+    // Max 10MB
+    if (file.size > 10 * 1024 * 1024) {
+      toast.error("Arquivo muito grande. Máximo 10MB.");
+      return;
+    }
+
+    setUploadingFile(true);
+
+    try {
+      // Convert to base64
+      const base64 = await new Promise<string>((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => {
+          const result = reader.result as string;
+          resolve(result.split(',')[1]);
+        };
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
+      });
+
+      // Add user message with attachment
+      const userMessage: Message = {
+        role: 'user',
+        content: `Analise este documento: ${file.name}`,
+        attachment: {
+          type: file.type.startsWith('image/') ? 'image' : 'document',
+          name: file.name,
+          analyzing: true
+        }
+      };
+      setMessages(prev => [...prev, userMessage]);
+
+      // Call analyze-document function
+      const { data, error } = await supabase.functions.invoke('analyze-document', {
+        body: {
+          image: base64,
+          mimeType: file.type,
+          filename: file.name
+        }
+      });
+
+      if (error) throw error;
+
+      // Format analysis result as assistant message
+      let analysisText = `📄 **Análise de ${file.name}**\n\n`;
+      
+      if (data.tipo_documento) {
+        analysisText += `**Tipo:** ${data.tipo_documento}\n`;
+      }
+      
+      if (data.dados_extraidos && Object.keys(data.dados_extraidos).length > 0) {
+        analysisText += `\n**Dados Extraídos:**\n`;
+        for (const [key, value] of Object.entries(data.dados_extraidos)) {
+          analysisText += `• ${key}: ${value}\n`;
+        }
+      }
+      
+      if (data.alertas && data.alertas.length > 0) {
+        analysisText += `\n⚠️ **Alertas:**\n`;
+        data.alertas.forEach((alert: string) => {
+          analysisText += `• ${alert}\n`;
+        });
+      }
+      
+      if (data.status) {
+        const statusEmoji = data.status === 'OK' ? '✅' : data.status === 'Atenção' ? '⚠️' : '🔴';
+        analysisText += `\n**Status:** ${statusEmoji} ${data.status}\n`;
+      }
+      
+      if (data.proximos_passos && data.proximos_passos.length > 0) {
+        analysisText += `\n📋 **Próximos Passos:**\n`;
+        data.proximos_passos.forEach((step: string) => {
+          analysisText += `• ${step}\n`;
+        });
+      }
+
+      setMessages(prev => [...prev, { role: 'assistant', content: analysisText }]);
+
+    } catch (error) {
+      console.error('Document analysis error:', error);
+      setMessages(prev => [...prev, { 
+        role: 'assistant', 
+        content: `Desculpe, não consegui analisar o documento. ${error instanceof Error ? error.message : 'Tente novamente.'}` 
+      }]);
+    } finally {
+      setUploadingFile(false);
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
+    }
   };
 
   return (
@@ -284,19 +396,39 @@ export function MarketAssistant() {
 
         {/* Input */}
         <form onSubmit={handleSubmit} className="p-4 border-t bg-muted/30">
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept=".pdf,image/jpeg,image/png,image/webp"
+            onChange={handleFileUpload}
+            className="hidden"
+          />
           <div className="flex gap-2">
+            <Button 
+              type="button" 
+              variant="outline" 
+              size="icon"
+              onClick={() => fileInputRef.current?.click()}
+              disabled={isLoading || uploadingFile}
+              title="Enviar documento para análise"
+            >
+              {uploadingFile ? <Loader2 className="h-4 w-4 animate-spin" /> : <Paperclip className="h-4 w-4" />}
+            </Button>
             <Input
               ref={inputRef}
               value={input}
               onChange={(e) => setInput(e.target.value)}
               placeholder="Pergunte sobre o mercado..."
-              disabled={isLoading}
+              disabled={isLoading || uploadingFile}
               className="flex-1 bg-background"
             />
-            <Button type="submit" size="icon" disabled={isLoading || !input.trim()}>
+            <Button type="submit" size="icon" disabled={isLoading || uploadingFile || !input.trim()}>
               {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
             </Button>
           </div>
+          <p className="text-xs text-muted-foreground mt-2 text-center">
+            📎 Envie PDFs ou imagens para análise de documentos
+          </p>
         </form>
       </div>
     </>
