@@ -26,3 +26,6 @@ verify_jwt = false
 
 [functions.send-lead-notification]
 verify_jwt = false
+
+[functions.elevenlabs-tts]
+verify_jwt = false
