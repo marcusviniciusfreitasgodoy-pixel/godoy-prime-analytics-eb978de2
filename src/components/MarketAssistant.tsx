@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 import { MessageSquare, X, Send, Loader2, TrendingUp, MapPin, DollarSign, BarChart3, Home, Ruler, Paperclip, FileText, Image, Mic, MicOff, Volume2, User, UserRound } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -85,6 +85,21 @@ export function MarketAssistant() {
   }, [isOpen]);
 
   // ElevenLabs TTS function
+  // Pre-initialize audio element for mobile (must be created from user gesture context)
+  const initAudioForMobile = useCallback(() => {
+    if (!audioRef.current) {
+      const audio = new Audio();
+      audio.setAttribute('playsinline', 'true');
+      audio.setAttribute('webkit-playsinline', 'true');
+      audio.preload = 'auto';
+      audio.volume = 1.0;
+      audioRef.current = audio;
+    }
+    // Play silent audio to "unlock" audio on mobile
+    audioRef.current.src = 'data:audio/mp3;base64,SUQzBAAAAAAAI1RTU0UAAAAPAAADTGF2ZjU4Ljc2LjEwMAAAAAAAAAAAAAAA//tQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAWGluZwAAAA8AAAACAAABhgC7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7//////////////////////////////////////////////////////////////////8AAAAATGF2YzU4LjEzAAAAAAAAAAAAAAAAJAAAAAAAAAAAAYYoRwmHAAAAAAD/+9DEAAAIAANIAAAAgAADSAAAAEQAAANIAAAAAAAAA0gAAABEREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREQ==';
+    audioRef.current.play().catch(() => {});
+  }, []);
+
   const speakWithElevenLabs = async (text: string) => {
     try {
       setIsSpeakingElevenLabs(true);
@@ -92,13 +107,14 @@ export function MarketAssistant() {
       // Stop any previous audio
       if (audioRef.current) {
         audioRef.current.pause();
-        audioRef.current = null;
       }
 
       // Voice IDs: Laura (PT-BR female) or Roger (male)
       const voiceId = voiceGender === 'male' 
         ? 'CwhRBWXzGAHq8TQ4Fs17' // Roger - male
         : 'FGY2WhTYpPnrIDTdsKH5'; // Laura - PT-BR female
+
+      console.log('Requesting TTS for:', text.substring(0, 50));
 
       const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/elevenlabs-tts`, {
         method: 'POST',
@@ -115,14 +131,19 @@ export function MarketAssistant() {
 
       const audioBlob = await response.blob();
       const audioUrl = URL.createObjectURL(audioBlob);
-      const audio = new Audio(audioUrl);
-      audioRef.current = audio;
       
-      // Mobile fix: set attributes before play
+      console.log('Audio blob received, size:', audioBlob.size);
+      
+      // Create new audio element with mobile-friendly attributes
+      const audio = new Audio();
       audio.setAttribute('playsinline', 'true');
+      audio.setAttribute('webkit-playsinline', 'true');
       audio.preload = 'auto';
+      audio.volume = 1.0;
+      audioRef.current = audio;
 
       audio.onended = () => {
+        console.log('Audio playback ended');
         setIsSpeakingElevenLabs(false);
         URL.revokeObjectURL(audioUrl);
       };
@@ -133,17 +154,20 @@ export function MarketAssistant() {
         URL.revokeObjectURL(audioUrl);
       };
 
-      // Wait for audio to be ready before playing (important for mobile)
-      await new Promise<void>((resolve, reject) => {
-        audio.oncanplaythrough = () => resolve();
-        audio.onerror = () => reject(new Error('Audio load failed'));
-        audio.load();
-      });
+      // Set source and play
+      audio.src = audioUrl;
       
-      // Use a promise-based play with user gesture simulation for mobile
-      const playPromise = audio.play();
-      if (playPromise !== undefined) {
-        await playPromise;
+      // Try to play, with fallback to Web Speech API
+      try {
+        console.log('Attempting audio.play()');
+        await audio.play();
+        console.log('Audio playing successfully');
+      } catch (playError) {
+        console.error('Play failed, trying Web Speech fallback:', playError);
+        setIsSpeakingElevenLabs(false);
+        URL.revokeObjectURL(audioUrl);
+        // Fallback to Web Speech API which may work better on some mobile browsers
+        speak(text);
       }
     } catch (error) {
       console.error('ElevenLabs TTS error:', error);
@@ -279,6 +303,9 @@ export function MarketAssistant() {
 
   // Handle voice input
   const handleVoiceInput = () => {
+    // Initialize audio for mobile on user gesture (unlocks audio playback)
+    initAudioForMobile();
+    
     if (isListening) {
       stopListening();
     } else {
