@@ -120,6 +120,28 @@ serve(async (req) => {
     const wantsCasas = /\bcasas?\b/i.test(lastUserMessage);
     const wantsAptos = /\b(?:apartamentos?|aptos?)\b/i.test(lastUserMessage);
     
+    // Detectar logradouros mencionados (ruas, avenidas, etc.)
+    const logradouroPatterns = [
+      /(?:rua|r\.)\s+([a-záéíóúâêîôûãõç\s]+)/gi,
+      /(?:avenida|av\.?)\s+([a-záéíóúâêîôûãõç\s]+)/gi,
+      /(?:estrada|estr\.?)\s+([a-záéíóúâêîôûãõç\s]+)/gi,
+      /(?:praça|pça\.?)\s+([a-záéíóúâêîôûãõç\s]+)/gi,
+      /(?:travessa|tv\.?)\s+([a-záéíóúâêîôûãõç\s]+)/gi,
+      /(?:alameda|al\.?)\s+([a-záéíóúâêîôûãõç\s]+)/gi,
+    ];
+    
+    let mentionedLogradouros: string[] = [];
+    for (const pattern of logradouroPatterns) {
+      const matches = lastUserMessage.matchAll(pattern);
+      for (const match of matches) {
+        if (match[1] && match[1].trim().length > 2) {
+          // Limpar e normalizar o nome
+          const nome = match[1].trim().split(/\s+/).slice(0, 4).join(' '); // Limitar a 4 palavras
+          mentionedLogradouros.push(nome.toUpperCase());
+        }
+      }
+    }
+    
     const twelveMonthsAgo = new Date();
     twelveMonthsAgo.setMonth(twelveMonthsAgo.getMonth() - 12);
     const dateFilter = twelveMonthsAgo.toISOString().split('T')[0];
@@ -253,6 +275,35 @@ serve(async (req) => {
       }
     }
 
+    // 7. Get data for mentioned logradouros (streets)
+    let logradourosData: Record<string, { avgM2: number; transacoes: number; valorMedio: number }> = {};
+    
+    if (mentionedLogradouros.length > 0) {
+      for (const logradouro of mentionedLogradouros) {
+        const { data: logData } = await supabase
+          .from('itbi_transactions')
+          .select('valor_m2, total_transacoes, valor_transacao')
+          .ilike('logradouro', `%${logradouro}%`)
+          .eq('uso', 'Residencial')
+          .gte('percentual_transferido', 90)
+          .gte('data_transacao', dateFilter)
+          .not('valor_m2', 'is', null)
+          .limit(500);
+        
+        if (logData && logData.length > 0) {
+          const totalTrans = logData.reduce((sum, r) => sum + (r.total_transacoes || 1), 0);
+          const avgM2 = logData.reduce((sum, r) => sum + (r.valor_m2 || 0), 0) / logData.length;
+          const avgValor = logData.reduce((sum, r) => sum + (r.valor_transacao || 0), 0) / logData.length;
+          
+          logradourosData[logradouro] = {
+            avgM2,
+            transacoes: totalTrans,
+            valorMedio: avgValor
+          };
+        }
+      }
+    }
+
     // Build context data
     let contextData = `
 DATA ATUAL: ${new Date().toLocaleDateString('pt-BR')} - ANO ${currentYear}
@@ -333,6 +384,16 @@ DADOS DETALHADOS - ${selectedBairro} (bairro selecionado pelo usuário, últimos
 DADOS DOS BAIRROS MENCIONADOS NA PERGUNTA:
 ${Object.entries(mentionedBairrosData).map(([bairro, data]) => 
   `- ${bairro}: R$ ${data.avgM2.toLocaleString('pt-BR', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}/m² (${data.transacoes} transações)`
+).join('\n')}
+`;
+    }
+
+    // Add mentioned logradouros data
+    if (Object.keys(logradourosData).length > 0) {
+      contextData += `
+DADOS DOS LOGRADOUROS (RUAS/AVENIDAS) MENCIONADOS NA PERGUNTA:
+${Object.entries(logradourosData).map(([logradouro, data]) => 
+  `- ${logradouro}: R$ ${data.avgM2.toLocaleString('pt-BR', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}/m² | ${data.transacoes} transações | Valor médio: R$ ${data.valorMedio.toLocaleString('pt-BR', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`
 ).join('\n')}
 `;
     }
