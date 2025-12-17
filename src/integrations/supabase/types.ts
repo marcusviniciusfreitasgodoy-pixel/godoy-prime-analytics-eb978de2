@@ -154,62 +154,77 @@ export type Database = {
       }
       leads: {
         Row: {
+          aceita_marketing: boolean | null
           area_interesse: number | null
           bairro_interesse: string | null
           banheiros: number | null
           convertido: boolean | null
           created_at: string
+          diferenciais_imovel: string | null
           email: string
           evaluation_count: number | null
           id: string
           interesse: string | null
           nome: string
           notas: string | null
+          objetivo: string | null
           origem: string | null
+          preferencia_contato: string | null
           quartos: number | null
           suites: number | null
           telefone: string
           updated_at: string
+          urgencia: string | null
           vagas: number | null
           valor_interesse: number | null
         }
         Insert: {
+          aceita_marketing?: boolean | null
           area_interesse?: number | null
           bairro_interesse?: string | null
           banheiros?: number | null
           convertido?: boolean | null
           created_at?: string
+          diferenciais_imovel?: string | null
           email: string
           evaluation_count?: number | null
           id?: string
           interesse?: string | null
           nome: string
           notas?: string | null
+          objetivo?: string | null
           origem?: string | null
+          preferencia_contato?: string | null
           quartos?: number | null
           suites?: number | null
           telefone: string
           updated_at?: string
+          urgencia?: string | null
           vagas?: number | null
           valor_interesse?: number | null
         }
         Update: {
+          aceita_marketing?: boolean | null
           area_interesse?: number | null
           bairro_interesse?: string | null
           banheiros?: number | null
           convertido?: boolean | null
           created_at?: string
+          diferenciais_imovel?: string | null
           email?: string
           evaluation_count?: number | null
           id?: string
           interesse?: string | null
           nome?: string
           notas?: string | null
+          objetivo?: string | null
           origem?: string | null
+          preferencia_contato?: string | null
           quartos?: number | null
           suites?: number | null
           telefone?: string
           updated_at?: string
+          urgencia?: string | null
           vagas?: number | null
           valor_interesse?: number | null
         }

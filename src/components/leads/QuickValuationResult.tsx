@@ -1,9 +1,12 @@
 import { useState } from "react";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
-import { TrendingUp, TrendingDown, MapPin, Maximize2, Home, Calculator, ArrowRight, AlertCircle, MessageCircle, Loader2, CheckCircle } from "lucide-react";
+import { TrendingUp, TrendingDown, MapPin, Maximize2, Home, Calculator, AlertCircle, Sparkles } from "lucide-react";
+import { ComparisonTable } from "./ComparisonTable";
+import { PeritEvaluationSection } from "./PeritEvaluationSection";
+import { LeadCaptureForm, LeadCaptureFormResult } from "./LeadCaptureForm";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
@@ -16,6 +19,7 @@ interface QuickValuationData {
   banheiros?: number;
   suites?: number;
   vagas?: number;
+  diferenciais?: string;
   itbiData: {
     min_m2: number;
     med_m2: number;
@@ -29,29 +33,17 @@ interface QuickValuationData {
   } | null;
 }
 
-interface LeadInfo {
-  id?: string;
-  nome: string;
-  email: string;
-  telefone: string;
-  interesse: string;
-}
-
 interface QuickValuationResultProps {
   data: QuickValuationData;
-  leadInfo?: LeadInfo;
-  onProceedToComplete: () => void;
   onNewValuation: () => void;
 }
 
 export function QuickValuationResult({ 
   data, 
-  leadInfo,
-  onProceedToComplete, 
   onNewValuation 
 }: QuickValuationResultProps) {
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [requestSent, setRequestSent] = useState(false);
+  const [leadSubmitted, setLeadSubmitted] = useState(false);
+  const [leadData, setLeadData] = useState<LeadCaptureFormResult | null>(null);
 
   const formatCurrency = (value: number, compact = false) => {
     if (compact && value >= 1000000) {
@@ -70,215 +62,25 @@ export function QuickValuationResult({
 
   const hasData = data.itbiData && data.estimativa;
 
-  const handleRequestCompleteValuation = async () => {
-    if (!leadInfo) {
-      onProceedToComplete();
-      return;
-    }
+  const handleLeadSuccess = async (lead: LeadCaptureFormResult) => {
+    setLeadData(lead);
+    setLeadSubmitted(true);
 
-    setIsSubmitting(true);
-
-    try {
-      // Send email notification via edge function
-      const { error: emailError } = await supabase.functions.invoke('send-lead-notification', {
-        body: {
-          type: 'complete',
-          leadId: leadInfo.id || '',
-          leadName: leadInfo.nome,
-          leadEmail: leadInfo.email,
-          leadPhone: leadInfo.telefone,
-          interesse: leadInfo.interesse,
-          bairro: data.bairro,
-          area: data.area_m2,
-          tipologia: data.tipologia,
-          quartos: data.quartos,
-          banheiros: data.banheiros,
-          suites: data.suites,
-          vagas: data.vagas,
-          estimativaMin: data.estimativa?.min,
-          estimativaMed: data.estimativa?.med,
-          estimativaMax: data.estimativa?.max,
-        }
-      });
-
-      if (emailError) {
-        console.error('Error sending email notification:', emailError);
-      }
-
-      // Update lead with note about complete valuation request
-      if (leadInfo.id) {
-        await supabase
-          .from('leads')
-          .update({ 
-            notas: 'Solicitou Avaliação Completa via página pública',
-            origem: 'avaliacao_completa'
-          })
-          .eq('id', leadInfo.id);
-      }
-
-      setRequestSent(true);
-      toast.success('Solicitação enviada! Entraremos em contato em breve.');
-
-      // Open WhatsApp after a brief delay
-      setTimeout(() => {
-        const whatsappNumber = "5521964075124";
-        const message = encodeURIComponent(
-          `Olá! Sou ${leadInfo.nome}.\n\nQuero contato para agendar uma Avaliação Completa.\n\nImóvel: ${data.tipologia} de ${data.area_m2}m² em ${data.bairro}\nEstimativa: ${formatCurrency(data.estimativa?.med || 0)}\n\nMeu telefone: ${leadInfo.telefone}\nMeu email: ${leadInfo.email}`
-        );
-        window.open(`https://wa.me/${whatsappNumber}?text=${message}`, '_blank');
-      }, 1000);
-
-    } catch (error) {
-      console.error('Error requesting complete valuation:', error);
-      toast.error('Erro ao enviar solicitação. Tente novamente.');
-    } finally {
-      setIsSubmitting(false);
-    }
+    // Open WhatsApp
+    setTimeout(() => {
+      const whatsappNumber = "5521964075124";
+      const message = encodeURIComponent(
+        `Olá! Sou ${lead.nome}.\n\nQuero contato para agendar uma Avaliação Completa com Perito.\n\nImóvel: ${data.tipologia} de ${data.area_m2}m² em ${data.bairro}\nEstimativa Preliminar: ${formatCurrency(data.estimativa?.min || 0)} a ${formatCurrency(data.estimativa?.max || 0)}\n\nMeu telefone: ${lead.telefone}\nMeu email: ${lead.email}\nObjetivo: ${lead.objetivo}\nUrgência: ${lead.urgencia}`
+      );
+      window.open(`https://wa.me/${whatsappNumber}?text=${message}`, '_blank');
+    }, 1000);
   };
 
-  return (
-    <Card className="border-primary/20 shadow-lg">
-      <CardHeader className="text-center pb-4">
-        <div className="mx-auto w-14 h-14 rounded-full bg-gradient-to-br from-primary/20 to-accent/20 flex items-center justify-center mb-3">
-          <Calculator className="h-7 w-7 text-primary" />
-        </div>
-        <CardTitle className="text-2xl">Resultado da Avaliação</CardTitle>
-        <CardDescription>
-          Estimativa baseada em transações reais do mercado
-        </CardDescription>
-      </CardHeader>
-      
-      <CardContent className="space-y-6">
-        {/* Property Summary */}
-        <div className="flex flex-wrap gap-2 justify-center">
-          <Badge variant="secondary" className="flex items-center gap-1">
-            <MapPin className="h-3 w-3" />
-            {data.bairro}
-          </Badge>
-          {data.logradouro && (
-            <Badge variant="outline" className="flex items-center gap-1">
-              {data.logradouro}
-            </Badge>
-          )}
-          <Badge variant="secondary" className="flex items-center gap-1">
-            <Maximize2 className="h-3 w-3" />
-            {data.area_m2} m²
-          </Badge>
-          <Badge variant="secondary" className="flex items-center gap-1">
-            <Home className="h-3 w-3" />
-            {data.tipologia}
-          </Badge>
-        </div>
-
-        <Separator />
-
-        {hasData ? (
-          <>
-            {/* Value Estimation */}
-            <div className="space-y-4">
-              <h3 className="text-center font-medium text-muted-foreground">
-                Faixa de Valor Estimada
-              </h3>
-              
-              <div className="grid grid-cols-3 gap-1.5 sm:gap-2">
-                <div className="text-center p-2 sm:p-3 rounded-lg bg-muted/50">
-                  <TrendingDown className="h-3 w-3 sm:h-4 sm:w-4 mx-auto mb-0.5 sm:mb-1 text-yellow-600" />
-                  <p className="text-[9px] sm:text-[10px] text-muted-foreground">Mínimo</p>
-                  <p className="font-bold text-[11px] sm:text-sm leading-tight">{formatCurrency(data.estimativa!.min, true)}</p>
-                </div>
-                
-                <div className="text-center p-2 sm:p-3 rounded-lg bg-primary/10 border border-primary/20">
-                  <Calculator className="h-3 w-3 sm:h-4 sm:w-4 mx-auto mb-0.5 sm:mb-1 text-primary" />
-                  <p className="text-[9px] sm:text-[10px] text-muted-foreground">Médio</p>
-                  <p className="font-bold text-xs sm:text-base text-primary leading-tight">{formatCurrency(data.estimativa!.med, true)}</p>
-                </div>
-                
-                <div className="text-center p-2 sm:p-3 rounded-lg bg-muted/50">
-                  <TrendingUp className="h-3 w-3 sm:h-4 sm:w-4 mx-auto mb-0.5 sm:mb-1 text-green-600" />
-                  <p className="text-[9px] sm:text-[10px] text-muted-foreground">Máximo</p>
-                  <p className="font-bold text-[11px] sm:text-sm leading-tight">{formatCurrency(data.estimativa!.max, true)}</p>
-                </div>
-              </div>
-
-              {/* Market Reference */}
-              <div className="bg-muted/30 rounded-lg p-3 sm:p-4 space-y-2">
-                <h4 className="text-xs sm:text-sm font-medium text-center">Referência de Mercado (R$/m²)</h4>
-                <div className="grid grid-cols-3 gap-1 text-center text-xs sm:text-sm">
-                  <div>
-                    <p className="text-[10px] sm:text-xs text-muted-foreground">Mín</p>
-                    <p className="font-medium text-[11px] sm:text-sm">{formatCurrency(data.itbiData!.min_m2, true)}</p>
-                  </div>
-                  <div>
-                    <p className="text-[10px] sm:text-xs text-muted-foreground">Méd</p>
-                    <p className="font-medium text-[11px] sm:text-sm">{formatCurrency(data.itbiData!.med_m2, true)}</p>
-                  </div>
-                  <div>
-                    <p className="text-[10px] sm:text-xs text-muted-foreground">Máx</p>
-                    <p className="font-medium text-[11px] sm:text-sm">{formatCurrency(data.itbiData!.max_m2, true)}</p>
-                  </div>
-                </div>
-                <p className="text-[10px] sm:text-xs text-muted-foreground text-center pt-1 sm:pt-2">
-                  Baseado em {data.itbiData!.transaction_count} transações dos últimos 12 meses
-                </p>
-              </div>
-            </div>
-
-            <Separator />
-
-            {/* CTA for Complete Valuation */}
-            <div className="space-y-3">
-              {requestSent ? (
-                <div className="bg-green-50 border border-green-200 rounded-lg p-4 text-center">
-                  <CheckCircle className="h-10 w-10 mx-auto text-green-600 mb-3" />
-                  <h4 className="font-medium text-green-800 mb-2">
-                    Solicitação Enviada!
-                  </h4>
-                  <p className="text-sm text-green-700 mb-4">
-                    Nossa equipe entrará em contato em breve para agendar sua Avaliação Completa.
-                  </p>
-                  <p className="text-xs text-green-600">
-                    Também abrimos o WhatsApp para você enviar uma mensagem direta.
-                  </p>
-                </div>
-              ) : (
-                <div className="bg-accent/10 border border-accent/20 rounded-lg p-4">
-                  <h4 className="font-medium text-center mb-2">
-                    Deseja uma avaliação mais precisa?
-                  </h4>
-                  <p className="text-sm text-muted-foreground text-center mb-4">
-                    Nosso avaliador especializado fará uma análise completa com 26 características do imóvel e recomendações personalizadas.
-                  </p>
-                  <Button 
-                    onClick={handleRequestCompleteValuation} 
-                    className="w-full gap-2" 
-                    size="lg"
-                    disabled={isSubmitting}
-                  >
-                    {isSubmitting ? (
-                      <>
-                        <Loader2 className="h-5 w-5 animate-spin" />
-                        Enviando...
-                      </>
-                    ) : (
-                      <>
-                        <MessageCircle className="h-5 w-5" />
-                        Solicitar Avaliação Completa
-                      </>
-                    )}
-                  </Button>
-                  <p className="text-xs text-muted-foreground text-center mt-2">
-                    Você será redirecionado para o WhatsApp
-                  </p>
-                </div>
-              )}
-              
-              <Button variant="outline" onClick={onNewValuation} className="w-full">
-                Nova Avaliação Rápida
-              </Button>
-            </div>
-          </>
-        ) : (
-          <div className="text-center py-8 space-y-4">
+  if (!hasData) {
+    return (
+      <Card className="border-primary/20 shadow-lg">
+        <CardContent className="py-12">
+          <div className="text-center space-y-4">
             <AlertCircle className="h-12 w-12 mx-auto text-muted-foreground" />
             <div>
               <h3 className="font-medium">Dados Insuficientes</h3>
@@ -291,8 +93,187 @@ export function QuickValuationResult({
               Tentar Novamente
             </Button>
           </div>
-        )}
-      </CardContent>
-    </Card>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  return (
+    <div className="space-y-8">
+      {/* Resultado Preliminar */}
+      <Card className="border-accent/30 shadow-xl">
+        <CardHeader className="text-center pb-4">
+          <div className="mx-auto w-14 h-14 rounded-full bg-gradient-to-br from-primary/20 to-accent/20 flex items-center justify-center mb-3">
+            <Calculator className="h-7 w-7 text-primary" />
+          </div>
+          <CardTitle className="text-2xl">Sua Análise Preliminar de Valor</CardTitle>
+          <p className="text-sm text-muted-foreground mt-2">
+            Com base nos dados informados, seu imóvel possui uma estimativa de valor entre:
+          </p>
+        </CardHeader>
+        
+        <CardContent className="space-y-6">
+          {/* Property Summary */}
+          <div className="flex flex-wrap gap-2 justify-center">
+            <Badge variant="secondary" className="flex items-center gap-1">
+              <MapPin className="h-3 w-3" />
+              {data.bairro}
+            </Badge>
+            {data.logradouro && (
+              <Badge variant="outline" className="flex items-center gap-1">
+                {data.logradouro}
+              </Badge>
+            )}
+            <Badge variant="secondary" className="flex items-center gap-1">
+              <Maximize2 className="h-3 w-3" />
+              {data.area_m2} m²
+            </Badge>
+            <Badge variant="secondary" className="flex items-center gap-1">
+              <Home className="h-3 w-3" />
+              {data.tipologia}
+            </Badge>
+          </div>
+
+          <Separator />
+
+          {/* Value Estimation - Destacado */}
+          <div className="space-y-4">
+            <div className="grid grid-cols-3 gap-1.5 sm:gap-2">
+              <div className="text-center p-2 sm:p-4 rounded-lg bg-yellow-500/10 border border-yellow-500/30">
+                <TrendingDown className="h-4 w-4 sm:h-5 sm:w-5 mx-auto mb-1 text-yellow-600" />
+                <p className="text-[10px] sm:text-xs text-muted-foreground">Mínimo</p>
+                <p className="font-bold text-sm sm:text-lg text-yellow-700">{formatCurrency(data.estimativa!.min, true)}</p>
+              </div>
+              
+              <div className="text-center p-2 sm:p-4 rounded-lg bg-primary/10 border-2 border-primary/30 shadow-lg">
+                <Calculator className="h-4 w-4 sm:h-5 sm:w-5 mx-auto mb-1 text-primary" />
+                <p className="text-[10px] sm:text-xs text-muted-foreground">Provável</p>
+                <p className="font-bold text-base sm:text-xl text-primary">{formatCurrency(data.estimativa!.med, true)}</p>
+              </div>
+              
+              <div className="text-center p-2 sm:p-4 rounded-lg bg-green-500/10 border border-green-500/30">
+                <TrendingUp className="h-4 w-4 sm:h-5 sm:w-5 mx-auto mb-1 text-green-600" />
+                <p className="text-[10px] sm:text-xs text-muted-foreground">Máximo</p>
+                <p className="font-bold text-sm sm:text-lg text-green-700">{formatCurrency(data.estimativa!.max, true)}</p>
+              </div>
+            </div>
+
+            {/* Market Reference */}
+            <div className="bg-muted/30 rounded-lg p-3 sm:p-4 space-y-2">
+              <h4 className="text-xs sm:text-sm font-medium text-center">Referência de Mercado (R$/m²)</h4>
+              <div className="grid grid-cols-3 gap-1 text-center text-xs sm:text-sm">
+                <div>
+                  <p className="text-[10px] sm:text-xs text-muted-foreground">Mín</p>
+                  <p className="font-medium text-[11px] sm:text-sm">{formatCurrency(data.itbiData!.min_m2, true)}</p>
+                </div>
+                <div>
+                  <p className="text-[10px] sm:text-xs text-muted-foreground">Méd</p>
+                  <p className="font-medium text-[11px] sm:text-sm">{formatCurrency(data.itbiData!.med_m2, true)}</p>
+                </div>
+                <div>
+                  <p className="text-[10px] sm:text-xs text-muted-foreground">Máx</p>
+                  <p className="font-medium text-[11px] sm:text-sm">{formatCurrency(data.itbiData!.max_m2, true)}</p>
+                </div>
+              </div>
+              <p className="text-[10px] sm:text-xs text-muted-foreground text-center pt-1 sm:pt-2">
+                Baseado em {data.itbiData!.transaction_count} transações dos últimos 12 meses
+              </p>
+            </div>
+          </div>
+
+          {/* Aviso */}
+          <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 text-xs text-amber-800">
+            <strong>Aviso:</strong> Esta é uma estimativa automática baseada em dados históricos de transações ITBI 
+            e em regras estatísticas. Não substitui um laudo técnico assinado por perito avaliador.
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Seção Persuasiva */}
+      <Card className="border-primary/20 bg-gradient-to-br from-primary/5 to-accent/5">
+        <CardContent className="py-6">
+          <div className="text-center space-y-4">
+            <div className="mx-auto w-12 h-12 rounded-full bg-accent/20 flex items-center justify-center">
+              <Sparkles className="h-6 w-6 text-accent" />
+            </div>
+            <h3 className="text-xl font-bold text-foreground">
+              Quer ir além da estimativa? Descubra o Valor Real do Seu Patrimônio!
+            </h3>
+            <p className="text-muted-foreground max-w-2xl mx-auto">
+              Sua Análise Preliminar de Valor já te deu um excelente ponto de partida. Agora, 
+              para ter a <strong className="text-foreground">precisão cirúrgica</strong> que seu imóvel de alto padrão merece, 
+              oferecemos a <strong className="text-accent">Avaliação Completa e Personalizada</strong> com um 
+              Perito Avaliador Credenciado. É a sua chance de ter um especialista que considera cada detalhe 
+              único e as tendências de mercado para te dar uma estratégia imobiliária de sucesso, 
+              <strong className="text-foreground"> totalmente gratuita e sem compromisso</strong>.
+            </p>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Tabela Comparativa */}
+      <Card className="border-border">
+        <CardContent className="py-6">
+          <ComparisonTable />
+        </CardContent>
+      </Card>
+
+      {/* Seção Avaliação Completa com Perito */}
+      <Card className="border-accent/20 bg-card">
+        <CardContent className="py-6">
+          <PeritEvaluationSection />
+        </CardContent>
+      </Card>
+
+      {/* Formulário de Lead ou Confirmação */}
+      {leadSubmitted ? (
+        <Card className="border-green-500/30 bg-green-50">
+          <CardContent className="py-8">
+            <div className="text-center space-y-4">
+              <div className="mx-auto w-16 h-16 rounded-full bg-green-500/20 flex items-center justify-center">
+                <svg className="w-8 h-8 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                </svg>
+              </div>
+              <h3 className="text-xl font-bold text-green-800">
+                Solicitação Enviada com Sucesso!
+              </h3>
+              <p className="text-green-700">
+                Obrigado, <strong>{leadData?.nome}</strong>! Nossa equipe entrará em contato em breve 
+                para agendar sua Avaliação Completa.
+              </p>
+              <p className="text-sm text-green-600">
+                Também abrimos o WhatsApp para você enviar uma mensagem direta.
+              </p>
+              <Button onClick={onNewValuation} variant="outline" className="mt-4">
+                Fazer Nova Análise Preliminar
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      ) : (
+        <LeadCaptureForm
+          bairroInteresse={data.bairro}
+          areaInteresse={data.area_m2}
+          valorInteresse={data.estimativa?.med}
+          quartos={data.quartos}
+          banheiros={data.banheiros}
+          suites={data.suites}
+          vagas={data.vagas}
+          diferenciais={data.diferenciais}
+          origem="avaliacao_publica"
+          onSuccess={handleLeadSuccess}
+        />
+      )}
+
+      {/* Botão Nova Avaliação */}
+      {!leadSubmitted && (
+        <div className="text-center">
+          <Button variant="ghost" onClick={onNewValuation} className="text-muted-foreground">
+            ← Voltar e fazer nova análise
+          </Button>
+        </div>
+      )}
+    </div>
   );
 }

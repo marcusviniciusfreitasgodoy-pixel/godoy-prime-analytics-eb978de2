@@ -4,12 +4,13 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Calculator, MapPin, Maximize2, Home, ArrowRight, Loader2, Building2, Search, BedDouble, Bath, Sparkles, Car } from "lucide-react";
+import { Textarea } from "@/components/ui/textarea";
+import { Calculator, MapPin, Maximize2, Home, ArrowRight, Loader2, Building2, Search, BedDouble, Bath, Sparkles, Car, Star } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/integrations/supabase/client";
 import { useStreetSuggestions } from "@/hooks/useStreetSuggestions";
 
-interface QuickValuationData {
+export interface QuickValuationData {
   bairro: string;
   logradouro: string;
   area_m2: number;
@@ -18,6 +19,7 @@ interface QuickValuationData {
   banheiros?: number;
   suites?: number;
   vagas?: number;
+  diferenciais?: string;
   itbiData: {
     min_m2: number;
     med_m2: number;
@@ -62,16 +64,15 @@ export function QuickValuationForm({ onComplete }: QuickValuationFormProps) {
   const [banheiros, setBanheiros] = useState("");
   const [suites, setSuites] = useState("");
   const [vagas, setVagas] = useState("");
+  const [diferenciais, setDiferenciais] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
   const [showSuggestions, setShowSuggestions] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
   const suggestionsRef = useRef<HTMLDivElement>(null);
 
-  // Hook de busca de sugestões de ruas
   const { data: suggestions, isLoading: suggestionsLoading } = useStreetSuggestions(logradouro, bairro);
 
-  // Fechar dropdown ao clicar fora
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (
@@ -106,7 +107,6 @@ export function QuickValuationForm({ onComplete }: QuickValuationFormProps) {
     setIsLoading(true);
 
     try {
-      // Busca dados ITBI do bairro selecionado
       let query = supabase
         .from("itbi_transactions")
         .select("valor_m2, total_transacoes")
@@ -116,12 +116,10 @@ export function QuickValuationForm({ onComplete }: QuickValuationFormProps) {
         .not("valor_m2", "is", null)
         .gte("data_transacao", new Date(Date.now() - 365 * 24 * 60 * 60 * 1000).toISOString().split("T")[0]);
 
-      // Se tiver logradouro, filtra também
       if (logradouro.trim()) {
         query = query.ilike("logradouro", `%${logradouro.trim()}%`);
       }
 
-      // Filtra por tipologia se não for "todos"
       if (tipologia && tipologia !== "Todos") {
         query = query.ilike("tipologia", `%${tipologia}%`);
       }
@@ -164,6 +162,7 @@ export function QuickValuationForm({ onComplete }: QuickValuationFormProps) {
         banheiros: banheiros ? parseInt(banheiros) : undefined,
         suites: suites ? parseInt(suites) : undefined,
         vagas: vagas ? parseInt(vagas) : undefined,
+        diferenciais: diferenciais.trim() || undefined,
         itbiData,
         estimativa,
       });
@@ -181,9 +180,9 @@ export function QuickValuationForm({ onComplete }: QuickValuationFormProps) {
         <div className="mx-auto w-16 h-16 rounded-2xl bg-gradient-to-br from-accent/20 to-primary/20 flex items-center justify-center mb-4 shadow-lg">
           <Calculator className="h-8 w-8 text-accent" />
         </div>
-        <CardTitle className="text-2xl font-bold">Avaliação Rápida Gratuita</CardTitle>
+        <CardTitle className="text-2xl font-bold">Sua Análise Preliminar de Valor Imobiliário Gratuita</CardTitle>
         <CardDescription className="text-base">
-          Informe os dados do imóvel e descubra seu valor de mercado em segundos
+          Informe os dados do imóvel e, em poucos segundos, você verá na tela uma estimativa central de valor de mercado para o seu imóvel, como um termômetro inicial.
         </CardDescription>
       </CardHeader>
       <CardContent>
@@ -207,7 +206,6 @@ export function QuickValuationForm({ onComplete }: QuickValuationFormProps) {
             </Select>
           </div>
 
-          {/* Campo de rua com autocomplete */}
           <div className="space-y-2 relative">
             <Label htmlFor="logradouro" className="flex items-center gap-2 text-sm font-medium">
               <Building2 className="h-4 w-4 text-accent" />
@@ -235,7 +233,6 @@ export function QuickValuationForm({ onComplete }: QuickValuationFormProps) {
               )}
             </div>
 
-            {/* Dropdown de sugestões */}
             {showSuggestions && suggestions && suggestions.length > 0 && logradouro.length >= 2 && (
               <div 
                 ref={suggestionsRef}
@@ -289,7 +286,6 @@ export function QuickValuationForm({ onComplete }: QuickValuationFormProps) {
             )}
           </div>
 
-          {/* Tipo - linha separada */}
           <div className="space-y-2">
             <Label htmlFor="tipologia" className="flex items-center gap-2 text-sm font-medium">
               <Home className="h-4 w-4 text-accent" />
@@ -309,7 +305,6 @@ export function QuickValuationForm({ onComplete }: QuickValuationFormProps) {
             </Select>
           </div>
 
-          {/* Área */}
           <div className="space-y-2">
             <Label htmlFor="area" className="flex items-center gap-2 text-sm font-medium">
               <Maximize2 className="h-4 w-4 text-accent" />
@@ -327,7 +322,6 @@ export function QuickValuationForm({ onComplete }: QuickValuationFormProps) {
             />
           </div>
 
-          {/* Características do Imóvel - Grid responsivo */}
           <div className="space-y-3">
             <Label className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
               Características do Imóvel (opcional)
@@ -400,6 +394,25 @@ export function QuickValuationForm({ onComplete }: QuickValuationFormProps) {
             </div>
           </div>
 
+          {/* Novo campo: Diferenciais do Imóvel */}
+          <div className="space-y-2">
+            <Label htmlFor="diferenciais" className="flex items-center gap-2 text-sm font-medium">
+              <Star className="h-4 w-4 text-accent" />
+              Diferenciais do Imóvel (opcional)
+            </Label>
+            <Textarea
+              id="diferenciais"
+              placeholder="Ex: vista mar, acabamentos de luxo, automação, lazer completo, reformado por arquiteto..."
+              value={diferenciais}
+              onChange={(e) => setDiferenciais(e.target.value)}
+              className="border-primary/20 focus-visible:ring-accent/30 min-h-[80px] resize-none"
+              maxLength={500}
+            />
+            <p className="text-xs text-muted-foreground text-right">
+              {diferenciais.length}/500 caracteres
+            </p>
+          </div>
+
           {error && (
             <p className="text-sm text-destructive text-center bg-destructive/10 py-2 rounded-lg">{error}</p>
           )}
@@ -417,14 +430,14 @@ export function QuickValuationForm({ onComplete }: QuickValuationFormProps) {
               </>
             ) : (
               <>
-                Descobrir Valor do Imóvel
+                Ver Análise Preliminar Agora
                 <ArrowRight className="ml-2 h-5 w-5" />
               </>
             )}
           </Button>
 
           <p className="text-xs text-muted-foreground text-center pt-2">
-            ⚡ Resultado instantâneo baseado em transações oficiais ITBI dos últimos 12 meses
+            ⚡ Resultado instantâneo baseado em transações oficiais ITBI, com foco nas negociações mais recentes na Barra da Tijuca.
           </p>
         </form>
       </CardContent>
