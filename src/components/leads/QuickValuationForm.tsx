@@ -430,7 +430,7 @@ export function QuickValuationForm({ onComplete }: QuickValuationFormProps) {
               </>
             ) : (
               <>
-                Ver Análise Preliminar Agora
+                Ver Análise Agora
                 <ArrowRight className="ml-2 h-5 w-5" />
               </>
             )}
