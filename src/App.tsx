@@ -42,6 +42,9 @@ const App = () => {
                 {/* Página pública de avaliação - sem sidebar/header */}
                 <Route path="/avaliacao" element={<AvaliacaoPublica />} />
                 
+                {/* Página de Política de Privacidade - pública */}
+                <Route path="/politica-privacidade" element={<PoliticaPrivacidade />} />
+                
                 {/* Página de autenticação */}
                 <Route path="/auth" element={<Auth />} />
                 
