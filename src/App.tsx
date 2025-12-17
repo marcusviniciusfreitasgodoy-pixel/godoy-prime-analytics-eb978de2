@@ -24,6 +24,7 @@ import Usuarios from "./pages/Usuarios";
 import Auth from "./pages/Auth";
 import ResetPassword from "./pages/ResetPassword";
 import AvaliacaoPublica from "./pages/AvaliacaoPublica";
+import PoliticaPrivacidade from "./pages/PoliticaPrivacidade";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
