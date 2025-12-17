@@ -300,8 +300,42 @@ export default function AvaliacaoPublica() {
           </div>
         </section>
 
-        {/* ============ SECTION 4: FORM (White background) ============ */}
-        <section ref={formRef} className="py-16 md:py-20 px-4 bg-white scroll-mt-4">
+        {/* ============ SECTION 4: PARA QUEM É (White background) ============ */}
+        <section className="py-16 md:py-20 px-4 bg-white">
+          <div className="container mx-auto max-w-5xl">
+            <div className="text-center mb-12">
+              <span className="inline-block px-4 py-1 rounded-full bg-[#0C2340]/10 text-[#0C2340] text-sm font-semibold mb-4">
+                PARA QUEM É
+              </span>
+              <h3 className="text-2xl md:text-4xl font-bold text-[#0C2340] mb-4">
+                Para Quem É Esta Avaliação?
+              </h3>
+            </div>
+
+            <div className="grid md:grid-cols-3 gap-6">
+              {PERSONAS.map((persona, index) => (
+                <div 
+                  key={index}
+                  className="bg-gray-50 rounded-2xl p-6 border border-gray-100 hover:border-[#D4AF37]/30 hover:shadow-lg transition-all duration-300 text-center"
+                >
+                  <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-[#0C2340] to-[#1a3a5c] flex items-center justify-center mx-auto mb-4">
+                    <persona.icon className="h-8 w-8 text-[#D4AF37]" />
+                  </div>
+                  <h4 className="font-bold text-xl text-[#0C2340] mb-1">{persona.title}</h4>
+                  <p className="text-[#D4AF37] font-medium text-sm mb-3">{persona.subtitle}</p>
+                  <p className="text-muted-foreground text-sm mb-4">{persona.description}</p>
+                  <div className="inline-flex items-center gap-2 text-xs bg-[#D4AF37]/10 text-[#0C2340] rounded-full px-4 py-2 font-medium">
+                    <CheckCircle className="h-3.5 w-3.5 text-[#D4AF37]" />
+                    {persona.cta}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
+
+        {/* ============ SECTION 5: FORM (Light gray background) ============ */}
+        <section ref={formRef} className="py-16 md:py-20 px-4 bg-gray-50 scroll-mt-4">
           <div className="container mx-auto max-w-2xl">
             <div className="text-center mb-8">
               <span className="inline-block px-4 py-1 rounded-full bg-[#0C2340]/10 text-[#0C2340] text-sm font-semibold mb-4">
@@ -336,7 +370,7 @@ export default function AvaliacaoPublica() {
                 </div>
 
                 {/* Disclaimer */}
-                <div className="bg-gray-50 rounded-xl p-4 border border-gray-200">
+                <div className="bg-white rounded-xl p-4 border border-gray-200">
                   <div className="flex items-start gap-3">
                     <AlertCircle className="h-5 w-5 text-muted-foreground shrink-0 mt-0.5" />
                     <p className="text-xs text-muted-foreground">
@@ -352,7 +386,7 @@ export default function AvaliacaoPublica() {
 
         {/* ============ RESULT SECTION (appears after form submit) ============ */}
         {step === "result" && valuationData && (
-          <section ref={resultRef} className="py-12 px-4 bg-gradient-to-b from-white to-gray-50 scroll-mt-4">
+          <section ref={resultRef} className="py-12 px-4 bg-gradient-to-b from-gray-50 to-white scroll-mt-4">
             <div className="container mx-auto max-w-2xl">
               <QuickValuationResult
                 data={valuationData}
@@ -361,40 +395,6 @@ export default function AvaliacaoPublica() {
             </div>
           </section>
         )}
-
-        {/* ============ SECTION 5: PARA QUEM É (White background) ============ */}
-        <section className="py-16 md:py-20 px-4 bg-white">
-          <div className="container mx-auto max-w-5xl">
-            <div className="text-center mb-12">
-              <span className="inline-block px-4 py-1 rounded-full bg-[#0C2340]/10 text-[#0C2340] text-sm font-semibold mb-4">
-                PARA QUEM É
-              </span>
-              <h3 className="text-2xl md:text-4xl font-bold text-[#0C2340] mb-4">
-                Para Quem É Esta Avaliação?
-              </h3>
-            </div>
-
-            <div className="grid md:grid-cols-3 gap-6">
-              {PERSONAS.map((persona, index) => (
-                <div 
-                  key={index}
-                  className="bg-gray-50 rounded-2xl p-6 border border-gray-100 hover:border-[#D4AF37]/30 hover:shadow-lg transition-all duration-300 text-center"
-                >
-                  <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-[#0C2340] to-[#1a3a5c] flex items-center justify-center mx-auto mb-4">
-                    <persona.icon className="h-8 w-8 text-[#D4AF37]" />
-                  </div>
-                  <h4 className="font-bold text-xl text-[#0C2340] mb-1">{persona.title}</h4>
-                  <p className="text-[#D4AF37] font-medium text-sm mb-3">{persona.subtitle}</p>
-                  <p className="text-muted-foreground text-sm mb-4">{persona.description}</p>
-                  <div className="inline-flex items-center gap-2 text-xs bg-[#D4AF37]/10 text-[#0C2340] rounded-full px-4 py-2 font-medium">
-                    <CheckCircle className="h-3.5 w-3.5 text-[#D4AF37]" />
-                    {persona.cta}
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        </section>
 
         {/* ============ SECTION 6: FINAL CTA (Gold background) ============ */}
         <section className="py-16 md:py-20 px-4 bg-gradient-to-br from-[#D4AF37] to-[#c9a432]">
