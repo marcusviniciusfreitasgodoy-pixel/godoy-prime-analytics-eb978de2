@@ -610,6 +610,33 @@ export type Database = {
         }
         Returns: boolean
       }
+      increment_lead_evaluation: {
+        Args: { lead_email: string }
+        Returns: undefined
+      }
+      update_lead_by_email: {
+        Args: {
+          p_aceita_marketing?: boolean
+          p_area_interesse?: number
+          p_bairro_interesse?: string
+          p_banheiros?: number
+          p_diferenciais_imovel?: string
+          p_email: string
+          p_endereco_imovel_analise?: string
+          p_interesse?: string
+          p_nome?: string
+          p_objetivo?: string
+          p_preferencia_contato?: string
+          p_quartos?: number
+          p_suites?: number
+          p_telefone?: string
+          p_urgencia?: string
+          p_vagas?: number
+          p_valor_interesse?: number
+          p_valor_pedido_vendedor?: number
+        }
+        Returns: string
+      }
     }
     Enums: {
       app_role: "admin" | "corretor" | "gerente"
