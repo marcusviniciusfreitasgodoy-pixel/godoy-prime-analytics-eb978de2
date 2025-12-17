@@ -25,6 +25,7 @@ import {
   ChevronDown
 } from "lucide-react";
 import godoyLogo from "@/assets/godoy-logo-symbol.png";
+import heroBackground from "@/assets/hero-barra-luxury.jpg";
 
 type Step = "form" | "result";
 
@@ -140,8 +141,15 @@ export default function AvaliacaoPublica() {
       </Helmet>
 
       <div className="min-h-screen bg-background">
-        {/* ============ SECTION 1: HERO (Navy to Gold gradient) ============ */}
-        <section className="relative bg-gradient-to-br from-[#0C2340] via-[#0C2340] to-[#1a3a5c] text-white overflow-hidden">
+        {/* ============ SECTION 1: HERO (Navy with background image) ============ */}
+        <section className="relative text-white overflow-hidden">
+          {/* Background image with overlay */}
+          <div 
+            className="absolute inset-0 bg-cover bg-center bg-no-repeat"
+            style={{ backgroundImage: `url(${heroBackground})` }}
+          />
+          <div className="absolute inset-0 bg-gradient-to-br from-[#0C2340]/95 via-[#0C2340]/90 to-[#1a3a5c]/85" />
+          
           {/* Decorative elements */}
           <div className="absolute inset-0 overflow-hidden">
             <div className="absolute -top-40 -right-40 w-80 h-80 bg-[#D4AF37]/10 rounded-full blur-3xl" />
