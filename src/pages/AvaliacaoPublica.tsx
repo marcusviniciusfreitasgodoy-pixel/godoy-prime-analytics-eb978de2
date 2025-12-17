@@ -1,228 +1,464 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { Helmet } from "react-helmet-async";
 import { QuickValuationForm, QuickValuationData } from "@/components/leads/QuickValuationForm";
 import { QuickValuationResult } from "@/components/leads/QuickValuationResult";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, Shield, TrendingUp, Award, CheckCircle, FileCheck, AlertCircle, Sparkles, MessageCircle } from "lucide-react";
+import { Link } from "react-router-dom";
+import { 
+  ArrowRight, 
+  Shield, 
+  TrendingUp, 
+  Award, 
+  CheckCircle, 
+  AlertCircle, 
+  MessageCircle,
+  Eye,
+  Calculator,
+  Target,
+  Users,
+  Home,
+  DollarSign,
+  BarChart3,
+  FileSearch,
+  Clock,
+  Building2,
+  ChevronDown
+} from "lucide-react";
 import godoyLogo from "@/assets/godoy-logo-symbol.png";
 
 type Step = "form" | "result";
 
-const TRUST_BADGES = [
-  { icon: Shield, text: "Dados Oficiais ITBI da Prefeitura do RJ" },
-  { icon: TrendingUp, text: "+80.000 Transações Reais (5 anos)" },
-  { icon: Award, text: "Foco em Alto Padrão - Barra da Tijuca" },
+// Stats for hero
+const HERO_STATS = [
+  { value: "80.000+", label: "Transações Oficiais", icon: FileSearch },
+  { value: "5 Anos", label: "De Dados Históricos", icon: Clock },
+  { value: "142", label: "Bairros do Rio", icon: Building2 },
 ];
 
-const DIFFERENTIALS = [
+// Problems section data
+const PROBLEMS = [
   {
-    icon: FileCheck,
-    title: "Transações reais, não apenas anúncios",
-    description: "Em vez de olhar só preços de anúncios inflacionados, usamos registros oficiais de compra e venda (ITBI), ou seja, quanto os compradores realmente pagaram por imóveis na Barra da Tijuca.",
-    highlights: ["Resultado imediato em tela", "Análise baseada em dados da Prefeitura do Rio de Janeiro"],
+    icon: Eye,
+    title: "Anúncios inflacionados",
+    description: "Preços de anúncios não refletem o valor real de venda. Vendedores pedem mais, compradores oferecem menos.",
   },
+  {
+    icon: Calculator,
+    title: "Algoritmos genéricos",
+    description: "Ferramentas online usam fórmulas simplistas que ignoram os diferenciais únicos de cada imóvel.",
+  },
+  {
+    icon: Target,
+    title: "Falta de dados oficiais",
+    description: "Sem acesso a transações reais, você negocia no escuro e pode perder dinheiro.",
+  },
+];
+
+// Solutions section data
+const SOLUTIONS = [
   {
     icon: Shield,
-    title: "Dados oficiais e foco local",
-    description: "Nossa base reúne mais de 80.000 transações oficiais de compra e venda dos últimos 5 anos na Barra da Tijuca, com maior peso para as negociações dos últimos 12 meses.",
-    highlights: ["Atualização mensal", "Análise por bairro, rua, condomínio e tipologia"],
+    title: "Dados Oficiais ITBI",
+    description: "Usamos transações reais registradas na Prefeitura do RJ, não apenas preços de anúncios.",
+    highlight: "Fonte governamental confiável",
   },
   {
-    icon: TrendingUp,
-    title: "Precisão para negociar melhor",
-    description: "Os valores estimados consideram quanto foi efetivamente pago em imóveis comparáveis ao seu, e não apenas o preço pedido em anúncios.",
-    highlights: ["Evite vender abaixo do que vale", "Não pague mais caro do que o justo"],
+    icon: Award,
+    title: "Especialistas em Alto Padrão",
+    description: "Foco exclusivo em Barra da Tijuca e bairros nobres do Rio com metodologia específica.",
+    highlight: "Conhecimento local profundo",
+  },
+  {
+    icon: BarChart3,
+    title: "Metodologia Transparente",
+    description: "Você vê exatamente como calculamos: base de dados, filtros aplicados e período analisado.",
+    highlight: "Sem caixas-pretas",
+  },
+];
+
+// Audience personas
+const PERSONAS = [
+  {
+    icon: Home,
+    title: "Proprietários",
+    subtitle: "Quer vender pelo melhor preço?",
+    description: "Descubra o valor real do seu imóvel baseado em transações oficiais e negocie com segurança.",
+    cta: "Evite vender abaixo do valor justo",
+  },
+  {
+    icon: Users,
+    title: "Compradores",
+    subtitle: "Quer negociar com confiança?",
+    description: "Saiba se o preço pedido está dentro da realidade de mercado antes de fazer uma proposta.",
+    cta: "Não pague mais do que vale",
+  },
+  {
+    icon: DollarSign,
+    title: "Investidores",
+    subtitle: "Quer identificar oportunidades?",
+    description: "Compare valores por região e tipologia para encontrar as melhores oportunidades de investimento.",
+    cta: "Tome decisões com dados reais",
   },
 ];
 
 export default function AvaliacaoPublica() {
   const [step, setStep] = useState<Step>("form");
   const [valuationData, setValuationData] = useState<QuickValuationData | null>(null);
+  const formRef = useRef<HTMLDivElement>(null);
+  const resultRef = useRef<HTMLDivElement>(null);
 
   const handleQuickValuationComplete = (data: QuickValuationData) => {
     setValuationData(data);
     setStep("result");
+    // Scroll to result
+    setTimeout(() => {
+      resultRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+    }, 100);
   };
 
   const handleNewValuation = () => {
     setValuationData(null);
     setStep("form");
+    setTimeout(() => {
+      formRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+    }, 100);
+  };
+
+  const scrollToForm = () => {
+    formRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
   };
 
   return (
     <>
       <Helmet>
-        <title>Avaliação Imobiliária Gratuita e Transparente | Godoy Prime Realty</title>
+        <title>Avaliação Imobiliária Gratuita | Godoy Prime Realty</title>
         <meta 
           name="description" 
-          content="Descubra o valor de mercado do seu imóvel na Barra da Tijuca com base em transações reais ITBI. Avaliação gratuita baseada em +80.000 transações oficiais." 
+          content="Descubra o valor real do seu imóvel na Barra da Tijuca com dados oficiais ITBI. Avaliação gratuita baseada em +80.000 transações da Prefeitura do RJ." 
         />
         <meta name="keywords" content="avaliação imóvel, valor imóvel, Barra da Tijuca, Rio de Janeiro, ITBI, preço m2, avaliação gratuita" />
       </Helmet>
 
-      <div className="min-h-screen bg-gradient-to-br from-[hsl(var(--primary)/0.05)] via-background to-[hsl(var(--accent)/0.05)]">
-        {/* Header */}
-        <header className="border-b border-accent/30 bg-[#0C2340] sticky top-0 z-50">
-          <div className="container mx-auto px-4 py-4 flex items-center justify-between">
+      <div className="min-h-screen bg-background">
+        {/* ============ SECTION 1: HERO (Navy to Gold gradient) ============ */}
+        <section className="relative bg-gradient-to-br from-[#0C2340] via-[#0C2340] to-[#1a3a5c] text-white overflow-hidden">
+          {/* Decorative elements */}
+          <div className="absolute inset-0 overflow-hidden">
+            <div className="absolute -top-40 -right-40 w-80 h-80 bg-[#D4AF37]/10 rounded-full blur-3xl" />
+            <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-[#D4AF37]/5 rounded-full blur-3xl" />
+          </div>
+
+          {/* Header */}
+          <header className="relative z-10 container mx-auto px-4 py-4 flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <img src={godoyLogo} alt="Godoy Prime" className="h-12 w-auto drop-shadow-lg" />
-              <div>
-                <h1 className="font-semibold text-lg tracking-tight text-white">Godoy Prime Realty</h1>
-                <p className="text-xs text-accent font-medium">Avaliação Imobiliária Premium</p>
+              <img src={godoyLogo} alt="Godoy Prime" className="h-10 md:h-12 w-auto drop-shadow-lg" />
+              <div className="hidden sm:block">
+                <h1 className="font-semibold text-base md:text-lg tracking-tight">Godoy Prime Realty</h1>
+                <p className="text-xs text-[#D4AF37] font-medium">Avaliação Imobiliária Premium</p>
               </div>
             </div>
-            {step === "result" && (
-              <Button 
-                variant="ghost" 
-                size="sm"
-                onClick={handleNewValuation}
-                className="hover:bg-primary/10 text-white"
-              >
-                <ArrowLeft className="mr-2 h-4 w-4" />
-                Nova Avaliação
-              </Button>
+            <Button 
+              onClick={scrollToForm}
+              className="bg-[#D4AF37] hover:bg-[#c9a432] text-[#0C2340] font-semibold shadow-lg"
+              size="sm"
+            >
+              Avaliar Agora
+            </Button>
+          </header>
+
+          {/* Hero Content */}
+          <div className="relative z-10 container mx-auto px-4 py-12 md:py-20 text-center">
+            <div className="max-w-3xl mx-auto space-y-6">
+              <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/10 border border-white/20 text-sm font-medium animate-fade-in">
+                <Shield className="h-4 w-4 text-[#D4AF37]" />
+                Dados Oficiais ITBI da Prefeitura do Rio de Janeiro
+              </div>
+
+              <h2 className="text-3xl md:text-5xl font-bold tracking-tight animate-fade-in [animation-delay:150ms]">
+                Descubra o{" "}
+                <span className="text-[#D4AF37]">Valor Real</span>
+                <br className="hidden md:block" />
+                {" "}do Seu Imóvel
+              </h2>
+
+              <p className="text-lg md:text-xl text-white/80 max-w-2xl mx-auto animate-fade-in [animation-delay:300ms]">
+                Avaliação gratuita baseada em transações reais de compra e venda, 
+                não em preços de anúncios inflacionados.
+              </p>
+
+              <div className="flex flex-col sm:flex-row gap-4 justify-center pt-4 animate-fade-in [animation-delay:450ms]">
+                <Button 
+                  onClick={scrollToForm}
+                  size="lg"
+                  className="bg-[#D4AF37] hover:bg-[#c9a432] text-[#0C2340] font-bold shadow-xl hover:shadow-2xl transition-all duration-300 text-base px-8"
+                >
+                  Avaliar Meu Imóvel Agora
+                  <ArrowRight className="ml-2 h-5 w-5" />
+                </Button>
+              </div>
+
+              {/* Stats */}
+              <div className="grid grid-cols-3 gap-4 md:gap-8 pt-8 border-t border-white/10 mt-8 animate-fade-in [animation-delay:600ms]">
+                {HERO_STATS.map((stat, index) => (
+                  <div key={index} className="text-center">
+                    <stat.icon className="h-5 w-5 md:h-6 md:w-6 text-[#D4AF37] mx-auto mb-2" />
+                    <p className="text-xl md:text-3xl font-bold">{stat.value}</p>
+                    <p className="text-xs md:text-sm text-white/60">{stat.label}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Scroll indicator */}
+            <div className="absolute bottom-6 left-1/2 -translate-x-1/2 animate-bounce">
+              <ChevronDown className="h-6 w-6 text-white/40" />
+            </div>
+          </div>
+        </section>
+
+        {/* ============ SECTION 2: PROBLEM (White background) ============ */}
+        <section className="py-16 md:py-20 px-4 bg-white">
+          <div className="container mx-auto max-w-5xl">
+            <div className="text-center mb-12">
+              <span className="inline-block px-4 py-1 rounded-full bg-destructive/10 text-destructive text-sm font-semibold mb-4">
+                O PROBLEMA
+              </span>
+              <h3 className="text-2xl md:text-4xl font-bold text-[#0C2340] mb-4">
+                Por Que Você Está Negociando no Escuro?
+              </h3>
+              <p className="text-muted-foreground max-w-2xl mx-auto">
+                A diferença entre o preço pedido e o valor real pode chegar a <strong className="text-[#D4AF37]">R$ 200.000</strong> ou mais.
+              </p>
+            </div>
+
+            <div className="grid md:grid-cols-3 gap-6">
+              {PROBLEMS.map((problem, index) => (
+                <div 
+                  key={index}
+                  className="bg-gray-50 rounded-2xl p-6 border border-gray-100 hover:border-[#D4AF37]/30 hover:shadow-lg transition-all duration-300"
+                >
+                  <div className="w-12 h-12 rounded-xl bg-destructive/10 flex items-center justify-center mb-4">
+                    <problem.icon className="h-6 w-6 text-destructive" />
+                  </div>
+                  <h4 className="font-bold text-lg text-[#0C2340] mb-2">{problem.title}</h4>
+                  <p className="text-muted-foreground text-sm">{problem.description}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
+
+        {/* ============ SECTION 3: SOLUTION (Light gray background) ============ */}
+        <section className="py-16 md:py-20 px-4 bg-gray-50">
+          <div className="container mx-auto max-w-5xl">
+            <div className="text-center mb-12">
+              <span className="inline-block px-4 py-1 rounded-full bg-[#D4AF37]/10 text-[#D4AF37] text-sm font-semibold mb-4">
+                A SOLUÇÃO
+              </span>
+              <h3 className="text-2xl md:text-4xl font-bold text-[#0C2340] mb-4">
+                A Solução Que Muda Tudo
+              </h3>
+              <p className="text-muted-foreground max-w-2xl mx-auto">
+                Avaliação baseada em dados reais da Prefeitura, não em achismos ou algoritmos genéricos.
+              </p>
+            </div>
+
+            <div className="grid md:grid-cols-3 gap-6">
+              {SOLUTIONS.map((solution, index) => (
+                <div 
+                  key={index}
+                  className="bg-white rounded-2xl p-6 border-2 border-[#D4AF37]/20 hover:border-[#D4AF37]/50 shadow-sm hover:shadow-xl transition-all duration-300"
+                >
+                  <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-[#D4AF37]/20 to-[#D4AF37]/5 border border-[#D4AF37]/30 flex items-center justify-center mb-4">
+                    <solution.icon className="h-6 w-6 text-[#D4AF37]" />
+                  </div>
+                  <h4 className="font-bold text-lg text-[#0C2340] mb-2">{solution.title}</h4>
+                  <p className="text-muted-foreground text-sm mb-4">{solution.description}</p>
+                  <div className="flex items-center gap-2 text-xs bg-[#D4AF37]/10 text-[#0C2340] rounded-lg px-3 py-2">
+                    <CheckCircle className="h-4 w-4 text-[#D4AF37]" />
+                    {solution.highlight}
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {/* Social proof */}
+            <div className="mt-12 text-center">
+              <p className="text-sm text-muted-foreground">
+                <TrendingUp className="inline h-4 w-4 text-[#D4AF37] mr-1" />
+                Usado por corretores e investidores premium da Barra da Tijuca
+              </p>
+            </div>
+          </div>
+        </section>
+
+        {/* ============ SECTION 4: FORM (White background) ============ */}
+        <section ref={formRef} className="py-16 md:py-20 px-4 bg-white scroll-mt-4">
+          <div className="container mx-auto max-w-2xl">
+            <div className="text-center mb-8">
+              <span className="inline-block px-4 py-1 rounded-full bg-[#0C2340]/10 text-[#0C2340] text-sm font-semibold mb-4">
+                AVALIAÇÃO GRATUITA
+              </span>
+              <h3 className="text-2xl md:text-4xl font-bold text-[#0C2340] mb-4">
+                Avalie Seu Imóvel Agora
+              </h3>
+              <p className="text-muted-foreground">
+                Resultado instantâneo baseado em transações reais • 100% gratuito
+              </p>
+            </div>
+
+            {step === "form" && (
+              <div className="space-y-6">
+                <QuickValuationForm onComplete={handleQuickValuationComplete} />
+
+                {/* Trust badges */}
+                <div className="flex flex-wrap justify-center gap-4 pt-4">
+                  <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                    <Shield className="h-4 w-4 text-[#D4AF37]" />
+                    Dados da Prefeitura RJ
+                  </div>
+                  <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                    <CheckCircle className="h-4 w-4 text-[#D4AF37]" />
+                    100% Gratuito
+                  </div>
+                  <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                    <Clock className="h-4 w-4 text-[#D4AF37]" />
+                    Resultado em 30 segundos
+                  </div>
+                </div>
+
+                {/* Disclaimer */}
+                <div className="bg-gray-50 rounded-xl p-4 border border-gray-200">
+                  <div className="flex items-start gap-3">
+                    <AlertCircle className="h-5 w-5 text-muted-foreground shrink-0 mt-0.5" />
+                    <p className="text-xs text-muted-foreground">
+                      <strong className="text-foreground">Aviso:</strong> Esta é uma estimativa automática baseada em dados 
+                      históricos de transações ITBI. Não substitui um laudo técnico assinado por perito avaliador.
+                    </p>
+                  </div>
+                </div>
+              </div>
             )}
           </div>
-        </header>
+        </section>
 
-        {/* Hero Section - Only on form step */}
-        {step === "form" && (
-          <>
-            <section className="py-8 px-4">
-              <div className="container mx-auto max-w-2xl text-center space-y-4">
-                <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-accent/10 border border-accent/30 text-accent text-sm font-medium animate-fade-in">
-                  <Sparkles className="h-4 w-4 animate-pulse" />
-                  Dados oficiais ITBI da Prefeitura do Rio de Janeiro
-                </div>
-                
-                <h2 className="text-3xl md:text-4xl font-bold tracking-tight animate-fade-in [animation-delay:150ms]">
-                  Avaliação Imobiliária{" "}
-                  <span className="text-accent">Gratuita</span> e{" "}
-                  <span className="text-accent">Transparente</span>
-                </h2>
-                
-                <p className="text-lg text-foreground/90 animate-fade-in [animation-delay:300ms]">
-                  Descubra, em segundos, a estimativa de valor de mercado do seu imóvel na Barra da Tijuca, 
-                  com base em transações reais da Prefeitura do Rio de Janeiro – sem achismos e sem pegadinhas.
-                </p>
-                
-                <p className="text-base text-muted-foreground max-w-xl mx-auto animate-fade-in [animation-delay:450ms]">
-                  Vai <strong className="text-accent">comprar</strong> ou <strong className="text-accent">vender</strong>? 
-                  Negocie com segurança usando dados reais de mercado.
-                </p>
-                
-                {/* Trust Badges */}
-                <div className="flex flex-wrap justify-center gap-3 pt-4">
-                  {TRUST_BADGES.map((badge, index) => (
-                    <div 
-                      key={index}
-                      className="flex items-center gap-2 px-4 py-2 rounded-full bg-primary/5 border border-primary/10 animate-fade-in hover-scale"
-                      style={{ animationDelay: `${600 + index * 100}ms` }}
-                    >
-                      <badge.icon className="h-4 w-4 text-accent" />
-                      <span className="text-sm font-medium">{badge.text}</span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </section>
-
-            {/* Por que escolher nossa avaliação? */}
-            <section className="py-6 px-4 bg-gradient-to-b from-accent/5 to-transparent">
-              <div className="container mx-auto max-w-3xl">
-                <div className="text-center mb-6">
-                  <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-accent/20 text-accent text-xs font-semibold mb-3">
-                    <Award className="h-3.5 w-3.5" />
-                    EXCLUSIVO GODOY PRIME
-                  </div>
-                  <h3 className="text-2xl font-bold">
-                    Por que escolher nossa avaliação?
-                  </h3>
-                </div>
-                
-                <div className="grid md:grid-cols-3 gap-4">
-                  {DIFFERENTIALS.map((diff, index) => (
-                    <div 
-                      key={index}
-                      className="bg-card rounded-xl p-5 border-2 border-accent/30 shadow-lg shadow-accent/5 hover:border-accent/50 transition-colors"
-                    >
-                      <div className="flex flex-col items-center text-center space-y-3">
-                        <div className="p-3 rounded-full bg-gradient-to-br from-accent/20 to-accent/5 border border-accent/30">
-                          <diff.icon className="h-6 w-6 text-accent" />
-                        </div>
-                        <h4 className="font-semibold text-sm">{diff.title}</h4>
-                        <p className="text-xs text-muted-foreground">{diff.description}</p>
-                        <div className="space-y-1.5 pt-2 w-full">
-                          {diff.highlights.map((highlight, hIndex) => (
-                            <div 
-                              key={hIndex}
-                              className="flex items-center gap-2 text-xs bg-accent/10 rounded-md px-2 py-1"
-                            >
-                              <CheckCircle className="h-3.5 w-3.5 text-accent shrink-0" />
-                              <span className="text-foreground/80">{highlight}</span>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </section>
-          </>
+        {/* ============ RESULT SECTION (appears after form submit) ============ */}
+        {step === "result" && valuationData && (
+          <section ref={resultRef} className="py-12 px-4 bg-gradient-to-b from-white to-gray-50 scroll-mt-4">
+            <div className="container mx-auto max-w-2xl">
+              <QuickValuationResult
+                data={valuationData}
+                onNewValuation={handleNewValuation}
+              />
+            </div>
+          </section>
         )}
 
-        {/* Main Content */}
-        <main className="container mx-auto px-4 py-6 max-w-2xl">
-          {step === "form" && (
-            <div className="space-y-6">
-              <QuickValuationForm onComplete={handleQuickValuationComplete} />
+        {/* ============ SECTION 5: PARA QUEM É (White background) ============ */}
+        <section className="py-16 md:py-20 px-4 bg-white">
+          <div className="container mx-auto max-w-5xl">
+            <div className="text-center mb-12">
+              <span className="inline-block px-4 py-1 rounded-full bg-[#0C2340]/10 text-[#0C2340] text-sm font-semibold mb-4">
+                PARA QUEM É
+              </span>
+              <h3 className="text-2xl md:text-4xl font-bold text-[#0C2340] mb-4">
+                Para Quem É Esta Avaliação?
+              </h3>
+            </div>
 
-              {/* Disclaimer */}
-              <div className="bg-muted/50 rounded-xl p-4 border border-border">
-                <div className="flex items-start gap-3">
-                  <AlertCircle className="h-5 w-5 text-muted-foreground shrink-0 mt-0.5" />
-                  <p className="text-xs text-muted-foreground">
-                    <strong className="text-foreground">Aviso:</strong> Esta é uma estimativa automática baseada em dados 
-                    históricos de transações ITBI e em regras estatísticas. Não substitui um laudo técnico assinado por perito avaliador.
-                  </p>
+            <div className="grid md:grid-cols-3 gap-6">
+              {PERSONAS.map((persona, index) => (
+                <div 
+                  key={index}
+                  className="bg-gray-50 rounded-2xl p-6 border border-gray-100 hover:border-[#D4AF37]/30 hover:shadow-lg transition-all duration-300 text-center"
+                >
+                  <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-[#0C2340] to-[#1a3a5c] flex items-center justify-center mx-auto mb-4">
+                    <persona.icon className="h-8 w-8 text-[#D4AF37]" />
+                  </div>
+                  <h4 className="font-bold text-xl text-[#0C2340] mb-1">{persona.title}</h4>
+                  <p className="text-[#D4AF37] font-medium text-sm mb-3">{persona.subtitle}</p>
+                  <p className="text-muted-foreground text-sm mb-4">{persona.description}</p>
+                  <div className="inline-flex items-center gap-2 text-xs bg-[#D4AF37]/10 text-[#0C2340] rounded-full px-4 py-2 font-medium">
+                    <CheckCircle className="h-3.5 w-3.5 text-[#D4AF37]" />
+                    {persona.cta}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
+
+        {/* ============ SECTION 6: FINAL CTA (Gold background) ============ */}
+        <section className="py-16 md:py-20 px-4 bg-gradient-to-br from-[#D4AF37] to-[#c9a432]">
+          <div className="container mx-auto max-w-3xl text-center">
+            <h3 className="text-2xl md:text-4xl font-bold text-[#0C2340] mb-4">
+              Pronto para Descobrir o Valor Real?
+            </h3>
+            <p className="text-[#0C2340]/80 text-lg mb-8">
+              Comece agora – é grátis e leva apenas 30 segundos.
+            </p>
+            <Button 
+              onClick={scrollToForm}
+              size="lg"
+              className="bg-[#0C2340] hover:bg-[#0a1d33] text-white font-bold shadow-xl hover:shadow-2xl transition-all duration-300 text-base px-10"
+            >
+              Começar Avaliação Gratuita
+              <ArrowRight className="ml-2 h-5 w-5" />
+            </Button>
+          </div>
+        </section>
+
+        {/* ============ SECTION 7: FOOTER (Navy background) ============ */}
+        <footer className="py-12 px-4 bg-[#0C2340]">
+          <div className="container mx-auto max-w-5xl">
+            <div className="flex flex-col md:flex-row items-center justify-between gap-8">
+              {/* Logo and info */}
+              <div className="text-center md:text-left">
+                <div className="flex items-center gap-3 justify-center md:justify-start mb-4">
+                  <img src={godoyLogo} alt="Godoy Prime" className="h-10 w-auto" />
+                  <div>
+                    <h4 className="font-semibold text-white">Godoy Prime Realty</h4>
+                    <p className="text-xs text-[#D4AF37]">CRECI 11841-PJ</p>
+                  </div>
+                </div>
+                <p className="text-white/60 text-sm max-w-md">
+                  Especialistas em imóveis de alto padrão na Barra da Tijuca. 
+                  Avaliações baseadas em dados oficiais ITBI da Prefeitura do Rio de Janeiro.
+                </p>
+              </div>
+
+              {/* Contact */}
+              <div className="text-center md:text-right">
+                <p className="text-white/80 text-sm mb-2">
+                  Av. das Américas, 10101 - Bloco 2, Sala 316
+                </p>
+                <div className="flex flex-col sm:flex-row justify-center md:justify-end gap-2 sm:gap-4 text-sm">
+                  <a href="tel:+552140400067" className="text-white/80 hover:text-[#D4AF37] transition-colors">
+                    📞 (21) 4040-0067
+                  </a>
+                  <a href="https://wa.me/5521997250515" target="_blank" rel="noopener noreferrer" className="text-white/80 hover:text-[#D4AF37] transition-colors">
+                    💬 (21) 99725-0515
+                  </a>
                 </div>
               </div>
             </div>
-          )}
 
-          {step === "result" && valuationData && (
-            <QuickValuationResult
-              data={valuationData}
-              onNewValuation={handleNewValuation}
-            />
-          )}
-        </main>
-
-        {/* Footer */}
-        <footer className="border-t border-accent/30 mt-auto py-8 bg-[#0C2340]">
-          <div className="container mx-auto px-4 text-center space-y-4">
-            <img src={godoyLogo} alt="Godoy Prime" className="h-8 w-auto mx-auto" />
-            <p className="text-sm text-white/80">
-              © {new Date().getFullYear()} Godoy Prime Realty. CRECI 11841-PJ
-            </p>
-            <p className="text-xs text-white/60 max-w-md mx-auto px-2">
-              Dados baseados em mais de 80.000 transações oficiais ITBI da Prefeitura do Rio de Janeiro 
-              dos últimos 5 anos, com foco nas negociações mais recentes da Barra da Tijuca. 
-              Esta é uma estimativa automatizada e não substitui uma avaliação profissional assinada por perito.
-            </p>
-            
-            <div className="space-y-2 pt-2">
-              <p className="text-xs text-white/70">
-                Av. das Américas, 10101 - Bloco 2, Sala 316
+            {/* Bottom bar */}
+            <div className="mt-8 pt-6 border-t border-white/10 flex flex-col sm:flex-row items-center justify-between gap-4">
+              <p className="text-white/40 text-xs">
+                © {new Date().getFullYear()} Godoy Prime Realty. Todos os direitos reservados.
               </p>
-              <div className="flex flex-col sm:flex-row justify-center items-center gap-2 sm:gap-4 text-xs">
-                <a href="tel:+552140400067" className="text-white/80 hover:text-accent transition-colors">
-                  📞 (21) 4040-0067
-                </a>
-                <a href="https://wa.me/5521997250515" target="_blank" rel="noopener noreferrer" className="text-white/80 hover:text-accent transition-colors">
-                  💬 (21) 99725-0515 (WhatsApp)
-                </a>
+              <div className="flex items-center gap-4">
+                <Link to="/politica-privacidade" className="text-white/40 text-xs hover:text-[#D4AF37] transition-colors">
+                  Política de Privacidade
+                </Link>
+                <span className="text-white/20">|</span>
+                <span className="text-white/40 text-xs">
+                  Desenvolvido por{" "}
+                  <a href="https://lovable.dev" target="_blank" rel="noopener noreferrer" className="hover:text-[#D4AF37] transition-colors">
+                    Lovable
+                  </a>
+                </span>
               </div>
             </div>
           </div>
