@@ -84,7 +84,7 @@ const PERSONAS = [
     title: "Proprietários",
     subtitle: "Quer vender pelo melhor preço?",
     description: "Descubra o valor real do seu imóvel baseado em transações oficiais e negocie com segurança.",
-    cta: "Evite vender abaixo do valor justo",
+    cta: "Posicione seu imóvel com preço correto e evite perder meses tentando vender sem sucesso.",
   },
   {
     icon: Users,
