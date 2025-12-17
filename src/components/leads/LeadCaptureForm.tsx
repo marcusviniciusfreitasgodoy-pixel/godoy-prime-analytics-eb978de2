@@ -141,33 +141,29 @@ export function LeadCaptureForm({
         .maybeSingle();
 
       if (existingLead) {
-        // Update existing lead
-        const newCount = (existingLead.evaluation_count || 1) + 1;
-        
-        await supabase
-          .from("leads")
-          .update({ 
-            evaluation_count: newCount,
-            updated_at: new Date().toISOString(),
-            nome: data.nome.trim(),
-            telefone: data.telefone.replace(/\D/g, ""),
-            bairro_interesse: bairroInteresse,
-            area_interesse: areaInteresse,
-            valor_interesse: valorInteresse,
-            quartos,
-            banheiros,
-            suites,
-            vagas,
-            objetivo: data.objetivo,
-            urgencia: data.urgencia,
-            preferencia_contato: data.preferencia_contato,
-            aceita_marketing: data.aceita_marketing || false,
-            diferenciais_imovel: diferenciais,
-            interesse: data.objetivo === "vender" ? "venda" : "compra",
-            endereco_imovel_analise: data.endereco_imovel || null,
-            valor_pedido_vendedor: valorPedidoNum,
-          })
-          .eq("id", existingLead.id);
+        // Update existing lead using secure RPC function
+        const { data: updatedLeadId, error: updateError } = await supabase.rpc('update_lead_by_email', {
+          p_email: normalizedEmail,
+          p_nome: data.nome.trim(),
+          p_telefone: data.telefone.replace(/\D/g, ""),
+          p_bairro_interesse: bairroInteresse,
+          p_area_interesse: areaInteresse,
+          p_valor_interesse: valorInteresse,
+          p_quartos: quartos,
+          p_banheiros: banheiros,
+          p_suites: suites,
+          p_vagas: vagas,
+          p_objetivo: data.objetivo,
+          p_urgencia: data.urgencia,
+          p_preferencia_contato: data.preferencia_contato,
+          p_aceita_marketing: data.aceita_marketing || false,
+          p_diferenciais_imovel: diferenciais,
+          p_interesse: data.objetivo === "vender" ? "venda" : "compra",
+          p_endereco_imovel_analise: data.endereco_imovel || null,
+          p_valor_pedido_vendedor: valorPedidoNum,
+        });
+
+        if (updateError) throw updateError;
 
         toast.success("Dados atualizados com sucesso!");
         
