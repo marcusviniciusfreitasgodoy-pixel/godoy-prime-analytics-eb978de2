@@ -145,10 +145,10 @@ serve(async (req) => {
     console.log(`Período: ${minYear} - ${maxYear}`);
     console.log(`Apenas residencial: ${onlyResidencial}`);
 
-    // Buscar com paginação
+    // Buscar com paginação - IMPORTANTE: API tem maxRecordCount=1000
     let allFeatures: ArcGISFeature[] = [];
     let offset = 0;
-    const pageSize = 2000;
+    const pageSize = 1000; // Alinhado com limite da API da Prefeitura
     let hasMore = true;
 
     // Construir WHERE clause - sem codbairro se sincronizando todos
