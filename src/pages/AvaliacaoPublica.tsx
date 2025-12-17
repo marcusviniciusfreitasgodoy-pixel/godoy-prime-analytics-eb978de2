@@ -463,10 +463,7 @@ export default function AvaliacaoPublica() {
                 </Link>
                 <span className="text-white/20">|</span>
                 <span className="text-white/40 text-xs">
-                  Desenvolvido por{" "}
-                  <a href="https://lovable.dev" target="_blank" rel="noopener noreferrer" className="hover:text-[#D4AF37] transition-colors">
-                    Lovable
-                  </a>
+                  Desenvolvido por Godoy Prime Realty
                 </span>
               </div>
             </div>
