@@ -132,12 +132,12 @@ export default function AvaliacaoPublica() {
   return (
     <>
       <Helmet>
-        <title>Avaliação Imobiliária Gratuita | Godoy Prime Realty</title>
+        <title>Valor Real de Imóveis | Godoy Prime Realty</title>
         <meta 
           name="description" 
-          content="Descubra o valor real do seu imóvel na Barra da Tijuca com dados oficiais ITBI. Avaliação gratuita baseada em +80.000 transações da Prefeitura do RJ." 
+          content="Descubra o valor real de qualquer imóvel na Barra da Tijuca com dados oficiais ITBI. Negocie com confiança baseado em +80.000 transações da Prefeitura do RJ." 
         />
-        <meta name="keywords" content="avaliação imóvel, valor imóvel, Barra da Tijuca, Rio de Janeiro, ITBI, preço m2, avaliação gratuita" />
+        <meta name="keywords" content="avaliação imóvel, valor imóvel, Barra da Tijuca, Rio de Janeiro, ITBI, preço m2, valor real" />
       </Helmet>
 
       <div className="min-h-screen bg-background">
@@ -170,7 +170,7 @@ export default function AvaliacaoPublica() {
               className="bg-[#D4AF37] hover:bg-[#c9a432] text-[#0C2340] font-semibold shadow-lg"
               size="sm"
             >
-              Avaliar Agora
+              Consultar Valor
             </Button>
           </header>
 
@@ -183,14 +183,15 @@ export default function AvaliacaoPublica() {
               </div>
 
               <h2 className="text-3xl md:text-5xl font-bold tracking-tight animate-fade-in [animation-delay:150ms]">
-                Descubra o{" "}
-                <span className="text-[#D4AF37]">Valor Real</span>
+                Negocie com Confiança:
+                <br />
+                <span className="text-[#D4AF37]">Descubra o Valor Real</span>
                 <br className="hidden md:block" />
-                {" "}do Seu Imóvel
+                {" "}de Qualquer Imóvel
               </h2>
 
               <p className="text-lg md:text-xl text-white/80 max-w-2xl mx-auto animate-fade-in [animation-delay:300ms]">
-                Avaliação gratuita baseada em transações reais de compra e venda, 
+                Avaliação baseada em transações reais de compra e venda, 
                 não em preços de anúncios inflacionados.
               </p>
 
@@ -200,7 +201,7 @@ export default function AvaliacaoPublica() {
                   size="lg"
                   className="bg-[#D4AF37] hover:bg-[#c9a432] text-[#0C2340] font-bold shadow-xl hover:shadow-2xl transition-all duration-300 text-base px-8"
                 >
-                  Avaliar Meu Imóvel Agora
+                  Descobrir Valor Real Agora
                   <ArrowRight className="ml-2 h-5 w-5" />
                 </Button>
               </div>
@@ -341,14 +342,14 @@ export default function AvaliacaoPublica() {
               Pronto para Descobrir o Valor Real?
             </h3>
             <p className="text-[#0C2340]/80 text-lg mb-8">
-              Comece agora – é grátis e leva apenas 30 segundos.
+              Comece agora – leva apenas 30 segundos.
             </p>
             <Button 
               onClick={scrollToForm}
               size="lg"
               className="bg-[#0C2340] hover:bg-[#0a1d33] text-white font-bold shadow-xl hover:shadow-2xl transition-all duration-300 text-base px-10"
             >
-              Começar Avaliação Gratuita
+              Consultar Valor Real
               <ArrowRight className="ml-2 h-5 w-5" />
             </Button>
           </div>
@@ -359,13 +360,13 @@ export default function AvaliacaoPublica() {
           <div className="container mx-auto max-w-2xl">
             <div className="text-center mb-8">
               <span className="inline-block px-4 py-1 rounded-full bg-[#0C2340]/10 text-[#0C2340] text-sm font-semibold mb-4">
-                AVALIAÇÃO GRATUITA
+                AVALIAÇÃO PRELIMINAR
               </span>
               <h3 className="text-2xl md:text-4xl font-bold text-[#0C2340] mb-4">
-                Avalie Seu Imóvel Agora
+                Consulte o Valor Real
               </h3>
               <p className="text-muted-foreground">
-                Resultado instantâneo baseado em transações reais • 100% gratuito
+                Resultado instantâneo baseado em transações reais • Sem compromisso
               </p>
             </div>
 
@@ -381,7 +382,7 @@ export default function AvaliacaoPublica() {
                   </div>
                   <div className="flex items-center gap-2 text-xs text-muted-foreground">
                     <CheckCircle className="h-4 w-4 text-[#D4AF37]" />
-                    100% Gratuito
+                    Sem compromisso
                   </div>
                   <div className="flex items-center gap-2 text-xs text-muted-foreground">
                     <Clock className="h-4 w-4 text-[#D4AF37]" />
@@ -407,7 +408,7 @@ export default function AvaliacaoPublica() {
         {/* ============ RESULT SECTION (appears after form submit) ============ */}
         {step === "result" && valuationData && (
           <section ref={resultRef} className="py-12 px-4 bg-gradient-to-b from-gray-50 to-white scroll-mt-4">
-            <div className="container mx-auto max-w-2xl">
+            <div className="container mx-auto max-w-3xl">
               <QuickValuationResult
                 data={valuationData}
                 onNewValuation={handleNewValuation}

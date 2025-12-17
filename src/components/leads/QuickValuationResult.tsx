@@ -3,12 +3,10 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
-import { TrendingUp, TrendingDown, MapPin, Maximize2, Home, Calculator, AlertCircle, Sparkles } from "lucide-react";
+import { TrendingUp, TrendingDown, MapPin, Maximize2, Home, Calculator, AlertCircle, Shield } from "lucide-react";
 import { ComparisonTable } from "./ComparisonTable";
 import { PeritEvaluationSection } from "./PeritEvaluationSection";
 import { LeadCaptureForm, LeadCaptureFormResult } from "./LeadCaptureForm";
-import { supabase } from "@/integrations/supabase/client";
-import { toast } from "sonner";
 
 interface QuickValuationData {
   bairro: string;
@@ -70,7 +68,7 @@ export function QuickValuationResult({
     setTimeout(() => {
       const whatsappNumber = "5521964075124";
       const message = encodeURIComponent(
-        `Olá! Sou ${lead.nome}.\n\nQuero contato para agendar uma Avaliação Completa com Perito.\n\nImóvel: ${data.tipologia} de ${data.area_m2}m² em ${data.bairro}\nEstimativa Preliminar: ${formatCurrency(data.estimativa?.min || 0)} a ${formatCurrency(data.estimativa?.max || 0)}\n\nMeu telefone: ${lead.telefone}\nMeu email: ${lead.email}\nObjetivo: ${lead.objetivo}\nUrgência: ${lead.urgencia}`
+        `Olá! Sou ${lead.nome}.\n\nQuero solicitar meu Parecer Técnico Godoy Prime para proteger meu patrimônio.\n\nImóvel analisado: ${data.tipologia} de ${data.area_m2}m² em ${data.bairro}\nEstimativa Preliminar: ${formatCurrency(data.estimativa?.min || 0)} a ${formatCurrency(data.estimativa?.max || 0)}\n\nMeu WhatsApp: ${lead.telefone}\nMeu email: ${lead.email}\nObjetivo: ${lead.objetivo}\nUrgência: ${lead.urgencia}`
       );
       window.open(`https://wa.me/${whatsappNumber}?text=${message}`, '_blank');
     }, 1000);
@@ -184,30 +182,15 @@ export function QuickValuationResult({
           {/* Aviso */}
           <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 text-xs text-amber-800">
             <strong>Aviso:</strong> Esta é uma estimativa automática baseada em dados históricos de transações ITBI 
-            e em regras estatísticas. Não substitui um laudo técnico assinado por perito avaliador.
+            e em regras estatísticas. Para ter certeza do valor real, você precisa de uma análise técnica completa.
           </div>
         </CardContent>
       </Card>
 
-      {/* Seção Persuasiva */}
-      <Card className="border-primary/20 bg-gradient-to-br from-primary/5 to-accent/5">
+      {/* Seção Completa de Avaliação com Perito */}
+      <Card className="border-border shadow-lg">
         <CardContent className="py-6">
-          <div className="text-center space-y-4">
-            <div className="mx-auto w-12 h-12 rounded-full bg-accent/20 flex items-center justify-center">
-              <Sparkles className="h-6 w-6 text-accent" />
-            </div>
-            <h3 className="text-xl font-bold text-foreground">
-              Quer ir além da estimativa? Descubra o Valor Real do Seu Patrimônio!
-            </h3>
-            <p className="text-muted-foreground max-w-2xl mx-auto">
-              Sua Análise Preliminar de Valor já te deu um excelente ponto de partida. Agora, 
-              para ter a <strong className="text-foreground">precisão cirúrgica</strong> que seu imóvel de alto padrão merece, 
-              oferecemos a <strong className="text-accent">Avaliação Completa e Personalizada</strong> com um 
-              Perito Avaliador Credenciado. É a sua chance de ter um especialista que considera cada detalhe 
-              único e as tendências de mercado para te dar uma estratégia imobiliária de sucesso, 
-              <strong className="text-foreground"> totalmente gratuita e sem compromisso</strong>.
-            </p>
-          </div>
+          <PeritEvaluationSection />
         </CardContent>
       </Card>
 
@@ -218,35 +201,26 @@ export function QuickValuationResult({
         </CardContent>
       </Card>
 
-      {/* Seção Avaliação Completa com Perito */}
-      <Card className="border-accent/20 bg-card">
-        <CardContent className="py-6">
-          <PeritEvaluationSection />
-        </CardContent>
-      </Card>
-
       {/* Formulário de Lead ou Confirmação */}
       {leadSubmitted ? (
         <Card className="border-green-500/30 bg-green-50">
           <CardContent className="py-8">
             <div className="text-center space-y-4">
               <div className="mx-auto w-16 h-16 rounded-full bg-green-500/20 flex items-center justify-center">
-                <svg className="w-8 h-8 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                </svg>
+                <Shield className="w-8 h-8 text-green-600" />
               </div>
               <h3 className="text-xl font-bold text-green-800">
-                Solicitação Enviada com Sucesso!
+                Solicitação de Parecer Técnico Enviada!
               </h3>
               <p className="text-green-700">
                 Obrigado, <strong>{leadData?.nome}</strong>! Nossa equipe entrará em contato em breve 
-                para agendar sua Avaliação Completa.
+                para iniciar a proteção do seu patrimônio.
               </p>
               <p className="text-sm text-green-600">
                 Também abrimos o WhatsApp para você enviar uma mensagem direta.
               </p>
               <Button onClick={onNewValuation} variant="outline" className="mt-4">
-                Fazer Nova Análise Preliminar
+                Fazer Nova Consulta de Valor
               </Button>
             </div>
           </CardContent>
@@ -270,7 +244,7 @@ export function QuickValuationResult({
       {!leadSubmitted && (
         <div className="text-center">
           <Button variant="ghost" onClick={onNewValuation} className="text-muted-foreground">
-            ← Voltar e fazer nova análise
+            ← Voltar e fazer nova consulta
           </Button>
         </div>
       )}
