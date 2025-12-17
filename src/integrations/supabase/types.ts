@@ -602,6 +602,13 @@ export type Database = {
       }
     }
     Functions: {
+      check_lead_exists: {
+        Args: { lead_email: string }
+        Returns: {
+          current_count: number
+          exists_flag: boolean
+        }[]
+      }
       get_vault_secret: { Args: { secret_name: string }; Returns: string }
       has_role: {
         Args: {
