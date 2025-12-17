@@ -133,12 +133,14 @@ export function LeadCaptureForm({
       const normalizedEmail = data.email.trim().toLowerCase();
       const valorPedidoNum = data.valor_pedido ? parseInt(data.valor_pedido.replace(/\D/g, ""), 10) : null;
       
-      // Check if email exists
-      const { data: existingLead } = await supabase
-        .from("leads")
-        .select("id, evaluation_count")
-        .eq("email", normalizedEmail)
-        .maybeSingle();
+      // Check if email exists using secure RPC function (doesn't expose PII)
+      const { data: leadCheck } = await supabase.rpc('check_lead_exists', {
+        lead_email: normalizedEmail
+      });
+      
+      const existingLead = leadCheck && leadCheck.length > 0 && leadCheck[0].exists_flag 
+        ? { evaluation_count: leadCheck[0].current_count } 
+        : null;
 
       if (existingLead) {
         // Update existing lead using secure RPC function
@@ -168,7 +170,7 @@ export function LeadCaptureForm({
         toast.success("Dados atualizados com sucesso!");
         
         onSuccess({
-          id: existingLead.id,
+          id: updatedLeadId || '',
           nome: data.nome.trim(),
           email: normalizedEmail,
           telefone: data.telefone.replace(/\D/g, ""),
