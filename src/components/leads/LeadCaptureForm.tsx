@@ -8,7 +8,8 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
-import { User, Mail, Phone, Loader2, Award, Target, Clock, MessageCircle } from "lucide-react";
+import { Textarea } from "@/components/ui/textarea";
+import { User, Mail, Phone, Loader2, Shield, Target, Clock, MessageCircle, MapPin, Banknote } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Link } from "react-router-dom";
@@ -20,6 +21,8 @@ const leadSchema = z.object({
     .min(10, "Telefone deve ter pelo menos 10 dígitos")
     .max(15, "Telefone inválido")
     .regex(/^[\d\s\-\(\)]+$/, "Formato de telefone inválido"),
+  endereco_imovel: z.string().optional(),
+  valor_pedido: z.string().optional(),
   objetivo: z.string().min(1, "Selecione seu objetivo"),
   urgencia: z.string().min(1, "Selecione sua urgência"),
   preferencia_contato: z.string().min(1, "Selecione sua preferência de contato"),
@@ -112,10 +115,23 @@ export function LeadCaptureForm({
     return `(${digits.slice(0, 2)}) ${digits.slice(2, 7)}-${digits.slice(7, 11)}`;
   };
 
+  const formatCurrency = (value: string) => {
+    const digits = value.replace(/\D/g, "");
+    if (!digits) return "";
+    const number = parseInt(digits, 10);
+    return new Intl.NumberFormat("pt-BR", {
+      style: "currency",
+      currency: "BRL",
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0,
+    }).format(number);
+  };
+
   const onSubmit = async (data: LeadFormData) => {
     setIsSubmitting(true);
     try {
       const normalizedEmail = data.email.trim().toLowerCase();
+      const valorPedidoNum = data.valor_pedido ? parseInt(data.valor_pedido.replace(/\D/g, ""), 10) : null;
       
       // Check if email exists
       const { data: existingLead } = await supabase
@@ -148,6 +164,8 @@ export function LeadCaptureForm({
             aceita_marketing: data.aceita_marketing || false,
             diferenciais_imovel: diferenciais,
             interesse: data.objetivo === "vender" ? "venda" : "compra",
+            endereco_imovel_analise: data.endereco_imovel || null,
+            valor_pedido_vendedor: valorPedidoNum,
           })
           .eq("id", existingLead.id);
 
@@ -185,6 +203,8 @@ export function LeadCaptureForm({
         interesse: data.objetivo === "vender" ? "venda" : "compra",
         origem,
         evaluation_count: 1,
+        endereco_imovel_analise: data.endereco_imovel || null,
+        valor_pedido_vendedor: valorPedidoNum,
       }).select('id').single();
 
       if (error) throw error;
@@ -212,6 +232,8 @@ export function LeadCaptureForm({
             estimativaMin: valorInteresse ? valorInteresse * 0.9 : undefined,
             estimativaMed: valorInteresse,
             estimativaMax: valorInteresse ? valorInteresse * 1.1 : undefined,
+            enderecoImovelAnalise: data.endereco_imovel,
+            valorPedidoVendedor: valorPedidoNum,
           }
         });
       } catch (notificationError) {
@@ -238,16 +260,27 @@ export function LeadCaptureForm({
   };
 
   return (
-    <Card className="border-accent/30 bg-gradient-to-b from-card to-card/80 backdrop-blur shadow-xl">
-      <CardHeader className="text-center pb-4">
-        <div className="mx-auto w-14 h-14 rounded-full bg-gradient-to-br from-accent/20 to-primary/20 flex items-center justify-center mb-3 shadow-lg">
-          <Award className="h-7 w-7 text-accent" />
+    <Card className="border-primary/30 bg-gradient-to-b from-card to-card/80 backdrop-blur shadow-xl">
+      {/* Privacy Notice BEFORE form */}
+      <div className="bg-green-50 border-b border-green-200 px-6 py-4 rounded-t-xl">
+        <div className="flex items-start gap-3">
+          <Shield className="h-5 w-5 text-green-600 shrink-0 mt-0.5" />
+          <div>
+            <p className="text-sm font-semibold text-green-800">🛡️ Proteção Total de Privacidade Garantida</p>
+            <p className="text-xs text-green-700 mt-1">
+              Seus dados são criptografados e utilizados exclusivamente para seu Parecer Técnico. 
+              Não compartilhamos com terceiros.
+            </p>
+          </div>
         </div>
+      </div>
+
+      <CardHeader className="text-center pb-4 pt-6">
         <CardTitle className="text-xl font-bold">
-          Solicite Sua Avaliação Completa e Personalizada
+          Para Personalizar Seu Parecer Técnico
         </CardTitle>
         <CardDescription className="text-base">
-          Gratuita e Sem Compromisso
+          Preciso Entender Sua Situação
         </CardDescription>
       </CardHeader>
       <CardContent>
@@ -255,14 +288,14 @@ export function LeadCaptureForm({
           {/* Nome */}
           <div className="space-y-2">
             <Label htmlFor="nome" className="flex items-center gap-2 text-sm font-medium">
-              <User className="h-4 w-4 text-accent" />
+              <User className="h-4 w-4 text-primary" />
               Nome Completo *
             </Label>
             <Input
               id="nome"
               placeholder="Seu nome completo"
               {...register("nome")}
-              className={`border-primary/20 focus-visible:ring-accent/30 ${errors.nome ? "border-destructive" : ""}`}
+              className={`border-primary/20 focus-visible:ring-primary/30 ${errors.nome ? "border-destructive" : ""}`}
             />
             {errors.nome && (
               <p className="text-sm text-destructive">{errors.nome.message}</p>
@@ -272,7 +305,7 @@ export function LeadCaptureForm({
           {/* Email */}
           <div className="space-y-2">
             <Label htmlFor="email" className="flex items-center gap-2 text-sm font-medium">
-              <Mail className="h-4 w-4 text-accent" />
+              <Mail className="h-4 w-4 text-primary" />
               E-mail *
             </Label>
             <Input
@@ -280,7 +313,7 @@ export function LeadCaptureForm({
               type="email"
               placeholder="seu@email.com"
               {...register("email")}
-              className={`border-primary/20 focus-visible:ring-accent/30 ${errors.email ? "border-destructive" : ""}`}
+              className={`border-primary/20 focus-visible:ring-primary/30 ${errors.email ? "border-destructive" : ""}`}
             />
             {errors.email && (
               <p className="text-sm text-destructive">{errors.email.message}</p>
@@ -290,7 +323,7 @@ export function LeadCaptureForm({
           {/* Telefone */}
           <div className="space-y-2">
             <Label htmlFor="telefone" className="flex items-center gap-2 text-sm font-medium">
-              <Phone className="h-4 w-4 text-accent" />
+              <Phone className="h-4 w-4 text-primary" />
               WhatsApp *
             </Label>
             <Input
@@ -302,21 +335,57 @@ export function LeadCaptureForm({
                   e.target.value = formatPhone(e.target.value);
                 },
               })}
-              className={`border-primary/20 focus-visible:ring-accent/30 ${errors.telefone ? "border-destructive" : ""}`}
+              className={`border-primary/20 focus-visible:ring-primary/30 ${errors.telefone ? "border-destructive" : ""}`}
             />
             {errors.telefone && (
               <p className="text-sm text-destructive">{errors.telefone.message}</p>
             )}
           </div>
 
+          {/* Endereço do Imóvel (NOVO) */}
+          <div className="space-y-2">
+            <Label htmlFor="endereco_imovel" className="flex items-center gap-2 text-sm font-medium">
+              <MapPin className="h-4 w-4 text-primary" />
+              Endereço do Imóvel que Está Analisando
+              <span className="text-muted-foreground text-xs">(opcional)</span>
+            </Label>
+            <Textarea
+              id="endereco_imovel"
+              placeholder="Ex: Av. Lúcio Costa, 1000, Apt 501 - Barra da Tijuca"
+              {...register("endereco_imovel")}
+              className="border-primary/20 focus-visible:ring-primary/30 min-h-[60px]"
+              rows={2}
+            />
+          </div>
+
+          {/* Valor Pedido pelo Vendedor (NOVO) */}
+          <div className="space-y-2">
+            <Label htmlFor="valor_pedido" className="flex items-center gap-2 text-sm font-medium">
+              <Banknote className="h-4 w-4 text-primary" />
+              Valor Pedido pelo Vendedor
+              <span className="text-muted-foreground text-xs">(opcional)</span>
+            </Label>
+            <Input
+              id="valor_pedido"
+              type="text"
+              placeholder="R$ 1.500.000"
+              {...register("valor_pedido", {
+                onChange: (e) => {
+                  e.target.value = formatCurrency(e.target.value);
+                },
+              })}
+              className="border-primary/20 focus-visible:ring-primary/30"
+            />
+          </div>
+
           {/* Objetivo */}
           <div className="space-y-2">
             <Label className="flex items-center gap-2 text-sm font-medium">
-              <Target className="h-4 w-4 text-accent" />
+              <Target className="h-4 w-4 text-primary" />
               Qual o seu principal objetivo? *
             </Label>
             <Select onValueChange={(value) => setValue("objetivo", value)}>
-              <SelectTrigger className={`border-primary/20 focus:ring-accent/30 ${errors.objetivo ? "border-destructive" : ""}`}>
+              <SelectTrigger className={`border-primary/20 focus:ring-primary/30 ${errors.objetivo ? "border-destructive" : ""}`}>
                 <SelectValue placeholder="Selecione seu objetivo" />
               </SelectTrigger>
               <SelectContent>
@@ -335,11 +404,11 @@ export function LeadCaptureForm({
           {/* Urgência */}
           <div className="space-y-2">
             <Label className="flex items-center gap-2 text-sm font-medium">
-              <Clock className="h-4 w-4 text-accent" />
+              <Clock className="h-4 w-4 text-primary" />
               Qual a sua urgência? *
             </Label>
             <Select onValueChange={(value) => setValue("urgencia", value)}>
-              <SelectTrigger className={`border-primary/20 focus:ring-accent/30 ${errors.urgencia ? "border-destructive" : ""}`}>
+              <SelectTrigger className={`border-primary/20 focus:ring-primary/30 ${errors.urgencia ? "border-destructive" : ""}`}>
                 <SelectValue placeholder="Selecione a urgência" />
               </SelectTrigger>
               <SelectContent>
@@ -358,14 +427,14 @@ export function LeadCaptureForm({
           {/* Preferência de Contato */}
           <div className="space-y-2">
             <Label className="flex items-center gap-2 text-sm font-medium">
-              <MessageCircle className="h-4 w-4 text-accent" />
+              <MessageCircle className="h-4 w-4 text-primary" />
               Prefere contato via? *
             </Label>
             <Select 
               defaultValue="whatsapp"
               onValueChange={(value) => setValue("preferencia_contato", value)}
             >
-              <SelectTrigger className="border-primary/20 focus:ring-accent/30">
+              <SelectTrigger className="border-primary/20 focus:ring-primary/30">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -390,9 +459,16 @@ export function LeadCaptureForm({
             </Label>
           </div>
 
+          {/* Urgência Temporal */}
+          <div className="bg-amber-50 border border-amber-200 rounded-lg p-3">
+            <p className="text-xs text-amber-800 text-center">
+              ⏰ <strong>Quanto antes validar, maior sua vantagem na negociação.</strong>
+            </p>
+          </div>
+
           <Button 
             type="submit" 
-            className="w-full bg-accent hover:bg-accent/90 text-accent-foreground shadow-lg" 
+            className="w-full bg-primary hover:bg-primary/90 text-primary-foreground shadow-lg" 
             size="lg"
             disabled={isSubmitting}
           >
@@ -402,17 +478,20 @@ export function LeadCaptureForm({
                 Enviando...
               </>
             ) : (
-              "Solicitar Avaliação Completa com Perito"
+              <>
+                <Shield className="mr-2 h-5 w-5" />
+                Proteger Meu Patrimônio Antes de Assinar
+              </>
             )}
           </Button>
 
           {/* Política de Privacidade */}
           <div className="bg-muted/30 rounded-lg p-3 mt-4">
             <p className="text-xs text-muted-foreground text-center">
-              🔒 Seus dados de contato serão utilizados exclusivamente para agendar e realizar sua Avaliação Completa, sem qualquer custo ou compromisso. Não enviamos spam e não compartilhamos seus dados com terceiros.{" "}
+              🔒 Ao enviar, você concorda com nossa{" "}
               <Link 
                 to="/politica-privacidade" 
-                className="text-accent hover:underline"
+                className="text-primary hover:underline"
                 target="_blank"
               >
                 Política de Privacidade

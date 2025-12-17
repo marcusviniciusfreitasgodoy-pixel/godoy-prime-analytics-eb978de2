@@ -162,6 +162,7 @@ export type Database = {
           created_at: string
           diferenciais_imovel: string | null
           email: string
+          endereco_imovel_analise: string | null
           evaluation_count: number | null
           id: string
           interesse: string | null
@@ -177,6 +178,7 @@ export type Database = {
           urgencia: string | null
           vagas: number | null
           valor_interesse: number | null
+          valor_pedido_vendedor: number | null
         }
         Insert: {
           aceita_marketing?: boolean | null
@@ -187,6 +189,7 @@ export type Database = {
           created_at?: string
           diferenciais_imovel?: string | null
           email: string
+          endereco_imovel_analise?: string | null
           evaluation_count?: number | null
           id?: string
           interesse?: string | null
@@ -202,6 +205,7 @@ export type Database = {
           urgencia?: string | null
           vagas?: number | null
           valor_interesse?: number | null
+          valor_pedido_vendedor?: number | null
         }
         Update: {
           aceita_marketing?: boolean | null
@@ -212,6 +216,7 @@ export type Database = {
           created_at?: string
           diferenciais_imovel?: string | null
           email?: string
+          endereco_imovel_analise?: string | null
           evaluation_count?: number | null
           id?: string
           interesse?: string | null
@@ -227,6 +232,7 @@ export type Database = {
           urgencia?: string | null
           vagas?: number | null
           valor_interesse?: number | null
+          valor_pedido_vendedor?: number | null
         }
         Relationships: []
       }
