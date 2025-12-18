@@ -131,8 +131,15 @@ function extractKeywordsForRAG(message: string): string[] {
   // Market keywords
   const marketKeywords = ['mercado', 'liquidez', 'ciclo', 'tendência', 'indicador',
     'selic', 'financiamento', 'crédito'];
+  // Service-related keywords (Prime Buyer Experience, Personal Shopper, etc.)
+  const serviceKeywords = ['personal shopper', 'servico', 'serviço', 'prime buyer', 'parecer', 
+    'vistoria', 'inspeção', 'inspecao', 'completa', 'como funciona', 'quanto custa', 'custo',
+    'preco', 'preço', 'garantia', 'prazo', 'entrega', 'diferenca', 'diferença', 'corretor',
+    'representacao', 'representação', 'compra blindada', 'negociacao', 'negociação', 
+    'contato', 'agendar', 'telefone', 'whatsapp', 'checklist', 'categorias', 'faq',
+    'perguntas', 'duvidas', 'dúvidas', 'marcus godoy', 'economia', 'reembolso'];
   
-  [...docKeywords, ...legalKeywords, ...valuationKeywords, ...marketKeywords].forEach(kw => {
+  [...docKeywords, ...legalKeywords, ...valuationKeywords, ...marketKeywords, ...serviceKeywords].forEach(kw => {
     if (normalizedMessage.includes(kw)) {
       keywords.push(kw);
     }
