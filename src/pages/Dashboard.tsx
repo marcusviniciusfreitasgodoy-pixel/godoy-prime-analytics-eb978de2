@@ -21,9 +21,10 @@ import { useEvolutionData } from "@/hooks/useEvolutionData";
 import { useToast } from "@/hooks/use-toast";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator, DropdownMenuLabel } from "@/components/ui/dropdown-menu";
 import { useActivityTracking } from "@/hooks/useActivityTracking";
+import { useFirstVisitTour } from "@/hooks/useFirstVisitTour";
 
 export default function Dashboard() {
-  const [runTour, setRunTour] = useState(false);
+  const { shouldRunTour, startTour, endTour } = useFirstVisitTour('dashboard');
   const [isExporting, setIsExporting] = useState(false);
   const { selectedBairro, setSelectedBairro } = useBairro();
   const { toast } = useToast();
@@ -265,7 +266,7 @@ export default function Dashboard() {
 
   return (
     <div className="space-y-3 sm:space-y-6">
-      <GuidedTour run={runTour} onFinish={() => setRunTour(false)} />
+      <GuidedTour run={shouldRunTour} onFinish={endTour} />
       
       {/* Mobile Hero Section */}
       <div className="sm:hidden">
@@ -312,7 +313,7 @@ export default function Dashboard() {
               <Button 
                 variant="outline" 
                 size="sm" 
-                onClick={() => setRunTour(true)} 
+                onClick={startTour} 
                 className="flex flex-col items-center gap-0.5 h-auto py-1.5 px-2.5 min-w-[46px] bg-background/80"
               >
                 <HelpCircle className="h-4 w-4 text-accent" />
@@ -383,7 +384,7 @@ export default function Dashboard() {
         <div className="flex flex-row items-center gap-4">
           <BairroSelector value={selectedBairro} onChange={setSelectedBairro} />
           <div className="flex gap-2">
-            <Button variant="outline" size="sm" onClick={() => setRunTour(true)}>
+            <Button variant="outline" size="sm" onClick={startTour}>
               <HelpCircle className="h-4 w-4 mr-2" />
               Tour Guiado
             </Button>

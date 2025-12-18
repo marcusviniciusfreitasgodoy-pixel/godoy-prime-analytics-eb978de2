@@ -17,6 +17,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Textarea } from "@/components/ui/textarea";
 import { FileText, Loader2, Building2, Camera, Image, X, Calculator, TrendingUp, Home, Building, RotateCcw, Star, AlertCircle, ChevronLeft, ChevronRight, Search, MapPin, HelpCircle } from "lucide-react";
 import { PageTour } from "@/components/PageTour";
+import { useFirstVisitTour } from "@/hooks/useFirstVisitTour";
 import {
   Tooltip,
   TooltipContent,
@@ -574,7 +575,7 @@ export default function VistoriaDigital() {
   const [hasLoadedFromStorage, setHasLoadedFromStorage] = useState(false);
   const [fromAvaliacao, setFromAvaliacao] = useState(false);
   const [avaliacaoData, setAvaliacaoData] = useState<AvaliacaoData | null>(null);
-  const [runTour, setRunTour] = useState(false);
+  const { shouldRunTour, startTour, endTour } = useFirstVisitTour('vistoria');
   const fileInputRef = useRef<HTMLInputElement>(null);
   const cameraInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
@@ -1060,7 +1061,7 @@ export default function VistoriaDigital() {
 
   return (
     <div className="space-y-6">
-      <PageTour page="vistoria" run={runTour} onFinish={() => setRunTour(false)} />
+      <PageTour page="vistoria" run={shouldRunTour} onFinish={endTour} />
       
       <div className="flex items-center justify-between">
         <div>
@@ -1081,7 +1082,7 @@ export default function VistoriaDigital() {
           </div>
           <p className="text-sm sm:text-base text-muted-foreground mt-1">Checklist de inspeção com scoring 1-5</p>
         </div>
-        <Button variant="outline" size="sm" onClick={() => setRunTour(true)}>
+        <Button variant="outline" size="sm" onClick={startTour}>
           <HelpCircle className="h-4 w-4 mr-2" />
           Tour
         </Button>
