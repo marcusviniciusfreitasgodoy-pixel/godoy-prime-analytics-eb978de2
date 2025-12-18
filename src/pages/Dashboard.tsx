@@ -390,7 +390,7 @@ export default function Dashboard() {
             
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="outline" size="sm" disabled={isExporting}>
+                <Button variant="outline" size="sm" disabled={isExporting} data-tour="export-button">
                   <FileDown className="h-4 w-4 mr-2" />
                   {isExporting ? "Exportando..." : "Exportar"}
                 </Button>
@@ -459,7 +459,7 @@ export default function Dashboard() {
         </div>
       </div>
 
-      <div data-tour="microbairro-evolution">
+      <div data-tour="microbairro-chart">
         <MicrobairroEvolutionChart bairro={selectedBairro} />
       </div>
 
@@ -484,7 +484,9 @@ export default function Dashboard() {
       </div>
 
       {/* Assistente de Mercado IA */}
-      <MarketAssistant />
+      <div data-tour="sofia-assistant">
+        <MarketAssistant />
+      </div>
     </div>
   );
 }
