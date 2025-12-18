@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect, useCallback } from "react";
-import { MessageSquare, X, Send, Loader2, HelpCircle, FileCheck, DollarSign, Shield, Clock } from "lucide-react";
+import { MessageSquare, X, Send, Loader2, HelpCircle, FileCheck, DollarSign, Shield, Clock, RotateCcw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -147,6 +147,11 @@ export function PublicSofiaAssistant() {
     sendMessage(text);
   };
 
+  const handleReset = () => {
+    setMessages([]);
+    setInput("");
+  };
+
   return (
     <>
       {/* Floating Button - positioned above WhatsApp */}
@@ -273,6 +278,19 @@ export function PublicSofiaAssistant() {
                       <span className="w-1.5 h-1.5 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
                     </div>
                   </div>
+                </div>
+              )}
+              
+              {/* Reset button after conversation */}
+              {messages.length > 0 && !isLoading && (
+                <div className="flex justify-center pt-2">
+                  <button
+                    onClick={handleReset}
+                    className="flex items-center gap-1.5 text-xs text-gray-500 hover:text-[#D4AF37] transition-colors"
+                  >
+                    <RotateCcw className="h-3 w-3" />
+                    <span>Nova conversa</span>
+                  </button>
                 </div>
               )}
             </div>
