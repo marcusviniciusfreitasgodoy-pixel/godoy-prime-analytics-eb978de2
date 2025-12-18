@@ -44,6 +44,7 @@ import { formatDate } from "@/utils/exportUtils";
 import { generateVistoriaPDF } from "@/utils/vistoriaPdfExport";
 import { supabase } from "@/integrations/supabase/client";
 import { normalizeStreetSearchTerm } from "@/lib/utils";
+import { useActivityTracking } from "@/hooks/useActivityTracking";
 
 // Street suggestion type
 interface StreetSuggestion {
@@ -578,6 +579,7 @@ export default function VistoriaDigital() {
   const navigate = useNavigate();
   const location = useLocation();
   const isMobile = useIsMobile();
+  const { trackVistoria, trackExport } = useActivityTracking();
   
   // Street autocomplete state
   const [streetSearchTerm, setStreetSearchTerm] = useState("");
@@ -962,6 +964,10 @@ export default function VistoriaDigital() {
         criticalCount: getCriticalCount(),
         avaliacaoData,
       });
+      
+      // Track vistoria completion
+      trackVistoria(propertyData.logradouro || 'unknown');
+      trackExport('vistoria_pdf');
       
       toast({
         title: "PDF gerado com sucesso",

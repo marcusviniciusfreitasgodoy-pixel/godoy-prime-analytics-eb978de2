@@ -22,6 +22,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { EmbeddedAdvancedSearch } from "@/components/EmbeddedAdvancedSearch";
 import { useBairro } from "@/contexts/BairroContext";
+import { useActivityTracking } from "@/hooks/useActivityTracking";
 
 
 const PERIODO_OPTIONS = [
@@ -57,6 +58,7 @@ export default function PesquisasMercado() {
   const { history, addToHistory, clearHistory } = useSearchHistory();
   const queryClient = useQueryClient();
   const { selectedBairro } = useBairro();
+  const { trackSearch, trackExport } = useActivityTracking();
 
   // Transaction search state
   const [valorMin, setValorMin] = useState<string>("");
@@ -87,6 +89,9 @@ export default function PesquisasMercado() {
     const minLabel = VALOR_OPTIONS.find(o => o.value === valorMin)?.label || 'Sem limite';
     const maxLabel = VALOR_OPTIONS.find(o => o.value === valorMax)?.label || 'Sem limite';
     addToHistory(`${minLabel} - ${maxLabel}`, 'transaction');
+    
+    // Track search activity
+    trackSearch('transaction', `${minLabel}-${maxLabel} @ ${transacaoBairro}`);
   };
 
   const clearTransactionFilters = () => {
@@ -121,6 +126,7 @@ export default function PesquisasMercado() {
     }));
     
     exportToCSV(exportData, `transacoes_${transacaoBairro.replace(/\s+/g, '_')}_${transacaoPeriodo}m`);
+    trackExport('transaction_csv');
     toast({
       title: "Exportado com sucesso",
       description: `${exportData.length} logradouros exportados para CSV.`,
@@ -163,6 +169,7 @@ export default function PesquisasMercado() {
       ],
     });
 
+    trackExport('transaction_xlsx');
     toast({
       title: "Exportado com sucesso",
       description: `${transactionResult.length} logradouros exportados para Excel.`,

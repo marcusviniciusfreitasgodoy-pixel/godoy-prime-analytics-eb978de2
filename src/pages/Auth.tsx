@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -20,6 +20,22 @@ export default function Auth() {
   const navigate = useNavigate();
   const { toast } = useToast();
 
+  // Track login activity
+  const trackLogin = useCallback(async (userId: string) => {
+    try {
+      await supabase
+        .from('user_activity_logs' as any)
+        .insert({
+          user_id: userId,
+          action_type: 'login',
+          action_details: {},
+          page_path: '/auth'
+        });
+    } catch (err) {
+      console.error('Error tracking login:', err);
+    }
+  }, []);
+
   const formatPhone = (value: string) => {
     const numbers = value.replace(/\D/g, "");
     if (numbers.length <= 2) return numbers;
@@ -33,7 +49,7 @@ export default function Auth() {
     setIsLoading(true);
 
     try {
-      const { error } = await supabase.auth.signInWithPassword({
+      const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password,
       });
@@ -53,6 +69,11 @@ export default function Auth() {
           });
         }
         return;
+      }
+
+      // Track successful login
+      if (data?.user?.id) {
+        trackLogin(data.user.id);
       }
 
       toast({
