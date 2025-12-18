@@ -29,7 +29,33 @@ import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
 
+// Domínios exclusivos para landing page de avaliação
+const AVALIACAO_DOMAINS = ['avaliacao.godoyprime.com.br'];
+
 const App = () => {
+  // Detecta se é domínio exclusivo de avaliação
+  const isAvaliacaoDomain = AVALIACAO_DOMAINS.includes(window.location.hostname);
+
+  // Se for domínio de avaliação, renderiza apenas a landing page
+  if (isAvaliacaoDomain) {
+    return (
+      <QueryClientProvider client={queryClient}>
+        <TooltipProvider>
+          <Toaster />
+          <Sonner />
+          <BrowserRouter>
+            <Routes>
+              <Route path="/" element={<AvaliacaoPublica />} />
+              <Route path="/avaliacao" element={<AvaliacaoPublica />} />
+              <Route path="/politica-privacidade" element={<PoliticaPrivacidade />} />
+              <Route path="*" element={<AvaliacaoPublica />} />
+            </Routes>
+          </BrowserRouter>
+        </TooltipProvider>
+      </QueryClientProvider>
+    );
+  }
+
   return (
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
