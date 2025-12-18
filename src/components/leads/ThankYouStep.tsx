@@ -87,7 +87,7 @@ export function ThankYouStep({ nome, onContinue }: ThankYouStepProps) {
           variant="outline" 
           size="sm" 
           className="border-accent/30 hover:bg-accent/10"
-          onClick={() => window.open("https://wa.me/5521997250515?text=Olá! Vim pela avaliação online e gostaria de agendar uma avaliação presencial gratuita.", "_blank")}
+          onClick={() => window.open("https://wa.me/5521964075124?text=Olá! Vim pela avaliação online e gostaria de agendar uma avaliação presencial gratuita.", "_blank")}
         >
           <Phone className="mr-2 h-4 w-4" />
           Agendar pelo WhatsApp

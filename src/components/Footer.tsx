@@ -37,7 +37,7 @@ export function Footer() {
             </div>
             <div className="flex items-center gap-1.5 sm:gap-2 text-[10px] sm:text-sm">
               <MessageCircle className="h-3 sm:h-3.5 w-3 sm:w-3.5 text-green-500 flex-shrink-0" />
-              <span>WhatsApp: (21) 99725-0515</span>
+              <span>WhatsApp: (21) 96407-5124</span>
             </div>
           </div>
 
