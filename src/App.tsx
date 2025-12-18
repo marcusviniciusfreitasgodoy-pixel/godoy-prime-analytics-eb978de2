@@ -25,6 +25,7 @@ import Auth from "./pages/Auth";
 import ResetPassword from "./pages/ResetPassword";
 import PoliticaPrivacidade from "./pages/PoliticaPrivacidade";
 import NotFound from "./pages/NotFound";
+import Onboarding from "./pages/Onboarding";
 
 const queryClient = new QueryClient();
 
@@ -63,6 +64,7 @@ const App = () => (
                                 <Route path="/calibrador-avaliacao" element={<CalibradorAvaliacao />} />
                                 <Route path="/leads" element={<Leads />} />
                                 <Route path="/usuarios" element={<Usuarios />} />
+                                <Route path="/onboarding" element={<Onboarding />} />
                                 <Route path="*" element={<NotFound />} />
                               </Routes>
                             </main>
