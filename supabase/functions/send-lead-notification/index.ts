@@ -10,7 +10,7 @@ const corsHeaders = {
 };
 
 interface LeadNotificationRequest {
-  type: "initial" | "complete";
+  type: "initial" | "returning" | "complete";
   leadId: string;
   leadName: string;
   leadEmail: string;
@@ -32,6 +32,7 @@ interface LeadNotificationRequest {
   estimativaMax?: number;
   enderecoImovelAnalise?: string;
   valorPedidoVendedor?: number;
+  evaluationNumber?: number;
 }
 
 const handler = async (req: Request): Promise<Response> => {
@@ -115,17 +116,24 @@ const handler = async (req: Request): Promise<Response> => {
     ` : "";
 
     // Different email content based on notification type
-    const emailSubject = notificationType === "initial"
-      ? `🆕 Novo Lead - ${serviceType} - ${data.leadName}`
-      : `🏠 Solicitação Parecer Técnico - ${data.leadName}`;
-
-    const ctaTitle = notificationType === "initial"
-      ? `🆕 NOVO LEAD - ${serviceType.toUpperCase()}`
-      : `⚡ SOLICITAÇÃO DE PARECER TÉCNICO GODOY PRIME`;
-
-    const actionMessage = notificationType === "initial"
-      ? serviceDescription
-      : `O cliente realizou uma consulta preliminar e SOLICITOU o Parecer Técnico completo. PRIORIDADE ALTA - entrar em contato imediatamente.`;
+    let emailSubject: string;
+    let ctaTitle: string;
+    let actionMessage: string;
+    
+    if (notificationType === "initial") {
+      emailSubject = `🆕 Novo Lead - ${serviceType} - ${data.leadName}`;
+      ctaTitle = `🆕 NOVO LEAD - ${serviceType.toUpperCase()}`;
+      actionMessage = serviceDescription;
+    } else if (notificationType === "returning") {
+      const evalNum = data.evaluationNumber || 2;
+      emailSubject = `🔄 Lead Retornou (${evalNum}ª consulta) - ${data.leadName}`;
+      ctaTitle = `🔄 LEAD RETORNOU - ${evalNum}ª CONSULTA`;
+      actionMessage = `O cliente já tinha feito consultas anteriores e VOLTOU para fazer nova análise. Isso demonstra alto interesse. ${serviceDescription}`;
+    } else {
+      emailSubject = `🏠 Solicitação Parecer Técnico - ${data.leadName}`;
+      ctaTitle = `⚡ SOLICITAÇÃO DE PARECER TÉCNICO GODOY PRIME`;
+      actionMessage = `O cliente realizou uma consulta preliminar e SOLICITOU o Parecer Técnico completo. PRIORIDADE ALTA - entrar em contato imediatamente.`;
+    }
 
     const emailHtml = `
       <!DOCTYPE html>
