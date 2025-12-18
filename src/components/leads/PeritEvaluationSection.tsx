@@ -18,7 +18,7 @@ const parecerEntregas = [
   {
     icon: Search,
     title: "Análise de Valor Real",
-    description: "Cruzamos dados de cartório com histórico de transações para descobrir o verdadeiro valor de mercado.",
+    description: "Cruzamos dados do ITBI com anúncios e histórico de transações para descobrir o verdadeiro valor de mercado.",
   },
   {
     icon: Home,
