@@ -189,24 +189,24 @@ export function PeritEvaluationSection() {
       </div>
 
       {/* Seção 5: Investimento */}
-      <div className="bg-gradient-to-br from-accent/10 to-accent/5 border border-accent/30 rounded-2xl p-6 text-center">
+      <div className="bg-gradient-to-br from-accent/10 to-accent/5 border border-accent/30 rounded-2xl p-4 sm:p-6 text-center">
         <h4 className="text-lg font-bold text-foreground mb-4 flex items-center justify-center gap-2">
           <Banknote className="h-5 w-5 text-accent" />
           Investimento
         </h4>
         
-        <div className="grid grid-cols-3 gap-4 mb-4">
-          <div>
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4 mb-4">
+          <div className="bg-white/60 rounded-lg p-3">
             <p className="text-xs text-muted-foreground">Valor</p>
-            <p className="text-lg font-bold text-foreground">A partir de R$ 5.000</p>
+            <p className="text-base sm:text-lg font-bold text-foreground">A partir de R$ 5.000</p>
           </div>
-          <div>
+          <div className="bg-white/60 rounded-lg p-3">
             <p className="text-xs text-muted-foreground">Economia Média</p>
-            <p className="text-lg font-bold text-green-600">R$ 180-450 mil</p>
+            <p className="text-base sm:text-lg font-bold text-green-600">R$ 180-450 mil</p>
           </div>
-          <div>
+          <div className="bg-white/60 rounded-lg p-3">
             <p className="text-xs text-muted-foreground">ROI</p>
-            <p className="text-lg font-bold text-primary">36-90x</p>
+            <p className="text-base sm:text-lg font-bold text-primary">36-90x</p>
           </div>
         </div>
 
@@ -246,11 +246,11 @@ export function PeritEvaluationSection() {
           
           <Button 
             variant="outline" 
-            className="bg-transparent border-[#D4AF37] text-[#D4AF37] hover:bg-[#D4AF37] hover:text-[#0C2340] focus:bg-[#D4AF37] focus:text-[#0C2340] active:bg-[#D4AF37] active:text-[#0C2340]"
+            className="w-full sm:w-auto bg-transparent border-[#D4AF37] text-[#D4AF37] hover:bg-[#D4AF37] hover:text-[#0C2340] focus:bg-[#D4AF37] focus:text-[#0C2340] active:bg-[#D4AF37] active:text-[#0C2340] whitespace-normal h-auto py-3 px-4"
             onClick={() => window.open('https://personalshopperimobiliario.godoyprime.com.br', '_blank')}
           >
-            Conhecer Prime Buyer Experience
-            <ExternalLink className="ml-2 h-4 w-4" />
+            <span className="text-sm sm:text-base">Conhecer Prime Buyer Experience</span>
+            <ExternalLink className="ml-2 h-4 w-4 shrink-0" />
           </Button>
         </div>
       </div>
