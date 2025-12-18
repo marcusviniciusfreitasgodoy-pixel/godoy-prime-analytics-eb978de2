@@ -8,7 +8,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Calculator, MapPin, Maximize2, Home, ArrowRight, Loader2, Building2, Search, BedDouble, Bath, Sparkles, Car, Star, User, Mail, Phone, Shield } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/integrations/supabase/client";
-import { useStreetSuggestions } from "@/hooks/useStreetSuggestions";
+import { usePublicStreetSuggestions } from "@/hooks/usePublicStreetSuggestions";
 import { toast } from "sonner";
 import { LimitExceededScreen } from "./LimitExceededScreen";
 
@@ -90,7 +90,7 @@ export function QuickValuationForm({ onComplete }: QuickValuationFormProps) {
   const inputRef = useRef<HTMLInputElement>(null);
   const suggestionsRef = useRef<HTMLDivElement>(null);
 
-  const { data: suggestions, isLoading: suggestionsLoading } = useStreetSuggestions(logradouro, bairro);
+  const { data: suggestions, isLoading: suggestionsLoading } = usePublicStreetSuggestions(logradouro, bairro);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -247,50 +247,34 @@ export function QuickValuationForm({ onComplete }: QuickValuationFormProps) {
         console.error('Error sending lead notification:', notificationError);
       }
       
-      // Step 3: Fetch ITBI data
-      let query = supabase
-        .from("itbi_transactions")
-        .select("valor_m2, total_transacoes")
-        .eq("bairro", bairro)
-        .eq("uso", "Residencial")
-        .gte("percentual_transferido", 90)
-        .not("valor_m2", "is", null)
-        .gte("data_transacao", new Date(Date.now() - 365 * 24 * 60 * 60 * 1000).toISOString().split("T")[0]);
+      // Step 3: Fetch ITBI data via Edge Function (public endpoint)
+      const { data: statsResponse, error: statsError } = await supabase.functions.invoke('public-itbi-stats', {
+        body: {
+          bairro,
+          logradouro: logradouro.trim() || undefined,
+          tipologia: tipologia !== "Todos" ? tipologia : undefined,
+        }
+      });
 
-      if (logradouro.trim()) {
-        query = query.ilike("logradouro", `%${logradouro.trim()}%`);
-      }
-
-      if (tipologia && tipologia !== "Todos") {
-        query = query.ilike("tipologia", `%${tipologia}%`);
-      }
-
-      const { data, error: dbError } = await query;
-
-      if (dbError) throw dbError;
+      if (statsError) throw statsError;
 
       let itbiData = null;
       let estimativa = null;
 
-      if (data && data.length > 0) {
-        const valores = data.map((d) => d.valor_m2 as number).sort((a, b) => a - b);
-        const totalTransacoes = data.reduce((sum, d) => sum + (d.total_transacoes || 1), 0);
-
-        const min_m2 = valores[Math.floor(valores.length * 0.1)] || valores[0];
-        const max_m2 = valores[Math.floor(valores.length * 0.9)] || valores[valores.length - 1];
-        const med_m2 = valores.reduce((a, b) => a + b, 0) / valores.length;
-
+      if (statsResponse?.success && statsResponse?.stats) {
+        const stats = statsResponse.stats;
+        
         itbiData = {
-          min_m2: Math.round(min_m2),
-          med_m2: Math.round(med_m2),
-          max_m2: Math.round(max_m2),
-          transaction_count: totalTransacoes,
+          min_m2: stats.min_m2,
+          med_m2: stats.med_m2,
+          max_m2: stats.max_m2,
+          transaction_count: stats.transaction_count,
         };
 
         estimativa = {
-          min: Math.round(min_m2 * areaNum),
-          med: Math.round(med_m2 * areaNum),
-          max: Math.round(max_m2 * areaNum),
+          min: Math.round(stats.min_m2 * areaNum),
+          med: Math.round(stats.med_m2 * areaNum),
+          max: Math.round(stats.max_m2 * areaNum),
         };
       }
 
