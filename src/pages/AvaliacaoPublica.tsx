@@ -445,8 +445,8 @@ export default function AvaliacaoPublica() {
                   <a href="tel:+552140400067" className="text-white/80 hover:text-[#D4AF37] transition-colors">
                     📞 (21) 4040-0067
                   </a>
-                  <a href="https://wa.me/5521997250515" target="_blank" rel="noopener noreferrer" className="text-white/80 hover:text-[#D4AF37] transition-colors">
-                    💬 (21) 99725-0515
+                  <a href="https://wa.me/5521964075124" target="_blank" rel="noopener noreferrer" className="text-white/80 hover:text-[#D4AF37] transition-colors">
+                    💬 (21) 96407-5124
                   </a>
                 </div>
               </div>
