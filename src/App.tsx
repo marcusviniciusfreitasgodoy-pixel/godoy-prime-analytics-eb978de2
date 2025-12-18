@@ -24,6 +24,7 @@ import Usuarios from "./pages/Usuarios";
 import Auth from "./pages/Auth";
 import ResetPassword from "./pages/ResetPassword";
 import PoliticaPrivacidade from "./pages/PoliticaPrivacidade";
+import AvaliacaoPublica from "./pages/AvaliacaoPublica";
 import NotFound from "./pages/NotFound";
 import Onboarding from "./pages/Onboarding";
 
@@ -42,6 +43,7 @@ const App = () => (
                 <Route path="/auth" element={<Auth />} />
                 <Route path="/reset-password" element={<ResetPassword />} />
                 <Route path="/politica-privacidade" element={<PoliticaPrivacidade />} />
+                <Route path="/avaliacao" element={<AvaliacaoPublica />} />
                 <Route
                   path="/*"
                   element={
