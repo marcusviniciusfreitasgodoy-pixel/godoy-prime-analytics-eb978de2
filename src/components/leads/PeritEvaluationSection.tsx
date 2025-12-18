@@ -17,7 +17,7 @@ import { Button } from "@/components/ui/button";
 const parecerEntregas = [
   {
     icon: Search,
-    title: "Análise Forense de Valor Real",
+    title: "Análise de Valor Real",
     description: "Cruzamos dados de cartório com histórico de transações para descobrir o verdadeiro valor de mercado.",
   },
   {
