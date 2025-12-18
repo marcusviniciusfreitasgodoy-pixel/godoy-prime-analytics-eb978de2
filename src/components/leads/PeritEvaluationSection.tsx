@@ -22,8 +22,8 @@ const parecerEntregas = [
   },
   {
     icon: Home,
-    title: "Inspeção Técnica Completa",
-    description: "Identificamos vícios ocultos, problemas estruturais e pontos que afetam o valor antes que você feche negócio.",
+    title: "Vistoria Presencial Detalhada",
+    description: "Avaliamos o estado de conservação, acabamentos e características que impactam diretamente no valor do imóvel.",
   },
   {
     icon: TrendingUp,
