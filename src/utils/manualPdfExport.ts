@@ -118,6 +118,99 @@ const manualContent = {
       titulo: "Responsividade",
       descricao: "Interface adaptada para desktop, tablet e smartphone."
     }
+  ],
+  faq: [
+    {
+      categoria: "Geral",
+      perguntas: [
+        { p: "O que é o Godoy Prime Analytics?", r: "É uma plataforma de inteligência imobiliária que oferece análise de dados, avaliações automatizadas, vistorias digitais e assistência por IA para profissionais do mercado imobiliário da Barra da Tijuca." },
+        { p: "Quem pode usar a plataforma?", r: "Corretores de imóveis, avaliadores, gestores imobiliários e empresas do setor imobiliário." },
+        { p: "A plataforma funciona em dispositivos móveis?", r: "Sim, a interface é totalmente responsiva e funciona em desktops, tablets e smartphones." },
+        { p: "Preciso instalar algum software?", r: "Não, a plataforma funciona diretamente no navegador web, sem necessidade de instalação." }
+      ]
+    },
+    {
+      categoria: "Dashboard e Indicadores",
+      perguntas: [
+        { p: "Com que frequência os dados são atualizados?", r: "Os dados são sincronizados diariamente com as bases oficiais de transações ITBI." },
+        { p: "O que significa a mediana de preço por m²?", r: "É o valor central quando todos os preços são ordenados, representando melhor o mercado por não ser afetado por valores extremos." },
+        { p: "Como funciona o ranking de microbairros?", r: "Os microbairros são ordenados pela mediana de preço por m², permitindo identificar as regiões mais valorizadas." },
+        { p: "Posso exportar os gráficos do dashboard?", r: "Sim, você pode exportar relatórios completos em PDF e dados em Excel/CSV." }
+      ]
+    },
+    {
+      categoria: "Pesquisas de Mercado",
+      perguntas: [
+        { p: "Quais filtros estão disponíveis nas pesquisas?", r: "Localização (bairro, logradouro), faixa de valor, período, área e tipologia do imóvel." },
+        { p: "Posso salvar minhas pesquisas favoritas?", r: "O histórico de pesquisas é salvo automaticamente para consulta posterior." },
+        { p: "Qual o período máximo de dados disponíveis?", r: "Os dados cobrem os últimos 5 anos de transações ITBI registradas." },
+        { p: "Como exportar os resultados das pesquisas?", r: "Use os botões de exportação para gerar arquivos CSV ou Excel com todos os dados filtrados." }
+      ]
+    },
+    {
+      categoria: "Avaliação Imobiliária",
+      perguntas: [
+        { p: "Quantas características são avaliadas?", r: "São 26 características divididas em categorias: localização, estrutura, acabamentos e diferenciais." },
+        { p: "O que são os cenários pessimista, provável e otimista?", r: "São três estimativas de valor que consideram diferentes condições de mercado e negociação." },
+        { p: "Como é calculado o nível de confiança?", r: "Baseado na quantidade de dados de mercado disponíveis e na consistência das características avaliadas." },
+        { p: "Posso gerar um laudo em PDF?", r: "Sim, ao final da avaliação você pode gerar um laudo profissional completo em PDF." },
+        { p: "As avaliações ficam salvas?", r: "Sim, todas as avaliações são salvas no histórico e podem ser consultadas ou atualizadas posteriormente." }
+      ]
+    },
+    {
+      categoria: "Vistoria Digital",
+      perguntas: [
+        { p: "Qual a diferença entre vistoria de casa e apartamento?", r: "Casas têm checklist com 55+ itens incluindo área externa, enquanto apartamentos têm 50+ itens focados em áreas comuns e privativas." },
+        { p: "Como funciona o sistema de scoring?", r: "Cada item é avaliado e recebe uma pontuação que compõe o score geral de conservação do imóvel." },
+        { p: "Posso anexar fotos à vistoria?", r: "Sim, você pode registrar fotos para documentar cada item avaliado." },
+        { p: "O relatório de vistoria serve como laudo técnico?", r: "O relatório serve como documentação detalhada, mas laudos oficiais requerem profissional habilitado." }
+      ]
+    },
+    {
+      categoria: "Documentação",
+      perguntas: [
+        { p: "Quais documentos são verificados no checklist?", r: "Documentos do imóvel (matrícula, IPTU), do proprietário (RG, CPF) e da transação (contrato, certidões)." },
+        { p: "Como funciona o analisador de documentos por IA?", r: "Você faz upload do documento e a IA identifica informações relevantes e possíveis inconsistências." },
+        { p: "Posso usar o checklist para qualquer tipo de transação?", r: "Sim, o checklist é adaptável para compra, venda, locação e outras operações imobiliárias." },
+        { p: "Os documentos enviados ficam armazenados?", r: "Os documentos são processados temporariamente e não ficam armazenados na plataforma por segurança." }
+      ]
+    },
+    {
+      categoria: "Sofia - Assistente IA",
+      perguntas: [
+        { p: "Que tipo de perguntas posso fazer à Sofia?", r: "Perguntas sobre mercado imobiliário, avaliações, documentação, tendências de preços e dúvidas sobre a plataforma." },
+        { p: "A Sofia pode analisar documentos?", r: "Sim, você pode enviar documentos para análise e a Sofia extrairá informações relevantes." },
+        { p: "As respostas da Sofia são confiáveis?", r: "A Sofia usa dados atualizados e base de conhecimento especializada, mas recomenda-se validar informações críticas." },
+        { p: "Posso usar comandos de voz?", r: "Sim, a Sofia aceita consultas por voz para interação hands-free." }
+      ]
+    },
+    {
+      categoria: "Recursos Administrativos",
+      perguntas: [
+        { p: "Como gerenciar leads capturados?", r: "Acesse a seção Leads para visualizar, filtrar e acompanhar o status de cada prospect." },
+        { p: "Quem pode acessar o calibrador de avaliação?", r: "Apenas administradores têm acesso para ajustar pesos e fatores do sistema de avaliação." },
+        { p: "Como adicionar novos usuários?", r: "Administradores podem convidar novos usuários na seção Gerenciar Usuários." },
+        { p: "O que é rastreado no log de atividades?", r: "Logins, avaliações realizadas, vistorias, pesquisas, exportações e outras ações na plataforma." }
+      ]
+    },
+    {
+      categoria: "Suporte e Ajuda",
+      perguntas: [
+        { p: "Como entrar em contato com o suporte?", r: "Envie email para contato@godoyprime.com.br ou use o chat da Sofia para dúvidas rápidas." },
+        { p: "Existe treinamento disponível?", r: "Sim, oferecemos onboarding interativo, tours guiados em cada página e manual completo em PDF." },
+        { p: "Como reportar um bug ou erro?", r: "Entre em contato pelo email de suporte descrevendo o problema e os passos para reproduzi-lo." },
+        { p: "Há atualizações frequentes na plataforma?", r: "Sim, a plataforma recebe atualizações regulares com melhorias e novas funcionalidades." }
+      ]
+    },
+    {
+      categoria: "Dicas de Uso",
+      perguntas: [
+        { p: "Qual a melhor forma de começar a usar a plataforma?", r: "Complete o onboarding, explore o dashboard e faça uma avaliação teste para conhecer o fluxo." },
+        { p: "Como obter avaliações mais precisas?", r: "Preencha todas as 26 características com atenção e use dados de mercado atualizados como referência." },
+        { p: "Posso usar a plataforma offline?", r: "Não, é necessária conexão com internet para acessar dados em tempo real e funcionalidades da IA." },
+        { p: "Devo atualizar minhas avaliações periodicamente?", r: "Sim, recomendamos revisar avaliações a cada 3-6 meses ou quando houver mudanças significativas no mercado." }
+      ]
+    }
   ]
 };
 
@@ -126,12 +219,13 @@ export function exportManualPDF() {
   const marginLeft = 20;
   const marginRight = 20;
   const pageWidth = doc.internal.pageSize.getWidth();
+  const pageHeight = doc.internal.pageSize.getHeight();
   const contentWidth = pageWidth - marginLeft - marginRight;
   let y = 20;
 
   // Cover page
   doc.setFillColor(BRAND_COLORS.navy[0], BRAND_COLORS.navy[1], BRAND_COLORS.navy[2]);
-  doc.rect(0, 0, pageWidth, doc.internal.pageSize.getHeight(), 'F');
+  doc.rect(0, 0, pageWidth, pageHeight, 'F');
   
   doc.setTextColor(BRAND_COLORS.gold[0], BRAND_COLORS.gold[1], BRAND_COLORS.gold[2]);
   doc.setFontSize(32);
@@ -168,12 +262,14 @@ export function exportManualPDF() {
   y += 5;
   
   doc.setFontSize(10);
-  manualContent.modulos.forEach((modulo, index) => {
+  manualContent.modulos.forEach((modulo) => {
     doc.text(`${modulo.titulo}`, marginLeft + 5, y);
     y += 6;
   });
   y += 5;
   doc.text('9. Recursos Adicionais', marginLeft + 5, y);
+  y += 6;
+  doc.text('10. Perguntas Frequentes (FAQ)', marginLeft + 5, y);
 
   // Module pages
   manualContent.modulos.forEach((modulo) => {
@@ -246,8 +342,59 @@ export function exportManualPDF() {
     y += descLines.length * 5 + 10;
   });
 
-  // Support section
+  // FAQ Section
+  doc.addPage();
+  y = drawGodoyHeader(doc, 'Manual do Usuário');
+  
+  y = drawSectionTitle(doc, '10. Perguntas Frequentes (FAQ)', y, marginLeft);
   y += 10;
+
+  manualContent.faq.forEach((categoria) => {
+    // Check if we need a new page
+    if (y > pageHeight - 60) {
+      doc.addPage();
+      y = drawGodoyHeader(doc, 'Manual do Usuário');
+      y += 10;
+    }
+
+    // Category title
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(11);
+    doc.setTextColor(BRAND_COLORS.navy[0], BRAND_COLORS.navy[1], BRAND_COLORS.navy[2]);
+    doc.text(categoria.categoria, marginLeft, y);
+    y += 8;
+
+    categoria.perguntas.forEach((faq) => {
+      // Check if we need a new page
+      if (y > pageHeight - 40) {
+        doc.addPage();
+        y = drawGodoyHeader(doc, 'Manual do Usuário');
+        y += 10;
+      }
+
+      // Question
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(9);
+      doc.setTextColor(BRAND_COLORS.darkGray[0], BRAND_COLORS.darkGray[1], BRAND_COLORS.darkGray[2]);
+      const questionLines = doc.splitTextToSize(`P: ${faq.p}`, contentWidth - 5);
+      doc.text(questionLines, marginLeft + 5, y);
+      y += questionLines.length * 4 + 2;
+
+      // Answer
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(9);
+      const answerLines = doc.splitTextToSize(`R: ${faq.r}`, contentWidth - 5);
+      doc.text(answerLines, marginLeft + 5, y);
+      y += answerLines.length * 4 + 6;
+    });
+
+    y += 5;
+  });
+
+  // Support section
+  doc.addPage();
+  y = drawGodoyHeader(doc, 'Manual do Usuário');
+  
   y = drawSectionTitle(doc, 'Suporte e Contato', y, marginLeft);
   y += 10;
   
