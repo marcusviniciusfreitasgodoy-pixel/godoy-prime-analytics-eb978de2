@@ -20,12 +20,14 @@ import { useMicrobairroRanking } from "@/hooks/useITBITransactions";
 import { useEvolutionData } from "@/hooks/useEvolutionData";
 import { useToast } from "@/hooks/use-toast";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator, DropdownMenuLabel } from "@/components/ui/dropdown-menu";
+import { useActivityTracking } from "@/hooks/useActivityTracking";
 
 export default function Dashboard() {
   const [runTour, setRunTour] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
   const { selectedBairro, setSelectedBairro } = useBairro();
   const { toast } = useToast();
+  const { trackExport } = useActivityTracking();
 
   // Hooks para dados do dashboard (usados na exportação completa)
   const { data: kpiStats } = useKPIStats(selectedBairro);
@@ -82,6 +84,7 @@ export default function Dashboard() {
             { label: 'Média R$/m²', value: avgValueM2 },
           ],
         });
+        trackExport('dashboard_xlsx');
         toast({
           title: "Exportação concluída",
           description: `${data.length} transações exportadas para Excel.`,
@@ -111,6 +114,7 @@ export default function Dashboard() {
 
       if (data && data.length > 0) {
         exportToCSV(data, `itbi_transacoes_${selectedBairro.toLowerCase().replace(/\s+/g, '_')}`);
+        trackExport('dashboard_csv');
         toast({
           title: "Exportação concluída",
           description: `${data.length} transações exportadas para CSV.`,
