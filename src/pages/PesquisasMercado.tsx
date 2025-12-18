@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Search, DollarSign, Loader2, FileDown, RotateCcw, Trash2, FileSpreadsheet, FileText } from "lucide-react";
+import { Search, DollarSign, Loader2, FileDown, RotateCcw, Trash2, FileSpreadsheet, FileText, HelpCircle } from "lucide-react";
 import { Label } from "@/components/ui/label";
 import {
   Select,
@@ -23,6 +23,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { EmbeddedAdvancedSearch } from "@/components/EmbeddedAdvancedSearch";
 import { useBairro } from "@/contexts/BairroContext";
 import { useActivityTracking } from "@/hooks/useActivityTracking";
+import { PageTour } from "@/components/PageTour";
 
 
 const PERIODO_OPTIONS = [
@@ -59,6 +60,7 @@ export default function PesquisasMercado() {
   const queryClient = useQueryClient();
   const { selectedBairro } = useBairro();
   const { trackSearch, trackExport } = useActivityTracking();
+  const [runTour, setRunTour] = useState(false);
 
   // Transaction search state
   const [valorMin, setValorMin] = useState<string>("");
@@ -178,11 +180,19 @@ export default function PesquisasMercado() {
 
   return (
     <div className="space-y-4 sm:space-y-6">
-      <div>
-        <h2 className="text-xl sm:text-2xl font-bold text-foreground">Pesquisas de Mercado</h2>
-        <p className="text-muted-foreground text-sm mt-1">
-          Busque transações por localização ou faixa de valor
-        </p>
+      <PageTour page="pesquisas" run={runTour} onFinish={() => setRunTour(false)} />
+      
+      <div className="flex items-center justify-between">
+        <div>
+          <h2 className="text-xl sm:text-2xl font-bold text-foreground">Pesquisas de Mercado</h2>
+          <p className="text-muted-foreground text-sm mt-1">
+            Busque transações por localização ou faixa de valor
+          </p>
+        </div>
+        <Button variant="outline" size="sm" onClick={() => setRunTour(true)}>
+          <HelpCircle className="h-4 w-4 mr-2" />
+          Tour
+        </Button>
       </div>
 
       <Card>
@@ -205,7 +215,7 @@ export default function PesquisasMercado() {
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <Tabs defaultValue="localizacao" className="w-full">
+          <Tabs defaultValue="localizacao" className="w-full" data-tour="pesquisas-tabs">
             <TabsList className="grid w-full grid-cols-2 h-auto">
               <TabsTrigger value="localizacao" className="text-xs sm:text-sm py-2 px-1 sm:px-3">
                 <Search className="h-4 w-4 sm:mr-2" />
@@ -218,13 +228,13 @@ export default function PesquisasMercado() {
             </TabsList>
 
             {/* Aba Localização */}
-            <TabsContent value="localizacao" className="space-y-4 mt-4">
+            <TabsContent value="localizacao" className="space-y-4 mt-4" data-tour="pesquisas-localizacao">
               <EmbeddedAdvancedSearch defaultBairro={selectedBairro} />
             </TabsContent>
 
             {/* Aba Transações */}
-            <TabsContent value="transacoes" className="space-y-4 mt-4">
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
+            <TabsContent value="transacoes" className="space-y-4 mt-4" data-tour="pesquisas-transacoes">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4" data-tour="pesquisas-filtros">
                 <div className="space-y-2">
                   <Label htmlFor="trans-bairro">Bairro</Label>
                   <Select 
@@ -390,7 +400,7 @@ export default function PesquisasMercado() {
                 {transactionResult && transactionResult.length > 0 && (
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
-                      <Button variant="outline" title="Exportar">
+                      <Button variant="outline" title="Exportar" data-tour="pesquisas-export">
                         <FileDown className="h-4 w-4" />
                       </Button>
                     </DropdownMenuTrigger>

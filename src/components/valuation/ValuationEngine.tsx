@@ -297,53 +297,65 @@ export function ValuationEngine({ bairro = "BARRA DA TIJUCA", vistoriaData }: Pr
           className="animate-fade-in"
         >
           {currentStep === 0 && (
-            <Step0Identification
-              state={state}
-              updateState={updateState}
-            />
+            <div data-tour="avaliacao-step0">
+              <Step0Identification
+                state={state}
+                updateState={updateState}
+              />
+            </div>
           )}
           
           {currentStep === 1 && (
-            <Step1Location
-              state={state}
-              updateState={updateState}
-              combined={combined}
-            />
+            <div data-tour="avaliacao-step1">
+              <Step1Location
+                state={state}
+                updateState={updateState}
+                combined={combined}
+              />
+            </div>
           )}
           
           {currentStep === 2 && (
-            <Step2BasicData
-              state={state}
-              updateState={updateState}
-              combined={combined}
-            />
+            <div data-tour="avaliacao-step2">
+              <Step2BasicData
+                state={state}
+                updateState={updateState}
+                combined={combined}
+              />
+            </div>
           )}
           
           {currentStep === 3 && characteristics && docFactors && (
-            <Step3Questionnaire
-              state={state}
-              updateState={updateState}
-              characteristics={characteristics}
-              docFactors={docFactors}
-              preview={getPreview()}
-            />
+            <div data-tour="avaliacao-step3">
+              <Step3Questionnaire
+                state={state}
+                updateState={updateState}
+                characteristics={characteristics}
+                docFactors={docFactors}
+                preview={getPreview()}
+              />
+            </div>
           )}
           
           {currentStep === 4 && state.result && (
-            <Step4Results
-              result={state.result}
-              state={state}
-              combined={combined}
-            />
+            <div data-tour="avaliacao-step4">
+              <Step4Results
+                result={state.result}
+                state={state}
+                combined={combined}
+              />
+            </div>
           )}
           
           {currentStep === 5 && state.result && (
-            <Step5Recommendation
-              result={state.result}
-              state={state}
-              combined={combined}
-              onReset={handleReset}
-            />
+            <div data-tour="avaliacao-step5">
+              <Step5Recommendation
+                result={state.result}
+                state={state}
+                combined={combined}
+                onReset={handleReset}
+              />
+            </div>
           )}
         </div>
 

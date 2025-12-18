@@ -15,7 +15,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import { FileText, Loader2, Building2, Camera, Image, X, Calculator, TrendingUp, Home, Building, RotateCcw, Star, AlertCircle, ChevronLeft, ChevronRight, Search, MapPin } from "lucide-react";
+import { FileText, Loader2, Building2, Camera, Image, X, Calculator, TrendingUp, Home, Building, RotateCcw, Star, AlertCircle, ChevronLeft, ChevronRight, Search, MapPin, HelpCircle } from "lucide-react";
+import { PageTour } from "@/components/PageTour";
 import {
   Tooltip,
   TooltipContent,
@@ -573,6 +574,7 @@ export default function VistoriaDigital() {
   const [hasLoadedFromStorage, setHasLoadedFromStorage] = useState(false);
   const [fromAvaliacao, setFromAvaliacao] = useState(false);
   const [avaliacaoData, setAvaliacaoData] = useState<AvaliacaoData | null>(null);
+  const [runTour, setRunTour] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const cameraInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
@@ -1058,23 +1060,31 @@ export default function VistoriaDigital() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <div className="flex items-center gap-3 flex-wrap">
-          <h2 className="text-2xl sm:text-3xl font-bold text-foreground">Vistoria Digital</h2>
-          {tipoVistoria && (
-            <Badge variant="outline" className="text-xs">
-              {tipoVistoria === 'casa' ? <Home className="h-3 w-3 mr-1" /> : <Building className="h-3 w-3 mr-1" />}
-              {tipoVistoria === 'casa' ? 'Casa' : 'Apartamento'}
-            </Badge>
-          )}
-          {fromAvaliacao && (
-            <Badge variant="secondary" className="bg-primary/10 text-primary border-primary/20">
-              <Calculator className="h-3 w-3 mr-1" />
-              Via Avaliação
-            </Badge>
-          )}
+      <PageTour page="vistoria" run={runTour} onFinish={() => setRunTour(false)} />
+      
+      <div className="flex items-center justify-between">
+        <div>
+          <div className="flex items-center gap-3 flex-wrap">
+            <h2 className="text-2xl sm:text-3xl font-bold text-foreground">Vistoria Digital</h2>
+            {tipoVistoria && (
+              <Badge variant="outline" className="text-xs" data-tour="vistoria-tipo">
+                {tipoVistoria === 'casa' ? <Home className="h-3 w-3 mr-1" /> : <Building className="h-3 w-3 mr-1" />}
+                {tipoVistoria === 'casa' ? 'Casa' : 'Apartamento'}
+              </Badge>
+            )}
+            {fromAvaliacao && (
+              <Badge variant="secondary" className="bg-primary/10 text-primary border-primary/20">
+                <Calculator className="h-3 w-3 mr-1" />
+                Via Avaliação
+              </Badge>
+            )}
+          </div>
+          <p className="text-sm sm:text-base text-muted-foreground mt-1">Checklist de inspeção com scoring 1-5</p>
         </div>
-        <p className="text-sm sm:text-base text-muted-foreground mt-1">Checklist de inspeção com scoring 1-5</p>
+        <Button variant="outline" size="sm" onClick={() => setRunTour(true)}>
+          <HelpCircle className="h-4 w-4 mr-2" />
+          Tour
+        </Button>
       </div>
 
       {/* Card de valores da avaliação para referência */}
@@ -1116,7 +1126,7 @@ export default function VistoriaDigital() {
 
       <div className="space-y-6">
         {/* Progress Card */}
-        <Card>
+        <Card data-tour="vistoria-score">
           <CardHeader className="space-y-4">
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
               <div className="flex items-center gap-4">
@@ -1147,7 +1157,7 @@ export default function VistoriaDigital() {
                   <RotateCcw className="h-3.5 w-3.5" />
                   Reiniciar
                 </Button>
-                <Button onClick={generateReport} size="sm" className="gap-1.5 text-xs sm:text-sm" disabled={isGeneratingPDF || getProgress() < 50}>
+                <Button onClick={generateReport} size="sm" className="gap-1.5 text-xs sm:text-sm" disabled={isGeneratingPDF || getProgress() < 50} data-tour="vistoria-pdf">
                   {isGeneratingPDF ? (
                     <Loader2 className="h-3.5 w-3.5 sm:h-4 sm:w-4 animate-spin" />
                   ) : (
@@ -1160,6 +1170,7 @@ export default function VistoriaDigital() {
                   size="sm" 
                   variant="secondary"
                   className="gap-1.5 text-xs sm:text-sm"
+                  data-tour="vistoria-avaliacao"
                 >
                   <Calculator className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
                   Avaliação
@@ -1182,7 +1193,7 @@ export default function VistoriaDigital() {
         </Card>
 
         {/* Identificação do Imóvel */}
-        <Card>
+        <Card data-tour="vistoria-dados">
           <CardHeader>
             <CardTitle className="text-lg sm:text-xl flex items-center gap-2">
               <Building2 className="h-5 w-5" />
@@ -1405,7 +1416,7 @@ export default function VistoriaDigital() {
         </Card>
 
         {/* Checklist */}
-        <Card>
+        <Card data-tour="vistoria-checklist">
           <CardHeader>
             <div className="flex items-center justify-between">
               <CardTitle className="text-lg sm:text-xl">Checklist de Inspeção</CardTitle>
