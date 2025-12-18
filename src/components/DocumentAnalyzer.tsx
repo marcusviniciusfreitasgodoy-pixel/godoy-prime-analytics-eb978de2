@@ -169,6 +169,9 @@ export function DocumentAnalyzer({ onChecklistItemSuggested }: DocumentAnalyzerP
           d.id === doc.id ? { ...d, status: 'done' as const, result } : d
         ));
 
+        // Auto-expand the first analyzed document to show results immediately
+        setExpandedDoc(doc.id);
+
         // Suggest checklist item if available
         if (result.checklist_item && onChecklistItemSuggested) {
           onChecklistItemSuggested(result.checklist_item);
@@ -389,8 +392,18 @@ export function DocumentAnalyzer({ onChecklistItemSuggested }: DocumentAnalyzerP
                   onOpenChange={(open) => setExpandedDoc(open ? doc.id : null)}
                 >
                   <div className="border rounded-lg overflow-hidden">
-                    {/* Document Header */}
-                    <div className="flex items-center gap-2 sm:gap-3 p-2 sm:p-3 bg-background">
+                    {/* Document Header - Clickable to expand when analysis is done */}
+                    <div 
+                      className={cn(
+                        "flex items-center gap-2 sm:gap-3 p-2 sm:p-3 bg-background",
+                        doc.status === 'done' && doc.result && "cursor-pointer hover:bg-muted/50 transition-colors"
+                      )}
+                      onClick={() => {
+                        if (doc.status === 'done' && doc.result) {
+                          setExpandedDoc(expandedDoc === doc.id ? null : doc.id);
+                        }
+                      }}
+                    >
                       {/* Thumbnail */}
                       <div className="w-10 h-10 sm:w-12 sm:h-12 rounded overflow-hidden bg-muted shrink-0 border">
                         {doc.preview.startsWith('data:image') ? (
@@ -413,6 +426,9 @@ export function DocumentAnalyzer({ onChecklistItemSuggested }: DocumentAnalyzerP
                             </span>
                           )}
                         </div>
+                        {doc.status === 'done' && doc.result && expandedDoc !== doc.id && (
+                          <p className="text-[10px] text-accent mt-1">Clique para ver detalhes da análise</p>
+                        )}
                       </div>
 
                       {/* Actions */}
