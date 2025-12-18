@@ -14,7 +14,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { exportToCSV, exportToXLSX } from "@/utils/exportUtils";
 import { exportDashboardPDF, exportDashboardXLSX } from "@/utils/dashboardExport";
 import { exportVideoScriptPdf } from "@/utils/videoScriptPdfExport";
-import { exportPlatformReportPdf } from "@/utils/platformReportPdfExport";
+import { exportManualPDF } from "@/utils/manualPdfExport";
 import { useKPIStats } from "@/hooks/useKPIStats";
 import { useMicrobairroRanking } from "@/hooks/useITBITransactions";
 import { useEvolutionData } from "@/hooks/useEvolutionData";
@@ -362,9 +362,9 @@ export default function Dashboard() {
                     <Video className="h-4 w-4" />
                     Roteiro + FAQ
                   </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => exportPlatformReportPdf()} className="gap-2">
+                  <DropdownMenuItem onClick={() => exportManualPDF()} className="gap-2">
                     <FileText className="h-4 w-4" />
-                    Manual Completo
+                    Manual Completo (com FAQ)
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
@@ -427,9 +427,9 @@ export default function Dashboard() {
                   <Video className="h-4 w-4" />
                   Roteiro de Vídeo + FAQ
                 </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => exportPlatformReportPdf()} className="gap-2">
+                <DropdownMenuItem onClick={() => exportManualPDF()} className="gap-2">
                   <FileText className="h-4 w-4" />
-                  Manual Completo
+                  Manual Completo (com FAQ)
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
