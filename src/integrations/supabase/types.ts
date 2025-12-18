@@ -296,6 +296,33 @@ export type Database = {
         }
         Relationships: []
       }
+      user_activity_logs: {
+        Row: {
+          action_details: Json | null
+          action_type: string
+          created_at: string
+          id: string
+          page_path: string | null
+          user_id: string
+        }
+        Insert: {
+          action_details?: Json | null
+          action_type: string
+          created_at?: string
+          id?: string
+          page_path?: string | null
+          user_id: string
+        }
+        Update: {
+          action_details?: Json | null
+          action_type?: string
+          created_at?: string
+          id?: string
+          page_path?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       user_roles: {
         Row: {
           created_at: string | null
@@ -597,6 +624,23 @@ export type Database = {
           preco_medio_m2: number | null
           preco_min_m2: number | null
           total_transacoes: number | null
+        }
+        Relationships: []
+      }
+      view_user_activity_summary: {
+        Row: {
+          active_days: number | null
+          exports: number | null
+          first_activity: string | null
+          full_name: string | null
+          last_activity: string | null
+          logins: number | null
+          phone: string | null
+          searches: number | null
+          total_actions: number | null
+          user_id: string | null
+          valuations: number | null
+          vistorias: number | null
         }
         Relationships: []
       }
