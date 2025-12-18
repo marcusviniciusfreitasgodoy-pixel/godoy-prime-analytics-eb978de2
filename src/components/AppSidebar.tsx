@@ -15,20 +15,20 @@ import {
 import { useAuthContext } from "@/contexts/AuthContext";
 
 const baseItems = [
-  { title: "Dashboard", url: "/", icon: Home },
-  { title: "Microregiões", url: "/microbairros", icon: MapPin },
-  { title: "Pesquisas de Mercado", url: "/pesquisas-mercado", icon: Search },
-  { title: "Avaliação Imobiliária", url: "/avaliacao-imobiliaria", icon: Calculator },
-  { title: "Histórico Avaliações", url: "/historico-avaliacoes", icon: History },
-  { title: "Vistoria Digital", url: "/vistoria-digital", icon: ClipboardCheck },
-  { title: "Documentação", url: "/documentacao", icon: FileText },
+  { title: "Dashboard", url: "/", icon: Home, tourId: "nav-dashboard" },
+  { title: "Microregiões", url: "/microbairros", icon: MapPin, tourId: "nav-microregioes" },
+  { title: "Pesquisas de Mercado", url: "/pesquisas-mercado", icon: Search, tourId: "nav-pesquisas" },
+  { title: "Avaliação Imobiliária", url: "/avaliacao-imobiliaria", icon: Calculator, tourId: "nav-avaliacao" },
+  { title: "Histórico Avaliações", url: "/historico-avaliacoes", icon: History, tourId: "nav-historico" },
+  { title: "Vistoria Digital", url: "/vistoria-digital", icon: ClipboardCheck, tourId: "nav-vistoria" },
+  { title: "Documentação", url: "/documentacao", icon: FileText, tourId: "nav-documentacao" },
 ];
 
 const adminItems = [
-  { title: "Base Conhecimento Sofia", url: "/base-conhecimento", icon: Brain },
-  { title: "Calibrador Avaliação", url: "/calibrador-avaliacao", icon: Settings },
-  { title: "Leads", url: "/leads", icon: Users },
-  { title: "Usuários", url: "/usuarios", icon: UserCog },
+  { title: "Base Conhecimento Sofia", url: "/base-conhecimento", icon: Brain, tourId: "nav-base-conhecimento" },
+  { title: "Calibrador Avaliação", url: "/calibrador-avaliacao", icon: Settings, tourId: "nav-calibrador" },
+  { title: "Leads", url: "/leads", icon: Users, tourId: "nav-leads" },
+  { title: "Usuários", url: "/usuarios", icon: UserCog, tourId: "nav-usuarios" },
 ];
 
 export function AppSidebar() {
@@ -59,6 +59,7 @@ export function AppSidebar() {
                         end
                         className="flex items-center gap-3 px-4 py-2 hover:bg-sidebar-accent rounded-md transition-colors"
                         activeClassName="bg-sidebar-accent text-sidebar-primary font-medium"
+                        data-tour={item.tourId}
                       >
                         <item.icon className="h-5 w-5 flex-shrink-0" />
                         {open && <span>{item.title}</span>}
