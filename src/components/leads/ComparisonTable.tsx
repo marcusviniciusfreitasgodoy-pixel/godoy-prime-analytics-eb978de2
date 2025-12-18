@@ -12,7 +12,7 @@ const comparisonData = [
     withParecer: true,
   },
   {
-    criteria: "Análise de vícios ocultos",
+    criteria: "Identificação de problemas que afetam o valor",
     alone: false,
     withParecer: true,
   },
@@ -29,7 +29,7 @@ const comparisonData = [
   {
     criteria: "Risco de prejuízo",
     alone: "R$ 100-300 mil",
-    withParecer: "Minimizado com análise forense",
+    withParecer: "Minimizado com análise profissional",
   },
 ];
 
