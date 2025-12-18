@@ -13,6 +13,7 @@ import {
   ExternalLink
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import marcusGodoyImg from "@/assets/marcus-godoy.jpg";
 
 const parecerEntregas = [
   {
@@ -113,30 +114,44 @@ export function PeritEvaluationSection() {
       </div>
 
       {/* Seção 3: Autoridade - Marcus Godoy */}
-      <div className="bg-gradient-to-br from-primary/5 to-accent/5 border border-primary/20 rounded-2xl p-6">
-        <div className="text-center mb-6">
-          <h4 className="text-lg font-bold text-foreground mb-2">
-            <Award className="inline h-5 w-5 text-accent mr-2" />
-            Marcus Godoy
-          </h4>
-          <p className="text-sm text-muted-foreground">
-            Seu Defensor Técnico na Negociação
-          </p>
-        </div>
+      <div className="bg-gradient-to-br from-primary/5 to-accent/5 border border-primary/20 rounded-2xl p-6 overflow-hidden">
+        <div className="flex flex-col md:flex-row gap-6 items-center">
+          {/* Foto */}
+          <div className="w-full md:w-1/3 flex-shrink-0">
+            <img 
+              src={marcusGodoyImg} 
+              alt="Marcus Godoy - Perito Avaliador" 
+              className="w-full h-auto rounded-xl object-cover"
+            />
+          </div>
+          
+          {/* Conteúdo */}
+          <div className="flex-1 space-y-4">
+            <div className="text-center md:text-left">
+              <h4 className="text-lg font-bold text-foreground mb-2">
+                <Award className="inline h-5 w-5 text-accent mr-2" />
+                Marcus Godoy
+              </h4>
+              <p className="text-sm text-muted-foreground">
+                Seu Defensor Técnico na Negociação
+              </p>
+            </div>
 
-        <div className="flex flex-wrap justify-center gap-2">
-          {credenciais.map((cred, index) => {
-            const Icon = cred.icon;
-            return (
-              <div 
-                key={index}
-                className="flex items-center gap-2 bg-white/80 border border-primary/20 rounded-full px-3 py-1.5 text-xs"
-              >
-                <Icon className="h-3.5 w-3.5 text-primary" />
-                <span className="text-foreground font-medium">{cred.label}</span>
-              </div>
-            );
-          })}
+            <div className="flex flex-wrap justify-center md:justify-start gap-2">
+              {credenciais.map((cred, index) => {
+                const Icon = cred.icon;
+                return (
+                  <div 
+                    key={index}
+                    className="flex items-center gap-2 bg-white/80 border border-primary/20 rounded-full px-3 py-1.5 text-xs"
+                  >
+                    <Icon className="h-3.5 w-3.5 text-primary" />
+                    <span className="text-foreground font-medium">{cred.label}</span>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
         </div>
       </div>
 
