@@ -324,17 +324,38 @@ export function PublicSofiaAssistant() {
 
         {/* Input */}
         <form onSubmit={handleSubmit} className="p-3 border-t bg-gray-50">
-          {/* Voice recording indicator */}
+          {/* Voice recording indicator with audio waves */}
           {isListening && (
-            <div className="flex items-center justify-center gap-2 mb-2 text-xs text-[#0C2340]">
-              <span className="w-2 h-2 bg-red-500 rounded-full animate-pulse" />
-              <span>
+            <div className="flex flex-col items-center justify-center gap-1.5 mb-2">
+              {/* Audio wave bars */}
+              <div className="flex items-center justify-center gap-0.5 h-6">
+                {[...Array(5)].map((_, i) => (
+                  <span
+                    key={i}
+                    className="w-1 bg-red-500 rounded-full"
+                    style={{
+                      animation: `audioWave 0.8s ease-in-out infinite`,
+                      animationDelay: `${i * 0.1}s`,
+                      height: '100%',
+                    }}
+                  />
+                ))}
+              </div>
+              <span className="text-xs text-[#0C2340]">
                 {silenceCountdown > 0 
                   ? `Detectando silêncio... ${silenceCountdown}s`
                   : "Ouvindo... fale sua dúvida"}
               </span>
             </div>
           )}
+          
+          {/* Audio wave animation styles */}
+          <style>{`
+            @keyframes audioWave {
+              0%, 100% { transform: scaleY(0.3); }
+              50% { transform: scaleY(1); }
+            }
+          `}</style>
           
           <div className="flex gap-2">
             <Input
