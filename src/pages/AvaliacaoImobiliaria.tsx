@@ -1,4 +1,3 @@
-import { useState } from "react";
 import { useLocation } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -6,15 +5,16 @@ import { Calculator, ClipboardCheck, HelpCircle } from "lucide-react";
 import { ValuationEngine } from "@/components/valuation/ValuationEngine";
 import { Badge } from "@/components/ui/badge";
 import { PageTour } from "@/components/PageTour";
+import { useFirstVisitTour } from "@/hooks/useFirstVisitTour";
 
 export default function AvaliacaoImobiliaria() {
   const location = useLocation();
   const locationState = location.state as { fromVistoria?: boolean; vistoriaData?: any } | null;
-  const [runTour, setRunTour] = useState(false);
+  const { shouldRunTour, startTour, endTour } = useFirstVisitTour('avaliacao');
 
   return (
     <div className="space-y-4 sm:space-y-6">
-      <PageTour page="avaliacao" run={runTour} onFinish={() => setRunTour(false)} />
+      <PageTour page="avaliacao" run={shouldRunTour} onFinish={endTour} />
       
       <div className="flex items-start justify-between gap-2 sm:gap-3 flex-wrap">
         <div className="flex items-start gap-2 sm:gap-3 flex-wrap min-w-0 flex-1">
@@ -34,7 +34,7 @@ export default function AvaliacaoImobiliaria() {
             </p>
           </div>
         </div>
-        <Button variant="outline" size="sm" onClick={() => setRunTour(true)} className="shrink-0">
+        <Button variant="outline" size="sm" onClick={startTour} className="shrink-0">
           <HelpCircle className="h-4 w-4 mr-2" />
           Tour
         </Button>

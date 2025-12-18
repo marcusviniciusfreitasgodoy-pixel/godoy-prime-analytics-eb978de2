@@ -24,6 +24,7 @@ import { EmbeddedAdvancedSearch } from "@/components/EmbeddedAdvancedSearch";
 import { useBairro } from "@/contexts/BairroContext";
 import { useActivityTracking } from "@/hooks/useActivityTracking";
 import { PageTour } from "@/components/PageTour";
+import { useFirstVisitTour } from "@/hooks/useFirstVisitTour";
 
 
 const PERIODO_OPTIONS = [
@@ -60,7 +61,7 @@ export default function PesquisasMercado() {
   const queryClient = useQueryClient();
   const { selectedBairro } = useBairro();
   const { trackSearch, trackExport } = useActivityTracking();
-  const [runTour, setRunTour] = useState(false);
+  const { shouldRunTour, startTour, endTour } = useFirstVisitTour('pesquisas');
 
   // Transaction search state
   const [valorMin, setValorMin] = useState<string>("");
@@ -180,7 +181,7 @@ export default function PesquisasMercado() {
 
   return (
     <div className="space-y-4 sm:space-y-6">
-      <PageTour page="pesquisas" run={runTour} onFinish={() => setRunTour(false)} />
+      <PageTour page="pesquisas" run={shouldRunTour} onFinish={endTour} />
       
       <div className="flex items-center justify-between">
         <div>
@@ -189,7 +190,7 @@ export default function PesquisasMercado() {
             Busque transações por localização ou faixa de valor
           </p>
         </div>
-        <Button variant="outline" size="sm" onClick={() => setRunTour(true)}>
+        <Button variant="outline" size="sm" onClick={startTour}>
           <HelpCircle className="h-4 w-4 mr-2" />
           Tour
         </Button>
