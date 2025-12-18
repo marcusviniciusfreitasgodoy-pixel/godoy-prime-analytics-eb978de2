@@ -231,7 +231,7 @@ export function PeritEvaluationSection() {
           
           <Button 
             variant="outline" 
-            className="bg-transparent border-[#D4AF37] text-[#D4AF37] hover:bg-[#D4AF37]/10 focus:bg-[#D4AF37]/10 active:bg-[#D4AF37]/20 focus:text-[#D4AF37] active:text-[#D4AF37]"
+            className="bg-transparent border-[#D4AF37] text-[#D4AF37] hover:bg-[#D4AF37] hover:text-[#0C2340] focus:bg-[#D4AF37] focus:text-[#0C2340] active:bg-[#D4AF37] active:text-[#0C2340]"
             onClick={() => window.open('https://personalshopperimobiliario.godoyprime.com.br', '_blank')}
           >
             Conhecer Prime Buyer Experience
