@@ -3,10 +3,11 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
-import { TrendingUp, TrendingDown, MapPin, Maximize2, Home, Calculator, AlertCircle, Shield } from "lucide-react";
+import { TrendingUp, TrendingDown, MapPin, Maximize2, Home, Calculator, AlertCircle, Shield, MessageCircle, Phone, Check } from "lucide-react";
 import { ComparisonTable } from "./ComparisonTable";
 import { PeritEvaluationSection } from "./PeritEvaluationSection";
-import { LeadCaptureForm, LeadCaptureFormResult } from "./LeadCaptureForm";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 
 interface QuickValuationData {
   bairro: string;
@@ -29,6 +30,10 @@ interface QuickValuationData {
     med: number;
     max: number;
   } | null;
+  // Lead data from form
+  leadName: string;
+  leadEmail: string;
+  leadPhone: string;
 }
 
 interface QuickValuationResultProps {
@@ -40,8 +45,8 @@ export function QuickValuationResult({
   data, 
   onNewValuation 
 }: QuickValuationResultProps) {
-  const [leadSubmitted, setLeadSubmitted] = useState(false);
-  const [leadData, setLeadData] = useState<LeadCaptureFormResult | null>(null);
+  const [parecerRequested, setParecerRequested] = useState(false);
+  const [isRequesting, setIsRequesting] = useState(false);
 
   const formatCurrency = (value: number, compact = false) => {
     if (compact && value >= 1000000) {
@@ -60,18 +65,56 @@ export function QuickValuationResult({
 
   const hasData = data.itbiData && data.estimativa;
 
-  const handleLeadSuccess = async (lead: LeadCaptureFormResult) => {
-    setLeadData(lead);
-    setLeadSubmitted(true);
+  const handleRequestParecer = async () => {
+    setIsRequesting(true);
+    
+    try {
+      // Send complete evaluation request notification
+      const { data: response, error } = await supabase.functions.invoke('send-lead-notification', {
+        body: {
+          type: 'complete',
+          leadId: '',
+          leadName: data.leadName,
+          leadEmail: data.leadEmail,
+          leadPhone: data.leadPhone,
+          interesse: 'compra',
+          bairro: data.bairro,
+          area: data.area_m2,
+          tipologia: data.tipologia,
+          quartos: data.quartos,
+          banheiros: data.banheiros,
+          suites: data.suites,
+          vagas: data.vagas,
+          estimativaMin: data.estimativa?.min,
+          estimativaMed: data.estimativa?.med,
+          estimativaMax: data.estimativa?.max,
+        }
+      });
 
-    // Open WhatsApp
-    setTimeout(() => {
-      const whatsappNumber = "5521964075124";
-      const message = encodeURIComponent(
-        `Olá! Sou ${lead.nome}.\n\nQuero solicitar meu Parecer Técnico Godoy Prime para proteger meu patrimônio.\n\nImóvel analisado: ${data.tipologia} de ${data.area_m2}m² em ${data.bairro}\nEstimativa Preliminar: ${formatCurrency(data.estimativa?.min || 0)} a ${formatCurrency(data.estimativa?.max || 0)}\n\nMeu WhatsApp: ${lead.telefone}\nMeu email: ${lead.email}\nObjetivo: ${lead.objetivo}\nUrgência: ${lead.urgencia}`
-      );
-      window.open(`https://wa.me/${whatsappNumber}?text=${message}`, '_blank');
-    }, 1000);
+      if (error) {
+        console.error('Error sending notification:', error);
+        toast.error("Erro ao enviar solicitação. Tente pelo WhatsApp.");
+      } else {
+        console.log('Notification sent successfully:', response);
+        toast.success("Solicitação enviada com sucesso!");
+      }
+      
+      setParecerRequested(true);
+
+      // Open WhatsApp
+      setTimeout(() => {
+        const whatsappNumber = "5521964075124";
+        const message = encodeURIComponent(
+          `Olá! Sou ${data.leadName}.\n\nQuero solicitar meu Parecer Técnico Godoy Prime para proteger meu patrimônio.\n\nImóvel analisado: ${data.tipologia} de ${data.area_m2}m² em ${data.bairro}\nEstimativa Preliminar: ${formatCurrency(data.estimativa?.min || 0)} a ${formatCurrency(data.estimativa?.max || 0)}\n\nMeu WhatsApp: ${data.leadPhone}\nMeu email: ${data.leadEmail}`
+        );
+        window.open(`https://wa.me/${whatsappNumber}?text=${message}`, '_blank');
+      }, 500);
+    } catch (err) {
+      console.error('Request error:', err);
+      toast.error("Erro ao enviar. Tente pelo WhatsApp.");
+    } finally {
+      setIsRequesting(false);
+    }
   };
 
   if (!hasData) {
@@ -98,6 +141,22 @@ export function QuickValuationResult({
 
   return (
     <div className="space-y-8">
+      {/* Lead Info Badge */}
+      <div className="bg-green-50 border border-green-200 rounded-xl p-4 flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-full bg-green-500/20 flex items-center justify-center">
+            <Check className="h-5 w-5 text-green-600" />
+          </div>
+          <div>
+            <p className="font-medium text-green-800">{data.leadName}</p>
+            <p className="text-xs text-green-600">{data.leadEmail}</p>
+          </div>
+        </div>
+        <Badge variant="secondary" className="bg-green-100 text-green-700">
+          Cadastro Confirmado
+        </Badge>
+      </div>
+
       {/* Resultado Preliminar */}
       <Card className="border-accent/30 shadow-xl">
         <CardHeader className="text-center pb-4">
@@ -201,8 +260,8 @@ export function QuickValuationResult({
         </CardContent>
       </Card>
 
-      {/* Formulário de Lead ou Confirmação */}
-      {leadSubmitted ? (
+      {/* CTA para Parecer Técnico */}
+      {parecerRequested ? (
         <Card className="border-green-500/30 bg-green-50">
           <CardContent className="py-8">
             <div className="text-center space-y-4">
@@ -213,7 +272,7 @@ export function QuickValuationResult({
                 Solicitação de Parecer Técnico Enviada!
               </h3>
               <p className="text-green-700">
-                Obrigado, <strong>{leadData?.nome}</strong>! Nossa equipe entrará em contato em breve 
+                Obrigado, <strong>{data.leadName}</strong>! Nossa equipe entrará em contato em breve 
                 para iniciar a proteção do seu patrimônio.
               </p>
               <p className="text-sm text-green-600">
@@ -226,22 +285,49 @@ export function QuickValuationResult({
           </CardContent>
         </Card>
       ) : (
-        <LeadCaptureForm
-          bairroInteresse={data.bairro}
-          areaInteresse={data.area_m2}
-          valorInteresse={data.estimativa?.med}
-          quartos={data.quartos}
-          banheiros={data.banheiros}
-          suites={data.suites}
-          vagas={data.vagas}
-          diferenciais={data.diferenciais}
-          origem="avaliacao_publica"
-          onSuccess={handleLeadSuccess}
-        />
+        <Card className="border-accent/30 bg-gradient-to-b from-accent/5 to-transparent">
+          <CardContent className="py-8">
+            <div className="text-center space-y-6">
+              <div>
+                <h3 className="text-xl font-bold">
+                  🏆 Próximo Passo: Validação Técnica Completa
+                </h3>
+                <p className="text-muted-foreground mt-2">
+                  Proteja seu patrimônio com o <strong>Parecer Técnico Godoy Prime</strong>
+                </p>
+              </div>
+              
+              <div className="flex flex-col sm:flex-row gap-3 justify-center">
+                <Button
+                  onClick={handleRequestParecer}
+                  disabled={isRequesting}
+                  className="bg-green-600 hover:bg-green-700 text-white shadow-lg"
+                  size="lg"
+                >
+                  <MessageCircle className="mr-2 h-5 w-5" />
+                  {isRequesting ? "Enviando..." : "Solicitar Parecer Técnico"}
+                </Button>
+                
+                <Button
+                  variant="outline"
+                  onClick={() => window.open("tel:+552140400067", "_self")}
+                  size="lg"
+                >
+                  <Phone className="mr-2 h-5 w-5" />
+                  Ligar: (21) 4040-0067
+                </Button>
+              </div>
+              
+              <p className="text-xs text-muted-foreground">
+                Ao solicitar, você será redirecionado para o WhatsApp de Marcus Godoy
+              </p>
+            </div>
+          </CardContent>
+        </Card>
       )}
 
       {/* Botão Nova Avaliação */}
-      {!leadSubmitted && (
+      {!parecerRequested && (
         <div className="text-center">
           <Button variant="ghost" onClick={onNewValuation} className="text-muted-foreground">
             ← Voltar e fazer nova consulta
