@@ -13,6 +13,7 @@ import { User, Mail, Phone, Loader2, Shield, Target, Clock, MessageCircle, MapPi
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Link } from "react-router-dom";
+import { useUTMTracking, formatUTMSource } from "@/hooks/useUTMTracking";
 
 const leadSchema = z.object({
   nome: z.string().min(3, "Nome deve ter pelo menos 3 caracteres").max(100),
@@ -88,6 +89,22 @@ export function LeadCaptureForm({
   onSuccess,
 }: LeadCaptureFormProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const { utmParams, getUTMForLead, hasUTM } = useUTMTracking();
+  
+  // Constrói origem com UTM params se disponíveis
+  const buildOrigem = () => {
+    const utmData = getUTMForLead();
+    if (utmData) {
+      try {
+        const parsed = JSON.parse(utmData);
+        const utmStr = formatUTMSource(parsed);
+        return `${origem} | ${utmStr}`;
+      } catch {
+        return origem;
+      }
+    }
+    return origem;
+  };
 
   const {
     register,
@@ -199,7 +216,7 @@ export function LeadCaptureForm({
         aceita_marketing: data.aceita_marketing || false,
         diferenciais_imovel: diferenciais,
         interesse: data.objetivo === "vender" ? "venda" : "compra",
-        origem,
+        origem: buildOrigem(),
         evaluation_count: 1,
         endereco_imovel_analise: data.endereco_imovel || null,
         valor_pedido_vendedor: valorPedidoNum,

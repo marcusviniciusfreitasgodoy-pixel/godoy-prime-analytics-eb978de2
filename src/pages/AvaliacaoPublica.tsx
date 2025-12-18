@@ -5,6 +5,7 @@ import { QuickValuationResult } from "@/components/leads/QuickValuationResult";
 import { PublicSofiaAssistant } from "@/components/leads/PublicSofiaAssistant";
 import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
+import { useUTMTracking } from "@/hooks/useUTMTracking";
 import { 
   ArrowRight, 
   Shield, 
@@ -103,11 +104,23 @@ const PERSONAS = [
   },
 ];
 
+// SEO meta tags otimizadas para conversão
+const SEO_CONFIG = {
+  title: "Avaliação Imobiliária Gratuita | Descubra o Valor Real do Seu Imóvel | Godoy Prime",
+  description: "Descubra o valor real do seu imóvel na Barra da Tijuca em 30 segundos. Avaliação baseada em +80.000 transações oficiais ITBI da Prefeitura do RJ. Gratuito e sem compromisso.",
+  keywords: "avaliação imóvel gratuita, valor imóvel Barra da Tijuca, preço m2 Rio de Janeiro, quanto vale meu apartamento, ITBI, avaliação online, valor real imóvel",
+  canonical: "https://avaliacao.godoyprime.com.br",
+  ogImage: "https://avaliacao.godoyprime.com.br/og-image.jpg",
+};
+
 export default function AvaliacaoPublica() {
   const [step, setStep] = useState<Step>("form");
   const [valuationData, setValuationData] = useState<QuickValuationData | null>(null);
   const formRef = useRef<HTMLDivElement>(null);
   const resultRef = useRef<HTMLDivElement>(null);
+  
+  // UTM tracking para campanhas
+  const { utmParams, hasUTM } = useUTMTracking();
 
   const handleQuickValuationComplete = (data: QuickValuationData) => {
     setValuationData(data);
@@ -133,12 +146,85 @@ export default function AvaliacaoPublica() {
   return (
     <>
       <Helmet>
-        <title>Valor Real de Imóveis | Godoy Prime Realty</title>
-        <meta 
-          name="description" 
-          content="Descubra o valor real de qualquer imóvel na Barra da Tijuca com dados oficiais ITBI. Negocie com confiança baseado em +80.000 transações da Prefeitura do RJ." 
-        />
-        <meta name="keywords" content="avaliação imóvel, valor imóvel, Barra da Tijuca, Rio de Janeiro, ITBI, preço m2, valor real" />
+        {/* Primary Meta Tags */}
+        <title>{SEO_CONFIG.title}</title>
+        <meta name="title" content={SEO_CONFIG.title} />
+        <meta name="description" content={SEO_CONFIG.description} />
+        <meta name="keywords" content={SEO_CONFIG.keywords} />
+        <link rel="canonical" href={SEO_CONFIG.canonical} />
+        
+        {/* Open Graph / Facebook */}
+        <meta property="og:type" content="website" />
+        <meta property="og:url" content={SEO_CONFIG.canonical} />
+        <meta property="og:title" content={SEO_CONFIG.title} />
+        <meta property="og:description" content={SEO_CONFIG.description} />
+        <meta property="og:image" content={SEO_CONFIG.ogImage} />
+        <meta property="og:locale" content="pt_BR" />
+        <meta property="og:site_name" content="Godoy Prime Realty" />
+        
+        {/* Twitter */}
+        <meta property="twitter:card" content="summary_large_image" />
+        <meta property="twitter:url" content={SEO_CONFIG.canonical} />
+        <meta property="twitter:title" content={SEO_CONFIG.title} />
+        <meta property="twitter:description" content={SEO_CONFIG.description} />
+        <meta property="twitter:image" content={SEO_CONFIG.ogImage} />
+        
+        {/* Additional SEO */}
+        <meta name="robots" content="index, follow" />
+        <meta name="author" content="Godoy Prime Realty" />
+        <meta name="geo.region" content="BR-RJ" />
+        <meta name="geo.placename" content="Rio de Janeiro" />
+        
+        {/* Structured Data - LocalBusiness */}
+        <script type="application/ld+json">
+          {JSON.stringify({
+            "@context": "https://schema.org",
+            "@type": "RealEstateAgent",
+            "name": "Godoy Prime Realty",
+            "description": "Avaliação imobiliária premium baseada em dados oficiais ITBI",
+            "url": SEO_CONFIG.canonical,
+            "logo": "https://avaliacao.godoyprime.com.br/godoy-logo.png",
+            "telephone": "+55-21-96407-5124",
+            "email": "contato@godoyprime.com.br",
+            "address": {
+              "@type": "PostalAddress",
+              "addressLocality": "Rio de Janeiro",
+              "addressRegion": "RJ",
+              "addressCountry": "BR"
+            },
+            "areaServed": {
+              "@type": "City",
+              "name": "Rio de Janeiro"
+            },
+            "priceRange": "$$$$",
+            "sameAs": [
+              "https://www.instagram.com/godoyprime"
+            ]
+          })}
+        </script>
+        
+        {/* Structured Data - Service */}
+        <script type="application/ld+json">
+          {JSON.stringify({
+            "@context": "https://schema.org",
+            "@type": "Service",
+            "name": "Avaliação Imobiliária Gratuita",
+            "description": "Descubra o valor real do seu imóvel baseado em +80.000 transações oficiais ITBI",
+            "provider": {
+              "@type": "RealEstateAgent",
+              "name": "Godoy Prime Realty"
+            },
+            "areaServed": {
+              "@type": "City",
+              "name": "Rio de Janeiro"
+            },
+            "offers": {
+              "@type": "Offer",
+              "price": "0",
+              "priceCurrency": "BRL"
+            }
+          })}
+        </script>
       </Helmet>
 
       <div className="min-h-screen bg-background">
