@@ -2,6 +2,7 @@ import { useState, useRef } from "react";
 import { Helmet } from "react-helmet-async";
 import { QuickValuationForm, QuickValuationData } from "@/components/leads/QuickValuationForm";
 import { QuickValuationResult } from "@/components/leads/QuickValuationResult";
+import { PublicSofiaAssistant } from "@/components/leads/PublicSofiaAssistant";
 import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
 import { 
@@ -469,6 +470,9 @@ export default function AvaliacaoPublica() {
             </div>
           </div>
         </footer>
+
+        {/* Sofia Assistant for Public Page */}
+        <PublicSofiaAssistant />
 
         {/* Floating WhatsApp Button */}
         <a
