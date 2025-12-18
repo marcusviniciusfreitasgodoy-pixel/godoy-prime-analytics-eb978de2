@@ -52,23 +52,29 @@ export function LimitExceededScreen({ evaluationCount, email, onRetry }: LimitEx
         </div>
 
         <div className="space-y-3">
-          <Button
-            className="w-full bg-green-600 hover:bg-green-700 text-white shadow-lg"
-            size="lg"
-            onClick={() => window.open(`https://wa.me/5521964075124?text=${whatsappMessage}`, "_blank")}
+          <a
+            href={`https://wa.me/5521964075124?text=${whatsappMessage}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="w-full"
           >
-            <MessageCircle className="mr-2 h-5 w-5" />
-            Falar com Marcus pelo WhatsApp
-          </Button>
+            <Button
+              className="w-full bg-green-600 hover:bg-green-700 text-white shadow-lg"
+              size="lg"
+            >
+              <MessageCircle className="mr-2 h-5 w-5" />
+              Falar com Marcus pelo WhatsApp
+            </Button>
+          </a>
 
           <Button
             variant="outline"
             className="w-full border-primary/30"
             size="lg"
-            onClick={() => window.open("tel:+552140400067", "_self")}
+            onClick={() => window.location.href = "tel:+5521964075124"}
           >
             <Phone className="mr-2 h-5 w-5" />
-            Ligar: (21) 4040-0067
+            Ligar: (21) 96407-5124
           </Button>
 
           <Button
