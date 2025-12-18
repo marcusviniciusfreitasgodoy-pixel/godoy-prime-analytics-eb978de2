@@ -358,7 +358,9 @@ export default function Auth() {
           
           <div className="mt-6 text-center">
             <a
-              href="/avaliacao"
+              href="https://avaliacao.godoyprime.com.br"
+              target="_blank"
+              rel="noopener noreferrer"
               className="text-sm text-muted-foreground hover:text-accent transition-colors"
             >
               Fazer avaliação rápida gratuita →
