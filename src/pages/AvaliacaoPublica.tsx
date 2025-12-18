@@ -91,7 +91,7 @@ const PERSONAS = [
     title: "Compradores",
     subtitle: "Quer negociar com confiança?",
     description: "Saiba se o preço pedido está dentro da realidade de mercado antes de fazer uma proposta.",
-    cta: "Não pague mais do que vale",
+    cta: "Negocie com informações reais e pague o valor justo",
   },
   {
     icon: DollarSign,
