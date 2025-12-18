@@ -1,10 +1,11 @@
 import { useState, useRef, useEffect, useCallback } from "react";
-import { MessageSquare, X, Send, Loader2, HelpCircle, FileCheck, DollarSign, Shield, Clock, RotateCcw } from "lucide-react";
+import { MessageSquare, X, Send, Loader2, HelpCircle, FileCheck, DollarSign, Shield, Clock, RotateCcw, Mic, MicOff } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/utils";
 import sofiaAvatar from "@/assets/sofia-avatar.png";
+import { useWebSpeech } from "@/hooks/useWebSpeech";
 
 interface Message {
   role: 'user' | 'assistant';
@@ -27,6 +28,30 @@ export function PublicSofiaAssistant() {
   const scrollRef = useRef<HTMLDivElement>(null);
   const viewportRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+
+  const { 
+    isListening, 
+    transcript, 
+    startListening, 
+    stopListening, 
+    isSTTSupported, 
+    autoStopped,
+    silenceCountdown 
+  } = useWebSpeech({ silenceTimeout: 2500 });
+
+  // Auto-send when voice input stops
+  useEffect(() => {
+    if (autoStopped && transcript.trim()) {
+      sendMessage(transcript.trim());
+    }
+  }, [autoStopped, transcript]);
+
+  // Update input with transcript while listening
+  useEffect(() => {
+    if (isListening && transcript) {
+      setInput(transcript);
+    }
+  }, [isListening, transcript]);
 
   const scrollToBottom = useCallback(() => {
     const viewport = viewportRef.current;
@@ -299,19 +324,50 @@ export function PublicSofiaAssistant() {
 
         {/* Input */}
         <form onSubmit={handleSubmit} className="p-3 border-t bg-gray-50">
+          {/* Voice recording indicator */}
+          {isListening && (
+            <div className="flex items-center justify-center gap-2 mb-2 text-xs text-[#0C2340]">
+              <span className="w-2 h-2 bg-red-500 rounded-full animate-pulse" />
+              <span>
+                {silenceCountdown > 0 
+                  ? `Detectando silêncio... ${silenceCountdown}s`
+                  : "Ouvindo... fale sua dúvida"}
+              </span>
+            </div>
+          )}
+          
           <div className="flex gap-2">
             <Input
               ref={inputRef}
               value={input}
               onChange={(e) => setInput(e.target.value)}
-              placeholder="Digite sua dúvida..."
-              disabled={isLoading}
+              placeholder={isListening ? "Ouvindo..." : "Digite ou fale sua dúvida..."}
+              disabled={isLoading || isListening}
               className="flex-1 text-sm h-9 bg-white"
             />
+            
+            {/* Microphone button */}
+            {isSTTSupported && (
+              <Button
+                type="button"
+                size="icon"
+                onClick={isListening ? stopListening : startListening}
+                disabled={isLoading}
+                className={cn(
+                  "h-9 w-9 transition-colors",
+                  isListening 
+                    ? "bg-red-500 hover:bg-red-600 text-white" 
+                    : "bg-gray-200 hover:bg-gray-300 text-gray-700"
+                )}
+              >
+                {isListening ? <MicOff className="h-4 w-4" /> : <Mic className="h-4 w-4" />}
+              </Button>
+            )}
+            
             <Button 
               type="submit" 
               size="icon"
-              disabled={!input.trim() || isLoading}
+              disabled={!input.trim() || isLoading || isListening}
               className="h-9 w-9 bg-[#D4AF37] hover:bg-[#c9a432] text-[#0C2340]"
             >
               {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
