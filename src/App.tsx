@@ -27,6 +27,10 @@ import PoliticaPrivacidade from "./pages/PoliticaPrivacidade";
 import AvaliacaoPublica from "./pages/AvaliacaoPublica";
 import NotFound from "./pages/NotFound";
 import Onboarding from "./pages/Onboarding";
+import Visitas from "./pages/Visitas";
+import AgendarVisita from "./pages/AgendarVisita";
+import DisponibilidadeVisitas from "./pages/DisponibilidadeVisitas";
+import FeedbackVisita from "./pages/FeedbackVisita";
 
 const queryClient = new QueryClient();
 
@@ -44,6 +48,7 @@ const App = () => (
                 <Route path="/reset-password" element={<ResetPassword />} />
                 <Route path="/politica-privacidade" element={<PoliticaPrivacidade />} />
                 <Route path="/avaliacao" element={<AvaliacaoPublica />} />
+                <Route path="/visitas/feedback/:codigo" element={<FeedbackVisita />} />
                 <Route
                   path="/*"
                   element={
@@ -67,6 +72,9 @@ const App = () => (
                                 <Route path="/leads" element={<Leads />} />
                                 <Route path="/usuarios" element={<Usuarios />} />
                                 <Route path="/onboarding" element={<Onboarding />} />
+                                <Route path="/visitas" element={<Visitas />} />
+                                <Route path="/visitas/agendar" element={<AgendarVisita />} />
+                                <Route path="/visitas/disponibilidade" element={<DisponibilidadeVisitas />} />
                                 <Route path="*" element={<NotFound />} />
                               </Routes>
                             </main>
