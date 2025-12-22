@@ -14,6 +14,68 @@ export type Database = {
   }
   public: {
     Tables: {
+      agendamentos_visita: {
+        Row: {
+          codigo_imovel: string | null
+          corretor_id: string | null
+          created_at: string | null
+          data_hora: string
+          email_visitante: string | null
+          endereco_imovel: string
+          id: string
+          lead_id: string | null
+          nome_visitante: string
+          notas: string | null
+          origem: Database["public"]["Enums"]["origem_agendamento"] | null
+          status: Database["public"]["Enums"]["status_visita"]
+          telefone_visitante: string
+          tipo_servico: Database["public"]["Enums"]["tipo_servico_visita"]
+          updated_at: string | null
+        }
+        Insert: {
+          codigo_imovel?: string | null
+          corretor_id?: string | null
+          created_at?: string | null
+          data_hora: string
+          email_visitante?: string | null
+          endereco_imovel: string
+          id?: string
+          lead_id?: string | null
+          nome_visitante: string
+          notas?: string | null
+          origem?: Database["public"]["Enums"]["origem_agendamento"] | null
+          status?: Database["public"]["Enums"]["status_visita"]
+          telefone_visitante: string
+          tipo_servico?: Database["public"]["Enums"]["tipo_servico_visita"]
+          updated_at?: string | null
+        }
+        Update: {
+          codigo_imovel?: string | null
+          corretor_id?: string | null
+          created_at?: string | null
+          data_hora?: string
+          email_visitante?: string | null
+          endereco_imovel?: string
+          id?: string
+          lead_id?: string | null
+          nome_visitante?: string
+          notas?: string | null
+          origem?: Database["public"]["Enums"]["origem_agendamento"] | null
+          status?: Database["public"]["Enums"]["status_visita"]
+          telefone_visitante?: string
+          tipo_servico?: Database["public"]["Enums"]["tipo_servico_visita"]
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "agendamentos_visita_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       condominios_mapeamento: {
         Row: {
           created_at: string | null
@@ -44,6 +106,188 @@ export type Database = {
           numero_fim?: number | null
           numero_inicio?: number | null
           padrao_construtivo?: string | null
+        }
+        Relationships: []
+      }
+      disponibilidade_corretor: {
+        Row: {
+          ativo: boolean | null
+          corretor_id: string
+          created_at: string | null
+          data: string
+          horarios_disponiveis: string[] | null
+          id: string
+        }
+        Insert: {
+          ativo?: boolean | null
+          corretor_id: string
+          created_at?: string | null
+          data: string
+          horarios_disponiveis?: string[] | null
+          id?: string
+        }
+        Update: {
+          ativo?: boolean | null
+          corretor_id?: string
+          created_at?: string | null
+          data?: string
+          horarios_disponiveis?: string[] | null
+          id?: string
+        }
+        Relationships: []
+      }
+      feedbacks_visita: {
+        Row: {
+          atende_necessidades: boolean | null
+          avaliacao_geral: number | null
+          compraria_imovel: boolean | null
+          conexao_imovel: number | null
+          created_at: string | null
+          efeito_uau: string[] | null
+          efeito_uau_detalhe: string | null
+          ficha_visita_id: string
+          gostaria_fazer_proposta: boolean | null
+          id: string
+          nivel_interesse:
+            | Database["public"]["Enums"]["nivel_interesse_visita"]
+            | null
+          o_que_alteraria: string | null
+          o_que_mais_gostou: string | null
+          o_que_menos_gostou: string | null
+          percepcao_valor:
+            | Database["public"]["Enums"]["percepcao_valor_visita"]
+            | null
+          ponto_resistencia: string | null
+          pontos_negativos: string | null
+          pontos_positivos: string | null
+          sugestoes_melhoria: string | null
+          valor_ofertaria: number | null
+        }
+        Insert: {
+          atende_necessidades?: boolean | null
+          avaliacao_geral?: number | null
+          compraria_imovel?: boolean | null
+          conexao_imovel?: number | null
+          created_at?: string | null
+          efeito_uau?: string[] | null
+          efeito_uau_detalhe?: string | null
+          ficha_visita_id: string
+          gostaria_fazer_proposta?: boolean | null
+          id?: string
+          nivel_interesse?:
+            | Database["public"]["Enums"]["nivel_interesse_visita"]
+            | null
+          o_que_alteraria?: string | null
+          o_que_mais_gostou?: string | null
+          o_que_menos_gostou?: string | null
+          percepcao_valor?:
+            | Database["public"]["Enums"]["percepcao_valor_visita"]
+            | null
+          ponto_resistencia?: string | null
+          pontos_negativos?: string | null
+          pontos_positivos?: string | null
+          sugestoes_melhoria?: string | null
+          valor_ofertaria?: number | null
+        }
+        Update: {
+          atende_necessidades?: boolean | null
+          avaliacao_geral?: number | null
+          compraria_imovel?: boolean | null
+          conexao_imovel?: number | null
+          created_at?: string | null
+          efeito_uau?: string[] | null
+          efeito_uau_detalhe?: string | null
+          ficha_visita_id?: string
+          gostaria_fazer_proposta?: boolean | null
+          id?: string
+          nivel_interesse?:
+            | Database["public"]["Enums"]["nivel_interesse_visita"]
+            | null
+          o_que_alteraria?: string | null
+          o_que_mais_gostou?: string | null
+          o_que_menos_gostou?: string | null
+          percepcao_valor?:
+            | Database["public"]["Enums"]["percepcao_valor_visita"]
+            | null
+          ponto_resistencia?: string | null
+          pontos_negativos?: string | null
+          pontos_positivos?: string | null
+          sugestoes_melhoria?: string | null
+          valor_ofertaria?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "feedbacks_visita_ficha_visita_id_fkey"
+            columns: ["ficha_visita_id"]
+            isOneToOne: false
+            referencedRelation: "fichas_visita"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      fichas_visita: {
+        Row: {
+          assinatura_corretor: string | null
+          assinatura_visitante: string | null
+          codigo: string
+          codigo_imovel: string | null
+          corretor_id: string | null
+          cpf_visitante: string
+          created_at: string | null
+          data_visita: string
+          email_visitante: string | null
+          endereco_imovel: string
+          id: string
+          nome_corretor: string
+          nome_proprietario: string
+          nome_visitante: string
+          notas: string | null
+          status: Database["public"]["Enums"]["status_visita"]
+          telefone_visitante: string
+          updated_at: string | null
+          valor_imovel: number | null
+        }
+        Insert: {
+          assinatura_corretor?: string | null
+          assinatura_visitante?: string | null
+          codigo: string
+          codigo_imovel?: string | null
+          corretor_id?: string | null
+          cpf_visitante: string
+          created_at?: string | null
+          data_visita?: string
+          email_visitante?: string | null
+          endereco_imovel: string
+          id?: string
+          nome_corretor: string
+          nome_proprietario: string
+          nome_visitante: string
+          notas?: string | null
+          status?: Database["public"]["Enums"]["status_visita"]
+          telefone_visitante: string
+          updated_at?: string | null
+          valor_imovel?: number | null
+        }
+        Update: {
+          assinatura_corretor?: string | null
+          assinatura_visitante?: string | null
+          codigo?: string
+          codigo_imovel?: string | null
+          corretor_id?: string | null
+          cpf_visitante?: string
+          created_at?: string | null
+          data_visita?: string
+          email_visitante?: string | null
+          endereco_imovel?: string
+          id?: string
+          nome_corretor?: string
+          nome_proprietario?: string
+          nome_visitante?: string
+          notas?: string | null
+          status?: Database["public"]["Enums"]["status_visita"]
+          telefone_visitante?: string
+          updated_at?: string | null
+          valor_imovel?: number | null
         }
         Relationships: []
       }
@@ -653,6 +897,7 @@ export type Database = {
           exists_flag: boolean
         }[]
       }
+      generate_visit_code: { Args: never; Returns: string }
       get_vault_secret: { Args: { secret_name: string }; Returns: string }
       has_role: {
         Args: {
@@ -691,6 +936,18 @@ export type Database = {
     }
     Enums: {
       app_role: "admin" | "corretor" | "gerente"
+      nivel_interesse_visita: "baixo" | "medio" | "alto" | "muito_alto"
+      origem_agendamento:
+        | "site"
+        | "indicacao"
+        | "whatsapp"
+        | "instagram"
+        | "facebook"
+        | "google"
+        | "outro"
+      percepcao_valor_visita: "abaixo" | "justo" | "acima"
+      status_visita: "agendada" | "confirmada" | "realizada" | "cancelada"
+      tipo_servico_visita: "visita" | "avaliacao" | "consultoria" | "fotografia"
       uso_imovel: "Residencial" | "Comercial"
     }
     CompositeTypes: {
@@ -820,6 +1077,19 @@ export const Constants = {
   public: {
     Enums: {
       app_role: ["admin", "corretor", "gerente"],
+      nivel_interesse_visita: ["baixo", "medio", "alto", "muito_alto"],
+      origem_agendamento: [
+        "site",
+        "indicacao",
+        "whatsapp",
+        "instagram",
+        "facebook",
+        "google",
+        "outro",
+      ],
+      percepcao_valor_visita: ["abaixo", "justo", "acima"],
+      status_visita: ["agendada", "confirmada", "realizada", "cancelada"],
+      tipo_servico_visita: ["visita", "avaliacao", "consultoria", "fotografia"],
       uso_imovel: ["Residencial", "Comercial"],
     },
   },
