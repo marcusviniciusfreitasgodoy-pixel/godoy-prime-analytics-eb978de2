@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { AgendamentoVisita, AgendamentoVisitaInsert, StatusVisita } from "@/types/visitas";
+import { sendAgendamentoConfirmadoEmail } from "@/utils/visitEmailService";
 import { toast } from "sonner";
 
 export function useAgendamentos() {
@@ -30,9 +31,25 @@ export function useAgendamentos() {
       if (error) throw error;
       return data as unknown as AgendamentoVisita;
     },
-    onSuccess: () => {
+    onSuccess: async (data) => {
       queryClient.invalidateQueries({ queryKey: ["agendamentos-visita"] });
       toast.success("Agendamento criado com sucesso!");
+
+      // Enviar email de confirmação se tiver email
+      if (data.email_visitante) {
+        try {
+          await sendAgendamentoConfirmadoEmail(data.email_visitante, {
+            nome_visitante: data.nome_visitante,
+            telefone_visitante: data.telefone_visitante,
+            endereco_imovel: data.endereco_imovel,
+            data_hora: data.data_hora,
+          });
+          toast.success("Email de confirmação enviado!");
+        } catch (err) {
+          console.error("Erro ao enviar email:", err);
+          // Não bloqueia o fluxo se o email falhar
+        }
+      }
     },
     onError: (error) => {
       toast.error("Erro ao criar agendamento");

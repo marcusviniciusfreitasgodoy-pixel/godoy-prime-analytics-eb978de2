@@ -32,3 +32,6 @@ verify_jwt = false
 
 [functions.public-itbi-stats]
 verify_jwt = false
+
+[functions.send-visit-email]
+verify_jwt = false
