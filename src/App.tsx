@@ -31,6 +31,7 @@ import Visitas from "./pages/Visitas";
 import AgendarVisita from "./pages/AgendarVisita";
 import DisponibilidadeVisitas from "./pages/DisponibilidadeVisitas";
 import FeedbackVisita from "./pages/FeedbackVisita";
+import FichaVisitaPage from "./pages/FichaVisitaPage";
 
 const queryClient = new QueryClient();
 
@@ -75,6 +76,7 @@ const App = () => (
                                 <Route path="/visitas" element={<Visitas />} />
                                 <Route path="/visitas/agendar" element={<AgendarVisita />} />
                                 <Route path="/visitas/disponibilidade" element={<DisponibilidadeVisitas />} />
+                                <Route path="/visitas/ficha/:id" element={<FichaVisitaPage />} />
                                 <Route path="*" element={<NotFound />} />
                               </Routes>
                             </main>
