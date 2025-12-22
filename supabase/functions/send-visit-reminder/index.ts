@@ -152,19 +152,131 @@ const handler = async (req: Request): Promise<Response> => {
         </html>
       `;
 
+      // Email da imobiliária (configurável)
+      const emailImobiliaria = "contato@godoyprime.com.br";
+
       try {
-        const emailResponse = await resend.emails.send({
+        // Enviar lembrete para o cliente
+        const clientEmailResponse = await resend.emails.send({
           from: "Godoy Prime <onboarding@resend.dev>",
           to: [agendamento.email_visitante],
           subject: `⏰ Lembrete: Sua ${tipoServico} é amanhã - ${horaFormatada}`,
           html: htmlContent,
         });
+        console.log(`Client reminder sent to ${agendamento.email_visitante}:`, clientEmailResponse);
 
-        console.log(`Reminder sent to ${agendamento.email_visitante}:`, emailResponse);
-        results.push({ id: agendamento.id, email: agendamento.email_visitante, success: true });
+        // Conteúdo do email para a imobiliária/corretor
+        const htmlImobiliaria = `
+          <!DOCTYPE html>
+          <html>
+          <head>
+            <meta charset="utf-8">
+            <style>
+              body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f8fafc; margin: 0; padding: 20px; }
+              .container { max-width: 600px; margin: 0 auto; background: white; border-radius: 16px; overflow: hidden; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); }
+              .header { background: linear-gradient(135deg, #1e3a5f 0%, #2d5a87 100%); padding: 32px; text-align: center; }
+              .header h1 { color: white; margin: 0; font-size: 24px; }
+              .header p { color: rgba(255,255,255,0.9); margin: 8px 0 0 0; }
+              .content { padding: 32px; }
+              .alert-box { background: linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%); border-left: 4px solid #1e3a5f; padding: 16px; border-radius: 8px; margin-bottom: 24px; }
+              .alert-box h2 { color: #1e40af; margin: 0 0 8px 0; font-size: 18px; }
+              .alert-box p { color: #1e3a8a; margin: 0; }
+              .info-card { background: #f8fafc; padding: 20px; border-radius: 12px; margin: 16px 0; }
+              .info-row { display: flex; padding: 8px 0; border-bottom: 1px solid #e2e8f0; }
+              .info-row:last-child { border-bottom: none; }
+              .info-label { color: #64748b; font-size: 14px; width: 120px; }
+              .info-value { color: #1e293b; font-weight: 600; }
+              .footer { background: #f8fafc; padding: 24px; text-align: center; border-top: 1px solid #e2e8f0; }
+              .footer p { color: #64748b; margin: 4px 0; font-size: 14px; }
+            </style>
+          </head>
+          <body>
+            <div class="container">
+              <div class="header">
+                <h1>📋 Lembrete de Atendimento</h1>
+                <p>Atendimento agendado para amanhã</p>
+              </div>
+              <div class="content">
+                <div class="alert-box">
+                  <h2>Atendimento Programado</h2>
+                  <p>Você tem uma ${tipoServico.toLowerCase()} agendada para amanhã. Prepare-se!</p>
+                </div>
+                
+                <div class="info-card">
+                  <div class="info-row">
+                    <span class="info-label">👤 Cliente</span>
+                    <span class="info-value">${agendamento.nome_visitante}</span>
+                  </div>
+                  <div class="info-row">
+                    <span class="info-label">📞 Telefone</span>
+                    <span class="info-value">${agendamento.telefone_visitante}</span>
+                  </div>
+                  <div class="info-row">
+                    <span class="info-label">✉️ Email</span>
+                    <span class="info-value">${agendamento.email_visitante}</span>
+                  </div>
+                  <div class="info-row">
+                    <span class="info-label">📅 Data</span>
+                    <span class="info-value">${dataFormatada}</span>
+                  </div>
+                  <div class="info-row">
+                    <span class="info-label">🕐 Horário</span>
+                    <span class="info-value">${horaFormatada}</span>
+                  </div>
+                  <div class="info-row">
+                    <span class="info-label">📍 Endereço</span>
+                    <span class="info-value">${agendamento.endereco_imovel}</span>
+                  </div>
+                  <div class="info-row">
+                    <span class="info-label">🏷️ Tipo</span>
+                    <span class="info-value">${tipoServico}</span>
+                  </div>
+                  ${agendamento.codigo_imovel ? `
+                  <div class="info-row">
+                    <span class="info-label">🔑 Código</span>
+                    <span class="info-value">${agendamento.codigo_imovel}</span>
+                  </div>
+                  ` : ""}
+                  ${agendamento.notas ? `
+                  <div class="info-row">
+                    <span class="info-label">📝 Notas</span>
+                    <span class="info-value">${agendamento.notas}</span>
+                  </div>
+                  ` : ""}
+                </div>
+              </div>
+              <div class="footer">
+                <p><strong>Godoy Prime Analytics</strong></p>
+                <p>Sistema de Gestão de Visitas</p>
+              </div>
+            </div>
+          </body>
+          </html>
+        `;
+
+        // Enviar lembrete para a imobiliária
+        const agencyEmailResponse = await resend.emails.send({
+          from: "Godoy Prime <onboarding@resend.dev>",
+          to: [emailImobiliaria],
+          subject: `📋 Lembrete: ${tipoServico} amanhã às ${horaFormatada} - ${agendamento.nome_visitante}`,
+          html: htmlImobiliaria,
+        });
+        console.log(`Agency reminder sent to ${emailImobiliaria}:`, agencyEmailResponse);
+
+        results.push({ 
+          id: agendamento.id, 
+          emailCliente: agendamento.email_visitante, 
+          emailImobiliaria,
+          success: true 
+        });
       } catch (emailError: any) {
-        console.error(`Error sending reminder to ${agendamento.email_visitante}:`, emailError);
-        results.push({ id: agendamento.id, email: agendamento.email_visitante, success: false, error: emailError.message });
+        console.error(`Error sending reminder for visit ${agendamento.id}:`, emailError);
+        results.push({ 
+          id: agendamento.id, 
+          email: agendamento.email_visitante, 
+          success: false, 
+          error: emailError.message 
+        });
       }
     }
 
