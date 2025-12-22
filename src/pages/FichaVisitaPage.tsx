@@ -15,6 +15,7 @@ import { Separator } from "@/components/ui/separator";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { FichaVisita, StatusVisita } from "@/types/visitas";
 import { exportFichaVisitaPdf } from "@/utils/fichaVisitaPdfExport";
+import { sendFeedbackRequestEmail } from "@/utils/visitEmailService";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { 
@@ -31,7 +32,8 @@ import {
   Save,
   QrCode,
   ExternalLink,
-  CheckCircle
+  CheckCircle,
+  Send
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -45,6 +47,7 @@ export default function FichaVisitaPage() {
   const [ficha, setFicha] = useState<FichaVisita | null>(null);
   const [isEditing, setIsEditing] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const [isSendingEmail, setIsSendingEmail] = useState(false);
   const [editedFicha, setEditedFicha] = useState<Partial<FichaVisita>>({});
 
   useEffect(() => {
@@ -115,6 +118,32 @@ export default function FichaVisitaPage() {
       toast.success("PDF exportado com sucesso!");
     } catch (error) {
       toast.error("Erro ao exportar PDF");
+    }
+  };
+
+  const handleSendFeedbackEmail = async () => {
+    if (!ficha || !ficha.email_visitante) {
+      toast.error("Email do visitante não cadastrado");
+      return;
+    }
+
+    setIsSendingEmail(true);
+    try {
+      const result = await sendFeedbackRequestEmail(ficha.email_visitante, {
+        nome_visitante: ficha.nome_visitante,
+        endereco_imovel: ficha.endereco_imovel,
+        codigo_visita: ficha.codigo,
+      });
+
+      if (result.success) {
+        toast.success("Email de feedback enviado com sucesso!");
+      } else {
+        toast.error(`Erro ao enviar email: ${result.error}`);
+      }
+    } catch (error) {
+      toast.error("Erro ao enviar email de feedback");
+    } finally {
+      setIsSendingEmail(false);
     }
   };
 
@@ -477,6 +506,24 @@ export default function FichaVisitaPage() {
                     <ExternalLink className="h-4 w-4" />
                   </Button>
                 </div>
+
+                {/* Botão de enviar email */}
+                {ficha.email_visitante && !feedbacks?.length && (
+                  <Button
+                    variant="default"
+                    size="sm"
+                    className="w-full"
+                    onClick={handleSendFeedbackEmail}
+                    disabled={isSendingEmail}
+                  >
+                    {isSendingEmail ? (
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    ) : (
+                      <Send className="h-4 w-4 mr-2" />
+                    )}
+                    Enviar Link por Email
+                  </Button>
+                )}
 
                 {feedbacks && feedbacks.length > 0 && (
                   <div className="pt-3 border-t">
