@@ -35,3 +35,6 @@ verify_jwt = false
 
 [functions.send-visit-email]
 verify_jwt = false
+
+[functions.send-visit-reminder]
+verify_jwt = false
