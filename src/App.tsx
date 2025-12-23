@@ -2,7 +2,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { HelmetProvider } from "react-helmet-async";
 import { SidebarProvider } from "@/components/ui/sidebar";
 import { AuthProvider } from "@/contexts/AuthContext";
@@ -32,6 +32,7 @@ import AgendarVisita from "./pages/AgendarVisita";
 import DisponibilidadeVisitas from "./pages/DisponibilidadeVisitas";
 import FeedbackVisita from "./pages/FeedbackVisita";
 import FichaVisitaPage from "./pages/FichaVisitaPage";
+import FeedbackLanding from "./pages/FeedbackLanding";
 
 const queryClient = new QueryClient();
 
@@ -49,6 +50,7 @@ const App = () => (
                 <Route path="/reset-password" element={<ResetPassword />} />
                 <Route path="/politica-privacidade" element={<PoliticaPrivacidade />} />
                 <Route path="/avaliacao" element={<AvaliacaoPublica />} />
+                <Route path="/visitas/feedback" element={<FeedbackLanding />} />
                 <Route path="/visitas/feedback/:codigo" element={<FeedbackVisita />} />
                 <Route
                   path="/*"
