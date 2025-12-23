@@ -33,6 +33,7 @@ const handler = async (req: Request): Promise<Response> => {
       .from("agendamentos_visita")
       .select("*")
       .in("status", ["agendada", "confirmada"])
+      .eq("lembrete_enviado", false)
       .gte("data_hora", in24Hours.toISOString())
       .lt("data_hora", in25Hours.toISOString());
 
@@ -262,6 +263,12 @@ const handler = async (req: Request): Promise<Response> => {
           html: htmlImobiliaria,
         });
         console.log(`Agency reminder sent to ${emailImobiliaria}:`, agencyEmailResponse);
+
+        // Mark reminder as sent
+        await supabase
+          .from("agendamentos_visita")
+          .update({ lembrete_enviado: true })
+          .eq("id", agendamento.id);
 
         results.push({ 
           id: agendamento.id, 
