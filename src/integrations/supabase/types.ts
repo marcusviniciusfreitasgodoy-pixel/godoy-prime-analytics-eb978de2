@@ -24,6 +24,7 @@ export type Database = {
           endereco_imovel: string
           id: string
           lead_id: string | null
+          lembrete_enviado: boolean | null
           nome_visitante: string
           notas: string | null
           origem: Database["public"]["Enums"]["origem_agendamento"] | null
@@ -41,6 +42,7 @@ export type Database = {
           endereco_imovel: string
           id?: string
           lead_id?: string | null
+          lembrete_enviado?: boolean | null
           nome_visitante: string
           notas?: string | null
           origem?: Database["public"]["Enums"]["origem_agendamento"] | null
@@ -58,6 +60,7 @@ export type Database = {
           endereco_imovel?: string
           id?: string
           lead_id?: string | null
+          lembrete_enviado?: boolean | null
           nome_visitante?: string
           notas?: string | null
           origem?: Database["public"]["Enums"]["origem_agendamento"] | null
