@@ -33,6 +33,8 @@ import DisponibilidadeVisitas from "./pages/DisponibilidadeVisitas";
 import FeedbackVisita from "./pages/FeedbackVisita";
 import FichaVisitaPage from "./pages/FichaVisitaPage";
 import FeedbackLanding from "./pages/FeedbackLanding";
+import AssinaturaVisita from "./pages/AssinaturaVisita";
+import AssinaturaLanding from "./pages/AssinaturaLanding";
 
 const queryClient = new QueryClient();
 
@@ -52,6 +54,8 @@ const App = () => (
                 <Route path="/avaliacao" element={<AvaliacaoPublica />} />
                 <Route path="/visitas/feedback" element={<FeedbackLanding />} />
                 <Route path="/visitas/feedback/:codigo" element={<FeedbackVisita />} />
+                <Route path="/visitas/assinatura" element={<AssinaturaLanding />} />
+                <Route path="/visitas/assinatura/:codigo/:tipo" element={<AssinaturaVisita />} />
                 <Route
                   path="/*"
                   element={

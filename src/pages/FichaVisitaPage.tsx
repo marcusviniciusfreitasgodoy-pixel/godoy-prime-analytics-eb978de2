@@ -33,7 +33,8 @@ import {
   QrCode,
   ExternalLink,
   CheckCircle,
-  Send
+  Send,
+  FileSignature
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -148,6 +149,8 @@ export default function FichaVisitaPage() {
   };
 
   const feedbackUrl = `${window.location.origin}/visitas/feedback/${ficha?.codigo}`;
+  const signatureVisitanteUrl = `${window.location.origin}/visitas/assinatura/${ficha?.codigo}/visitante`;
+  const signatureCorretorUrl = `${window.location.origin}/visitas/assinatura/${ficha?.codigo}/corretor`;
 
   if (isLoading) {
     return (
@@ -466,6 +469,92 @@ export default function FichaVisitaPage() {
                       )}
                       <span className="text-sm">Corretor</span>
                     </div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Links de Assinatura Digital */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <FileSignature className="h-5 w-5" />
+                  Assinatura Digital
+                </CardTitle>
+                <CardDescription>
+                  Envie o link para assinatura remota
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {/* Visitante */}
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm font-medium">Visitante</span>
+                    {ficha.assinatura_visitante ? (
+                      <span className="text-xs text-green-600 flex items-center gap-1">
+                        <CheckCircle className="h-3 w-3" />
+                        Assinado
+                      </span>
+                    ) : (
+                      <span className="text-xs text-muted-foreground">Pendente</span>
+                    )}
+                  </div>
+                  <div className="flex gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="flex-1"
+                      onClick={() => {
+                        navigator.clipboard.writeText(signatureVisitanteUrl);
+                        toast.success("Link de assinatura copiado!");
+                      }}
+                    >
+                      Copiar Link
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => window.open(signatureVisitanteUrl, "_blank")}
+                    >
+                      <ExternalLink className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </div>
+
+                <Separator />
+
+                {/* Corretor */}
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm font-medium">Corretor</span>
+                    {ficha.assinatura_corretor ? (
+                      <span className="text-xs text-green-600 flex items-center gap-1">
+                        <CheckCircle className="h-3 w-3" />
+                        Assinado
+                      </span>
+                    ) : (
+                      <span className="text-xs text-muted-foreground">Pendente</span>
+                    )}
+                  </div>
+                  <div className="flex gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="flex-1"
+                      onClick={() => {
+                        navigator.clipboard.writeText(signatureCorretorUrl);
+                        toast.success("Link de assinatura copiado!");
+                      }}
+                    >
+                      Copiar Link
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => window.open(signatureCorretorUrl, "_blank")}
+                    >
+                      <ExternalLink className="h-4 w-4" />
+                    </Button>
                   </div>
                 </div>
               </CardContent>
