@@ -61,6 +61,12 @@ const tourSteps: Step[] = [
     title: '📝 Vistoria Digital',
   },
   {
+    target: '[data-tour="nav-visitas"]',
+    content: 'Gestão completa de visitas: agende, acompanhe, registre fichas de visita com assinatura digital, colete feedbacks e gere relatórios PDF profissionais.',
+    placement: 'right',
+    title: '📅 Agendamento de Visitas',
+  },
+  {
     target: '[data-tour="nav-documentacao"]',
     content: 'Central de documentação e ajuda. Consulte guias, metodologias de cálculo e melhores práticas para uso da plataforma.',
     placement: 'right',

@@ -28,7 +28,8 @@ import {
   Users,
   Settings,
   HelpCircle,
-  Search
+  Search,
+  CalendarCheck
 } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { exportManualPDF } from '@/utils/manualPdfExport';
@@ -248,6 +249,21 @@ const onboardingSteps: OnboardingStep[] = [
   },
   {
     id: 6,
+    title: "Agendamento de Visitas",
+    description: "Gestão completa de visitas com agendamento, fichas digitais, assinaturas e coleta de feedback.",
+    icon: <CalendarCheck className="h-8 w-8" />,
+    features: [
+      "Agendamento de visitas",
+      "Fichas de visita digitais",
+      "Assinatura digital (cliente e corretor)",
+      "Coleta de feedback pós-visita",
+      "Relatório PDF profissional"
+    ],
+    route: "/visitas",
+    color: "from-teal-500 to-teal-400"
+  },
+  {
+    id: 7,
     title: "Documentação",
     description: "Checklist de due diligence para transações imobiliárias com análise de documentos por IA.",
     icon: <FileText className="h-8 w-8" />,
@@ -262,7 +278,7 @@ const onboardingSteps: OnboardingStep[] = [
     color: "from-purple-500 to-purple-400"
   },
   {
-    id: 7,
+    id: 8,
     title: "Sofia - Assistente IA",
     description: "Assistente virtual inteligente para consultas sobre o mercado imobiliário.",
     icon: <Bot className="h-8 w-8" />,
@@ -277,7 +293,7 @@ const onboardingSteps: OnboardingStep[] = [
     color: "from-pink-500 to-pink-400"
   },
   {
-    id: 8,
+    id: 9,
     title: "Recursos Administrativos",
     description: "Ferramentas para gestão de leads, usuários e calibração do sistema de avaliação.",
     icon: <Settings className="h-8 w-8" />,
