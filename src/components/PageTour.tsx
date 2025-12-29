@@ -127,6 +127,59 @@ export const tourConfigs: Record<string, Step[]> = {
       title: '💰 Ir para Avaliação',
     },
   ],
+
+  // Visitas - Agendamento e Gestão
+  visitas: [
+    {
+      target: '[data-tour="visitas-kpis"]',
+      content: 'Métricas principais: total de visitas, agendamentos pendentes, taxa de conversão e média de visitas por corretor. Atualizadas em tempo real.',
+      disableBeacon: true,
+      placement: 'bottom',
+      title: '📊 KPIs de Visitas',
+    },
+    {
+      target: '[data-tour="visitas-nova"]',
+      content: 'Crie um novo agendamento de visita. Preencha dados do cliente, imóvel, data/hora e tipo de serviço (visita, avaliação, consultoria ou fotografia).',
+      placement: 'bottom',
+      title: '➕ Nova Visita',
+    },
+    {
+      target: '[data-tour="visitas-disponibilidade"]',
+      content: 'Gerencie sua disponibilidade de horários. Defina dias e horários disponíveis para agendamentos automáticos.',
+      placement: 'bottom',
+      title: '📅 Disponibilidade',
+    },
+    {
+      target: '[data-tour="visitas-tabs"]',
+      content: 'Navegue entre: Dashboard (gráficos e métricas), Agendamentos (próximas visitas), Fichas (visitas realizadas) e Ranking (desempenho dos corretores).',
+      placement: 'bottom',
+      title: '🗂️ Abas de Navegação',
+    },
+    {
+      target: '[data-tour="visitas-dashboard"]',
+      content: 'Visualize a evolução mensal de visitas e o ranking dos corretores por número de atendimentos.',
+      placement: 'top',
+      title: '📈 Dashboard',
+    },
+    {
+      target: '[data-tour="visitas-agendamentos"]',
+      content: 'Lista de visitas agendadas com status (Agendada, Confirmada, Realizada, Cancelada). Clique em um card para ver detalhes ou converter em ficha.',
+      placement: 'top',
+      title: '📋 Agendamentos',
+    },
+    {
+      target: '[data-tour="visitas-fichas"]',
+      content: 'Fichas de visita preenchidas com dados completos do cliente, imóvel e declaração de intermediação. Inclui assinaturas digitais e feedback.',
+      placement: 'top',
+      title: '📝 Fichas de Visita',
+    },
+    {
+      target: '[data-tour="visitas-ranking"]',
+      content: 'Ranking dos corretores por número de visitas realizadas. Identifique os top performers da equipe.',
+      placement: 'top',
+      title: '🏆 Ranking',
+    },
+  ],
 };
 
 interface PageTourProps {
