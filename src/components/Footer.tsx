@@ -64,12 +64,12 @@ export function Footer() {
           <p>
             Desenvolvido por{" "}
             <a 
-              href="https://lovable.dev" 
+              href="https://godoyprime.com.br" 
               target="_blank" 
               rel="noopener noreferrer"
               className="text-accent hover:underline font-medium"
             >
-              Lovable
+              Godoy Prime Realty
             </a>
           </p>
         </div>
