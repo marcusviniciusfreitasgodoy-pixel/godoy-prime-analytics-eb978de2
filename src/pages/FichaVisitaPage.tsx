@@ -6,6 +6,7 @@ import { useFeedbackVisita } from "@/hooks/useFeedbackVisita";
 import { useAuthContext } from "@/contexts/AuthContext";
 import { VisitSignature } from "@/components/visitas/VisitSignature";
 import { VisitStatusBadge } from "@/components/visitas/VisitStatusBadge";
+import { PageTour, TourButton } from "@/components/PageTour";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -50,6 +51,7 @@ export default function FichaVisitaPage() {
   const [isSaving, setIsSaving] = useState(false);
   const [isSendingEmail, setIsSendingEmail] = useState(false);
   const [editedFicha, setEditedFicha] = useState<Partial<FichaVisita>>({});
+  const [runTour, setRunTour] = useState(false);
 
   useEffect(() => {
     if (fichas && id) {
@@ -179,9 +181,11 @@ export default function FichaVisitaPage() {
         <title>Ficha de Visita {ficha.codigo} | Godoy Prime Analytics</title>
       </Helmet>
 
+      <PageTour page="fichaVisita" run={runTour} onFinish={() => setRunTour(false)} />
+
       <div className="container mx-auto p-6 space-y-6">
         {/* Header */}
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4" data-tour="ficha-header">
           <div className="flex items-center gap-4">
             <Button variant="ghost" onClick={() => navigate("/visitas")}>
               <ArrowLeft className="h-4 w-4 mr-2" />
@@ -199,6 +203,7 @@ export default function FichaVisitaPage() {
           </div>
 
           <div className="flex gap-2">
+            <TourButton onClick={() => setRunTour(true)} />
             <Select value={ficha.status} onValueChange={(value) => handleStatusChange(value as StatusVisita)}>
               <SelectTrigger className="w-[180px]">
                 <SelectValue />
@@ -211,7 +216,7 @@ export default function FichaVisitaPage() {
               </SelectContent>
             </Select>
 
-            <Button variant="outline" onClick={handleExportPdf}>
+            <Button variant="outline" onClick={handleExportPdf} data-tour="ficha-export-pdf">
               <Download className="h-4 w-4 mr-2" />
               Exportar PDF
             </Button>
@@ -222,7 +227,7 @@ export default function FichaVisitaPage() {
           {/* Coluna Principal */}
           <div className="lg:col-span-2 space-y-6">
             {/* Dados do Imóvel */}
-            <Card>
+            <Card data-tour="ficha-imovel">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <Building2 className="h-5 w-5" />
@@ -293,7 +298,7 @@ export default function FichaVisitaPage() {
             </Card>
 
             {/* Dados do Visitante */}
-            <Card>
+            <Card data-tour="ficha-visitante">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <User className="h-5 w-5" />
@@ -357,7 +362,7 @@ export default function FichaVisitaPage() {
             </Card>
 
             {/* Observações */}
-            <Card>
+            <Card data-tour="ficha-observacoes">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <FileText className="h-5 w-5" />
@@ -404,7 +409,7 @@ export default function FichaVisitaPage() {
             </div>
 
             {/* Assinaturas */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6" data-tour="ficha-assinaturas">
               <VisitSignature
                 title="Assinatura do Visitante"
                 description="Solicite a assinatura do visitante"
@@ -423,7 +428,7 @@ export default function FichaVisitaPage() {
           {/* Coluna Lateral */}
           <div className="space-y-6">
             {/* Info da Visita */}
-            <Card>
+            <Card data-tour="ficha-info">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <Calendar className="h-5 w-5" />
@@ -475,7 +480,7 @@ export default function FichaVisitaPage() {
             </Card>
 
             {/* Links de Assinatura Digital */}
-            <Card>
+            <Card data-tour="ficha-assinatura-digital">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <FileSignature className="h-5 w-5" />
@@ -561,7 +566,7 @@ export default function FichaVisitaPage() {
             </Card>
 
             {/* Link para Feedback */}
-            <Card>
+            <Card data-tour="ficha-feedback">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <QrCode className="h-5 w-5" />
