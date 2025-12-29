@@ -9,6 +9,7 @@ import { VisitCard } from "@/components/visitas/VisitCard";
 import { VisitasDashboardKPIs } from "@/components/visitas/VisitasDashboardKPIs";
 import { VisitasEvolutionChart } from "@/components/visitas/VisitasEvolutionChart";
 import { CorretorRanking } from "@/components/visitas/CorretorRanking";
+import { PageTour, TourButton } from "@/components/PageTour";
 import { Calendar, List, Plus, Loader2, LayoutDashboard, Trophy } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 
@@ -18,6 +19,7 @@ export default function Visitas() {
   const { agendamentos, isLoading: loadingAgendamentos } = useAgendamentos();
   const { stats, corretorRanking, evolucaoMensal, isLoading: loadingStats } = useVisitasStats();
   const [activeTab, setActiveTab] = useState("dashboard");
+  const [runTour, setRunTour] = useState(false);
 
   const isLoading = loadingFichas || loadingAgendamentos;
 
@@ -27,6 +29,8 @@ export default function Visitas() {
         <title>Dashboard de Visitas | Godoy Prime Analytics</title>
       </Helmet>
 
+      <PageTour page="visitas" run={runTour} onFinish={() => setRunTour(false)} />
+
       <div className="container mx-auto p-6 space-y-6">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div>
@@ -34,11 +38,12 @@ export default function Visitas() {
             <p className="text-muted-foreground">Acompanhe métricas e gerencie visitas</p>
           </div>
           <div className="flex gap-2">
-            <Button onClick={() => navigate("/visitas/agendar")}>
+            <TourButton onClick={() => setRunTour(true)} />
+            <Button onClick={() => navigate("/visitas/agendar")} data-tour="visitas-nova">
               <Plus className="h-4 w-4 mr-2" />
               Nova Visita
             </Button>
-            <Button variant="outline" onClick={() => navigate("/visitas/disponibilidade")}>
+            <Button variant="outline" onClick={() => navigate("/visitas/disponibilidade")} data-tour="visitas-disponibilidade">
               <Calendar className="h-4 w-4 mr-2" />
               Disponibilidade
             </Button>
@@ -46,10 +51,12 @@ export default function Visitas() {
         </div>
 
         {/* KPIs sempre visíveis */}
-        <VisitasDashboardKPIs stats={stats} isLoading={loadingStats} />
+        <div data-tour="visitas-kpis">
+          <VisitasDashboardKPIs stats={stats} isLoading={loadingStats} />
+        </div>
 
         <Tabs value={activeTab} onValueChange={setActiveTab}>
-          <TabsList>
+          <TabsList data-tour="visitas-tabs">
             <TabsTrigger value="dashboard" className="flex items-center gap-2">
               <LayoutDashboard className="h-4 w-4" />
               Dashboard
@@ -68,14 +75,14 @@ export default function Visitas() {
             </TabsTrigger>
           </TabsList>
 
-          <TabsContent value="dashboard" className="mt-6">
+          <TabsContent value="dashboard" className="mt-6" data-tour="visitas-dashboard">
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               <VisitasEvolutionChart data={evolucaoMensal} isLoading={loadingStats} />
               <CorretorRanking data={corretorRanking} isLoading={loadingStats} />
             </div>
           </TabsContent>
 
-          <TabsContent value="agendamentos" className="mt-6">
+          <TabsContent value="agendamentos" className="mt-6" data-tour="visitas-agendamentos">
             {isLoading ? (
               <div className="flex justify-center py-12">
                 <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
@@ -97,7 +104,7 @@ export default function Visitas() {
             )}
           </TabsContent>
 
-          <TabsContent value="fichas" className="mt-6">
+          <TabsContent value="fichas" className="mt-6" data-tour="visitas-fichas">
             {isLoading ? (
               <div className="flex justify-center py-12">
                 <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
@@ -116,7 +123,7 @@ export default function Visitas() {
             )}
           </TabsContent>
 
-          <TabsContent value="ranking" className="mt-6">
+          <TabsContent value="ranking" className="mt-6" data-tour="visitas-ranking">
             <CorretorRanking data={corretorRanking} isLoading={loadingStats} />
           </TabsContent>
         </Tabs>
