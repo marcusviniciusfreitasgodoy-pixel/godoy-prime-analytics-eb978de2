@@ -180,6 +180,65 @@ export const tourConfigs: Record<string, Step[]> = {
       title: '🏆 Ranking',
     },
   ],
+
+  // Ficha de Visita Individual
+  fichaVisita: [
+    {
+      target: '[data-tour="ficha-header"]',
+      content: 'Código único da ficha, status atual e data de criação. Use o seletor ao lado para alterar o status (Agendada → Confirmada → Realizada).',
+      disableBeacon: true,
+      placement: 'bottom',
+      title: '📋 Identificação da Ficha',
+    },
+    {
+      target: '[data-tour="ficha-export-pdf"]',
+      content: 'Gere o PDF profissional da ficha com todos os dados, declaração de intermediação e assinaturas. Ideal para arquivamento e comprovação.',
+      placement: 'bottom',
+      title: '📄 Exportar PDF',
+    },
+    {
+      target: '[data-tour="ficha-imovel"]',
+      content: 'Dados completos do imóvel: endereço, código interno, valor de referência e nome do proprietário. Clique em "Editar" para alterar.',
+      placement: 'right',
+      title: '🏠 Dados do Imóvel',
+    },
+    {
+      target: '[data-tour="ficha-visitante"]',
+      content: 'Informações do cliente visitante: nome completo, CPF, telefone e email. Essenciais para a declaração de intermediação.',
+      placement: 'right',
+      title: '👤 Dados do Visitante',
+    },
+    {
+      target: '[data-tour="ficha-observacoes"]',
+      content: 'Campo livre para anotações sobre a visita: impressões do cliente, pontos de interesse, objeções levantadas, etc.',
+      placement: 'top',
+      title: '📝 Observações',
+    },
+    {
+      target: '[data-tour="ficha-assinaturas"]',
+      content: 'Assinaturas digitais do visitante e corretor. Use o canvas para assinar diretamente ou envie o link para assinatura remota.',
+      placement: 'top',
+      title: '✍️ Assinaturas Digitais',
+    },
+    {
+      target: '[data-tour="ficha-info"]',
+      content: 'Resumo: data/hora da visita, corretor responsável e status das assinaturas (verde = assinado).',
+      placement: 'left',
+      title: '📅 Informações da Visita',
+    },
+    {
+      target: '[data-tour="ficha-assinatura-digital"]',
+      content: 'Links para assinatura remota: envie via WhatsApp ou email para que cliente e corretor assinem pelo celular, sem necessidade de estar presencial.',
+      placement: 'left',
+      title: '📲 Links de Assinatura',
+    },
+    {
+      target: '[data-tour="ficha-feedback"]',
+      content: 'Link para coleta de feedback pós-visita. O cliente avalia o imóvel, informa interesse e pode registrar observações. Envie por email diretamente.',
+      placement: 'left',
+      title: '⭐ Feedback do Cliente',
+    },
+  ],
 };
 
 interface PageTourProps {
