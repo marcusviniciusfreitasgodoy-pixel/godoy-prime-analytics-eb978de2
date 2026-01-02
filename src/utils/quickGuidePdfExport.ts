@@ -53,50 +53,50 @@ export function exportQuickGuidePDF() {
   drawSection('1. LOGIN E ACESSO', [
     'Acesse app.godoyprime.com.br com seu email e senha',
     'Na primeira visita, o Tour Guiado inicia automaticamente',
-    'Use o menu lateral (desktop) ou hambúrguer (mobile) para navegar',
-  ], '🔐');
+    'Use o menu lateral (desktop) ou hamburguer (mobile) para navegar',
+  ], '>');
 
-  drawSection('2. DASHBOARD - Visão do Mercado', [
-    'KPIs mostram preço médio R$/m², liquidez e variação anual',
-    'Selecione o bairro no dropdown (padrão: Barra da Tijuca)',
-    'Ranking de Microbairros: alterne entre R$/m² e Transações',
-    'Gráficos de evolução: toggle Semestral/Anual',
-  ], '📊');
+  drawSection('2. DASHBOARD - Visao do Mercado', [
+    'KPIs mostram preco medio R$/m2, liquidez e variacao anual',
+    'Selecione o bairro no dropdown (padrao: Barra da Tijuca)',
+    'Ranking de Microbairros: alterne entre R$/m2 e Transacoes',
+    'Graficos de evolucao: toggle Semestral/Anual',
+  ], '>');
 
-  drawSection('3. MICROREGIÕES - Análise Local', [
-    'Pesquise por logradouro ou nome do condomínio',
-    'Compare preços entre ruas da mesma região',
-    'Visualize histórico de preços por logradouro',
-  ], '📍');
+  drawSection('3. MICROREGIOES - Analise Local', [
+    'Pesquise por logradouro ou nome do condominio',
+    'Compare precos entre ruas da mesma regiao',
+    'Visualize historico de precos por logradouro',
+  ], '>');
 
-  drawSection('4. AVALIAÇÃO IMOBILIÁRIA - Precificação', [
-    'Etapa 1: Identifique proprietário e objetivo (venda/captação)',
-    'Etapa 2: Selecione logradouro com dados ITBI disponíveis',
-    'Etapa 3: Informe área, quartos, vagas e tipologia',
-    'Etapa 4: Responda 26 características em 5 categorias',
-    'Etapa 5: Receba valores pessimista, provável e otimista',
-    'Etapa 6: Gere PDF profissional com recomendação de preço',
-  ], '💰');
+  drawSection('4. AVALIACAO IMOBILIARIA - Precificacao', [
+    'Etapa 1: Identifique proprietario e objetivo (venda/captacao)',
+    'Etapa 2: Selecione logradouro com dados ITBI disponiveis',
+    'Etapa 3: Informe area, quartos, vagas e tipologia',
+    'Etapa 4: Responda 26 caracteristicas em 5 categorias',
+    'Etapa 5: Receba valores pessimista, provavel e otimista',
+    'Etapa 6: Gere PDF profissional com recomendacao de preco',
+  ], '>');
 
-  drawSection('5. VISTORIA DIGITAL - Inspeção', [
+  drawSection('5. VISTORIA DIGITAL - Inspecao', [
     'Escolha tipo: Casa (55+ itens) ou Apartamento (50+ itens)',
-    'Avalie cada item: OK / Atenção / Crítico / N.V. / N/A',
+    'Avalie cada item: OK / Atencao / Critico / N.V. / N/A',
     'Adicione fotos para documentar problemas',
-    'Gere laudo PDF com score de conservação',
-  ], '✅');
+    'Gere laudo PDF com score de conservacao',
+  ], '>');
 
   drawSection('6. AGENDAMENTO DE VISITAS', [
-    'Crie fichas de visita com código único',
+    'Crie fichas de visita com codigo unico',
     'Gerencie disponibilidade do corretor',
     'Envie link de feedback para visitantes',
     'Acompanhe ranking de visitas por corretor',
-  ], '📅');
+  ], '>');
 
-  drawSection('7. DOCUMENTAÇÃO - Due Diligence', [
+  drawSection('7. DOCUMENTACAO - Due Diligence', [
     'Checklist completo para Vendedor e Comprador',
     'Use IA para analisar documentos enviados',
     'Exporte PDF com status de cada documento',
-  ], '📁');
+  ], '>');
 
   // Dicas rápidas
   y += 2;
@@ -106,7 +106,7 @@ export function exportQuickGuidePDF() {
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(9);
   doc.setTextColor(BRAND_COLORS.navy[0], BRAND_COLORS.navy[1], BRAND_COLORS.navy[2]);
-  doc.text('💡 DICAS RÁPIDAS', marginLeft + 3, y + 6);
+  doc.text('DICAS RAPIDAS', marginLeft + 3, y + 6);
 
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(8);
