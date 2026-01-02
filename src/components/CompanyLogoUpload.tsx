@@ -60,76 +60,73 @@ export function CompanyLogoUpload() {
   }
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <Image className="h-5 w-5" />
-          Logo para PDFs
-        </CardTitle>
-        <CardDescription>
-          Faça upload de uma logo personalizada para exibir nos relatórios PDF gerados pela plataforma.
-          Recomendado: PNG com fundo transparente, máximo 2MB.
-        </CardDescription>
-      </CardHeader>
-      <CardContent className="space-y-4">
-        {settings.custom_logo_url ? (
-          <div className="space-y-4">
-            <div className="border rounded-lg p-4 bg-muted/50">
-              <p className="text-sm text-muted-foreground mb-2">Logo atual:</p>
-              <img
-                src={settings.custom_logo_url}
-                alt="Logo da empresa"
-                className="max-h-16 object-contain"
-              />
-            </div>
-            <div className="flex gap-2">
-              <Button
-                variant="outline"
-                onClick={() => fileInputRef.current?.click()}
-                disabled={isUploading}
-              >
-                {isUploading ? (
-                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                ) : (
-                  <Upload className="h-4 w-4 mr-2" />
-                )}
-                Substituir
-              </Button>
-              <Button variant="destructive" onClick={handleRemove}>
-                <Trash2 className="h-4 w-4 mr-2" />
-                Remover
-              </Button>
-            </div>
+    <div className="space-y-3 sm:space-y-4">
+      {settings.custom_logo_url ? (
+        <div className="space-y-3 sm:space-y-4">
+          <div className="border rounded-lg p-3 sm:p-4 bg-muted/50">
+            <p className="text-xs sm:text-sm text-muted-foreground mb-2">Logo atual:</p>
+            <img
+              src={settings.custom_logo_url}
+              alt="Logo da empresa"
+              className="max-h-12 sm:max-h-16 object-contain"
+            />
           </div>
-        ) : (
-          <div className="border-2 border-dashed rounded-lg p-6 text-center">
-            <Image className="h-10 w-10 mx-auto mb-3 text-muted-foreground" />
-            <p className="text-sm text-muted-foreground mb-3">
-              Nenhuma logo personalizada configurada
-            </p>
+          <div className="flex flex-col sm:flex-row gap-2">
             <Button
               variant="outline"
               onClick={() => fileInputRef.current?.click()}
               disabled={isUploading}
+              className="h-9 sm:h-10 text-sm flex-1 sm:flex-none"
             >
               {isUploading ? (
                 <Loader2 className="h-4 w-4 mr-2 animate-spin" />
               ) : (
                 <Upload className="h-4 w-4 mr-2" />
               )}
-              Fazer Upload
+              Substituir
+            </Button>
+            <Button 
+              variant="destructive" 
+              onClick={handleRemove}
+              className="h-9 sm:h-10 text-sm flex-1 sm:flex-none"
+            >
+              <Trash2 className="h-4 w-4 mr-2" />
+              Remover
             </Button>
           </div>
-        )}
+        </div>
+      ) : (
+        <div className="border-2 border-dashed rounded-lg p-4 sm:p-6 text-center">
+          <Image className="h-8 w-8 sm:h-10 sm:w-10 mx-auto mb-2 sm:mb-3 text-muted-foreground" />
+          <p className="text-xs sm:text-sm text-muted-foreground mb-2 sm:mb-3">
+            Nenhuma logo personalizada configurada
+          </p>
+          <p className="text-[10px] sm:text-xs text-muted-foreground mb-3">
+            PNG com fundo transparente, máx. 2MB
+          </p>
+          <Button
+            variant="outline"
+            onClick={() => fileInputRef.current?.click()}
+            disabled={isUploading}
+            className="h-9 sm:h-10 text-sm"
+          >
+            {isUploading ? (
+              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+            ) : (
+              <Upload className="h-4 w-4 mr-2" />
+            )}
+            Fazer Upload
+          </Button>
+        </div>
+      )}
 
-        <input
-          ref={fileInputRef}
-          type="file"
-          accept="image/*"
-          className="hidden"
-          onChange={handleFileSelect}
-        />
-      </CardContent>
-    </Card>
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept="image/*"
+        className="hidden"
+        onChange={handleFileSelect}
+      />
+    </div>
   );
 }

@@ -61,108 +61,115 @@ export default function Configuracoes() {
         <title>Configurações | Godoy Prime Analytics</title>
       </Helmet>
 
-      <div className="container mx-auto p-6 space-y-6">
-        <div className="flex items-center gap-3">
-          <Settings className="h-6 w-6 text-primary" />
+      <div className="space-y-4 sm:space-y-6">
+        <div className="flex items-center gap-2 sm:gap-3">
+          <Settings className="h-5 w-5 sm:h-6 sm:w-6 text-primary flex-shrink-0" />
           <div>
-            <h1 className="text-2xl font-bold">Configurações</h1>
-            <p className="text-sm text-muted-foreground">
+            <h1 className="text-xl sm:text-2xl font-bold">Configurações</h1>
+            <p className="text-xs sm:text-sm text-muted-foreground">
               Personalize a plataforma para sua empresa
             </p>
           </div>
         </div>
 
-        <div className="grid gap-6 md:grid-cols-2">
+        <div className="grid gap-4 sm:gap-6 lg:grid-cols-2">
           {/* Logo da Empresa */}
           <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Building2 className="h-5 w-5" />
+            <CardHeader className="p-4 sm:p-6">
+              <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
+                <Building2 className="h-4 w-4 sm:h-5 sm:w-5" />
                 Logo da Empresa
               </CardTitle>
-              <CardDescription>
-                Faça upload da logo que será exibida nos PDFs gerados pela plataforma
+              <CardDescription className="text-xs sm:text-sm">
+                Faça upload da logo que será exibida nos PDFs
               </CardDescription>
             </CardHeader>
-            <CardContent>
+            <CardContent className="p-4 sm:p-6 pt-0 sm:pt-0">
               <CompanyLogoUpload />
             </CardContent>
           </Card>
 
           {/* Informações da Empresa */}
           <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <FileText className="h-5 w-5" />
+            <CardHeader className="p-4 sm:p-6">
+              <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
+                <FileText className="h-4 w-4 sm:h-5 sm:w-5" />
                 Informações da Empresa
               </CardTitle>
-              <CardDescription>
-                Configure os dados que aparecem nos PDFs gerados
+              <CardDescription className="text-xs sm:text-sm">
+                Configure os dados que aparecem nos PDFs
               </CardDescription>
             </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="company_name">Nome da Empresa</Label>
+            <CardContent className="p-4 sm:p-6 pt-0 sm:pt-0 space-y-3 sm:space-y-4">
+              <div className="space-y-1.5 sm:space-y-2">
+                <Label htmlFor="company_name" className="text-xs sm:text-sm">Nome da Empresa</Label>
                 <Input
                   id="company_name"
                   value={companyName}
                   onChange={(e) => setCompanyName(e.target.value)}
                   placeholder="Nome da empresa"
                   disabled={isLoading}
+                  className="h-9 sm:h-10 text-sm"
                 />
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="company_cnpj">CNPJ</Label>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
+                <div className="space-y-1.5 sm:space-y-2">
+                  <Label htmlFor="company_cnpj" className="text-xs sm:text-sm">CNPJ</Label>
                   <Input
                     id="company_cnpj"
                     value={companyCnpj}
                     onChange={(e) => setCompanyCnpj(e.target.value)}
                     placeholder="00.000.000/0000-00"
                     disabled={isLoading}
+                    className="h-9 sm:h-10 text-sm"
                   />
                 </div>
-                <div className="space-y-2">
-                  <Label htmlFor="company_creci">CRECI</Label>
+                <div className="space-y-1.5 sm:space-y-2">
+                  <Label htmlFor="company_creci" className="text-xs sm:text-sm">CRECI</Label>
                   <Input
                     id="company_creci"
                     value={companyCreci}
                     onChange={(e) => setCompanyCreci(e.target.value)}
                     placeholder="CRECI 00000-PJ"
                     disabled={isLoading}
+                    className="h-9 sm:h-10 text-sm"
                   />
                 </div>
               </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="company_phone" className="flex items-center gap-1">
-                  <Phone className="h-3 w-3" /> Telefone
-                </Label>
-                <Input
-                  id="company_phone"
-                  value={companyPhone}
-                  onChange={(e) => setCompanyPhone(e.target.value)}
-                  placeholder="(00) 00000-0000"
-                  disabled={isLoading}
-                />
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
+                <div className="space-y-1.5 sm:space-y-2">
+                  <Label htmlFor="company_phone" className="flex items-center gap-1 text-xs sm:text-sm">
+                    <Phone className="h-3 w-3" /> Telefone
+                  </Label>
+                  <Input
+                    id="company_phone"
+                    value={companyPhone}
+                    onChange={(e) => setCompanyPhone(e.target.value)}
+                    placeholder="(00) 00000-0000"
+                    disabled={isLoading}
+                    className="h-9 sm:h-10 text-sm"
+                  />
+                </div>
+
+                <div className="space-y-1.5 sm:space-y-2">
+                  <Label htmlFor="company_website" className="flex items-center gap-1 text-xs sm:text-sm">
+                    <Globe className="h-3 w-3" /> Website
+                  </Label>
+                  <Input
+                    id="company_website"
+                    value={companyWebsite}
+                    onChange={(e) => setCompanyWebsite(e.target.value)}
+                    placeholder="www.suaempresa.com.br"
+                    disabled={isLoading}
+                    className="h-9 sm:h-10 text-sm"
+                  />
+                </div>
               </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="company_website" className="flex items-center gap-1">
-                  <Globe className="h-3 w-3" /> Website
-                </Label>
-                <Input
-                  id="company_website"
-                  value={companyWebsite}
-                  onChange={(e) => setCompanyWebsite(e.target.value)}
-                  placeholder="www.suaempresa.com.br"
-                  disabled={isLoading}
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="company_address" className="flex items-center gap-1">
+              <div className="space-y-1.5 sm:space-y-2">
+                <Label htmlFor="company_address" className="flex items-center gap-1 text-xs sm:text-sm">
                   <MapPin className="h-3 w-3" /> Endereço
                 </Label>
                 <Input
@@ -171,13 +178,14 @@ export default function Configuracoes() {
                   onChange={(e) => setCompanyAddress(e.target.value)}
                   placeholder="Endereço completo"
                   disabled={isLoading}
+                  className="h-9 sm:h-10 text-sm"
                 />
               </div>
 
               <Button 
                 onClick={handleSaveInfo} 
                 disabled={isSaving || isLoading}
-                className="w-full"
+                className="w-full h-9 sm:h-10 text-sm"
               >
                 {isSaving ? 'Salvando...' : 'Salvar Informações'}
               </Button>
@@ -187,60 +195,60 @@ export default function Configuracoes() {
 
         {/* Preview do Rodapé */}
         <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Eye className="h-5 w-5" />
+          <CardHeader className="p-4 sm:p-6">
+            <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
+              <Eye className="h-4 w-4 sm:h-5 sm:w-5" />
               Preview do Rodapé do PDF
             </CardTitle>
-            <CardDescription>
-              Visualize como o rodapé aparecerá nos PDFs gerados
+            <CardDescription className="text-xs sm:text-sm">
+              Visualize como o rodapé aparecerá nos PDFs
             </CardDescription>
           </CardHeader>
-          <CardContent>
-            <div className="rounded-lg overflow-hidden border shadow-sm">
+          <CardContent className="p-4 sm:p-6 pt-0 sm:pt-0">
+            <div className="rounded-lg overflow-hidden border shadow-sm overflow-x-auto">
               {/* Footer Preview - mimics the PDF footer style */}
               <div 
-                className="flex items-center justify-between px-4 py-3"
+                className="flex items-center justify-between px-2 sm:px-4 py-2 sm:py-3 min-w-[320px]"
                 style={{ backgroundColor: '#0c2340' }}
               >
                 {/* Left side */}
-                <div className="text-left">
-                  <p className="text-[10px] text-white">Tel: {companyPhone || '(00) 00000-0000'}</p>
-                  <p className="text-[9px] text-white/90">{companyAddress || 'Endereço não configurado'}</p>
+                <div className="text-left flex-1">
+                  <p className="text-[8px] sm:text-[10px] text-white truncate">Tel: {companyPhone || '(00) 00000-0000'}</p>
+                  <p className="text-[7px] sm:text-[9px] text-white/90 truncate">{companyAddress || 'Endereço não configurado'}</p>
                 </div>
 
                 {/* Center - Logo ou Monogram + CNPJ */}
-                <div className="text-center">
+                <div className="text-center flex-shrink-0 px-2">
                   {settings.custom_logo_url ? (
                     <img 
                       src={settings.custom_logo_url} 
                       alt="Logo" 
-                      className="h-6 mx-auto object-contain"
+                      className="h-5 sm:h-6 mx-auto object-contain"
                     />
                   ) : (
                     <p 
-                      className="text-sm font-bold"
+                      className="text-xs sm:text-sm font-bold"
                       style={{ color: '#d4af37' }}
                     >
                       {getMonogram()}
                     </p>
                   )}
                   {companyCnpj && (
-                    <p className="text-[8px] text-white/80">CNPJ: {companyCnpj}</p>
+                    <p className="text-[6px] sm:text-[8px] text-white/80">CNPJ: {companyCnpj}</p>
                   )}
                 </div>
 
                 {/* Right side */}
-                <div className="text-right">
-                  <p className="text-[10px] text-white">{companyCreci || 'CRECI não configurado'}</p>
-                  <p className="text-[9px] text-white/90">
+                <div className="text-right flex-1">
+                  <p className="text-[8px] sm:text-[10px] text-white truncate">{companyCreci || 'CRECI não configurado'}</p>
+                  <p className="text-[7px] sm:text-[9px] text-white/90 truncate">
                     {companyWebsite ? `${companyWebsite} | Pág. 1/1` : 'Página 1 de 1'}
                   </p>
                 </div>
               </div>
             </div>
-            <p className="text-xs text-muted-foreground mt-2 text-center">
-              Este é um preview aproximado. O PDF final pode ter pequenas diferenças de formatação.
+            <p className="text-[10px] sm:text-xs text-muted-foreground mt-2 text-center">
+              Este é um preview aproximado. O PDF final pode ter pequenas diferenças.
             </p>
           </CardContent>
         </Card>
