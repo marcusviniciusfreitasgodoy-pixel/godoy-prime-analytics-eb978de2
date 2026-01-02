@@ -173,13 +173,15 @@ export function EmbeddedAdvancedSearch({ defaultBairro = "BARRA DA TIJUCA" }: Em
     },
   });
 
-  // Query for transaction history when modal is open - includes year filter from search params
+  // Query for individual transactions of specific row when modal is open
   const { data: transactionHistory, isLoading: isLoadingHistory } = useQuery({
-    queryKey: ['transaction-history', selectedTransaction?.logradouro, selectedTransaction?.bairro, selectedTransaction?.tipologia, searchParams?.anoInicio, searchParams?.anoFim],
+    queryKey: ['transaction-history-detail', selectedTransaction?.id, selectedTransaction?.data_transacao, selectedTransaction?.logradouro, selectedTransaction?.tipologia],
     enabled: !!selectedTransaction && detailsDialogOpen,
     queryFn: async () => {
       if (!selectedTransaction) return [];
       
+      // Buscar TODAS as transações individuais que compõem este registro agregado
+      // Filtrar pela data_transacao específica para mostrar as transações daquele período
       let query = supabase
         .from('itbi_transactions')
         .select('id, logradouro, numero, complemento, bairro, data_transacao, valor_transacao, area_m2, valor_m2, tipologia, total_transacoes')
@@ -189,22 +191,19 @@ export function EmbeddedAdvancedSearch({ defaultBairro = "BARRA DA TIJUCA" }: Em
         .gte('percentual_transferido', 90)
         .not('valor_m2', 'is', null);
       
+      // Filtrar pela data exata da transação selecionada
+      if (selectedTransaction.data_transacao) {
+        query = query.eq('data_transacao', selectedTransaction.data_transacao);
+      }
+      
       // Filtrar por tipologia se selecionada
       if (selectedTransaction.tipologia) {
         query = query.ilike('tipologia', `%${selectedTransaction.tipologia}%`);
       }
       
-      // Filtrar por período selecionado na busca principal
-      if (searchParams?.anoInicio && searchParams.anoInicio !== 'all') {
-        query = query.gte('data_transacao', `${searchParams.anoInicio}-01-01`);
-      }
-      if (searchParams?.anoFim && searchParams.anoFim !== 'all') {
-        query = query.lte('data_transacao', `${searchParams.anoFim}-12-31`);
-      }
-      
       const { data, error } = await query
-        .order('data_transacao', { ascending: false })
-        .limit(100);
+        .order('valor_transacao', { ascending: false })
+        .limit(200);
 
       if (error) throw error;
       return data || [];
@@ -670,10 +669,16 @@ export function EmbeddedAdvancedSearch({ defaultBairro = "BARRA DA TIJUCA" }: Em
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2 text-lg">
               <TrendingUp className="h-5 w-5 text-primary" />
-              Histórico de Transações
+              Detalhes das Transações
             </DialogTitle>
-            <DialogDescription>
-              {selectedTransaction?.logradouro} - {selectedTransaction?.bairro}
+            <DialogDescription className="flex flex-col gap-1">
+              <span>{selectedTransaction?.logradouro} - {selectedTransaction?.bairro}</span>
+              {selectedTransaction?.data_transacao && (
+                <span className="text-xs">
+                  Data: {new Date(selectedTransaction.data_transacao).toLocaleDateString('pt-BR')} 
+                  {selectedTransaction.tipologia && ` • ${selectedTransaction.tipologia}`}
+                </span>
+              )}
             </DialogDescription>
           </DialogHeader>
 
@@ -705,10 +710,12 @@ export function EmbeddedAdvancedSearch({ defaultBairro = "BARRA DA TIJUCA" }: Em
               <div className="flex-1 overflow-hidden">
                 <div className="flex items-center gap-2 mb-2">
                   <Calendar className="h-4 w-4 text-muted-foreground" />
-                  <span className="text-sm font-medium">Todas as transações neste logradouro</span>
+                  <span className="text-sm font-medium">
+                    Transações individuais ({selectedTransaction?.total_transacoes || 0} esperadas)
+                  </span>
                   {transactionHistory && (
                     <Badge variant="secondary" className="text-xs">
-                      {transactionHistory.length} registros
+                      {transactionHistory.length} encontradas
                     </Badge>
                   )}
                 </div>
@@ -716,29 +723,25 @@ export function EmbeddedAdvancedSearch({ defaultBairro = "BARRA DA TIJUCA" }: Em
                 {isLoadingHistory ? (
                   <div className="flex items-center justify-center p-6">
                     <Loader2 className="h-5 w-5 animate-spin text-primary" />
-                    <span className="ml-2 text-sm text-muted-foreground">Carregando histórico...</span>
+                    <span className="ml-2 text-sm text-muted-foreground">Carregando transações...</span>
                   </div>
                 ) : transactionHistory && transactionHistory.length > 0 ? (
                   <ScrollArea className="h-[300px] border rounded-lg">
                     <Table>
                       <TableHeader className="sticky top-0 bg-background">
                         <TableRow>
-                          <TableHead className="text-xs">Data</TableHead>
+                          <TableHead className="text-xs">Complemento</TableHead>
                           <TableHead className="text-xs">Tipologia</TableHead>
                           <TableHead className="text-xs">Valor</TableHead>
                           <TableHead className="text-xs">Área</TableHead>
                           <TableHead className="text-xs">R$/m²</TableHead>
-                          <TableHead className="text-xs text-center">Trans.</TableHead>
                         </TableRow>
                       </TableHeader>
                       <TableBody>
-                        {transactionHistory.map((t) => (
-                          <TableRow 
-                            key={t.id} 
-                            className={t.id === selectedTransaction.id ? 'bg-primary/10' : ''}
-                          >
-                            <TableCell className="text-xs">
-                              {new Date(t.data_transacao).toLocaleDateString('pt-BR')}
+                        {transactionHistory.map((t, index) => (
+                          <TableRow key={t.id || index}>
+                            <TableCell className="text-xs max-w-[120px] truncate" title={t.complemento || t.numero || '-'}>
+                              {t.complemento || t.numero || '-'}
                             </TableCell>
                             <TableCell className="text-xs">
                               {t.tipologia && <Badge variant="outline" className="text-[10px]">{t.tipologia}</Badge>}
@@ -748,9 +751,6 @@ export function EmbeddedAdvancedSearch({ defaultBairro = "BARRA DA TIJUCA" }: Em
                             <TableCell className="text-xs font-semibold text-primary">
                               {t.valor_m2 ? formatCurrency(t.valor_m2) : '-'}
                             </TableCell>
-                            <TableCell className="text-xs text-center">
-                              <Badge variant="secondary" className="text-[10px]">{t.total_transacoes}</Badge>
-                            </TableCell>
                           </TableRow>
                         ))}
                       </TableBody>
@@ -758,7 +758,7 @@ export function EmbeddedAdvancedSearch({ defaultBairro = "BARRA DA TIJUCA" }: Em
                   </ScrollArea>
                 ) : (
                   <div className="p-4 text-center text-sm text-muted-foreground border rounded-lg">
-                    Nenhum histórico adicional encontrado
+                    Nenhuma transação individual encontrada para esta data
                   </div>
                 )}
               </div>
@@ -767,9 +767,9 @@ export function EmbeddedAdvancedSearch({ defaultBairro = "BARRA DA TIJUCA" }: Em
               {transactionHistory && transactionHistory.length > 0 && (
                 <div className="grid grid-cols-3 gap-2 p-2 bg-muted/30 rounded-lg text-center">
                   <div>
-                    <div className="text-xs text-muted-foreground">Total Transações</div>
+                    <div className="text-xs text-muted-foreground">Registros Encontrados</div>
                     <div className="font-semibold">
-                      {transactionHistory.reduce((sum, t) => sum + (t.total_transacoes || 1), 0)}
+                      {transactionHistory.length}
                     </div>
                   </div>
                   <div>
@@ -781,15 +781,9 @@ export function EmbeddedAdvancedSearch({ defaultBairro = "BARRA DA TIJUCA" }: Em
                     </div>
                   </div>
                   <div>
-                    <div className="text-xs text-muted-foreground">Período</div>
+                    <div className="text-xs text-muted-foreground">Área Média</div>
                     <div className="font-semibold text-xs">
-                      {transactionHistory.length > 0 && (
-                        <>
-                          {new Date(transactionHistory[transactionHistory.length - 1].data_transacao).toLocaleDateString('pt-BR', { month: 'short', year: '2-digit' })}
-                          {' - '}
-                          {new Date(transactionHistory[0].data_transacao).toLocaleDateString('pt-BR', { month: 'short', year: '2-digit' })}
-                        </>
-                      )}
+                      {Math.round(transactionHistory.reduce((sum, t) => sum + t.area_m2, 0) / transactionHistory.length)} m²
                     </div>
                   </div>
                 </div>
