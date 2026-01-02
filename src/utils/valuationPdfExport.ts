@@ -32,38 +32,42 @@ export function exportValuationEnginePDF(
 
   // AVISO DE AVALIAÇÃO SIMPLIFICADA
   if (isSimplified) {
-    yPos += 5;
+    yPos += 3;
     
-    // Box de aviso amarelo/laranja
-    doc.setFillColor(255, 243, 205); // Amarelo claro
-    doc.setDrawColor(255, 193, 7); // Amarelo
-    doc.roundedRect(marginLeft - 5, yPos - 3, contentWidth + 10, 50, 2, 2, 'FD');
+    // Box de aviso com borda dourada (estilo premium)
+    doc.setFillColor(250, 248, 240);
+    doc.setDrawColor(...BRAND_COLORS.gold);
+    doc.setLineWidth(0.8);
+    doc.roundedRect(marginLeft - 5, yPos - 3, contentWidth + 10, 42, 2, 2, 'FD');
     
-    doc.setFontSize(11);
+    // Título da seção
+    doc.setFontSize(10);
     doc.setFont('helvetica', 'bold');
-    doc.setTextColor(133, 100, 4); // Marrom/amarelo escuro
-    doc.text('⚠️ AVALIAÇÃO SIMPLIFICADA', marginLeft, yPos + 5);
+    doc.setTextColor(...BRAND_COLORS.navy);
+    doc.text('AVALIAÇÃO SIMPLIFICADA', marginLeft, yPos + 5);
+    
+    // Linha dourada sob o título
+    doc.setDrawColor(...BRAND_COLORS.gold);
+    doc.setLineWidth(0.5);
+    doc.line(marginLeft, yPos + 7, marginLeft + 55, yPos + 7);
     
     doc.setFontSize(8);
     doc.setFont('helvetica', 'normal');
-    doc.setTextColor(102, 77, 3);
+    doc.setTextColor(...BRAND_COLORS.darkGray);
     
     const disclaimerText = [
-      'Este relatório apresenta uma estimativa de valor baseada em:',
-      '• Dados ITBI de transações reais (últimos 12 meses)',
-      '• Características declaradas do imóvel',
-      '• Análise estatística de mercado',
+      'Este relatório apresenta uma estimativa baseada em dados ITBI de transações',
+      'reais (últimos 12 meses), características declaradas e análise estatística.',
       '',
-      'IMPORTANTE: Para uma avaliação mais assertiva e próxima da realidade de mercado,',
-      'recomenda-se complementar com a Vistoria Digital, que pode ajustar o valor em',
-      'até ±15% com base nas condições reais verificadas in loco.',
+      'RECOMENDAÇÃO: Complemente com a Vistoria Digital para ajuste de até ±15%',
+      'com base nas condições reais verificadas in loco.',
     ];
     
     disclaimerText.forEach((line, index) => {
-      doc.text(line, marginLeft, yPos + 12 + (index * 4));
+      doc.text(line, marginLeft, yPos + 14 + (index * 4));
     });
     
-    yPos += 55;
+    yPos += 47;
   }
 
   // 1. IDENTIFICAÇÃO DO IMÓVEL
@@ -267,27 +271,41 @@ export function exportValuationEnginePDF(
 
   // 8. DISCLAIMER ADICIONAL PARA AVALIAÇÃO SIMPLIFICADA
   if (isSimplified) {
-    doc.setFillColor(240, 240, 240);
-    doc.roundedRect(marginLeft - 5, yPos - 3, contentWidth + 10, 35, 2, 2, 'F');
+    // Check if we need a new page
+    if (yPos > getMaxContentY() - 40) {
+      doc.addPage();
+      yPos = 20;
+    }
+    
+    // Box estilizado com borda
+    doc.setFillColor(248, 248, 248);
+    doc.setDrawColor(...BRAND_COLORS.gold);
+    doc.setLineWidth(0.5);
+    doc.roundedRect(marginLeft - 5, yPos - 3, contentWidth + 10, 32, 2, 2, 'FD');
     
     doc.setFontSize(9);
     doc.setFont('helvetica', 'bold');
-    doc.setTextColor(100, 100, 100);
-    doc.text('PARA MAIOR PRECISÃO:', marginLeft, yPos + 5);
+    doc.setTextColor(...BRAND_COLORS.navy);
+    doc.text('PARA MAIOR PRECISÃO', marginLeft, yPos + 5);
+    
+    // Linha dourada
+    doc.setDrawColor(...BRAND_COLORS.gold);
+    doc.setLineWidth(0.3);
+    doc.line(marginLeft, yPos + 7, marginLeft + 45, yPos + 7);
     
     doc.setFont('helvetica', 'normal');
     doc.setFontSize(8);
+    doc.setTextColor(...BRAND_COLORS.darkGray);
     const vistoriaInfo = [
-      'A Vistoria Digital analisa 21 categorias detalhadas incluindo:',
-      '• Instalações elétricas e hidráulicas • Acabamentos e materiais',
-      '• Estrutura e fundações • Climatização e segurança',
+      'A Vistoria Digital analisa 21 categorias detalhadas: instalações elétricas e',
+      'hidráulicas, acabamentos, estrutura, climatização e segurança.',
       'Realize a vistoria completa para uma avaliação mais assertiva.',
     ];
     vistoriaInfo.forEach((line, i) => {
-      doc.text(line, marginLeft, yPos + 12 + (i * 4));
+      doc.text(line, marginLeft, yPos + 13 + (i * 4));
     });
     
-    yPos += 40;
+    yPos += 37;
   }
 
   // 9. DISCLAIMER PADRÃO
