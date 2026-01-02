@@ -77,14 +77,15 @@ export async function exportVideoScriptPdf() {
 
   const addScreenshot = (num: number, desc: string, pageNum: { value: number }) => {
     checkNewPage(8, pageNum);
-    doc.setTextColor(GOLD);
+    doc.setTextColor(NAVY);
     doc.setFontSize(9);
     doc.setFont('helvetica', 'bold');
-    doc.text(`📸 Screenshot ${num}:`, margin, y);
+    doc.text(`[Screenshot ${num}]`, margin, y);
     doc.setTextColor(80, 80, 80);
     doc.setFont('helvetica', 'normal');
-    doc.text(desc, margin + 28, y);
-    y += 5;
+    const descX = margin + doc.getTextWidth(`[Screenshot ${num}] `);
+    doc.text(desc, descX, y);
+    y += 6;
   };
 
   const addFaqItem = (num: number, question: string, answer: string, pageNum: { value: number }) => {
