@@ -127,6 +127,8 @@ serve(async (req) => {
     let codbairro: string | null = null; // null = todos os bairros
     let minYear = 2020;
     let maxYear = new Date().getFullYear();
+    let minMonth = 1;
+    let maxMonth = 12;
     let onlyResidencial = false;
     
     try {
@@ -135,6 +137,8 @@ serve(async (req) => {
       if (body.codbairro) codbairro = body.codbairro; // Se não fornecido, busca todos
       if (body.minYear) minYear = body.minYear;
       if (body.maxYear) maxYear = body.maxYear;
+      if (body.minMonth) minMonth = body.minMonth;
+      if (body.maxMonth) maxMonth = body.maxMonth;
       if (body.onlyResidencial !== undefined) onlyResidencial = body.onlyResidencial;
     } catch {
       console.log('Usando parâmetros padrão');
@@ -142,7 +146,7 @@ serve(async (req) => {
 
     const syncAllBairros = !codbairro;
     console.log(syncAllBairros ? 'Sincronizando TODOS os bairros do Rio' : `Bairro: ${BAIRRO_CODES[codbairro!] || codbairro}`);
-    console.log(`Período: ${minYear} - ${maxYear}`);
+    console.log(`Período: ${minYear}/${minMonth} - ${maxYear}/${maxMonth}`);
     console.log(`Apenas residencial: ${onlyResidencial}`);
 
     // Buscar com paginação - IMPORTANTE: API tem maxRecordCount=1000
@@ -151,8 +155,9 @@ serve(async (req) => {
     const pageSize = 1000; // Alinhado com limite da API da Prefeitura
     let hasMore = true;
 
-    // Construir WHERE clause - sem codbairro se sincronizando todos
+    // Construir WHERE clause - incluindo filtro de mês
     let whereClause = `ano_transação>=${minYear} AND ano_transação<=${maxYear}`;
+    whereClause += ` AND mês_transação>=${minMonth} AND mês_transação<=${maxMonth}`;
     if (codbairro) {
       whereClause = `codbairro='${codbairro}' AND ${whereClause}`;
     }
@@ -239,14 +244,18 @@ serve(async (req) => {
 
     // Limpar dados existentes do período se solicitado
     if (clearExisting) {
+      // Calcular datas com base nos meses selecionados
+      const startDate = `${minYear}-${String(minMonth).padStart(2, '0')}-01`;
+      const endDate = `${maxYear}-${String(maxMonth).padStart(2, '0')}-28`; // 28 para cobrir todos os meses
+      
       if (syncAllBairros) {
-        console.log(`Limpando dados existentes de TODOS os bairros (${minYear}-${maxYear})...`);
+        console.log(`Limpando dados existentes de TODOS os bairros (${startDate} a ${endDate})...`);
         
         const { error: deleteError } = await supabase
           .from('itbi_transactions')
           .delete()
-          .gte('data_transacao', `${minYear}-01-01`)
-          .lte('data_transacao', `${maxYear}-12-31`);
+          .gte('data_transacao', startDate)
+          .lte('data_transacao', endDate);
         
         if (deleteError) {
           console.error('Erro ao limpar:', deleteError.message);
@@ -255,14 +264,14 @@ serve(async (req) => {
         }
       } else {
         const bairroNome = BAIRRO_CODES[codbairro!] || codbairro;
-        console.log(`Limpando dados existentes de ${bairroNome} (${minYear}-${maxYear})...`);
+        console.log(`Limpando dados existentes de ${bairroNome} (${startDate} a ${endDate})...`);
         
         const { error: deleteError } = await supabase
           .from('itbi_transactions')
           .delete()
           .eq('bairro', bairroNome)
-          .gte('data_transacao', `${minYear}-01-01`)
-          .lte('data_transacao', `${maxYear}-12-31`);
+          .gte('data_transacao', startDate)
+          .lte('data_transacao', endDate);
         
         if (deleteError) {
           console.error('Erro ao limpar:', deleteError.message);
@@ -397,7 +406,7 @@ serve(async (req) => {
       message: syncAllBairros ? 'Sincronização de TODOS os bairros concluída' : 'Sincronização via API concluída',
       bairro: syncAllBairros ? 'TODOS' : (BAIRRO_CODES[codbairro!] || codbairro),
       codbairro: codbairro || 'TODOS',
-      periodo: `${minYear}-${maxYear}`,
+      periodo: `${minYear}/${minMonth}-${maxYear}/${maxMonth}`,
       api_registros_agregados: allFeatures.length,
       registros_validos: transacoes.length,
       registros_inseridos: totalInseridas,
