@@ -1,7 +1,7 @@
 import { Helmet } from "react-helmet-async";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { CompanyLogoUpload } from "@/components/CompanyLogoUpload";
-import { Settings, Building2, Phone, MapPin, FileText, Globe } from "lucide-react";
+import { Settings, Building2, Phone, MapPin, FileText, Globe, Eye } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
@@ -44,6 +44,15 @@ export default function Configuracoes() {
     } finally {
       setIsSaving(false);
     }
+  };
+
+  // Get initials for the monogram
+  const getMonogram = () => {
+    const words = companyName.trim().split(' ').filter(w => w.length > 0);
+    if (words.length >= 2) {
+      return (words[0][0] + words[1][0]).toUpperCase();
+    }
+    return companyName.slice(0, 2).toUpperCase() || 'GR';
   };
 
   return (
@@ -175,6 +184,58 @@ export default function Configuracoes() {
             </CardContent>
           </Card>
         </div>
+
+        {/* Preview do Rodapé */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Eye className="h-5 w-5" />
+              Preview do Rodapé do PDF
+            </CardTitle>
+            <CardDescription>
+              Visualize como o rodapé aparecerá nos PDFs gerados
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="rounded-lg overflow-hidden border shadow-sm">
+              {/* Footer Preview - mimics the PDF footer style */}
+              <div 
+                className="flex items-center justify-between px-4 py-3"
+                style={{ backgroundColor: '#0c2340' }}
+              >
+                {/* Left side */}
+                <div className="text-left">
+                  <p className="text-[10px] text-white">Tel: {companyPhone || '(00) 00000-0000'}</p>
+                  <p className="text-[9px] text-white/90">{companyAddress || 'Endereço não configurado'}</p>
+                </div>
+
+                {/* Center - Monogram + CNPJ */}
+                <div className="text-center">
+                  <p 
+                    className="text-sm font-bold"
+                    style={{ color: '#d4af37' }}
+                  >
+                    {getMonogram()}
+                  </p>
+                  {companyCnpj && (
+                    <p className="text-[8px] text-white/80">CNPJ: {companyCnpj}</p>
+                  )}
+                </div>
+
+                {/* Right side */}
+                <div className="text-right">
+                  <p className="text-[10px] text-white">{companyCreci || 'CRECI não configurado'}</p>
+                  <p className="text-[9px] text-white/90">
+                    {companyWebsite ? `${companyWebsite} | Pág. 1/1` : 'Página 1 de 1'}
+                  </p>
+                </div>
+              </div>
+            </div>
+            <p className="text-xs text-muted-foreground mt-2 text-center">
+              Este é um preview aproximado. O PDF final pode ter pequenas diferenças de formatação.
+            </p>
+          </CardContent>
+        </Card>
       </div>
     </>
   );
