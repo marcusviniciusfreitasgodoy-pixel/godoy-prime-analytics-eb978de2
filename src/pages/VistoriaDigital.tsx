@@ -15,7 +15,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import { FileText, Loader2, Building2, Camera, Image, X, Calculator, TrendingUp, Home, Building, RotateCcw, Star, AlertCircle, ChevronLeft, ChevronRight, Search, MapPin, HelpCircle } from "lucide-react";
+import { FileText, Loader2, Building2, Camera, Image, X, Calculator, TrendingUp, Home, Building, RotateCcw, Star, AlertCircle, ChevronLeft, ChevronRight, Search, MapPin, HelpCircle, Mail } from "lucide-react";
 import { PageTour } from "@/components/PageTour";
 import { useFirstVisitTour } from "@/hooks/useFirstVisitTour";
 import {
@@ -43,7 +43,8 @@ import {
 } from "@/components/ui/alert-dialog";
 import { useToast } from "@/hooks/use-toast";
 import { formatDate } from "@/utils/exportUtils";
-import { generateVistoriaPDF } from "@/utils/vistoriaPdfExport";
+import { generateVistoriaPDF, generateVistoriaPDFDoc } from "@/utils/vistoriaPdfExport";
+import { SendPdfEmailDialog } from "@/components/SendPdfEmailDialog";
 import { supabase } from "@/integrations/supabase/client";
 import { normalizeStreetSearchTerm } from "@/lib/utils";
 import { useActivityTracking } from "@/hooks/useActivityTracking";
@@ -575,6 +576,7 @@ export default function VistoriaDigital() {
   const [hasLoadedFromStorage, setHasLoadedFromStorage] = useState(false);
   const [fromAvaliacao, setFromAvaliacao] = useState(false);
   const [avaliacaoData, setAvaliacaoData] = useState<AvaliacaoData | null>(null);
+  const [showEmailDialog, setShowEmailDialog] = useState(false);
   const { shouldRunTour, startTour, endTour } = useFirstVisitTour('vistoria');
   const fileInputRef = useRef<HTMLInputElement>(null);
   const cameraInputRef = useRef<HTMLInputElement>(null);
@@ -988,6 +990,19 @@ export default function VistoriaDigital() {
     }
   };
 
+  const handleGeneratePdfForEmail = async () => {
+    return await generateVistoriaPDFDoc({
+      propertyData,
+      checklist,
+      photos,
+      tipoVistoria,
+      finalScore: calculateFinalScore(),
+      progress: getProgress(),
+      criticalCount: getCriticalCount(),
+      avaliacaoData,
+    });
+  };
+
   const handleNavigateToAvaliacao = () => {
     const vistoriaToAvaliacaoData = {
       logradouro: propertyData.logradouro,
@@ -1165,6 +1180,16 @@ export default function VistoriaDigital() {
                     <FileText className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
                   )}
                   Relatório
+                </Button>
+                <Button 
+                  onClick={() => setShowEmailDialog(true)} 
+                  size="sm" 
+                  variant="outline"
+                  className="gap-1.5 text-xs sm:text-sm"
+                  disabled={getProgress() < 50}
+                >
+                  <Mail className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+                  Email
                 </Button>
                 <Button 
                   onClick={handleNavigateToAvaliacao}
@@ -1843,6 +1868,18 @@ export default function VistoriaDigital() {
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Email Dialog */}
+      <SendPdfEmailDialog
+        open={showEmailDialog}
+        onOpenChange={setShowEmailDialog}
+        generatePdf={handleGeneratePdfForEmail}
+        documentType="vistoria"
+        defaultSubject={`Relatório de Vistoria - ${propertyData.logradouro || 'Imóvel'}`}
+        pdfFilename={`vistoria_${propertyData.logradouro?.replace(/\s+/g, '_').substring(0, 20) || 'imovel'}_${new Date().toISOString().split('T')[0]}.pdf`}
+        defaultEmail=""
+        defaultName={propertyData.proprietario || ""}
+      />
     </div>
   );
 }
