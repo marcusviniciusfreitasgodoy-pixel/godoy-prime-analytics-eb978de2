@@ -26,6 +26,7 @@ export interface CompanyInfo {
   creci?: string;
   name?: string;
   cnpj?: string;
+  website?: string;
 }
 
 // Logo as base64 (simplified "GR" monogram for PDF embedding)
@@ -102,6 +103,7 @@ export function drawGodoyFooter(doc: jsPDF, pageNumber?: number, totalPages?: nu
   const address = companyInfo?.address || CONTACT_INFO.address;
   const creci = companyInfo?.creci || CONTACT_INFO.creci;
   const cnpj = companyInfo?.cnpj || CONTACT_INFO.cnpj;
+  const website = companyInfo?.website || CONTACT_INFO.website;
   
   // Navy bar
   doc.setFillColor(...BRAND_COLORS.navy);
@@ -127,14 +129,17 @@ export function drawGodoyFooter(doc: jsPDF, pageNumber?: number, totalPages?: nu
     doc.text(`CNPJ: ${cnpj}`, pageWidth / 2, footerY + 12, { align: 'center' });
   }
   
-  // Right side: CRECI + page number
+  // Right side: CRECI + website/page number
   doc.setTextColor(...BRAND_COLORS.white);
   doc.setFontSize(7);
   doc.setFont('helvetica', 'normal');
   doc.text(creci, pageWidth - 10, footerY + 6, { align: 'right' });
   
   if (pageNumber !== undefined && totalPages !== undefined) {
-    doc.text(`Página ${pageNumber} de ${totalPages}`, pageWidth - 10, footerY + 11, { align: 'right' });
+    const rightText = website ? `${website} | Pág. ${pageNumber}/${totalPages}` : `Página ${pageNumber} de ${totalPages}`;
+    doc.text(rightText, pageWidth - 10, footerY + 11, { align: 'right' });
+  } else if (website) {
+    doc.text(website, pageWidth - 10, footerY + 11, { align: 'right' });
   }
 }
 
