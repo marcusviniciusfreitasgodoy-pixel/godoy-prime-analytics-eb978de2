@@ -173,15 +173,15 @@ export function EmbeddedAdvancedSearch({ defaultBairro = "BARRA DA TIJUCA" }: Em
     },
   });
 
-  // Query for individual transactions of specific row when modal is open
+  // Query for ALL aggregated transactions of this street/typology to show historical comparison
   const { data: transactionHistory, isLoading: isLoadingHistory } = useQuery({
-    queryKey: ['transaction-history-detail', selectedTransaction?.id, selectedTransaction?.data_transacao, selectedTransaction?.logradouro, selectedTransaction?.tipologia],
+    queryKey: ['transaction-history-detail', selectedTransaction?.logradouro, selectedTransaction?.tipologia, searchParams?.anoInicio, searchParams?.anoFim],
     enabled: !!selectedTransaction && detailsDialogOpen,
     queryFn: async () => {
       if (!selectedTransaction) return [];
       
-      // Buscar TODAS as transações individuais que compõem este registro agregado
-      // Filtrar pela data_transacao específica para mostrar as transações daquele período
+      // Buscar TODOS os registros agregados deste logradouro/tipologia no período selecionado
+      // IMPORTANTE: Cada registro no banco já é uma agregação (total_transacoes = quantidade de transações que compõem a média)
       let query = supabase
         .from('itbi_transactions')
         .select('id, logradouro, numero, complemento, bairro, data_transacao, valor_transacao, area_m2, valor_m2, tipologia, total_transacoes')
@@ -191,9 +191,12 @@ export function EmbeddedAdvancedSearch({ defaultBairro = "BARRA DA TIJUCA" }: Em
         .gte('percentual_transferido', 90)
         .not('valor_m2', 'is', null);
       
-      // Filtrar pela data exata da transação selecionada
-      if (selectedTransaction.data_transacao) {
-        query = query.eq('data_transacao', selectedTransaction.data_transacao);
+      // Filtrar pelo período de anos selecionado
+      if (searchParams?.anoInicio) {
+        query = query.gte('data_transacao', `${searchParams.anoInicio}-01-01`);
+      }
+      if (searchParams?.anoFim) {
+        query = query.lte('data_transacao', `${searchParams.anoFim}-12-31`);
       }
       
       // Filtrar por tipologia se selecionada
@@ -202,7 +205,7 @@ export function EmbeddedAdvancedSearch({ defaultBairro = "BARRA DA TIJUCA" }: Em
       }
       
       const { data, error } = await query
-        .order('valor_transacao', { ascending: false })
+        .order('data_transacao', { ascending: false })
         .limit(200);
 
       if (error) throw error;
@@ -669,53 +672,64 @@ export function EmbeddedAdvancedSearch({ defaultBairro = "BARRA DA TIJUCA" }: Em
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2 text-lg">
               <TrendingUp className="h-5 w-5 text-primary" />
-              Detalhes das Transações
+              Histórico de Transações no Logradouro
             </DialogTitle>
             <DialogDescription className="flex flex-col gap-1">
-              <span>{selectedTransaction?.logradouro} - {selectedTransaction?.bairro}</span>
-              {selectedTransaction?.data_transacao && (
-                <span className="text-xs">
-                  Data: {new Date(selectedTransaction.data_transacao).toLocaleDateString('pt-BR')} 
-                  {selectedTransaction.tipologia && ` • ${selectedTransaction.tipologia}`}
-                </span>
-              )}
+              <span className="font-medium">{selectedTransaction?.logradouro} - {selectedTransaction?.bairro}</span>
+              <span className="text-xs">
+                {selectedTransaction?.tipologia && `Tipologia: ${selectedTransaction.tipologia}`}
+                {searchParams?.anoInicio && searchParams?.anoFim && (
+                  <span> • Período: {searchParams.anoInicio} a {searchParams.anoFim}</span>
+                )}
+              </span>
             </DialogDescription>
           </DialogHeader>
 
           {selectedTransaction && (
             <div className="space-y-4 flex-1 overflow-hidden flex flex-col">
+              {/* Explanation about data structure */}
+              <div className="p-3 bg-blue-50 dark:bg-blue-950/30 rounded-lg border border-blue-200 dark:border-blue-800">
+                <div className="text-xs text-blue-800 dark:text-blue-200">
+                  <strong>ℹ️ Como interpretar:</strong> Os dados do ITBI são consolidados mensalmente. 
+                  O campo "<strong>Qtd Trans.</strong>" indica quantas escrituras compõem cada registro agregado. 
+                  Os valores de R$/m², Área e Valor são <strong>médias ponderadas</strong> das transações daquele período.
+                </div>
+              </div>
+
               {/* Selected Transaction Summary */}
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 p-3 bg-primary/5 rounded-lg border border-primary/20">
                 <div className="text-center">
-                  <div className="text-xs text-muted-foreground">Tipologia</div>
-                  <div className="font-semibold text-sm">{selectedTransaction.tipologia || 'N/A'}</div>
+                  <div className="text-xs text-muted-foreground">Registro Selecionado</div>
+                  <div className="font-semibold text-sm">
+                    {selectedTransaction.data_transacao && new Date(selectedTransaction.data_transacao).toLocaleDateString('pt-BR', { month: 'short', year: 'numeric' })}
+                  </div>
                 </div>
                 <div className="text-center">
-                  <div className="text-xs text-muted-foreground">Valor Médio</div>
-                  <div className="font-semibold text-sm">{formatCurrency(selectedTransaction.valor_transacao)}</div>
+                  <div className="text-xs text-muted-foreground">Qtd. Transações</div>
+                  <div className="font-semibold text-sm text-blue-600">{selectedTransaction.total_transacoes}</div>
                 </div>
                 <div className="text-center">
-                  <div className="text-xs text-muted-foreground">Área</div>
-                  <div className="font-semibold text-sm">{selectedTransaction.area_m2.toFixed(0)} m²</div>
-                </div>
-                <div className="text-center">
-                  <div className="text-xs text-muted-foreground">R$/m²</div>
+                  <div className="text-xs text-muted-foreground">R$/m² Médio</div>
                   <div className="font-semibold text-sm text-primary">
                     {selectedTransaction.valor_m2 ? formatCurrency(selectedTransaction.valor_m2) : 'N/A'}
                   </div>
                 </div>
+                <div className="text-center">
+                  <div className="text-xs text-muted-foreground">Área Média</div>
+                  <div className="font-semibold text-sm">{selectedTransaction.area_m2.toFixed(0)} m²</div>
+                </div>
               </div>
 
-              {/* Transaction History */}
+              {/* Historical Records List */}
               <div className="flex-1 overflow-hidden">
                 <div className="flex items-center gap-2 mb-2">
                   <Calendar className="h-4 w-4 text-muted-foreground" />
                   <span className="text-sm font-medium">
-                    Transações individuais ({selectedTransaction?.total_transacoes || 0} esperadas)
+                    Todos os registros mensais deste logradouro
                   </span>
                   {transactionHistory && (
                     <Badge variant="secondary" className="text-xs">
-                      {transactionHistory.length} encontradas
+                      {transactionHistory.length} períodos • {transactionHistory.reduce((sum, t) => sum + (t.total_transacoes || 1), 0)} transações totais
                     </Badge>
                   )}
                 </div>
@@ -723,28 +737,33 @@ export function EmbeddedAdvancedSearch({ defaultBairro = "BARRA DA TIJUCA" }: Em
                 {isLoadingHistory ? (
                   <div className="flex items-center justify-center p-6">
                     <Loader2 className="h-5 w-5 animate-spin text-primary" />
-                    <span className="ml-2 text-sm text-muted-foreground">Carregando transações...</span>
+                    <span className="ml-2 text-sm text-muted-foreground">Carregando histórico...</span>
                   </div>
                 ) : transactionHistory && transactionHistory.length > 0 ? (
                   <ScrollArea className="h-[300px] border rounded-lg">
                     <Table>
                       <TableHeader className="sticky top-0 bg-background">
                         <TableRow>
-                          <TableHead className="text-xs">Complemento</TableHead>
-                          <TableHead className="text-xs">Tipologia</TableHead>
-                          <TableHead className="text-xs">Valor</TableHead>
-                          <TableHead className="text-xs">Área</TableHead>
+                          <TableHead className="text-xs">Data</TableHead>
+                          <TableHead className="text-xs text-center">Qtd Trans.</TableHead>
+                          <TableHead className="text-xs">Valor Médio</TableHead>
+                          <TableHead className="text-xs">Área Média</TableHead>
                           <TableHead className="text-xs">R$/m²</TableHead>
                         </TableRow>
                       </TableHeader>
                       <TableBody>
                         {transactionHistory.map((t, index) => (
-                          <TableRow key={t.id || index}>
-                            <TableCell className="text-xs max-w-[120px] truncate" title={t.complemento || t.numero || '-'}>
-                              {t.complemento || t.numero || '-'}
-                            </TableCell>
+                          <TableRow 
+                            key={t.id || index}
+                            className={t.id === selectedTransaction.id ? 'bg-primary/10' : ''}
+                          >
                             <TableCell className="text-xs">
-                              {t.tipologia && <Badge variant="outline" className="text-[10px]">{t.tipologia}</Badge>}
+                              {new Date(t.data_transacao).toLocaleDateString('pt-BR', { month: 'short', year: 'numeric' })}
+                            </TableCell>
+                            <TableCell className="text-xs text-center">
+                              <Badge variant="outline" className="text-[10px]">
+                                {t.total_transacoes}
+                              </Badge>
                             </TableCell>
                             <TableCell className="text-xs">{formatCurrency(t.valor_transacao)}</TableCell>
                             <TableCell className="text-xs">{t.area_m2.toFixed(0)} m²</TableCell>
@@ -758,7 +777,7 @@ export function EmbeddedAdvancedSearch({ defaultBairro = "BARRA DA TIJUCA" }: Em
                   </ScrollArea>
                 ) : (
                   <div className="p-4 text-center text-sm text-muted-foreground border rounded-lg">
-                    Nenhuma transação individual encontrada para esta data
+                    Nenhum registro encontrado no período selecionado
                   </div>
                 )}
               </div>
@@ -767,23 +786,24 @@ export function EmbeddedAdvancedSearch({ defaultBairro = "BARRA DA TIJUCA" }: Em
               {transactionHistory && transactionHistory.length > 0 && (
                 <div className="grid grid-cols-3 gap-2 p-2 bg-muted/30 rounded-lg text-center">
                   <div>
-                    <div className="text-xs text-muted-foreground">Registros Encontrados</div>
-                    <div className="font-semibold">
-                      {transactionHistory.length}
+                    <div className="text-xs text-muted-foreground">Total de Escrituras</div>
+                    <div className="font-semibold text-blue-600">
+                      {transactionHistory.reduce((sum, t) => sum + (t.total_transacoes || 1), 0)}
                     </div>
                   </div>
                   <div>
-                    <div className="text-xs text-muted-foreground">Média R$/m²</div>
+                    <div className="text-xs text-muted-foreground">Média R$/m² Geral</div>
                     <div className="font-semibold text-primary">
                       {formatCurrency(
-                        transactionHistory.reduce((sum, t) => sum + (t.valor_m2 || 0), 0) / transactionHistory.length
+                        transactionHistory.reduce((sum, t) => sum + ((t.valor_m2 || 0) * (t.total_transacoes || 1)), 0) / 
+                        transactionHistory.reduce((sum, t) => sum + (t.total_transacoes || 1), 0)
                       )}
                     </div>
                   </div>
                   <div>
-                    <div className="text-xs text-muted-foreground">Área Média</div>
-                    <div className="font-semibold text-xs">
-                      {Math.round(transactionHistory.reduce((sum, t) => sum + t.area_m2, 0) / transactionHistory.length)} m²
+                    <div className="text-xs text-muted-foreground">Períodos Analisados</div>
+                    <div className="font-semibold">
+                      {transactionHistory.length} meses
                     </div>
                   </div>
                 </div>
