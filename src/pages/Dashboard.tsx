@@ -14,6 +14,7 @@ import {
   FileImage,
   Video,
   ClipboardCheck,
+  Rocket,
 } from "lucide-react";
 import { MarketAssistant } from "@/components/MarketAssistant";
 import { Button } from "@/components/ui/button";
@@ -31,6 +32,7 @@ import { exportDashboardPDF, exportDashboardXLSX } from "@/utils/dashboardExport
 import { exportVideoScriptPdf } from "@/utils/videoScriptPdfExport";
 import { exportManualPDF } from "@/utils/manualPdfExport";
 import { generateTestChecklistPDF } from "@/utils/testChecklistPdf";
+import { exportQuickGuidePDF } from "@/utils/quickGuidePdfExport";
 import { useKPIStats } from "@/hooks/useKPIStats";
 import { useMicrobairroRanking } from "@/hooks/useITBITransactions";
 import { useEvolutionData } from "@/hooks/useEvolutionData";
@@ -382,6 +384,10 @@ export default function Dashboard() {
                   </DropdownMenuItem>
                   <DropdownMenuSeparator />
                   <DropdownMenuLabel className="text-xs text-muted-foreground">Material de Apoio</DropdownMenuLabel>
+                  <DropdownMenuItem onClick={() => exportQuickGuidePDF()} className="gap-2">
+                    <Rocket className="h-4 w-4" />
+                    Guia Rápido (1 página)
+                  </DropdownMenuItem>
                   <DropdownMenuItem onClick={() => exportVideoScriptPdf()} className="gap-2">
                     <Video className="h-4 w-4" />
                     Roteiro de Vídeo + FAQ
@@ -451,6 +457,10 @@ export default function Dashboard() {
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
                 <DropdownMenuLabel className="text-xs text-muted-foreground">Material de Apoio</DropdownMenuLabel>
+                <DropdownMenuItem onClick={() => exportQuickGuidePDF()} className="gap-2">
+                  <Rocket className="h-4 w-4" />
+                  Guia Rápido (1 página)
+                </DropdownMenuItem>
                 <DropdownMenuItem onClick={() => exportVideoScriptPdf()} className="gap-2">
                   <Video className="h-4 w-4" />
                   Roteiro de Vídeo + FAQ
