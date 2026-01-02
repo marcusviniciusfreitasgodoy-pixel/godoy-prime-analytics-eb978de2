@@ -9,6 +9,7 @@ export interface CompanySettings {
   company_cnpj: string;
   company_address: string;
   company_creci: string;
+  company_website: string;
 }
 
 const DEFAULT_SETTINGS: CompanySettings = {
@@ -18,6 +19,7 @@ const DEFAULT_SETTINGS: CompanySettings = {
   company_cnpj: '',
   company_address: 'Av. das Américas 10101 Bloco 2, Sala 316, Barra da Tijuca, RJ',
   company_creci: 'CRECI 11841-PJ',
+  company_website: 'www.godoyprime.com.br',
 };
 
 export function useCompanySettings() {

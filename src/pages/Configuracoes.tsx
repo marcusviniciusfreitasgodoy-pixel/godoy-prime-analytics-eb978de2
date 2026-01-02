@@ -1,7 +1,7 @@
 import { Helmet } from "react-helmet-async";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { CompanyLogoUpload } from "@/components/CompanyLogoUpload";
-import { Settings, Building2, Phone, MapPin, FileText } from "lucide-react";
+import { Settings, Building2, Phone, MapPin, FileText, Globe } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
@@ -16,6 +16,7 @@ export default function Configuracoes() {
   const [companyCnpj, setCompanyCnpj] = useState('');
   const [companyAddress, setCompanyAddress] = useState('');
   const [companyCreci, setCompanyCreci] = useState('');
+  const [companyWebsite, setCompanyWebsite] = useState('');
   const [isSaving, setIsSaving] = useState(false);
 
   useEffect(() => {
@@ -25,6 +26,7 @@ export default function Configuracoes() {
       setCompanyCnpj(settings.company_cnpj);
       setCompanyAddress(settings.company_address);
       setCompanyCreci(settings.company_creci);
+      setCompanyWebsite(settings.company_website);
     }
   }, [isLoading, settings]);
 
@@ -37,6 +39,7 @@ export default function Configuracoes() {
         updateSetting('company_cnpj', companyCnpj),
         updateSetting('company_address', companyAddress),
         updateSetting('company_creci', companyCreci),
+        updateSetting('company_website', companyWebsite),
       ]);
     } finally {
       setIsSaving(false);
@@ -132,6 +135,19 @@ export default function Configuracoes() {
                   value={companyPhone}
                   onChange={(e) => setCompanyPhone(e.target.value)}
                   placeholder="(00) 00000-0000"
+                  disabled={isLoading}
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="company_website" className="flex items-center gap-1">
+                  <Globe className="h-3 w-3" /> Website
+                </Label>
+                <Input
+                  id="company_website"
+                  value={companyWebsite}
+                  onChange={(e) => setCompanyWebsite(e.target.value)}
+                  placeholder="www.suaempresa.com.br"
                   disabled={isLoading}
                 />
               </div>
