@@ -1,5 +1,20 @@
 import { useState, useEffect } from "react";
-import { FileDown, Info, HelpCircle, Monitor, FileSpreadsheet, FileText, BarChart3, Search, TrendingUp, MapPin, Database, FileImage, Video } from "lucide-react";
+import {
+  FileDown,
+  Info,
+  HelpCircle,
+  Monitor,
+  FileSpreadsheet,
+  FileText,
+  BarChart3,
+  Search,
+  TrendingUp,
+  MapPin,
+  Database,
+  FileImage,
+  Video,
+  ClipboardCheck,
+} from "lucide-react";
 import { MarketAssistant } from "@/components/MarketAssistant";
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -15,11 +30,19 @@ import { exportToCSV, exportToXLSX } from "@/utils/exportUtils";
 import { exportDashboardPDF, exportDashboardXLSX } from "@/utils/dashboardExport";
 import { exportVideoScriptPdf } from "@/utils/videoScriptPdfExport";
 import { exportManualPDF } from "@/utils/manualPdfExport";
+import { generateTestChecklistPDF } from "@/utils/testChecklistPdf";
 import { useKPIStats } from "@/hooks/useKPIStats";
 import { useMicrobairroRanking } from "@/hooks/useITBITransactions";
 import { useEvolutionData } from "@/hooks/useEvolutionData";
 import { useToast } from "@/hooks/use-toast";
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator, DropdownMenuLabel } from "@/components/ui/dropdown-menu";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+  DropdownMenuSeparator,
+  DropdownMenuLabel,
+} from "@/components/ui/dropdown-menu";
 import { useActivityTracking } from "@/hooks/useActivityTracking";
 import { useFirstVisitTour } from "@/hooks/useFirstVisitTour";
 
@@ -353,20 +376,19 @@ export default function Dashboard() {
                     CSV (.csv)
                   </DropdownMenuItem>
                   <DropdownMenuSeparator />
-                  <DropdownMenuItem onClick={handleBackupCompleto} className="gap-2">
-                    <Database className="h-4 w-4" />
-                    Backup Completo
-                  </DropdownMenuItem>
-                  <DropdownMenuSeparator />
+                  <DropdownMenuLabel className="text-xs text-muted-foreground">Material de Apoio</DropdownMenuLabel>
                   <DropdownMenuItem onClick={() => exportVideoScriptPdf()} className="gap-2">
                     <Video className="h-4 w-4" />
-                    Roteiro + FAQ
+                    Roteiro de Vídeo + FAQ
                   </DropdownMenuItem>
                   <DropdownMenuItem onClick={() => exportManualPDF()} className="gap-2">
                     <FileText className="h-4 w-4" />
                     Manual Completo (com FAQ)
                   </DropdownMenuItem>
-                </DropdownMenuContent>
+                  <DropdownMenuItem onClick={() => generateTestChecklistPDF()} className="gap-2">
+                    <ClipboardCheck className="h-4 w-4" />
+                    Checklist de Testes (PDF)
+                  </DropdownMenuItem>
               </DropdownMenu>
             </div>
           </div>
@@ -430,6 +452,10 @@ export default function Dashboard() {
                 <DropdownMenuItem onClick={() => exportManualPDF()} className="gap-2">
                   <FileText className="h-4 w-4" />
                   Manual Completo (com FAQ)
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => generateTestChecklistPDF()} className="gap-2">
+                  <ClipboardCheck className="h-4 w-4" />
+                  Checklist de Testes (PDF)
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
