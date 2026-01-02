@@ -209,14 +209,22 @@ export default function Configuracoes() {
                   <p className="text-[9px] text-white/90">{companyAddress || 'Endereço não configurado'}</p>
                 </div>
 
-                {/* Center - Monogram + CNPJ */}
+                {/* Center - Logo ou Monogram + CNPJ */}
                 <div className="text-center">
-                  <p 
-                    className="text-sm font-bold"
-                    style={{ color: '#d4af37' }}
-                  >
-                    {getMonogram()}
-                  </p>
+                  {settings.custom_logo_url ? (
+                    <img 
+                      src={settings.custom_logo_url} 
+                      alt="Logo" 
+                      className="h-6 mx-auto object-contain"
+                    />
+                  ) : (
+                    <p 
+                      className="text-sm font-bold"
+                      style={{ color: '#d4af37' }}
+                    >
+                      {getMonogram()}
+                    </p>
+                  )}
                   {companyCnpj && (
                     <p className="text-[8px] text-white/80">CNPJ: {companyCnpj}</p>
                   )}
