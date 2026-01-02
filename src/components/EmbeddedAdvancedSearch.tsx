@@ -15,6 +15,7 @@ import { useToast } from "@/hooks/use-toast";
 import { ScrollArea } from "./ui/scroll-area";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "./ui/dropdown-menu";
 import { Popover, PopoverContent, PopoverTrigger } from "./ui/popover";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "./ui/tooltip";
 import { useBairroSuggestions } from "@/hooks/useBairroSuggestions";
 import { useStreetSuggestions } from "@/hooks/useStreetSuggestions";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "./ui/dialog";
@@ -596,8 +597,24 @@ export function EmbeddedAdvancedSearch({ defaultBairro = "BARRA DA TIJUCA" }: Em
               </div>
             </div>
             <div className="text-center">
-              <div className="text-xs text-muted-foreground">Valor Total</div>
-              <div className="font-semibold text-sm">{formatCurrency(totalValue)}</div>
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <div className="cursor-help">
+                      <div className="text-xs text-muted-foreground flex items-center justify-center gap-1">
+                        Valor Total
+                        <Info className="h-3 w-3" />
+                      </div>
+                      <div className="font-semibold text-sm">{formatCurrency(totalValue)}</div>
+                    </div>
+                  </TooltipTrigger>
+                  <TooltipContent className="max-w-xs">
+                    <p className="text-xs">
+                      Volume financeiro estimado: soma de (valor médio × quantidade de transações) de cada registro agregado no período.
+                    </p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
             </div>
             <div className="text-center">
               <div className="text-xs text-muted-foreground">Média R$/m²</div>
