@@ -33,7 +33,7 @@ export function useBairroSuggestions(query: string) {
       // Converter para array e ordenar
       return Object.entries(bairroMap)
         .map(([bairro, total_transacoes]) => ({ bairro, total_transacoes }))
-        .sort((a, b) => b.total_transacoes - a.total_transacoes)
+        .sort((a, b) => a.bairro.localeCompare(b.bairro, 'pt-BR'))
         .slice(0, 10);
     },
     enabled: query.length >= 2,
@@ -61,10 +61,10 @@ export function useAllBairros() {
         }
       }
 
-      // Converter para array e ordenar por quantidade de transações
+      // Converter para array e ordenar alfabeticamente
       return Object.entries(bairroMap)
         .map(([bairro, total_transacoes]) => ({ bairro, total_transacoes }))
-        .sort((a, b) => b.total_transacoes - a.total_transacoes);
+        .sort((a, b) => a.bairro.localeCompare(b.bairro, 'pt-BR'));
     },
     staleTime: 5 * 60 * 1000, // 5 minutos
   });
