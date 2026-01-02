@@ -173,9 +173,9 @@ export function EmbeddedAdvancedSearch({ defaultBairro = "BARRA DA TIJUCA" }: Em
     },
   });
 
-  // Query for transaction history when modal is open
+  // Query for transaction history when modal is open - includes year filter from search params
   const { data: transactionHistory, isLoading: isLoadingHistory } = useQuery({
-    queryKey: ['transaction-history', selectedTransaction?.logradouro, selectedTransaction?.bairro, selectedTransaction?.tipologia],
+    queryKey: ['transaction-history', selectedTransaction?.logradouro, selectedTransaction?.bairro, selectedTransaction?.tipologia, searchParams?.anoInicio, searchParams?.anoFim],
     enabled: !!selectedTransaction && detailsDialogOpen,
     queryFn: async () => {
       if (!selectedTransaction) return [];
@@ -192,6 +192,14 @@ export function EmbeddedAdvancedSearch({ defaultBairro = "BARRA DA TIJUCA" }: Em
       // Filtrar por tipologia se selecionada
       if (selectedTransaction.tipologia) {
         query = query.ilike('tipologia', `%${selectedTransaction.tipologia}%`);
+      }
+      
+      // Filtrar por período selecionado na busca principal
+      if (searchParams?.anoInicio && searchParams.anoInicio !== 'all') {
+        query = query.gte('data_transacao', `${searchParams.anoInicio}-01-01`);
+      }
+      if (searchParams?.anoFim && searchParams.anoFim !== 'all') {
+        query = query.lte('data_transacao', `${searchParams.anoFim}-12-31`);
       }
       
       const { data, error } = await query
