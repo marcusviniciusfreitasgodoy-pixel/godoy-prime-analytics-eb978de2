@@ -260,6 +260,12 @@ export async function generateVistoriaPDFDoc(params: VistoriaPDFParams): Promise
   }
   
   // ========== PROPERTY IDENTIFICATION ==========
+  // Check if there's enough space for the property info section (needs ~50mm)
+  if (yPos > getMaxContentY() - 55) {
+    doc.addPage();
+    yPos = 20;
+  }
+  
   yPos = drawSectionTitle(doc, 'Identificação do Imóvel', yPos, marginLeft);
   
   doc.setFontSize(9);
@@ -284,6 +290,11 @@ export async function generateVistoriaPDFDoc(params: VistoriaPDFParams): Promise
   ];
   
   propertyInfo.forEach(([label, value]) => {
+    // Check if we need a page break before each line
+    if (yPos > getMaxContentY() - 8) {
+      doc.addPage();
+      yPos = 20;
+    }
     doc.setFont('helvetica', 'normal');
     doc.text(label, marginLeft + 5, yPos);
     doc.setFont('helvetica', 'bold');
