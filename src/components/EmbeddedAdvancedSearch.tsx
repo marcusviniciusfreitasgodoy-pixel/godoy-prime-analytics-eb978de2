@@ -252,13 +252,15 @@ export function EmbeddedAdvancedSearch({ defaultBairro = "BARRA DA TIJUCA" }: Em
     }).format(value);
   };
 
-  const totalValue = results?.reduce((sum, r) => sum + r.valor_transacao, 0) || 0;
+  // Volume financeiro real: valor_transacao × total_transacoes para cada registro
+  const totalValue = results?.reduce((sum, r) => sum + (r.valor_transacao * (r.total_transacoes || 1)), 0) || 0;
   // Use the real total from the query (calculated from all records, not just displayed ones)
   const displayedTransacoes = results?.reduce((sum, r) => sum + (r.total_transacoes || 1), 0) || 0;
   const realTotalTransacoes = searchData?.totalTransacoes || 0;
   const realTotalRegistros = searchData?.totalRegistros || 0;
-  const avgValueM2 = results?.length 
-    ? results.reduce((sum, r) => sum + (r.valor_m2 || 0), 0) / results.length 
+  // Média ponderada de R$/m² pelo número de transações
+  const avgValueM2 = realTotalTransacoes > 0
+    ? results?.reduce((sum, r) => sum + ((r.valor_m2 || 0) * (r.total_transacoes || 1)), 0) / realTotalTransacoes
     : 0;
 
   const handleOpenDetails = (transaction: AdvancedSearchResult) => {
