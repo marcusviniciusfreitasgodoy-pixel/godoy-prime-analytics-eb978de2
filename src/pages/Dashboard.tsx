@@ -376,6 +376,11 @@ export default function Dashboard() {
                     CSV (.csv)
                   </DropdownMenuItem>
                   <DropdownMenuSeparator />
+                  <DropdownMenuItem onClick={handleBackupCompleto} className="gap-2">
+                    <Database className="h-4 w-4" />
+                    Backup Completo
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
                   <DropdownMenuLabel className="text-xs text-muted-foreground">Material de Apoio</DropdownMenuLabel>
                   <DropdownMenuItem onClick={() => exportVideoScriptPdf()} className="gap-2">
                     <Video className="h-4 w-4" />
@@ -389,6 +394,7 @@ export default function Dashboard() {
                     <ClipboardCheck className="h-4 w-4" />
                     Checklist de Testes (PDF)
                   </DropdownMenuItem>
+                </DropdownMenuContent>
               </DropdownMenu>
             </div>
           </div>
