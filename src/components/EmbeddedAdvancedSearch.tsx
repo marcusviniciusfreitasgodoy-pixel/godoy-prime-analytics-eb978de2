@@ -180,14 +180,21 @@ export function EmbeddedAdvancedSearch({ defaultBairro = "BARRA DA TIJUCA" }: Em
     queryFn: async () => {
       if (!selectedTransaction) return [];
       
-      const { data, error } = await supabase
+      let query = supabase
         .from('itbi_transactions')
         .select('id, logradouro, numero, complemento, bairro, data_transacao, valor_transacao, area_m2, valor_m2, tipologia, total_transacoes')
         .eq('uso', 'Residencial')
         .ilike('logradouro', selectedTransaction.logradouro)
         .ilike('bairro', selectedTransaction.bairro || '')
         .gte('percentual_transferido', 90)
-        .not('valor_m2', 'is', null)
+        .not('valor_m2', 'is', null);
+      
+      // Filtrar por tipologia se selecionada
+      if (selectedTransaction.tipologia) {
+        query = query.ilike('tipologia', `%${selectedTransaction.tipologia}%`);
+      }
+      
+      const { data, error } = await query
         .order('data_transacao', { ascending: false })
         .limit(100);
 
