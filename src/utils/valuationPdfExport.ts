@@ -168,6 +168,12 @@ export function exportValuationEnginePDF(
   );
 
   // 4. MÉTRICAS DE CONFIANÇA
+  // Verificar se há espaço suficiente para a seção (título + 4 métricas = ~35mm)
+  if (yPos > getMaxContentY() - 35) {
+    doc.addPage();
+    yPos = 20;
+  }
+  
   yPos = drawSectionTitle(doc, 'Métricas de Confiança', yPos, marginLeft);
   doc.setFontSize(10);
   doc.setTextColor(...BRAND_COLORS.darkGray);
