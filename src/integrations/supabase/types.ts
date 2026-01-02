@@ -20,6 +20,7 @@ export type Database = {
           corretor_id: string | null
           created_at: string | null
           data_hora: string
+          data_hora_opcao2: string | null
           email_visitante: string | null
           endereco_imovel: string
           id: string
@@ -38,6 +39,7 @@ export type Database = {
           corretor_id?: string | null
           created_at?: string | null
           data_hora: string
+          data_hora_opcao2?: string | null
           email_visitante?: string | null
           endereco_imovel: string
           id?: string
@@ -56,6 +58,7 @@ export type Database = {
           corretor_id?: string | null
           created_at?: string | null
           data_hora?: string
+          data_hora_opcao2?: string | null
           email_visitante?: string | null
           endereco_imovel?: string
           id?: string
@@ -925,6 +928,25 @@ export type Database = {
         }[]
       }
       generate_visit_code: { Args: never; Returns: string }
+      get_ficha_by_codigo: {
+        Args: { p_codigo: string }
+        Returns: {
+          codigo: string
+          codigo_imovel: string
+          cpf_visitante: string
+          data_visita: string
+          email_visitante: string
+          endereco_imovel: string
+          id: string
+          nome_corretor: string
+          nome_proprietario: string
+          nome_visitante: string
+          notas: string
+          status: Database["public"]["Enums"]["status_visita"]
+          telefone_visitante: string
+          valor_imovel: number
+        }[]
+      }
       get_vault_secret: { Args: { secret_name: string }; Returns: string }
       has_role: {
         Args: {

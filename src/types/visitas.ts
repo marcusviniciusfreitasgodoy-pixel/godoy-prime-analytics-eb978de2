@@ -102,6 +102,7 @@ export interface AgendamentoVisita {
   corretor_id: string | null;
   tipo_servico: TipoServicoVisita;
   data_hora: string;
+  data_hora_opcao2?: string | null;
   status: StatusVisita;
   origem: OrigemAgendamento | null;
   notas: string | null;
@@ -119,6 +120,7 @@ export interface AgendamentoVisitaInsert {
   corretor_id?: string | null;
   tipo_servico?: TipoServicoVisita;
   data_hora: string;
+  data_hora_opcao2?: string | null;
   status?: StatusVisita;
   origem?: OrigemAgendamento | null;
   notas?: string | null;

@@ -3,7 +3,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+import { CurrencyInput } from "@/components/ui/currency-input";
 import { Textarea } from "@/components/ui/textarea";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -288,7 +288,11 @@ export function FeedbackForm({ fichaVisitaId, onSuccess }: FeedbackFormProps) {
                 <FormItem>
                   <FormLabel>Se fosse fazer uma proposta, qual valor ofertaria?</FormLabel>
                   <FormControl>
-                    <Input placeholder="R$ 0,00" {...field} />
+                    <CurrencyInput 
+                      value={field.value || ''}
+                      onChange={field.onChange}
+                      placeholder="R$ 0"
+                    />
                   </FormControl>
                   <FormMessage />
                 </FormItem>

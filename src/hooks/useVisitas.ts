@@ -86,13 +86,10 @@ export function useVisitas() {
 
   const getFichaByCodigo = async (codigo: string): Promise<FichaVisita | null> => {
     const { data, error } = await supabase
-      .from("fichas_visita" as any)
-      .select("*")
-      .eq("codigo", codigo)
-      .single();
+      .rpc('get_ficha_by_codigo', { p_codigo: codigo });
 
-    if (error) return null;
-    return data as unknown as FichaVisita;
+    if (error || !data || data.length === 0) return null;
+    return data[0] as unknown as FichaVisita;
   };
 
   return {
