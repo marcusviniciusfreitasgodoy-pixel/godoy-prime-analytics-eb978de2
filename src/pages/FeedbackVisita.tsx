@@ -9,7 +9,10 @@ import { Button } from "@/components/ui/button";
 import { Loader2, CheckCircle, MapPin, Calendar, User } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { FichaVisita } from "@/types/visitas";
+import { FichaVisita, StatusVisita } from "@/types/visitas";
+
+// Minimal ficha data for public feedback page (security: sensitive PII removed from RPC)
+type FichaPublica = Pick<FichaVisita, 'id' | 'codigo' | 'endereco_imovel' | 'data_visita' | 'nome_corretor' | 'status'>;
 
 export default function FeedbackVisita() {
   const { codigo } = useParams<{ codigo: string }>();
@@ -17,7 +20,7 @@ export default function FeedbackVisita() {
   const { getFichaByCodigo } = useVisitas();
   const { checkFeedbackExists } = useFeedbackVisita();
   
-  const [ficha, setFicha] = useState<FichaVisita | null>(null);
+  const [ficha, setFicha] = useState<FichaPublica | null>(null);
   const [loading, setLoading] = useState(true);
   const [feedbackEnviado, setFeedbackEnviado] = useState(false);
   const [jaTemFeedback, setJaTemFeedback] = useState(false);
