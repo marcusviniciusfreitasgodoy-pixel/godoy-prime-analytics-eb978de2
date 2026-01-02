@@ -410,6 +410,86 @@ export default function Documentacao() {
         yPos += 6;
       }
       
+      // ========== OBSERVAÇÕES E PRÓXIMOS PASSOS (apenas para comprador) ==========
+      if (exportType === 'comprador') {
+        // Check if we need a new page
+        if (yPos > getMaxContentY() - 80) {
+          doc.addPage();
+          yPos = 20;
+        }
+        
+        yPos += 5;
+        
+        // Campo de Observações
+        doc.setFillColor(...BRAND_COLORS.lightGray);
+        doc.rect(15, yPos - 4, pageWidth - 30, 8, 'F');
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(11);
+        doc.setTextColor(...BRAND_COLORS.navy);
+        doc.text('OBSERVAÇÕES GERAIS', marginLeft, yPos);
+        yPos += 12;
+        
+        // Linhas tracejadas para anotações
+        doc.setDrawColor(180, 180, 180);
+        doc.setLineWidth(0.2);
+        for (let i = 0; i < 5; i++) {
+          doc.setLineDashPattern([2, 2], 0);
+          doc.line(marginLeft, yPos, pageWidth - marginLeft, yPos);
+          yPos += 8;
+        }
+        doc.setLineDashPattern([], 0);
+        
+        yPos += 8;
+        
+        // Check if we need a new page for próximos passos
+        if (yPos > getMaxContentY() - 70) {
+          doc.addPage();
+          yPos = 20;
+        }
+        
+        // Próximos Passos
+        doc.setFillColor(...BRAND_COLORS.gold);
+        doc.rect(15, yPos - 4, pageWidth - 30, 8, 'F');
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(11);
+        doc.setTextColor(...BRAND_COLORS.navy);
+        doc.text('PRÓXIMOS PASSOS', marginLeft, yPos);
+        yPos += 12;
+        
+        doc.setFont('helvetica', 'normal');
+        doc.setFontSize(9);
+        doc.setTextColor(...BRAND_COLORS.darkGray);
+        
+        const proximosPassos = [
+          '1. Reunir todos os documentos pendentes indicados acima',
+          '2. Agendar assinatura do Contrato de Compra e Venda',
+          '3. Solicitar análise de crédito (se financiamento)',
+          '4. Agendar vistoria do imóvel',
+          '5. Providenciar laudo de avaliação (se financiado)',
+          '6. Agendar escritura pública',
+          '7. Registrar a escritura no RGI',
+        ];
+        
+        proximosPassos.forEach((passo) => {
+          doc.text(passo, marginLeft + 5, yPos);
+          yPos += 6;
+        });
+        
+        yPos += 10;
+        
+        // Texto de encerramento
+        doc.setFillColor(240, 253, 244); // Verde claro
+        doc.roundedRect(15, yPos - 3, pageWidth - 30, 22, 2, 2, 'F');
+        
+        doc.setFontSize(8);
+        doc.setTextColor(5, 150, 105); // Verde
+        const encerramento = 'Este checklist tem caráter orientativo. A Godoy Prime Realty se coloca à disposição para auxiliar em todo o processo de aquisição. Para dúvidas, entre em contato pelo telefone (21) 96407-5124 ou visite nosso site www.godoyprime.com.br';
+        const splitEncerramento = doc.splitTextToSize(encerramento, pageWidth - 40);
+        doc.text(splitEncerramento, marginLeft, yPos + 5);
+        
+        yPos += 28;
+      }
+      
       // Apply footers to all pages
       applyFootersToAllPages(doc);
       
