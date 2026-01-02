@@ -10,6 +10,7 @@ import { isCasaType, calculateTerrainBonus } from "@/hooks/useValuationCharacter
 import { useEffect, useState, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { normalizeStreetSearchTerm, normalizeAccents } from "@/lib/utils";
+import { BairroSelector } from "@/components/BairroSelector";
 
 interface Props {
   state: ValuationState;
@@ -194,7 +195,23 @@ export function Step0Identification({ state, updateState }: Props) {
           </h4>
           
           <div className="grid grid-cols-1 gap-3 sm:gap-4">
-            {/* Logradouro with autocomplete */}
+            {/* BAIRRO - PRIMEIRO CAMPO */}
+            <div>
+              <Label className="text-xs sm:text-sm">Bairro *</Label>
+              <div className="mt-1">
+                <BairroSelector 
+                  value={state.bairro}
+                  onChange={(value) => {
+                    updateState({ bairro: value });
+                    // Limpar logradouro ao mudar bairro para forçar nova busca
+                    setSearchTerm("");
+                    updateState({ logradouro: "" });
+                  }}
+                />
+              </div>
+            </div>
+
+            {/* Logradouro with autocomplete - SEGUNDO CAMPO */}
             <div className="relative">
               <Label htmlFor="logradouro" className="text-xs sm:text-sm">Logradouro *</Label>
               <div className="relative">
@@ -209,7 +226,8 @@ export function Step0Identification({ state, updateState }: Props) {
                     setShowSuggestions(true);
                   }}
                   onFocus={() => setShowSuggestions(true)}
-                  placeholder="Digite o nome da rua ou condomínio..."
+                  placeholder={state.bairro ? "Digite o nome da rua ou condomínio..." : "Selecione o bairro primeiro"}
+                  disabled={!state.bairro}
                   className="h-10 sm:h-9 pl-9"
                 />
                 {loadingSuggestions && (
@@ -270,17 +288,6 @@ export function Step0Identification({ state, updateState }: Props) {
                   className="h-10 sm:h-9"
                 />
               </div>
-            </div>
-            
-            <div>
-              <Label htmlFor="bairro" className="text-xs sm:text-sm">Bairro</Label>
-              <Input
-                id="bairro"
-                value={state.bairro}
-                onChange={(e) => updateState({ bairro: e.target.value })}
-                placeholder="BARRA DA TIJUCA"
-                className="h-10 sm:h-9"
-              />
             </div>
             
             <div>
