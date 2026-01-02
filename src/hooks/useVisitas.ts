@@ -84,12 +84,13 @@ export function useVisitas() {
     },
   });
 
-  const getFichaByCodigo = async (codigo: string): Promise<FichaVisita | null> => {
+  // Returns minimal data for public feedback form (security: sensitive PII removed)
+  const getFichaByCodigo = async (codigo: string): Promise<Pick<FichaVisita, 'id' | 'codigo' | 'endereco_imovel' | 'data_visita' | 'nome_corretor' | 'status'> | null> => {
     const { data, error } = await supabase
       .rpc('get_ficha_by_codigo', { p_codigo: codigo });
 
     if (error || !data || data.length === 0) return null;
-    return data[0] as unknown as FichaVisita;
+    return data[0] as Pick<FichaVisita, 'id' | 'codigo' | 'endereco_imovel' | 'data_visita' | 'nome_corretor' | 'status'>;
   };
 
   return {

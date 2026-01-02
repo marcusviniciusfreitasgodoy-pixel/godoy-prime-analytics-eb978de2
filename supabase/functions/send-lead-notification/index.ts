@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { Resend } from "https://esm.sh/resend@2.0.0";
+import { z } from "https://deno.land/x/zod@v3.22.4/mod.ts";
 
 const resend = new Resend(Deno.env.get("RESEND_API_KEY"));
 
@@ -9,30 +10,41 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type",
 };
 
-interface LeadNotificationRequest {
-  type: "initial" | "returning" | "complete";
-  leadId: string;
-  leadName: string;
-  leadEmail: string;
-  leadPhone: string;
-  interesse: string;
-  objetivo?: string;
-  urgencia?: string;
-  preferencia_contato?: string;
-  bairro?: string;
-  area?: number;
-  tipologia?: string;
-  quartos?: number;
-  banheiros?: number;
-  suites?: number;
-  vagas?: number;
-  diferenciais?: string;
-  estimativaMin?: number;
-  estimativaMed?: number;
-  estimativaMax?: number;
-  enderecoImovelAnalise?: string;
-  valorPedidoVendedor?: number;
-  evaluationNumber?: number;
+// Input validation schema
+const LeadNotificationSchema = z.object({
+  type: z.enum(["initial", "returning", "complete"]).default("initial"),
+  leadId: z.string().uuid().optional(),
+  leadName: z.string().min(2).max(100).transform(s => s.trim()),
+  leadEmail: z.string().email().max(255).transform(s => s.trim().toLowerCase()),
+  leadPhone: z.string().min(10).max(20).transform(s => s.replace(/\D/g, '')),
+  interesse: z.string().max(50).optional(),
+  objetivo: z.string().max(100).optional(),
+  urgencia: z.string().max(50).optional(),
+  preferencia_contato: z.string().max(50).optional(),
+  bairro: z.string().max(100).optional(),
+  area: z.number().positive().max(50000).optional(),
+  tipologia: z.string().max(50).optional(),
+  quartos: z.number().int().min(0).max(20).optional(),
+  banheiros: z.number().int().min(0).max(20).optional(),
+  suites: z.number().int().min(0).max(20).optional(),
+  vagas: z.number().int().min(0).max(50).optional(),
+  diferenciais: z.string().max(500).optional(),
+  estimativaMin: z.number().positive().max(1000000000).optional(),
+  estimativaMed: z.number().positive().max(1000000000).optional(),
+  estimativaMax: z.number().positive().max(1000000000).optional(),
+  enderecoImovelAnalise: z.string().max(300).optional(),
+  valorPedidoVendedor: z.number().positive().max(1000000000).optional(),
+  evaluationNumber: z.number().int().positive().max(1000).optional(),
+});
+
+// Sanitize HTML to prevent injection
+function sanitizeHtml(input: string | undefined): string {
+  if (!input) return "";
+  return input
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#x27;");
 }
 
 const handler = async (req: Request): Promise<Response> => {
@@ -45,18 +57,33 @@ const handler = async (req: Request): Promise<Response> => {
     return new Response(null, { headers: corsHeaders });
   }
 
+  // Request size limit (100KB)
+  const contentLength = req.headers.get("content-length");
+  if (contentLength && parseInt(contentLength) > 100 * 1024) {
+    return new Response(
+      JSON.stringify({ error: "Request too large" }),
+      { status: 413, headers: { "Content-Type": "application/json", ...corsHeaders } }
+    );
+  }
+
   try {
-    const data: LeadNotificationRequest = await req.json();
-    console.log("Received notification request:", JSON.stringify(data, null, 2));
+    const rawData = await req.json();
     
-    // Validate required fields
-    if (!data.leadName || !data.leadEmail || !data.leadPhone) {
-      console.error("Missing required fields:", { name: data.leadName, email: data.leadEmail, phone: data.leadPhone });
+    // Validate input with Zod
+    const parseResult = LeadNotificationSchema.safeParse(rawData);
+    if (!parseResult.success) {
+      console.error("Validation error:", parseResult.error.flatten());
       return new Response(
-        JSON.stringify({ error: "Missing required fields: leadName, leadEmail, leadPhone" }),
+        JSON.stringify({ 
+          error: "Invalid request data", 
+          details: parseResult.error.flatten().fieldErrors 
+        }),
         { status: 400, headers: { "Content-Type": "application/json", ...corsHeaders } }
       );
     }
+    
+    const data = parseResult.data;
+    console.log("Validated notification request for:", data.leadEmail);
 
     const formatCurrency = (value: number | undefined) => {
       if (!value) return "N/A";
@@ -82,17 +109,18 @@ const handler = async (req: Request): Promise<Response> => {
       ? "O cliente está buscando um imóvel para compra. Oportunidade para oferecer os serviços de Personal Shopper Imobiliário da Godoy Prime Realty."
       : "O cliente deseja vender um imóvel. Oportunidade para oferecer os serviços de Captação de Imóveis da Godoy Prime Realty.";
 
+    // Sanitize all user inputs before including in HTML
     const propertyDetails = `
       <ul style="margin: 0; padding-left: 20px;">
-        ${data.bairro ? `<li><strong>Bairro:</strong> ${data.bairro}</li>` : ""}
-        ${data.tipologia ? `<li><strong>Tipologia:</strong> ${data.tipologia}</li>` : ""}
+        ${data.bairro ? `<li><strong>Bairro:</strong> ${sanitizeHtml(data.bairro)}</li>` : ""}
+        ${data.tipologia ? `<li><strong>Tipologia:</strong> ${sanitizeHtml(data.tipologia)}</li>` : ""}
         ${data.area ? `<li><strong>Área:</strong> ${data.area} m²</li>` : ""}
         ${data.quartos ? `<li><strong>Quartos:</strong> ${data.quartos}</li>` : ""}
         ${data.suites ? `<li><strong>Suítes:</strong> ${data.suites}</li>` : ""}
         ${data.banheiros ? `<li><strong>Banheiros:</strong> ${data.banheiros}</li>` : ""}
         ${data.vagas ? `<li><strong>Vagas:</strong> ${data.vagas}</li>` : ""}
-        ${data.diferenciais ? `<li><strong>Diferenciais:</strong> ${data.diferenciais}</li>` : ""}
-        ${data.enderecoImovelAnalise ? `<li><strong>Endereço Analisado:</strong> ${data.enderecoImovelAnalise}</li>` : ""}
+        ${data.diferenciais ? `<li><strong>Diferenciais:</strong> ${sanitizeHtml(data.diferenciais)}</li>` : ""}
+        ${data.enderecoImovelAnalise ? `<li><strong>Endereço Analisado:</strong> ${sanitizeHtml(data.enderecoImovelAnalise)}</li>` : ""}
         ${data.valorPedidoVendedor ? `<li><strong>Valor Pedido pelo Vendedor:</strong> ${formatCurrency(data.valorPedidoVendedor)}</li>` : ""}
       </ul>
     `;
@@ -109,9 +137,9 @@ const handler = async (req: Request): Promise<Response> => {
     const additionalInfo = data.objetivo || data.urgencia || data.preferencia_contato ? `
       <div style="background: #e8f4f8; padding: 15px; border-radius: 8px; margin: 15px 0;">
         <h4 style="margin: 0 0 10px 0; color: #0C2340;">Informações Adicionais:</h4>
-        ${data.objetivo ? `<p style="margin: 5px 0;"><strong>Objetivo:</strong> ${data.objetivo}</p>` : ""}
-        ${data.urgencia ? `<p style="margin: 5px 0;"><strong>Urgência:</strong> ${data.urgencia}</p>` : ""}
-        ${data.preferencia_contato ? `<p style="margin: 5px 0;"><strong>Preferência de Contato:</strong> ${data.preferencia_contato}</p>` : ""}
+        ${data.objetivo ? `<p style="margin: 5px 0;"><strong>Objetivo:</strong> ${sanitizeHtml(data.objetivo)}</p>` : ""}
+        ${data.urgencia ? `<p style="margin: 5px 0;"><strong>Urgência:</strong> ${sanitizeHtml(data.urgencia)}</p>` : ""}
+        ${data.preferencia_contato ? `<p style="margin: 5px 0;"><strong>Preferência de Contato:</strong> ${sanitizeHtml(data.preferencia_contato)}</p>` : ""}
       </div>
     ` : "";
 
@@ -121,16 +149,16 @@ const handler = async (req: Request): Promise<Response> => {
     let actionMessage: string;
     
     if (notificationType === "initial") {
-      emailSubject = `🆕 Novo Lead - ${serviceType} - ${data.leadName}`;
+      emailSubject = `🆕 Novo Lead - ${serviceType} - ${sanitizeHtml(data.leadName)}`;
       ctaTitle = `🆕 NOVO LEAD - ${serviceType.toUpperCase()}`;
       actionMessage = serviceDescription;
     } else if (notificationType === "returning") {
       const evalNum = data.evaluationNumber || 2;
-      emailSubject = `🔄 Lead Retornou (${evalNum}ª consulta) - ${data.leadName}`;
+      emailSubject = `🔄 Lead Retornou (${evalNum}ª consulta) - ${sanitizeHtml(data.leadName)}`;
       ctaTitle = `🔄 LEAD RETORNOU - ${evalNum}ª CONSULTA`;
       actionMessage = `O cliente já tinha feito consultas anteriores e VOLTOU para fazer nova análise. Isso demonstra alto interesse. ${serviceDescription}`;
     } else {
-      emailSubject = `🏠 Solicitação Parecer Técnico - ${data.leadName}`;
+      emailSubject = `🏠 Solicitação Parecer Técnico - ${sanitizeHtml(data.leadName)}`;
       ctaTitle = `⚡ SOLICITAÇÃO DE PARECER TÉCNICO GODOY PRIME`;
       actionMessage = `O cliente realizou uma consulta preliminar e SOLICITOU o Parecer Técnico completo. PRIORIDADE ALTA - entrar em contato imediatamente.`;
     }
@@ -179,9 +207,9 @@ const handler = async (req: Request): Promise<Response> => {
             
             <h3 style="color: #0C2340;">Dados do Cliente:</h3>
             <div class="contact-info">
-              <p style="margin: 5px 0;"><strong>Nome:</strong> ${data.leadName}</p>
-              <p style="margin: 5px 0;"><strong>Email:</strong> ${data.leadEmail}</p>
-              <p style="margin: 5px 0;"><strong>Telefone:</strong> ${data.leadPhone}</p>
+              <p style="margin: 5px 0;"><strong>Nome:</strong> ${sanitizeHtml(data.leadName)}</p>
+              <p style="margin: 5px 0;"><strong>Email:</strong> ${sanitizeHtml(data.leadEmail)}</p>
+              <p style="margin: 5px 0;"><strong>Telefone:</strong> ${sanitizeHtml(data.leadPhone)}</p>
               <p style="margin: 5px 0;"><strong>Interesse:</strong> ${isCompra ? '🏠 Comprar Imóvel' : '💰 Vender Imóvel'}</p>
             </div>
 
@@ -246,10 +274,9 @@ const handler = async (req: Request): Promise<Response> => {
   } catch (error: any) {
     console.error("=== send-lead-notification ERROR ===");
     console.error("Error details:", error.message);
-    console.error("Error stack:", error.stack);
     
     return new Response(
-      JSON.stringify({ error: error.message, stack: error.stack }),
+      JSON.stringify({ error: "Internal server error" }),
       {
         status: 500,
         headers: { "Content-Type": "application/json", ...corsHeaders },
