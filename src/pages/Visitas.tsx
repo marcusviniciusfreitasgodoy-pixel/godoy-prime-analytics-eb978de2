@@ -2,6 +2,7 @@ import { Helmet } from "react-helmet-async";
 import { useState } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { useVisitas } from "@/hooks/useVisitas";
 import { useAgendamentos } from "@/hooks/useAgendamentos";
 import { useVisitasStats } from "@/hooks/useVisitasStats";
@@ -31,22 +32,24 @@ export default function Visitas() {
 
       <PageTour page="visitas" run={runTour} onFinish={() => setRunTour(false)} />
 
-      <div className="container mx-auto p-6 space-y-6">
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-          <div>
-            <h1 className="text-3xl font-bold">Dashboard de Visitas</h1>
-            <p className="text-muted-foreground">Acompanhe métricas e gerencie visitas</p>
-          </div>
-          <div className="flex gap-2">
-            <TourButton onClick={() => setRunTour(true)} />
-            <Button onClick={() => navigate("/visitas/agendar")} data-tour="visitas-nova">
-              <Plus className="h-4 w-4 mr-2" />
-              Nova Visita
-            </Button>
-            <Button variant="outline" onClick={() => navigate("/visitas/disponibilidade")} data-tour="visitas-disponibilidade">
-              <Calendar className="h-4 w-4 mr-2" />
-              Disponibilidade
-            </Button>
+      <div className="space-y-4 sm:space-y-6">
+        <div className="flex flex-col gap-3 sm:gap-4">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div>
+              <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold">Dashboard de Visitas</h1>
+              <p className="text-sm text-muted-foreground">Acompanhe métricas e gerencie visitas</p>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              <TourButton onClick={() => setRunTour(true)} />
+              <Button onClick={() => navigate("/visitas/agendar")} data-tour="visitas-nova" size="sm" className="h-9">
+                <Plus className="h-4 w-4 sm:mr-2" />
+                <span className="hidden sm:inline">Nova Visita</span>
+              </Button>
+              <Button variant="outline" onClick={() => navigate("/visitas/disponibilidade")} data-tour="visitas-disponibilidade" size="sm" className="h-9">
+                <Calendar className="h-4 w-4 sm:mr-2" />
+                <span className="hidden sm:inline">Disponibilidade</span>
+              </Button>
+            </div>
           </div>
         </div>
 
@@ -56,22 +59,23 @@ export default function Visitas() {
         </div>
 
         <Tabs value={activeTab} onValueChange={setActiveTab}>
-          <TabsList data-tour="visitas-tabs">
-            <TabsTrigger value="dashboard" className="flex items-center gap-2">
+          <TabsList className="grid w-full grid-cols-4 h-auto" data-tour="visitas-tabs">
+            <TabsTrigger value="dashboard" className="flex flex-col sm:flex-row items-center gap-1 sm:gap-2 py-2 px-1 sm:px-3 text-xs sm:text-sm">
               <LayoutDashboard className="h-4 w-4" />
-              Dashboard
+              <span className="hidden sm:inline">Dashboard</span>
             </TabsTrigger>
-            <TabsTrigger value="agendamentos" className="flex items-center gap-2">
+            <TabsTrigger value="agendamentos" className="flex flex-col sm:flex-row items-center gap-1 sm:gap-2 py-2 px-1 sm:px-3 text-xs sm:text-sm">
               <Calendar className="h-4 w-4" />
-              Agendamentos ({agendamentos?.length || 0})
+              <span className="hidden sm:inline">Agendamentos</span>
+              <Badge variant="secondary" className="text-[10px] sm:hidden">{agendamentos?.length || 0}</Badge>
             </TabsTrigger>
-            <TabsTrigger value="fichas" className="flex items-center gap-2">
+            <TabsTrigger value="fichas" className="flex flex-col sm:flex-row items-center gap-1 sm:gap-2 py-2 px-1 sm:px-3 text-xs sm:text-sm">
               <List className="h-4 w-4" />
-              Fichas ({fichas?.length || 0})
+              <span className="hidden sm:inline">Fichas ({fichas?.length || 0})</span>
             </TabsTrigger>
-            <TabsTrigger value="ranking" className="flex items-center gap-2">
+            <TabsTrigger value="ranking" className="flex flex-col sm:flex-row items-center gap-1 sm:gap-2 py-2 px-1 sm:px-3 text-xs sm:text-sm">
               <Trophy className="h-4 w-4" />
-              Ranking
+              <span className="hidden sm:inline">Ranking</span>
             </TabsTrigger>
           </TabsList>
 

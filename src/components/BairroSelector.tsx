@@ -26,12 +26,12 @@ export function BairroSelector({ value, onChange }: BairroSelectorProps) {
 
   return (
     <div className="flex items-center gap-2">
-      <MapPin className="h-4 w-4 text-accent" />
+      <MapPin className="h-4 w-4 text-accent shrink-0" />
       <Select value={value} onValueChange={onChange} disabled={isLoading}>
-        <SelectTrigger className="w-[220px] bg-background/50 border-border">
+        <SelectTrigger className="w-full sm:w-[180px] md:w-[220px] bg-background/50 border-border text-sm">
           <SelectValue placeholder="Selecione o bairro" />
         </SelectTrigger>
-        <SelectContent className="max-h-[300px]">
+        <SelectContent className="max-h-[300px] max-w-[90vw] sm:max-w-none">
           <div className="flex items-center px-2 pb-2 sticky top-0 bg-popover">
             <Search className="h-4 w-4 text-muted-foreground mr-2" />
             <Input
