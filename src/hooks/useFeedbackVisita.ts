@@ -28,21 +28,27 @@ export function useFeedbackVisita(fichaVisitaId?: string) {
 
   const createFeedback = useMutation({
     mutationFn: async (feedback: FeedbackVisitaInsert) => {
-      const { data, error } = await supabase
+      // Não usar RETURNING/SELECT aqui, pois a tabela não é publicamente legível (RLS)
+      // e o PostgREST pode falhar ao tentar retornar a linha inserida.
+      const { error } = await supabase
         .from("feedbacks_visita" as any)
-        .insert(feedback)
-        .select()
-        .single();
+        .insert(feedback);
 
       if (error) throw error;
-      return data as unknown as FeedbackVisita;
+      return null;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["feedbacks-visita"] });
       toast.success("Feedback enviado com sucesso! Obrigado.");
     },
-    onError: (error) => {
-      const message = error instanceof Error ? error.message : String(error);
+    onError: (error: any) => {
+      const message =
+        (typeof error === "object" && error && "message" in error && typeof error.message === "string")
+          ? error.message
+          : error instanceof Error
+            ? error.message
+            : JSON.stringify(error);
+
       toast.error(`Erro ao enviar feedback: ${message}`);
       console.error("createFeedback error:", error);
     },
