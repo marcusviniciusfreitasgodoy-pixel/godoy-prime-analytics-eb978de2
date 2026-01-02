@@ -42,8 +42,9 @@ export function useFeedbackVisita(fichaVisitaId?: string) {
       toast.success("Feedback enviado com sucesso! Obrigado.");
     },
     onError: (error) => {
-      toast.error("Erro ao enviar feedback");
-      console.error(error);
+      const message = error instanceof Error ? error.message : String(error);
+      toast.error(`Erro ao enviar feedback: ${message}`);
+      console.error("createFeedback error:", error);
     },
   });
 
