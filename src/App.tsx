@@ -17,6 +17,7 @@ import AvaliacaoImobiliaria from "./pages/AvaliacaoImobiliaria";
 import HistoricoAvaliacoes from "./pages/HistoricoAvaliacoes";
 import VistoriaDigital from "./pages/VistoriaDigital";
 import Documentacao from "./pages/Documentacao";
+import ManualPlataforma from "./pages/ManualPlataforma";
 import BaseConhecimento from "./pages/BaseConhecimento";
 import CalibradorAvaliacao from "./pages/CalibradorAvaliacao";
 import Leads from "./pages/Leads";
@@ -75,6 +76,7 @@ const App = () => (
                                 <Route path="/historico-avaliacoes" element={<HistoricoAvaliacoes />} />
                                 <Route path="/vistoria-digital" element={<VistoriaDigital />} />
                                 <Route path="/documentacao" element={<Documentacao />} />
+                                <Route path="/manual" element={<ManualPlataforma />} />
                                 <Route path="/base-conhecimento" element={<BaseConhecimento />} />
                                 <Route path="/calibrador-avaliacao" element={<CalibradorAvaliacao />} />
                                 <Route path="/leads" element={<Leads />} />

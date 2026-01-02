@@ -5,6 +5,29 @@ import { HelpCircle } from "lucide-react";
 
 // Tour steps for different pages
 export const tourConfigs: Record<string, Step[]> = {
+  // Microregiões
+  microbairros: [
+    {
+      target: '[data-tour="microbairros-selector"]',
+      content: 'Selecione uma microregião específica para ver estatísticas detalhadas: mediana, média, mínimo, máximo e número de transações.',
+      disableBeacon: true,
+      placement: 'bottom',
+      title: '📍 Seleção de Microbairro',
+    },
+    {
+      target: '[data-tour="microbairros-stats"]',
+      content: 'Estatísticas detalhadas da microregião: preço médio, mediana, valores mínimo e máximo, e total de transações nos últimos 24 meses.',
+      placement: 'bottom',
+      title: '📊 Estatísticas',
+    },
+    {
+      target: '[data-tour="microbairros-chart"]',
+      content: 'Evolução histórica do preço médio por m² da microregião selecionada. Compare com outras áreas para identificar oportunidades.',
+      placement: 'top',
+      title: '📈 Gráfico de Evolução',
+    },
+  ],
+
   // Pesquisas de Mercado
   pesquisas: [
     {
@@ -84,6 +107,29 @@ export const tourConfigs: Record<string, Step[]> = {
       content: 'Recomendação final com próximos passos. Escolha entre prosseguir para Vistoria Digital completa ou gerar relatório simplificado.',
       placement: 'top',
       title: '📋 Etapa 6: Recomendação',
+    },
+  ],
+
+  // Histórico de Avaliações
+  historico: [
+    {
+      target: '[data-tour="historico-list"]',
+      content: 'Todas as avaliações realizadas, ordenadas por data. Veja endereço, área, valor final, confiança e status do PDF.',
+      disableBeacon: true,
+      placement: 'bottom',
+      title: '📋 Lista de Avaliações',
+    },
+    {
+      target: '[data-tour="historico-filtros"]',
+      content: 'Filtre por período, endereço ou nível de confiança para encontrar avaliações específicas.',
+      placement: 'bottom',
+      title: '🔍 Filtros',
+    },
+    {
+      target: '[data-tour="historico-acoes"]',
+      content: 'Ações disponíveis: visualizar detalhes, gerar/baixar PDF ou excluir a avaliação.',
+      placement: 'left',
+      title: '⚙️ Ações',
     },
   ],
 
@@ -237,6 +283,110 @@ export const tourConfigs: Record<string, Step[]> = {
       content: 'Link para coleta de feedback pós-visita. O cliente avalia o imóvel, informa interesse e pode registrar observações. Envie por email diretamente.',
       placement: 'left',
       title: '⭐ Feedback do Cliente',
+    },
+  ],
+
+  // Documentação / Due Diligence
+  documentacao: [
+    {
+      target: '[data-tour="documentacao-progress"]',
+      content: 'Barra de progresso mostra quantos documentos já foram coletados. Acompanhe o andamento da due diligence em tempo real.',
+      disableBeacon: true,
+      placement: 'bottom',
+      title: '📊 Progresso',
+    },
+    {
+      target: '[data-tour="documentacao-analyzer"]',
+      content: 'Use IA para analisar documentos enviados. O sistema identifica automaticamente qual item do checklist corresponde ao documento.',
+      placement: 'bottom',
+      title: '🤖 Análise Inteligente',
+    },
+    {
+      target: '[data-tour="documentacao-perfil-vendedor"]',
+      content: 'Configure o perfil do vendedor: marque se é empresário/PJ ou está em união estável para adicionar documentos específicos ao checklist.',
+      placement: 'bottom',
+      title: '👤 Perfil do Vendedor',
+    },
+    {
+      target: '[data-tour="documentacao-perfil-comprador"]',
+      content: 'Configure o perfil do comprador: comunhão total de bens ou união estável adiciona campos para qualificação do cônjuge.',
+      placement: 'bottom',
+      title: '👥 Perfil do Comprador',
+    },
+    {
+      target: '[data-tour="documentacao-checklist"]',
+      content: 'Marque os documentos conforme forem coletados. Use as tooltips (?) para ver explicações detalhadas de cada documento.',
+      placement: 'top',
+      title: '✅ Checklist',
+    },
+    {
+      target: '[data-tour="documentacao-export"]',
+      content: 'Exporte PDFs separados: Checklist do Vendedor, Checklist do Comprador ou Documentação Completa.',
+      placement: 'left',
+      title: '📄 Exportar PDF',
+    },
+  ],
+
+  // Configurações
+  configuracoes: [
+    {
+      target: '[data-tour="config-logo"]',
+      content: 'Faça upload do logo da empresa. Ele aparecerá nos cabeçalhos de todos os PDFs gerados pela plataforma.',
+      disableBeacon: true,
+      placement: 'bottom',
+      title: '🖼️ Logo da Empresa',
+    },
+    {
+      target: '[data-tour="config-dados"]',
+      content: 'Configure os dados da empresa: Nome, CNPJ, CRECI, telefone, email e endereço. Esses dados aparecem nos rodapés dos relatórios.',
+      placement: 'top',
+      title: '📝 Dados da Empresa',
+    },
+    {
+      target: '[data-tour="config-preview"]',
+      content: 'Visualize em tempo real como o rodapé dos PDFs aparecerá com os dados configurados.',
+      placement: 'top',
+      title: '👁️ Preview do Rodapé',
+    },
+  ],
+
+  // Leads (Admin)
+  leads: [
+    {
+      target: '[data-tour="leads-stats"]',
+      content: 'Estatísticas gerais: total de leads, convertidos, taxa de conversão e leads na última semana.',
+      disableBeacon: true,
+      placement: 'bottom',
+      title: '📊 Estatísticas',
+    },
+    {
+      target: '[data-tour="leads-list"]',
+      content: 'Lista de todos os leads capturados. Veja nome, email, telefone, interesse, origem e data.',
+      placement: 'top',
+      title: '📋 Lista de Leads',
+    },
+    {
+      target: '[data-tour="leads-detail"]',
+      content: 'Clique em um lead para ver detalhes completos: imóvel de interesse, faixa de valor, diferenciais buscados.',
+      placement: 'left',
+      title: '🔍 Detalhes',
+    },
+  ],
+
+  // Usuários (Admin)
+  usuarios: [
+    {
+      target: '[data-tour="usuarios-list"]',
+      content: 'Todos os usuários da plataforma com nome, email, papel (admin/corretor/gerente) e última atividade.',
+      disableBeacon: true,
+      placement: 'bottom',
+      title: '👥 Lista de Usuários',
+    },
+    {
+      target: '[data-tour="usuarios-stats"]',
+      content: 'Estatísticas de uso por usuário: logins, pesquisas realizadas, avaliações, vistorias e exportações.',
+      placement: 'top',
+      title: '📊 Estatísticas de Uso',
     },
   ],
 };

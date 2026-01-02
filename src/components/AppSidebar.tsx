@@ -1,4 +1,4 @@
-import { Home, ClipboardCheck, FileText, MapPin, Users, UserCog, Search, Calculator, Settings, History, Brain, GraduationCap, CalendarCheck, Cog } from "lucide-react";
+import { Home, ClipboardCheck, FileText, MapPin, Users, UserCog, Search, Calculator, Settings, History, Brain, GraduationCap, CalendarCheck, Cog, BookOpen } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import {
   Sidebar,
@@ -16,7 +16,7 @@ import { useAuthContext } from "@/contexts/AuthContext";
 
 const baseItems = [
   { title: "Dashboard", url: "/", icon: Home, tourId: "nav-dashboard" },
-  { title: "Onboarding", url: "/onboarding", icon: GraduationCap, tourId: "nav-onboarding" },
+  { title: "Manual / Tour", url: "/manual", icon: BookOpen, tourId: "nav-onboarding" },
   { title: "Microregiões", url: "/microbairros", icon: MapPin, tourId: "nav-microregioes" },
   { title: "Pesquisas de Mercado", url: "/pesquisas-mercado", icon: Search, tourId: "nav-pesquisas" },
   { title: "Avaliação Imobiliária", url: "/avaliacao-imobiliaria", icon: Calculator, tourId: "nav-avaliacao" },
