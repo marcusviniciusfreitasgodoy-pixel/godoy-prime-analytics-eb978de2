@@ -66,7 +66,7 @@ const App = () => (
                           <AppSidebar />
                           <div className="flex-1 flex flex-col w-full overflow-hidden">
                             <Header />
-                            <main className="flex-1 overflow-auto">
+                            <main className="flex-1 overflow-auto p-3 sm:p-4 lg:p-6">
                               <Routes>
                                 <Route path="/" element={<Dashboard />} />
                                 <Route path="/microbairros" element={<Microbairros />} />

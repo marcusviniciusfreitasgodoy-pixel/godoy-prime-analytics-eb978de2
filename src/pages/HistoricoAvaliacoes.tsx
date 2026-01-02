@@ -143,13 +143,13 @@ export default function HistoricoAvaliacoes() {
   }
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center gap-3">
-        <History className="h-8 w-8 text-primary" />
-        <div>
-          <h1 className="text-2xl font-bold text-foreground">Histórico de Avaliações</h1>
-          <p className="text-muted-foreground">
-            {isAdmin ? "Todas as avaliações realizadas na plataforma" : "Suas avaliações realizadas"}
+    <div className="space-y-4 sm:space-y-6">
+      <div className="flex items-center gap-2 sm:gap-3">
+        <History className="h-6 w-6 sm:h-8 sm:w-8 text-primary shrink-0" />
+        <div className="min-w-0">
+          <h1 className="text-xl sm:text-2xl font-bold text-foreground">Histórico de Avaliações</h1>
+          <p className="text-xs sm:text-sm text-muted-foreground truncate">
+            {isAdmin ? "Todas as avaliações realizadas" : "Suas avaliações realizadas"}
           </p>
         </div>
       </div>
@@ -216,13 +216,13 @@ export default function HistoricoAvaliacoes() {
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Data</TableHead>
+                    <TableHead className="whitespace-nowrap">Data</TableHead>
                     <TableHead>Endereço</TableHead>
-                    <TableHead className="text-right">Área</TableHead>
-                    <TableHead className="text-right">Valor Provável</TableHead>
-                    <TableHead className="text-center">Confiança</TableHead>
-                    <TableHead className="text-center">Trend</TableHead>
-                    <TableHead>Status</TableHead>
+                    <TableHead className="text-right hidden sm:table-cell">Área</TableHead>
+                    <TableHead className="text-right">Valor</TableHead>
+                    <TableHead className="text-center hidden md:table-cell">Confiança</TableHead>
+                    <TableHead className="text-center hidden lg:table-cell">Trend</TableHead>
+                    <TableHead className="hidden sm:table-cell">Status</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -242,14 +242,14 @@ export default function HistoricoAvaliacoes() {
                           </div>
                         </div>
                       </TableCell>
-                      <TableCell className="text-right">{av.property_area_m2} m²</TableCell>
-                      <TableCell className="text-right font-semibold">
+                      <TableCell className="text-right hidden sm:table-cell">{av.property_area_m2} m²</TableCell>
+                      <TableCell className="text-right font-semibold text-sm">
                         {formatCurrency(av.final_value_med)}
                       </TableCell>
-                      <TableCell className="text-center">
+                      <TableCell className="text-center hidden md:table-cell">
                         {getConfidenceBadge(av.confidence_level)}
                       </TableCell>
-                      <TableCell className="text-center">
+                      <TableCell className="text-center hidden lg:table-cell">
                         <div className="flex items-center justify-center gap-1">
                           <TrendIcon direction={av.trend_direction} />
                           {av.trend_percentage && (
@@ -259,7 +259,7 @@ export default function HistoricoAvaliacoes() {
                           )}
                         </div>
                       </TableCell>
-                      <TableCell>
+                      <TableCell className="hidden sm:table-cell">
                         <Badge variant="outline" className="text-xs">
                           {av.documentation_status}
                         </Badge>

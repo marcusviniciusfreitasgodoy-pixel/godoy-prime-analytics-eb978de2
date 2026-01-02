@@ -159,41 +159,41 @@ export default function Leads() {
         <title>Gestão de Leads | Godoy Prime Realty</title>
       </Helmet>
 
-      <div className="space-y-6">
+      <div className="space-y-4 sm:space-y-6">
         {/* Header */}
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <h1 className="text-2xl font-bold flex items-center gap-2">
-              <Users className="h-6 w-6 text-accent" />
+            <h1 className="text-xl sm:text-2xl font-bold flex items-center gap-2">
+              <Users className="h-5 w-5 sm:h-6 sm:w-6 text-accent" />
               Gestão de Leads
             </h1>
-            <p className="text-muted-foreground text-sm">
-              Acompanhe e gerencie os leads capturados pela avaliação rápida
+            <p className="text-muted-foreground text-xs sm:text-sm">
+              Leads capturados pela avaliação rápida
             </p>
           </div>
           <div className="flex gap-2">
-            <Button variant="outline" size="sm" onClick={() => refetch()}>
-              <RefreshCw className="h-4 w-4 mr-2" />
-              Atualizar
+            <Button variant="outline" size="sm" onClick={() => refetch()} className="h-9">
+              <RefreshCw className="h-4 w-4 sm:mr-2" />
+              <span className="hidden sm:inline">Atualizar</span>
             </Button>
-            <Button variant="outline" size="sm" onClick={exportToCSV}>
-              <Download className="h-4 w-4 mr-2" />
-              Exportar CSV
+            <Button variant="outline" size="sm" onClick={exportToCSV} className="h-9">
+              <Download className="h-4 w-4 sm:mr-2" />
+              <span className="hidden sm:inline">Exportar CSV</span>
             </Button>
           </div>
         </div>
 
         {/* Stats Cards */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-4">
           <Card className="border-primary/10">
-            <CardContent className="p-4">
-              <div className="flex items-center gap-3">
-                <div className="p-2 rounded-lg bg-primary/10">
-                  <Users className="h-5 w-5 text-primary" />
+            <CardContent className="p-3 sm:p-4">
+              <div className="flex items-center gap-2 sm:gap-3">
+                <div className="p-1.5 sm:p-2 rounded-lg bg-primary/10">
+                  <Users className="h-4 w-4 sm:h-5 sm:w-5 text-primary" />
                 </div>
-                <div>
-                  <p className="text-2xl font-bold">{stats.total}</p>
-                  <p className="text-xs text-muted-foreground">Total de Leads</p>
+                <div className="min-w-0">
+                  <p className="text-lg sm:text-2xl font-bold">{stats.total}</p>
+                  <p className="text-[10px] sm:text-xs text-muted-foreground truncate">Total</p>
                 </div>
               </div>
             </CardContent>
