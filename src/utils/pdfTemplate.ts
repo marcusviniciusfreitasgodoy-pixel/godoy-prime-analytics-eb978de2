@@ -10,13 +10,23 @@ export const BRAND_COLORS = {
   darkGray: [40, 40, 40] as [number, number, number],
 };
 
-// Contact Information
+// Default Contact Information (can be overridden by company settings)
 export const CONTACT_INFO = {
   phone: '21. 96407 5124',
   address: 'Av. das Américas 10101 Bloco 2, Sala 316, Barra da Tijuca, RJ',
   creci: 'CRECI 11841-PJ',
   website: 'www.godoyprime.com.br',
+  name: 'GODOY PRIME REALTY',
+  cnpj: '',
 };
+
+export interface CompanyInfo {
+  phone?: string;
+  address?: string;
+  creci?: string;
+  name?: string;
+  cnpj?: string;
+}
 
 // Logo as base64 (simplified "GR" monogram for PDF embedding)
 // This is a small placeholder - the actual logo would be embedded
@@ -27,23 +37,29 @@ const LOGO_HEIGHT = 12;
  * Draw the standardized Godoy Prime header
  * Returns the Y position after the header for content to start
  */
-export function drawGodoyHeader(doc: jsPDF, subtitle: string): number {
+export function drawGodoyHeader(doc: jsPDF, subtitle: string, companyInfo?: CompanyInfo): number {
   const pageWidth = doc.internal.pageSize.getWidth();
   const headerHeight = 45;
+  const name = companyInfo?.name || CONTACT_INFO.name;
   
   // White background header
   doc.setFillColor(...BRAND_COLORS.white);
   doc.rect(0, 0, pageWidth, headerHeight, 'F');
   
+  // Parse company name (split at first space for styling)
+  const nameParts = name.split(' ');
+  const firstName = nameParts[0] || 'GODOY';
+  const restName = nameParts.slice(1).join(' ') || 'PRIME REALTY';
+  
   // Company name centered
   doc.setTextColor(...BRAND_COLORS.navy);
   doc.setFontSize(22);
   doc.setFont('helvetica', 'bold');
-  doc.text('GODOY', pageWidth / 2 - 25, 16);
+  doc.text(firstName, pageWidth / 2 - 25, 16);
   
   doc.setFontSize(12);
   doc.setFont('helvetica', 'normal');
-  doc.text('PRIME REALTY', pageWidth / 2 - 21, 23);
+  doc.text(restName, pageWidth / 2 - 21, 23);
   
   // Gold underline
   doc.setDrawColor(...BRAND_COLORS.gold);
@@ -76,11 +92,16 @@ export function drawGodoyHeader(doc: jsPDF, subtitle: string): number {
  * Draw the standardized Godoy Prime footer with navy bar
  * Should be called on each page
  */
-export function drawGodoyFooter(doc: jsPDF, pageNumber?: number, totalPages?: number): void {
+export function drawGodoyFooter(doc: jsPDF, pageNumber?: number, totalPages?: number, companyInfo?: CompanyInfo): void {
   const pageWidth = doc.internal.pageSize.getWidth();
   const pageHeight = doc.internal.pageSize.getHeight();
   const footerHeight = 18;
   const footerY = pageHeight - footerHeight;
+  
+  const phone = companyInfo?.phone || CONTACT_INFO.phone;
+  const address = companyInfo?.address || CONTACT_INFO.address;
+  const creci = companyInfo?.creci || CONTACT_INFO.creci;
+  const cnpj = companyInfo?.cnpj || CONTACT_INFO.cnpj;
   
   // Navy bar
   doc.setFillColor(...BRAND_COLORS.navy);
@@ -90,20 +111,27 @@ export function drawGodoyFooter(doc: jsPDF, pageNumber?: number, totalPages?: nu
   doc.setTextColor(...BRAND_COLORS.white);
   doc.setFontSize(7);
   doc.setFont('helvetica', 'normal');
-  doc.text(`Tel: ${CONTACT_INFO.phone}`, 10, footerY + 6);
-  doc.text(CONTACT_INFO.address, 10, footerY + 11);
+  doc.text(`Tel: ${phone}`, 10, footerY + 6);
+  doc.text(address, 10, footerY + 11);
   
-  // Center: GR monogram
+  // Center: GR monogram + CNPJ if available
   doc.setFontSize(10);
   doc.setFont('helvetica', 'bold');
   doc.setTextColor(...BRAND_COLORS.gold);
-  doc.text('GR', pageWidth / 2, footerY + 10, { align: 'center' });
+  doc.text('GR', pageWidth / 2, footerY + 7, { align: 'center' });
+  
+  if (cnpj) {
+    doc.setFontSize(6);
+    doc.setFont('helvetica', 'normal');
+    doc.setTextColor(...BRAND_COLORS.white);
+    doc.text(`CNPJ: ${cnpj}`, pageWidth / 2, footerY + 12, { align: 'center' });
+  }
   
   // Right side: CRECI + page number
   doc.setTextColor(...BRAND_COLORS.white);
   doc.setFontSize(7);
   doc.setFont('helvetica', 'normal');
-  doc.text(CONTACT_INFO.creci, pageWidth - 10, footerY + 6, { align: 'right' });
+  doc.text(creci, pageWidth - 10, footerY + 6, { align: 'right' });
   
   if (pageNumber !== undefined && totalPages !== undefined) {
     doc.text(`Página ${pageNumber} de ${totalPages}`, pageWidth - 10, footerY + 11, { align: 'right' });
@@ -142,11 +170,11 @@ export function addNewPageWithTemplate(doc: jsPDF): number {
  * Apply footers to all pages of the document
  * Call this before saving the PDF
  */
-export function applyFootersToAllPages(doc: jsPDF): void {
+export function applyFootersToAllPages(doc: jsPDF, companyInfo?: CompanyInfo): void {
   const pageCount = doc.getNumberOfPages();
   for (let i = 1; i <= pageCount; i++) {
     doc.setPage(i);
-    drawGodoyFooter(doc, i, pageCount);
+    drawGodoyFooter(doc, i, pageCount, companyInfo);
   }
 }
 
