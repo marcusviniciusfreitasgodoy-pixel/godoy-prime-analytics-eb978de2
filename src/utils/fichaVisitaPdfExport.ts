@@ -2,19 +2,21 @@ import jsPDF from "jspdf";
 import { FichaVisita, FeedbackVisita } from "@/types/visitas";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { BRAND_COLORS, CONTACT_INFO, applyFootersToAllPages } from "./pdfTemplate";
 
 interface FichaVisitaPdfData {
   ficha: FichaVisita;
   feedback?: FeedbackVisita | null;
+  customLogoBase64?: string | null;
 }
 
-// Cores da marca
+// Cores da marca (usando as do pdfTemplate para consistência)
 const COLORS = {
-  navy: [26, 26, 46] as [number, number, number],
-  gold: [212, 175, 55] as [number, number, number],
-  white: [255, 255, 255] as [number, number, number],
-  gray: [100, 100, 100] as [number, number, number],
-  lightGray: [240, 240, 240] as [number, number, number],
+  navy: BRAND_COLORS.navy,
+  gold: BRAND_COLORS.gold,
+  white: BRAND_COLORS.white,
+  gray: BRAND_COLORS.gray,
+  lightGray: BRAND_COLORS.lightGray,
   black: [0, 0, 0] as [number, number, number],
 };
 
@@ -22,12 +24,12 @@ const COLORS = {
 const COMPANY = {
   name: "GODOY PRIME REALTY",
   cnpj: "58.409.058/0001-73",
-  address: "Barra da Tijuca, Rio de Janeiro - RJ",
-  phone: "(21) 96407-5124",
-  site: "godoyprime.com.br",
+  address: CONTACT_INFO.address,
+  phone: CONTACT_INFO.phone,
+  site: CONTACT_INFO.website,
 };
 
-export async function exportFichaVisitaPdf({ ficha, feedback }: FichaVisitaPdfData): Promise<void> {
+export async function exportFichaVisitaPdf({ ficha, feedback, customLogoBase64 }: FichaVisitaPdfData): Promise<jsPDF> {
   const doc = new jsPDF();
   const pageWidth = doc.internal.pageSize.getWidth();
   const pageHeight = doc.internal.pageSize.getHeight();
@@ -49,7 +51,16 @@ export async function exportFichaVisitaPdf({ ficha, feedback }: FichaVisitaPdfDa
   doc.setFont("helvetica", "normal");
   doc.text("FICHA DE VISITA TÉCNICA - IMÓVEIS DE ALTO PADRÃO", pageWidth / 2, 20, { align: "center" });
 
-  y = 32;
+  // Add custom logo if available
+  if (customLogoBase64) {
+    try {
+      doc.addImage(customLogoBase64, "PNG", pageWidth - margin - 30, 5, 25, 18);
+    } catch (e) {
+      console.error("Error adding custom logo:", e);
+    }
+  }
+
+  y = 34;
 
   // ========== DADOS DA IMOBILIÁRIA ==========
   doc.setFillColor(...COLORS.lightGray);
@@ -65,7 +76,7 @@ export async function exportFichaVisitaPdf({ ficha, feedback }: FichaVisitaPdfDa
 
   // ========== CORRETOR RESPONSÁVEL ==========
   drawSectionHeader(doc, "CORRETOR RESPONSÁVEL", margin, y, contentWidth);
-  y += 8;
+  y += 12; // Increased spacing after section header
 
   doc.setTextColor(...COLORS.black);
   doc.setFontSize(9);
@@ -74,11 +85,11 @@ export async function exportFichaVisitaPdf({ ficha, feedback }: FichaVisitaPdfDa
   drawFieldLine(doc, "CRECI:", "_______________", margin + 90, y, 30);
   drawFieldLine(doc, "Tel/WhatsApp:", "________________", margin + 135, y, 35);
   
-  y += 12;
+  y += 14; // Increased spacing between sections
 
   // ========== DADOS DO CLIENTE ==========
   drawSectionHeader(doc, "DADOS DO CLIENTE (OBRIGATÓRIO PARA IDENTIFICAÇÃO)", margin, y, contentWidth);
-  y += 8;
+  y += 12; // Increased spacing after section header
 
   doc.setFontSize(9);
   
@@ -100,11 +111,11 @@ export async function exportFichaVisitaPdf({ ficha, feedback }: FichaVisitaPdfDa
   drawFieldLine(doc, "Tel/WhatsApp:", ficha.telefone_visitante, margin, y, 32);
   drawFieldLine(doc, "E-mail:", ficha.email_visitante || "____________________", margin + 80, y, 18);
   
-  y += 12;
+  y += 14; // Increased spacing between sections
 
   // ========== IMÓVEL VISITADO ==========
   drawSectionHeader(doc, "IMÓVEL VISITADO", margin, y, contentWidth);
-  y += 8;
+  y += 12; // Increased spacing after section header
 
   doc.setFontSize(9);
 
@@ -133,11 +144,11 @@ export async function exportFichaVisitaPdf({ ficha, feedback }: FichaVisitaPdfDa
   };
   doc.text(`Situação: (${ficha.status !== 'cancelada' ? 'X' : ' '}) Disponível  (  ) Reservado  (${ficha.status === 'cancelada' ? 'X' : ' '}) Sob Consulta`, margin, y);
   
-  y += 12;
+  y += 14; // Increased spacing between sections
 
   // ========== DETALHES DA VISITA ==========
   drawSectionHeader(doc, "DETALHES DA VISITA", margin, y, contentWidth);
-  y += 8;
+  y += 12; // Increased spacing after section header
 
   doc.setFontSize(9);
   const dataVisita = format(new Date(ficha.data_visita), "dd/MM/yyyy", { locale: ptBR });
@@ -145,11 +156,11 @@ export async function exportFichaVisitaPdf({ ficha, feedback }: FichaVisitaPdfDa
   
   doc.text(`Data: ${dataVisita}  |  Início: ${horaVisita}h  |  Término: ____h  |  Forma: (X) Presencial  (  ) Virtual`, margin, y);
   
-  y += 12;
+  y += 14; // Increased spacing between sections
 
   // ========== DECLARAÇÃO DE INTERMEDIAÇÃO ==========
   drawSectionHeader(doc, "DECLARAÇÃO DE INTERMEDIAÇÃO E CIÊNCIA (OBRIGATÓRIO - LEIA E ASSINE)", margin, y, contentWidth);
-  y += 8;
+  y += 12; // Increased spacing after section header
 
   doc.setFontSize(8);
   doc.setTextColor(...COLORS.black);
@@ -163,7 +174,7 @@ export async function exportFichaVisitaPdf({ ficha, feedback }: FichaVisitaPdfDa
     "   imobiliária, sob pena de reconhecimento do direito à comissão integral.",
     "",
     "3. Caso adquira/locação este imóvel em até 12 (doze) meses, direta ou indiretamente, reconheço o direito",
-    "   à comissão de corretagem de 6% (seis por cento) sobre o valor total do negócio, a ser paga pelo",
+    "   à comissão de corretagem de 5% (cinco por cento) sobre o valor total do negócio, a ser paga pelo",
     "   [  ] Comprador/Locatário   [  ] Vendedor/Locador   [  ] Dividida.",
     "",
     "Esta ficha registra a aproximação profissional, nos termos da Lei 6.530/78 e jurisprudência do STJ.",
@@ -179,7 +190,7 @@ export async function exportFichaVisitaPdf({ ficha, feedback }: FichaVisitaPdfDa
   // ========== FEEDBACK RÁPIDO (se existir) ==========
   if (feedback || ficha.notas) {
     drawSectionHeader(doc, "FEEDBACK RÁPIDO (OPCIONAL - Ajuda a refinar sua busca)", margin, y, contentWidth);
-    y += 8;
+    y += 12; // Increased spacing after section header
 
     doc.setFontSize(8);
 
@@ -216,7 +227,7 @@ export async function exportFichaVisitaPdf({ ficha, feedback }: FichaVisitaPdfDa
     y += 6;
   } else {
     drawSectionHeader(doc, "FEEDBACK RÁPIDO (OPCIONAL - Ajuda a refinar sua busca)", margin, y, contentWidth);
-    y += 8;
+    y += 12; // Increased spacing after section header
 
     doc.setFontSize(8);
     doc.text("Interesse: (  ) Comprar  (  ) Locar  (  ) Investir  (  ) Avaliar", margin, y);
@@ -237,7 +248,7 @@ export async function exportFichaVisitaPdf({ ficha, feedback }: FichaVisitaPdfDa
   }
 
   drawSectionHeader(doc, "ASSINATURAS (DIGITAL OU FÍSICA)", margin, y, contentWidth);
-  y += 10;
+  y += 14; // Increased spacing after section header
 
   doc.setFontSize(9);
   doc.setTextColor(...COLORS.black);
@@ -290,32 +301,27 @@ export async function exportFichaVisitaPdf({ ficha, feedback }: FichaVisitaPdfDa
   doc.text("CRECI: _________________________", signatureX2, y + signatureHeight / 2);
   doc.text(`Hora Assinatura: ${format(new Date(), "HH:mm")}`, signatureX2, y + signatureHeight / 2 + 8);
 
-  // ========== FOOTER ==========
-  const footerY = pageHeight - 10;
-  doc.setFillColor(...COLORS.navy);
-  doc.rect(0, footerY - 5, pageWidth, 15, "F");
+  // ========== FOOTER PADRONIZADO ==========
+  applyFootersToAllPages(doc);
 
-  doc.setTextColor(...COLORS.gold);
-  doc.setFontSize(7);
-  doc.text(`${COMPANY.name} | ${COMPANY.site} | ${COMPANY.phone}`, pageWidth / 2, footerY, { align: "center" });
+  return doc;
+}
 
-  doc.setTextColor(...COLORS.white);
-  doc.setFontSize(6);
-  doc.text(`Código: ${ficha.codigo} | Gerado em: ${format(new Date(), "dd/MM/yyyy HH:mm")}`, pageWidth / 2, footerY + 4, { align: "center" });
-
-  // Salvar
-  doc.save(`ficha-visita-${ficha.codigo}.pdf`);
+// Wrapper function for backward compatibility - saves the PDF
+export async function saveFichaVisitaPdf(data: FichaVisitaPdfData): Promise<void> {
+  const doc = await exportFichaVisitaPdf(data);
+  doc.save(`ficha-visita-${data.ficha.codigo}.pdf`);
 }
 
 // ========== FUNÇÕES AUXILIARES ==========
 
 function drawSectionHeader(doc: jsPDF, title: string, x: number, y: number, width: number): void {
   doc.setFillColor(...COLORS.gold);
-  doc.rect(x, y, width, 6, "F");
+  doc.rect(x, y, width, 8, "F"); // Increased height from 6 to 8
   doc.setTextColor(...COLORS.navy);
-  doc.setFontSize(8);
+  doc.setFontSize(9); // Slightly larger font
   doc.setFont("helvetica", "bold");
-  doc.text(title, x + 3, y + 4.5);
+  doc.text(title, x + 4, y + 5.5); // Adjusted position for better centering
   doc.setFont("helvetica", "normal");
 }
 
