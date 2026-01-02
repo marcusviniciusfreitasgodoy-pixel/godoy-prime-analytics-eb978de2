@@ -4,119 +4,174 @@ import { drawGodoyHeader, drawGodoyFooter, drawSectionTitle, BRAND_COLORS, apply
 const manualContent = {
   introducao: {
     titulo: "Introdução",
-    texto: "O Godoy Prime Analytics é uma plataforma completa de inteligência imobiliária desenvolvida para corretores, avaliadores e gestores do mercado imobiliário da Barra da Tijuca. A ferramenta oferece análise de dados, avaliações automatizadas, vistorias digitais e assistência por inteligência artificial."
+    texto: "O Godoy Prime Analytics é uma plataforma completa de inteligência imobiliária desenvolvida para corretores, avaliadores e gestores do mercado imobiliário do Rio de Janeiro. A ferramenta oferece análise de dados de transações ITBI, avaliações automatizadas, vistorias digitais, agendamento de visitas, documentação de due diligence e assistência por inteligência artificial."
   },
   modulos: [
     {
-      titulo: "1. Dashboard Principal",
-      descricao: "Visão geral do mercado imobiliário com indicadores em tempo real.",
+      titulo: "1. Dashboard",
+      descricao: "Visão geral do mercado imobiliário com indicadores em tempo real baseados em dados ITBI.",
       funcionalidades: [
-        "KPIs Principais: Mediana, média e volume de transações por m²",
-        "Gráfico de Evolução: Visualização temporal dos preços",
-        "Ranking de Microbairros: Comparativo entre regiões",
-        "Seletor de Bairro: Filtro para segmentar análises",
-        "Exportação: Relatórios em PDF e Excel"
+        "KPIs Principais: Preço médio R$/m², liquidez acumulada, variação anual (YoY)",
+        "Separação por Tipologia: Apartamentos vs Casas com métricas independentes",
+        "Gráfico de Evolução: Visualização semestral/anual com indicadores de tendência",
+        "Ranking de Microbairros: Comparativo por R$/m² ou volume de transações",
+        "Seletor de Bairro: Filtro para segmentar todas as análises",
+        "Exportação: PDF (KPIs + Ranking), Excel completo e Backup"
       ],
       beneficios: "Permite tomada de decisão rápida baseada em dados atualizados do mercado."
     },
     {
-      titulo: "2. Microregiões",
-      descricao: "Análise detalhada por logradouro e condomínio.",
+      titulo: "2. Manual / Tour",
+      descricao: "Central de aprendizado com onboarding interativo e tours guiados.",
       funcionalidades: [
-        "Pesquisa por Logradouro: Busca inteligente com sugestões",
+        "Onboarding em Cards: 10 módulos explicativos da plataforma",
+        "FAQ Completo: 40+ perguntas organizadas em 10 categorias",
+        "Busca Integrada: Encontre respostas rapidamente",
+        "Tours Guiados: Tutoriais interativos ativados na primeira visita de cada página",
+        "Download PDF: Manual completo para consulta offline"
+      ],
+      beneficios: "Acelera o aprendizado e reduz curva de adaptação à plataforma."
+    },
+    {
+      titulo: "3. Microregiões",
+      descricao: "Análise detalhada por logradouro e condomínio com comparativos.",
+      funcionalidades: [
+        "Pesquisa por Logradouro: Busca inteligente com autocomplete",
         "Análise de Condomínios: Dados específicos por empreendimento",
         "Separação por Tipologia: Casas vs Apartamentos",
-        "Indicadores de Tendência: Variação de preços",
-        "Gráfico de Evolução: Histórico por rua"
+        "Comparativo de Ruas: Gráfico comparando até 5 logradouros",
+        "Gráfico de Evolução: Histórico de preços por rua"
       ],
       beneficios: "Identifica oportunidades em micro-mercados específicos."
     },
     {
-      titulo: "3. Pesquisas de Mercado",
-      descricao: "Ferramenta avançada de busca de transações.",
+      titulo: "4. Pesquisas de Mercado",
+      descricao: "Ferramenta avançada de busca de transações ITBI.",
       funcionalidades: [
         "Filtros por Localização: Bairro, logradouro, número",
         "Filtros por Valor: Faixa de preço total e por m²",
-        "Filtros por Período: Intervalo de datas",
+        "Filtros por Período: Intervalo de datas desde 2020",
         "Filtros por Área: Metragem mínima e máxima",
+        "Resultados em Tabela: Paginação e ordenação",
         "Exportação: CSV e Excel com dados completos"
       ],
       beneficios: "Fundamenta avaliações com comparativos de mercado confiáveis."
     },
     {
-      titulo: "4. Avaliação Imobiliária",
-      descricao: "Sistema de avaliação automatizado em 6 etapas.",
+      titulo: "5. Avaliação Imobiliária",
+      descricao: "Sistema de avaliação automatizado em 6 etapas com geração de parecer.",
       funcionalidades: [
-        "Etapa 1 - Identificação: Dados do proprietário e objetivo",
-        "Etapa 2 - Localização: Endereço e tipologia",
-        "Etapa 3 - Dados Básicos: Área, quartos, vagas",
-        "Etapa 4 - Questionário: 26 características avaliadas",
-        "Etapa 5 - Resultados: Valores pessimista, provável e otimista",
-        "Etapa 6 - Recomendação: Estratégia de precificação"
+        "Etapa 1 - Identificação: Dados do proprietário, objetivo e tipo de imóvel",
+        "Etapa 2 - Localização: Endereço com autocomplete e dados ITBI",
+        "Etapa 3 - Dados Básicos: Área, quartos, suítes, banheiros, vagas",
+        "Etapa 4 - Questionário: 26 características em 5 categorias avaliadas",
+        "Etapa 5 - Resultados: Valores pessimista, provável e otimista com spread",
+        "Etapa 6 - Recomendação: Estratégia de precificação personalizada",
+        "PDF Profissional: Laudo completo com metodologia e dados de mercado"
       ],
       beneficios: "Produz avaliações profissionais com metodologia consistente."
     },
     {
-      titulo: "5. Vistoria Digital",
-      descricao: "Checklist completo para inspeção técnica de imóveis.",
+      titulo: "6. Histórico de Avaliações",
+      descricao: "Consulta e gerenciamento de todas as avaliações realizadas.",
       funcionalidades: [
-        "55+ Itens para Casas: Cobertura completa",
-        "50+ Itens para Apartamentos: Itens específicos",
-        "Sistema de Scoring: Pontuação de conservação",
-        "Registro Fotográfico: Documentação visual",
-        "Relatório PDF: Laudo técnico detalhado"
+        "Lista Completa: Todas as avaliações salvas com data e valores",
+        "Filtros: Por período, logradouro, faixa de valor",
+        "Detalhamento: Visualização completa de cada avaliação",
+        "Regeneração de PDF: Gere novos laudos a qualquer momento",
+        "Exportação: Lista em Excel para análise externa"
+      ],
+      beneficios: "Mantém histórico organizado para consulta e atualização."
+    },
+    {
+      titulo: "7. Vistoria Digital",
+      descricao: "Checklist completo para inspeção técnica de imóveis com fotos.",
+      funcionalidades: [
+        "55+ Itens para Casas: Inclui área externa, telhado, jardim",
+        "50+ Itens para Apartamentos: Áreas comuns e privativas",
+        "Sistema de Scoring: OK / Atenção / Crítico / N.V. / N/A",
+        "Registro Fotográfico: Documentação visual por item",
+        "Laudo PDF: Relatório profissional com radar de diagnóstico",
+        "Persistência: Dados salvos automaticamente no navegador"
       ],
       beneficios: "Padroniza vistorias e reduz riscos em transações."
     },
     {
-      titulo: "6. Documentação",
-      descricao: "Checklist de due diligence para transações.",
+      titulo: "8. Agendamento de Visitas",
+      descricao: "Gestão completa de visitas com fichas, assinaturas e feedback.",
       funcionalidades: [
-        "Checklist de Documentos: Lista completa por tipo",
-        "Analisador de Documentos: Análise por IA",
-        "Status de Verificação: Acompanhamento visual",
-        "Alertas de Pendências: Notificações automáticas",
-        "Exportação PDF: Relatório de due diligence"
+        "Fichas de Visita: Criação com código único para cada visita",
+        "Gestão de Disponibilidade: Calendário do corretor com horários",
+        "Assinaturas Digitais: Visitante e corretor assinam na tela",
+        "Link de Feedback: Envio automático para avaliação pós-visita",
+        "Dashboard de Visitas: KPIs e gráficos de performance",
+        "Ranking de Corretores: Comparativo por volume de visitas"
       ],
-      beneficios: "Garante segurança jurídica nas transações."
+      beneficios: "Profissionaliza o processo de visitas e coleta feedback valioso."
     },
     {
-      titulo: "7. Sofia - Assistente IA",
-      descricao: "Assistente virtual inteligente para consultas.",
+      titulo: "9. Documentação (Due Diligence)",
+      descricao: "Checklist completo para garantir segurança jurídica em transações.",
       funcionalidades: [
-        "Chat em Tempo Real: Respostas instantâneas",
-        "Consultas por Voz: Interação hands-free",
-        "Análise de Documentos: Upload e interpretação",
-        "Sugestões Inteligentes: Recomendações contextuais",
-        "Base de Conhecimento: Informações especializadas"
+        "Checklist Dinâmico: Documentos para Vendedor e Comprador",
+        "Perfil Condicional: Campos extras para PJ ou União Estável",
+        "Analisador IA: Upload de documentos com identificação automática",
+        "Status Visual: Acompanhamento por documento",
+        "Exportação PDF: Relatório separado por parte"
+      ],
+      beneficios: "Garante segurança jurídica e organização nas transações."
+    },
+    {
+      titulo: "10. Configurações",
+      descricao: "Personalização da plataforma e dados da empresa.",
+      funcionalidades: [
+        "Logo da Empresa: Upload para exibir nos PDFs gerados",
+        "Dados de Contato: Configuração de email e telefone",
+        "Preferências: Ajustes de interface e notificações"
+      ],
+      beneficios: "Permite personalização para identidade visual própria."
+    },
+    {
+      titulo: "11. Sofia - Assistente IA",
+      descricao: "Assistente virtual inteligente disponível em todas as páginas.",
+      funcionalidades: [
+        "Chat em Tempo Real: Respostas instantâneas sobre mercado",
+        "Consultas por Voz: Interação hands-free com microfone",
+        "Análise de Documentos: Upload e interpretação automática",
+        "Base de Conhecimento: Informações especializadas do mercado",
+        "Sugestões Inteligentes: Recomendações contextuais"
       ],
       beneficios: "Acelera consultas e fornece insights especializados."
     },
     {
-      titulo: "8. Recursos Administrativos",
-      descricao: "Ferramentas de gestão e configuração.",
+      titulo: "12. Recursos Administrativos",
+      descricao: "Ferramentas de gestão exclusivas para administradores.",
       funcionalidades: [
-        "Base de Conhecimento: Gerenciar conteúdo da IA",
-        "Calibrador de Avaliação: Ajustar pesos e fatores",
-        "Gestão de Leads: Acompanhar prospects",
-        "Gerenciamento de Usuários: Controle de acessos",
-        "Rastreamento de Atividades: Auditoria de uso"
+        "Base de Conhecimento Sofia: Gerenciar conteúdo da IA",
+        "Calibrador de Avaliação: Ajustar pesos e fatores do sistema",
+        "Gestão de Leads: Acompanhar prospects capturados",
+        "Gerenciamento de Usuários: Controle de acessos e papéis",
+        "Rastreamento de Atividades: Auditoria completa de uso"
       ],
-      beneficios: "Permite personalização e controle da plataforma."
+      beneficios: "Permite personalização e controle total da plataforma."
     }
   ],
   recursosAdicionais: [
     {
       titulo: "Tours Guiados",
-      descricao: "Tutoriais interativos em cada página, ativados automaticamente na primeira visita."
+      descricao: "Tutoriais interativos em cada página, ativados automaticamente na primeira visita ou via botão 'Tour Guiado'."
     },
     {
       titulo: "Exportações",
-      descricao: "Suporte a PDF, Excel e CSV para todos os relatórios e pesquisas."
+      descricao: "Suporte a PDF, Excel e CSV para todos os relatórios e pesquisas. Material de Apoio inclui Manual, Roteiro de Vídeo e Checklist de Testes."
     },
     {
       titulo: "Responsividade",
-      descricao: "Interface adaptada para desktop, tablet e smartphone."
+      descricao: "Interface totalmente adaptada para desktop, tablet e smartphone com gestos touch."
+    },
+    {
+      titulo: "PWA",
+      descricao: "Instale a plataforma como app no celular para acesso rápido via ícone na tela inicial."
     }
   ],
   faq: [
