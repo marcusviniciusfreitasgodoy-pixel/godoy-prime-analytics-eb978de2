@@ -6,12 +6,18 @@ export interface CompanySettings {
   custom_logo_url: string | null;
   company_name: string;
   company_phone: string;
+  company_cnpj: string;
+  company_address: string;
+  company_creci: string;
 }
 
 const DEFAULT_SETTINGS: CompanySettings = {
   custom_logo_url: null,
   company_name: 'GODOY PRIME REALTY',
   company_phone: '(21) 96407-5124',
+  company_cnpj: '',
+  company_address: 'Av. das Américas 10101 Bloco 2, Sala 316, Barra da Tijuca, RJ',
+  company_creci: 'CRECI 11841-PJ',
 };
 
 export function useCompanySettings() {
@@ -29,14 +35,9 @@ export function useCompanySettings() {
 
       const newSettings = { ...DEFAULT_SETTINGS };
       data?.forEach((row) => {
-        if (row.setting_key === 'custom_logo_url' && row.setting_value) {
-          newSettings.custom_logo_url = row.setting_value;
-        }
-        if (row.setting_key === 'company_name' && row.setting_value) {
-          newSettings.company_name = row.setting_value;
-        }
-        if (row.setting_key === 'company_phone' && row.setting_value) {
-          newSettings.company_phone = row.setting_value;
+        const key = row.setting_key as keyof CompanySettings;
+        if (key in newSettings && row.setting_value !== null) {
+          (newSettings as any)[key] = row.setting_value;
         }
       });
 
@@ -124,6 +125,34 @@ export function useCompanySettings() {
     }
   };
 
+  const updateSetting = async (key: keyof CompanySettings, value: string) => {
+    try {
+      const { error } = await supabase
+        .from('company_settings')
+        .upsert({
+          setting_key: key,
+          setting_value: value,
+          updated_at: new Date().toISOString(),
+        }, { onConflict: 'setting_key' });
+
+      if (error) throw error;
+
+      setSettings((prev) => ({ ...prev, [key]: value }));
+
+      toast({
+        title: 'Configuração salva',
+        description: 'A configuração foi atualizada com sucesso.',
+      });
+    } catch (error: any) {
+      console.error('Error updating setting:', error);
+      toast({
+        title: 'Erro',
+        description: error.message || 'Não foi possível salvar a configuração.',
+        variant: 'destructive',
+      });
+    }
+  };
+
   useEffect(() => {
     fetchSettings();
   }, []);
@@ -133,6 +162,7 @@ export function useCompanySettings() {
     isLoading,
     uploadLogo,
     removeLogo,
+    updateSetting,
     refetch: fetchSettings,
   };
 }
