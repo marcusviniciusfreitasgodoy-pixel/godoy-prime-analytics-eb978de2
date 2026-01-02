@@ -307,6 +307,9 @@ export async function exportFichaVisitaPdf({ ficha, feedback, customLogoBase64 }
   return doc;
 }
 
+// Alias for generating PDF doc for email
+export const generateFichaVisitaPdfDoc = exportFichaVisitaPdf;
+
 // Wrapper function for backward compatibility - saves the PDF
 export async function saveFichaVisitaPdf(data: FichaVisitaPdfData): Promise<void> {
   const doc = await exportFichaVisitaPdf(data);

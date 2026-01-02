@@ -192,7 +192,7 @@ function drawPolygon(doc: jsPDF, cx: number, cy: number, r: number, sides: numbe
   }
 }
 
-export async function generateVistoriaPDF(params: VistoriaPDFParams): Promise<void> {
+export async function generateVistoriaPDFDoc(params: VistoriaPDFParams): Promise<jsPDF> {
   const { propertyData, checklist, photos, tipoVistoria, finalScore, progress, criticalCount, avaliacaoData } = params;
   
   const doc = new jsPDF();
@@ -466,7 +466,12 @@ export async function generateVistoriaPDF(params: VistoriaPDFParams): Promise<vo
   // Apply footers to all pages
   applyFootersToAllPages(doc);
   
-  // Save
-  const filename = `vistoria_${propertyData.logradouro?.replace(/\s+/g, '_').substring(0, 20) || 'imovel'}_${new Date().toISOString().split('T')[0]}.pdf`;
+  return doc;
+}
+
+// Wrapper function that saves the PDF (original behavior)
+export async function generateVistoriaPDF(params: VistoriaPDFParams): Promise<void> {
+  const doc = await generateVistoriaPDFDoc(params);
+  const filename = `vistoria_${params.propertyData.logradouro?.replace(/\s+/g, '_').substring(0, 20) || 'imovel'}_${new Date().toISOString().split('T')[0]}.pdf`;
   doc.save(filename);
 }

@@ -7,6 +7,7 @@ import { useAuthContext } from "@/contexts/AuthContext";
 import { VisitSignature } from "@/components/visitas/VisitSignature";
 import { VisitStatusBadge } from "@/components/visitas/VisitStatusBadge";
 import { PageTour, TourButton } from "@/components/PageTour";
+import { SendPdfEmailDialog } from "@/components/SendPdfEmailDialog";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -15,7 +16,7 @@ import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { FichaVisita, StatusVisita } from "@/types/visitas";
-import { exportFichaVisitaPdf } from "@/utils/fichaVisitaPdfExport";
+import { exportFichaVisitaPdf, generateFichaVisitaPdfDoc } from "@/utils/fichaVisitaPdfExport";
 import { sendFeedbackRequestEmail } from "@/utils/visitEmailService";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -52,6 +53,7 @@ export default function FichaVisitaPage() {
   const [isSendingEmail, setIsSendingEmail] = useState(false);
   const [editedFicha, setEditedFicha] = useState<Partial<FichaVisita>>({});
   const [runTour, setRunTour] = useState(false);
+  const [showEmailDialog, setShowEmailDialog] = useState(false);
 
   useEffect(() => {
     if (fichas && id) {
@@ -122,6 +124,14 @@ export default function FichaVisitaPage() {
     } catch (error) {
       toast.error("Erro ao exportar PDF");
     }
+  };
+
+  const handleGeneratePdfForEmail = async () => {
+    if (!ficha) throw new Error("Ficha não encontrada");
+    return await generateFichaVisitaPdfDoc({
+      ficha,
+      feedback: feedbacks && feedbacks.length > 0 ? feedbacks[0] : null
+    });
   };
 
   const handleSendFeedbackEmail = async () => {
@@ -219,6 +229,10 @@ export default function FichaVisitaPage() {
             <Button variant="outline" onClick={handleExportPdf} data-tour="ficha-export-pdf">
               <Download className="h-4 w-4 mr-2" />
               Exportar PDF
+            </Button>
+            <Button variant="outline" onClick={() => setShowEmailDialog(true)} data-tour="ficha-send-email">
+              <Mail className="h-4 w-4 mr-2" />
+              Enviar por Email
             </Button>
           </div>
         </div>
@@ -632,6 +646,18 @@ export default function FichaVisitaPage() {
           </div>
         </div>
       </div>
+
+      {/* Dialog de envio por email */}
+      <SendPdfEmailDialog
+        open={showEmailDialog}
+        onOpenChange={setShowEmailDialog}
+        generatePdf={handleGeneratePdfForEmail}
+        documentType="ficha_visita"
+        defaultSubject={`Ficha de Visita - ${ficha.codigo}`}
+        pdfFilename={`ficha-visita-${ficha.codigo}.pdf`}
+        defaultEmail={ficha.email_visitante || ""}
+        defaultName={ficha.nome_visitante}
+      />
     </>
   );
 }

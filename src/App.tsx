@@ -35,6 +35,7 @@ import FichaVisitaPage from "./pages/FichaVisitaPage";
 import FeedbackLanding from "./pages/FeedbackLanding";
 import AssinaturaVisita from "./pages/AssinaturaVisita";
 import AssinaturaLanding from "./pages/AssinaturaLanding";
+import Configuracoes from "./pages/Configuracoes";
 
 const queryClient = new QueryClient();
 
@@ -83,6 +84,7 @@ const App = () => (
                                 <Route path="/visitas/agendar" element={<AgendarVisita />} />
                                 <Route path="/visitas/disponibilidade" element={<DisponibilidadeVisitas />} />
                                 <Route path="/visitas/ficha/:id" element={<FichaVisitaPage />} />
+                                <Route path="/configuracoes" element={<Configuracoes />} />
                                 <Route path="*" element={<NotFound />} />
                               </Routes>
                             </main>
