@@ -84,8 +84,8 @@ export default function Dashboard() {
         const avgValueM2 = data.reduce((sum, r) => sum + (r.valor_m2 || 0), 0) / data.length;
 
         exportToXLSX({
-          filename: `itbi_transacoes_${selectedBairro.toLowerCase().replace(/\s+/g, '_')}`,
-          title: `Transações ITBI - ${selectedBairro}`,
+          filename: `transacoes_oficiais_${selectedBairro.toLowerCase().replace(/\s+/g, '_')}`,
+          title: `Transações Oficiais - ${selectedBairro}`,
           subtitle: 'Godoy Prime Analytics - Inteligência Imobiliária',
           filters: {
             'Bairro': selectedBairro,
@@ -139,7 +139,7 @@ export default function Dashboard() {
       const data = await fetchExportData();
 
       if (data && data.length > 0) {
-        exportToCSV(data, `itbi_transacoes_${selectedBairro.toLowerCase().replace(/\s+/g, '_')}`);
+        exportToCSV(data, `transacoes_oficiais_${selectedBairro.toLowerCase().replace(/\s+/g, '_')}`);
         trackExport('dashboard_csv');
         toast({
           title: "Exportação concluída",
@@ -180,8 +180,8 @@ export default function Dashboard() {
         const bairrosUnicos = [...new Set(data.map(r => r.bairro))].length;
         
         exportToXLSX({
-          filename: `backup_completo_itbi_${new Date().toISOString().split('T')[0]}`,
-          title: 'Backup Completo - Base ITBI Prefeitura RJ',
+          filename: `backup_completo_transacoes_${new Date().toISOString().split('T')[0]}`,
+          title: 'Backup Completo - Base Oficial Prefeitura RJ',
           subtitle: `Godoy Prime Analytics - Exportado em ${new Date().toLocaleDateString('pt-BR')}`,
           filters: {
             'Total de Registros': data.length.toLocaleString('pt-BR'),
@@ -300,7 +300,7 @@ export default function Dashboard() {
             Inteligência Imobiliária
           </h1>
           <p className="text-xs text-muted-foreground mb-3">
-            Análise de mercado baseada em dados reais de transações ITBI do Rio de Janeiro.
+            Análise de mercado baseada em dados reais de transações oficiais do Rio de Janeiro.
           </p>
           
           {/* Feature highlights */}
@@ -484,7 +484,7 @@ export default function Dashboard() {
         <Info className="h-4 w-4" />
         <AlertDescription className="text-xs sm:text-sm">
           <strong>Disclaimer Jurídico:</strong> Esta ferramenta fornece análises estatísticas 
-          baseadas em dados públicos de ITBI. As informações não substituem laudos oficiais 
+          baseadas em dados públicos de transações oficiais. As informações não substituem laudos oficiais 
           (PTAM) e devem ser utilizadas apenas como referência de mercado.
         </AlertDescription>
       </Alert>
@@ -513,7 +513,7 @@ export default function Dashboard() {
           <Info className="h-4 w-4" />
           <AlertDescription className="text-xs">
             <strong>Disclaimer Jurídico:</strong> Esta ferramenta fornece análises estatísticas 
-            baseadas em dados públicos de ITBI. As informações não substituem laudos oficiais 
+            baseadas em dados públicos de transações oficiais. As informações não substituem laudos oficiais 
             (PTAM) e devem ser utilizadas apenas como referência de mercado.
           </AlertDescription>
         </Alert>

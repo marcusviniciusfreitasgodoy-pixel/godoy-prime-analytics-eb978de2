@@ -30,7 +30,7 @@ export default function AvaliacaoImobiliaria() {
               )}
             </h1>
             <p className="text-xs sm:text-sm text-muted-foreground">
-              Sistema de avaliação baseado em dados ITBI
+              Sistema de avaliação baseado em dados oficiais
             </p>
           </div>
         </div>

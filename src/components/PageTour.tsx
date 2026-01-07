@@ -80,13 +80,13 @@ export const tourConfigs: Record<string, Step[]> = {
     },
     {
       target: '[data-tour="avaliacao-step1"]',
-      content: 'Busque a rua para ver estatísticas ITBI da região. Você pode inserir dados de anúncios para combinação 70% ITBI + 30% mercado.',
+      content: 'Busque a rua para ver estatísticas oficiais da região. Você pode inserir dados de anúncios para combinação 70% dados oficiais + 30% mercado.',
       placement: 'bottom',
       title: '📍 Etapa 2: Localização',
     },
     {
       target: '[data-tour="avaliacao-step2"]',
-      content: 'Confirme a área do imóvel e escolha a base de preço: apenas ITBI, combinada (ITBI+Anúncios) ou valor customizado.',
+      content: 'Confirme a área do imóvel e escolha a base de preço: apenas dados oficiais, combinada (Oficiais+Anúncios) ou valor customizado.',
       placement: 'bottom',
       title: '📐 Etapa 3: Dados Básicos',
     },
@@ -168,7 +168,7 @@ export const tourConfigs: Record<string, Step[]> = {
     },
     {
       target: '[data-tour="vistoria-avaliacao"]',
-      content: 'Após a vistoria, vá para Avaliação Imobiliária com todos os dados pré-preenchidos para calcular o valor de mercado baseado em ITBI.',
+      content: 'Após a vistoria, vá para Avaliação Imobiliária com todos os dados pré-preenchidos para calcular o valor de mercado baseado em dados oficiais.',
       placement: 'left',
       title: '💰 Ir para Avaliação',
     },

@@ -138,10 +138,10 @@ export function ImportCSVButton() {
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <FileSpreadsheet className="h-5 w-5 text-primary" />
-            Importar Dados ITBI
+            Importar Dados Oficiais
           </DialogTitle>
           <DialogDescription>
-            Selecione o arquivo CSV da Prefeitura do Rio de Janeiro para importar as transações ITBI.
+            Selecione o arquivo CSV da Prefeitura do Rio de Janeiro para importar as transações oficiais.
             <span className="block mt-1 text-amber-600 dark:text-amber-400">
               Requer permissão de administrador.
             </span>

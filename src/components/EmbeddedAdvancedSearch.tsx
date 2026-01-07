@@ -289,7 +289,7 @@ export function EmbeddedAdvancedSearch({ defaultBairro = "BARRA DA TIJUCA" }: Em
     exportToXLSX({
       filename: 'busca_localizacao_godoy_prime',
       title: 'Busca por Localização - Godoy Prime Analytics',
-      subtitle: 'Transações ITBI',
+      subtitle: 'Transações Oficiais',
       filters: appliedFilters,
       data: results,
       columns: [
@@ -709,7 +709,7 @@ export function EmbeddedAdvancedSearch({ defaultBairro = "BARRA DA TIJUCA" }: Em
               {/* Explanation about data structure */}
               <div className="p-3 bg-blue-50 dark:bg-blue-950/30 rounded-lg border border-blue-200 dark:border-blue-800">
                 <div className="text-xs text-blue-800 dark:text-blue-200">
-                  <strong>ℹ️ Como interpretar:</strong> Os dados do ITBI são consolidados mensalmente. 
+                  <strong>ℹ️ Como interpretar:</strong> Os dados oficiais são consolidados mensalmente. 
                   O campo "<strong>Qtd Trans.</strong>" indica quantas escrituras compõem cada registro agregado. 
                   Os valores de R$/m², Área e Valor são <strong>médias ponderadas</strong> das transações daquele período.
                 </div>
