@@ -71,7 +71,7 @@ export function exportQuickGuidePDF() {
 
   drawSection('4. AVALIACAO IMOBILIARIA - Precificacao', [
     'Etapa 1: Identifique proprietario e objetivo (venda/captacao)',
-    'Etapa 2: Selecione logradouro com dados ITBI disponiveis',
+    'Etapa 2: Selecione logradouro com dados oficiais disponiveis',
     'Etapa 3: Informe area, quartos, vagas e tipologia',
     'Etapa 4: Responda 26 caracteristicas em 5 categorias',
     'Etapa 5: Receba valores pessimista, provavel e otimista',

@@ -74,7 +74,7 @@ const faqCategories: FAQCategory[] = [
     titulo: "Dashboard e Indicadores",
     icon: <BarChart3 className="h-4 w-4" />,
     perguntas: [
-      { pergunta: "Com que frequência os dados são atualizados?", resposta: "Os dados são sincronizados diariamente com as bases oficiais de transações ITBI." },
+      { pergunta: "Com que frequência os dados são atualizados?", resposta: "Os dados são sincronizados diariamente com as bases oficiais de transações." },
       { pergunta: "O que significa a mediana de preço por m²?", resposta: "É o valor central quando todos os preços são ordenados, representando melhor o mercado por não ser afetado por valores extremos." },
       { pergunta: "Como funciona o ranking de microbairros?", resposta: "Os microbairros são ordenados pela mediana de preço por m², permitindo identificar as regiões mais valorizadas." },
       { pergunta: "Posso exportar os gráficos do dashboard?", resposta: "Sim, você pode exportar relatórios completos em PDF e dados em Excel/CSV." }
@@ -87,7 +87,7 @@ const faqCategories: FAQCategory[] = [
     perguntas: [
       { pergunta: "Quais filtros estão disponíveis nas pesquisas?", resposta: "Localização (bairro, logradouro), faixa de valor, período, área e tipologia do imóvel." },
       { pergunta: "Posso salvar minhas pesquisas favoritas?", resposta: "O histórico de pesquisas é salvo automaticamente para consulta posterior." },
-      { pergunta: "Qual o período máximo de dados disponíveis?", resposta: "Os dados cobrem os últimos 5 anos de transações ITBI registradas." },
+      { pergunta: "Qual o período máximo de dados disponíveis?", resposta: "Os dados cobrem os últimos 5 anos de transações oficiais registradas." },
       { pergunta: "Como exportar os resultados das pesquisas?", resposta: "Use os botões de exportação para gerar arquivos CSV ou Excel com todos os dados filtrados." }
     ]
   },

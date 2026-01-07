@@ -159,13 +159,13 @@ const checklistSections: ChecklistSection[] = [
     items: [
       "[ ] Disclaimer legal visível no Dashboard",
       "[ ] Tooltip metodologia expandível",
-      "[ ] Texto correto sobre fonte ITBI",
+      "[ ] Texto correto sobre fonte oficial",
     ]
   },
   {
     title: "14. SINCRONIZAÇÃO (ADMIN)",
     items: [
-      "[ ] Botão 'Atualizar ITBI' visível",
+      "[ ] Botão 'Atualizar Dados' visível",
       "[ ] Seletor de ano funciona",
       "[ ] Feedback de sincronização",
     ]

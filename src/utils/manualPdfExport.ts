@@ -4,12 +4,12 @@ import { drawGodoyHeader, drawGodoyFooter, drawSectionTitle, BRAND_COLORS, apply
 const manualContent = {
   introducao: {
     titulo: "Introdução",
-    texto: "O Godoy Prime Analytics é uma plataforma completa de inteligência imobiliária desenvolvida para corretores, avaliadores e gestores do mercado imobiliário do Rio de Janeiro. A ferramenta oferece análise de dados de transações ITBI, avaliações automatizadas, vistorias digitais, agendamento de visitas, documentação de due diligence e assistência por inteligência artificial."
+    texto: "O Godoy Prime Analytics é uma plataforma completa de inteligência imobiliária desenvolvida para corretores, avaliadores e gestores do mercado imobiliário do Rio de Janeiro. A ferramenta oferece análise de dados de transações oficiais, avaliações automatizadas, vistorias digitais, agendamento de visitas, documentação de due diligence e assistência por inteligência artificial."
   },
   modulos: [
     {
       titulo: "1. Dashboard",
-      descricao: "Visão geral do mercado imobiliário com indicadores em tempo real baseados em dados ITBI.",
+      descricao: "Visão geral do mercado imobiliário com indicadores em tempo real baseados em dados oficiais.",
       funcionalidades: [
         "KPIs Principais: Preço médio R$/m², liquidez acumulada, variação anual (YoY)",
         "Separação por Tipologia: Apartamentos vs Casas com métricas independentes",
@@ -46,7 +46,7 @@ const manualContent = {
     },
     {
       titulo: "4. Pesquisas de Mercado",
-      descricao: "Ferramenta avançada de busca de transações ITBI.",
+      descricao: "Ferramenta avançada de busca de transações oficiais.",
       funcionalidades: [
         "Filtros por Localização: Bairro, logradouro, número",
         "Filtros por Valor: Faixa de preço total e por m²",
@@ -187,7 +187,7 @@ const manualContent = {
     {
       categoria: "Dashboard e Indicadores",
       perguntas: [
-        { p: "Com que frequência os dados são atualizados?", r: "Os dados são sincronizados diariamente com as bases oficiais de transações ITBI." },
+        { p: "Com que frequência os dados são atualizados?", r: "Os dados são sincronizados diariamente com as bases oficiais de transações." },
         { p: "O que significa a mediana de preço por m²?", r: "É o valor central quando todos os preços são ordenados, representando melhor o mercado por não ser afetado por valores extremos." },
         { p: "Como funciona o ranking de microbairros?", r: "Os microbairros são ordenados pela mediana de preço por m², permitindo identificar as regiões mais valorizadas." },
         { p: "Posso exportar os gráficos do dashboard?", r: "Sim, você pode exportar relatórios completos em PDF e dados em Excel/CSV." }
@@ -198,7 +198,7 @@ const manualContent = {
       perguntas: [
         { p: "Quais filtros estão disponíveis nas pesquisas?", r: "Localização (bairro, logradouro), faixa de valor, período, área e tipologia do imóvel." },
         { p: "Posso salvar minhas pesquisas favoritas?", r: "O histórico de pesquisas é salvo automaticamente para consulta posterior." },
-        { p: "Qual o período máximo de dados disponíveis?", r: "Os dados cobrem os últimos 5 anos de transações ITBI registradas." },
+        { p: "Qual o período máximo de dados disponíveis?", r: "Os dados cobrem os últimos 5 anos de transações oficiais registradas." },
         { p: "Como exportar os resultados das pesquisas?", r: "Use os botões de exportação para gerar arquivos CSV ou Excel com todos os dados filtrados." }
       ]
     },

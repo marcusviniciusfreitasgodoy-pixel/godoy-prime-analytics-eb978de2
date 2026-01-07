@@ -21,7 +21,7 @@ export function MethodologyDisclaimer() {
             <p className="font-semibold">Fonte e Metodologia</p>
             <ul className="space-y-1 list-disc list-inside">
               <li>
-                <strong>Fonte:</strong> ITBI - Prefeitura do Rio de Janeiro
+                <strong>Fonte:</strong> Transações Oficiais - Prefeitura do Rio de Janeiro
               </li>
               <li>
                 <strong>Filtro:</strong> Apenas transações com ≥90% de transferência

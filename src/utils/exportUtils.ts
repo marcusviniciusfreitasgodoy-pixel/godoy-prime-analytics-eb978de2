@@ -91,7 +91,7 @@ export function exportToXLSX(options: ExportXLSXOptions) {
   // Info do relatório
   summaryRows.push(['INFORMAÇÕES DO RELATÓRIO']);
   summaryRows.push(['Total de Registros', data.length.toString()]);
-  summaryRows.push(['Fonte de Dados', 'ITBI - Prefeitura do Rio de Janeiro']);
+  summaryRows.push(['Fonte de Dados', 'Transações Oficiais - Prefeitura do Rio de Janeiro']);
   summaryRows.push(['Data de Geração', new Date().toLocaleString('pt-BR')]);
   summaryRows.push([]);
   summaryRows.push(['CONTATO']);
@@ -138,7 +138,7 @@ export function exportToXLSX(options: ExportXLSXOptions) {
     ['METODOLOGIA E FONTES DE DADOS'],
     [],
     ['Fonte dos Dados'],
-    ['Os dados apresentados neste relatório são provenientes do sistema ITBI (Imposto sobre Transmissão de Bens Imóveis) da Prefeitura do Rio de Janeiro.'],
+    ['Os dados apresentados neste relatório são provenientes do sistema de transações oficiais (Imposto sobre Transmissão de Bens Imóveis) da Prefeitura do Rio de Janeiro.'],
     [],
     ['IMPORTANTE: Dados Agregados'],
     ['Cada registro (linha) representa dados AGREGADOS por logradouro e período mensal, NÃO transações individuais.'],

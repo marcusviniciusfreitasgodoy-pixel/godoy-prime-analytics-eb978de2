@@ -131,7 +131,7 @@ export function Step4Results({ result, state, combined }: Props) {
             <div className="text-[10px] sm:text-xs text-muted-foreground mt-1 sm:mt-2 space-y-0.5 sm:space-y-1">
               <p>Baseado em:</p>
               <ul className="list-disc list-inside ml-1 sm:ml-2">
-                <li>ITBI histórico ({state.anuncioData?.med_m2 ? "70%" : "100%"})</li>
+                <li>Dados oficiais ({state.anuncioData?.med_m2 ? "70%" : "100%"})</li>
                 {state.anuncioData?.med_m2 && <li>Anúncios (30%)</li>}
                 <li>Características ({formatPercent(result.total_adjustment)})</li>
                 {terrainInfo && terrainInfo.bonus !== 0 && (

@@ -61,7 +61,7 @@ const PROBLEMS = [
 const SOLUTIONS = [
   {
     icon: Shield,
-    title: "Dados Oficiais ITBI",
+    title: "Dados Oficiais",
     description: "Usamos transações reais registradas na Prefeitura do RJ, não apenas preços de anúncios.",
     highlight: "Fonte governamental confiável",
   },
@@ -107,8 +107,8 @@ const PERSONAS = [
 // SEO meta tags otimizadas para conversão
 const SEO_CONFIG = {
   title: "Avaliação Imobiliária Gratuita | Descubra o Valor Real do Seu Imóvel | Godoy Prime",
-  description: "Descubra o valor real do seu imóvel na Barra da Tijuca em 30 segundos. Avaliação baseada em +80.000 transações oficiais ITBI da Prefeitura do RJ. Gratuito e sem compromisso.",
-  keywords: "avaliação imóvel gratuita, valor imóvel Barra da Tijuca, preço m2 Rio de Janeiro, quanto vale meu apartamento, ITBI, avaliação online, valor real imóvel",
+  description: "Descubra o valor real do seu imóvel na Barra da Tijuca em 30 segundos. Avaliação baseada em +80.000 transações oficiais da Prefeitura do RJ. Gratuito e sem compromisso.",
+  keywords: "avaliação imóvel gratuita, valor imóvel Barra da Tijuca, preço m2 Rio de Janeiro, quanto vale meu apartamento, transações oficiais, avaliação online, valor real imóvel",
   canonical: "https://avaliacao.godoyprime.com.br",
   ogImage: "https://avaliacao.godoyprime.com.br/og-image.jpg",
 };
@@ -181,7 +181,7 @@ export default function AvaliacaoPublica() {
             "@context": "https://schema.org",
             "@type": "RealEstateAgent",
             "name": "Godoy Prime Realty",
-            "description": "Avaliação imobiliária premium baseada em dados oficiais ITBI",
+            "description": "Avaliação imobiliária premium baseada em dados oficiais",
             "url": SEO_CONFIG.canonical,
             "logo": "https://avaliacao.godoyprime.com.br/godoy-logo.png",
             "telephone": "+55-21-96407-5124",
@@ -209,7 +209,7 @@ export default function AvaliacaoPublica() {
             "@context": "https://schema.org",
             "@type": "Service",
             "name": "Avaliação Imobiliária Gratuita",
-            "description": "Descubra o valor real do seu imóvel baseado em +80.000 transações oficiais ITBI",
+            "description": "Descubra o valor real do seu imóvel baseado em +80.000 transações oficiais",
             "provider": {
               "@type": "RealEstateAgent",
               "name": "Godoy Prime Realty"
@@ -266,7 +266,7 @@ export default function AvaliacaoPublica() {
             <div className="max-w-3xl mx-auto space-y-6">
               <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/10 border border-white/20 text-sm font-medium animate-fade-in">
                 <Shield className="h-4 w-4 text-[#D4AF37]" />
-                Dados Oficiais ITBI da Prefeitura do Rio de Janeiro
+                Transações Oficiais da Prefeitura do Rio de Janeiro
               </div>
 
               <h2 className="text-3xl md:text-5xl font-bold tracking-tight animate-fade-in [animation-delay:150ms]">
