@@ -293,7 +293,7 @@ export default function HistoricoAvaliacoes() {
         <CardContent className="pt-4">
           <p className="text-sm text-muted-foreground">
             <strong>Legenda:</strong> Confiança indica a precisão estimada da avaliação. 
-            Trend mostra a tendência de mercado na região comparando anúncios vs transações ITBI.
+            Trend mostra a tendência de mercado na região comparando anúncios vs transações oficiais.
           </p>
         </CardContent>
       </Card>

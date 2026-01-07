@@ -483,7 +483,7 @@ export default function AvaliacaoPublica() {
                     <AlertCircle className="h-5 w-5 text-muted-foreground shrink-0 mt-0.5" />
                     <p className="text-xs text-muted-foreground">
                       <strong className="text-foreground">Aviso:</strong> Esta é uma estimativa automática baseada em dados 
-                      históricos de transações ITBI. Não substitui um laudo técnico assinado por perito avaliador.
+                      históricos de transações oficiais. Não substitui um laudo técnico assinado por perito avaliador.
                     </p>
                   </div>
                 </div>
@@ -519,7 +519,7 @@ export default function AvaliacaoPublica() {
                 </div>
                 <p className="text-white/60 text-sm max-w-md">
                   Especialistas em imóveis de alto padrão na Barra da Tijuca. 
-                  Avaliações baseadas em dados oficiais ITBI da Prefeitura do Rio de Janeiro.
+                  Avaliações baseadas em dados oficiais da Prefeitura do Rio de Janeiro.
                 </p>
               </div>
 

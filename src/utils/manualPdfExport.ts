@@ -62,7 +62,7 @@ const manualContent = {
       descricao: "Sistema de avaliação automatizado em 6 etapas com geração de parecer.",
       funcionalidades: [
         "Etapa 1 - Identificação: Dados do proprietário, objetivo e tipo de imóvel",
-        "Etapa 2 - Localização: Endereço com autocomplete e dados ITBI",
+        "Etapa 2 - Localização: Endereço com autocomplete e dados oficiais",
         "Etapa 3 - Dados Básicos: Área, quartos, suítes, banheiros, vagas",
         "Etapa 4 - Questionário: 26 características em 5 categorias avaliadas",
         "Etapa 5 - Resultados: Valores pessimista, provável e otimista com spread",

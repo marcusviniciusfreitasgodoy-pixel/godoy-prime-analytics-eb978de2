@@ -64,7 +64,7 @@ const manualSections: ManualSection[] = [
     features: [
       {
         title: "KPIs do Mercado",
-        description: "Indicadores-chave atualizados: Preço Médio por m², Liquidez (volume de transações), Variação Anual e Bairro Mais Valorizado. Dados baseados em transações reais de ITBI da Prefeitura do Rio de Janeiro.",
+        description: "Indicadores-chave atualizados: Preço Médio por m², Liquidez (volume de transações), Variação Anual e Bairro Mais Valorizado. Dados baseados em transações oficiais da Prefeitura do Rio de Janeiro.",
         tips: [
           "Clique nos cards para ver detalhes expandidos",
           "A variação anual compara os últimos 12 meses com os 12 meses anteriores",
@@ -150,7 +150,7 @@ const manualSections: ManualSection[] = [
     id: "avaliacao",
     title: "Avaliação Imobiliária",
     icon: Calculator,
-    description: "Motor de Avaliação Godoy Prime: calcule o valor de mercado usando dados ITBI + anúncios com 26 características.",
+    description: "Motor de Avaliação Godoy Prime: calcule o valor de mercado usando dados oficiais + anúncios com 26 características.",
     route: "/avaliacao-imobiliaria",
     features: [
       {
@@ -163,15 +163,15 @@ const manualSections: ManualSection[] = [
       },
       {
         title: "Etapa 2: Localização",
-        description: "Busque a rua para ver estatísticas ITBI da região. Opcionalmente, insira dados de anúncios para combinação 70% ITBI + 30% mercado.",
+        description: "Busque a rua para ver estatísticas oficiais da região. Opcionalmente, insira dados de anúncios para combinação 70% dados oficiais + 30% mercado.",
         tips: [
-          "Compare os valores ITBI com anúncios atuais do mercado",
+          "Compare os valores oficiais com anúncios atuais do mercado",
           "Se não houver transações na rua, o sistema usa dados do microbairro",
         ],
       },
       {
         title: "Etapa 3: Dados Básicos",
-        description: "Confirme a área do imóvel e escolha a base de preço: apenas ITBI, combinada (ITBI+Anúncios) ou valor customizado por m².",
+        description: "Confirme a área do imóvel e escolha a base de preço: apenas dados oficiais, combinada (Oficiais+Anúncios) ou valor customizado por m².",
       },
       {
         title: "Etapa 4: Questionário de Características",
@@ -360,7 +360,7 @@ const manualSections: ManualSection[] = [
         description: "Pergunte sobre preços, tendências, comparativos entre bairros ou qualquer dúvida sobre o mercado imobiliário.",
         tips: [
           "Exemplos: 'Qual o preço médio na Barra?', 'Compare Leblon com Ipanema'",
-          "Sofia usa dados reais do banco de transações ITBI",
+          "Sofia usa dados reais do banco de transações oficiais",
         ],
       },
       {
@@ -374,8 +374,8 @@ const manualSections: ManualSection[] = [
     ],
   },
   {
-    id: "itbi",
-    title: "Sincronização ITBI",
+    id: "dados-oficiais",
+    title: "Sincronização de Dados",
     icon: Database,
     description: "Atualização de dados de transações diretamente da API da Prefeitura do Rio de Janeiro.",
     features: [
@@ -747,18 +747,18 @@ export default function ManualPlataforma() {
                   </AccordionTrigger>
                   <AccordionContent>
                     <p className="text-sm text-muted-foreground">
-                      Os dados vêm da API pública da Prefeitura do Rio de Janeiro (ITBI - Imposto sobre Transmissão de Bens Imóveis). Cada transação imobiliária registrada em cartório gera um registro de ITBI que é disponibilizado pela prefeitura. Usamos transações com percentual de transferência ≥90% para garantir dados de transações completas.
+                      Os dados vêm da API pública da Prefeitura do Rio de Janeiro. Cada transação imobiliária registrada em cartório gera um registro oficial que é disponibilizado pela prefeitura. Usamos transações com percentual de transferência ≥90% para garantir dados de transações completas.
                     </p>
                   </AccordionContent>
                 </AccordionItem>
 
                 <AccordionItem value="faq-2">
                   <AccordionTrigger className="text-sm font-medium text-left">
-                    Qual a diferença entre valor ITBI e valor de mercado?
+                    Qual a diferença entre valor oficial e valor de mercado?
                   </AccordionTrigger>
                   <AccordionContent>
                     <p className="text-sm text-muted-foreground">
-                      O valor ITBI representa transações reais efetivadas. Porém, em alguns casos, pode haver subdeclaração. Por isso, nosso motor combina 70% dados ITBI + 30% dados de anúncios quando disponíveis, para uma estimativa mais precisa do valor de mercado atual.
+                      O valor oficial representa transações reais efetivadas. Porém, em alguns casos, pode haver subdeclaração. Por isso, nosso motor combina 70% dados oficiais + 30% dados de anúncios quando disponíveis, para uma estimativa mais precisa do valor de mercado atual.
                     </p>
                   </AccordionContent>
                 </AccordionItem>

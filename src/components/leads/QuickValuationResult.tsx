@@ -240,7 +240,7 @@ export function QuickValuationResult({
 
           {/* Aviso */}
           <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 text-xs text-amber-800">
-            <strong>Aviso:</strong> Esta é uma estimativa automática baseada em dados históricos de transações ITBI 
+            <strong>Aviso:</strong> Esta é uma estimativa automática baseada em dados históricos de transações oficiais 
             e em regras estatísticas. Para ter certeza do valor real, você precisa de uma análise técnica completa.
           </div>
         </CardContent>
