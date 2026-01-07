@@ -5,7 +5,7 @@ const tourSteps: Step[] = [
   // Dashboard - Visão Geral
   {
     target: '[data-tour="kpis"]',
-    content: 'Indicadores-chave do mercado: Preço Médio/m², Liquidez (volume de transações), Variação Anual e Bairro Mais Valorizado. Dados baseados em transações reais de ITBI da Prefeitura do RJ.',
+    content: 'Indicadores-chave do mercado: Preço Médio/m², Liquidez (volume de transações), Variação Anual e Bairro Mais Valorizado. Dados baseados em transações oficiais da Prefeitura do RJ.',
     disableBeacon: true,
     placement: 'bottom',
     title: '📊 KPIs do Mercado',
@@ -50,7 +50,7 @@ const tourSteps: Step[] = [
   },
   {
     target: '[data-tour="nav-avaliacao"]',
-    content: 'Motor de Avaliação Godoy Prime: calcule o valor de mercado usando 70% dados ITBI + 30% anúncios. 6 etapas com 26 características geram 3 cenários de valor com nível de confiança.',
+    content: 'Motor de Avaliação Godoy Prime: calcule o valor de mercado usando 70% dados oficiais + 30% anúncios. 6 etapas com 26 características geram 3 cenários de valor com nível de confiança.',
     placement: 'right',
     title: '🧮 Avaliação Imobiliária',
   },
@@ -88,7 +88,7 @@ const tourSteps: Step[] = [
   // Assistente Sofia
   {
     target: '[data-tour="sofia-assistant"]',
-    content: 'Sofia é sua assistente de mercado com IA. Pergunte sobre preços, tendências, comparativos entre bairros. Aceita entrada por voz e responde com dados reais do banco ITBI!',
+    content: 'Sofia é sua assistente de mercado com IA. Pergunte sobre preços, tendências, comparativos entre bairros. Aceita entrada por voz e responde com dados oficiais!',
     placement: 'left',
     title: '🤖 Assistente Sofia',
   },
@@ -101,12 +101,12 @@ const tourSteps: Step[] = [
     title: '📥 Exportar Dados',
   },
   
-  // Sincronização ITBI (admin)
+  // Sincronização Dados Oficiais (admin)
   {
     target: '[data-tour="sync-itbi"]',
-    content: 'Sincronize dados de transações ITBI diretamente da API da Prefeitura do RJ. Selecione ano e meses específicos, visualize meses faltantes e atualize o banco de dados.',
+    content: 'Sincronize dados de transações oficiais diretamente da API da Prefeitura do RJ. Selecione ano e meses específicos, visualize meses faltantes e atualize o banco de dados.',
     placement: 'bottom',
-    title: '🔄 Atualizar ITBI',
+    title: '🔄 Atualizar Dados',
   },
   
   // Manual

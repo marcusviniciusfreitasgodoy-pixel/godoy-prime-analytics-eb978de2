@@ -150,7 +150,7 @@ export function exportDashboardXLSX(data: DashboardExportData) {
     ['METODOLOGIA E FONTES DE DADOS'],
     [],
     ['Fonte dos Dados'],
-    ['Os dados apresentados neste relatório são provenientes do sistema ITBI (Imposto sobre Transmissão de Bens Imóveis) da Prefeitura do Rio de Janeiro.'],
+    ['Os dados apresentados neste relatório são provenientes do sistema de transações oficiais (Imposto sobre Transmissão de Bens Imóveis) da Prefeitura do Rio de Janeiro.'],
     [],
     ['Critérios de Filtragem'],
     ['• Percentual de transferência ≥ 90%'],

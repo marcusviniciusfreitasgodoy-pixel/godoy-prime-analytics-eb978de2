@@ -249,10 +249,10 @@ export const SyncITBIButton = () => {
               Sincronizando...
             </>
           ) : (
-            <>
-              <Database className="mr-2 h-4 w-4" />
-              Atualizar ITBI
-            </>
+          <>
+            <Database className="mr-2 h-4 w-4" />
+            Atualizar Dados
+          </>
           )}
         </Button>
       </AlertDialogTrigger>
@@ -268,7 +268,7 @@ export const SyncITBIButton = () => {
             )}
             {stage === 'complete' ? 'Sincronização Concluída' : 
              stage === 'error' ? 'Erro na Sincronização' : 
-             'Sincronizar Dados ITBI'}
+             'Sincronizar Transações Oficiais'}
           </AlertDialogTitle>
           <AlertDialogDescription asChild>
             <div className="space-y-4">
@@ -422,7 +422,7 @@ export const SyncITBIButton = () => {
                   </ul>
 
                   <p className="text-xs text-muted-foreground">
-                    Fonte: pgeo3.rio.rj.gov.br/arcgis - API ITBI Prefeitura RJ
+                    Fonte: pgeo3.rio.rj.gov.br/arcgis - API Oficial Prefeitura RJ
                   </p>
                 </>
               )}

@@ -56,7 +56,7 @@ export function exportValuationEnginePDF(
     doc.setTextColor(...BRAND_COLORS.darkGray);
     
     const disclaimerText = [
-      'Este relatório apresenta uma estimativa baseada em dados ITBI de transações',
+      'Este relatório apresenta uma estimativa baseada em dados oficiais de transações',
       'reais (últimos 12 meses), características declaradas e análise estatística.',
       '',
       'RECOMENDAÇÃO: Complemente com a Vistoria Digital para ajuste de até ±15%',

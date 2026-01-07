@@ -270,7 +270,7 @@ export function drawDisclaimer(doc: jsPDF, y: number, marginLeft: number = 20): 
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(7);
   doc.setTextColor(100, 80, 40);
-  const disclaimer = 'Este relatório é uma estimativa baseada em dados públicos de transações ITBI da Prefeitura do Rio de Janeiro. Não substitui laudo de avaliação profissional (PTAM - NBR 14653-2). Os valores são indicativos e devem ser validados por um corretor ou avaliador credenciado.';
+  const disclaimer = 'Este relatório é uma estimativa baseada em dados públicos de transações oficiais da Prefeitura do Rio de Janeiro. Não substitui laudo de avaliação profissional (PTAM - NBR 14653-2). Os valores são indicativos e devem ser validados por um corretor ou avaliador credenciado.';
   const splitDisclaimer = doc.splitTextToSize(disclaimer, contentWidth);
   doc.text(splitDisclaimer, marginLeft, y + 9);
   
