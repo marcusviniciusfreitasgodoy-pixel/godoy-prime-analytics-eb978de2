@@ -4,7 +4,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Search, DollarSign, Loader2, FileDown, RotateCcw, Trash2, FileSpreadsheet, FileText, HelpCircle } from "lucide-react";
+import { Search, DollarSign, Loader2, FileDown, RotateCcw, Trash2, FileSpreadsheet, FileText, HelpCircle, BarChart3, List } from "lucide-react";
+import { BarChart, Bar, XAxis, YAxis, Tooltip as RechartsTooltip, ResponsiveContainer, Cell } from "recharts";
 import { Label } from "@/components/ui/label";
 import {
   Select,
@@ -73,6 +74,7 @@ export default function PesquisasMercado() {
   const [transacaoAreaMax, setTransacaoAreaMax] = useState<string>("");
   const [searchTransactions, setSearchTransactions] = useState(false);
   const [visibleCount, setVisibleCount] = useState(10);
+  const [viewMode, setViewMode] = useState<'list' | 'chart'>('list');
 
   // Queries
   const { data: transactionResult, isLoading: transactionLoading } = useTransactionSearch(
@@ -429,56 +431,130 @@ export default function PesquisasMercado() {
                       <h4 className="font-semibold text-foreground text-sm">
                         Ranking de Logradouros por Liquidez
                       </h4>
-                      <Badge variant="secondary" className="text-xs">
-                        {(transactionResult as any).__totalLogradouros || transactionResult.length} logradouros encontrados
-                      </Badge>
+                      <div className="flex items-center gap-2">
+                        <div className="flex border border-border rounded-md overflow-hidden">
+                          <Button
+                            variant={viewMode === 'list' ? 'secondary' : 'ghost'}
+                            size="sm"
+                            className="rounded-none h-7 px-2"
+                            onClick={() => setViewMode('list')}
+                          >
+                            <List className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            variant={viewMode === 'chart' ? 'secondary' : 'ghost'}
+                            size="sm"
+                            className="rounded-none h-7 px-2"
+                            onClick={() => setViewMode('chart')}
+                          >
+                            <BarChart3 className="h-4 w-4" />
+                          </Button>
+                        </div>
+                        <Badge variant="secondary" className="text-xs">
+                          {(transactionResult as any).__totalLogradouros || transactionResult.length} logradouros
+                        </Badge>
+                      </div>
                     </div>
                     <p className="text-xs text-muted-foreground">
-                      Exibindo {Math.min(visibleCount, transactionResult.length)} de {(transactionResult as any).__totalLogradouros || transactionResult.length} logradouros. Total geral: {((transactionResult as any).__totalGeral || 0).toLocaleString('pt-BR')} transações no período.
+                      {viewMode === 'list' 
+                        ? `Exibindo ${Math.min(visibleCount, transactionResult.length)} de ${(transactionResult as any).__totalLogradouros || transactionResult.length} logradouros.`
+                        : `Top 15 logradouros por número de transações.`
+                      } Total geral: {((transactionResult as any).__totalGeral || 0).toLocaleString('pt-BR')} transações no período.
                     </p>
                   </div>
-                  <div className="space-y-2 max-h-[500px] overflow-y-auto pr-2">
-                    {transactionResult.slice(0, visibleCount).map((item, index) => (
-                      <div 
-                        key={index} 
-                        className="flex items-center justify-between p-3 bg-muted/50 rounded-lg border border-border/50"
-                      >
-                        <div className="flex items-center gap-3">
-                          <span className="font-bold text-accent w-6 text-center">{index + 1}º</span>
-                          <div>
-                            <p className="font-medium text-foreground text-sm">{item.microbairro}</p>
-                            <p className="text-xs text-muted-foreground">
-                              {item.total_transacoes} transações
-                            </p>
+
+                  {viewMode === 'chart' ? (
+                    <div className="h-[400px] w-full">
+                      <ResponsiveContainer width="100%" height="100%">
+                        <BarChart
+                          data={transactionResult.slice(0, 15).map(item => ({
+                            name: item.microbairro.length > 25 ? item.microbairro.substring(0, 22) + '...' : item.microbairro,
+                            fullName: item.microbairro,
+                            transacoes: item.total_transacoes,
+                            precoM2: item.preco_medio_m2,
+                          }))}
+                          layout="vertical"
+                          margin={{ top: 5, right: 30, left: 20, bottom: 5 }}
+                        >
+                          <XAxis type="number" tick={{ fontSize: 11 }} />
+                          <YAxis 
+                            type="category" 
+                            dataKey="name" 
+                            width={150} 
+                            tick={{ fontSize: 10 }}
+                          />
+                          <RechartsTooltip
+                            content={({ active, payload }) => {
+                              if (active && payload && payload.length) {
+                                const data = payload[0].payload;
+                                return (
+                                  <div className="bg-popover border border-border rounded-lg p-3 shadow-lg">
+                                    <p className="font-medium text-foreground text-sm">{data.fullName}</p>
+                                    <p className="text-xs text-muted-foreground">{data.transacoes} transações</p>
+                                    <p className="text-xs text-accent">R$ {data.precoM2?.toLocaleString('pt-BR')}/m²</p>
+                                  </div>
+                                );
+                              }
+                              return null;
+                            }}
+                          />
+                          <Bar dataKey="transacoes" radius={[0, 4, 4, 0]}>
+                            {transactionResult.slice(0, 15).map((_, index) => (
+                              <Cell 
+                                key={`cell-${index}`} 
+                                fill={index < 3 ? 'hsl(var(--accent))' : 'hsl(var(--muted-foreground) / 0.5)'}
+                              />
+                            ))}
+                          </Bar>
+                        </BarChart>
+                      </ResponsiveContainer>
+                    </div>
+                  ) : (
+                    <>
+                      <div className="space-y-2 max-h-[500px] overflow-y-auto pr-2">
+                        {transactionResult.slice(0, visibleCount).map((item, index) => (
+                          <div 
+                            key={index} 
+                            className="flex items-center justify-between p-3 bg-muted/50 rounded-lg border border-border/50"
+                          >
+                            <div className="flex items-center gap-3">
+                              <span className="font-bold text-accent w-6 text-center">{index + 1}º</span>
+                              <div>
+                                <p className="font-medium text-foreground text-sm">{item.microbairro}</p>
+                                <p className="text-xs text-muted-foreground">
+                                  {item.total_transacoes} transações
+                                </p>
+                              </div>
+                            </div>
+                            <div className="text-right">
+                              <p className="font-semibold text-foreground">
+                                R$ {item.preco_medio_m2?.toLocaleString('pt-BR', { maximumFractionDigits: 0 })}/m²
+                              </p>
+                            </div>
                           </div>
-                        </div>
-                        <div className="text-right">
-                          <p className="font-semibold text-foreground">
-                            R$ {item.preco_medio_m2?.toLocaleString('pt-BR', { maximumFractionDigits: 0 })}/m²
-                          </p>
-                        </div>
+                        ))}
                       </div>
-                    ))}
-                  </div>
-                  {visibleCount < transactionResult.length && (
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="w-full mt-2"
-                      onClick={() => setVisibleCount(prev => Math.min(prev + 20, transactionResult.length))}
-                    >
-                      Ver mais ({transactionResult.length - visibleCount} restantes)
-                    </Button>
-                  )}
-                  {visibleCount > 10 && (
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="w-full mt-1"
-                      onClick={() => setVisibleCount(10)}
-                    >
-                      Recolher lista
-                    </Button>
+                      {visibleCount < transactionResult.length && (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="w-full mt-2"
+                          onClick={() => setVisibleCount(prev => Math.min(prev + 20, transactionResult.length))}
+                        >
+                          Ver mais ({transactionResult.length - visibleCount} restantes)
+                        </Button>
+                      )}
+                      {visibleCount > 10 && (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="w-full mt-1"
+                          onClick={() => setVisibleCount(10)}
+                        >
+                          Recolher lista
+                        </Button>
+                      )}
+                    </>
                   )}
                 </div>
               )}
