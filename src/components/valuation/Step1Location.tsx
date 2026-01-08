@@ -5,11 +5,11 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { MapPin, TrendingUp, TrendingDown, Minus, Search, Building2, Plus, X, Calculator } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
-import { normalizeStreetSearchTerm } from "@/lib/utils";
+import { MapPin, TrendingUp, TrendingDown, Minus, Search, Building2, Plus, X, Calculator, CheckCircle2, Database, Loader2 } from "lucide-react";
+import { useOfficialStreetSuggestions, type OfficialStreetSuggestion } from "@/hooks/useOfficialStreetSuggestions";
 import type { ValuationState } from "@/types/valuation";
 import type { CombinedPrices, ITBIData, AnuncioData } from "@/utils/valuationCalculations";
+import { supabase } from "@/integrations/supabase/client";
 
 interface Props {
   state: ValuationState;
@@ -200,8 +200,38 @@ export function Step1Location({ state, updateState, combined }: Props) {
     ? "text-red-600"
     : "text-muted-foreground";
 
-  // Calcula R$/m² para cada anúncio (para exibição)
   const getAnuncioM2 = (anuncio: AnuncioEntry) => {
+    if (anuncio.valor_total > 0 && anuncio.area_m2 > 0) {
+      return anuncio.valor_total / anuncio.area_m2;
+    }
+    return null;
+  };
+
+  const getFonteBadge = (fonte: OfficialStreetSuggestion['fonte']) => {
+    switch (fonte) {
+      case 'combinado':
+        return (
+          <Badge variant="default" className="text-[10px] shrink-0 bg-green-500/20 text-green-700 border-green-500/30">
+            <CheckCircle2 className="h-3 w-3 mr-1" />
+            Verificado
+          </Badge>
+        );
+      case 'oficial':
+        return (
+          <Badge variant="outline" className="text-[10px] shrink-0 text-blue-600 border-blue-300">
+            <CheckCircle2 className="h-3 w-3 mr-1" />
+            Oficial
+          </Badge>
+        );
+      case 'itbi':
+        return (
+          <Badge variant="secondary" className="text-[10px] shrink-0">
+            <Database className="h-3 w-3 mr-1" />
+            ITBI
+          </Badge>
+        );
+    }
+  };
     if (anuncio.valor_total > 0 && anuncio.area_m2 > 0) {
       return anuncio.valor_total / anuncio.area_m2;
     }
@@ -243,28 +273,47 @@ export function Step1Location({ state, updateState, combined }: Props) {
             placeholder="Digite o nome da rua..."
             className="pl-10 h-10 sm:h-9"
           />
+          {loading && (
+            <Loader2 className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 animate-spin text-muted-foreground" />
+          )}
           
           {/* Suggestions dropdown */}
-          {showSuggestions && suggestions.length > 0 && (
+          {showSuggestions && suggestions && suggestions.length > 0 && (
             <Card className="absolute z-50 w-full mt-1 shadow-lg max-h-[60vh] overflow-y-auto">
               <CardContent className="p-0">
-                {suggestions.map((suggestion) => (
+                {suggestions.map((suggestion, idx) => (
                   <button
-                    key={suggestion.logradouro}
+                    key={`${suggestion.logradouro}-${idx}`}
                     onClick={() => handleSelectStreet(suggestion)}
                     className="w-full px-3 sm:px-4 py-2.5 sm:py-3 text-left hover:bg-muted/50 border-b last:border-0 transition-colors"
                   >
-                    <div className="flex items-center justify-between gap-2">
+                    <div className="flex items-start justify-between gap-2">
                       <div className="flex items-center gap-2 min-w-0 flex-1">
                         <Building2 className="h-4 w-4 text-muted-foreground shrink-0" />
-                        <span className="font-medium text-xs sm:text-sm truncate">{suggestion.logradouro}</span>
+                        <div className="min-w-0">
+                          <span className="font-medium text-xs sm:text-sm truncate block">
+                            {suggestion.nome_condominio || suggestion.logradouro}
+                          </span>
+                          {suggestion.nome_condominio && (
+                            <span className="text-[10px] text-muted-foreground truncate block">
+                              {suggestion.logradouro}
+                            </span>
+                          )}
+                          {suggestion.hierarquia && (
+                            <span className="text-[10px] text-muted-foreground">
+                              Via {suggestion.hierarquia}
+                            </span>
+                          )}
+                        </div>
                       </div>
-                      <Badge variant="secondary" className="text-[10px] sm:text-xs shrink-0">
-                        {suggestion.count}
-                      </Badge>
-                    </div>
-                    <div className="mt-1 text-[10px] sm:text-xs text-muted-foreground">
-                      Mediana: {formatCurrency(suggestion.med_m2)}/m²
+                      <div className="flex flex-col items-end gap-1 shrink-0">
+                        {getFonteBadge(suggestion.fonte)}
+                        {suggestion.transaction_count && suggestion.transaction_count > 0 && (
+                          <span className="text-[10px] text-muted-foreground">
+                            {suggestion.transaction_count} transações
+                          </span>
+                        )}
+                      </div>
                     </div>
                   </button>
                 ))}
