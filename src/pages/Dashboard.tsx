@@ -15,6 +15,7 @@ import {
   Video,
   ClipboardCheck,
   Rocket,
+  Map,
 } from "lucide-react";
 import { MarketAssistant } from "@/components/MarketAssistant";
 import { Button } from "@/components/ui/button";
@@ -26,6 +27,9 @@ import { MicrobairroRanking } from "@/components/MicrobairroRanking";
 import { GuidedTour } from "@/components/GuidedTour";
 import { BairroSelector } from "@/components/BairroSelector";
 import { useBairro } from "@/contexts/BairroContext";
+import { TransactionMap } from "@/components/maps/TransactionMap";
+import { useTransactionMapData } from "@/hooks/useTransactionMapData";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { supabase } from "@/integrations/supabase/client";
 import { exportToCSV, exportToXLSX } from "@/utils/exportUtils";
 import { exportDashboardPDF, exportDashboardXLSX } from "@/utils/dashboardExport";
@@ -59,6 +63,12 @@ export default function Dashboard() {
   const { data: kpiStats } = useKPIStats(selectedBairro);
   const { data: rankingData } = useMicrobairroRanking(selectedBairro);
   const { data: evolutionData } = useEvolutionData(selectedBairro, 'semester');
+  
+  // Hook para dados do mapa
+  const { data: mapData, isLoading: isMapLoading } = useTransactionMapData({
+    bairro: selectedBairro,
+    periodoMeses: 12,
+  });
 
   const fetchExportData = async () => {
     const { data, error } = await supabase
@@ -505,6 +515,28 @@ export default function Dashboard() {
       <div data-tour="microbairro-chart">
         <MicrobairroEvolutionChart bairro={selectedBairro} />
       </div>
+
+      {/* Mapa de Transações */}
+      <Card data-tour="transaction-map">
+        <CardHeader className="pb-2">
+          <CardTitle className="flex items-center gap-2 text-lg">
+            <Map className="h-5 w-5 text-primary" />
+            Mapa de Transações
+          </CardTitle>
+          <p className="text-sm text-muted-foreground">
+            Visualização geográfica das transações nos últimos 12 meses
+          </p>
+        </CardHeader>
+        <CardContent className="pt-0">
+          <div className="h-[400px] lg:h-[500px]">
+            <TransactionMap 
+              data={mapData || []} 
+              bairro={selectedBairro} 
+              isLoading={isMapLoading} 
+            />
+          </div>
+        </CardContent>
+      </Card>
 
 
       {/* Avisos - visíveis apenas em mobile, no final da página */}
