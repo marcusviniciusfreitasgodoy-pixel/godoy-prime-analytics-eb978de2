@@ -22,7 +22,7 @@ export function Step2BasicData({ state, updateState, combined }: Props) {
     }).format(value);
   };
 
-  // Preços a usar (combinados se houver anúncios, senão ITBI)
+  // Preços a usar (combinados se houver anúncios, senão dados oficiais)
   const prices = combined || {
     min_m2: state.itbiData?.min_m2 || 0,
     med_m2: state.itbiData?.med_m2 || 0,

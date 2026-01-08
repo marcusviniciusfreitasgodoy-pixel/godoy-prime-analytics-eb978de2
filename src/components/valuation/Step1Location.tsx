@@ -412,7 +412,7 @@ export function Step1Location({ state, updateState, combined }: Props) {
               )}
 
               <p className="text-[10px] sm:text-xs text-muted-foreground mt-2">
-                70% ITBI + 30% Anúncios
+                70% Dados Oficiais + 30% Anúncios
               </p>
             </div>
 

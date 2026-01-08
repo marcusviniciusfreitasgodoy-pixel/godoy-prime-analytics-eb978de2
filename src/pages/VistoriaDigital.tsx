@@ -1284,7 +1284,7 @@ export default function VistoriaDigital() {
                   )}
                 </div>
                 <p className="text-[10px] text-muted-foreground mt-1">
-                  Sugestões baseadas em dados ITBI
+                  Sugestões baseadas em dados oficiais
                 </p>
               </div>
               <div className="grid grid-cols-2 gap-2">
