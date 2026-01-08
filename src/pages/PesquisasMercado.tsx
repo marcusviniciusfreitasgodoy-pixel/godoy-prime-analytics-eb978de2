@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Search, DollarSign, Loader2, FileDown, RotateCcw, Trash2, FileSpreadsheet, FileText, HelpCircle, BarChart3, List } from "lucide-react";
+import { Search, DollarSign, Loader2, FileDown, RotateCcw, Trash2, FileSpreadsheet, FileText, HelpCircle, BarChart3, List, Map } from "lucide-react";
 import { BarChart, Bar, XAxis, YAxis, Tooltip as RechartsTooltip, ResponsiveContainer, Cell } from "recharts";
 import { Label } from "@/components/ui/label";
 import {
@@ -15,6 +15,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { useTransactionSearch } from "@/hooks/useTransactionSearch";
+import { useTransactionMapData } from "@/hooks/useTransactionMapData";
 import { useSearchHistory } from "@/hooks/useSearchHistory";
 import { Badge } from "@/components/ui/badge";
 import { exportToCSV, exportToXLSX } from "@/utils/exportUtils";
@@ -26,6 +27,7 @@ import { useBairro } from "@/contexts/BairroContext";
 import { useActivityTracking } from "@/hooks/useActivityTracking";
 import { PageTour } from "@/components/PageTour";
 import { useFirstVisitTour } from "@/hooks/useFirstVisitTour";
+import { TransactionMap } from "@/components/maps/TransactionMap";
 
 
 const PERIODO_OPTIONS = [
@@ -74,8 +76,22 @@ export default function PesquisasMercado() {
   const [transacaoAreaMax, setTransacaoAreaMax] = useState<string>("");
   const [searchTransactions, setSearchTransactions] = useState(false);
   const [visibleCount, setVisibleCount] = useState(10);
-  const [viewMode, setViewMode] = useState<'list' | 'chart'>('list');
+  const [viewMode, setViewMode] = useState<'list' | 'chart' | 'map'>('list');
   const [chartMetric, setChartMetric] = useState<'transacoes' | 'preco'>('transacoes');
+
+  // Map data query
+  const { data: mapData, isLoading: mapLoading } = useTransactionMapData(
+    {
+      bairro: transacaoBairro,
+      periodoMeses: parseInt(transacaoPeriodo),
+      valorMin: valorMin && valorMin !== 'none' ? parseFloat(valorMin) : undefined,
+      valorMax: valorMax && valorMax !== 'none' ? parseFloat(valorMax) : undefined,
+      areaMin: transacaoAreaMin ? parseFloat(transacaoAreaMin) : undefined,
+      areaMax: transacaoAreaMax ? parseFloat(transacaoAreaMax) : undefined,
+      tipologia: transacaoTipologia === 'todas' ? undefined : transacaoTipologia || undefined,
+    },
+    searchTransactions && viewMode === 'map'
+  );
 
   // Queries
   const { data: transactionResult, isLoading: transactionLoading } = useTransactionSearch(
@@ -450,6 +466,14 @@ export default function PesquisasMercado() {
                           >
                             <BarChart3 className="h-4 w-4" />
                           </Button>
+                          <Button
+                            variant={viewMode === 'map' ? 'secondary' : 'ghost'}
+                            size="sm"
+                            className="rounded-none h-7 px-2"
+                            onClick={() => setViewMode('map')}
+                          >
+                            <Map className="h-4 w-4" />
+                          </Button>
                         </div>
                         <Badge variant="secondary" className="text-xs">
                           {(transactionResult as any).__totalLogradouros || transactionResult.length} logradouros
@@ -459,12 +483,22 @@ export default function PesquisasMercado() {
                     <p className="text-xs text-muted-foreground">
                       {viewMode === 'list' 
                         ? `Exibindo ${Math.min(visibleCount, transactionResult.length)} de ${(transactionResult as any).__totalLogradouros || transactionResult.length} logradouros.`
-                        : `Top 15 logradouros por ${chartMetric === 'transacoes' ? 'número de transações' : 'preço médio/m²'}.`
+                        : viewMode === 'chart'
+                        ? `Top 15 logradouros por ${chartMetric === 'transacoes' ? 'número de transações' : 'preço médio/m²'}.`
+                        : `Visualização geográfica das transações em ${transacaoBairro}.`
                       } Total geral: {((transactionResult as any).__totalGeral || 0).toLocaleString('pt-BR')} transações no período.
                     </p>
                   </div>
 
-                  {viewMode === 'chart' ? (
+                  {viewMode === 'map' ? (
+                    <div className="h-[500px] w-full">
+                      <TransactionMap 
+                        data={mapData || []} 
+                        bairro={transacaoBairro} 
+                        isLoading={mapLoading} 
+                      />
+                    </div>
+                  ) : viewMode === 'chart' ? (
                     <div className="space-y-3">
                       <div className="flex justify-center gap-2">
                         <Button

@@ -38,3 +38,9 @@ verify_jwt = false
 
 [functions.send-visit-reminder]
 verify_jwt = false
+
+[functions.send-pdf-email]
+verify_jwt = false
+
+[functions.geo-logradouro]
+verify_jwt = false
