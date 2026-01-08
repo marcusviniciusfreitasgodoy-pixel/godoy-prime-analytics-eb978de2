@@ -122,16 +122,32 @@ export function useTransactionMapData(params: UseTransactionMapDataParams, enabl
       // Limitar para não sobrecarregar o mapa
       const topLogradouros = aggregatedData.slice(0, 100);
 
-      // Buscar coordenadas via edge function (batch)
+      // Buscar coordenadas via backend function (batch)
+      // Força refresh UMA vez por bairro a cada build para evitar “mapa antigo” após ressincronizações.
       try {
-        const enderecos = topLogradouros.map(item => ({
+        const enderecos = topLogradouros.map((item) => ({
           logradouro: item.microbairro,
           bairro: bairro.toUpperCase(),
         }));
 
-        const { data: geoData, error: geoError } = await supabase.functions.invoke('geo-logradouro/batch-geocode', {
-          body: { enderecos },
-        });
+        const refreshKey = `geoRefresh:${bairro.toUpperCase()}`;
+        const shouldForceRefresh =
+          typeof window !== 'undefined' &&
+          window.sessionStorage?.getItem(refreshKey) !== __BUILD_TIMESTAMP__;
+
+        if (shouldForceRefresh) {
+          window.sessionStorage?.setItem(refreshKey, __BUILD_TIMESTAMP__);
+        }
+
+        const { data: geoData, error: geoError } = await supabase.functions.invoke(
+          'geo-logradouro/batch-geocode',
+          {
+            body: {
+              enderecos,
+              forceRefresh: !!shouldForceRefresh,
+            },
+          }
+        );
 
         if (geoError) {
           console.warn('[useTransactionMapData] Erro ao geocodificar:', geoError);

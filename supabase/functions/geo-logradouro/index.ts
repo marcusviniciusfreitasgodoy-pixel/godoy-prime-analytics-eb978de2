@@ -351,8 +351,8 @@ Deno.serve(async (req) => {
 
     // POST /batch-geocode - Geocodifica múltiplos endereços (COM GOOGLE)
     if (path === 'batch-geocode' && req.method === 'POST') {
-      const { enderecos } = body;
-      
+      const { enderecos, forceRefresh = false } = body;
+
       if (!enderecos || !Array.isArray(enderecos)) {
         return new Response(
           JSON.stringify({ error: 'Lista de endereços é obrigatória' }),
@@ -360,7 +360,7 @@ Deno.serve(async (req) => {
         );
       }
 
-      console.log(`[geo-logradouro] Batch geocode: ${enderecos.length} endereços`);
+      console.log(`[geo-logradouro] Batch geocode: ${enderecos.length} endereços (forceRefresh=${forceRefresh})`);
 
       // Buscar todos do cache primeiro
       const logradouros = enderecos.map((e: { logradouro: string }) => e.logradouro);
@@ -370,8 +370,20 @@ Deno.serve(async (req) => {
         .in('logradouro', logradouros);
 
       const cachedMap = new Map(
-        (cachedData || []).map(c => [`${c.logradouro}|${c.bairro}`, c])
+        (cachedData || []).map((c) => [`${c.logradouro}|${c.bairro}`, c])
       );
+
+      // Considera cache “stale” se não for GOOGLE ou se last_sync for antigo
+      const STALE_AFTER_MS = 1000 * 60 * 60 * 24 * 30; // 30 dias
+      const isStale = (row: any) => {
+        if (!row) return true;
+        if (forceRefresh) return true;
+        if (row.hierarquia !== 'GOOGLE') return true;
+        if (!row.last_sync) return true;
+        const t = Date.parse(row.last_sync);
+        if (Number.isNaN(t)) return true;
+        return Date.now() - t > STALE_AFTER_MS;
+      };
 
       const results: any[] = [];
       const toFetch: { logradouro: string; bairro: string }[] = [];
@@ -379,27 +391,31 @@ Deno.serve(async (req) => {
       for (const endereco of enderecos) {
         const key = `${endereco.logradouro}|${endereco.bairro?.toUpperCase()}`;
         const cached = cachedMap.get(key);
-        
-        if (cached && cached.latitude && cached.longitude) {
-          results.push({ ...cached, source: cached.hierarquia === 'GOOGLE' ? 'google_cache' : 'cache' });
+
+        if (cached && cached.latitude && cached.longitude && !isStale(cached)) {
+          results.push({
+            ...cached,
+            source: cached.hierarquia === 'GOOGLE' ? 'google_cache' : 'cache',
+          });
         } else {
           toFetch.push(endereco);
         }
       }
 
-      // Buscar via Google para os que não estão no cache (limitado para não estourar quota)
+      // Buscar via Google para os que precisam refresh (limitado para não estourar quota)
       const MAX_GOOGLE_CALLS = 50;
       const toFetchLimited = toFetch.slice(0, MAX_GOOGLE_CALLS);
-      
+
       console.log(`[geo-logradouro] Buscando ${toFetchLimited.length} endereços via Google`);
 
       for (const endereco of toFetchLimited) {
         const fallbackBairro = endereco.bairro?.toUpperCase() || 'BARRA DA TIJUCA';
-        const fallback = BAIRRO_CENTROIDS[fallbackBairro] || BAIRRO_CENTROIDS['BARRA DA TIJUCA'];
-        
+        const fallback =
+          BAIRRO_CENTROIDS[fallbackBairro] || BAIRRO_CENTROIDS['BARRA DA TIJUCA'];
+
         // Tentar Google Geocoding
         const googleResult = await geocodeWithGoogle(endereco.logradouro, fallbackBairro);
-        
+
         if (googleResult) {
           const result = {
             logradouro: endereco.logradouro,
@@ -409,25 +425,28 @@ Deno.serve(async (req) => {
             aproximado: false,
             source: 'google',
           };
-          
+
           results.push(result);
-          
+
           // Salvar no cache (fire and forget)
           supabase
             .from('logradouros_geo')
-            .upsert({
-              logradouro: result.logradouro,
-              bairro: result.bairro,
-              hierarquia: 'GOOGLE',
-              latitude: result.latitude,
-              longitude: result.longitude,
-              last_sync: new Date().toISOString(),
-            }, { onConflict: 'logradouro,bairro' })
+            .upsert(
+              {
+                logradouro: result.logradouro,
+                bairro: result.bairro,
+                hierarquia: 'GOOGLE',
+                latitude: result.latitude,
+                longitude: result.longitude,
+                last_sync: new Date().toISOString(),
+              },
+              { onConflict: 'logradouro,bairro' }
+            )
             .then(() => {});
-          
+
           continue;
         }
-        
+
         // Fallback: usar centroide do bairro
         results.push({
           logradouro: endereco.logradouro,
@@ -438,12 +457,13 @@ Deno.serve(async (req) => {
           source: 'fallback',
         });
       }
-      
+
       // Para endereços além do limite, usar fallback
       for (const endereco of toFetch.slice(MAX_GOOGLE_CALLS)) {
         const fallbackBairro = endereco.bairro?.toUpperCase() || 'BARRA DA TIJUCA';
-        const fallback = BAIRRO_CENTROIDS[fallbackBairro] || BAIRRO_CENTROIDS['BARRA DA TIJUCA'];
-        
+        const fallback =
+          BAIRRO_CENTROIDS[fallbackBairro] || BAIRRO_CENTROIDS['BARRA DA TIJUCA'];
+
         results.push({
           logradouro: endereco.logradouro,
           bairro: fallbackBairro,
@@ -454,16 +474,19 @@ Deno.serve(async (req) => {
         });
       }
 
-      const googleCount = results.filter(r => r.source === 'google' || r.source === 'google_cache').length;
-      const cacheCount = results.filter(r => r.source === 'cache').length;
-      const fallbackCount = results.filter(r => r.source?.startsWith('fallback')).length;
-      
-      console.log(`[geo-logradouro] Batch result: ${results.length} total (${googleCount} Google, ${cacheCount} cache, ${fallbackCount} fallback)`);
+      const googleCount = results.filter(
+        (r) => r.source === 'google' || r.source === 'google_cache'
+      ).length;
+      const cacheCount = results.filter((r) => r.source === 'cache').length;
+      const fallbackCount = results.filter((r) => r.source?.startsWith('fallback')).length;
 
-      return new Response(
-        JSON.stringify({ data: results }),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      console.log(
+        `[geo-logradouro] Batch result: ${results.length} total (${googleCount} Google, ${cacheCount} cache, ${fallbackCount} fallback)`
       );
+
+      return new Response(JSON.stringify({ data: results }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
     }
 
     return new Response(
