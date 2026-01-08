@@ -5,10 +5,10 @@ import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import { Calculator, MapPin, Maximize2, Home, ArrowRight, Loader2, Building2, Search, BedDouble, Bath, Sparkles, Car, Star, User, Mail, Phone, Shield } from "lucide-react";
+import { Calculator, MapPin, Maximize2, Home, ArrowRight, Loader2, Building2, Search, BedDouble, Bath, Sparkles, Car, Star, User, Mail, Phone, Shield, CheckCircle2, Database } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/integrations/supabase/client";
-import { usePublicStreetSuggestions } from "@/hooks/usePublicStreetSuggestions";
+import { useOfficialStreetSuggestions, type OfficialStreetSuggestion } from "@/hooks/useOfficialStreetSuggestions";
 import { toast } from "sonner";
 import { LimitExceededScreen } from "./LimitExceededScreen";
 
@@ -90,7 +90,7 @@ export function QuickValuationForm({ onComplete }: QuickValuationFormProps) {
   const inputRef = useRef<HTMLInputElement>(null);
   const suggestionsRef = useRef<HTMLDivElement>(null);
 
-  const { data: suggestions, isLoading: suggestionsLoading } = usePublicStreetSuggestions(logradouro, bairro);
+  const { data: suggestions, isLoading: suggestionsLoading } = useOfficialStreetSuggestions(logradouro, bairro);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -108,9 +108,36 @@ export function QuickValuationForm({ onComplete }: QuickValuationFormProps) {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  const handleSelectSuggestion = (suggestion: { logradouro: string; nome_condominio?: string }) => {
-    setLogradouro(suggestion.nome_condominio || suggestion.logradouro);
+  const handleSelectSuggestion = (suggestion: OfficialStreetSuggestion) => {
+    const streetName = suggestion.logradouro_itbi || suggestion.logradouro;
+    setLogradouro(suggestion.nome_condominio || streetName);
     setShowSuggestions(false);
+  };
+
+  const getFonteBadge = (fonte: OfficialStreetSuggestion['fonte']) => {
+    switch (fonte) {
+      case 'combinado':
+        return (
+          <Badge variant="default" className="text-[10px] shrink-0 bg-green-500/20 text-green-700 border-green-500/30">
+            <CheckCircle2 className="h-3 w-3 mr-1" />
+            Verificado
+          </Badge>
+        );
+      case 'oficial':
+        return (
+          <Badge variant="outline" className="text-[10px] shrink-0 text-blue-600 border-blue-300">
+            <CheckCircle2 className="h-3 w-3 mr-1" />
+            Oficial
+          </Badge>
+        );
+      case 'itbi':
+        return (
+          <Badge variant="secondary" className="text-[10px] shrink-0">
+            <Database className="h-3 w-3 mr-1" />
+            ITBI
+          </Badge>
+        );
+    }
   };
 
   const formatPhone = (value: string) => {
@@ -472,18 +499,20 @@ export function QuickValuationForm({ onComplete }: QuickValuationFormProps) {
                               {suggestion.logradouro}
                             </p>
                           )}
-                          {suggestion.microbairro && (
-                            <p className="text-xs text-accent mt-0.5">
-                              {suggestion.microbairro}
+                          {suggestion.hierarquia && (
+                            <p className="text-[10px] text-muted-foreground">
+                              Via {suggestion.hierarquia}
                             </p>
                           )}
                         </div>
-                        <Badge 
-                          variant="secondary" 
-                          className="shrink-0 text-xs bg-primary/10 text-primary"
-                        >
-                          {suggestion.total_transacoes} trans.
-                        </Badge>
+                        <div className="flex flex-col items-end gap-1 shrink-0">
+                          {getFonteBadge(suggestion.fonte)}
+                          {suggestion.transaction_count && suggestion.transaction_count > 0 && (
+                            <span className="text-[10px] text-muted-foreground">
+                              {suggestion.transaction_count} transações
+                            </span>
+                          )}
+                        </div>
                       </div>
                     </button>
                   ))}

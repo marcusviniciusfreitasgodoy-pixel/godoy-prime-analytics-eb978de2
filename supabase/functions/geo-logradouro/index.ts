@@ -84,7 +84,131 @@ Deno.serve(async (req) => {
 
     console.log(`[geo-logradouro] ${req.method} /${path}`, body);
 
-    // POST /search - Busca logradouros por nome
+    // Novo endpoint unificado: action-based routing
+    if (body.action === 'search') {
+      const { term, bairro, limite = 12 } = body;
+      
+      if (!term || term.length < 2) {
+        return new Response(
+          JSON.stringify({ results: [] }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
+      const normalizedBairro = bairro?.toUpperCase() || 'BARRA DA TIJUCA';
+
+      // Buscar no cache local primeiro
+      const { data: cacheResults } = await supabase
+        .from('logradouros_geo')
+        .select('*')
+        .eq('bairro', normalizedBairro)
+        .ilike('logradouro', `%${term.toUpperCase()}%`)
+        .limit(limite);
+
+      if (cacheResults && cacheResults.length >= 5) {
+        console.log(`[geo-logradouro] Cache hit: ${cacheResults.length} resultados`);
+        return new Response(
+          JSON.stringify({ 
+            results: cacheResults.map(r => ({
+              logradouro: r.logradouro,
+              bairro: r.bairro,
+              cod_trecho: r.cod_trecho,
+              hierarquia: r.hierarquia,
+              tipo_logradouro: r.tipo_logradouro,
+              latitude: r.latitude,
+              longitude: r.longitude,
+            })),
+            source: 'cache' 
+          }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
+      // Buscar na API da Prefeitura
+      try {
+        const whereClause = `NM_COMPLETO_LOGRADOURO LIKE '%${term.toUpperCase()}%'`;
+        const apiUrl = `${PREFEITURA_API_BASE}?where=${encodeURIComponent(whereClause)}&outFields=NM_COMPLETO_LOGRADOURO,CD_TRECHO_LOGRADOURO,HIERARQUIA,TP_LOGRADOURO&returnGeometry=true&outSR=4326&f=json&resultRecordCount=${limite}`;
+        
+        console.log(`[geo-logradouro] Consultando API Prefeitura`);
+        const apiResponse = await fetch(apiUrl);
+        
+        if (apiResponse.ok) {
+          const apiData = await apiResponse.json();
+          
+          if (apiData.features && apiData.features.length > 0) {
+            const results = apiData.features.map((feature: any) => {
+              const attrs = feature.attributes;
+              let lat: number | null = null;
+              let lng: number | null = null;
+
+              if (feature.geometry?.paths) {
+                const centroid = calculateCentroid(feature.geometry.paths);
+                if (centroid) {
+                  lat = centroid.y;
+                  lng = centroid.x;
+                }
+              }
+
+              return {
+                logradouro: attrs.NM_COMPLETO_LOGRADOURO,
+                bairro: normalizedBairro,
+                cod_trecho: attrs.CD_TRECHO_LOGRADOURO,
+                hierarquia: attrs.HIERARQUIA,
+                tipo_logradouro: attrs.TP_LOGRADOURO,
+                latitude: lat,
+                longitude: lng,
+              };
+            });
+
+            // Salvar no cache (fire and forget)
+            for (const result of results) {
+              if (result.latitude && result.longitude) {
+                supabase
+                  .from('logradouros_geo')
+                  .upsert({
+                    logradouro: result.logradouro,
+                    bairro: result.bairro,
+                    cod_trecho: result.cod_trecho,
+                    hierarquia: result.hierarquia,
+                    tipo_logradouro: result.tipo_logradouro,
+                    latitude: result.latitude,
+                    longitude: result.longitude,
+                    last_sync: new Date().toISOString(),
+                  }, { onConflict: 'logradouro,bairro' })
+                  .then(() => {});
+              }
+            }
+
+            console.log(`[geo-logradouro] API retornou ${results.length} resultados`);
+            return new Response(
+              JSON.stringify({ results, source: 'api' }),
+              { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+            );
+          }
+        }
+      } catch (apiError) {
+        console.error('[geo-logradouro] Erro na API:', apiError);
+      }
+
+      // Fallback: retornar cache mesmo se insuficiente
+      return new Response(
+        JSON.stringify({
+          results: (cacheResults || []).map(r => ({
+            logradouro: r.logradouro,
+            bairro: r.bairro,
+            cod_trecho: r.cod_trecho,
+            hierarquia: r.hierarquia,
+            tipo_logradouro: r.tipo_logradouro,
+            latitude: r.latitude,
+            longitude: r.longitude,
+          })),
+          source: 'cache_fallback'
+        }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // POST /search - Busca logradouros por nome (legacy)
     if (path === 'search' && req.method === 'POST') {
       const { termo, bairro, limite = 10 } = body;
       
