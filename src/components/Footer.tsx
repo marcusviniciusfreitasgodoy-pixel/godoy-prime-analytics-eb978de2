@@ -72,6 +72,9 @@ export function Footer() {
               Godoy Prime Realty
             </a>
           </p>
+          <p className="text-[8px] sm:text-[10px] text-primary-foreground/40 font-mono">
+            Build: {__BUILD_TIMESTAMP__}
+          </p>
         </div>
       </div>
     </footer>
