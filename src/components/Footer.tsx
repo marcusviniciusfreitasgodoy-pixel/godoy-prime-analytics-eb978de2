@@ -73,7 +73,7 @@ export function Footer() {
             </a>
           </p>
           <p className="text-[8px] sm:text-[10px] text-primary-foreground/40 font-mono">
-            Build: {__BUILD_TIMESTAMP__}
+            Build: {typeof __BUILD_TIMESTAMP__ !== 'undefined' ? __BUILD_TIMESTAMP__ : 'dev'}
           </p>
         </div>
       </div>

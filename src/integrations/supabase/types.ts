@@ -510,6 +510,48 @@ export type Database = {
         }
         Relationships: []
       }
+      logradouros_geo: {
+        Row: {
+          bairro: string
+          cod_trecho: number | null
+          created_at: string | null
+          hierarquia: string | null
+          id: string
+          last_sync: string | null
+          latitude: number | null
+          logradouro: string
+          longitude: number | null
+          tipo_logradouro: string | null
+          velocidade_regulamentada: number | null
+        }
+        Insert: {
+          bairro: string
+          cod_trecho?: number | null
+          created_at?: string | null
+          hierarquia?: string | null
+          id?: string
+          last_sync?: string | null
+          latitude?: number | null
+          logradouro: string
+          longitude?: number | null
+          tipo_logradouro?: string | null
+          velocidade_regulamentada?: number | null
+        }
+        Update: {
+          bairro?: string
+          cod_trecho?: number | null
+          created_at?: string | null
+          hierarquia?: string | null
+          id?: string
+          last_sync?: string | null
+          latitude?: number | null
+          logradouro?: string
+          longitude?: number | null
+          tipo_logradouro?: string | null
+          velocidade_regulamentada?: number | null
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           created_at: string | null
