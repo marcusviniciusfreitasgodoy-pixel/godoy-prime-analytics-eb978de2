@@ -1,11 +1,10 @@
+// Sync logradouros com Google Geocoding API - v2
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
-
-const PREFEITURA_API_BASE = 'https://pgeo3.rio.rj.gov.br/arcgis/rest/services/CadLog/Trechos_Logradouros/MapServer/0/query';
 
 // Coordenadas aproximadas do centro de cada bairro (WGS84)
 const BAIRRO_CENTROIDS: Record<string, { lat: number; lng: number }> = {
@@ -21,30 +20,49 @@ const BAIRRO_CENTROIDS: Record<string, { lat: number; lng: number }> = {
   'LARANJEIRAS': { lat: -22.9350, lng: -43.1850 },
 };
 
-// Calcula centroid de uma polyline
-function calculateCentroid(paths: number[][][]): { x: number; y: number } | null {
-  if (!paths || paths.length === 0) return null;
-  
-  let totalX = 0;
-  let totalY = 0;
-  let totalPoints = 0;
-  
-  for (const path of paths) {
-    for (const point of path) {
-      if (point.length >= 2) {
-        totalX += point[0];
-        totalY += point[1];
-        totalPoints++;
-      }
-    }
+// Geocodifica usando Google Geocoding API
+async function geocodeWithGoogle(address: string, bairro: string): Promise<{ lat: number; lng: number; formatted_address: string } | null> {
+  const apiKey = Deno.env.get('GOOGLE_GEOCODING_API_KEY');
+  if (!apiKey) {
+    console.warn('[sync-logradouros-geo] GOOGLE_GEOCODING_API_KEY não configurada');
+    return null;
   }
+
+  const fullAddress = `${address}, ${bairro}, Rio de Janeiro, RJ, Brasil`;
+  const url = `https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(fullAddress)}&key=${apiKey}&region=br&language=pt-BR`;
   
-  if (totalPoints === 0) return null;
-  
-  return {
-    x: totalX / totalPoints,
-    y: totalY / totalPoints,
-  };
+  try {
+    const response = await fetch(url);
+    
+    if (!response.ok) {
+      console.error(`[sync-logradouros-geo] Google API error: ${response.status}`);
+      return null;
+    }
+
+    const data = await response.json();
+    
+    if (data.status === 'OK' && data.results && data.results.length > 0) {
+      const result = data.results[0];
+      const location = result.geometry?.location;
+      
+      if (location) {
+        return {
+          lat: location.lat,
+          lng: location.lng,
+          formatted_address: result.formatted_address,
+        };
+      }
+    } else if (data.status === 'ZERO_RESULTS') {
+      console.log(`[sync-logradouros-geo] Google: sem resultados para ${fullAddress}`);
+    } else if (data.status === 'OVER_QUERY_LIMIT') {
+      console.error('[sync-logradouros-geo] Google: quota excedida');
+    }
+    
+    return null;
+  } catch (error) {
+    console.error('[sync-logradouros-geo] Google geocode error:', error);
+    return null;
+  }
 }
 
 // Delay helper
@@ -63,8 +81,9 @@ Deno.serve(async (req) => {
     const body = req.method === 'POST' ? await req.json() : {};
     const bairro = (body.bairro || 'BARRA DA TIJUCA').toUpperCase();
     const limitLogradouros = body.limit || 200;
+    const forceRefresh = body.forceRefresh || false; // Re-geocodifica mesmo os que já têm cache
 
-    console.log(`[sync-logradouros-geo] Iniciando sync para ${bairro}, limite: ${limitLogradouros}`);
+    console.log(`[sync-logradouros-geo] Iniciando sync Google para ${bairro}, limite: ${limitLogradouros}, forceRefresh: ${forceRefresh}`);
 
     // 1. Buscar logradouros únicos das transações ITBI
     const { data: logradouros, error: queryError } = await supabase
@@ -82,34 +101,41 @@ Deno.serve(async (req) => {
     const uniqueLogradouros = [...new Set(logradouros?.map(l => l.logradouro).filter(Boolean))];
     console.log(`[sync-logradouros-geo] Encontrados ${uniqueLogradouros.length} logradouros únicos`);
 
-    // 2. Verificar quais já estão no cache
+    // 2. Verificar quais já estão no cache COM coordenadas do Google
     const { data: cached } = await supabase
       .from('logradouros_geo')
-      .select('logradouro')
+      .select('logradouro, hierarquia')
       .eq('bairro', bairro);
 
-    const cachedSet = new Set(cached?.map(c => c.logradouro) || []);
-    const toGeocode = uniqueLogradouros.filter(l => !cachedSet.has(l)).slice(0, limitLogradouros);
+    const googleCachedSet = new Set(
+      cached?.filter(c => c.hierarquia === 'GOOGLE').map(c => c.logradouro) || []
+    );
+    
+    // Se forceRefresh, re-geocodifica todos; senão, só os que não têm Google
+    const toGeocode = forceRefresh 
+      ? uniqueLogradouros.slice(0, limitLogradouros)
+      : uniqueLogradouros.filter(l => !googleCachedSet.has(l)).slice(0, limitLogradouros);
 
-    console.log(`[sync-logradouros-geo] ${cachedSet.size} já em cache, ${toGeocode.length} para geocodificar`);
+    console.log(`[sync-logradouros-geo] ${googleCachedSet.size} já com Google, ${toGeocode.length} para geocodificar`);
 
     if (toGeocode.length === 0) {
       return new Response(
         JSON.stringify({ 
           success: true, 
-          message: 'Todos os logradouros já estão no cache',
-          cached: cachedSet.size,
+          message: 'Todos os logradouros já estão geocodificados com Google',
+          total: uniqueLogradouros.length,
+          google_cached: googleCachedSet.size,
           geocoded: 0
         }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
-    // 3. Geocodificar cada logradouro
+    // 3. Geocodificar cada logradouro via Google
     const results = {
-      success: 0,
-      failed: 0,
+      google_success: 0,
       fallback: 0,
+      failed: 0,
       errors: [] as string[],
     };
 
@@ -119,96 +145,71 @@ Deno.serve(async (req) => {
       const logradouro = toGeocode[i];
       
       try {
-        // Buscar na API da Prefeitura
-        const whereClause = `NM_COMPLETO_LOGRADOURO = '${logradouro}'`;
-        const apiUrl = `${PREFEITURA_API_BASE}?where=${encodeURIComponent(whereClause)}&outFields=NM_COMPLETO_LOGRADOURO,CD_TRECHO_LOGRADOURO,HIERARQUIA,TP_LOGRADOURO&returnGeometry=true&outSR=4326&f=json&resultRecordCount=1`;
+        // Tentar Google Geocoding
+        const googleResult = await geocodeWithGoogle(logradouro, bairro);
         
-        const apiResponse = await fetch(apiUrl);
-        
-        if (apiResponse.ok) {
-          const apiData = await apiResponse.json();
-          
-          if (apiData.features && apiData.features.length > 0) {
-            const feature = apiData.features[0];
-            const attrs = feature.attributes;
-            let lat: number | null = null;
-            let lng: number | null = null;
+        if (googleResult) {
+          const { error: upsertError } = await supabase
+            .from('logradouros_geo')
+            .upsert({
+              logradouro,
+              bairro,
+              hierarquia: 'GOOGLE',
+              latitude: googleResult.lat,
+              longitude: googleResult.lng,
+              last_sync: new Date().toISOString(),
+            }, { onConflict: 'logradouro,bairro' });
 
-            if (feature.geometry?.paths) {
-              const centroid = calculateCentroid(feature.geometry.paths);
-              if (centroid) {
-                lat = centroid.y;
-                lng = centroid.x;
-              }
-            }
+          if (upsertError) {
+            console.warn(`[sync-logradouros-geo] Erro ao salvar ${logradouro}:`, upsertError);
+            results.errors.push(`${logradouro}: ${upsertError.message}`);
+            results.failed++;
+          } else {
+            results.google_success++;
+          }
+        } else {
+          // Fallback: salvar com coordenadas aproximadas
+          const { error: fallbackError } = await supabase
+            .from('logradouros_geo')
+            .upsert({
+              logradouro,
+              bairro,
+              hierarquia: 'FALLBACK',
+              latitude: fallback.lat + (Math.random() - 0.5) * 0.015,
+              longitude: fallback.lng + (Math.random() - 0.5) * 0.015,
+              last_sync: new Date().toISOString(),
+            }, { onConflict: 'logradouro,bairro' });
 
-            if (lat && lng) {
-              const { error: upsertError } = await supabase
-                .from('logradouros_geo')
-                .upsert({
-                  logradouro,
-                  bairro,
-                  cod_trecho: attrs.CD_TRECHO_LOGRADOURO,
-                  hierarquia: attrs.HIERARQUIA,
-                  tipo_logradouro: attrs.TP_LOGRADOURO,
-                  latitude: lat,
-                  longitude: lng,
-                  last_sync: new Date().toISOString(),
-                }, { onConflict: 'logradouro,bairro' });
-
-              if (upsertError) {
-                console.warn(`[sync-logradouros-geo] Erro ao salvar ${logradouro}:`, upsertError);
-                results.errors.push(`${logradouro}: ${upsertError.message}`);
-                results.failed++;
-              } else {
-                results.success++;
-              }
-              
-              // Rate limiting
-              if ((i + 1) % 10 === 0) {
-                console.log(`[sync-logradouros-geo] Progresso: ${i + 1}/${toGeocode.length}`);
-                await delay(200);
-              }
-              continue;
-            }
+          if (!fallbackError) {
+            results.fallback++;
+          } else {
+            results.failed++;
           }
         }
         
-        // Fallback: salvar com coordenadas aproximadas
-        const { error: fallbackError } = await supabase
-          .from('logradouros_geo')
-          .upsert({
-            logradouro,
-            bairro,
-            latitude: fallback.lat + (Math.random() - 0.5) * 0.015,
-            longitude: fallback.lng + (Math.random() - 0.5) * 0.015,
-            last_sync: new Date().toISOString(),
-          }, { onConflict: 'logradouro,bairro' });
-
-        if (!fallbackError) {
-          results.fallback++;
-        } else {
-          results.failed++;
+        // Log progresso a cada 10
+        if ((i + 1) % 10 === 0) {
+          console.log(`[sync-logradouros-geo] Progresso: ${i + 1}/${toGeocode.length} (${results.google_success} Google, ${results.fallback} fallback)`);
         }
+        
+        // Rate limiting - Google permite 50 req/s, mas vamos ser conservadores
+        await delay(100);
         
       } catch (error) {
         console.warn(`[sync-logradouros-geo] Erro em ${logradouro}:`, error);
         results.failed++;
       }
-      
-      // Rate limiting entre requests
-      await delay(100);
     }
 
-    console.log(`[sync-logradouros-geo] Concluído: ${results.success} OK, ${results.fallback} fallback, ${results.failed} falhas`);
+    console.log(`[sync-logradouros-geo] Concluído: ${results.google_success} Google, ${results.fallback} fallback, ${results.failed} falhas`);
 
     return new Response(
       JSON.stringify({
         success: true,
         bairro,
         total_logradouros: uniqueLogradouros.length,
-        already_cached: cachedSet.size,
-        geocoded: results.success,
+        already_google_cached: googleCachedSet.size,
+        google_success: results.google_success,
         fallback: results.fallback,
         failed: results.failed,
         errors: results.errors.slice(0, 10),
