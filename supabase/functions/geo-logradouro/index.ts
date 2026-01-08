@@ -30,15 +30,51 @@ const BAIRRO_CENTROIDS: Record<string, { lat: number; lng: number }> = {
   'MEIER': { lat: -22.9050, lng: -43.2800 },
 };
 
-// Converte coordenadas SIRGAS 2000 (EPSG:31983) para WGS84 (EPSG:4326)
-// Aproximação simplificada para a região do Rio de Janeiro
-function sirgas2000ToWGS84(x: number, y: number): { lat: number; lng: number } {
-  // Parâmetros aproximados para conversão na região do RJ
-  // Esta é uma conversão simplificada - para precisão máxima seria necessário proj4
-  const lng = (x - 666820) / 111320 - 43.17;
-  const lat = (y - 7465000) / 110540 - 22.95;
+// Geocodifica usando Google Geocoding API
+async function geocodeWithGoogle(address: string, bairro: string): Promise<{ lat: number; lng: number; formatted_address: string } | null> {
+  const apiKey = Deno.env.get('GOOGLE_GEOCODING_API_KEY');
+  if (!apiKey) {
+    console.warn('[geo-logradouro] GOOGLE_GEOCODING_API_KEY não configurada');
+    return null;
+  }
+
+  const fullAddress = `${address}, ${bairro}, Rio de Janeiro, RJ, Brasil`;
+  const url = `https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(fullAddress)}&key=${apiKey}&region=br&language=pt-BR`;
   
-  return { lat, lng };
+  try {
+    console.log(`[geo-logradouro] Google Geocoding: ${fullAddress}`);
+    const response = await fetch(url);
+    
+    if (!response.ok) {
+      console.error(`[geo-logradouro] Google API error: ${response.status}`);
+      return null;
+    }
+
+    const data = await response.json();
+    
+    if (data.status === 'OK' && data.results && data.results.length > 0) {
+      const result = data.results[0];
+      const location = result.geometry?.location;
+      
+      if (location) {
+        console.log(`[geo-logradouro] Google success: ${location.lat}, ${location.lng}`);
+        return {
+          lat: location.lat,
+          lng: location.lng,
+          formatted_address: result.formatted_address,
+        };
+      }
+    } else if (data.status === 'ZERO_RESULTS') {
+      console.log(`[geo-logradouro] Google: nenhum resultado para ${fullAddress}`);
+    } else {
+      console.warn(`[geo-logradouro] Google status: ${data.status}`, data.error_message);
+    }
+    
+    return null;
+  } catch (error) {
+    console.error('[geo-logradouro] Google geocode error:', error);
+    return null;
+  }
 }
 
 // Calcula centroid de uma polyline
@@ -117,6 +153,7 @@ Deno.serve(async (req) => {
               tipo_logradouro: r.tipo_logradouro,
               latitude: r.latitude,
               longitude: r.longitude,
+              source: r.hierarquia ? 'google' : 'cache',
             })),
             source: 'cache' 
           }),
@@ -124,24 +161,35 @@ Deno.serve(async (req) => {
         );
       }
 
-      // Buscar na API da Prefeitura
+      // Buscar na API da Prefeitura para sugestões de nomes
       try {
         const whereClause = `NM_COMPLETO_LOGRADOURO LIKE '%${term.toUpperCase()}%'`;
         const apiUrl = `${PREFEITURA_API_BASE}?where=${encodeURIComponent(whereClause)}&outFields=NM_COMPLETO_LOGRADOURO,CD_TRECHO_LOGRADOURO,HIERARQUIA,TP_LOGRADOURO&returnGeometry=true&outSR=4326&f=json&resultRecordCount=${limite}`;
         
-        console.log(`[geo-logradouro] Consultando API Prefeitura`);
+        console.log(`[geo-logradouro] Consultando API Prefeitura para sugestões`);
         const apiResponse = await fetch(apiUrl);
         
         if (apiResponse.ok) {
           const apiData = await apiResponse.json();
           
           if (apiData.features && apiData.features.length > 0) {
-            const results = apiData.features.map((feature: any) => {
+            const results = [];
+            
+            for (const feature of apiData.features) {
               const attrs = feature.attributes;
               let lat: number | null = null;
               let lng: number | null = null;
+              let source = 'prefeitura';
 
-              if (feature.geometry?.paths) {
+              // Tentar Google Geocoding primeiro para precisão máxima
+              const googleResult = await geocodeWithGoogle(attrs.NM_COMPLETO_LOGRADOURO, normalizedBairro);
+              
+              if (googleResult) {
+                lat = googleResult.lat;
+                lng = googleResult.lng;
+                source = 'google';
+              } else if (feature.geometry?.paths) {
+                // Fallback para API da Prefeitura
                 const centroid = calculateCentroid(feature.geometry.paths);
                 if (centroid) {
                   lat = centroid.y;
@@ -149,37 +197,46 @@ Deno.serve(async (req) => {
                 }
               }
 
-              return {
+              // Fallback final para centroid do bairro
+              if (!lat || !lng) {
+                const fallback = BAIRRO_CENTROIDS[normalizedBairro] || BAIRRO_CENTROIDS['BARRA DA TIJUCA'];
+                lat = fallback.lat + (Math.random() - 0.5) * 0.005;
+                lng = fallback.lng + (Math.random() - 0.5) * 0.005;
+                source = 'fallback';
+              }
+
+              results.push({
                 logradouro: attrs.NM_COMPLETO_LOGRADOURO,
                 bairro: normalizedBairro,
                 cod_trecho: attrs.CD_TRECHO_LOGRADOURO,
-                hierarquia: attrs.HIERARQUIA,
+                hierarquia: source === 'google' ? 'GOOGLE' : attrs.HIERARQUIA,
                 tipo_logradouro: attrs.TP_LOGRADOURO,
                 latitude: lat,
                 longitude: lng,
-              };
-            });
+                source,
+              });
 
-            // Salvar no cache (fire and forget)
-            for (const result of results) {
-              if (result.latitude && result.longitude) {
+              // Salvar no cache (fire and forget)
+              if (lat && lng) {
                 supabase
                   .from('logradouros_geo')
                   .upsert({
-                    logradouro: result.logradouro,
-                    bairro: result.bairro,
-                    cod_trecho: result.cod_trecho,
-                    hierarquia: result.hierarquia,
-                    tipo_logradouro: result.tipo_logradouro,
-                    latitude: result.latitude,
-                    longitude: result.longitude,
+                    logradouro: attrs.NM_COMPLETO_LOGRADOURO,
+                    bairro: normalizedBairro,
+                    cod_trecho: attrs.CD_TRECHO_LOGRADOURO,
+                    hierarquia: source === 'google' ? 'GOOGLE' : attrs.HIERARQUIA,
+                    tipo_logradouro: attrs.TP_LOGRADOURO,
+                    latitude: lat,
+                    longitude: lng,
                     last_sync: new Date().toISOString(),
                   }, { onConflict: 'logradouro,bairro' })
                   .then(() => {});
               }
             }
 
-            console.log(`[geo-logradouro] API retornou ${results.length} resultados`);
+            const googleCount = results.filter(r => r.source === 'google').length;
+            console.log(`[geo-logradouro] Resultados: ${results.length} total (${googleCount} Google)`);
+            
             return new Response(
               JSON.stringify({ results, source: 'api' }),
               { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -208,122 +265,9 @@ Deno.serve(async (req) => {
       );
     }
 
-    // POST /search - Busca logradouros por nome (legacy)
-    if (path === 'search' && req.method === 'POST') {
-      const { termo, bairro, limite = 10 } = body;
-      
-      if (!termo || termo.length < 2) {
-        return new Response(
-          JSON.stringify({ error: 'Termo deve ter pelo menos 2 caracteres' }),
-          { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-        );
-      }
-
-      // Primeiro, buscar no cache local
-      const { data: cacheResults, error: cacheError } = await supabase
-        .from('logradouros_geo')
-        .select('*')
-        .ilike('logradouro', `%${termo}%`)
-        .eq(bairro ? 'bairro' : 'id', bairro || 'id')
-        .limit(limite);
-
-      if (cacheResults && cacheResults.length > 0) {
-        console.log(`[geo-logradouro] Cache hit: ${cacheResults.length} resultados`);
-        return new Response(
-          JSON.stringify({ source: 'cache', data: cacheResults }),
-          { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-        );
-      }
-
-      // Se não encontrar no cache, buscar na API da Prefeitura
-      const whereClause = bairro
-        ? `COMPLETO LIKE '%${termo.toUpperCase()}%' AND BAIRRO = '${bairro.toUpperCase()}'`
-        : `COMPLETO LIKE '%${termo.toUpperCase()}%'`;
-
-      const apiUrl = `${PREFEITURA_API_BASE}?where=${encodeURIComponent(whereClause)}&outFields=*&returnGeometry=true&f=json&resultRecordCount=${limite}`;
-      
-      console.log(`[geo-logradouro] Consultando API Prefeitura:`, apiUrl);
-
-      const apiResponse = await fetch(apiUrl);
-      
-      if (!apiResponse.ok) {
-        console.error(`[geo-logradouro] Erro na API: ${apiResponse.status}`);
-        return new Response(
-          JSON.stringify({ error: 'Erro ao consultar API da Prefeitura', source: 'api_error' }),
-          { status: 502, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-        );
-      }
-
-      const apiData = await apiResponse.json();
-      
-      if (!apiData.features || apiData.features.length === 0) {
-        return new Response(
-          JSON.stringify({ source: 'api', data: [] }),
-          { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-        );
-      }
-
-      // Processar e salvar no cache
-      const processedResults = [];
-      
-      for (const feature of apiData.features) {
-        const attrs = feature.attributes;
-        const geometry = feature.geometry;
-        
-        let lat = null;
-        let lng = null;
-        
-        if (geometry && geometry.paths) {
-          const centroid = calculateCentroid(geometry.paths);
-          if (centroid) {
-            const wgs84 = sirgas2000ToWGS84(centroid.x, centroid.y);
-            lat = wgs84.lat;
-            lng = wgs84.lng;
-          }
-        }
-        
-        // Fallback para centroid do bairro
-        if (!lat || !lng) {
-          const bairroName = attrs.BAIRRO?.toUpperCase() || 'BARRA DA TIJUCA';
-          const fallback = BAIRRO_CENTROIDS[bairroName] || BAIRRO_CENTROIDS['BARRA DA TIJUCA'];
-          lat = fallback.lat + (Math.random() - 0.5) * 0.01;
-          lng = fallback.lng + (Math.random() - 0.5) * 0.01;
-        }
-
-        const record = {
-          logradouro: attrs.COMPLETO || attrs.NOME_MAPA || '',
-          bairro: attrs.BAIRRO || 'BARRA DA TIJUCA',
-          cod_trecho: attrs.COD_TRECHO,
-          latitude: lat,
-          longitude: lng,
-          hierarquia: attrs.HIERARQUIA,
-          tipo_logradouro: attrs.TIPO,
-          velocidade_regulamentada: attrs.VELOCIDADE_REGULAMENTADA,
-        };
-
-        processedResults.push(record);
-
-        // Salvar no cache (upsert)
-        const { error: upsertError } = await supabase
-          .from('logradouros_geo')
-          .upsert(record, { onConflict: 'logradouro,bairro' });
-        
-        if (upsertError) {
-          console.warn(`[geo-logradouro] Erro ao salvar cache:`, upsertError);
-        }
-      }
-
-      console.log(`[geo-logradouro] API retornou ${processedResults.length} resultados`);
-
-      return new Response(
-        JSON.stringify({ source: 'api', data: processedResults }),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
-
-    // POST /geocode - Geocodifica um endereço específico
+    // POST /geocode - Geocodifica um endereço específico (AGORA COM GOOGLE PRIORITY)
     if (path === 'geocode' && req.method === 'POST') {
-      const { logradouro, bairro } = body;
+      const { logradouro, bairro, numero } = body;
       
       if (!logradouro) {
         return new Response(
@@ -332,14 +276,51 @@ Deno.serve(async (req) => {
         );
       }
 
-      // Buscar no cache primeiro
+      const normalizedBairro = bairro?.toUpperCase() || 'BARRA DA TIJUCA';
+      
+      // Construir endereço completo para Google
+      const addressParts = [logradouro];
+      if (numero) addressParts.push(numero);
+      const fullAddress = addressParts.join(', ');
+
+      // 1. Tentar Google Geocoding PRIMEIRO (máxima precisão)
+      const googleResult = await geocodeWithGoogle(fullAddress, normalizedBairro);
+      
+      if (googleResult) {
+        const result = {
+          logradouro,
+          bairro: normalizedBairro,
+          latitude: googleResult.lat,
+          longitude: googleResult.lng,
+          formatted_address: googleResult.formatted_address,
+          aproximado: false,
+          source: 'google',
+        };
+
+        // Salvar no cache
+        await supabase.from('logradouros_geo').upsert({
+          logradouro,
+          bairro: normalizedBairro,
+          latitude: result.latitude,
+          longitude: result.longitude,
+          hierarquia: 'GOOGLE',
+          last_sync: new Date().toISOString(),
+        }, { onConflict: 'logradouro,bairro' });
+
+        return new Response(
+          JSON.stringify(result),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
+      // 2. Fallback: buscar no cache local
       let query = supabase
         .from('logradouros_geo')
         .select('*')
         .ilike('logradouro', `%${logradouro}%`);
       
       if (bairro) {
-        query = query.eq('bairro', bairro.toUpperCase());
+        query = query.eq('bairro', normalizedBairro);
       }
 
       const { data: cached } = await query.limit(1).single();
@@ -352,109 +333,25 @@ Deno.serve(async (req) => {
         );
       }
 
-      // Buscar na API
-      const bairroFilter = bairro ? ` AND BAIRRO = '${bairro.toUpperCase()}'` : '';
-      const whereClause = `COMPLETO LIKE '%${logradouro.toUpperCase()}%'${bairroFilter}`;
-      const apiUrl = `${PREFEITURA_API_BASE}?where=${encodeURIComponent(whereClause)}&outFields=*&returnGeometry=true&f=json&resultRecordCount=1`;
-
-      const apiResponse = await fetch(apiUrl);
+      // 3. Fallback: usar centroide do bairro
+      const fallback = BAIRRO_CENTROIDS[normalizedBairro] || BAIRRO_CENTROIDS['BARRA DA TIJUCA'];
       
-      if (!apiResponse.ok) {
-        // Fallback para centroid do bairro
-        const fallbackBairro = bairro?.toUpperCase() || 'BARRA DA TIJUCA';
-        const fallback = BAIRRO_CENTROIDS[fallbackBairro] || BAIRRO_CENTROIDS['BARRA DA TIJUCA'];
-        
-        return new Response(
-          JSON.stringify({
-            source: 'fallback',
-            logradouro,
-            bairro: fallbackBairro,
-            latitude: fallback.lat,
-            longitude: fallback.lng,
-            aproximado: true,
-          }),
-          { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-        );
-      }
-
-      const apiData = await apiResponse.json();
-      
-      if (!apiData.features || apiData.features.length === 0) {
-        // Fallback
-        const fallbackBairro = bairro?.toUpperCase() || 'BARRA DA TIJUCA';
-        const fallback = BAIRRO_CENTROIDS[fallbackBairro] || BAIRRO_CENTROIDS['BARRA DA TIJUCA'];
-        
-        return new Response(
-          JSON.stringify({
-            source: 'fallback',
-            logradouro,
-            bairro: fallbackBairro,
-            latitude: fallback.lat + (Math.random() - 0.5) * 0.005,
-            longitude: fallback.lng + (Math.random() - 0.5) * 0.005,
-            aproximado: true,
-          }),
-          { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-        );
-      }
-
-      const feature = apiData.features[0];
-      const attrs = feature.attributes;
-      const geometry = feature.geometry;
-
-      let lat = null;
-      let lng = null;
-
-      if (geometry && geometry.paths) {
-        const centroid = calculateCentroid(geometry.paths);
-        if (centroid) {
-          const wgs84 = sirgas2000ToWGS84(centroid.x, centroid.y);
-          lat = wgs84.lat;
-          lng = wgs84.lng;
-        }
-      }
-
-      if (!lat || !lng) {
-        const fallbackBairro = attrs.BAIRRO?.toUpperCase() || bairro?.toUpperCase() || 'BARRA DA TIJUCA';
-        const fallback = BAIRRO_CENTROIDS[fallbackBairro] || BAIRRO_CENTROIDS['BARRA DA TIJUCA'];
-        lat = fallback.lat + (Math.random() - 0.5) * 0.005;
-        lng = fallback.lng + (Math.random() - 0.5) * 0.005;
-      }
-
-      const result = {
-        logradouro: attrs.COMPLETO || logradouro,
-        bairro: attrs.BAIRRO || bairro || 'BARRA DA TIJUCA',
-        cod_trecho: attrs.COD_TRECHO,
-        latitude: lat,
-        longitude: lng,
-        hierarquia: attrs.HIERARQUIA,
-        tipo_logradouro: attrs.TIPO,
-        velocidade_regulamentada: attrs.VELOCIDADE_REGULAMENTADA,
-        aproximado: false,
-      };
-
-      // Salvar no cache
-      await supabase.from('logradouros_geo').upsert({
-        logradouro: result.logradouro,
-        bairro: result.bairro,
-        cod_trecho: result.cod_trecho,
-        latitude: result.latitude,
-        longitude: result.longitude,
-        hierarquia: result.hierarquia,
-        tipo_logradouro: result.tipo_logradouro,
-        velocidade_regulamentada: result.velocidade_regulamentada,
-      }, { onConflict: 'logradouro,bairro' });
-
-      console.log(`[geo-logradouro] Geocode API: ${logradouro} -> ${lat}, ${lng}`);
-
       return new Response(
-        JSON.stringify({ source: 'api', ...result }),
+        JSON.stringify({
+          source: 'fallback',
+          logradouro,
+          bairro: normalizedBairro,
+          latitude: fallback.lat + (Math.random() - 0.5) * 0.005,
+          longitude: fallback.lng + (Math.random() - 0.5) * 0.005,
+          aproximado: true,
+        }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
-    // POST /batch-geocode - Geocodifica múltiplos endereços
+    // POST /batch-geocode - Geocodifica múltiplos endereços (COM GOOGLE)
     if (path === 'batch-geocode' && req.method === 'POST') {
-      const { enderecos } = body; // Array de { logradouro, bairro }
+      const { enderecos } = body;
       
       if (!enderecos || !Array.isArray(enderecos)) {
         return new Response(
@@ -480,90 +377,58 @@ Deno.serve(async (req) => {
       const toFetch: { logradouro: string; bairro: string }[] = [];
 
       for (const endereco of enderecos) {
-        const key = `${endereco.logradouro}|${endereco.bairro}`;
+        const key = `${endereco.logradouro}|${endereco.bairro?.toUpperCase()}`;
         const cached = cachedMap.get(key);
         
         if (cached && cached.latitude && cached.longitude) {
-          results.push({ ...cached, source: 'cache' });
+          results.push({ ...cached, source: cached.hierarquia === 'GOOGLE' ? 'google_cache' : 'cache' });
         } else {
           toFetch.push(endereco);
         }
       }
 
-      // Buscar na API da Prefeitura para os que não estão no cache
-      const MAX_API_CALLS = 30; // Limitar chamadas à API
-      const toFetchLimited = toFetch.slice(0, MAX_API_CALLS);
+      // Buscar via Google para os que não estão no cache (limitado para não estourar quota)
+      const MAX_GOOGLE_CALLS = 50;
+      const toFetchLimited = toFetch.slice(0, MAX_GOOGLE_CALLS);
       
-      console.log(`[geo-logradouro] Buscando ${toFetchLimited.length} endereços na API da Prefeitura`);
+      console.log(`[geo-logradouro] Buscando ${toFetchLimited.length} endereços via Google`);
 
       for (const endereco of toFetchLimited) {
         const fallbackBairro = endereco.bairro?.toUpperCase() || 'BARRA DA TIJUCA';
         const fallback = BAIRRO_CENTROIDS[fallbackBairro] || BAIRRO_CENTROIDS['BARRA DA TIJUCA'];
         
-        try {
-          // Buscar na API da Prefeitura usando NM_COMPLETO_LOGRADOURO
-          const whereClause = `NM_COMPLETO_LOGRADOURO = '${endereco.logradouro.toUpperCase()}'`;
-          const apiUrl = `${PREFEITURA_API_BASE}?where=${encodeURIComponent(whereClause)}&outFields=NM_COMPLETO_LOGRADOURO,CD_TRECHO_LOGRADOURO,HIERARQUIA,TP_LOGRADOURO&returnGeometry=true&outSR=4326&f=json&resultRecordCount=1`;
+        // Tentar Google Geocoding
+        const googleResult = await geocodeWithGoogle(endereco.logradouro, fallbackBairro);
+        
+        if (googleResult) {
+          const result = {
+            logradouro: endereco.logradouro,
+            bairro: fallbackBairro,
+            latitude: googleResult.lat,
+            longitude: googleResult.lng,
+            aproximado: false,
+            source: 'google',
+          };
           
-          const apiResponse = await fetch(apiUrl);
+          results.push(result);
           
-          if (apiResponse.ok) {
-            const apiData = await apiResponse.json();
-            
-            if (apiData.features && apiData.features.length > 0) {
-              const feature = apiData.features[0];
-              const attrs = feature.attributes;
-              let lat: number | null = null;
-              let lng: number | null = null;
-
-              // A API já retorna em WGS84 (outSR=4326)
-              if (feature.geometry?.paths) {
-                const centroid = calculateCentroid(feature.geometry.paths);
-                if (centroid) {
-                  lat = centroid.y;
-                  lng = centroid.x;
-                }
-              }
-
-              if (lat && lng) {
-                const result = {
-                  logradouro: endereco.logradouro,
-                  bairro: fallbackBairro,
-                  cod_trecho: attrs.CD_TRECHO_LOGRADOURO,
-                  hierarquia: attrs.HIERARQUIA,
-                  tipo_logradouro: attrs.TP_LOGRADOURO,
-                  latitude: lat,
-                  longitude: lng,
-                  aproximado: false,
-                  source: 'api',
-                };
-                
-                results.push(result);
-                
-                // Salvar no cache (fire and forget)
-                supabase
-                  .from('logradouros_geo')
-                  .upsert({
-                    logradouro: result.logradouro,
-                    bairro: result.bairro,
-                    cod_trecho: result.cod_trecho,
-                    hierarquia: result.hierarquia,
-                    tipo_logradouro: result.tipo_logradouro,
-                    latitude: result.latitude,
-                    longitude: result.longitude,
-                    last_sync: new Date().toISOString(),
-                  }, { onConflict: 'logradouro,bairro' })
-                  .then(() => {});
-                
-                continue;
-              }
-            }
-          }
-        } catch (apiError) {
-          console.warn(`[geo-logradouro] Erro ao geocodificar ${endereco.logradouro}:`, apiError);
+          // Salvar no cache (fire and forget)
+          supabase
+            .from('logradouros_geo')
+            .upsert({
+              logradouro: result.logradouro,
+              bairro: result.bairro,
+              hierarquia: 'GOOGLE',
+              latitude: result.latitude,
+              longitude: result.longitude,
+              last_sync: new Date().toISOString(),
+            }, { onConflict: 'logradouro,bairro' })
+            .then(() => {});
+          
+          continue;
         }
         
-        // Fallback: usar centroide do bairro com pequena variação
+        // Fallback: usar centroide do bairro
         results.push({
           logradouro: endereco.logradouro,
           bairro: fallbackBairro,
@@ -575,7 +440,7 @@ Deno.serve(async (req) => {
       }
       
       // Para endereços além do limite, usar fallback
-      for (const endereco of toFetch.slice(MAX_API_CALLS)) {
+      for (const endereco of toFetch.slice(MAX_GOOGLE_CALLS)) {
         const fallbackBairro = endereco.bairro?.toUpperCase() || 'BARRA DA TIJUCA';
         const fallback = BAIRRO_CENTROIDS[fallbackBairro] || BAIRRO_CENTROIDS['BARRA DA TIJUCA'];
         
@@ -589,11 +454,11 @@ Deno.serve(async (req) => {
         });
       }
 
-      const apiCount = results.filter(r => r.source === 'api').length;
+      const googleCount = results.filter(r => r.source === 'google' || r.source === 'google_cache').length;
       const cacheCount = results.filter(r => r.source === 'cache').length;
       const fallbackCount = results.filter(r => r.source?.startsWith('fallback')).length;
       
-      console.log(`[geo-logradouro] Batch result: ${results.length} total (${cacheCount} cache, ${apiCount} API, ${fallbackCount} fallback)`);
+      console.log(`[geo-logradouro] Batch result: ${results.length} total (${googleCount} Google, ${cacheCount} cache, ${fallbackCount} fallback)`);
 
       return new Response(
         JSON.stringify({ data: results }),
