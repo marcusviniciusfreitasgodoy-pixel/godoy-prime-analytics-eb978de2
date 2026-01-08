@@ -106,14 +106,15 @@ export function useTransactionSearch(params: TransactionSearchParams, enabled: b
 
       const totalGeralTransacoes = allResults.reduce((sum, r) => sum + r.total_transacoes, 0);
       
-      const top10 = allResults.sort((a, b) => b.total_transacoes - a.total_transacoes).slice(0, 10);
+      // Sort by transactions and return ALL results
+      const sortedResults = allResults.sort((a, b) => b.total_transacoes - a.total_transacoes);
       
-      if (top10.length > 0) {
-        (top10 as any).__totalGeral = totalGeralTransacoes;
-        (top10 as any).__totalLogradouros = allResults.length;
+      if (sortedResults.length > 0) {
+        (sortedResults as any).__totalGeral = totalGeralTransacoes;
+        (sortedResults as any).__totalLogradouros = allResults.length;
       }
       
-      return top10;
+      return sortedResults;
     },
     enabled,
     staleTime: 1000 * 60 * 5,
