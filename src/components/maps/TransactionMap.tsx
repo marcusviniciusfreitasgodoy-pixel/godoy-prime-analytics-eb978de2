@@ -111,9 +111,13 @@ export function TransactionMap({ data, bairro, isLoading }: TransactionMapProps)
     map.current.setView(center, 14);
   }, [bairro]);
 
-  // Atualiza marcadores quando data muda
+  // Atualiza marcadores quando data/bairro muda
   useEffect(() => {
     if (!mapReady || !markersLayer.current || !data) return;
+
+    // Em alguns navegadores/PWA o Leaflet pode “segurar” o render anterior.
+    // Força recalcular o layout antes de redesenhar.
+    map.current?.invalidateSize();
 
     // Limpa marcadores anteriores
     markersLayer.current.clearLayers();
@@ -158,7 +162,7 @@ export function TransactionMap({ data, bairro, isLoading }: TransactionMapProps)
       `;
 
       marker.bindPopup(popupContent);
-      
+
       // Tooltip no hover
       marker.bindTooltip(`${item.microbairro}`, {
         permanent: false,
@@ -174,7 +178,10 @@ export function TransactionMap({ data, bairro, isLoading }: TransactionMapProps)
     if (bounds.isValid() && data.length > 1) {
       map.current?.fitBounds(bounds, { padding: [50, 50], maxZoom: 16 });
     }
-  }, [data, mapReady]);
+
+    // Garante repaint após fitBounds
+    map.current?.invalidateSize();
+  }, [data, mapReady, bairro]);
 
   return (
     <div className="relative w-full h-full min-h-[400px] rounded-lg overflow-hidden border border-border">
