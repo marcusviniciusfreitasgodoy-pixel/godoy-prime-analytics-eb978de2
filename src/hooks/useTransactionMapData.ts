@@ -47,8 +47,9 @@ export function useTransactionMapData(params: UseTransactionMapDataParams, enabl
   const { bairro, periodoMeses = 12, valorMin, valorMax, areaMin, areaMax, tipologia } = params;
 
   return useQuery({
-    queryKey: ['transaction-map-data', bairro, periodoMeses, valorMin, valorMax, areaMin, areaMax, tipologia],
+    queryKey: ['transaction-map-data-v2', bairro, periodoMeses, valorMin, valorMax, areaMin, areaMax, tipologia],
     queryFn: async (): Promise<TransactionMapData[]> => {
+      console.log('[useTransactionMapData] Buscando dados atualizados para', bairro);
       // Calcular data limite
       const dataLimite = new Date();
       dataLimite.setMonth(dataLimite.getMonth() - periodoMeses);
@@ -149,13 +150,18 @@ export function useTransactionMapData(params: UseTransactionMapDataParams, enabl
             (geoData.data as GeoResult[]).map((g) => [g.logradouro, g])
           );
 
+          // Log para debug - quantos são Google vs fallback
+          const googleCount = (geoData.data as GeoResult[]).filter(g => g.source === 'google' || g.source === 'google_cache').length;
+          const fallbackCount = (geoData.data as GeoResult[]).filter(g => g.source?.includes('fallback')).length;
+          console.log(`[useTransactionMapData] Geocoding: ${googleCount} Google, ${fallbackCount} fallback, ${(geoData.data as GeoResult[]).length} total`);
+
           return topLogradouros.map(item => {
             const geo = geoMap.get(item.microbairro);
             return {
               ...item,
               latitude: geo?.latitude,
               longitude: geo?.longitude,
-              aproximado: geo?.aproximado || geo?.source === 'fallback',
+              aproximado: geo?.aproximado || geo?.source?.includes('fallback'),
             };
           });
         }
@@ -167,6 +173,8 @@ export function useTransactionMapData(params: UseTransactionMapDataParams, enabl
       return topLogradouros;
     },
     enabled: enabled && !!bairro,
-    staleTime: 5 * 60 * 1000, // 5 minutos
+    staleTime: 1 * 60 * 1000, // 1 minuto - cache mais curto para pegar atualizações Google
+    gcTime: 2 * 60 * 1000, // Garbage collect após 2 minutos
+    refetchOnMount: true, // Sempre recarregar ao montar
   });
 }
