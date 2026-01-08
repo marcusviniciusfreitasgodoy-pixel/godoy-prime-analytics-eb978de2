@@ -72,6 +72,7 @@ export default function PesquisasMercado() {
   const [transacaoAreaMin, setTransacaoAreaMin] = useState<string>("");
   const [transacaoAreaMax, setTransacaoAreaMax] = useState<string>("");
   const [searchTransactions, setSearchTransactions] = useState(false);
+  const [visibleCount, setVisibleCount] = useState(10);
 
   // Queries
   const { data: transactionResult, isLoading: transactionLoading } = useTransactionSearch(
@@ -106,6 +107,7 @@ export default function PesquisasMercado() {
     setTransacaoAreaMin("");
     setTransacaoAreaMax("");
     setSearchTransactions(false);
+    setVisibleCount(10);
     queryClient.removeQueries({ queryKey: ['transaction-search'] });
   };
 
@@ -425,18 +427,18 @@ export default function PesquisasMercado() {
                   <div className="space-y-1">
                     <div className="flex items-center justify-between">
                       <h4 className="font-semibold text-foreground text-sm">
-                        Top 10 Logradouros por Liquidez
+                        Ranking de Logradouros por Liquidez
                       </h4>
                       <Badge variant="secondary" className="text-xs">
                         {(transactionResult as any).__totalLogradouros || transactionResult.length} logradouros encontrados
                       </Badge>
                     </div>
                     <p className="text-xs text-muted-foreground">
-                      Exibindo os 10 mais líquidos. Total geral: {((transactionResult as any).__totalGeral || 0).toLocaleString('pt-BR')} transações no período.
+                      Exibindo {Math.min(visibleCount, transactionResult.length)} de {(transactionResult as any).__totalLogradouros || transactionResult.length} logradouros. Total geral: {((transactionResult as any).__totalGeral || 0).toLocaleString('pt-BR')} transações no período.
                     </p>
                   </div>
-                  <div className="space-y-2 max-h-[400px] overflow-y-auto pr-2">
-                    {transactionResult.map((item, index) => (
+                  <div className="space-y-2 max-h-[500px] overflow-y-auto pr-2">
+                    {transactionResult.slice(0, visibleCount).map((item, index) => (
                       <div 
                         key={index} 
                         className="flex items-center justify-between p-3 bg-muted/50 rounded-lg border border-border/50"
@@ -458,6 +460,26 @@ export default function PesquisasMercado() {
                       </div>
                     ))}
                   </div>
+                  {visibleCount < transactionResult.length && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="w-full mt-2"
+                      onClick={() => setVisibleCount(prev => Math.min(prev + 20, transactionResult.length))}
+                    >
+                      Ver mais ({transactionResult.length - visibleCount} restantes)
+                    </Button>
+                  )}
+                  {visibleCount > 10 && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="w-full mt-1"
+                      onClick={() => setVisibleCount(10)}
+                    >
+                      Recolher lista
+                    </Button>
+                  )}
                 </div>
               )}
 
