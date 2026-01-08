@@ -422,13 +422,18 @@ export default function PesquisasMercado() {
               {/* Results */}
               {transactionResult && transactionResult.length > 0 && (
                 <div className="mt-4 space-y-3">
-                  <div className="flex items-center justify-between">
-                    <h4 className="font-semibold text-foreground text-sm">
-                      Ranking de Liquidez por Logradouro
-                    </h4>
-                    <Badge variant="secondary" className="text-xs">
-                      {transactionResult.length} logradouros encontrados
-                    </Badge>
+                  <div className="space-y-1">
+                    <div className="flex items-center justify-between">
+                      <h4 className="font-semibold text-foreground text-sm">
+                        Top 10 Logradouros por Liquidez
+                      </h4>
+                      <Badge variant="secondary" className="text-xs">
+                        {(transactionResult as any).__totalLogradouros || transactionResult.length} logradouros encontrados
+                      </Badge>
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      Exibindo os 10 mais líquidos. Total geral: {((transactionResult as any).__totalGeral || 0).toLocaleString('pt-BR')} transações no período.
+                    </p>
                   </div>
                   <div className="space-y-2 max-h-[400px] overflow-y-auto pr-2">
                     {transactionResult.map((item, index) => (
