@@ -75,6 +75,7 @@ export default function PesquisasMercado() {
   const [searchTransactions, setSearchTransactions] = useState(false);
   const [visibleCount, setVisibleCount] = useState(10);
   const [viewMode, setViewMode] = useState<'list' | 'chart'>('list');
+  const [chartMetric, setChartMetric] = useState<'transacoes' | 'preco'>('transacoes');
 
   // Queries
   const { data: transactionResult, isLoading: transactionLoading } = useTransactionSearch(
@@ -458,56 +459,94 @@ export default function PesquisasMercado() {
                     <p className="text-xs text-muted-foreground">
                       {viewMode === 'list' 
                         ? `Exibindo ${Math.min(visibleCount, transactionResult.length)} de ${(transactionResult as any).__totalLogradouros || transactionResult.length} logradouros.`
-                        : `Top 15 logradouros por número de transações.`
+                        : `Top 15 logradouros por ${chartMetric === 'transacoes' ? 'número de transações' : 'preço médio/m²'}.`
                       } Total geral: {((transactionResult as any).__totalGeral || 0).toLocaleString('pt-BR')} transações no período.
                     </p>
                   </div>
 
                   {viewMode === 'chart' ? (
-                    <div className="h-[400px] w-full">
-                      <ResponsiveContainer width="100%" height="100%">
-                        <BarChart
-                          data={transactionResult.slice(0, 15).map(item => ({
-                            name: item.microbairro.length > 25 ? item.microbairro.substring(0, 22) + '...' : item.microbairro,
-                            fullName: item.microbairro,
-                            transacoes: item.total_transacoes,
-                            precoM2: item.preco_medio_m2,
-                          }))}
-                          layout="vertical"
-                          margin={{ top: 5, right: 30, left: 20, bottom: 5 }}
+                    <div className="space-y-3">
+                      <div className="flex justify-center gap-2">
+                        <Button
+                          variant={chartMetric === 'transacoes' ? 'default' : 'outline'}
+                          size="sm"
+                          onClick={() => setChartMetric('transacoes')}
                         >
-                          <XAxis type="number" tick={{ fontSize: 11 }} />
-                          <YAxis 
-                            type="category" 
-                            dataKey="name" 
-                            width={150} 
-                            tick={{ fontSize: 10 }}
-                          />
-                          <RechartsTooltip
-                            content={({ active, payload }) => {
-                              if (active && payload && payload.length) {
-                                const data = payload[0].payload;
-                                return (
-                                  <div className="bg-popover border border-border rounded-lg p-3 shadow-lg">
-                                    <p className="font-medium text-foreground text-sm">{data.fullName}</p>
-                                    <p className="text-xs text-muted-foreground">{data.transacoes} transações</p>
-                                    <p className="text-xs text-accent">R$ {data.precoM2?.toLocaleString('pt-BR')}/m²</p>
-                                  </div>
-                                );
-                              }
-                              return null;
-                            }}
-                          />
-                          <Bar dataKey="transacoes" radius={[0, 4, 4, 0]}>
-                            {transactionResult.slice(0, 15).map((_, index) => (
-                              <Cell 
-                                key={`cell-${index}`} 
-                                fill={index < 3 ? 'hsl(var(--accent))' : 'hsl(var(--muted-foreground) / 0.5)'}
-                              />
-                            ))}
-                          </Bar>
-                        </BarChart>
-                      </ResponsiveContainer>
+                          Transações
+                        </Button>
+                        <Button
+                          variant={chartMetric === 'preco' ? 'default' : 'outline'}
+                          size="sm"
+                          onClick={() => setChartMetric('preco')}
+                        >
+                          Preço/m²
+                        </Button>
+                      </div>
+                      <div className="h-[400px] w-full">
+                        <ResponsiveContainer width="100%" height="100%">
+                          <BarChart
+                            data={
+                              chartMetric === 'transacoes'
+                                ? transactionResult.slice(0, 15).map(item => ({
+                                    name: item.microbairro.length > 25 ? item.microbairro.substring(0, 22) + '...' : item.microbairro,
+                                    fullName: item.microbairro,
+                                    value: item.total_transacoes,
+                                    transacoes: item.total_transacoes,
+                                    precoM2: item.preco_medio_m2,
+                                  }))
+                                : [...transactionResult].sort((a, b) => b.preco_medio_m2 - a.preco_medio_m2).slice(0, 15).map(item => ({
+                                    name: item.microbairro.length > 25 ? item.microbairro.substring(0, 22) + '...' : item.microbairro,
+                                    fullName: item.microbairro,
+                                    value: item.preco_medio_m2,
+                                    transacoes: item.total_transacoes,
+                                    precoM2: item.preco_medio_m2,
+                                  }))
+                            }
+                            layout="vertical"
+                            margin={{ top: 5, right: 30, left: 20, bottom: 5 }}
+                          >
+                            <XAxis 
+                              type="number" 
+                              tick={{ fontSize: 11 }} 
+                              tickFormatter={chartMetric === 'preco' ? (v) => `R$ ${(v / 1000).toFixed(0)}k` : undefined}
+                            />
+                            <YAxis 
+                              type="category" 
+                              dataKey="name" 
+                              width={150} 
+                              tick={{ fontSize: 10 }}
+                            />
+                            <RechartsTooltip
+                              content={({ active, payload }) => {
+                                if (active && payload && payload.length) {
+                                  const data = payload[0].payload;
+                                  return (
+                                    <div className="bg-popover border border-border rounded-lg p-3 shadow-lg">
+                                      <p className="font-medium text-foreground text-sm">{data.fullName}</p>
+                                      <p className="text-xs text-muted-foreground">{data.transacoes} transações</p>
+                                      <p className="text-xs text-accent">R$ {data.precoM2?.toLocaleString('pt-BR')}/m²</p>
+                                    </div>
+                                  );
+                                }
+                                return null;
+                              }}
+                            />
+                            <Bar dataKey="value" radius={[0, 4, 4, 0]}>
+                              {(chartMetric === 'transacoes' 
+                                ? transactionResult.slice(0, 15) 
+                                : [...transactionResult].sort((a, b) => b.preco_medio_m2 - a.preco_medio_m2).slice(0, 15)
+                              ).map((_, index) => (
+                                <Cell 
+                                  key={`cell-${index}`} 
+                                  fill={index < 3 
+                                    ? (chartMetric === 'preco' ? 'hsl(var(--primary))' : 'hsl(var(--accent))') 
+                                    : 'hsl(var(--muted-foreground) / 0.5)'}
+                                />
+                              ))}
+                            </Bar>
+                          </BarChart>
+                        </ResponsiveContainer>
+                      </div>
                     </div>
                   ) : (
                     <>
