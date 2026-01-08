@@ -224,7 +224,7 @@ export function ValuationEngine({ bairro = "BARRA DA TIJUCA", vistoriaData }: Pr
                     </TooltipTrigger>
                     <TooltipContent side="bottom" className="max-w-xs">
                       <p className="text-sm">
-                        <strong>Metodologia:</strong> Combina 70% dados ITBI (últimos 12 meses) + 30% anúncios de mercado (últimos 30 dias) para calcular valores de referência por m².
+                        <strong>Metodologia:</strong> Combina 70% dados oficiais (últimos 12 meses) + 30% anúncios de mercado (últimos 30 dias) para calcular valores de referência por m².
                       </p>
                     </TooltipContent>
                   </Tooltip>

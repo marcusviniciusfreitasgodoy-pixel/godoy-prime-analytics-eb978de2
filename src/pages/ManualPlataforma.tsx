@@ -791,7 +791,7 @@ export default function ManualPlataforma() {
                   </AccordionTrigger>
                   <AccordionContent>
                     <p className="text-sm text-muted-foreground">
-                      Os dados podem ser atualizados manualmente pelo administrador através do botão "Atualizar ITBI" no header. A API da Prefeitura geralmente disponibiliza dados com 30-60 dias de atraso em relação à data da transação. Recomendamos sincronização mensal.
+                      Os dados podem ser atualizados manualmente pelo administrador através do botão "Atualizar Dados" no header. A API da Prefeitura geralmente disponibiliza dados com 30-60 dias de atraso em relação à data da transação. Recomendamos sincronização mensal.
                     </p>
                   </AccordionContent>
                 </AccordionItem>
@@ -824,7 +824,7 @@ export default function ManualPlataforma() {
                   </AccordionTrigger>
                   <AccordionContent>
                     <p className="text-sm text-muted-foreground">
-                      Sofia é uma assistente virtual com inteligência artificial treinada com dados do mercado imobiliário do Rio de Janeiro. Ela pode responder perguntas sobre preços, tendências, comparativos entre bairros e fornecer insights baseados nos dados reais de transações ITBI.
+                      Sofia é uma assistente virtual com inteligência artificial treinada com dados do mercado imobiliário do Rio de Janeiro. Ela pode responder perguntas sobre preços, tendências, comparativos entre bairros e fornecer insights baseados nos dados reais de transações oficiais.
                     </p>
                   </AccordionContent>
                 </AccordionItem>
