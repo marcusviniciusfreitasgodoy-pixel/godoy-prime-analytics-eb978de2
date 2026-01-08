@@ -476,8 +476,8 @@ Deno.serve(async (req) => {
         (cachedData || []).map(c => [`${c.logradouro}|${c.bairro}`, c])
       );
 
-      const results = [];
-      const toFetch = [];
+      const results: any[] = [];
+      const toFetch: { logradouro: string; bairro: string }[] = [];
 
       for (const endereco of enderecos) {
         const key = `${endereco.logradouro}|${endereco.bairro}`;
@@ -490,22 +490,110 @@ Deno.serve(async (req) => {
         }
       }
 
-      // Buscar os que não estão no cache (limitado para não sobrecarregar)
-      for (const endereco of toFetch.slice(0, 20)) {
+      // Buscar na API da Prefeitura para os que não estão no cache
+      const MAX_API_CALLS = 30; // Limitar chamadas à API
+      const toFetchLimited = toFetch.slice(0, MAX_API_CALLS);
+      
+      console.log(`[geo-logradouro] Buscando ${toFetchLimited.length} endereços na API da Prefeitura`);
+
+      for (const endereco of toFetchLimited) {
+        const fallbackBairro = endereco.bairro?.toUpperCase() || 'BARRA DA TIJUCA';
+        const fallback = BAIRRO_CENTROIDS[fallbackBairro] || BAIRRO_CENTROIDS['BARRA DA TIJUCA'];
+        
+        try {
+          // Buscar na API da Prefeitura usando NM_COMPLETO_LOGRADOURO
+          const whereClause = `NM_COMPLETO_LOGRADOURO = '${endereco.logradouro.toUpperCase()}'`;
+          const apiUrl = `${PREFEITURA_API_BASE}?where=${encodeURIComponent(whereClause)}&outFields=NM_COMPLETO_LOGRADOURO,CD_TRECHO_LOGRADOURO,HIERARQUIA,TP_LOGRADOURO&returnGeometry=true&outSR=4326&f=json&resultRecordCount=1`;
+          
+          const apiResponse = await fetch(apiUrl);
+          
+          if (apiResponse.ok) {
+            const apiData = await apiResponse.json();
+            
+            if (apiData.features && apiData.features.length > 0) {
+              const feature = apiData.features[0];
+              const attrs = feature.attributes;
+              let lat: number | null = null;
+              let lng: number | null = null;
+
+              // A API já retorna em WGS84 (outSR=4326)
+              if (feature.geometry?.paths) {
+                const centroid = calculateCentroid(feature.geometry.paths);
+                if (centroid) {
+                  lat = centroid.y;
+                  lng = centroid.x;
+                }
+              }
+
+              if (lat && lng) {
+                const result = {
+                  logradouro: endereco.logradouro,
+                  bairro: fallbackBairro,
+                  cod_trecho: attrs.CD_TRECHO_LOGRADOURO,
+                  hierarquia: attrs.HIERARQUIA,
+                  tipo_logradouro: attrs.TP_LOGRADOURO,
+                  latitude: lat,
+                  longitude: lng,
+                  aproximado: false,
+                  source: 'api',
+                };
+                
+                results.push(result);
+                
+                // Salvar no cache (fire and forget)
+                supabase
+                  .from('logradouros_geo')
+                  .upsert({
+                    logradouro: result.logradouro,
+                    bairro: result.bairro,
+                    cod_trecho: result.cod_trecho,
+                    hierarquia: result.hierarquia,
+                    tipo_logradouro: result.tipo_logradouro,
+                    latitude: result.latitude,
+                    longitude: result.longitude,
+                    last_sync: new Date().toISOString(),
+                  }, { onConflict: 'logradouro,bairro' })
+                  .then(() => {});
+                
+                continue;
+              }
+            }
+          }
+        } catch (apiError) {
+          console.warn(`[geo-logradouro] Erro ao geocodificar ${endereco.logradouro}:`, apiError);
+        }
+        
+        // Fallback: usar centroide do bairro com pequena variação
+        results.push({
+          logradouro: endereco.logradouro,
+          bairro: fallbackBairro,
+          latitude: fallback.lat + (Math.random() - 0.5) * 0.008,
+          longitude: fallback.lng + (Math.random() - 0.5) * 0.008,
+          aproximado: true,
+          source: 'fallback',
+        });
+      }
+      
+      // Para endereços além do limite, usar fallback
+      for (const endereco of toFetch.slice(MAX_API_CALLS)) {
         const fallbackBairro = endereco.bairro?.toUpperCase() || 'BARRA DA TIJUCA';
         const fallback = BAIRRO_CENTROIDS[fallbackBairro] || BAIRRO_CENTROIDS['BARRA DA TIJUCA'];
         
         results.push({
           logradouro: endereco.logradouro,
           bairro: fallbackBairro,
-          latitude: fallback.lat + (Math.random() - 0.5) * 0.01,
-          longitude: fallback.lng + (Math.random() - 0.5) * 0.01,
+          latitude: fallback.lat + (Math.random() - 0.5) * 0.008,
+          longitude: fallback.lng + (Math.random() - 0.5) * 0.008,
           aproximado: true,
-          source: 'fallback',
+          source: 'fallback_limit',
         });
       }
 
-      console.log(`[geo-logradouro] Batch result: ${results.length} geocoded (${cachedData?.length || 0} from cache)`);
+      const apiCount = results.filter(r => r.source === 'api').length;
+      const cacheCount = results.filter(r => r.source === 'cache').length;
+      const fallbackCount = results.filter(r => r.source?.startsWith('fallback')).length;
+      
+      console.log(`[geo-logradouro] Batch result: ${results.length} total (${cacheCount} cache, ${apiCount} API, ${fallbackCount} fallback)`);
 
       return new Response(
         JSON.stringify({ data: results }),
