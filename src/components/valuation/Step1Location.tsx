@@ -17,14 +17,6 @@ interface Props {
   combined: CombinedPrices | null;
 }
 
-interface StreetSuggestion {
-  logradouro: string;
-  count: number;
-  min_m2: number;
-  med_m2: number;
-  max_m2: number;
-}
-
 interface AnuncioEntry {
   id: string;
   valor_total: number;
@@ -34,10 +26,14 @@ interface AnuncioEntry {
 export function Step1Location({ state, updateState, combined }: Props) {
   // Usa logradouro do Step 0 se disponível, senão permite busca
   const [searchTerm, setSearchTerm] = useState(state.logradouro || "");
-  const [suggestions, setSuggestions] = useState<StreetSuggestion[]>([]);
-  const [loading, setLoading] = useState(false);
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [useCustomSearch, setUseCustomSearch] = useState(!state.logradouro);
+  
+  // Hook oficial para autocomplete
+  const { data: suggestions = [], isLoading: loading } = useOfficialStreetSuggestions(
+    useCustomSearch ? searchTerm : "",
+    state.bairro
+  );
   
   // Estado para anúncios de referência
   const [anuncios, setAnuncios] = useState<AnuncioEntry[]>([
@@ -50,75 +46,6 @@ export function Step1Location({ state, updateState, combined }: Props) {
       setSearchTerm(state.logradouro);
     }
   }, [state.logradouro, useCustomSearch]);
-
-  // Buscar sugestões de ruas
-  useEffect(() => {
-    const fetchSuggestions = async () => {
-      if (searchTerm.length < 2) {
-        setSuggestions([]);
-        return;
-      }
-
-      setLoading(true);
-      try {
-        // Normaliza o termo de busca (remove acentos, prefixos e aplica correções)
-        const normalizedTerm = normalizeStreetSearchTerm(searchTerm);
-
-        // Constante para filtro de outliers
-        const OUTLIER_MAX_M2 = 40000;
-
-        const { data, error } = await supabase
-          .from("itbi_transactions")
-          .select("logradouro, valor_m2")
-          .eq("bairro", state.bairro)
-          .eq("uso", "Residencial")
-          .gte("percentual_transferido", 90)
-          .not("valor_m2", "is", null)
-          .lte("valor_m2", OUTLIER_MAX_M2) // Filtro de outliers
-          .ilike("logradouro", `%${normalizedTerm}%`)
-          .limit(500);
-
-        if (error) throw error;
-
-        // Agrupa por logradouro e calcula estatísticas
-        const grouped = data.reduce((acc, item) => {
-          const key = item.logradouro;
-          if (!acc[key]) {
-            acc[key] = { values: [], count: 0 };
-          }
-          acc[key].values.push(Number(item.valor_m2));
-          acc[key].count++;
-          return acc;
-        }, {} as Record<string, { values: number[]; count: number }>);
-
-        // Calcula min, med, max para cada logradouro
-        const results: StreetSuggestion[] = Object.entries(grouped)
-          .filter(([_, data]) => data.count >= 3) // Mínimo 3 transações
-          .map(([logradouro, data]) => {
-            const sorted = data.values.sort((a, b) => a - b);
-            const mid = Math.floor(sorted.length / 2);
-            return {
-              logradouro,
-              count: data.count,
-              min_m2: sorted[0],
-              med_m2: sorted.length % 2 ? sorted[mid] : (sorted[mid - 1] + sorted[mid]) / 2,
-              max_m2: sorted[sorted.length - 1],
-            };
-          })
-          .sort((a, b) => b.count - a.count)
-          .slice(0, 8);
-
-        setSuggestions(results);
-      } catch (error) {
-        console.error("Erro ao buscar sugestões:", error);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    const debounce = setTimeout(fetchSuggestions, 300);
-    return () => clearTimeout(debounce);
-  }, [searchTerm, state.bairro]);
 
   // Calcula R$/m² dos anúncios quando mudam
   useEffect(() => {
@@ -146,18 +73,52 @@ export function Step1Location({ state, updateState, combined }: Props) {
     });
   }, [anuncios]);
 
-  const handleSelectStreet = (suggestion: StreetSuggestion) => {
-    const itbiData: ITBIData = {
-      min_m2: Math.round(suggestion.min_m2),
-      med_m2: Math.round(suggestion.med_m2),
-      max_m2: Math.round(suggestion.max_m2),
-      transaction_count: suggestion.count,
-    };
+  const handleSelectStreet = async (suggestion: OfficialStreetSuggestion) => {
+    // Usa o logradouro normalizado para ITBI se disponível
+    const logradouroParaBusca = suggestion.logradouro_itbi || suggestion.logradouro;
+    
+    // Buscar dados ITBI para o logradouro selecionado
+    try {
+      const { data, error } = await supabase
+        .from("itbi_transactions")
+        .select("valor_m2")
+        .eq("bairro", state.bairro)
+        .eq("uso", "Residencial")
+        .gte("percentual_transferido", 90)
+        .not("valor_m2", "is", null)
+        .lte("valor_m2", 40000)
+        .ilike("logradouro", `%${logradouroParaBusca}%`);
 
-    updateState({
-      logradouro: suggestion.logradouro,
-      itbiData,
-    });
+      if (!error && data && data.length >= 3) {
+        const values = data.map(d => Number(d.valor_m2)).sort((a, b) => a - b);
+        const mid = Math.floor(values.length / 2);
+        
+        const itbiData: ITBIData = {
+          min_m2: Math.round(values[0]),
+          med_m2: Math.round(values.length % 2 ? values[mid] : (values[mid - 1] + values[mid]) / 2),
+          max_m2: Math.round(values[values.length - 1]),
+          transaction_count: values.length,
+        };
+
+        updateState({
+          logradouro: suggestion.logradouro,
+          itbiData,
+        });
+      } else {
+        // Sem dados ITBI suficientes, apenas atualiza o logradouro
+        updateState({
+          logradouro: suggestion.logradouro,
+          itbiData: null,
+        });
+      }
+    } catch (error) {
+      console.error("Erro ao buscar dados ITBI:", error);
+      updateState({
+        logradouro: suggestion.logradouro,
+        itbiData: null,
+      });
+    }
+    
     setSearchTerm(suggestion.logradouro);
     setShowSuggestions(false);
   };
@@ -231,11 +192,6 @@ export function Step1Location({ state, updateState, combined }: Props) {
           </Badge>
         );
     }
-  };
-    if (anuncio.valor_total > 0 && anuncio.area_m2 > 0) {
-      return anuncio.valor_total / anuncio.area_m2;
-    }
-    return null;
   };
 
   return (
