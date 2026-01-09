@@ -40,42 +40,34 @@ const LOGO_HEIGHT = 12;
  */
 export function drawGodoyHeader(doc: jsPDF, subtitle: string, companyInfo?: CompanyInfo): number {
   const pageWidth = doc.internal.pageSize.getWidth();
-  const headerHeight = 45;
+  const headerHeight = 38;
   const name = companyInfo?.name || CONTACT_INFO.name;
   
   // White background header
   doc.setFillColor(...BRAND_COLORS.white);
   doc.rect(0, 0, pageWidth, headerHeight, 'F');
   
-  // Parse company name (split at first space for styling)
-  const nameParts = name.split(' ');
-  const firstName = nameParts[0] || 'GODOY';
-  const restName = nameParts.slice(1).join(' ') || 'PRIME REALTY';
-  
-  // Company name centered
+  // Company name centered - full name on one line
   doc.setTextColor(...BRAND_COLORS.navy);
-  doc.setFontSize(22);
+  doc.setFontSize(16);
   doc.setFont('helvetica', 'bold');
-  doc.text(firstName, pageWidth / 2 - 25, 16);
+  doc.text(name, pageWidth / 2, 14, { align: 'center' });
   
-  doc.setFontSize(12);
-  doc.setFont('helvetica', 'normal');
-  doc.text(restName, pageWidth / 2 - 21, 23);
-  
-  // Gold underline
+  // Gold underline under company name
   doc.setDrawColor(...BRAND_COLORS.gold);
-  doc.setLineWidth(1);
-  doc.line(pageWidth / 2 - 40, 26, pageWidth / 2 + 40, 26);
+  doc.setLineWidth(0.8);
+  const nameWidth = doc.getTextWidth(name);
+  doc.line(pageWidth / 2 - nameWidth / 2 - 5, 17, pageWidth / 2 + nameWidth / 2 + 5, 17);
   
   // Subtitle in gold
   doc.setTextColor(...BRAND_COLORS.gold);
-  doc.setFontSize(11);
+  doc.setFontSize(10);
   doc.setFont('helvetica', 'bold');
-  doc.text(subtitle, pageWidth / 2, 34, { align: 'center' });
+  doc.text(subtitle, pageWidth / 2, 25, { align: 'center' });
   
-  // Date in gray
+  // Date in gray - smaller and compact
   doc.setTextColor(...BRAND_COLORS.gray);
-  doc.setFontSize(9);
+  doc.setFontSize(8);
   doc.setFont('helvetica', 'normal');
   const dateStr = new Date().toLocaleDateString('pt-BR', {
     day: '2-digit',
@@ -84,63 +76,45 @@ export function drawGodoyHeader(doc: jsPDF, subtitle: string, companyInfo?: Comp
     hour: '2-digit',
     minute: '2-digit',
   });
-  doc.text(dateStr, pageWidth / 2, 42, { align: 'center' });
+  doc.text(dateStr, pageWidth / 2, 32, { align: 'center' });
   
-  return headerHeight + 10; // Start content at this Y position
+  return headerHeight + 8; // Start content at this Y position
 }
 
 /**
- * Draw the standardized Godoy Prime footer with navy bar
+ * Draw the standardized Godoy Prime footer with navy bar - compact version
  * Should be called on each page
  */
 export function drawGodoyFooter(doc: jsPDF, pageNumber?: number, totalPages?: number, companyInfo?: CompanyInfo): void {
   const pageWidth = doc.internal.pageSize.getWidth();
   const pageHeight = doc.internal.pageSize.getHeight();
-  const footerHeight = 18;
+  const footerHeight = 10;
   const footerY = pageHeight - footerHeight;
   
   const phone = companyInfo?.phone || CONTACT_INFO.phone;
-  const address = companyInfo?.address || CONTACT_INFO.address;
   const creci = companyInfo?.creci || CONTACT_INFO.creci;
-  const cnpj = companyInfo?.cnpj || CONTACT_INFO.cnpj;
   const website = companyInfo?.website || CONTACT_INFO.website;
   
-  // Navy bar
+  // Navy bar - thinner
   doc.setFillColor(...BRAND_COLORS.navy);
   doc.rect(0, footerY, pageWidth, footerHeight, 'F');
   
-  // Left side: phone + address
+  // Single line footer with all info
   doc.setTextColor(...BRAND_COLORS.white);
-  doc.setFontSize(7);
+  doc.setFontSize(6);
   doc.setFont('helvetica', 'normal');
+  
+  // Left: phone
   doc.text(`Tel: ${phone}`, 10, footerY + 6);
-  doc.text(address, 10, footerY + 11);
   
-  // Center: GR monogram + CNPJ if available
-  doc.setFontSize(10);
-  doc.setFont('helvetica', 'bold');
-  doc.setTextColor(...BRAND_COLORS.gold);
-  doc.text('GR', pageWidth / 2, footerY + 7, { align: 'center' });
+  // Center: CRECI + page
+  const centerText = pageNumber !== undefined && totalPages !== undefined 
+    ? `${creci} | Pág. ${pageNumber}/${totalPages}`
+    : creci;
+  doc.text(centerText, pageWidth / 2, footerY + 6, { align: 'center' });
   
-  if (cnpj) {
-    doc.setFontSize(6);
-    doc.setFont('helvetica', 'normal');
-    doc.setTextColor(...BRAND_COLORS.white);
-    doc.text(`CNPJ: ${cnpj}`, pageWidth / 2, footerY + 12, { align: 'center' });
-  }
-  
-  // Right side: CRECI + website/page number
-  doc.setTextColor(...BRAND_COLORS.white);
-  doc.setFontSize(7);
-  doc.setFont('helvetica', 'normal');
-  doc.text(creci, pageWidth - 10, footerY + 6, { align: 'right' });
-  
-  if (pageNumber !== undefined && totalPages !== undefined) {
-    const rightText = website ? `${website} | Pág. ${pageNumber}/${totalPages}` : `Página ${pageNumber} de ${totalPages}`;
-    doc.text(rightText, pageWidth - 10, footerY + 11, { align: 'right' });
-  } else if (website) {
-    doc.text(website, pageWidth - 10, footerY + 11, { align: 'right' });
-  }
+  // Right: website
+  doc.text(website, pageWidth - 10, footerY + 6, { align: 'right' });
 }
 
 /**
@@ -198,7 +172,7 @@ export function formatCurrencyPDF(value: number): string {
  * Get maximum Y position before footer (content area limit)
  */
 export function getMaxContentY(): number {
-  return 270; // Leave space for footer
+  return 280; // More content space with smaller footer
 }
 
 /**
