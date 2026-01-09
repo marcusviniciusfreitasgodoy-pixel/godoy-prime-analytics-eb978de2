@@ -16,6 +16,7 @@ import { Step4Results } from "./Step4Results";
 import { Step5Recommendation } from "./Step5Recommendation";
 import { calculateValuation, calculateCombinedPrices } from "@/utils/valuationCalculations";
 import { ValuationState, initialValuationState } from "@/types/valuation";
+import { useHistoricalTransactionAnalysis } from "@/hooks/useHistoricalTransactionAnalysis";
 
 const STEPS = [
   { id: 0, title: "Identificação", description: "Dados do imóvel" },
@@ -108,6 +109,13 @@ export function ValuationEngine({ bairro = "BARRA DA TIJUCA", vistoriaData, edit
   
   const { data: characteristics, isLoading: loadingChars } = useValuationCharacteristics(state.tipoImovel);
   const { data: docFactors, isLoading: loadingDocs } = useDocumentationFactors();
+  
+  // Buscar análise histórica para calcular score de liquidez
+  const { data: historicalAnalysis } = useHistoricalTransactionAnalysis(
+    state.logradouro,
+    state.bairro,
+    !!state.logradouro && !!state.bairro && state.itbiData !== null
+  );
 
   // Check for editar data from props (priority over vistoria)
   useEffect(() => {
@@ -216,9 +224,10 @@ export function ValuationEngine({ bairro = "BARRA DA TIJUCA", vistoriaData, edit
         state.docStatus,
         state.docFactor,
         state.bonus_terreno,
-        state.tipoImovel // Passa tipo de imóvel para caps diferenciados
+        state.tipoImovel, // Passa tipo de imóvel para caps diferenciados
+        historicalAnalysis?.liquidityScore // Passa score de liquidez histórico
       );
-      updateState({ result });
+      updateState({ result, historicalAnalysis });
     }
     
     if (currentStep < 5) {
@@ -250,7 +259,8 @@ export function ValuationEngine({ bairro = "BARRA DA TIJUCA", vistoriaData, edit
       state.docStatus,
       state.docFactor,
       state.bonus_terreno,
-      state.tipoImovel // Passa tipo de imóvel para caps diferenciados
+      state.tipoImovel, // Passa tipo de imóvel para caps diferenciados
+      historicalAnalysis?.liquidityScore // Passa score de liquidez histórico
     );
   };
 
