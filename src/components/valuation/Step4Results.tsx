@@ -294,6 +294,22 @@ export function Step4Results({ result, state, combined }: Props) {
                 <span>Trend: {combined.trend_percentage > 0 ? "+" : ""}{combined.trend_percentage.toFixed(1)}%</span>
               </div>
             )}
+            {historicalAnalysis && (
+              <div className="flex items-center gap-1.5 sm:gap-2 col-span-2 mt-1 pt-1 border-t">
+                <CheckCircle className={`h-3 w-3 shrink-0 ${
+                  historicalAnalysis.liquidityScore >= 60 ? "text-emerald-500" :
+                  historicalAnalysis.liquidityScore >= 40 ? "text-amber-500" :
+                  "text-red-500"
+                }`} />
+                <span>
+                  Liquidez: {historicalAnalysis.liquidityScore.toFixed(0)}% 
+                  <span className="text-muted-foreground ml-1">
+                    ({historicalAnalysis.liquidityLevel === 'alta' ? 'Alta' : 
+                      historicalAnalysis.liquidityLevel === 'media' ? 'Média' : 'Baixa'})
+                  </span>
+                </span>
+              </div>
+            )}
           </div>
         </CardContent>
       </Card>

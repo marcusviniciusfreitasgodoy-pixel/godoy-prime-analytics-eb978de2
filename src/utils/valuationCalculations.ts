@@ -227,16 +227,17 @@ export const calculateSpread = (pessimista: number, otimista: number, provavel: 
   return ((otimista - pessimista) / provavel) * 100;
 };
 
-// Calcula score de confiança (0-100)
+// Calcula score de confiança (0-100) com peso de liquidez
 export const calculateConfidenceScore = (
   adjustment: number,
   spread: number,
   doc_factor: number,
-  trend: number
+  trend: number,
+  liquidityScore?: number // Score de liquidez 0-100 do histórico 5 anos
 ): number => {
   let score = 100;
 
-  // Penalidade 1: Magnitude do ajuste
+  // Penalidade 1: Magnitude do ajuste (peso: ~25%)
   const adjMag = Math.abs(adjustment) * 100;
   if (adjMag > 40) {
     score -= 40;
@@ -248,7 +249,7 @@ export const calculateConfidenceScore = (
     score -= 5;
   }
 
-  // Penalidade 2: Spread amplo
+  // Penalidade 2: Spread amplo (peso: ~20%)
   if (spread > 40) {
     score -= 30;
   } else if (spread > 30) {
@@ -259,14 +260,34 @@ export const calculateConfidenceScore = (
     score -= 3;
   }
 
-  // Penalidade 3: Documentação
+  // Penalidade 3: Documentação (peso: ~15%)
   if (doc_factor < 0.85) {
     score -= 25;
   } else if (doc_factor < 0.95) {
     score -= 10;
   }
 
-  // Bônus: Trend favorável
+  // Penalidade/Bônus 4: Liquidez do mercado (peso: ~20%)
+  // Baseado no score de liquidez histórico (0-100)
+  if (liquidityScore !== undefined) {
+    if (liquidityScore >= 80) {
+      // Alta liquidez: bônus
+      score += 10;
+    } else if (liquidityScore >= 60) {
+      // Liquidez média-alta: pequeno bônus
+      score += 5;
+    } else if (liquidityScore >= 40) {
+      // Liquidez média: neutro (sem alteração)
+    } else if (liquidityScore >= 20) {
+      // Liquidez baixa: penalidade moderada
+      score -= 10;
+    } else {
+      // Liquidez muito baixa: penalidade severa
+      score -= 20;
+    }
+  }
+
+  // Bônus 5: Trend favorável (peso: ~10%)
   if (trend > 10) {
     score += 10;
   } else if (trend > 5) {
@@ -428,7 +449,8 @@ export const calculateValuation = (
   doc_status: string,
   doc_factor: number,
   bonusTerreno: number = 0,
-  tipoImovel: string = "Apartamento"
+  tipoImovel: string = "Apartamento",
+  liquidityScore?: number // Score de liquidez histórico (0-100)
 ): ValuationResult => {
   // 1. Combina preços
   const combined = calculateCombinedPrices(itbi, anuncio);
@@ -452,12 +474,13 @@ export const calculateValuation = (
   // 4. Calcula spread
   const spread = calculateSpread(pessimista, otimista, provavel);
 
-  // 5. Calcula confiança
+  // 5. Calcula confiança (agora inclui liquidez)
   const confidence_score = calculateConfidenceScore(
     adjustment,
     spread,
     doc_factor,
-    combined.trend_percentage
+    combined.trend_percentage,
+    liquidityScore // Novo parâmetro de liquidez
   );
   const confidence_level = mapScoreToLevel(confidence_score);
 
