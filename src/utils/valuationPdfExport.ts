@@ -313,8 +313,8 @@ export function exportValuationEnginePDF(
   );
 
   // 4. MÉTRICAS DE CONFIANÇA - Card visual
-  // Verificar se há espaço suficiente para a seção
-  if (yPos > getMaxContentY() - 45) {
+  // Verificar se há espaço suficiente para a seção (aumentado para incluir explicações)
+  if (yPos > getMaxContentY() - 85) {
     doc.addPage();
     yPos = 20;
   }
@@ -369,7 +369,39 @@ export function exportValuationEnginePDF(
     doc.text(metric.value, colX + 3, metricY + 10);
   });
   
-  yPos += metricCardHeight + 6;
+  yPos += metricCardHeight + 4;
+  
+  // Explicação das métricas para leigos
+  doc.setFillColor(241, 245, 249);
+  doc.setDrawColor(203, 213, 225);
+  doc.setLineWidth(0.2);
+  const explanationHeight = 32;
+  doc.roundedRect(marginLeft - 5, yPos, contentWidth + 10, explanationHeight, 2, 2, 'FD');
+  
+  doc.setFontSize(7);
+  doc.setFont('helvetica', 'bold');
+  doc.setTextColor(71, 85, 105);
+  doc.text('O que significam estas métricas?', marginLeft, yPos + 5);
+  
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(6.5);
+  doc.setTextColor(100, 116, 139);
+  
+  const explanations = [
+    `• Ajuste Total: Percentual de valorização ou desvalorização aplicado com base nas características do imóvel (acabamento, localização, estado de conservação, etc.).`,
+    `• Spread: Diferença percentual entre o valor mínimo e máximo estimados. Quanto menor o spread, maior a precisão da avaliação.`,
+    `• Score: Pontuação de 0 a 100 que indica a confiabilidade da avaliação baseada na quantidade e qualidade dos dados disponíveis.`,
+    `• Nível: Classificação da confiança (Alta, Média-Alta, Média ou Baixa) que resume a qualidade geral desta avaliação.`
+  ];
+  
+  let expY = yPos + 10;
+  explanations.forEach((exp) => {
+    const splitExp = doc.splitTextToSize(exp, contentWidth + 5);
+    doc.text(splitExp, marginLeft, expY);
+    expY += splitExp.length * 3.5;
+  });
+  
+  yPos += explanationHeight + 6;
 
   // 5. CARACTERÍSTICAS APLICADAS
   const appliedChars = state.responses.filter(r => r.response === 'sim' && r.weight_applied !== 0);
