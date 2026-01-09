@@ -95,8 +95,8 @@ const CATEGORY_CAPS = {
     A: { max: 0.12, min: -0.12 },  // Posição/Vista/Luz
     B: { max: 0.08, min: -0.08 },  // Conservação
     C: { max: 0.06, min: -0.06 },  // Conforto
-    D: { max: 0.04, min: -0.06 },  // Segurança
-    E: { max: 0.04, min: -0.04 },  // Funcionalidade
+    D: { max: 0.06, min: -0.06 },  // Segurança
+    E: { max: 0.06, min: -0.06 },  // Funcionalidade
   },
 };
 
