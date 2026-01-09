@@ -23,6 +23,7 @@ export interface CharacteristicResponse {
 export interface RecommendationResult {
   status: string;
   title: string;
+  icon?: string;  // Ícone PDF-safe (sem emojis que corrompem no jsPDF)
   message: string;
   details?: string[];
   urgency?: string;

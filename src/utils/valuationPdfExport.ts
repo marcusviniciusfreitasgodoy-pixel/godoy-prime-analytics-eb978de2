@@ -245,27 +245,53 @@ export function exportValuationEnginePDF(
 
   // 7. RECOMENDAÇÃO
   yPos += 6;
-  doc.setFillColor(...BRAND_COLORS.lightGray);
+  
+  // Determina cor de fundo baseada no status
+  const getRecColor = (status: string): [number, number, number] => {
+    switch (status) {
+      case "READY_TO_MARKET": return [240, 253, 244]; // Verde claro
+      case "WAIT_30_DAYS": return [239, 246, 255]; // Azul claro
+      case "REGULARIZE_FIRST": return [254, 249, 195]; // Amarelo claro
+      case "CONSULT_SPECIALIST": 
+      case "NEED_SPECIALIST_VALUATION":
+      case "BLOCKED_EVALUATION": return [254, 226, 226]; // Vermelho claro
+      default: return [...BRAND_COLORS.lightGray] as [number, number, number];
+    }
+  };
+  
+  const recBgColor = getRecColor(result.recommendation.status);
+  doc.setFillColor(...recBgColor);
   const recBoxY = yPos - 3;
   
   doc.setFontSize(9);
   doc.setFont('helvetica', 'normal');
   doc.setTextColor(60, 60, 60);
   const splitRec = doc.splitTextToSize(result.recommendation.message, contentWidth - 10);
-  const recBoxHeight = 12 + (splitRec.length * 4);
+  const recBoxHeight = 16 + (splitRec.length * 4);
   
-  doc.roundedRect(marginLeft - 5, recBoxY, contentWidth + 10, recBoxHeight, 2, 2, 'F');
+  // Desenha box com borda colorida
+  doc.setDrawColor(...BRAND_COLORS.navy);
+  doc.setLineWidth(0.5);
+  doc.roundedRect(marginLeft - 5, recBoxY, contentWidth + 10, recBoxHeight, 2, 2, 'FD');
   
-  doc.setFontSize(10);
+  // Título com ícone PDF-safe
+  doc.setFontSize(11);
   doc.setFont('helvetica', 'bold');
   doc.setTextColor(...BRAND_COLORS.navy);
-  const recTitle = `RECOMENDAÇÃO: ${result.recommendation.title}`;
-  doc.text(recTitle, marginLeft, yPos + 4);
+  const recIcon = result.recommendation.icon || "";
+  const recTitle = `RECOMENDAÇÃO: ${recIcon} ${result.recommendation.title}`;
+  doc.text(recTitle, marginLeft, yPos + 5);
   
+  // Linha decorativa
+  doc.setDrawColor(...BRAND_COLORS.gold);
+  doc.setLineWidth(0.3);
+  doc.line(marginLeft, yPos + 8, marginLeft + 80, yPos + 8);
+  
+  // Mensagem
   doc.setFontSize(9);
   doc.setFont('helvetica', 'normal');
   doc.setTextColor(60, 60, 60);
-  doc.text(splitRec, marginLeft, yPos + 12);
+  doc.text(splitRec, marginLeft, yPos + 14);
   
   yPos += recBoxHeight + 8;
 

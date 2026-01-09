@@ -115,6 +115,8 @@ export function Step5Recommendation({ result, state, combined, onReset }: Props)
         return <Wrench className="h-6 w-6 text-amber-600" />;
       case "CONSULT_SPECIALIST":
         return <AlertTriangle className="h-6 w-6 text-orange-600" />;
+      case "MARKET_CAUTION":
+        return <TrendingDown className="h-6 w-6 text-amber-600" />;
       case "NEED_SPECIALIST_VALUATION":
       case "BLOCKED_EVALUATION":
         return <XCircle className="h-6 w-6 text-red-600" />;
@@ -132,6 +134,7 @@ export function Step5Recommendation({ result, state, combined, onReset }: Props)
       case "REGULARIZE_FIRST":
         return "bg-amber-50 border-amber-200 dark:bg-amber-950/30";
       case "CONSULT_SPECIALIST":
+      case "MARKET_CAUTION":
         return "bg-orange-50 border-orange-200 dark:bg-orange-950/30";
       case "NEED_SPECIALIST_VALUATION":
       case "BLOCKED_EVALUATION":

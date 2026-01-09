@@ -245,6 +245,17 @@ export const mapScoreToLevel = (score: number): "green" | "yellow_high" | "yello
   return "red";
 };
 
+// Ícones PDF-safe (sem emojis que corrompem no jsPDF)
+const PDF_ICONS = {
+  blocked: "[X]",
+  warning: "[!]",
+  specialist: "[?]",
+  wait: "[^]",
+  fix: "[*]",
+  down: "[v]",
+  ready: "[OK]",
+};
+
 // Gera recomendação automática
 export const generateRecommendation = (
   doc_status: string,
@@ -258,7 +269,8 @@ export const generateRecommendation = (
   if (doc_status === "incompleta") {
     return {
       status: "BLOCKED_EVALUATION",
-      title: "⛔ Avaliação Bloqueada",
+      title: "Avaliação Bloqueada",
+      icon: PDF_ICONS.blocked,
       message: "Documentação incompleta. Solicitar ao proprietário os documentos necessários.",
       details: [
         "CCIR atualizado",
@@ -274,7 +286,8 @@ export const generateRecommendation = (
   if (doc_factor < 0.8) {
     return {
       status: "CONSULT_SPECIALIST",
-      title: "⚠️ Consultar Especialista Jurídico",
+      title: "Consultar Especialista Jurídico",
+      icon: PDF_ICONS.warning,
       message: "Problemas legais detectados (penhora/restrição/débito grave).",
       details: [
         "Análise jurídica completa",
@@ -290,7 +303,8 @@ export const generateRecommendation = (
   if (spread > 40 && score < 55) {
     return {
       status: "NEED_SPECIALIST_VALUATION",
-      title: "🔴 Requerer Avaliação Técnica Formal",
+      title: "Requerer Avaliação Técnica Formal",
+      icon: PDF_ICONS.specialist,
       message: "Intervalo muito amplo. Recomenda-se avaliação por perito CREA (NBR 14653-2).",
       details: [
         "Contratar perito CREA",
@@ -305,7 +319,8 @@ export const generateRecommendation = (
   if (trend > 5 && score >= 70) {
     return {
       status: "WAIT_30_DAYS",
-      title: "📈 Esperar Oportunidade",
+      title: "Esperar Oportunidade",
+      icon: PDF_ICONS.wait,
       message: `Mercado em ALTA de ${trend.toFixed(1)}%. Aguardar 30-60 dias para melhor preço.`,
       details: [
         "Preparar imóvel (fotos, limpeza)",
@@ -321,7 +336,8 @@ export const generateRecommendation = (
   if (doc_factor >= 0.9 && doc_factor < 1.0) {
     return {
       status: "REGULARIZE_FIRST",
-      title: "🔧 Regularizar Antes de Vender",
+      title: "Regularizar Antes de Vender",
+      icon: PDF_ICONS.fix,
       message: "Pequena pendência de documentação. Regularizar pré-venda aumenta valor.",
       details: [
         "Pagar débito IPTU/Condomínio",
@@ -337,7 +353,8 @@ export const generateRecommendation = (
   if (trend < -5) {
     return {
       status: "MARKET_CAUTION",
-      title: "⬇️ Mercado em Cautela",
+      title: "Mercado em Cautela",
+      icon: PDF_ICONS.down,
       message: "Recomendação: anunciar 5% abaixo do valor provável para venda mais rápida.",
       urgency: "MEDIUM",
     };
@@ -346,7 +363,8 @@ export const generateRecommendation = (
   // Regra padrão: Pronto para vender
   return {
     status: "READY_TO_MARKET",
-    title: "✅ Pronto para Comercializar",
+    title: "Pronto para Comercializar",
+    icon: PDF_ICONS.ready,
     message: "Imóvel em excelentes condições. Recomendação: iniciar marketing imobiliário.",
     details: [
       "Fotos/vídeo profissional em 360°",
