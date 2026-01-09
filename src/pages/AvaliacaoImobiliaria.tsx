@@ -9,7 +9,12 @@ import { useFirstVisitTour } from "@/hooks/useFirstVisitTour";
 
 export default function AvaliacaoImobiliaria() {
   const location = useLocation();
-  const locationState = location.state as { fromVistoria?: boolean; vistoriaData?: any } | null;
+  const locationState = location.state as { 
+    fromVistoria?: boolean; 
+    vistoriaData?: any;
+    editarAvaliacao?: boolean;
+    avaliacaoData?: any;
+  } | null;
   const { shouldRunTour, startTour, endTour } = useFirstVisitTour('avaliacao');
 
   return (
@@ -26,6 +31,12 @@ export default function AvaliacaoImobiliaria() {
                 <Badge variant="secondary" className="bg-primary/10 text-primary border-primary/20 text-xs">
                   <ClipboardCheck className="h-3 w-3 mr-1" />
                   Via Vistoria
+                </Badge>
+              )}
+              {locationState?.editarAvaliacao && (
+                <Badge variant="secondary" className="bg-amber-500/10 text-amber-600 border-amber-500/20 text-xs">
+                  <Calculator className="h-3 w-3 mr-1" />
+                  Editando
                 </Badge>
               )}
             </h1>
@@ -48,7 +59,10 @@ export default function AvaliacaoImobiliaria() {
           </CardTitle>
         </CardHeader>
         <CardContent className="px-3 sm:px-6 pb-4 sm:pb-6">
-          <ValuationEngine vistoriaData={locationState?.vistoriaData} />
+          <ValuationEngine 
+            vistoriaData={locationState?.vistoriaData} 
+            editarData={locationState?.editarAvaliacao ? locationState.avaliacaoData : undefined}
+          />
         </CardContent>
       </Card>
     </div>
