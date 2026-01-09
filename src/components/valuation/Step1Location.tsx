@@ -153,11 +153,11 @@ export function Step1Location({ state, updateState, combined }: Props) {
     // Usa o logradouro normalizado para ITBI se disponível
     const logradouroParaBusca = suggestion.logradouro_itbi || suggestion.logradouro;
     
-    // Buscar dados ITBI para o logradouro selecionado
+    // Buscar dados ITBI para o logradouro selecionado - incluindo valor_transacao para média
     try {
       const { data, error } = await supabase
         .from("itbi_transactions")
-        .select("valor_m2")
+        .select("valor_m2, valor_transacao")
         .eq("bairro", state.bairro)
         .eq("uso", "Residencial")
         .gte("percentual_transferido", 90)
@@ -191,11 +191,15 @@ export function Step1Location({ state, updateState, combined }: Props) {
           medValue = finalValues.length % 2 ? finalValues[mid] : (finalValues[mid - 1] + finalValues[mid]) / 2;
         }
         
+        // Calcula preço médio das transações
+        const avgValorTransacao = data.reduce((sum, d) => sum + (Number(d.valor_transacao) || 0), 0) / data.length;
+        
         const itbiData: ITBIData = {
           min_m2: Math.round(minValue),
           med_m2: Math.round(medValue),
           max_m2: Math.round(maxValue),
-          transaction_count: data.length, // Mantém contagem original
+          transaction_count: data.length,
+          avg_valor_transacao: Math.round(avgValorTransacao),
         };
 
         updateState({
@@ -386,16 +390,75 @@ export function Step1Location({ state, updateState, combined }: Props) {
         </p>
       </div>
 
-      {/* Selected location data */}
+      {/* Card de Estatísticas ITBI Consolidado */}
+      {state.itbiData && (
+        <Card className="bg-gradient-to-br from-blue-50 to-blue-100/50 border-blue-200">
+          <CardContent className="pt-4 sm:pt-5 px-3 sm:px-6 space-y-3 sm:space-y-4">
+            <div className="flex items-start sm:items-center justify-between gap-2 flex-wrap">
+              <div className="flex items-center gap-2">
+                <Database className="h-4 w-4 text-blue-600 shrink-0" />
+                <h4 className="font-semibold text-sm text-blue-900">
+                  Transações Realizadas na Região
+                </h4>
+              </div>
+              <Badge variant="outline" className="text-[10px] sm:text-xs shrink-0 bg-blue-100 text-blue-700 border-blue-300">
+                Últimos 12 meses
+              </Badge>
+            </div>
+
+            {/* Grid de estatísticas consolidadas */}
+            <div className="grid grid-cols-3 gap-2 sm:gap-4">
+              <div className="text-center p-3 sm:p-4 bg-white/80 rounded-lg border border-blue-200/50">
+                <p className="text-2xl sm:text-3xl font-bold text-blue-700">
+                  {state.itbiData.transaction_count}
+                </p>
+                <p className="text-[10px] sm:text-xs text-muted-foreground mt-1">
+                  transações<br className="hidden sm:block" /> identificadas
+                </p>
+              </div>
+              <div className="text-center p-3 sm:p-4 bg-white/80 rounded-lg border-2 border-blue-400/50">
+                <p className="text-lg sm:text-xl font-bold text-blue-800">
+                  {formatCurrency(state.itbiData.med_m2)}
+                </p>
+                <p className="text-[10px] sm:text-xs text-muted-foreground mt-1">
+                  valor médio<br className="hidden sm:block" /> por m²
+                </p>
+              </div>
+              <div className="text-center p-3 sm:p-4 bg-white/80 rounded-lg border border-blue-200/50">
+                <p className="text-lg sm:text-xl font-bold text-blue-700">
+                  {state.itbiData.avg_valor_transacao 
+                    ? formatCurrency(state.itbiData.avg_valor_transacao)
+                    : '-'
+                  }
+                </p>
+                <p className="text-[10px] sm:text-xs text-muted-foreground mt-1">
+                  preço médio<br className="hidden sm:block" /> total
+                </p>
+              </div>
+            </div>
+
+            {/* Logradouro selecionado */}
+            <div className="flex items-center gap-2 pt-2 border-t border-blue-200/50">
+              <MapPin className="h-3.5 w-3.5 text-blue-600 shrink-0" />
+              <span className="text-xs text-blue-800 font-medium truncate">{state.logradouro}</span>
+            </div>
+
+            {/* Fonte */}
+            <p className="text-[10px] text-blue-600/70 flex items-center gap-1">
+              <Info className="h-3 w-3" />
+              Fonte: Guias de ITBI - Prefeitura do Rio de Janeiro
+            </p>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Detalhes de preços por m² */}
       {state.itbiData && (
         <Card className="bg-muted/30">
-          <CardContent className="pt-4 sm:pt-6 px-3 sm:px-6 space-y-3 sm:space-y-4">
-            <div className="flex items-start sm:items-center justify-between gap-2 flex-wrap">
-              <h4 className="font-semibold flex items-center gap-2 text-sm min-w-0">
-                <MapPin className="h-4 w-4 text-primary shrink-0" />
-                <span className="truncate">{state.logradouro}</span>
-              </h4>
-              <Badge className="text-[10px] sm:text-xs shrink-0">{state.itbiData.transaction_count} transações</Badge>
+          <CardContent className="pt-4 sm:pt-5 px-3 sm:px-6 space-y-3 sm:space-y-4">
+            <div className="flex items-center gap-2">
+              <Calculator className="h-4 w-4 text-muted-foreground" />
+              <Label className="text-xs sm:text-sm">Faixa de Preços por m²</Label>
             </div>
 
             {/* Grid de preços - responsivo */}

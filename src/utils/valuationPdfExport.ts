@@ -137,9 +137,72 @@ export function exportValuationEnginePDF(
     yPos += 6;
   }
 
-  // 2. REFERÊNCIA DE MERCADO
-  if (combined) {
+  // 2. TRANSAÇÕES REALIZADAS NA REGIÃO (Card consolidado ITBI)
+  if (state.itbiData) {
     yPos += 6;
+    yPos = drawSectionTitle(doc, 'Transações Realizadas na Região', yPos, marginLeft);
+    
+    // Box azul claro para destaque
+    doc.setFillColor(239, 246, 255);
+    doc.setDrawColor(59, 130, 246);
+    doc.setLineWidth(0.3);
+    doc.roundedRect(marginLeft - 5, yPos - 3, contentWidth + 10, 32, 2, 2, 'FD');
+    
+    // Grid de 3 colunas com estatísticas
+    const colWidth = (contentWidth + 10) / 3;
+    const col1X = marginLeft;
+    const col2X = marginLeft + colWidth;
+    const col3X = marginLeft + colWidth * 2;
+    
+    // Coluna 1: Total de transações
+    doc.setFontSize(16);
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(29, 78, 216);
+    doc.text(String(state.itbiData.transaction_count), col1X + colWidth / 2 - 10, yPos + 10);
+    doc.setFontSize(7);
+    doc.setFont('helvetica', 'normal');
+    doc.setTextColor(100, 116, 139);
+    doc.text('transações', col1X + colWidth / 2 - 12, yPos + 16);
+    doc.text('identificadas', col1X + colWidth / 2 - 12, yPos + 20);
+    
+    // Coluna 2: Valor médio do m²
+    doc.setFontSize(12);
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(30, 64, 175);
+    const valorMedM2 = `R$ ${state.itbiData.med_m2.toLocaleString('pt-BR', { maximumFractionDigits: 0 })}`;
+    doc.text(valorMedM2, col2X + colWidth / 2 - 18, yPos + 10);
+    doc.setFontSize(7);
+    doc.setFont('helvetica', 'normal');
+    doc.setTextColor(100, 116, 139);
+    doc.text('valor médio', col2X + colWidth / 2 - 12, yPos + 16);
+    doc.text('por m²', col2X + colWidth / 2 - 8, yPos + 20);
+    
+    // Coluna 3: Preço médio total
+    doc.setFontSize(12);
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(29, 78, 216);
+    const precoMedio = state.itbiData.avg_valor_transacao 
+      ? `R$ ${(state.itbiData.avg_valor_transacao / 1000).toLocaleString('pt-BR', { maximumFractionDigits: 0 })} mil`
+      : '-';
+    doc.text(precoMedio, col3X + colWidth / 2 - 18, yPos + 10);
+    doc.setFontSize(7);
+    doc.setFont('helvetica', 'normal');
+    doc.setTextColor(100, 116, 139);
+    doc.text('preço médio', col3X + colWidth / 2 - 12, yPos + 16);
+    doc.text('total', col3X + colWidth / 2 - 5, yPos + 20);
+    
+    yPos += 26;
+    
+    // Fonte
+    doc.setFontSize(7);
+    doc.setTextColor(100, 116, 139);
+    doc.text('Fonte: Guias de ITBI - Prefeitura do Rio de Janeiro (últimos 12 meses)', marginLeft, yPos + 3);
+    yPos += 10;
+  }
+
+  // 3. REFERÊNCIA DE MERCADO (Preços combinados)
+  if (combined) {
+    yPos += 4;
     yPos = drawSectionTitle(doc, 'Referência de Mercado', yPos, marginLeft);
     doc.setFontSize(10);
     doc.setTextColor(...BRAND_COLORS.darkGray);
