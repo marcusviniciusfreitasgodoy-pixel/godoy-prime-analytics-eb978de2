@@ -292,8 +292,8 @@ export function Step1Location({ state, updateState, combined }: Props) {
             }}
             onFocus={() => {
               setShowSuggestions(true);
-              // Habilita busca customizada ao focar para permitir validação
-              if (state.logradouro && searchTerm) {
+              // Sempre habilita busca customizada ao focar para permitir validação
+              if (searchTerm.length >= 2) {
                 setUseCustomSearch(true);
               }
             }}
