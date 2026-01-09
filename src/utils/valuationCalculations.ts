@@ -10,25 +10,57 @@ import type {
 // Re-export types for convenience
 export type { ITBIData, AnuncioData, CharacteristicResponse, ValuationResult, RecommendationResult };
 
+export type MarketAlignment = 'EQUILIBRADO' | 'MODERADO' | 'DESALINHADO' | 'CRITICO';
+
 export interface CombinedPrices {
   min_m2: number;
   med_m2: number;
   max_m2: number;
-  trend_percentage: number;
+  // Gap de Mercado (reformulado do antigo "Trend")
+  market_gap_percentage: number;       // Discrepância anúncios vs ITBI
+  market_alignment: MarketAlignment;   // Classificação do alinhamento
+  gap_impact: string;                  // Texto explicativo do impacto
+  // Compatibilidade com código existente
+  trend_percentage: number;            // Alias para market_gap_percentage
   trend_direction: "UP" | "STABLE" | "DOWN";
-  trend_capped?: boolean; // Indica se o trend foi limitado pelo cap
-  trend_original?: number; // Valor original antes do cap (para referência)
+  trend_capped?: boolean;
+  trend_original?: number;
 }
 
 // Combina ITBI (70%) + Anúncios (30%)
-// ITBI = transações reais, Anúncios = sinal de tendência
-// Cap simétrico para evitar distorções extremas
-const TREND_CAP_UP = 35;   // Cap para trend positivo
-const TREND_CAP_DOWN = 35; // Cap para trend negativo
+// ITBI = transações reais, Anúncios = sinal de mercado
+// Cap para evitar distorções extremas
+const MARKET_GAP_CAP = 35; // Cap máximo para o gap
 
 // Pesos: ITBI como âncora principal
 const ITBI_WEIGHT = 0.70;
 const ANUNCIO_WEIGHT = 0.30;
+
+// Classifica o alinhamento de mercado baseado no gap
+const classifyMarketAlignment = (gap: number): MarketAlignment => {
+  const absGap = Math.abs(gap);
+  if (absGap <= 10) return 'EQUILIBRADO';
+  if (absGap <= 20) return 'MODERADO';
+  if (absGap <= 35) return 'DESALINHADO';
+  return 'CRITICO';
+};
+
+// Gera texto explicativo do impacto do gap
+const getGapImpact = (gap: number, alignment: MarketAlignment): string => {
+  if (gap <= 0) {
+    return 'Anúncios abaixo ou iguais às transações reais - mercado favorável ao comprador';
+  }
+  switch (alignment) {
+    case 'EQUILIBRADO':
+      return 'Mercado saudável - anúncios próximos das transações reais';
+    case 'MODERADO':
+      return 'Margem de negociação típica do mercado';
+    case 'DESALINHADO':
+      return 'Anúncios acima das transações reais - pode impactar tempo de venda';
+    case 'CRITICO':
+      return 'Grande discrepância - precificação competitiva recomendada para garantir liquidez';
+  }
+};
 
 export const calculateCombinedPrices = (
   itbi: ITBIData,
@@ -40,6 +72,9 @@ export const calculateCombinedPrices = (
       min_m2: itbi.min_m2,
       med_m2: itbi.med_m2,
       max_m2: itbi.max_m2,
+      market_gap_percentage: 0,
+      market_alignment: 'EQUILIBRADO',
+      gap_impact: 'Avaliação baseada 100% em transações reais (ITBI)',
       trend_percentage: 0,
       trend_direction: "STABLE",
       trend_capped: false,
@@ -50,35 +85,40 @@ export const calculateCombinedPrices = (
   const combined_med = itbi.med_m2 * ITBI_WEIGHT + anuncio.med_m2 * ANUNCIO_WEIGHT;
   const combined_max = itbi.max_m2 * ITBI_WEIGHT + anuncio.max_m2 * ANUNCIO_WEIGHT;
 
-  // Calcula trend: diferença entre anúncios e ITBI
-  const trend_original = ((anuncio.med_m2 - itbi.med_m2) / itbi.med_m2) * 100;
-  let trend_percentage = trend_original;
+  // Calcula Gap de Mercado: diferença entre anúncios e ITBI
+  const gap_original = ((anuncio.med_m2 - itbi.med_m2) / itbi.med_m2) * 100;
+  let market_gap_percentage = gap_original;
   let trend_capped = false;
   
-  // Aplica cap ASSIMÉTRICO para refletir realidade de anúncios inflados
-  // Trend positivo (anúncios > ITBI): cap agressivo, pois anúncios são inflados
-  // Trend negativo (anúncios < ITBI): cap permissivo, pois indica mercado real em queda
-  if (trend_percentage > TREND_CAP_UP) {
-    trend_percentage = TREND_CAP_UP;
+  // Aplica cap para evitar distorções extremas
+  if (market_gap_percentage > MARKET_GAP_CAP) {
+    market_gap_percentage = MARKET_GAP_CAP;
     trend_capped = true;
-    console.log(`[ValuationCalc] Trend UP capped: ${trend_original.toFixed(1)}% → +${TREND_CAP_UP}%`);
-  } else if (trend_percentage < -TREND_CAP_DOWN) {
-    trend_percentage = -TREND_CAP_DOWN;
+    console.log(`[ValuationCalc] Market Gap capped: ${gap_original.toFixed(1)}% → +${MARKET_GAP_CAP}%`);
+  } else if (market_gap_percentage < -MARKET_GAP_CAP) {
+    market_gap_percentage = -MARKET_GAP_CAP;
     trend_capped = true;
-    console.log(`[ValuationCalc] Trend DOWN capped: ${trend_original.toFixed(1)}% → -${TREND_CAP_DOWN}%`);
+    console.log(`[ValuationCalc] Market Gap capped: ${gap_original.toFixed(1)}% → -${MARKET_GAP_CAP}%`);
   }
   
+  const market_alignment = classifyMarketAlignment(market_gap_percentage);
+  const gap_impact = getGapImpact(market_gap_percentage, market_alignment);
+  
+  // Mantém trend_direction para compatibilidade
   const trend_direction: "UP" | "STABLE" | "DOWN" =
-    trend_percentage > 5 ? "UP" : trend_percentage < -5 ? "DOWN" : "STABLE";
+    market_gap_percentage > 5 ? "UP" : market_gap_percentage < -5 ? "DOWN" : "STABLE";
 
   return {
     min_m2: Math.round(combined_min * 100) / 100,
     med_m2: Math.round(combined_med * 100) / 100,
     max_m2: Math.round(combined_max * 100) / 100,
-    trend_percentage: Math.round(trend_percentage * 100) / 100,
+    market_gap_percentage: Math.round(market_gap_percentage * 100) / 100,
+    market_alignment,
+    gap_impact,
+    trend_percentage: Math.round(market_gap_percentage * 100) / 100, // Alias
     trend_direction,
     trend_capped,
-    trend_original: trend_capped ? Math.round(trend_original * 100) / 100 : undefined,
+    trend_original: trend_capped ? Math.round(gap_original * 100) / 100 : undefined,
   };
 };
 
@@ -227,12 +267,12 @@ export const calculateSpread = (pessimista: number, otimista: number, provavel: 
   return ((otimista - pessimista) / provavel) * 100;
 };
 
-// Calcula score de confiança (0-100) com peso de liquidez
+// Calcula score de confiança (0-100) com peso de liquidez e gap de mercado
 export const calculateConfidenceScore = (
   adjustment: number,
   spread: number,
   doc_factor: number,
-  trend: number,
+  marketGap: number, // Gap de Mercado (antigo trend)
   liquidityScore?: number // Score de liquidez 0-100 do histórico 5 anos
 ): number => {
   let score = 100;
@@ -287,11 +327,22 @@ export const calculateConfidenceScore = (
     }
   }
 
-  // Bônus 5: Trend favorável (peso: ~10%)
-  if (trend > 10) {
-    score += 10;
-  } else if (trend > 5) {
+  // Penalidade/Bônus 5: Gap de Mercado (peso: ~10%)
+  // Gap baixo = mercado equilibrado = bônus
+  // Gap alto = discrepância = penalidade (reduz confiabilidade da avaliação)
+  const absGap = Math.abs(marketGap);
+  if (absGap <= 10) {
+    // Mercado equilibrado: bônus
     score += 5;
+  } else if (absGap <= 20) {
+    // Gap moderado: neutro
+    // sem alteração
+  } else if (absGap <= 35) {
+    // Gap alto: penalidade moderada
+    score -= 10;
+  } else {
+    // Gap crítico: penalidade severa
+    score -= 15;
   }
 
   return Math.max(0, Math.min(100, score));

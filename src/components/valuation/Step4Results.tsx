@@ -8,6 +8,8 @@ import type { ValuationState } from "@/types/valuation";
 import { isCasaType, calculateTerrainBonus } from "@/hooks/useValuationCharacteristics";
 import { useHistoricalTransactionAnalysis } from "@/hooks/useHistoricalTransactionAnalysis";
 import { HistoricalAnalysisChart } from "./HistoricalAnalysisChart";
+import { PriceComparisonCard } from "./PriceComparisonCard";
+import { FutureProjectionChart } from "./FutureProjectionChart";
 
 interface Props {
   result: ValuationResult;
@@ -286,12 +288,13 @@ export function Step4Results({ result, state, combined }: Props) {
             </div>
             {combined && (
               <div className="flex items-center gap-1.5 sm:gap-2">
-                <TrendIcon className={`h-3 w-3 shrink-0 ${
-                  combined.trend_direction === "UP" ? "text-emerald-500" :
-                  combined.trend_direction === "DOWN" ? "text-red-500" :
-                  "text-muted-foreground"
+                <AlertTriangle className={`h-3 w-3 shrink-0 ${
+                  combined.market_alignment === 'EQUILIBRADO' ? "text-emerald-500" :
+                  combined.market_alignment === 'MODERADO' ? "text-amber-500" :
+                  combined.market_alignment === 'DESALINHADO' ? "text-orange-500" :
+                  "text-red-500"
                 }`} />
-                <span>Trend: {combined.trend_percentage > 0 ? "+" : ""}{combined.trend_percentage.toFixed(1)}%</span>
+                <span>Gap: {combined.market_gap_percentage.toFixed(1)}% ({combined.market_alignment})</span>
               </div>
             )}
             {historicalAnalysis && (
@@ -314,6 +317,16 @@ export function Step4Results({ result, state, combined }: Props) {
         </CardContent>
       </Card>
 
+      {/* Comparativo Anúncio vs Venda Rápida */}
+      {combined && state.itbiData && (
+        <PriceComparisonCard 
+          itbiData={state.itbiData}
+          anuncioData={state.anuncioData}
+          area={state.area_m2}
+          combined={combined}
+        />
+      )}
+
       {/* Análise Histórica 5 Anos */}
       {loadingHistorical ? (
         <Card>
@@ -331,7 +344,18 @@ export function Step4Results({ result, state, combined }: Props) {
           </CardContent>
         </Card>
       ) : historicalAnalysis ? (
-        <HistoricalAnalysisChart analysis={historicalAnalysis} />
+        <>
+          <HistoricalAnalysisChart analysis={historicalAnalysis} />
+          
+          {/* Projeção de Valor Futuro */}
+          {historicalAnalysis.futureProjection && (
+            <FutureProjectionChart 
+              currentValue={result.provavel}
+              projection={historicalAnalysis.futureProjection}
+              area={state.area_m2}
+            />
+          )}
+        </>
       ) : null}
     </div>
   );
