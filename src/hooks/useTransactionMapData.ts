@@ -55,10 +55,10 @@ export function useTransactionMapData(params: UseTransactionMapDataParams, enabl
       dataLimite.setMonth(dataLimite.getMonth() - periodoMeses);
       const dataStr = dataLimite.toISOString().split('T')[0];
 
-      // Buscar transações ITBI
+      // Buscar transações ITBI - IMPORTANTE: incluir total_transacoes para contagem correta
       let query = supabase
         .from('itbi_transactions')
-        .select('logradouro, valor_m2, valor_transacao, area_m2, tipologia')
+        .select('logradouro, valor_m2, valor_transacao, area_m2, tipologia, total_transacoes')
         .eq('bairro', bairro.toUpperCase())
         .gte('data_transacao', dataStr)
         .lte('valor_m2', OUTLIER_LIMITS[bairro.toUpperCase()] || 50000);
@@ -90,21 +90,24 @@ export function useTransactionMapData(params: UseTransactionMapDataParams, enabl
         return [];
       }
 
-      // Agrupar por logradouro
-      const groupedData = new Map<string, { total: number; somaPreco: number }>();
+      // Agrupar por logradouro - CORRIGIDO: usar total_transacoes ao invés de count
+      const groupedData = new Map<string, { total: number; somaPreco: number; somaPrecosPonderados: number }>();
       
       for (const tx of transactions) {
         const logradouro = tx.logradouro;
         if (!logradouro) continue;
 
+        const transCount = (tx as any).total_transacoes || 1;
         const existing = groupedData.get(logradouro);
         if (existing) {
-          existing.total++;
-          existing.somaPreco += tx.valor_m2 || 0;
+          existing.total += transCount;
+          existing.somaPreco += (tx.valor_m2 || 0) * transCount;
+          existing.somaPrecosPonderados += transCount;
         } else {
           groupedData.set(logradouro, {
-            total: 1,
-            somaPreco: tx.valor_m2 || 0,
+            total: transCount,
+            somaPreco: (tx.valor_m2 || 0) * transCount,
+            somaPrecosPonderados: transCount,
           });
         }
       }
@@ -113,7 +116,7 @@ export function useTransactionMapData(params: UseTransactionMapDataParams, enabl
       const aggregatedData = Array.from(groupedData.entries()).map(([logradouro, data]) => ({
         microbairro: logradouro,
         total_transacoes: data.total,
-        preco_medio_m2: Math.round(data.somaPreco / data.total),
+        preco_medio_m2: Math.round(data.somaPreco / data.somaPrecosPonderados),
       }));
 
       // Ordenar por volume de transações

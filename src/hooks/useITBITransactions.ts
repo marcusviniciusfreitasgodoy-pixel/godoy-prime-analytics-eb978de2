@@ -158,10 +158,10 @@ export function useMicrobairroDetalhado(bairro: string = 'BARRA DA TIJUCA') {
       
       const outlierLimit = getOutlierLimit(bairro);
 
-      // Buscar transações
+      // Buscar transações - IMPORTANTE: incluir total_transacoes para contagem correta
       const { data: transactions, error } = await supabase
         .from('itbi_transactions')
-        .select('logradouro, valor_m2, tipologia')
+        .select('logradouro, valor_m2, tipologia, total_transacoes')
         .eq('uso', 'Residencial')
         .ilike('bairro', bairro)
         .not('valor_m2', 'is', null)
@@ -187,15 +187,19 @@ export function useMicrobairroDetalhado(bairro: string = 'BARRA DA TIJUCA') {
 
       const grouped = (transactions || []).reduce((acc, t) => {
         const micro = t.logradouro;
+        const transCount = t.total_transacoes || 1;
+        
         if (!acc[micro]) {
           acc[micro] = {
             total: [],
             apartamentos: [],
             casas: [],
+            totalTransacoes: 0,
           };
         }
         
         acc[micro].total.push(t.valor_m2!);
+        acc[micro].totalTransacoes += transCount;
         
         if (t.tipologia?.toLowerCase().includes('apartamento')) {
           acc[micro].apartamentos.push(t.valor_m2!);
@@ -204,7 +208,7 @@ export function useMicrobairroDetalhado(bairro: string = 'BARRA DA TIJUCA') {
         }
         
         return acc;
-      }, {} as Record<string, { total: number[], apartamentos: number[], casas: number[] }>);
+      }, {} as Record<string, { total: number[], apartamentos: number[], casas: number[], totalTransacoes: number }>);
 
       const result = Object.entries(grouped).map(([microbairro, dados]) => {
         const valor_m2_apt = dados.apartamentos.length > 0
@@ -235,7 +239,7 @@ export function useMicrobairroDetalhado(bairro: string = 'BARRA DA TIJUCA') {
         return {
           microbairro,
           valor_m2,
-          total_transacoes: dados.total.length,
+          total_transacoes: dados.totalTransacoes,
           valor_m2_apt: valor_m2_apt || valor_m2,
           valor_m2_casa: valor_m2_casa || Math.round(valor_m2 * 0.92),
           rank: 0,
@@ -272,7 +276,7 @@ export function useKPIStats() {
 
       const { data: currentPeriodData, error: currentError } = await supabase
         .from('itbi_transactions')
-        .select('valor_m2, tipologia, uso')
+        .select('valor_m2, tipologia, uso, total_transacoes')
         .eq('uso', 'Residencial')
         .ilike('bairro', 'BARRA DA TIJUCA')
         .not('valor_m2', 'is', null)
@@ -317,9 +321,12 @@ export function useKPIStats() {
         .limit(1)
         .single();
 
+      // CORRIGIDO: Somar total_transacoes ao invés de contar registros
+      const liquidez = currentTransactions.reduce((sum, t) => sum + ((t as any).total_transacoes || 1), 0);
+
       return {
         precoMedio: Math.round(precoMedio),
-        liquidez: currentTransactions.length,
+        liquidez,
         variacaoAnual: variacaoAnual.toFixed(1),
         bairroMaisValorizado: rankingData?.microbairro || 'N/A',
         precoMedioBairro: rankingData?.preco_medio_m2 || 0,

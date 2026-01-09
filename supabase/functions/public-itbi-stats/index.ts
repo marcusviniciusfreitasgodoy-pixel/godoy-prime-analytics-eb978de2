@@ -60,18 +60,18 @@ serve(async (req) => {
         .or(`nome_condominio.ilike.%${searchTerm}%,logradouro_padrao.ilike.%${searchTerm}%`)
         .limit(10);
 
-      // Search streets from transactions
+      // Search streets from transactions - CORRIGIDO: incluir total_transacoes para contagem correta
       const { data: streets } = await supabase
         .from('itbi_transactions')
-        .select('logradouro')
+        .select('logradouro, total_transacoes')
         .eq('uso', 'Residencial')
         .ilike('bairro', bairro)
         .ilike('logradouro', `%${searchTerm}%`)
         .limit(100);
 
-      // Group and count streets
+      // Group and SUM total_transacoes (not count records)
       const streetCounts = (streets || []).reduce((acc, s) => {
-        acc[s.logradouro] = (acc[s.logradouro] || 0) + 1;
+        acc[s.logradouro] = (acc[s.logradouro] || 0) + (s.total_transacoes || 1);
         return acc;
       }, {} as Record<string, number>);
 
