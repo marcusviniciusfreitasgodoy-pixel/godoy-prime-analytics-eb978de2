@@ -70,7 +70,10 @@ export function Step5Recommendation({ result, state, combined, onReset }: Props)
           anuncio_min_m2: state.anuncioData?.min_m2 || null,
           anuncio_med_m2: state.anuncioData?.med_m2 || null,
           anuncio_max_m2: state.anuncioData?.max_m2 || null,
-          anuncio_fontes: state.anuncioData?.fontes || null,
+          // Sanitiza JSON para garantir persistência (remove undefined)
+          anuncio_fontes: state.anuncioData?.fontes
+            ? JSON.parse(JSON.stringify(state.anuncioData.fontes))
+            : null,
           combined_min_m2: combined?.min_m2 || state.itbiData?.min_m2 || 0,
           combined_med_m2: combined?.med_m2 || state.itbiData?.med_m2 || 0,
           combined_max_m2: combined?.max_m2 || state.itbiData?.max_m2 || 0,
