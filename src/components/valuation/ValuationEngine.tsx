@@ -92,6 +92,13 @@ interface EditarAvaliacaoData {
   proprietario?: string;
   telefone?: string;
   observacoesImovel?: string;
+  // Respostas dos fatores de avaliação
+  responses?: {
+    char_id: string;
+    char_code: string;
+    response: "sim" | "nao" | "nao_aplica";
+    weight_applied: number;
+  }[];
 }
 
 interface Props {
@@ -148,6 +155,8 @@ export function ValuationEngine({ bairro = "BARRA DA TIJUCA", vistoriaData, edit
         proprietario: editarData.proprietario || "",
         telefone: editarData.telefone || "",
         observacoesImovel: editarData.observacoesImovel || "",
+        // Respostas dos fatores de avaliação carregadas do histórico
+        responses: editarData.responses || [],
       }));
       // Clear location state after using it
       window.history.replaceState({}, document.title);

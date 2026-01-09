@@ -86,6 +86,7 @@ export function Step5Recommendation({ result, state, combined, onReset }: Props)
           spread_percentage: result.spread_percentage,
           documentation_status: state.docStatus || "OK",
           documentation_factor: state.docFactor || 1,
+          documentation_notes: state.docNotes || null,
           recommendation_title: result.recommendation.title,
           recommendation_action: result.recommendation.status,
           recommendation_details: result.recommendation.details ? { steps: result.recommendation.details } : null,
@@ -96,16 +97,40 @@ export function Step5Recommendation({ result, state, combined, onReset }: Props)
           proporcao_terreno: state.proporcao_terreno || null,
           auto_capped: result.auto_capped || false,
           pdf_generated: false,
+          base_price_selected: state.baseSelected || "med",
         };
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const { error } = await supabase.from("valuations").insert(insertData as any);
+        const { data: insertedValuation, error } = await supabase
+          .from("valuations")
+          .insert(insertData as any)
+          .select("id")
+          .single();
 
         if (error) {
           console.error("Erro ao salvar avaliação:", error);
-          // Não exibir toast de erro para não atrapalhar UX
-        } else {
+        } else if (insertedValuation) {
+          // Salvar as respostas dos fatores de avaliação
+          if (state.responses && state.responses.length > 0) {
+            const responsesData = state.responses.map(r => ({
+              valuation_id: insertedValuation.id,
+              characteristic_id: r.char_id,
+              response_value: r.response,
+              weight_applied: r.weight_applied,
+            }));
+            
+            const { error: responsesError } = await supabase
+              .from("valuation_responses")
+              .insert(responsesData);
+            
+            if (responsesError) {
+              console.error("Erro ao salvar respostas:", responsesError);
+            } else {
+              console.log(`${responsesData.length} fatores de avaliação salvos`);
+            }
+          }
+          
           setIsSaved(true);
-          console.log("Avaliação salva com sucesso");
+          console.log("Avaliação salva com sucesso:", insertedValuation.id);
         }
       } catch (err) {
         console.error("Erro ao salvar avaliação:", err);
