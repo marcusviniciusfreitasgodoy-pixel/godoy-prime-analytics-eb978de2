@@ -224,11 +224,27 @@ export function ValuationEngine({ bairro = "BARRA DA TIJUCA", vistoriaData, edit
   const handleNext = () => {
     // Se avançando do step 3 para 4, calcula resultado
     if (currentStep === 3 && characteristics) {
+      // Garante persistência do "conteúdo completo" (26 fatores):
+      // - Se o usuário não interagir com um item, ele ainda será salvo como "nao".
+      // - Isso garante que na edição posterior os fatores apareçam todos e possam ser alterados.
+      const normalizedResponses = characteristics.map((c) => {
+        const existing = state.responses.find((r) => r.char_id === c.id);
+        return {
+          char_id: c.id,
+          char_code: c.char_code,
+          response: existing?.response || "nao",
+          weight_applied: existing?.response === "sim" ? (existing.weight_applied ?? c.weight_value) : 0,
+        };
+      });
+
+      // Atualiza state para que o Step5 salve no banco os 26 fatores
+      updateState({ responses: normalizedResponses });
+
       const result = calculateValuation(
         state.area_m2,
         state.itbiData!,
         state.anuncioData || undefined,
-        state.responses,
+        normalizedResponses,
         characteristics,
         state.docStatus,
         state.docFactor,
