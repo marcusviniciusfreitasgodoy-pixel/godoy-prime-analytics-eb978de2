@@ -5,7 +5,8 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { MapPin, TrendingUp, TrendingDown, Minus, Search, Building2, Plus, X, Calculator, CheckCircle2, Database, Loader2 } from "lucide-react";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { MapPin, TrendingUp, TrendingDown, Minus, Search, Building2, Plus, X, Calculator, CheckCircle2, Database, Loader2, AlertTriangle, Info } from "lucide-react";
 import { useOfficialStreetSuggestions, type OfficialStreetSuggestion } from "@/hooks/useOfficialStreetSuggestions";
 import { useCompanySettings } from "@/hooks/useCompanySettings";
 import type { ValuationState } from "@/types/valuation";
@@ -466,25 +467,76 @@ export function Step1Location({ state, updateState, combined }: Props) {
 
               {/* Resumo dos anúncios calculados */}
               {state.anuncioData && state.anuncioData.med_m2 > 0 && (
-                <div className="mt-2 sm:mt-3 p-2 sm:p-3 bg-amber-50 dark:bg-amber-950/30 rounded-lg border border-amber-200 dark:border-amber-800">
-                  <p className="text-[10px] sm:text-xs font-medium text-amber-800 dark:text-amber-200 mb-1.5 sm:mb-2">
-                    📊 Valores calculados:
-                  </p>
-                  <div className="grid grid-cols-3 gap-1.5 sm:gap-2 text-center">
-                    <div>
-                      <p className="text-[10px] text-muted-foreground">Mín</p>
-                      <p className="text-xs sm:text-sm font-semibold">{formatCurrency(state.anuncioData.min_m2)}</p>
-                    </div>
-                    <div>
-                      <p className="text-[10px] text-muted-foreground">Méd</p>
-                      <p className="text-xs sm:text-sm font-semibold text-primary">{formatCurrency(state.anuncioData.med_m2)}</p>
-                    </div>
-                    <div>
-                      <p className="text-[10px] text-muted-foreground">Máx</p>
-                      <p className="text-xs sm:text-sm font-semibold">{formatCurrency(state.anuncioData.max_m2)}</p>
+                <>
+                  <div className="mt-2 sm:mt-3 p-2 sm:p-3 bg-amber-50 dark:bg-amber-950/30 rounded-lg border border-amber-200 dark:border-amber-800">
+                    <p className="text-[10px] sm:text-xs font-medium text-amber-800 dark:text-amber-200 mb-1.5 sm:mb-2">
+                      📊 Valores calculados:
+                    </p>
+                    <div className="grid grid-cols-3 gap-1.5 sm:gap-2 text-center">
+                      <div>
+                        <p className="text-[10px] text-muted-foreground">Mín</p>
+                        <p className="text-xs sm:text-sm font-semibold">{formatCurrency(state.anuncioData.min_m2)}</p>
+                      </div>
+                      <div>
+                        <p className="text-[10px] text-muted-foreground">Méd</p>
+                        <p className="text-xs sm:text-sm font-semibold text-primary">{formatCurrency(state.anuncioData.med_m2)}</p>
+                      </div>
+                      <div>
+                        <p className="text-[10px] text-muted-foreground">Máx</p>
+                        <p className="text-xs sm:text-sm font-semibold">{formatCurrency(state.anuncioData.max_m2)}</p>
+                      </div>
                     </div>
                   </div>
-                </div>
+
+                  {/* Alerta de qualidade da amostra */}
+                  {(() => {
+                    const validAnuncios = anuncios.filter(a => a.valor_total > 0 && a.area_m2 > 0);
+                    const numAnuncios = validAnuncios.length;
+                    const itbiCount = state.itbiData?.transaction_count || 0;
+                    const rawTrend = state.itbiData 
+                      ? ((state.anuncioData.med_m2 - state.itbiData.med_m2) / state.itbiData.med_m2) * 100 
+                      : 0;
+                    const absRawTrend = Math.abs(rawTrend);
+                    
+                    // Alertas baseados na qualidade dos dados
+                    if (numAnuncios < 3 && absRawTrend > 30) {
+                      return (
+                        <Alert variant="destructive" className="mt-2 py-2">
+                          <AlertTriangle className="h-4 w-4" />
+                          <AlertDescription className="text-xs">
+                            <strong>Atenção:</strong> Apenas {numAnuncios} anúncio(s) com variação de {rawTrend.toFixed(0)}% vs ITBI ({itbiCount} transações). 
+                            Amostra insuficiente para representatividade. Adicione mais anúncios comparáveis.
+                          </AlertDescription>
+                        </Alert>
+                      );
+                    }
+                    
+                    if (absRawTrend > 50) {
+                      return (
+                        <Alert className="mt-2 py-2 border-amber-500 bg-amber-50 dark:bg-amber-950/30">
+                          <Info className="h-4 w-4 text-amber-600" />
+                          <AlertDescription className="text-xs text-amber-800 dark:text-amber-200">
+                            <strong>Nota:</strong> Diferença de {rawTrend.toFixed(0)}% será limitada a ±50% no cálculo. 
+                            Causas comuns: anúncios com preços supervalorizados ou características muito distintas do mercado ITBI.
+                          </AlertDescription>
+                        </Alert>
+                      );
+                    }
+
+                    if (numAnuncios < 3) {
+                      return (
+                        <Alert className="mt-2 py-2">
+                          <Info className="h-4 w-4" />
+                          <AlertDescription className="text-xs">
+                            Recomendamos pelo menos 3 anúncios para melhor representatividade do mercado.
+                          </AlertDescription>
+                        </Alert>
+                      );
+                    }
+
+                    return null;
+                  })()}
+                </>
               )}
 
               <p className="text-[10px] sm:text-xs text-muted-foreground mt-2">
