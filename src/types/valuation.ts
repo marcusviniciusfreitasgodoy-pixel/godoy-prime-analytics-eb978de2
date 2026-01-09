@@ -5,6 +5,7 @@ export interface ITBIData {
   med_m2: number;
   max_m2: number;
   transaction_count: number;
+  avg_valor_transacao?: number; // Preço médio das transações na região
 }
 
 export interface AnuncioFonte {
