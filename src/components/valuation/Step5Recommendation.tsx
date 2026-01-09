@@ -44,7 +44,7 @@ export function Step5Recommendation({ result, state, combined, onReset }: Props)
       if (isSaved || !user?.id) return;
       
       try {
-        const { error } = await supabase.from("valuations").insert({
+        const insertData = {
           user_id: user.id,
           logradouro: state.logradouro,
           numero: state.numero || null,
@@ -70,6 +70,7 @@ export function Step5Recommendation({ result, state, combined, onReset }: Props)
           anuncio_min_m2: state.anuncioData?.min_m2 || null,
           anuncio_med_m2: state.anuncioData?.med_m2 || null,
           anuncio_max_m2: state.anuncioData?.max_m2 || null,
+          anuncio_fontes: state.anuncioData?.fontes || null,
           combined_min_m2: combined?.min_m2 || state.itbiData?.min_m2 || 0,
           combined_med_m2: combined?.med_m2 || state.itbiData?.med_m2 || 0,
           combined_max_m2: combined?.max_m2 || state.itbiData?.max_m2 || 0,
@@ -92,7 +93,9 @@ export function Step5Recommendation({ result, state, combined, onReset }: Props)
           proporcao_terreno: state.proporcao_terreno || null,
           auto_capped: result.auto_capped || false,
           pdf_generated: false,
-        });
+        };
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const { error } = await supabase.from("valuations").insert(insertData as any);
 
         if (error) {
           console.error("Erro ao salvar avaliação:", error);
