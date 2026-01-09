@@ -34,6 +34,9 @@ export interface YearlyData {
   valorMedioM2: number;
   valorMinM2: number;
   valorMaxM2: number;
+  // Variações ano a ano
+  variacaoTransacoes: number | null; // % variação transações vs ano anterior
+  variacaoPrecoM2: number | null;    // % variação preço/m² vs ano anterior
 }
 
 // Projeção de Valor Futuro
@@ -162,7 +165,7 @@ export function useHistoricalTransactionAnalysis(logradouro: string, bairro: str
       });
       
       // Calcular estatísticas por ano com remoção de outliers usando IQR
-      const yearlyData: YearlyData[] = Object.entries(yearlyMap)
+      const yearlyDataRaw = Object.entries(yearlyMap)
         .map(([ano, data]) => {
           let valores = data.valores;
           
@@ -193,6 +196,29 @@ export function useHistoricalTransactionAnalysis(logradouro: string, bairro: str
         })
         .filter((y) => y.ano <= endYear)
         .sort((a, b) => a.ano - b.ano);
+
+      // Calcular variações ano a ano
+      const yearlyData: YearlyData[] = yearlyDataRaw.map((y, index) => {
+        const prevYear = index > 0 ? yearlyDataRaw[index - 1] : null;
+        
+        // Variação de transações
+        let variacaoTransacoes: number | null = null;
+        if (prevYear && prevYear.transacoes > 0) {
+          variacaoTransacoes = ((y.transacoes - prevYear.transacoes) / prevYear.transacoes) * 100;
+        }
+        
+        // Variação de preço/m²
+        let variacaoPrecoM2: number | null = null;
+        if (prevYear && prevYear.valorMedioM2 > 0 && y.valorMedioM2 > 0) {
+          variacaoPrecoM2 = ((y.valorMedioM2 - prevYear.valorMedioM2) / prevYear.valorMedioM2) * 100;
+        }
+        
+        return {
+          ...y,
+          variacaoTransacoes: variacaoTransacoes !== null ? Math.round(variacaoTransacoes * 10) / 10 : null,
+          variacaoPrecoM2: variacaoPrecoM2 !== null ? Math.round(variacaoPrecoM2 * 10) / 10 : null,
+        };
+      });
       
       // Calcular tendências (últimos 5 anos)
       const yearsWithData = yearlyData.filter(y => y.transacoes > 0);
