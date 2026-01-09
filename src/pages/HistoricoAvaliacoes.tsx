@@ -159,7 +159,6 @@ export default function HistoricoAvaliacoes() {
   };
 
   const handleRowClick = (valuation: Valuation) => {
-    console.log("Row clicked, valuation:", valuation);
     setSelectedValuation(valuation);
   };
 
