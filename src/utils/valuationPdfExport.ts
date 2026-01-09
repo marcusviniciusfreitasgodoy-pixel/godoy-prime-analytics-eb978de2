@@ -213,7 +213,23 @@ export function exportValuationEnginePDF(
   if (combined) {
     yPos += 4;
     yPos = drawSectionTitle(doc, 'Referência de Mercado', yPos, marginLeft);
+    
+    // Nota explicativa sobre metodologia de ponderação
+    const temAnuncios = anuncioFontes && anuncioFontes.length > 0;
+    doc.setFontSize(8);
+    doc.setFont('helvetica', 'italic');
+    doc.setTextColor(...BRAND_COLORS.gray);
+    
+    const metodologiaTexto = temAnuncios
+      ? 'Metodologia: Os valores de referência são calculados com ponderação de 70% dados oficiais (ITBI) e 30% anúncios de mercado, garantindo equilíbrio entre transações reais e preços praticados atualmente.'
+      : 'Metodologia: Os valores de referência são calculados exclusivamente com base em dados oficiais de transações (100% ITBI), garantindo máxima objetividade baseada em negócios efetivamente realizados.';
+    
+    const splitMetodologia = doc.splitTextToSize(metodologiaTexto, contentWidth);
+    doc.text(splitMetodologia, marginLeft, yPos);
+    yPos += splitMetodologia.length * 4 + 4;
+    
     doc.setFontSize(10);
+    doc.setFont('helvetica', 'normal');
     doc.setTextColor(...BRAND_COLORS.darkGray);
 
     const marketData = [
