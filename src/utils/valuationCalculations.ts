@@ -19,6 +19,9 @@ export interface CombinedPrices {
 }
 
 // Combina ITBI (70%) + Anúncios (30%)
+// Com cap de trend para evitar distorções por poucos dados de anúncios
+const TREND_CAP = 50; // Limita trend a ±50%
+
 export const calculateCombinedPrices = (
   itbi: ITBIData,
   anuncio?: AnuncioData
@@ -39,7 +42,15 @@ export const calculateCombinedPrices = (
   const combined_max = itbi.max_m2 * 0.7 + anuncio.max_m2 * 0.3;
 
   // Calcula trend: diferença entre anúncios e ITBI
-  const trend_percentage = ((anuncio.med_m2 - itbi.med_m2) / itbi.med_m2) * 100;
+  let trend_percentage = ((anuncio.med_m2 - itbi.med_m2) / itbi.med_m2) * 100;
+  
+  // Aplica cap para evitar distorções extremas (poucos dados de anúncios)
+  if (trend_percentage > TREND_CAP) {
+    trend_percentage = TREND_CAP;
+  } else if (trend_percentage < -TREND_CAP) {
+    trend_percentage = -TREND_CAP;
+  }
+  
   const trend_direction: "UP" | "STABLE" | "DOWN" =
     trend_percentage > 5 ? "UP" : trend_percentage < -5 ? "DOWN" : "STABLE";
 
