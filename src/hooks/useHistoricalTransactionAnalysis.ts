@@ -118,9 +118,10 @@ export function useHistoricalTransactionAnalysis(logradouro: string, bairro: str
       const endDate = `${endYear}-12-31`;
 
       // Primeiro buscar por logradouro específico
+      // IMPORTANTE: Usar total_transacoes para contagem correta (cada registro pode representar múltiplas transações)
       let { data: transactions, error } = await supabase
         .from('itbi_transactions')
-        .select('data_transacao, valor_m2')
+        .select('data_transacao, valor_m2, total_transacoes')
         .ilike('logradouro', `%${normalizedLogradouro}%`)
         .eq('bairro', normalizedBairro)
         .eq('uso', 'Residencial')
@@ -142,7 +143,7 @@ export function useHistoricalTransactionAnalysis(logradouro: string, bairro: str
       if (!transactions || transactions.length < 15) {
         const { data: bairroTransactions, error: bairroError } = await supabase
           .from('itbi_transactions')
-          .select('data_transacao, valor_m2')
+          .select('data_transacao, valor_m2, total_transacoes')
           .eq('bairro', normalizedBairro)
           .eq('uso', 'Residencial')
           .not('valor_m2', 'is', null)
@@ -160,17 +161,19 @@ export function useHistoricalTransactionAnalysis(logradouro: string, bairro: str
       if (!transactions || transactions.length === 0) return null;
 
       // Agrupar por ano (de startYear até endYear)
-      const yearlyMap: Record<number, { valores: number[]; count: number }> = {};
+      // CORREÇÃO: usar total_transacoes para contagem correta ao invés de count++
+      const yearlyMap: Record<number, { valores: number[]; totalTransacoes: number }> = {};
 
       for (let year = startYear; year <= endYear; year++) {
-        yearlyMap[year] = { valores: [], count: 0 };
+        yearlyMap[year] = { valores: [], totalTransacoes: 0 };
       }
 
       transactions.forEach((t) => {
         const year = new Date(t.data_transacao).getFullYear();
         if (yearlyMap[year] && t.valor_m2! >= outlierMinLimit) {
           yearlyMap[year].valores.push(t.valor_m2!);
-          yearlyMap[year].count++;
+          // Usar total_transacoes do registro (padrão 1 se não definido)
+          yearlyMap[year].totalTransacoes += (t.total_transacoes || 1);
         }
       });
       
@@ -198,7 +201,7 @@ export function useHistoricalTransactionAnalysis(logradouro: string, bairro: str
           
           return {
             ano: parseInt(ano),
-            transacoes: data.count,
+            transacoes: data.totalTransacoes,
             valorMedioM2: Math.round(valorMedioM2),
             valorMinM2: Math.round(valorMinM2),
             valorMaxM2: Math.round(valorMaxM2),
