@@ -324,6 +324,8 @@ export function Step4Results({ result, state, combined }: Props) {
           anuncioData={state.anuncioData}
           area={state.area_m2}
           combined={combined}
+          valorFinalRecomendado={result.provavel}
+          ajusteTotal={result.total_adjustment}
         />
       )}
 

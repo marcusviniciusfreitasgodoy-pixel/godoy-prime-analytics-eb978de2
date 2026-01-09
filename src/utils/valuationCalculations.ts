@@ -267,7 +267,9 @@ export const calculateSpread = (pessimista: number, otimista: number, provavel: 
   return ((otimista - pessimista) / provavel) * 100;
 };
 
-// Calcula score de confiança (0-100) com peso de liquidez e gap de mercado
+// Calcula score de confiança (0-100) com foco na qualidade dos dados de entrada
+// PREMISSA: O valor "provável" já é considerado REAL e FACTÍVEL
+// A confiança mede: qualidade dos dados, consistência do mercado, documentação
 export const calculateConfidenceScore = (
   adjustment: number,
   spread: number,
@@ -277,72 +279,70 @@ export const calculateConfidenceScore = (
 ): number => {
   let score = 100;
 
-  // Penalidade 1: Magnitude do ajuste (peso: ~25%)
+  // Penalidade 1: Magnitude do ajuste (peso reduzido: ~15%)
+  // Ajustes altos são normais quando o imóvel tem diferenciais reais
+  // Penalizamos apenas ajustes extremos (>40%)
   const adjMag = Math.abs(adjustment) * 100;
   if (adjMag > 40) {
-    score -= 40;
-  } else if (adjMag > 30) {
-    score -= 25;
-  } else if (adjMag > 15) {
-    score -= 10;
-  } else {
-    score -= 5;
+    score -= 15; // Reduzido de 40 para 15
+  } else if (adjMag > 35) {
+    score -= 8;  // Reduzido de 25 para 8
+  } else if (adjMag > 25) {
+    score -= 4;  // Reduzido de 10 para 4
   }
+  // Ajustes até 25% são considerados normais (sem penalidade)
 
-  // Penalidade 2: Spread amplo (peso: ~20%)
+  // Penalidade 2: Spread amplo (peso: ~15%)
+  // Spreads de 20-30% são normais no mercado imobiliário
   if (spread > 40) {
-    score -= 30;
+    score -= 15; // Reduzido de 30 para 15
+  } else if (spread > 35) {
+    score -= 8;  // Reduzido de 15 para 8
   } else if (spread > 30) {
-    score -= 15;
-  } else if (spread > 20) {
-    score -= 8;
-  } else {
-    score -= 3;
+    score -= 4;  // Ajustado
   }
+  // Spreads até 30% são considerados normais (sem penalidade)
 
-  // Penalidade 3: Documentação (peso: ~15%)
+  // Penalidade 3: Documentação (peso mantido: ~15%)
+  // Documentação é crítica - mantém penalidades
   if (doc_factor < 0.85) {
-    score -= 25;
+    score -= 20;
   } else if (doc_factor < 0.95) {
-    score -= 10;
+    score -= 8;
   }
 
-  // Penalidade/Bônus 4: Liquidez do mercado (peso: ~20%)
-  // Baseado no score de liquidez histórico (0-100)
+  // Bônus/Penalidade 4: Liquidez do mercado (peso: ~15%)
+  // Foco em dar bônus para alta liquidez, penalidade leve para baixa
   if (liquidityScore !== undefined) {
-    if (liquidityScore >= 80) {
-      // Alta liquidez: bônus
+    if (liquidityScore >= 70) {
+      // Alta liquidez: bônus significativo
       score += 10;
-    } else if (liquidityScore >= 60) {
-      // Liquidez média-alta: pequeno bônus
+    } else if (liquidityScore >= 50) {
+      // Liquidez média-alta: bônus moderado
       score += 5;
-    } else if (liquidityScore >= 40) {
-      // Liquidez média: neutro (sem alteração)
-    } else if (liquidityScore >= 20) {
-      // Liquidez baixa: penalidade moderada
-      score -= 10;
+    } else if (liquidityScore >= 30) {
+      // Liquidez média: neutro
     } else {
-      // Liquidez muito baixa: penalidade severa
-      score -= 20;
+      // Liquidez baixa: penalidade leve
+      score -= 5;
     }
   }
 
-  // Penalidade/Bônus 5: Gap de Mercado (peso: ~10%)
-  // Gap baixo = mercado equilibrado = bônus
-  // Gap alto = discrepância = penalidade (reduz confiabilidade da avaliação)
+  // Penalidade 5: Gap de Mercado (peso reduzido: ~5%)
+  // Gap indica discrepância entre anúncios e transações reais
+  // Não deveria penalizar fortemente a avaliação que usa dados reais (ITBI)
   const absGap = Math.abs(marketGap);
-  if (absGap <= 10) {
-    // Mercado equilibrado: bônus
-    score += 5;
-  } else if (absGap <= 20) {
+  if (absGap <= 15) {
+    // Mercado bem equilibrado: pequeno bônus
+    score += 3;
+  } else if (absGap <= 25) {
     // Gap moderado: neutro
-    // sem alteração
   } else if (absGap <= 35) {
-    // Gap alto: penalidade moderada
-    score -= 10;
+    // Gap alto: penalidade leve
+    score -= 3;
   } else {
-    // Gap crítico: penalidade severa
-    score -= 15;
+    // Gap crítico: penalidade moderada
+    score -= 5;
   }
 
   return Math.max(0, Math.min(100, score));
