@@ -142,6 +142,15 @@ export function exportValuationEnginePDF(
     yPos += 6;
     yPos = drawSectionTitle(doc, 'Transações Realizadas na Região', yPos, marginLeft);
     
+    // Texto explicativo
+    doc.setFontSize(8);
+    doc.setFont('helvetica', 'normal');
+    doc.setTextColor(...BRAND_COLORS.darkGray);
+    const textoExplicativo = 'Para fundamentar esta avaliação, foram identificadas transações de imóveis com características semelhantes, localizados na mesma região do imóvel avaliado, realizadas nos últimos 12 meses e registradas nas guias de ITBI da Prefeitura do Rio de Janeiro.';
+    const splitTexto = doc.splitTextToSize(textoExplicativo, contentWidth);
+    doc.text(splitTexto, marginLeft, yPos);
+    yPos += splitTexto.length * 4 + 4;
+    
     // Box azul claro para destaque
     doc.setFillColor(239, 246, 255);
     doc.setDrawColor(59, 130, 246);
@@ -196,7 +205,7 @@ export function exportValuationEnginePDF(
     // Fonte
     doc.setFontSize(7);
     doc.setTextColor(100, 116, 139);
-    doc.text('Fonte: Guias de ITBI - Prefeitura do Rio de Janeiro (últimos 12 meses)', marginLeft, yPos + 3);
+    doc.text('Fonte: Guias de ITBI - Prefeitura do Rio de Janeiro', marginLeft, yPos + 3);
     yPos += 10;
   }
 
