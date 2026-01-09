@@ -181,7 +181,10 @@ export const calculateTotalAdjustment = (
   return { total, auto_capped, by_category: cappedByCategory, global_cap: globalCap.max };
 };
 
-// Calcula os 3 valores finais
+// Calcula os 3 valores finais com compressão de spread
+// Fator de compressão: aproxima min/max em direção à mediana para reduzir distorção
+const SPREAD_COMPRESSION = 0.35; // 35% de compressão do spread original
+
 export const calculateFinalValues = (
   area_m2: number,
   combined: CombinedPrices,
@@ -190,13 +193,19 @@ export const calculateFinalValues = (
 ): { pessimista: number; provavel: number; otimista: number } => {
   const multiplier = 1 + adjustment;
 
+  // Valores base antes de compressão
   const base_min = combined.min_m2 * area_m2;
   const base_med = combined.med_m2 * area_m2;
   const base_max = combined.max_m2 * area_m2;
 
-  const adjusted_min = base_min * multiplier;
+  // Aplica compressão: aproxima min/max em direção à mediana
+  // Isso reduz o spread mantendo o valor provável como âncora
+  const compressed_min = base_min + (base_med - base_min) * SPREAD_COMPRESSION;
+  const compressed_max = base_max - (base_max - base_med) * SPREAD_COMPRESSION;
+
+  const adjusted_min = compressed_min * multiplier;
   const adjusted_med = base_med * multiplier;
-  const adjusted_max = base_max * multiplier;
+  const adjusted_max = compressed_max * multiplier;
 
   return {
     pessimista: Math.round(adjusted_min * doc_factor),
