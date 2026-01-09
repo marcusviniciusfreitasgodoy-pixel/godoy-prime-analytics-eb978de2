@@ -39,18 +39,24 @@ export function PriceComparisonCard({
     }).format(value);
   };
 
-  // CORREÇÃO: Preço Anúncio Sugerido deve ser o VALOR FINAL RECOMENDADO (após ajustes)
-  // Se não informado, calcula usando a média combinada * area * (1 + ajuste)
+  // Definições (importante):
+  // - VENDA RÁPIDA / MEDIANA: deve refletir o valor final provável (após todos os ajustes).
+  // - PREÇO ANÚNCIO: deve refletir o “sinal de mercado” (média dos anúncios), sem reaplicar ajustes.
+  // - GAP DE MERCADO: é calculado SOMENTE entre anúncios vs ITBI (R$/m²), e não sobre o valor final.
+
   const multiplier = 1 + ajusteTotal;
-  const precoAnuncio = valorFinalRecomendado || (combined.med_m2 * area * multiplier);
+
+  // Preço Venda Rápida (âncora): valor final recomendado (após ajustes)
+  // Fallback: ITBI med/m² com os mesmos ajustes, caso o valor final não seja passado.
+  const precoVendaRapida = valorFinalRecomendado ?? (itbiData.med_m2 * area * multiplier);
+  const precoVendaRapidaM2 = precoVendaRapida / area;
+
+  // Preço Anúncio (mercado): média dos anúncios (quando disponível).
+  // Fallback: média combinada (ITBI+anúncios) SEM ajustes, para não “inflar” pelo questionário.
+  const precoAnuncio = (anuncioData?.med_m2 ? anuncioData.med_m2 : combined.med_m2) * area;
   const precoAnuncioM2 = precoAnuncio / area;
 
-  // Preço Venda Rápida: baseado em ITBI (transações reais) * ajuste
-  // Aplica o mesmo ajuste para manter consistência
-  const precoVendaRapida = itbiData.med_m2 * area * multiplier;
-  const precoVendaRapidaM2 = itbiData.med_m2 * multiplier;
-
-  // Gap de Mercado: diferença percentual
+  // Gap de Mercado: diferença percentual (anúncios vs ITBI em R$/m²)
   const marketGap = combined.market_gap_percentage;
   const marketAlignment = combined.market_alignment;
 
@@ -124,7 +130,7 @@ export function PriceComparisonCard({
           Estratégia de Precificação
         </CardTitle>
         <p className="text-xs text-muted-foreground mt-1">
-          Comparativo entre preço de anúncio e venda rápida baseado em dados de mercado
+          Venda rápida usa o valor final da avaliação; anúncio usa a média dos anúncios (mercado)
         </p>
       </CardHeader>
       <CardContent className="pt-4 space-y-4">
@@ -168,7 +174,7 @@ export function PriceComparisonCard({
                 VENDA RÁPIDA
               </span>
               <Badge variant="outline" className="text-[9px] border-emerald-500 text-emerald-600">
-                ITBI
+                AVALIAÇÃO
               </Badge>
             </div>
             <div className="text-xl sm:text-2xl font-bold text-emerald-800 dark:text-emerald-200">

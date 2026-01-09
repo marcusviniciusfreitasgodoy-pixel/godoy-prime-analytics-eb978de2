@@ -85,68 +85,75 @@ const getOutlierMinLimit = (bairro: string): number => {
 };
 
 export function useHistoricalTransactionAnalysis(logradouro: string, bairro: string, enabled: boolean = true) {
+  const normalizedBairro = (bairro || '').toUpperCase().trim();
+  const normalizedLogradouro = (logradouro || '').trim();
+
   return useQuery<HistoricalAnalysis | null>({
-    queryKey: ['historical-analysis-5y', logradouro, bairro],
+    queryKey: ['historical-analysis-5y', normalizedLogradouro.toUpperCase(), normalizedBairro],
     queryFn: async () => {
-      if (!logradouro || !bairro) return null;
-      
+      if (!normalizedLogradouro || !normalizedBairro) return null;
+
       // CACHE: Verificar se há dados em cache válidos
-      const cachedData = getCachedAnalysis(bairro, logradouro);
+      const cachedData = getCachedAnalysis(normalizedBairro, normalizedLogradouro);
       if (cachedData) {
         return cachedData;
       }
-      
-      const outlierLimit = getOutlierLimit(bairro);
-      const outlierMinLimit = getOutlierMinLimit(bairro);
-      
-      // Buscar transações dos últimos 5 anos (de 2021 até o ano atual)
+
+      const outlierLimit = getOutlierLimit(normalizedBairro);
+      const outlierMinLimit = getOutlierMinLimit(normalizedBairro);
+
+      // Buscar transações dos últimos 5 anos FECHADOS (ex.: 2021-2025)
+      // Evita “ano corrente” parcial (ex.: janeiro) distorcer tendência/projeção.
       const currentYear = new Date().getFullYear();
-      const startYear = currentYear - 4; // 5 anos incluindo o atual
+      const endYear = currentYear - 1;
+      const startYear = endYear - 4;
       const startDate = `${startYear}-01-01`;
-      
+      const endDate = `${endYear}-12-31`;
+
       // Primeiro buscar por logradouro específico
       let { data: transactions, error } = await supabase
         .from('itbi_transactions')
         .select('data_transacao, valor_m2')
-        .ilike('logradouro', `%${logradouro}%`)
-        .ilike('bairro', bairro)
+        .ilike('logradouro', `%${normalizedLogradouro}%`)
+        .eq('bairro', normalizedBairro)
         .eq('uso', 'Residencial')
         .not('valor_m2', 'is', null)
         .lte('valor_m2', outlierLimit)
-        .gte('valor_m2', outlierMinLimit) // Filtrar outliers mínimos também
+        .gte('valor_m2', outlierMinLimit)
         .gte('data_transacao', startDate)
+        .lte('data_transacao', endDate)
         .order('data_transacao', { ascending: true });
-      
+
       if (error) throw error;
-      
+
       // Se poucos dados do logradouro, buscar do bairro todo
       if (!transactions || transactions.length < 20) {
         const { data: bairroTransactions, error: bairroError } = await supabase
           .from('itbi_transactions')
           .select('data_transacao, valor_m2')
-          .ilike('bairro', bairro)
+          .eq('bairro', normalizedBairro)
           .eq('uso', 'Residencial')
           .not('valor_m2', 'is', null)
           .lte('valor_m2', outlierLimit)
-          .gte('valor_m2', outlierMinLimit) // Filtrar outliers mínimos também
+          .gte('valor_m2', outlierMinLimit)
           .gte('data_transacao', startDate)
+          .lte('data_transacao', endDate)
           .order('data_transacao', { ascending: true });
-        
+
         if (bairroError) throw bairroError;
         transactions = bairroTransactions;
       }
-      
+
       if (!transactions || transactions.length === 0) return null;
-      
-      // Agrupar por ano (de startYear até currentYear)
-      const yearlyMap: Record<number, { valores: number[], count: number }> = {};
-      
-      // Inicializar anos de startYear até currentYear
-      for (let year = startYear; year <= currentYear; year++) {
+
+      // Agrupar por ano (de startYear até endYear)
+      const yearlyMap: Record<number, { valores: number[]; count: number }> = {};
+
+      for (let year = startYear; year <= endYear; year++) {
         yearlyMap[year] = { valores: [], count: 0 };
       }
-      
-      transactions.forEach(t => {
+
+      transactions.forEach((t) => {
         const year = new Date(t.data_transacao).getFullYear();
         if (yearlyMap[year] && t.valor_m2! >= outlierMinLimit) {
           yearlyMap[year].valores.push(t.valor_m2!);
@@ -184,7 +191,7 @@ export function useHistoricalTransactionAnalysis(logradouro: string, bairro: str
             valorMaxM2: Math.round(valorMaxM2),
           };
         })
-        .filter(y => y.ano <= currentYear) // Garantir que termina no ano atual
+        .filter((y) => y.ano <= endYear)
         .sort((a, b) => a.ano - b.ano);
       
       // Calcular tendências (últimos 5 anos)
@@ -285,8 +292,8 @@ export function useHistoricalTransactionAnalysis(logradouro: string, bairro: str
       };
       
       // CACHE: Salvar resultado no cache persistente
-      setCachedAnalysis(bairro, logradouro, result);
-      
+      setCachedAnalysis(normalizedBairro, normalizedLogradouro, result);
+
       return result;
     },
     enabled: enabled && !!logradouro && !!bairro,
