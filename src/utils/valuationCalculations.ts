@@ -16,6 +16,8 @@ export interface CombinedPrices {
   max_m2: number;
   trend_percentage: number;
   trend_direction: "UP" | "STABLE" | "DOWN";
+  trend_capped?: boolean; // Indica se o trend foi limitado pelo cap
+  trend_original?: number; // Valor original antes do cap (para referência)
 }
 
 // Combina ITBI (70%) + Anúncios (30%)
@@ -34,6 +36,7 @@ export const calculateCombinedPrices = (
       max_m2: itbi.max_m2,
       trend_percentage: 0,
       trend_direction: "STABLE",
+      trend_capped: false,
     };
   }
 
@@ -42,13 +45,19 @@ export const calculateCombinedPrices = (
   const combined_max = itbi.max_m2 * 0.7 + anuncio.max_m2 * 0.3;
 
   // Calcula trend: diferença entre anúncios e ITBI
-  let trend_percentage = ((anuncio.med_m2 - itbi.med_m2) / itbi.med_m2) * 100;
+  const trend_original = ((anuncio.med_m2 - itbi.med_m2) / itbi.med_m2) * 100;
+  let trend_percentage = trend_original;
+  let trend_capped = false;
   
   // Aplica cap para evitar distorções extremas (poucos dados de anúncios)
   if (trend_percentage > TREND_CAP) {
     trend_percentage = TREND_CAP;
+    trend_capped = true;
+    console.log(`[ValuationCalc] Trend capped: ${trend_original.toFixed(1)}% → ${TREND_CAP}%`);
   } else if (trend_percentage < -TREND_CAP) {
     trend_percentage = -TREND_CAP;
+    trend_capped = true;
+    console.log(`[ValuationCalc] Trend capped: ${trend_original.toFixed(1)}% → -${TREND_CAP}%`);
   }
   
   const trend_direction: "UP" | "STABLE" | "DOWN" =
@@ -60,6 +69,8 @@ export const calculateCombinedPrices = (
     max_m2: Math.round(combined_max * 100) / 100,
     trend_percentage: Math.round(trend_percentage * 100) / 100,
     trend_direction,
+    trend_capped,
+    trend_original: trend_capped ? Math.round(trend_original * 100) / 100 : undefined,
   };
 };
 
