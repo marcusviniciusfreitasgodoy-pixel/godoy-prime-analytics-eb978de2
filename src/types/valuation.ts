@@ -58,6 +58,17 @@ export interface YearlyData {
   valorMaxM2: number;
 }
 
+export interface FutureProjection {
+  oneYear: { optimistic: number; pessimistic: number; probable: number };
+  twoYears: { optimistic: number; pessimistic: number; probable: number };
+  threeYears: { optimistic: number; pessimistic: number; probable: number };
+  optimisticRate: number;
+  pessimisticRate: number;
+  probableRate: number;
+  confidence: 'alta' | 'media' | 'baixa';
+  disclaimer: string;
+}
+
 export interface HistoricalAnalysis {
   yearlyData: YearlyData[];
   transactionTrend: 'crescente' | 'estavel' | 'decrescente';
@@ -68,6 +79,7 @@ export interface HistoricalAnalysis {
   priceGrowth: number;
   diagnostico: string;
   alertas: string[];
+  futureProjection?: FutureProjection;
 }
 
 export interface ValuationState {
