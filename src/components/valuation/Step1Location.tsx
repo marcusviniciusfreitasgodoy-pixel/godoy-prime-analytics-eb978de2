@@ -73,6 +73,30 @@ export function Step1Location({ state, updateState, combined }: Props) {
     });
   }, [anuncios]);
 
+  // Função para filtrar outliers usando IQR (Intervalo Interquartil)
+  const filterOutliersIQR = (values: number[]): number[] => {
+    if (values.length < 4) return values; // Precisa de pelo menos 4 valores para IQR
+    
+    const sorted = [...values].sort((a, b) => a - b);
+    const n = sorted.length;
+    
+    // Calcula Q1 (percentil 25) e Q3 (percentil 75)
+    const q1Index = Math.floor(n * 0.25);
+    const q3Index = Math.floor(n * 0.75);
+    const q1 = sorted[q1Index];
+    const q3 = sorted[q3Index];
+    
+    // IQR = Q3 - Q1
+    const iqr = q3 - q1;
+    
+    // Limites: Q1 - 1.5*IQR e Q3 + 1.5*IQR
+    const lowerBound = q1 - 1.5 * iqr;
+    const upperBound = q3 + 1.5 * iqr;
+    
+    // Filtra valores dentro do intervalo
+    return sorted.filter(v => v >= lowerBound && v <= upperBound);
+  };
+
   const handleSelectStreet = async (suggestion: OfficialStreetSuggestion) => {
     // Usa o logradouro normalizado para ITBI se disponível
     const logradouroParaBusca = suggestion.logradouro_itbi || suggestion.logradouro;
@@ -90,19 +114,21 @@ export function Step1Location({ state, updateState, combined }: Props) {
         .ilike("logradouro", `%${logradouroParaBusca}%`);
 
       if (!error && data && data.length >= 3) {
-        const values = data.map(d => Number(d.valor_m2)).sort((a, b) => a - b);
-        const mid = Math.floor(values.length / 2);
+        const rawValues = data.map(d => Number(d.valor_m2));
         
-        // Usa percentis para evitar outliers extremos
-        // P10 para mínimo, P50 para mediana, P90 para máximo
-        const p10Index = Math.max(0, Math.floor(values.length * 0.10));
-        const p90Index = Math.min(values.length - 1, Math.floor(values.length * 0.90));
+        // Aplica filtro IQR para remover outliers
+        const filteredValues = filterOutliersIQR(rawValues);
+        const values = filteredValues.sort((a, b) => a - b);
+        
+        // Se após filtro sobrar menos de 3, usa valores originais
+        const finalValues = values.length >= 3 ? values : rawValues.sort((a, b) => a - b);
+        const mid = Math.floor(finalValues.length / 2);
         
         const itbiData: ITBIData = {
-          min_m2: Math.round(values[p10Index]),
-          med_m2: Math.round(values.length % 2 ? values[mid] : (values[mid - 1] + values[mid]) / 2),
-          max_m2: Math.round(values[p90Index]),
-          transaction_count: values.length,
+          min_m2: Math.round(finalValues[0]),
+          med_m2: Math.round(finalValues.length % 2 ? finalValues[mid] : (finalValues[mid - 1] + finalValues[mid]) / 2),
+          max_m2: Math.round(finalValues[finalValues.length - 1]),
+          transaction_count: data.length, // Mantém contagem original
         };
 
         updateState({
