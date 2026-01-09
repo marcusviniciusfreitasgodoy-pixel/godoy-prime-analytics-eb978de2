@@ -56,13 +56,30 @@ interface StreetSuggestion {
   med_m2: number;
 }
 
-// Types
+// Types - Dados COMPLETOS da avaliação para relatório integrado
 interface AvaliacaoData {
   valorProvavel: number;
   valorPessimista: number;
   valorOtimista: number;
   confidenceLevel: string;
+  confidenceScore?: number;
   dataAvaliacao: string;
+  // Dados de mercado ITBI
+  itbiMinM2?: number;
+  itbiMedM2?: number;
+  itbiMaxM2?: number;
+  transactionCount?: number;
+  // Tendência
+  trendPercentage?: number;
+  trendDirection?: string;
+  // Métricas de ajuste
+  totalAdjustment?: number;
+  spreadPercentage?: number;
+  // Recomendação
+  recommendationTitle?: string;
+  recommendationMessage?: string;
+  // Fontes dos anúncios
+  anuncioFontes?: string[];
 }
 
 interface PropertyData {
