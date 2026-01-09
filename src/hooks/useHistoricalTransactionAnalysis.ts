@@ -133,11 +133,13 @@ export function useHistoricalTransactionAnalysis(logradouro: string, bairro: str
 
       if (error) throw error;
 
-      // Rastrear fonte dos dados
+      // Rastrear fonte dos dados e quantidade encontrada
       let dataSource: 'logradouro' | 'bairro' = 'logradouro';
+      const logradouroTransactionCount = transactions?.length || 0;
 
-      // Se poucos dados do logradouro, buscar do bairro todo
-      if (!transactions || transactions.length < 20) {
+      // Se poucos dados do logradouro (< 15 transações em 5 anos = média < 3/ano), buscar do bairro todo
+      // Anteriormente era 20, mas isso excluía logradouros com volume razoável como Lúcio Costa (35 trans)
+      if (!transactions || transactions.length < 15) {
         const { data: bairroTransactions, error: bairroError } = await supabase
           .from('itbi_transactions')
           .select('data_transacao, valor_m2')
