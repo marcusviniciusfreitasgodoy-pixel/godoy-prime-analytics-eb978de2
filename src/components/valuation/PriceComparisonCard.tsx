@@ -130,7 +130,7 @@ export function PriceComparisonCard({
           Estratégia de Precificação
         </CardTitle>
         <p className="text-xs text-muted-foreground mt-1">
-          Venda rápida usa o valor final da avaliação; anúncio usa a média dos anúncios (mercado)
+          Valor de Venda Justo usa o valor final da avaliação; anúncio usa a média dos anúncios (mercado)
         </p>
       </CardHeader>
       <CardContent className="pt-4 space-y-4">
@@ -166,12 +166,12 @@ export function PriceComparisonCard({
             </div>
           </div>
 
-          {/* Preço Venda Rápida */}
+          {/* Valor de Venda Justo */}
           <div className="bg-gradient-to-br from-emerald-50 to-emerald-100 dark:from-emerald-950/40 dark:to-emerald-900/30 rounded-lg p-4 border border-emerald-200 dark:border-emerald-800">
             <div className="flex items-center gap-2 mb-2">
               <Zap className="h-4 w-4 text-emerald-600" />
               <span className="text-xs font-medium text-emerald-700 dark:text-emerald-400">
-                VENDA RÁPIDA
+                VALOR DE VENDA JUSTO
               </span>
               <Badge variant="outline" className="text-[9px] border-emerald-500 text-emerald-600">
                 AVALIAÇÃO
