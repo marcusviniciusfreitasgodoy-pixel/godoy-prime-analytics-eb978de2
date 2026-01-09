@@ -312,96 +312,203 @@ export function exportValuationEnginePDF(
     marginLeft
   );
 
-  // 4. MÉTRICAS DE CONFIANÇA - Card visual
-  // Verificar se há espaço suficiente para a seção (aumentado para incluir explicações)
-  if (yPos > getMaxContentY() - 85) {
+  // 4. MÉTRICAS DE CONFIANÇA - Design visual aprimorado
+  // Verificar se há espaço suficiente para a seção expandida
+  if (yPos > getMaxContentY() - 120) {
     doc.addPage();
     yPos = 20;
   }
   
   yPos = drawSectionTitle(doc, 'Métricas de Confiança', yPos, marginLeft);
   
-  // Card com métricas em grid
-  const metricCardHeight = 28;
-  doc.setFillColor(248, 250, 252);
-  doc.setDrawColor(226, 232, 240);
-  doc.setLineWidth(0.3);
-  doc.roundedRect(marginLeft - 5, yPos - 3, contentWidth + 10, metricCardHeight, 2, 2, 'FD');
-  
-  const metricColWidth = (contentWidth + 10) / 4;
-  const metricY = yPos + 8;
-  
   const confidenceLabel = result.confidence_level === 'green' ? 'ALTA' :
                           result.confidence_level === 'yellow_high' ? 'MÉDIA-ALTA' :
                           result.confidence_level === 'yellow_medium' ? 'MÉDIA' : 'BAIXA';
   
   const confidenceColor: [number, number, number] = result.confidence_level === 'green' ? [22, 163, 74] :
-                                                     result.confidence_level === 'yellow_high' ? [234, 179, 8] :
-                                                     result.confidence_level === 'yellow_medium' ? [249, 115, 22] : [220, 38, 38];
+                                                     result.confidence_level === 'yellow_high' ? [202, 138, 4] :
+                                                     result.confidence_level === 'yellow_medium' ? [234, 88, 12] : [220, 38, 38];
   
+  // Determine quality indicators for each metric
+  const spreadQuality = result.spread_percentage <= 20 ? 'excellent' : 
+                        result.spread_percentage <= 35 ? 'good' : 
+                        result.spread_percentage <= 50 ? 'moderate' : 'poor';
+  
+  const scoreQuality = result.confidence_score >= 80 ? 'excellent' : 
+                       result.confidence_score >= 60 ? 'good' : 
+                       result.confidence_score >= 40 ? 'moderate' : 'poor';
+  
+  const getQualityColor = (quality: string): [number, number, number] => {
+    switch(quality) {
+      case 'excellent': return [22, 163, 74];
+      case 'good': return [34, 197, 94];
+      case 'moderate': return [234, 179, 8];
+      default: return [239, 68, 68];
+    }
+  };
+  
+  const getQualityIcon = (quality: string): string => {
+    switch(quality) {
+      case 'excellent': return '★★★';
+      case 'good': return '★★☆';
+      case 'moderate': return '★☆☆';
+      default: return '○○○';
+    }
+  };
+
+  // Enhanced metrics cards - 4 columns with visual indicators
   const metricsData = [
-    { label: 'Ajuste Total', value: `${result.total_adjustment >= 0 ? '+' : ''}${(result.total_adjustment * 100).toFixed(1)}%`, color: result.total_adjustment >= 0 ? [22, 163, 74] : [220, 38, 38] as [number, number, number] },
-    { label: 'Spread', value: `${result.spread_percentage.toFixed(1)}%`, color: [71, 85, 105] as [number, number, number] },
-    { label: 'Score', value: `${result.confidence_score}/100`, color: confidenceColor },
-    { label: 'Nível', value: confidenceLabel, color: confidenceColor },
+    { 
+      label: 'Ajuste Total', 
+      value: `${result.total_adjustment >= 0 ? '+' : ''}${(result.total_adjustment * 100).toFixed(1)}%`, 
+      color: result.total_adjustment >= 0 ? [22, 163, 74] : [220, 38, 38] as [number, number, number],
+      icon: result.total_adjustment >= 0 ? '↗' : '↘',
+      sublabel: result.total_adjustment >= 0 ? 'Valorização' : 'Desvalorização'
+    },
+    { 
+      label: 'Spread', 
+      value: `${result.spread_percentage.toFixed(1)}%`, 
+      color: getQualityColor(spreadQuality),
+      icon: getQualityIcon(spreadQuality),
+      sublabel: spreadQuality === 'excellent' ? 'Precisão Alta' : 
+                spreadQuality === 'good' ? 'Precisão Boa' : 
+                spreadQuality === 'moderate' ? 'Precisão Moderada' : 'Precisão Baixa'
+    },
+    { 
+      label: 'Score', 
+      value: `${result.confidence_score}/100`, 
+      color: getQualityColor(scoreQuality),
+      icon: getQualityIcon(scoreQuality),
+      sublabel: scoreQuality === 'excellent' ? 'Excelente' : 
+                scoreQuality === 'good' ? 'Bom' : 
+                scoreQuality === 'moderate' ? 'Moderado' : 'Baixo'
+    },
+    { 
+      label: 'Nível', 
+      value: confidenceLabel, 
+      color: confidenceColor,
+      icon: result.confidence_level === 'green' ? '●' : 
+            result.confidence_level === 'yellow_high' ? '◐' : 
+            result.confidence_level === 'yellow_medium' ? '◔' : '○',
+      sublabel: 'Confiabilidade'
+    },
   ];
   
+  // Main metrics card with enhanced styling
+  const metricCardHeight = 36;
+  const metricColWidth = (contentWidth + 10) / 4;
+  
   metricsData.forEach((metric, i) => {
-    const colX = marginLeft + (metricColWidth * i);
+    const colX = marginLeft - 5 + (metricColWidth * i);
+    const cardWidth = metricColWidth - 4;
     
-    // Separador (exceto primeira coluna)
-    if (i > 0) {
-      doc.setDrawColor(226, 232, 240);
-      doc.setLineWidth(0.2);
-      doc.line(colX - 5, yPos + 2, colX - 5, yPos + metricCardHeight - 8);
-    }
+    // Individual card background
+    doc.setFillColor(248, 250, 252);
+    doc.setDrawColor(...(metric.color as [number, number, number]));
+    doc.setLineWidth(0.5);
+    doc.roundedRect(colX + 2, yPos - 3, cardWidth, metricCardHeight, 2, 2, 'FD');
+    
+    // Colored top bar
+    doc.setFillColor(...(metric.color as [number, number, number]));
+    doc.rect(colX + 2, yPos - 3, cardWidth, 3, 'F');
+    
+    // Icon
+    doc.setFontSize(10);
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(...(metric.color as [number, number, number]));
+    doc.text(metric.icon, colX + cardWidth - 8, yPos + 8);
     
     // Label
     doc.setFontSize(7);
-    doc.setFont('helvetica', 'normal');
-    doc.setTextColor(100, 116, 139);
-    doc.text(metric.label, colX + 3, metricY);
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(71, 85, 105);
+    doc.text(metric.label, colX + 5, yPos + 8);
     
-    // Valor
-    doc.setFontSize(12);
+    // Value
+    doc.setFontSize(14);
     doc.setFont('helvetica', 'bold');
     doc.setTextColor(...(metric.color as [number, number, number]));
-    doc.text(metric.value, colX + 3, metricY + 10);
+    doc.text(metric.value, colX + 5, yPos + 20);
+    
+    // Sublabel
+    doc.setFontSize(6);
+    doc.setFont('helvetica', 'normal');
+    doc.setTextColor(148, 163, 184);
+    doc.text(metric.sublabel, colX + 5, yPos + 27);
   });
   
-  yPos += metricCardHeight + 4;
+  yPos += metricCardHeight + 8;
   
-  // Explicação das métricas para leigos
-  doc.setFillColor(241, 245, 249);
-  doc.setDrawColor(203, 213, 225);
-  doc.setLineWidth(0.2);
-  const explanationHeight = 32;
+  // Explanation box with improved design
+  doc.setFillColor(240, 249, 255);
+  doc.setDrawColor(14, 165, 233);
+  doc.setLineWidth(0.3);
+  const explanationHeight = 38;
   doc.roundedRect(marginLeft - 5, yPos, contentWidth + 10, explanationHeight, 2, 2, 'FD');
   
-  doc.setFontSize(7);
+  // Blue accent bar on left
+  doc.setFillColor(14, 165, 233);
+  doc.rect(marginLeft - 5, yPos, 3, explanationHeight, 'F');
+  
+  doc.setFontSize(8);
   doc.setFont('helvetica', 'bold');
-  doc.setTextColor(71, 85, 105);
-  doc.text('O que significam estas métricas?', marginLeft, yPos + 5);
+  doc.setTextColor(3, 105, 161);
+  doc.text('💡 Entenda os Indicadores de Confiança', marginLeft + 2, yPos + 6);
   
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(6.5);
-  doc.setTextColor(100, 116, 139);
+  doc.setTextColor(30, 64, 175);
   
   const explanations = [
-    `• Ajuste Total: Percentual de valorização ou desvalorização aplicado com base nas características do imóvel (acabamento, localização, estado de conservação, etc.).`,
-    `• Spread: Diferença percentual entre o valor mínimo e máximo estimados. Quanto menor o spread, maior a precisão da avaliação.`,
-    `• Score: Pontuação de 0 a 100 que indica a confiabilidade da avaliação baseada na quantidade e qualidade dos dados disponíveis.`,
-    `• Nível: Classificação da confiança (Alta, Média-Alta, Média ou Baixa) que resume a qualidade geral desta avaliação.`
+    `• Ajuste Total: Valorização ou desvalorização aplicada com base nas características do imóvel (acabamento, vista, posição, etc.).`,
+    `• Spread: Variação entre valor mínimo e máximo. Spread ≤20% = Precisão Alta | 21-35% = Boa | 36-50% = Moderada | >50% = Baixa.`,
+    `• Score (0-100): Pontuação de confiabilidade baseada na quantidade e qualidade dos dados disponíveis na região.`,
+    `• Nível: Alta (80-100) | Média-Alta (60-79) | Média (40-59) | Baixa (<40) - Resume a qualidade geral desta avaliação.`
   ];
   
-  let expY = yPos + 10;
+  let expY = yPos + 12;
   explanations.forEach((exp) => {
-    const splitExp = doc.splitTextToSize(exp, contentWidth + 5);
-    doc.text(splitExp, marginLeft, expY);
-    expY += splitExp.length * 3.5;
+    const splitExp = doc.splitTextToSize(exp, contentWidth + 2);
+    doc.text(splitExp, marginLeft + 2, expY);
+    expY += splitExp.length * 4;
   });
   
-  yPos += explanationHeight + 6;
+  yPos += explanationHeight + 4;
+  
+  // Tips box: How to improve evaluation quality
+  doc.setFillColor(254, 252, 232);
+  doc.setDrawColor(202, 138, 4);
+  doc.setLineWidth(0.3);
+  const tipsHeight = 32;
+  doc.roundedRect(marginLeft - 5, yPos, contentWidth + 10, tipsHeight, 2, 2, 'FD');
+  
+  // Amber accent bar on left
+  doc.setFillColor(202, 138, 4);
+  doc.rect(marginLeft - 5, yPos, 3, tipsHeight, 'F');
+  
+  doc.setFontSize(7);
+  doc.setFont('helvetica', 'bold');
+  doc.setTextColor(146, 64, 14);
+  doc.text('📈 Como Melhorar a Precisão da Avaliação?', marginLeft + 2, yPos + 5);
+  
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(6);
+  doc.setTextColor(120, 53, 15);
+  
+  const tips = [
+    `→ Preencha todas as características do imóvel com precisão (vista, andar, estado de conservação, reformas realizadas).`,
+    `→ Realize a Vistoria Digital completa para ajuste de até ±15% com base nas condições reais verificadas in loco.`,
+    `→ Quanto mais transações na região, maior o score. Aguarde mais dados se a região for recente ou pouco movimentada.`
+  ];
+  
+  let tipY = yPos + 11;
+  tips.forEach((tip) => {
+    const splitTip = doc.splitTextToSize(tip, contentWidth + 2);
+    doc.text(splitTip, marginLeft + 2, tipY);
+    tipY += splitTip.length * 3.8;
+  });
+  
+  yPos += tipsHeight + 6;
 
   // 5. CARACTERÍSTICAS APLICADAS
   const appliedChars = state.responses.filter(r => r.response === 'sim' && r.weight_applied !== 0);
