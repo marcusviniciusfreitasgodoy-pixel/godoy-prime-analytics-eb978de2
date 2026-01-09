@@ -119,15 +119,14 @@ export function useHistoricalTransactionAnalysis(logradouro: string, bairro: str
 
       // Primeiro buscar por logradouro específico
       // IMPORTANTE: Usar total_transacoes para contagem correta (cada registro pode representar múltiplas transações)
+      // IMPORTANTE (contagem): NÃO filtrar por valor_m2 aqui, pois muitos registros podem não ter valor_m2 calculado.
+      // A filtragem por outliers/valor_m2 é aplicada apenas para estatísticas de preço.
       let { data: transactions, error } = await supabase
         .from('itbi_transactions')
         .select('data_transacao, valor_m2, total_transacoes')
         .ilike('logradouro', `%${normalizedLogradouro}%`)
         .eq('bairro', normalizedBairro)
         .eq('uso', 'Residencial')
-        .not('valor_m2', 'is', null)
-        .lte('valor_m2', outlierLimit)
-        .gte('valor_m2', outlierMinLimit)
         .gte('data_transacao', startDate)
         .lte('data_transacao', endDate)
         .order('data_transacao', { ascending: true });
@@ -146,9 +145,6 @@ export function useHistoricalTransactionAnalysis(logradouro: string, bairro: str
           .select('data_transacao, valor_m2, total_transacoes')
           .eq('bairro', normalizedBairro)
           .eq('uso', 'Residencial')
-          .not('valor_m2', 'is', null)
-          .lte('valor_m2', outlierLimit)
-          .gte('valor_m2', outlierMinLimit)
           .gte('data_transacao', startDate)
           .lte('data_transacao', endDate)
           .order('data_transacao', { ascending: true });
@@ -170,10 +166,15 @@ export function useHistoricalTransactionAnalysis(logradouro: string, bairro: str
 
       transactions.forEach((t) => {
         const year = new Date(t.data_transacao).getFullYear();
-        if (yearlyMap[year] && t.valor_m2! >= outlierMinLimit) {
-          yearlyMap[year].valores.push(t.valor_m2!);
-          // Usar total_transacoes do registro (padrão 1 se não definido)
-          yearlyMap[year].totalTransacoes += (t.total_transacoes || 1);
+        if (!yearlyMap[year]) return;
+
+        // Contagem: sempre soma total_transacoes (mesmo se valor_m2 estiver ausente)
+        yearlyMap[year].totalTransacoes += (t.total_transacoes || 1);
+
+        // Preço: só entra nas estatísticas se houver valor_m2 e estiver dentro dos limites
+        const v = t.valor_m2;
+        if (typeof v === 'number' && v >= outlierMinLimit && v <= outlierLimit) {
+          yearlyMap[year].valores.push(v);
         }
       });
       
