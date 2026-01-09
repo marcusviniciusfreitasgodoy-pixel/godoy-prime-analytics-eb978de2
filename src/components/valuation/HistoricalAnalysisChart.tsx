@@ -32,7 +32,10 @@ export function HistoricalAnalysisChart({ analysis }: Props) {
     transactionGrowth,
     priceGrowth,
     diagnostico,
-    alertas
+    alertas,
+    dataSource,
+    logradouroUsado,
+    bairroUsado
   } = analysis;
 
   const formatCurrency = (value: number) => {
@@ -73,10 +76,27 @@ export function HistoricalAnalysisChart({ analysis }: Props) {
       {/* Header com diagnóstico */}
       <Card className="bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-900 dark:to-slate-800 border-slate-200 dark:border-slate-700">
         <CardHeader className="pb-2">
-          <CardTitle className="text-sm sm:text-base flex items-center gap-2">
-            <Activity className="h-5 w-5 text-primary" />
-            Análise Histórica (5 anos)
-          </CardTitle>
+          <div className="flex items-center justify-between flex-wrap gap-2">
+            <CardTitle className="text-sm sm:text-base flex items-center gap-2">
+              <Activity className="h-5 w-5 text-primary" />
+              Análise Histórica (5 anos)
+            </CardTitle>
+            {/* Indicador da fonte dos dados */}
+            <Badge 
+              variant="outline" 
+              className={`text-[10px] ${
+                dataSource === 'logradouro' 
+                  ? 'border-blue-500 text-blue-700 bg-blue-50 dark:bg-blue-950/30' 
+                  : 'border-amber-500 text-amber-700 bg-amber-50 dark:bg-amber-950/30'
+              }`}
+            >
+              {dataSource === 'logradouro' ? (
+                <>📍 Dados do logradouro: {logradouroUsado}</>
+              ) : (
+                <>🏘️ Dados do bairro: {bairroUsado} (logradouro com {'<'}20 transações)</>
+              )}
+            </Badge>
+          </div>
         </CardHeader>
         <CardContent className="space-y-4">
           {/* KPIs em linha */}

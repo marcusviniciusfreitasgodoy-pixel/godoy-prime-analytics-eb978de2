@@ -6,7 +6,7 @@
 import type { HistoricalAnalysis } from '@/hooks/useHistoricalTransactionAnalysis';
 
 const CACHE_KEY_PREFIX = 'historical_analysis_';
-const CACHE_VERSION = 'v4'; // Incrementado: variações ano a ano
+const CACHE_VERSION = 'v5'; // Incrementado: dataSource, logradouroUsado, bairroUsado
 const CACHE_DURATION_MS = 24 * 60 * 60 * 1000; // 24 horas
 const MAX_CACHE_ENTRIES = 50; // Limitar memória do localStorage
 
