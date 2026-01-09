@@ -64,6 +64,8 @@ export function HistoricalAnalysisChart({ analysis }: Props) {
     valorM2: y.valorMedioM2,
     valorMin: y.valorMinM2,
     valorMax: y.valorMaxM2,
+    varTransacoes: y.variacaoTransacoes,
+    varPreco: y.variacaoPrecoM2,
   }));
 
   return (
@@ -247,62 +249,153 @@ export function HistoricalAnalysisChart({ analysis }: Props) {
         </CardContent>
       </Card>
 
-      {/* Tabela detalhada */}
+      {/* Tabela detalhada com variações ano a ano */}
       <Card>
         <CardHeader className="pb-2">
-          <CardTitle className="text-sm">📋 Dados por Ano</CardTitle>
+          <CardTitle className="text-sm">📋 Evolução Ano a Ano</CardTitle>
+          <p className="text-xs text-muted-foreground mt-1">
+            Análise de liquidez (transações) e valorização (preço/m²) por período
+          </p>
         </CardHeader>
         <CardContent>
           <div className="overflow-x-auto">
             <table className="w-full text-xs sm:text-sm">
               <thead>
-                <tr className="border-b">
-                  <th className="text-left py-2 px-1 font-medium">Ano</th>
-                  <th className="text-right py-2 px-1 font-medium">Trans.</th>
-                  <th className="text-right py-2 px-1 font-medium">Mín/m²</th>
-                  <th className="text-right py-2 px-1 font-medium">Méd/m²</th>
-                  <th className="text-right py-2 px-1 font-medium">Máx/m²</th>
+                <tr className="border-b bg-muted/30">
+                  <th className="text-left py-2 px-2 font-medium">Ano</th>
+                  <th className="text-center py-2 px-2 font-medium">
+                    <div className="flex flex-col items-center">
+                      <span>Transações</span>
+                      <span className="text-[10px] text-muted-foreground font-normal">(liquidez)</span>
+                    </div>
+                  </th>
+                  <th className="text-center py-2 px-2 font-medium">
+                    <div className="flex flex-col items-center">
+                      <span>Var. Trans.</span>
+                      <span className="text-[10px] text-muted-foreground font-normal">vs ano ant.</span>
+                    </div>
+                  </th>
+                  <th className="text-right py-2 px-2 font-medium">
+                    <div className="flex flex-col items-end">
+                      <span>Preço/m²</span>
+                      <span className="text-[10px] text-muted-foreground font-normal">(médio)</span>
+                    </div>
+                  </th>
+                  <th className="text-center py-2 px-2 font-medium">
+                    <div className="flex flex-col items-center">
+                      <span>Var. Preço</span>
+                      <span className="text-[10px] text-muted-foreground font-normal">vs ano ant.</span>
+                    </div>
+                  </th>
                 </tr>
               </thead>
               <tbody>
-                {yearlyData.map((y, i) => {
-                  const prevYear = yearlyData[i - 1];
-                  const priceChange = prevYear && prevYear.valorMedioM2 > 0
-                    ? ((y.valorMedioM2 - prevYear.valorMedioM2) / prevYear.valorMedioM2) * 100
-                    : null;
-                  
-                  return (
-                    <tr key={y.ano} className="border-b last:border-0 hover:bg-muted/50">
-                      <td className="py-2 px-1 font-medium">{y.ano}</td>
-                      <td className="py-2 px-1 text-right">
-                        <Badge variant="secondary" className="text-[10px]">
-                          {y.transacoes}
-                        </Badge>
-                      </td>
-                      <td className="py-2 px-1 text-right text-muted-foreground">
-                        {y.valorMinM2 > 0 ? formatCurrency(y.valorMinM2) : '-'}
-                      </td>
-                      <td className="py-2 px-1 text-right font-medium">
-                        <div className="flex items-center justify-end gap-1">
-                          {y.valorMedioM2 > 0 ? formatCurrency(y.valorMedioM2) : '-'}
-                          {priceChange !== null && y.valorMedioM2 > 0 && (
-                            <span className={`text-[10px] ${
-                              priceChange > 0 ? 'text-emerald-600' : 
-                              priceChange < 0 ? 'text-red-600' : 'text-muted-foreground'
-                            }`}>
-                              ({priceChange > 0 ? '+' : ''}{priceChange.toFixed(1)}%)
-                            </span>
+                {yearlyData.map((y) => (
+                  <tr key={y.ano} className="border-b last:border-0 hover:bg-muted/50">
+                    <td className="py-2.5 px-2 font-medium">{y.ano}</td>
+                    <td className="py-2.5 px-2 text-center">
+                      <Badge 
+                        variant={y.transacoes >= 10 ? "default" : y.transacoes >= 5 ? "secondary" : "outline"}
+                        className="text-[10px] min-w-[40px]"
+                      >
+                        {y.transacoes}
+                      </Badge>
+                    </td>
+                    <td className="py-2.5 px-2 text-center">
+                      {y.variacaoTransacoes !== null ? (
+                        <span className={`inline-flex items-center gap-0.5 text-xs font-medium px-1.5 py-0.5 rounded ${
+                          y.variacaoTransacoes > 10 ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400' : 
+                          y.variacaoTransacoes < -10 ? 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400' : 
+                          'bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400'
+                        }`}>
+                          {y.variacaoTransacoes > 0 ? (
+                            <TrendingUp className="h-3 w-3" />
+                          ) : y.variacaoTransacoes < 0 ? (
+                            <TrendingDown className="h-3 w-3" />
+                          ) : (
+                            <Minus className="h-3 w-3" />
                           )}
-                        </div>
-                      </td>
-                      <td className="py-2 px-1 text-right text-muted-foreground">
-                        {y.valorMaxM2 > 0 ? formatCurrency(y.valorMaxM2) : '-'}
-                      </td>
-                    </tr>
-                  );
-                })}
+                          {y.variacaoTransacoes > 0 ? '+' : ''}{y.variacaoTransacoes}%
+                        </span>
+                      ) : (
+                        <span className="text-muted-foreground text-[10px]">—</span>
+                      )}
+                    </td>
+                    <td className="py-2.5 px-2 text-right font-medium">
+                      {y.valorMedioM2 > 0 ? formatCurrency(y.valorMedioM2) : '-'}
+                    </td>
+                    <td className="py-2.5 px-2 text-center">
+                      {y.variacaoPrecoM2 !== null ? (
+                        <span className={`inline-flex items-center gap-0.5 text-xs font-medium px-1.5 py-0.5 rounded ${
+                          y.variacaoPrecoM2 > 3 ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400' : 
+                          y.variacaoPrecoM2 < -3 ? 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400' : 
+                          'bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400'
+                        }`}>
+                          {y.variacaoPrecoM2 > 0 ? (
+                            <TrendingUp className="h-3 w-3" />
+                          ) : y.variacaoPrecoM2 < 0 ? (
+                            <TrendingDown className="h-3 w-3" />
+                          ) : (
+                            <Minus className="h-3 w-3" />
+                          )}
+                          {y.variacaoPrecoM2 > 0 ? '+' : ''}{y.variacaoPrecoM2}%
+                        </span>
+                      ) : (
+                        <span className="text-muted-foreground text-[10px]">—</span>
+                      )}
+                    </td>
+                  </tr>
+                ))}
               </tbody>
+              {/* Resumo no footer */}
+              <tfoot>
+                <tr className="bg-muted/50 border-t-2">
+                  <td className="py-2.5 px-2 font-bold text-xs">RESUMO 5 ANOS</td>
+                  <td className="py-2.5 px-2 text-center">
+                    <span className="font-bold text-primary">
+                      {yearlyData.reduce((sum, y) => sum + y.transacoes, 0)} total
+                    </span>
+                  </td>
+                  <td className="py-2.5 px-2 text-center">
+                    <span className={`font-medium text-xs ${
+                      transactionGrowth > 0 ? 'text-emerald-600' : 
+                      transactionGrowth < 0 ? 'text-red-600' : 'text-muted-foreground'
+                    }`}>
+                      {transactionGrowth > 0 ? '+' : ''}{transactionGrowth}% a.a.
+                    </span>
+                  </td>
+                  <td className="py-2.5 px-2 text-right">
+                    <span className="font-medium text-xs text-muted-foreground">
+                      Média período
+                    </span>
+                  </td>
+                  <td className="py-2.5 px-2 text-center">
+                    <span className={`font-medium text-xs ${
+                      priceGrowth > 0 ? 'text-emerald-600' : 
+                      priceGrowth < 0 ? 'text-red-600' : 'text-muted-foreground'
+                    }`}>
+                      {priceGrowth > 0 ? '+' : ''}{priceGrowth}% a.a.
+                    </span>
+                  </td>
+                </tr>
+              </tfoot>
             </table>
+          </div>
+          
+          {/* Legenda explicativa */}
+          <div className="mt-3 pt-3 border-t flex flex-wrap gap-3 text-[10px] text-muted-foreground">
+            <div className="flex items-center gap-1">
+              <div className="w-2 h-2 rounded-full bg-emerald-500" />
+              <span>Crescimento ({'>'}10% trans. / {'>'}3% preço)</span>
+            </div>
+            <div className="flex items-center gap-1">
+              <div className="w-2 h-2 rounded-full bg-red-500" />
+              <span>Queda ({'<'}-10% trans. / {'<'}-3% preço)</span>
+            </div>
+            <div className="flex items-center gap-1">
+              <div className="w-2 h-2 rounded-full bg-gray-400" />
+              <span>Estável</span>
+            </div>
           </div>
         </CardContent>
       </Card>
