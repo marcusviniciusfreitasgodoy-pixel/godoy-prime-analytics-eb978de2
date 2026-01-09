@@ -297,13 +297,21 @@ export default function HistoricoAvaliacoes() {
       },
     };
 
-    // Combined prices com trend corrigido
+    // Combined prices com campos obrigatórios para CombinedPrices
     const combined = {
       med_m2: selectedValuation.final_value_med / selectedValuation.property_area_m2,
       min_m2: selectedValuation.final_value_min / selectedValuation.property_area_m2,
       max_m2: selectedValuation.final_value_max / selectedValuation.property_area_m2,
       trend_percentage: trendPercentage,
       trend_direction: (trendPercentage > 5 ? "UP" : trendPercentage < -5 ? "DOWN" : "STABLE") as "UP" | "DOWN" | "STABLE",
+      // Novos campos obrigatórios para Gap de Mercado
+      market_gap_percentage: trendPercentage,
+      market_alignment: (Math.abs(trendPercentage) <= 10 ? 'EQUILIBRADO' : 
+                         Math.abs(trendPercentage) <= 20 ? 'MODERADO' : 
+                         Math.abs(trendPercentage) <= 35 ? 'DESALINHADO' : 'CRITICO') as 'EQUILIBRADO' | 'MODERADO' | 'DESALINHADO' | 'CRITICO',
+      gap_impact: Math.abs(trendPercentage) <= 10 ? 'Mercado equilibrado' : 
+                  Math.abs(trendPercentage) <= 20 ? 'Margem de negociação típica' : 
+                  'Anúncios acima das transações reais',
     };
 
     try {

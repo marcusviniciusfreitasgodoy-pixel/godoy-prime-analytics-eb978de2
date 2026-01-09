@@ -32,6 +32,18 @@ export interface YearlyData {
   valorMaxM2: number;
 }
 
+// Projeção de Valor Futuro
+export interface FutureProjection {
+  oneYear: { optimistic: number; pessimistic: number; probable: number };
+  twoYears: { optimistic: number; pessimistic: number; probable: number };
+  threeYears: { optimistic: number; pessimistic: number; probable: number };
+  optimisticRate: number;  // taxa otimista (% a.a.)
+  pessimisticRate: number; // taxa pessimista (% a.a.)
+  probableRate: number;    // taxa provável (% a.a.)
+  confidence: 'alta' | 'media' | 'baixa';
+  disclaimer: string;
+}
+
 export interface HistoricalAnalysis {
   yearlyData: YearlyData[];
   transactionTrend: 'crescente' | 'estavel' | 'decrescente';
@@ -42,6 +54,7 @@ export interface HistoricalAnalysis {
   priceGrowth: number; // % crescimento médio anual de preços
   diagnostico: string;
   alertas: string[];
+  futureProjection?: FutureProjection; // Nova projeção de valor futuro
 }
 
 export function useHistoricalTransactionAnalysis(logradouro: string, bairro: string, enabled: boolean = true) {
@@ -203,6 +216,13 @@ export function useHistoricalTransactionAnalysis(logradouro: string, bairro: str
         yearsWithData
       );
       
+      // Calcular projeção de valor futuro
+      const futureProjection = calculateFutureProjection(
+        priceGrowth,
+        liquidityScore,
+        yearsWithData.length
+      );
+      
       return {
         yearlyData,
         transactionTrend,
@@ -213,11 +233,80 @@ export function useHistoricalTransactionAnalysis(logradouro: string, bairro: str
         priceGrowth: Math.round(priceGrowth * 10) / 10,
         diagnostico,
         alertas,
+        futureProjection,
       };
     },
     enabled: enabled && !!logradouro && !!bairro,
     staleTime: 10 * 60 * 1000, // 10 minutos
   });
+}
+
+// Calcula projeção de valor futuro baseada na tendência histórica
+function calculateFutureProjection(
+  priceGrowth: number,
+  liquidityScore: number,
+  yearsWithData: number
+): FutureProjection {
+  // Taxa provável: usa a tendência histórica
+  const probableRate = priceGrowth;
+  
+  // Taxa otimista: adiciona 3% ao cenário provável
+  const optimisticRate = priceGrowth + 3;
+  
+  // Taxa pessimista: subtrai 3% ou usa metade (o que for menor)
+  const pessimisticRate = Math.min(priceGrowth - 3, priceGrowth * 0.5);
+  
+  // Função para calcular valor projetado
+  const projectValue = (rate: number, years: number): number => {
+    // Retorna o multiplicador para aplicar sobre o valor atual
+    return Math.pow(1 + rate / 100, years);
+  };
+  
+  // Projeções para 1, 2 e 3 anos (multiplicadores)
+  const oneYear = {
+    optimistic: projectValue(optimisticRate, 1),
+    pessimistic: projectValue(pessimisticRate, 1),
+    probable: projectValue(probableRate, 1),
+  };
+  
+  const twoYears = {
+    optimistic: projectValue(optimisticRate, 2),
+    pessimistic: projectValue(pessimisticRate, 2),
+    probable: projectValue(probableRate, 2),
+  };
+  
+  const threeYears = {
+    optimistic: projectValue(optimisticRate, 3),
+    pessimistic: projectValue(pessimisticRate, 3),
+    probable: projectValue(probableRate, 3),
+  };
+  
+  // Confiança da projeção baseada em liquidez e quantidade de dados
+  let confidence: 'alta' | 'media' | 'baixa';
+  if (liquidityScore >= 70 && yearsWithData >= 4) {
+    confidence = 'alta';
+  } else if (liquidityScore >= 40 && yearsWithData >= 3) {
+    confidence = 'media';
+  } else {
+    confidence = 'baixa';
+  }
+  
+  // Disclaimer
+  const disclaimer = 
+    'Projeção baseada na tendência histórica de 5 anos. ' +
+    'Valores futuros são estimativas e podem variar conforme condições de mercado, ' +
+    'políticas econômicas e fatores locais. Esta projeção não constitui garantia de valorização.';
+  
+  return {
+    oneYear,
+    twoYears,
+    threeYears,
+    optimisticRate: Math.round(optimisticRate * 10) / 10,
+    pessimisticRate: Math.round(pessimisticRate * 10) / 10,
+    probableRate: Math.round(probableRate * 10) / 10,
+    confidence,
+    disclaimer,
+  };
 }
 
 function generateDiagnostico(
