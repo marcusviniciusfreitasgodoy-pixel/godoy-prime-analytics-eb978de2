@@ -84,6 +84,8 @@ interface Valuation {
   anuncio_min_m2?: number | null;
   anuncio_med_m2?: number | null;
   anuncio_max_m2?: number | null;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  anuncio_fontes?: any; // JSONB do banco - será parseado ao usar
   // Campos extras
   area_terreno_m2?: number | null;
   proporcao_terreno?: number | null;
@@ -623,11 +625,12 @@ export default function HistoricoAvaliacoes() {
                         max_m2: selectedValuation.itbi_max_m2 || 0,
                         transaction_count: selectedValuation.itbi_transaction_count || 0,
                       },
-                      // Dados Anúncio (se existirem)
+                      // Dados Anúncio (se existirem, com fontes)
                       anuncioData: selectedValuation.anuncio_med_m2 ? {
                         min_m2: selectedValuation.anuncio_min_m2 || 0,
                         med_m2: selectedValuation.anuncio_med_m2 || 0,
                         max_m2: selectedValuation.anuncio_max_m2 || 0,
+                        fontes: selectedValuation.anuncio_fontes || undefined,
                       } : null,
                       // Campos extras
                       docStatus: selectedValuation.documentation_status,

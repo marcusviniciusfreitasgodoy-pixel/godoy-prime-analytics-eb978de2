@@ -71,6 +71,7 @@ interface EditarAvaliacaoData {
     min_m2: number;
     med_m2: number;
     max_m2: number;
+    fontes?: { valor: number; area: number; fonte?: string }[];
   } | null;
   docStatus: string;
   docFactor: number;

@@ -41,10 +41,20 @@ export function Step1Location({ state, updateState, combined }: Props) {
     state.bairro
   );
   
-  // Estado para anúncios de referência
-  const [anuncios, setAnuncios] = useState<AnuncioEntry[]>([
-    { id: "1", valor_total: 0, area_m2: 0, fonte: "" }
-  ]);
+  // Estado para anúncios de referência - inicializa com dados existentes ou vazio
+  const [anuncios, setAnuncios] = useState<AnuncioEntry[]>(() => {
+    // Se já temos fontes salvas no state, restaura elas
+    if (state.anuncioData?.fontes && state.anuncioData.fontes.length > 0) {
+      return state.anuncioData.fontes.map((f, idx) => ({
+        id: `saved-${idx}`,
+        valor_total: f.valor || 0,
+        area_m2: f.area || 0,
+        fonte: f.fonte || ""
+      }));
+    }
+    return [{ id: "1", valor_total: 0, area_m2: 0, fonte: "" }];
+  });
+  const [anunciosInitialized, setAnunciosInitialized] = useState(false);
 
   // Sincroniza searchTerm quando logradouro muda
   useEffect(() => {
@@ -52,6 +62,19 @@ export function Step1Location({ state, updateState, combined }: Props) {
       setSearchTerm(state.logradouro);
     }
   }, [state.logradouro, useCustomSearch]);
+
+  // Restaura anúncios quando state.anuncioData mudar (edição de avaliação)
+  useEffect(() => {
+    if (!anunciosInitialized && state.anuncioData?.fontes && state.anuncioData.fontes.length > 0) {
+      setAnuncios(state.anuncioData.fontes.map((f, idx) => ({
+        id: `restored-${idx}`,
+        valor_total: f.valor || 0,
+        area_m2: f.area || 0,
+        fonte: f.fonte || ""
+      })));
+      setAnunciosInitialized(true);
+    }
+  }, [state.anuncioData, anunciosInitialized]);
 
   // Calcula R$/m² dos anúncios quando mudam
   useEffect(() => {

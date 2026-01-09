@@ -801,6 +801,7 @@ export type Database = {
       valuations: {
         Row: {
           andar: string | null
+          anuncio_fontes: Json | null
           anuncio_max_m2: number | null
           anuncio_med_m2: number | null
           anuncio_min_m2: number | null
@@ -854,6 +855,7 @@ export type Database = {
         }
         Insert: {
           andar?: string | null
+          anuncio_fontes?: Json | null
           anuncio_max_m2?: number | null
           anuncio_med_m2?: number | null
           anuncio_min_m2?: number | null
@@ -907,6 +909,7 @@ export type Database = {
         }
         Update: {
           andar?: string | null
+          anuncio_fontes?: Json | null
           anuncio_max_m2?: number | null
           anuncio_med_m2?: number | null
           anuncio_min_m2?: number | null
