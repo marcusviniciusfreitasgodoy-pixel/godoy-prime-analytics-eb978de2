@@ -504,7 +504,9 @@ export default function HistoricoAvaliacoes() {
       </Card>
 
       {/* Dialog de Detalhes */}
-      <Dialog open={!!selectedValuation} onOpenChange={() => setSelectedValuation(null)}>
+      <Dialog open={!!selectedValuation} onOpenChange={(open) => {
+        if (!open) setSelectedValuation(null);
+      }}>
         <DialogContent className="max-w-lg">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
