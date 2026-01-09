@@ -156,6 +156,8 @@ export default function HistoricoAvaliacoes() {
         return <Badge className="bg-emerald-500">Alta</Badge>;
       case "yellow_high":
         return <Badge className="bg-amber-500">Média-Alta</Badge>;
+      case "yellow_medium":
+        return <Badge className="bg-yellow-500">Média</Badge>;
       case "yellow":
         return <Badge className="bg-yellow-500">Média</Badge>;
       case "red":
