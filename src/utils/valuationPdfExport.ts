@@ -585,6 +585,107 @@ export function exportValuationEnginePDF(
   // 9. DISCLAIMER PADRÃO
   drawDisclaimer(doc, yPos, marginLeft);
 
+  // 10. GLOSSÁRIO DE TERMOS TÉCNICOS
+  doc.addPage();
+  yPos = 20;
+  
+  yPos = drawSectionTitle(doc, 'Glossário de Termos Técnicos', yPos, marginLeft);
+  
+  const glossaryItems = [
+    {
+      term: 'Valor Provável',
+      definition: 'Valor mais provável de venda do imóvel, calculado como média ponderada entre dados de transações oficiais (ITBI) e anúncios de mercado.'
+    },
+    {
+      term: 'Valor Pessimista',
+      definition: 'Estimativa conservadora do valor do imóvel, representando o cenário de venda rápida ou mercado desfavorável.'
+    },
+    {
+      term: 'Valor Otimista',
+      definition: 'Estimativa máxima do valor do imóvel, representando o cenário de venda sem urgência em mercado aquecido.'
+    },
+    {
+      term: 'ITBI (Imposto de Transmissão)',
+      definition: 'Base de dados oficial de transações imobiliárias registradas na Secretaria Municipal de Fazenda. Reflete valores reais de compra e venda.'
+    },
+    {
+      term: 'Ajuste Total',
+      definition: 'Percentual de valorização ou desvalorização aplicado com base nas características do imóvel (acabamento, vista, estado de conservação, etc.).'
+    },
+    {
+      term: 'Spread',
+      definition: 'Diferença percentual entre o valor mínimo e máximo estimados. Quanto menor o spread, maior a precisão e confiabilidade da avaliação.'
+    },
+    {
+      term: 'Score de Confiança (0-100)',
+      definition: 'Pontuação que indica a confiabilidade da avaliação, baseada na quantidade e qualidade dos dados disponíveis na região.'
+    },
+    {
+      term: 'Nível de Confiança',
+      definition: 'Classificação qualitativa: Alta (score 80-100), Média-Alta (60-79), Média (40-59) ou Baixa (<40).'
+    },
+    {
+      term: 'Tendência de Mercado',
+      definition: 'Variação percentual dos preços praticados na região nos últimos 6 a 12 meses. Indica valorização ou desvalorização da área.'
+    },
+    {
+      term: 'Preço de Anúncio',
+      definition: 'Valor sugerido para anunciar o imóvel, considerando margem para negociação típica do mercado.'
+    },
+    {
+      term: 'Valor Target',
+      definition: 'Valor objetivo da negociação, representando o valor esperado de fechamento do negócio.'
+    },
+    {
+      term: 'Mínimo Aceitável',
+      definition: 'Valor abaixo do qual a venda não é recomendada, pois representaria prejuízo em relação ao valor de mercado.'
+    }
+  ];
+  
+  glossaryItems.forEach((item) => {
+    if (yPos > getMaxContentY() - 18) {
+      doc.addPage();
+      yPos = 20;
+    }
+    
+    doc.setFontSize(8);
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(...BRAND_COLORS.gold);
+    doc.text(`• ${item.term}`, marginLeft, yPos);
+    
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(7);
+    doc.setTextColor(71, 85, 105);
+    const splitDef = doc.splitTextToSize(item.definition, contentWidth - 10);
+    doc.text(splitDef, marginLeft + 5, yPos + 5);
+    
+    yPos += 5 + (splitDef.length * 3.5) + 4;
+  });
+  
+  // Nota final do glossário
+  if (yPos > getMaxContentY() - 22) {
+    doc.addPage();
+    yPos = 20;
+  }
+  
+  yPos += 5;
+  doc.setFillColor(255, 251, 235);
+  doc.setDrawColor(217, 119, 6);
+  doc.setLineWidth(0.3);
+  doc.roundedRect(marginLeft - 5, yPos, contentWidth + 10, 16, 2, 2, 'FD');
+  
+  doc.setFontSize(7);
+  doc.setFont('helvetica', 'bold');
+  doc.setTextColor(146, 64, 14);
+  doc.text('Nota Importante', marginLeft, yPos + 5);
+  
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(6.5);
+  doc.setTextColor(100, 116, 139);
+  const noteText = 'Esta avaliação é uma ferramenta estatística de apoio à decisão e não substitui laudo de avaliação formal emitido por profissional habilitado (engenheiro ou arquiteto com registro no CREA/CAU).';
+  const splitNote = doc.splitTextToSize(noteText, contentWidth + 5);
+  doc.text(splitNote, marginLeft, yPos + 10);
+
   // Apply footers to all pages
   applyFootersToAllPages(doc);
 

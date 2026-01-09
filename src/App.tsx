@@ -15,6 +15,7 @@ import Microbairros from "./pages/Microbairros";
 import PesquisasMercado from "./pages/PesquisasMercado";
 import AvaliacaoImobiliaria from "./pages/AvaliacaoImobiliaria";
 import HistoricoAvaliacoes from "./pages/HistoricoAvaliacoes";
+import HistoricoVistorias from "./pages/HistoricoVistorias";
 import VistoriaDigital from "./pages/VistoriaDigital";
 import Documentacao from "./pages/Documentacao";
 import ManualPlataforma from "./pages/ManualPlataforma";
@@ -75,6 +76,7 @@ const App = () => (
                                 <Route path="/avaliacao-imobiliaria" element={<AvaliacaoImobiliaria />} />
                                 <Route path="/historico-avaliacoes" element={<HistoricoAvaliacoes />} />
                                 <Route path="/vistoria-digital" element={<VistoriaDigital />} />
+                                <Route path="/historico-vistorias" element={<HistoricoVistorias />} />
                                 <Route path="/documentacao" element={<Documentacao />} />
                                 <Route path="/manual" element={<ManualPlataforma />} />
                                 <Route path="/base-conhecimento" element={<BaseConhecimento />} />

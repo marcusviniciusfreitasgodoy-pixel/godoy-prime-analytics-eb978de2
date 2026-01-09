@@ -963,6 +963,113 @@ export type Database = {
         }
         Relationships: []
       }
+      vistorias: {
+        Row: {
+          ajuste_percentual: number | null
+          area_m2: number | null
+          bairro: string
+          banheiros: number | null
+          checklist_data: Json | null
+          complemento: string | null
+          created_at: string
+          critical_count: number | null
+          data_vistoria: string | null
+          final_score: number | null
+          id: string
+          logradouro: string
+          nome_condominio: string | null
+          numero: string | null
+          observacoes: string | null
+          pdf_generated: boolean | null
+          progress: number | null
+          proprietario: string | null
+          quartos: number | null
+          suites: number | null
+          telefone: string | null
+          tipo_imovel: string | null
+          tipo_vistoria: string | null
+          updated_at: string
+          user_id: string | null
+          vagas: number | null
+          valor_ajustado: number | null
+          valor_avaliacao: number | null
+          valuation_id: string | null
+          vistoriador: string | null
+        }
+        Insert: {
+          ajuste_percentual?: number | null
+          area_m2?: number | null
+          bairro?: string
+          banheiros?: number | null
+          checklist_data?: Json | null
+          complemento?: string | null
+          created_at?: string
+          critical_count?: number | null
+          data_vistoria?: string | null
+          final_score?: number | null
+          id?: string
+          logradouro: string
+          nome_condominio?: string | null
+          numero?: string | null
+          observacoes?: string | null
+          pdf_generated?: boolean | null
+          progress?: number | null
+          proprietario?: string | null
+          quartos?: number | null
+          suites?: number | null
+          telefone?: string | null
+          tipo_imovel?: string | null
+          tipo_vistoria?: string | null
+          updated_at?: string
+          user_id?: string | null
+          vagas?: number | null
+          valor_ajustado?: number | null
+          valor_avaliacao?: number | null
+          valuation_id?: string | null
+          vistoriador?: string | null
+        }
+        Update: {
+          ajuste_percentual?: number | null
+          area_m2?: number | null
+          bairro?: string
+          banheiros?: number | null
+          checklist_data?: Json | null
+          complemento?: string | null
+          created_at?: string
+          critical_count?: number | null
+          data_vistoria?: string | null
+          final_score?: number | null
+          id?: string
+          logradouro?: string
+          nome_condominio?: string | null
+          numero?: string | null
+          observacoes?: string | null
+          pdf_generated?: boolean | null
+          progress?: number | null
+          proprietario?: string | null
+          quartos?: number | null
+          suites?: number | null
+          telefone?: string | null
+          tipo_imovel?: string | null
+          tipo_vistoria?: string | null
+          updated_at?: string
+          user_id?: string | null
+          vagas?: number | null
+          valor_ajustado?: number | null
+          valor_avaliacao?: number | null
+          valuation_id?: string | null
+          vistoriador?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "vistorias_valuation_id_fkey"
+            columns: ["valuation_id"]
+            isOneToOne: false
+            referencedRelation: "valuations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       view_ranking_microbairros: {
