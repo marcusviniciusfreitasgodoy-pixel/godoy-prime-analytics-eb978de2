@@ -54,22 +54,80 @@ interface VistoriaData {
   };
 }
 
+interface EditarAvaliacaoData {
+  id?: string;
+  logradouro: string;
+  numero?: string;
+  bairro: string;
+  tipoImovel: string;
+  area_m2: number;
+  itbiData: {
+    min_m2: number;
+    med_m2: number;
+    max_m2: number;
+    transaction_count: number;
+  };
+  anuncioData?: {
+    min_m2: number;
+    med_m2: number;
+    max_m2: number;
+  } | null;
+  docStatus: string;
+  docFactor: number;
+  docNotes?: string;
+  area_terreno_m2?: number;
+  proporcao_terreno?: number;
+  bonus_terreno?: number;
+  baseSelected?: string;
+}
+
 interface Props {
   bairro?: string;
   vistoriaData?: VistoriaData;
+  editarData?: EditarAvaliacaoData;
 }
 
-export function ValuationEngine({ bairro = "BARRA DA TIJUCA", vistoriaData }: Props) {
+export function ValuationEngine({ bairro = "BARRA DA TIJUCA", vistoriaData, editarData }: Props) {
   const location = useLocation();
   const [currentStep, setCurrentStep] = useState(0);
   const [state, setState] = useState<ValuationState>({ ...initialValuationState, bairro });
   const [fromVistoria, setFromVistoria] = useState(false);
+  const [fromEditar, setFromEditar] = useState(false);
   
   const { data: characteristics, isLoading: loadingChars } = useValuationCharacteristics(state.tipoImovel);
   const { data: docFactors, isLoading: loadingDocs } = useDocumentationFactors();
 
+  // Check for editar data from props (priority over vistoria)
+  useEffect(() => {
+    if (editarData) {
+      setFromEditar(true);
+      setState(prev => ({
+        ...prev,
+        logradouro: editarData.logradouro,
+        numero: editarData.numero || "",
+        bairro: editarData.bairro,
+        tipoImovel: editarData.tipoImovel,
+        area_m2: editarData.area_m2,
+        itbiData: editarData.itbiData,
+        anuncioData: editarData.anuncioData || null,
+        docStatus: editarData.docStatus,
+        docFactor: editarData.docFactor,
+        docNotes: editarData.docNotes || "",
+        area_terreno_m2: editarData.area_terreno_m2 || 0,
+        proporcao_terreno: editarData.proporcao_terreno || 0,
+        bonus_terreno: editarData.bonus_terreno || 0,
+        baseSelected: (editarData.baseSelected as "min" | "med" | "max" | "custom") || "med",
+      }));
+      // Clear location state after using it
+      window.history.replaceState({}, document.title);
+      return;
+    }
+  }, [editarData]);
+
   // Check for vistoria data from navigation or props
   useEffect(() => {
+    if (editarData) return; // Skip if editing
+    
     const locationState = location.state as { fromVistoria?: boolean; vistoriaData?: VistoriaData } | null;
     const data = vistoriaData || locationState?.vistoriaData;
     
@@ -97,7 +155,7 @@ export function ValuationEngine({ bairro = "BARRA DA TIJUCA", vistoriaData }: Pr
         window.history.replaceState({}, document.title);
       }
     }
-  }, [location.state, vistoriaData]);
+  }, [location.state, vistoriaData, editarData]);
 
   const updateState = (updates: Partial<ValuationState>) => {
     setState((prev) => ({ ...prev, ...updates }));
@@ -233,6 +291,12 @@ export function ValuationEngine({ bairro = "BARRA DA TIJUCA", vistoriaData }: Pr
                   <Badge variant="secondary" className="text-[10px] sm:text-xs">
                     <ClipboardCheck className="h-3 w-3 mr-1" />
                     <span className="hidden xs:inline">Via</span> Vistoria
+                  </Badge>
+                )}
+                {fromEditar && (
+                  <Badge variant="secondary" className="text-[10px] sm:text-xs bg-amber-500/10 text-amber-600 border-amber-500/20">
+                    <Calculator className="h-3 w-3 mr-1" />
+                    Editando
                   </Badge>
                 )}
               </CardTitle>

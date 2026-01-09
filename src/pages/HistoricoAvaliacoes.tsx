@@ -69,10 +69,27 @@ interface Valuation {
   total_adjustment: number;
   spread_percentage: number;
   documentation_status: string;
+  documentation_factor?: number;
+  documentation_notes?: string | null;
   recommendation_title: string | null;
   trend_direction: string | null;
   trend_percentage: number | null;
   pdf_generated: boolean | null;
+  // Dados ITBI
+  itbi_min_m2: number;
+  itbi_med_m2: number;
+  itbi_max_m2: number;
+  itbi_transaction_count?: number | null;
+  // Dados Anúncio
+  anuncio_min_m2?: number | null;
+  anuncio_med_m2?: number | null;
+  anuncio_max_m2?: number | null;
+  // Campos extras
+  area_terreno_m2?: number | null;
+  proporcao_terreno?: number | null;
+  bonus_terreno?: number | null;
+  base_price_selected?: string | null;
+  auto_capped?: boolean | null;
 }
 
 export default function HistoricoAvaliacoes() {
@@ -580,24 +597,46 @@ export default function HistoricoAvaliacoes() {
               <div className="flex flex-col gap-2 pt-2">
                 <Button 
                   onClick={() => {
-                    // Prepara dados para refazer avaliação
-                    const refazerData = {
+                    // Prepara dados completos para editar avaliação
+                    const editarData = {
+                      id: selectedValuation.id,
                       logradouro: selectedValuation.logradouro,
                       numero: selectedValuation.numero || "",
                       bairro: selectedValuation.bairro,
                       tipoImovel: selectedValuation.property_type || "",
-                      areaM2: selectedValuation.property_area_m2.toString(),
+                      area_m2: selectedValuation.property_area_m2,
+                      // Dados ITBI
+                      itbiData: {
+                        min_m2: selectedValuation.itbi_min_m2,
+                        med_m2: selectedValuation.itbi_med_m2,
+                        max_m2: selectedValuation.itbi_max_m2,
+                        transaction_count: selectedValuation.itbi_transaction_count || 0,
+                      },
+                      // Dados Anúncio (se existirem)
+                      anuncioData: selectedValuation.anuncio_med_m2 ? {
+                        min_m2: selectedValuation.anuncio_min_m2 || 0,
+                        med_m2: selectedValuation.anuncio_med_m2 || 0,
+                        max_m2: selectedValuation.anuncio_max_m2 || 0,
+                      } : null,
+                      // Campos extras
+                      docStatus: selectedValuation.documentation_status,
+                      docFactor: selectedValuation.documentation_factor || 1,
+                      docNotes: selectedValuation.documentation_notes || "",
+                      area_terreno_m2: selectedValuation.area_terreno_m2 || 0,
+                      proporcao_terreno: selectedValuation.proporcao_terreno || 0,
+                      bonus_terreno: selectedValuation.bonus_terreno || 0,
+                      baseSelected: selectedValuation.base_price_selected || "med",
                     };
-                    toast.success("Dados carregados para nova avaliação");
+                    toast.success("Dados carregados para edição");
                     navigate("/avaliacao-imobiliaria", {
-                      state: { refazerData }
+                      state: { editarAvaliacao: true, avaliacaoData: editarData }
                     });
                   }}
                   variant="default"
                   className="w-full bg-primary"
                 >
                   <RefreshCw className="h-4 w-4 mr-2" />
-                  Refazer / Editar Avaliação
+                  Editar e Gerar Nova Avaliação
                 </Button>
                 <div className="flex gap-3">
                   <Button 
