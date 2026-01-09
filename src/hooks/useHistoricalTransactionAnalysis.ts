@@ -1,5 +1,9 @@
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
+import { 
+  getCachedAnalysis, 
+  setCachedAnalysis 
+} from '@/utils/historicalAnalysisCache';
 
 // Limites de outliers por bairro
 const OUTLIER_LIMITS: Record<string, number> = {
@@ -85,6 +89,12 @@ export function useHistoricalTransactionAnalysis(logradouro: string, bairro: str
     queryKey: ['historical-analysis-5y', logradouro, bairro],
     queryFn: async () => {
       if (!logradouro || !bairro) return null;
+      
+      // CACHE: Verificar se há dados em cache válidos
+      const cachedData = getCachedAnalysis(bairro, logradouro);
+      if (cachedData) {
+        return cachedData;
+      }
       
       const outlierLimit = getOutlierLimit(bairro);
       const outlierMinLimit = getOutlierMinLimit(bairro);
@@ -261,7 +271,7 @@ export function useHistoricalTransactionAnalysis(logradouro: string, bairro: str
         yearsWithData.length
       );
       
-      return {
+      const result: HistoricalAnalysis = {
         yearlyData,
         transactionTrend,
         priceTrend,
@@ -273,9 +283,15 @@ export function useHistoricalTransactionAnalysis(logradouro: string, bairro: str
         alertas,
         futureProjection,
       };
+      
+      // CACHE: Salvar resultado no cache persistente
+      setCachedAnalysis(bairro, logradouro, result);
+      
+      return result;
     },
     enabled: enabled && !!logradouro && !!bairro,
-    staleTime: 10 * 60 * 1000, // 10 minutos
+    staleTime: 30 * 60 * 1000, // 30 minutos (aumentado pois temos cache persistente)
+    gcTime: 60 * 60 * 1000, // 1 hora de garbage collection
   });
 }
 
