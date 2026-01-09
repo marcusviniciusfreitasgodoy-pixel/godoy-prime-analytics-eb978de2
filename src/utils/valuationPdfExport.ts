@@ -142,20 +142,21 @@ export function exportValuationEnginePDF(
     yPos += 6;
     yPos = drawSectionTitle(doc, 'Transações Realizadas na Região', yPos, marginLeft);
     
-    // Texto explicativo
-    doc.setFontSize(8);
+    // Texto explicativo melhorado
+    doc.setFontSize(9);
     doc.setFont('helvetica', 'normal');
     doc.setTextColor(...BRAND_COLORS.darkGray);
-    const textoExplicativo = 'Para fundamentar esta avaliação, foram identificadas transações de imóveis com características semelhantes, localizados na mesma região do imóvel avaliado, realizadas nos últimos 12 meses e registradas nas guias de ITBI da Prefeitura do Rio de Janeiro.';
+    const textoExplicativo = 'Para fundamentar esta avaliação, foram identificadas transações de imóveis com características semelhantes, localizados na mesma região do imóvel avaliado, realizadas nos últimos 12 meses e registradas nos órgãos oficiais.';
     const splitTexto = doc.splitTextToSize(textoExplicativo, contentWidth);
     doc.text(splitTexto, marginLeft, yPos);
-    yPos += splitTexto.length * 4 + 4;
+    yPos += splitTexto.length * 4 + 6;
     
-    // Box azul claro para destaque
-    doc.setFillColor(239, 246, 255);
-    doc.setDrawColor(59, 130, 246);
-    doc.setLineWidth(0.3);
-    doc.roundedRect(marginLeft - 5, yPos - 3, contentWidth + 10, 32, 2, 2, 'FD');
+    // Card principal com gradiente azul
+    const cardHeight = 38;
+    doc.setFillColor(240, 249, 255);
+    doc.setDrawColor(14, 165, 233);
+    doc.setLineWidth(0.5);
+    doc.roundedRect(marginLeft - 5, yPos - 3, contentWidth + 10, cardHeight, 3, 3, 'FD');
     
     // Grid de 3 colunas com estatísticas
     const colWidth = (contentWidth + 10) / 3;
@@ -163,50 +164,64 @@ export function exportValuationEnginePDF(
     const col2X = marginLeft + colWidth;
     const col3X = marginLeft + colWidth * 2;
     
+    // Separadores verticais sutis
+    doc.setDrawColor(186, 230, 253);
+    doc.setLineWidth(0.3);
+    doc.line(col2X - 5, yPos + 2, col2X - 5, yPos + cardHeight - 8);
+    doc.line(col3X - 5, yPos + 2, col3X - 5, yPos + cardHeight - 8);
+    
     // Coluna 1: Total de transações
-    doc.setFontSize(16);
+    doc.setFontSize(22);
     doc.setFont('helvetica', 'bold');
-    doc.setTextColor(29, 78, 216);
-    doc.text(String(state.itbiData.transaction_count), col1X + colWidth / 2 - 10, yPos + 10);
-    doc.setFontSize(7);
+    doc.setTextColor(2, 132, 199);
+    const transCount = String(state.itbiData.transaction_count);
+    doc.text(transCount, col1X + colWidth / 2 - 10, yPos + 14);
+    doc.setFontSize(8);
     doc.setFont('helvetica', 'normal');
-    doc.setTextColor(100, 116, 139);
-    doc.text('transações', col1X + colWidth / 2 - 12, yPos + 16);
-    doc.text('identificadas', col1X + colWidth / 2 - 12, yPos + 20);
+    doc.setTextColor(71, 85, 105);
+    doc.text('transações', col1X + colWidth / 2 - 14, yPos + 22);
+    doc.text('identificadas', col1X + colWidth / 2 - 16, yPos + 28);
     
     // Coluna 2: Valor médio do m²
-    doc.setFontSize(12);
+    doc.setFontSize(14);
     doc.setFont('helvetica', 'bold');
-    doc.setTextColor(30, 64, 175);
+    doc.setTextColor(3, 105, 161);
     const valorMedM2 = `R$ ${state.itbiData.med_m2.toLocaleString('pt-BR', { maximumFractionDigits: 0 })}`;
-    doc.text(valorMedM2, col2X + colWidth / 2 - 18, yPos + 10);
-    doc.setFontSize(7);
+    doc.text(valorMedM2, col2X + colWidth / 2 - 20, yPos + 14);
+    doc.setFontSize(8);
     doc.setFont('helvetica', 'normal');
-    doc.setTextColor(100, 116, 139);
-    doc.text('valor médio', col2X + colWidth / 2 - 12, yPos + 16);
-    doc.text('por m²', col2X + colWidth / 2 - 8, yPos + 20);
+    doc.setTextColor(71, 85, 105);
+    doc.text('valor médio', col2X + colWidth / 2 - 14, yPos + 22);
+    doc.text('por m²', col2X + colWidth / 2 - 9, yPos + 28);
     
     // Coluna 3: Preço médio total
-    doc.setFontSize(12);
+    doc.setFontSize(14);
     doc.setFont('helvetica', 'bold');
-    doc.setTextColor(29, 78, 216);
-    const precoMedio = state.itbiData.avg_valor_transacao 
-      ? `R$ ${(state.itbiData.avg_valor_transacao / 1000).toLocaleString('pt-BR', { maximumFractionDigits: 0 })} mil`
-      : '-';
-    doc.text(precoMedio, col3X + colWidth / 2 - 18, yPos + 10);
-    doc.setFontSize(7);
+    doc.setTextColor(2, 132, 199);
+    const avgTransaction = state.itbiData.avg_valor_transacao;
+    let precoMedio = '-';
+    if (avgTransaction) {
+      if (avgTransaction >= 1000000) {
+        precoMedio = `R$ ${(avgTransaction / 1000000).toLocaleString('pt-BR', { minimumFractionDigits: 1, maximumFractionDigits: 1 })} mi`;
+      } else {
+        precoMedio = `R$ ${(avgTransaction / 1000).toLocaleString('pt-BR', { maximumFractionDigits: 0 })} mil`;
+      }
+    }
+    doc.text(precoMedio, col3X + colWidth / 2 - 18, yPos + 14);
+    doc.setFontSize(8);
     doc.setFont('helvetica', 'normal');
-    doc.setTextColor(100, 116, 139);
-    doc.text('preço médio', col3X + colWidth / 2 - 12, yPos + 16);
-    doc.text('total', col3X + colWidth / 2 - 5, yPos + 20);
+    doc.setTextColor(71, 85, 105);
+    doc.text('preço médio', col3X + colWidth / 2 - 14, yPos + 22);
+    doc.text('total', col3X + colWidth / 2 - 6, yPos + 28);
     
-    yPos += 26;
+    yPos += cardHeight;
     
-    // Fonte
+    // Fonte com ícone
     doc.setFontSize(7);
+    doc.setFont('helvetica', 'italic');
     doc.setTextColor(100, 116, 139);
-    doc.text('Fonte: Guias de ITBI - Prefeitura do Rio de Janeiro', marginLeft, yPos + 3);
-    yPos += 10;
+    doc.text('Fonte: Guias de ITBI - Secretaria Municipal de Fazenda do Rio de Janeiro', marginLeft, yPos + 4);
+    yPos += 12;
   }
 
   // 3. REFERÊNCIA DE MERCADO (Preços combinados)
@@ -297,35 +312,64 @@ export function exportValuationEnginePDF(
     marginLeft
   );
 
-  // 4. MÉTRICAS DE CONFIANÇA
-  // Verificar se há espaço suficiente para a seção (título + 4 métricas = ~35mm)
-  if (yPos > getMaxContentY() - 35) {
+  // 4. MÉTRICAS DE CONFIANÇA - Card visual
+  // Verificar se há espaço suficiente para a seção
+  if (yPos > getMaxContentY() - 45) {
     doc.addPage();
     yPos = 20;
   }
   
   yPos = drawSectionTitle(doc, 'Métricas de Confiança', yPos, marginLeft);
-  doc.setFontSize(10);
-  doc.setTextColor(...BRAND_COLORS.darkGray);
-
+  
+  // Card com métricas em grid
+  const metricCardHeight = 28;
+  doc.setFillColor(248, 250, 252);
+  doc.setDrawColor(226, 232, 240);
+  doc.setLineWidth(0.3);
+  doc.roundedRect(marginLeft - 5, yPos - 3, contentWidth + 10, metricCardHeight, 2, 2, 'FD');
+  
+  const metricColWidth = (contentWidth + 10) / 4;
+  const metricY = yPos + 8;
+  
   const confidenceLabel = result.confidence_level === 'green' ? 'ALTA' :
                           result.confidence_level === 'yellow_high' ? 'MÉDIA-ALTA' :
                           result.confidence_level === 'yellow_medium' ? 'MÉDIA' : 'BAIXA';
   
-  const metrics = [
-    ['Ajuste Total:', `${result.total_adjustment >= 0 ? '+' : ''}${(result.total_adjustment * 100).toFixed(1)}%`],
-    ['Spread:', `${result.spread_percentage.toFixed(1)}%`],
-    ['Score:', `${result.confidence_score}/100`],
-    ['Nível:', confidenceLabel],
+  const confidenceColor: [number, number, number] = result.confidence_level === 'green' ? [22, 163, 74] :
+                                                     result.confidence_level === 'yellow_high' ? [234, 179, 8] :
+                                                     result.confidence_level === 'yellow_medium' ? [249, 115, 22] : [220, 38, 38];
+  
+  const metricsData = [
+    { label: 'Ajuste Total', value: `${result.total_adjustment >= 0 ? '+' : ''}${(result.total_adjustment * 100).toFixed(1)}%`, color: result.total_adjustment >= 0 ? [22, 163, 74] : [220, 38, 38] as [number, number, number] },
+    { label: 'Spread', value: `${result.spread_percentage.toFixed(1)}%`, color: [71, 85, 105] as [number, number, number] },
+    { label: 'Score', value: `${result.confidence_score}/100`, color: confidenceColor },
+    { label: 'Nível', value: confidenceLabel, color: confidenceColor },
   ];
-
-  metrics.forEach((item) => {
+  
+  metricsData.forEach((metric, i) => {
+    const colX = marginLeft + (metricColWidth * i);
+    
+    // Separador (exceto primeira coluna)
+    if (i > 0) {
+      doc.setDrawColor(226, 232, 240);
+      doc.setLineWidth(0.2);
+      doc.line(colX - 5, yPos + 2, colX - 5, yPos + metricCardHeight - 8);
+    }
+    
+    // Label
+    doc.setFontSize(7);
     doc.setFont('helvetica', 'normal');
-    doc.text(item[0], marginLeft + 5, yPos);
+    doc.setTextColor(100, 116, 139);
+    doc.text(metric.label, colX + 3, metricY);
+    
+    // Valor
+    doc.setFontSize(12);
     doc.setFont('helvetica', 'bold');
-    doc.text(item[1], marginLeft + 50, yPos);
-    yPos += 6;
+    doc.setTextColor(...(metric.color as [number, number, number]));
+    doc.text(metric.value, colX + 3, metricY + 10);
   });
+  
+  yPos += metricCardHeight + 6;
 
   // 5. CARACTERÍSTICAS APLICADAS
   const appliedChars = state.responses.filter(r => r.response === 'sim' && r.weight_applied !== 0);
@@ -346,32 +390,68 @@ export function exportValuationEnginePDF(
     yPos += splitChars.length * 4 + 4;
   }
 
-  // 6. ESTRATÉGIA DE PREÇO
+  // 6. ESTRATÉGIA DE PREÇO - Card visual
   yPos += 4;
   yPos = drawSectionTitle(doc, 'Estratégia de Preço', yPos, marginLeft);
-  doc.setFontSize(10);
-  doc.setTextColor(...BRAND_COLORS.darkGray);
+  
+  // Card para estratégia
+  const strategyHeight = 32;
+  doc.setFillColor(255, 251, 235);
+  doc.setDrawColor(217, 119, 6);
+  doc.setLineWidth(0.3);
+  doc.roundedRect(marginLeft - 5, yPos - 3, contentWidth + 10, strategyHeight, 2, 2, 'FD');
 
   const listPrice = Math.round(result.provavel * 1.05);
-  const priceStrategy = [
-    ['Anunciar por:', formatCurrencyPDF(listPrice), '(margem de negociação)'],
-    ['Valor Target:', formatCurrencyPDF(result.provavel), '(expectativa de fechamento)'],
-    ['Mínimo Aceitável:', formatCurrencyPDF(result.pessimista), '(piso de negociação)'],
-  ];
-
-  priceStrategy.forEach((item) => {
-    doc.setFont('helvetica', 'normal');
-    doc.text(item[0], marginLeft + 5, yPos);
-    doc.setFont('helvetica', 'bold');
-    doc.text(item[1], marginLeft + 50, yPos);
-    doc.setFont('helvetica', 'normal');
-    doc.setFontSize(8);
-    doc.setTextColor(120, 120, 120);
-    doc.text(item[2], marginLeft + 105, yPos);
-    doc.setFontSize(10);
-    doc.setTextColor(...BRAND_COLORS.darkGray);
-    yPos += 7;
-  });
+  const priceY = yPos + 4;
+  
+  // Grid de 3 colunas
+  const priceColWidth = (contentWidth + 10) / 3;
+  
+  // Coluna 1: Anunciar por
+  doc.setFontSize(7);
+  doc.setFont('helvetica', 'normal');
+  doc.setTextColor(146, 64, 14);
+  doc.text('Anunciar por:', marginLeft, priceY);
+  doc.setFontSize(11);
+  doc.setFont('helvetica', 'bold');
+  doc.setTextColor(180, 83, 9);
+  doc.text(formatCurrencyPDF(listPrice), marginLeft, priceY + 8);
+  doc.setFontSize(6);
+  doc.setFont('helvetica', 'normal');
+  doc.setTextColor(146, 64, 14);
+  doc.text('(margem de negociação)', marginLeft, priceY + 14);
+  
+  // Coluna 2: Valor Target
+  const col2X = marginLeft + priceColWidth;
+  doc.setFontSize(7);
+  doc.setFont('helvetica', 'normal');
+  doc.setTextColor(21, 128, 61);
+  doc.text('Valor Target:', col2X, priceY);
+  doc.setFontSize(11);
+  doc.setFont('helvetica', 'bold');
+  doc.setTextColor(22, 163, 74);
+  doc.text(formatCurrencyPDF(result.provavel), col2X, priceY + 8);
+  doc.setFontSize(6);
+  doc.setFont('helvetica', 'normal');
+  doc.setTextColor(21, 128, 61);
+  doc.text('(expectativa de fechamento)', col2X, priceY + 14);
+  
+  // Coluna 3: Mínimo Aceitável
+  const col3X = marginLeft + priceColWidth * 2;
+  doc.setFontSize(7);
+  doc.setFont('helvetica', 'normal');
+  doc.setTextColor(127, 29, 29);
+  doc.text('Mínimo Aceitável:', col3X, priceY);
+  doc.setFontSize(11);
+  doc.setFont('helvetica', 'bold');
+  doc.setTextColor(185, 28, 28);
+  doc.text(formatCurrencyPDF(result.pessimista), col3X, priceY + 8);
+  doc.setFontSize(6);
+  doc.setFont('helvetica', 'normal');
+  doc.setTextColor(127, 29, 29);
+  doc.text('(piso de negociação)', col3X, priceY + 14);
+  
+  yPos += strategyHeight + 4;
 
   // 7. RECOMENDAÇÃO
   yPos += 6;
