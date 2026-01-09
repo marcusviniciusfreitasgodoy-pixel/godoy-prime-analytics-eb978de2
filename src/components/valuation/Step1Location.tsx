@@ -70,11 +70,19 @@ export function Step1Location({ state, updateState, combined }: Props) {
     const mid = Math.floor(valoresM2.length / 2);
     const med_m2 = valoresM2.length % 2 ? valoresM2[mid] : (valoresM2[mid - 1] + valoresM2[mid]) / 2;
 
+    // Coleta as fontes dos anúncios para rastreabilidade
+    const fontes = validAnuncios.map(a => ({
+      valor: a.valor_total,
+      area: a.area_m2,
+      fonte: a.fonte || undefined
+    }));
+
     updateState({
       anuncioData: {
         min_m2: Math.round(min_m2),
         med_m2: Math.round(med_m2),
         max_m2: Math.round(max_m2),
+        fontes
       }
     });
   }, [anuncios]);

@@ -7,10 +7,17 @@ export interface ITBIData {
   transaction_count: number;
 }
 
+export interface AnuncioFonte {
+  valor: number;
+  area: number;
+  fonte?: string;
+}
+
 export interface AnuncioData {
   min_m2: number;
   med_m2: number;
   max_m2: number;
+  fontes?: AnuncioFonte[]; // Fontes/links dos anúncios para rastreabilidade
 }
 
 export interface CharacteristicResponse {

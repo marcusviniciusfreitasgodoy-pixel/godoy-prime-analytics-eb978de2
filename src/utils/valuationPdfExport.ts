@@ -12,10 +12,18 @@ import {
   getMaxContentY,
 } from './pdfTemplate';
 
+// Interface para fontes dos anúncios
+export interface AnuncioFonte {
+  valor: number;
+  area: number;
+  fonte?: string;
+}
+
 export function exportValuationEnginePDF(
   result: ValuationResult,
   state: ValuationState,
-  combined: CombinedPrices | null
+  combined: CombinedPrices | null,
+  anuncioFontes?: AnuncioFonte[]
 ): void {
   const doc = new jsPDF();
   const pageWidth = doc.internal.pageSize.getWidth();
@@ -150,6 +158,40 @@ export function exportValuationEnginePDF(
       doc.text(item[1], marginLeft + 50, yPos);
       yPos += 6;
     });
+    
+    // Fontes dos Anúncios (se disponíveis)
+    const fontes = anuncioFontes?.filter(f => f.fonte && f.fonte.trim() !== '') || [];
+    if (fontes.length > 0) {
+      yPos += 3;
+      doc.setFillColor(250, 250, 250);
+      const fontesHeight = 8 + (fontes.length * 5);
+      doc.roundedRect(marginLeft - 5, yPos - 3, contentWidth + 10, fontesHeight, 2, 2, 'F');
+      
+      doc.setFontSize(8);
+      doc.setFont('helvetica', 'bold');
+      doc.setTextColor(...BRAND_COLORS.navy);
+      doc.text('Fontes dos Anúncios de Referência:', marginLeft, yPos + 3);
+      yPos += 7;
+      
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(7);
+      doc.setTextColor(...BRAND_COLORS.gray);
+      
+      fontes.forEach((f, i) => {
+        const valorM2 = f.valor / f.area;
+        const text = `${i + 1}. R$ ${f.valor.toLocaleString('pt-BR')} | ${f.area}m² | R$ ${valorM2.toLocaleString('pt-BR', { maximumFractionDigits: 0 })}/m²`;
+        doc.text(text, marginLeft, yPos);
+        
+        // Link em cor azul
+        doc.setTextColor(59, 130, 246);
+        const linkText = doc.splitTextToSize(f.fonte!, contentWidth - 80);
+        doc.text(linkText[0], marginLeft + 65, yPos);
+        doc.setTextColor(...BRAND_COLORS.gray);
+        
+        yPos += 5;
+      });
+      yPos += 2;
+    }
   }
 
   // 3. RESULTADO DA AVALIAÇÃO - Box destacado
