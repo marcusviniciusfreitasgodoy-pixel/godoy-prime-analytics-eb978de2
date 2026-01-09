@@ -750,7 +750,115 @@ export async function generateVistoriaPDFDoc(params: VistoriaPDFParams): Promise
     doc.setTextColor(...BRAND_COLORS.darkGray);
     const splitObs = doc.splitTextToSize(propertyData.observacoes, contentWidth);
     doc.text(splitObs.slice(0, 10), marginLeft, yPos);
+    yPos += splitObs.length * 4 + 8;
   }
+  
+  // ========== GLOSSÁRIO ==========
+  doc.addPage();
+  yPos = 20;
+  
+  yPos = drawSectionTitle(doc, 'Glossário de Termos Técnicos', yPos, marginLeft);
+  
+  doc.setFillColor(248, 250, 252);
+  doc.setDrawColor(226, 232, 240);
+  doc.setLineWidth(0.3);
+  
+  const glossaryItems = [
+    {
+      term: 'Score Final (0-100)',
+      definition: 'Pontuação geral do imóvel calculada com base na média ponderada de todas as categorias avaliadas. Quanto maior o score, melhor o estado geral do imóvel.'
+    },
+    {
+      term: 'Itens Críticos',
+      definition: 'Quantidade de itens que receberam nota 1 (crítico) ou 2 (atenção) na vistoria. Estes itens necessitam de intervenção prioritária.'
+    },
+    {
+      term: 'Ajuste Percentual',
+      definition: 'Percentual de valorização ou desvalorização aplicado ao valor da avaliação prévia com base no resultado da vistoria. Scores altos valorizam, scores baixos desvalorizam.'
+    },
+    {
+      term: 'Valor Avaliação (Prévia)',
+      definition: 'Valor estimado do imóvel antes da vistoria, calculado com base em transações de mercado (ITBI), anúncios e características informadas.'
+    },
+    {
+      term: 'Valor Ajustado (Pós-Vistoria)',
+      definition: 'Valor final recomendado após aplicação do ajuste da vistoria sobre o valor de avaliação prévia. Reflete o estado real do imóvel.'
+    },
+    {
+      term: 'Escala de Avaliação',
+      definition: '5 = Excelente (estado perfeito), 4 = Bom (pequenos desgastes), 3 = Adequado (uso normal), 2 = Atenção (necessita manutenção), 1 = Crítico (necessita reforma).'
+    },
+    {
+      term: 'Categorias de Vistoria',
+      definition: 'Agrupamentos temáticos dos itens vistoriados: Estrutura, Hidráulica, Elétrica, Acabamentos, etc. Cada categoria tem um peso diferente no cálculo do score final.'
+    },
+    {
+      term: 'Peso da Categoria',
+      definition: 'Importância relativa de cada categoria no cálculo do score final. Categorias estruturais têm maior peso que categorias estéticas.'
+    },
+    {
+      term: 'ITBI (Imposto de Transmissão)',
+      definition: 'Base de dados oficial de transações imobiliárias registradas na prefeitura, utilizada como referência de valores de mercado.'
+    },
+    {
+      term: 'Spread',
+      definition: 'Diferença percentual entre o valor mínimo e máximo estimados. Quanto menor o spread, maior a precisão da avaliação.'
+    },
+    {
+      term: 'Confiança da Avaliação',
+      definition: 'Nível de certeza da estimativa: Alta (muitos dados comparáveis), Média-Alta, Média ou Baixa (poucos dados disponíveis).'
+    },
+    {
+      term: 'Tendência de Mercado',
+      definition: 'Variação percentual dos preços na região nos últimos meses. Positiva indica valorização, negativa indica desvalorização.'
+    }
+  ];
+  
+  glossaryItems.forEach((item, index) => {
+    if (yPos > getMaxContentY() - 20) {
+      doc.addPage();
+      yPos = 20;
+    }
+    
+    // Term
+    doc.setFontSize(8);
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(...BRAND_COLORS.gold);
+    doc.text(`• ${item.term}`, marginLeft, yPos);
+    
+    // Definition
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(7);
+    doc.setTextColor(71, 85, 105);
+    const splitDef = doc.splitTextToSize(item.definition, contentWidth - 10);
+    doc.text(splitDef, marginLeft + 5, yPos + 5);
+    
+    yPos += 5 + (splitDef.length * 3.5) + 4;
+  });
+  
+  // Nota final do glossário
+  if (yPos > getMaxContentY() - 25) {
+    doc.addPage();
+    yPos = 20;
+  }
+  
+  yPos += 5;
+  doc.setFillColor(255, 251, 235);
+  doc.setDrawColor(217, 119, 6);
+  doc.setLineWidth(0.3);
+  doc.roundedRect(marginLeft - 5, yPos, contentWidth + 10, 18, 2, 2, 'FD');
+  
+  doc.setFontSize(7);
+  doc.setFont('helvetica', 'bold');
+  doc.setTextColor(146, 64, 14);
+  doc.text('Nota Importante', marginLeft, yPos + 5);
+  
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(6.5);
+  doc.setTextColor(100, 116, 139);
+  const noteText = 'Este relatório é uma ferramenta de apoio à decisão e não substitui uma avaliação formal realizada por profissional habilitado (engenheiro ou arquiteto com registro no CREA/CAU). Os valores apresentados são estimativas baseadas em dados de mercado e na vistoria visual do imóvel.';
+  const splitNote = doc.splitTextToSize(noteText, contentWidth + 5);
+  doc.text(splitNote, marginLeft, yPos + 10);
   
   // Apply footers to all pages
   applyFootersToAllPages(doc);

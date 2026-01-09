@@ -1,4 +1,4 @@
-import { Home, ClipboardCheck, FileText, MapPin, Users, UserCog, Search, Calculator, Settings, History, Brain, GraduationCap, CalendarCheck, Cog, BookOpen } from "lucide-react";
+import { Home, ClipboardCheck, ClipboardList, FileText, MapPin, Users, UserCog, Search, Calculator, Settings, History, Brain, GraduationCap, CalendarCheck, Cog, BookOpen } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import {
   Sidebar,
@@ -22,6 +22,7 @@ const baseItems = [
   { title: "Avaliação Imobiliária", url: "/avaliacao-imobiliaria", icon: Calculator, tourId: "nav-avaliacao" },
   { title: "Histórico Avaliações", url: "/historico-avaliacoes", icon: History, tourId: "nav-historico" },
   { title: "Vistoria Digital", url: "/vistoria-digital", icon: ClipboardCheck, tourId: "nav-vistoria" },
+  { title: "Histórico Vistorias", url: "/historico-vistorias", icon: ClipboardList, tourId: "nav-historico-vistorias" },
   { title: "Agendamento de Visitas", url: "/visitas", icon: CalendarCheck, tourId: "nav-visitas" },
   { title: "Documentação", url: "/documentacao", icon: FileText, tourId: "nav-documentacao" },
   { title: "Configurações", url: "/configuracoes", icon: Cog, tourId: "nav-configuracoes" },
