@@ -15,7 +15,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import { FileText, Loader2, Building2, Camera, Image, X, Calculator, TrendingUp, Home, Building, RotateCcw, Star, AlertCircle, ChevronLeft, ChevronRight, Search, MapPin, HelpCircle, Mail } from "lucide-react";
+import { FileText, Loader2, Building2, Camera, Image, X, Calculator, TrendingUp, Home, Building, RotateCcw, Star, AlertCircle, ChevronLeft, ChevronRight, Search, MapPin, HelpCircle, Mail, Pencil } from "lucide-react";
 import { PageTour } from "@/components/PageTour";
 import { useFirstVisitTour } from "@/hooks/useFirstVisitTour";
 import {
@@ -596,6 +596,8 @@ export default function VistoriaDigital() {
   const [fromAvaliacao, setFromAvaliacao] = useState(false);
   const [avaliacaoData, setAvaliacaoData] = useState<AvaliacaoData | null>(null);
   const [showEmailDialog, setShowEmailDialog] = useState(false);
+  const [editMode, setEditMode] = useState(false);
+  const [editingVistoriaId, setEditingVistoriaId] = useState<string | null>(null);
   const { shouldRunTour, startTour, endTour } = useFirstVisitTour('vistoria');
   const fileInputRef = useRef<HTMLInputElement>(null);
   const cameraInputRef = useRef<HTMLInputElement>(null);
@@ -713,10 +715,19 @@ export default function VistoriaDigital() {
     }).format(value);
   };
 
-  // Check for data from Avaliação Imobiliária
+  // Check for data from Avaliação Imobiliária or Edit Mode
   useEffect(() => {
     const locationState = location.state as { 
-      fromAvaliacao?: boolean; 
+      fromAvaliacao?: boolean;
+      editMode?: boolean;
+      vistoriaId?: string;
+      vistoriaData?: {
+        propertyData: PropertyData;
+        tipoVistoria: 'casa' | 'apartamento';
+        checklist: ChecklistCategory[];
+        valorAvaliacao: number | null;
+        valuationId: string | null;
+      };
       propertyData?: {
         logradouro?: string;
         numero?: string;
@@ -736,6 +747,46 @@ export default function VistoriaDigital() {
       };
     } | null;
     
+    // Handle edit mode
+    if (locationState?.editMode && locationState?.vistoriaData) {
+      setEditMode(true);
+      setEditingVistoriaId(locationState.vistoriaId || null);
+      const data = locationState.vistoriaData;
+      
+      setPropertyData(data.propertyData);
+      setTipoVistoria(data.tipoVistoria);
+      
+      // Load checklist data if available, otherwise use default
+      if (data.checklist && Array.isArray(data.checklist)) {
+        setChecklist(data.checklist);
+      } else {
+        setChecklist(JSON.parse(JSON.stringify(
+          data.tipoVistoria === 'casa' ? checklistCasa : checklistApartamento
+        )));
+      }
+      
+      // Set avaliacao data if there was a valuation
+      if (data.valorAvaliacao) {
+        setAvaliacaoData({
+          valorProvavel: data.valorAvaliacao,
+          valorPessimista: data.valorAvaliacao * 0.9,
+          valorOtimista: data.valorAvaliacao * 1.1,
+          confidenceLevel: 'MÉDIA',
+          dataAvaliacao: new Date().toISOString(),
+        });
+      }
+      
+      setHasLoadedFromStorage(true);
+      window.history.replaceState({}, document.title);
+      
+      toast({
+        title: "Editando vistoria",
+        description: "Os dados da vistoria foram carregados para edição.",
+      });
+      return;
+    }
+    
+    // Handle data from Avaliação Imobiliária
     if (locationState?.fromAvaliacao && locationState?.propertyData) {
       setFromAvaliacao(true);
       const data = locationState.propertyData;
@@ -783,13 +834,13 @@ export default function VistoriaDigital() {
     }
   }, [location.state, toast]);
 
-  // Load from localStorage on mount - ONLY if NOT coming from Avaliação
+  // Load from localStorage on mount - ONLY if NOT coming from Avaliação or Edit Mode
   useEffect(() => {
-    // Check directly from location.state to avoid race condition with fromAvaliacao state
-    const locationState = location.state as { fromAvaliacao?: boolean } | null;
+    // Check directly from location.state to avoid race condition
+    const locationState = location.state as { fromAvaliacao?: boolean; editMode?: boolean } | null;
     
-    // If coming from Avaliação, don't load from localStorage
-    if (locationState?.fromAvaliacao || fromAvaliacao) {
+    // If coming from Avaliação or Edit Mode, don't load from localStorage
+    if (locationState?.fromAvaliacao || fromAvaliacao || locationState?.editMode || editMode) {
       setHasLoadedFromStorage(true);
       return;
     }
@@ -971,6 +1022,8 @@ export default function VistoriaDigital() {
     setTipoVistoria(null);
     setFromAvaliacao(false);
     setAvaliacaoData(null);
+    setEditMode(false);
+    setEditingVistoriaId(null);
     localStorage.removeItem(STORAGE_KEY);
     setShowTypeDialog(true);
     toast({
@@ -999,7 +1052,7 @@ export default function VistoriaDigital() {
         ajustePercentual = adjustment.adjustment * 100;
       }
       
-      // Save vistoria to database
+      // Save or update vistoria in database
       if (user?.id) {
         const vistoriaData = {
           user_id: user.id,
@@ -1028,17 +1081,31 @@ export default function VistoriaDigital() {
           valor_ajustado: valorAjustado,
           ajuste_percentual: ajustePercentual,
           pdf_generated: true,
+          updated_at: new Date().toISOString(),
         };
         
-        const { error: saveError } = await supabase
-          .from('vistorias')
-          .insert([vistoriaData]);
+        let saveError;
+        
+        if (editMode && editingVistoriaId) {
+          // Update existing vistoria
+          const { error } = await supabase
+            .from('vistorias')
+            .update(vistoriaData)
+            .eq('id', editingVistoriaId);
+          saveError = error;
+        } else {
+          // Insert new vistoria
+          const { error } = await supabase
+            .from('vistorias')
+            .insert([vistoriaData]);
+          saveError = error;
+        }
         
         if (saveError) {
           console.error('Error saving vistoria:', saveError);
           // Continue with PDF generation even if save fails
         } else {
-          console.log('Vistoria saved successfully');
+          console.log(editMode ? 'Vistoria updated successfully' : 'Vistoria saved successfully');
         }
       }
       
@@ -1059,11 +1126,19 @@ export default function VistoriaDigital() {
       trackExport('vistoria_pdf');
       
       toast({
-        title: "PDF gerado com sucesso",
-        description: avaliacaoData 
-          ? "Vistoria salva e relatório baixado com valores ajustados."
-          : "A vistoria foi salva e o relatório foi baixado.",
+        title: editMode ? "Vistoria atualizada" : "PDF gerado com sucesso",
+        description: editMode
+          ? "As alterações foram salvas e o relatório foi baixado."
+          : avaliacaoData 
+            ? "Vistoria salva e relatório baixado com valores ajustados."
+            : "A vistoria foi salva e o relatório foi baixado.",
       });
+      
+      // Reset edit mode after successful save
+      if (editMode) {
+        setEditMode(false);
+        setEditingVistoriaId(null);
+      }
     } catch (error) {
       console.error('Error generating PDF:', error);
       toast({
@@ -1178,6 +1253,12 @@ export default function VistoriaDigital() {
               <Badge variant="secondary" className="bg-primary/10 text-primary border-primary/20">
                 <Calculator className="h-3 w-3 mr-1" />
                 Via Avaliação
+              </Badge>
+            )}
+            {editMode && (
+              <Badge variant="secondary" className="bg-amber-100 text-amber-700 border-amber-300 dark:bg-amber-900/30 dark:text-amber-400 dark:border-amber-700">
+                <Pencil className="h-3 w-3 mr-1" />
+                Editando
               </Badge>
             )}
           </div>

@@ -29,7 +29,8 @@ import {
   AlertTriangle,
   CheckCircle2,
   Building2,
-  Home
+  Home,
+  Pencil
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -42,21 +43,30 @@ interface Vistoria {
   created_at: string;
   logradouro: string;
   numero: string | null;
+  complemento: string | null;
   bairro: string;
   nome_condominio: string | null;
   tipo_imovel: string | null;
   tipo_vistoria: string | null;
   area_m2: number | null;
+  quartos: number | null;
+  suites: number | null;
+  banheiros: number | null;
+  vagas: number | null;
   final_score: number | null;
   progress: number | null;
   critical_count: number | null;
   proprietario: string | null;
+  telefone: string | null;
   vistoriador: string | null;
   data_vistoria: string | null;
+  observacoes: string | null;
+  checklist_data: any;
   valor_avaliacao: number | null;
   valor_ajustado: number | null;
   ajuste_percentual: number | null;
   pdf_generated: boolean | null;
+  valuation_id: string | null;
 }
 
 export default function HistoricoVistorias() {
@@ -118,6 +128,40 @@ export default function HistoricoVistorias() {
 
   const handleNovaVistoria = () => {
     navigate("/vistoria-digital");
+  };
+
+  const handleEditVistoria = (vistoria: Vistoria) => {
+    // Prepare data to pass to VistoriaDigital
+    navigate("/vistoria-digital", {
+      state: {
+        editMode: true,
+        vistoriaId: vistoria.id,
+        vistoriaData: {
+          propertyData: {
+            logradouro: vistoria.logradouro,
+            numero: vistoria.numero || '',
+            complemento: vistoria.complemento || '',
+            bairro: vistoria.bairro,
+            nomeCondominio: vistoria.nome_condominio || '',
+            tipoImovel: vistoria.tipo_imovel || '',
+            areaM2: vistoria.area_m2?.toString() || '',
+            quartos: vistoria.quartos?.toString() || '',
+            suites: vistoria.suites?.toString() || '',
+            banheiros: vistoria.banheiros?.toString() || '',
+            vagas: vistoria.vagas?.toString() || '',
+            proprietario: vistoria.proprietario || '',
+            telefone: vistoria.telefone || '',
+            vistoriador: vistoria.vistoriador || '',
+            dataVistoria: vistoria.data_vistoria || new Date().toISOString().split('T')[0],
+            observacoes: vistoria.observacoes || '',
+          },
+          tipoVistoria: vistoria.tipo_vistoria as 'casa' | 'apartamento',
+          checklist: vistoria.checklist_data,
+          valorAvaliacao: vistoria.valor_avaliacao,
+          valuationId: vistoria.valuation_id,
+        },
+      },
+    });
   };
 
   // Stats
@@ -395,6 +439,16 @@ export default function HistoricoVistorias() {
                 <Button variant="outline" onClick={() => setSelectedVistoria(null)}>
                   <X className="mr-2 h-4 w-4" />
                   Fechar
+                </Button>
+                <Button 
+                  variant="secondary" 
+                  onClick={() => {
+                    setSelectedVistoria(null);
+                    handleEditVistoria(selectedVistoria);
+                  }}
+                >
+                  <Pencil className="mr-2 h-4 w-4" />
+                  Editar Vistoria
                 </Button>
                 <Button onClick={() => navigate("/vistoria-digital")}>
                   <Eye className="mr-2 h-4 w-4" />
