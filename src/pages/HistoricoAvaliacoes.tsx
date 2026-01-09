@@ -259,6 +259,7 @@ export default function HistoricoAvaliacoes() {
       docFactor: 1,
       docNotes: "",
       result: null,
+      historicalAnalysis: null,
       tipoAvaliacao: "simples",
     };
 

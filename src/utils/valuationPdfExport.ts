@@ -488,7 +488,175 @@ export function exportValuationEnginePDF(
   
   yPos += tipsHeight + 6;
 
-  // 5. CARACTERÍSTICAS APLICADAS
+  // 5. ANÁLISE HISTÓRICA (5 ANOS)
+  if (state.historicalAnalysis && state.historicalAnalysis.yearlyData.length > 0) {
+    // Check if we need a new page
+    if (yPos > getMaxContentY() - 120) {
+      doc.addPage();
+      yPos = 20;
+    }
+    
+    yPos += 4;
+    yPos = drawSectionTitle(doc, 'Análise Histórica (5 Anos)', yPos, marginLeft);
+    
+    const historical = state.historicalAnalysis;
+    
+    // KPIs em linha
+    const kpiHeight = 28;
+    doc.setFillColor(248, 250, 252);
+    doc.setDrawColor(203, 213, 225);
+    doc.setLineWidth(0.3);
+    doc.roundedRect(marginLeft - 5, yPos - 3, contentWidth + 10, kpiHeight, 2, 2, 'FD');
+    
+    const kpiColWidth = (contentWidth + 10) / 4;
+    
+    // KPI 1: Liquidez
+    const liquidityColor: [number, number, number] = historical.liquidityLevel === 'alta' ? [22, 163, 74] :
+      historical.liquidityLevel === 'media' ? [202, 138, 4] : [220, 38, 38];
+    
+    doc.setFontSize(6);
+    doc.setTextColor(71, 85, 105);
+    doc.text('Liquidez', marginLeft, yPos + 4);
+    doc.setFontSize(12);
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(...liquidityColor);
+    doc.text(`${historical.liquidityScore}/100`, marginLeft, yPos + 13);
+    doc.setFontSize(5);
+    doc.setFont('helvetica', 'normal');
+    doc.setTextColor(148, 163, 184);
+    const liquidityLabel = historical.liquidityLevel === 'alta' ? 'Alta' : historical.liquidityLevel === 'media' ? 'Media' : 'Baixa';
+    doc.text(liquidityLabel, marginLeft, yPos + 19);
+    
+    // KPI 2: Vol. Transações
+    const transColor: [number, number, number] = historical.transactionTrend === 'crescente' ? [22, 163, 74] :
+      historical.transactionTrend === 'decrescente' ? [220, 38, 38] : [100, 100, 100];
+    const transIcon = historical.transactionTrend === 'crescente' ? '+' : historical.transactionTrend === 'decrescente' ? '-' : '=';
+    
+    doc.setFontSize(6);
+    doc.setTextColor(71, 85, 105);
+    doc.text('Vol. Transacoes', marginLeft + kpiColWidth, yPos + 4);
+    doc.setFontSize(12);
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(...transColor);
+    doc.text(`${transIcon}${Math.abs(historical.transactionGrowth).toFixed(1)}%`, marginLeft + kpiColWidth, yPos + 13);
+    doc.setFontSize(5);
+    doc.setFont('helvetica', 'normal');
+    doc.setTextColor(148, 163, 184);
+    doc.text('a.a.', marginLeft + kpiColWidth, yPos + 19);
+    
+    // KPI 3: Evolução Preço
+    const priceColor: [number, number, number] = historical.priceTrend === 'alta' ? [22, 163, 74] :
+      historical.priceTrend === 'baixa' ? [220, 38, 38] : [100, 100, 100];
+    const priceIcon = historical.priceTrend === 'alta' ? '+' : historical.priceTrend === 'baixa' ? '-' : '=';
+    
+    doc.setFontSize(6);
+    doc.setTextColor(71, 85, 105);
+    doc.text('Evolucao Preco', marginLeft + kpiColWidth * 2, yPos + 4);
+    doc.setFontSize(12);
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(...priceColor);
+    doc.text(`${priceIcon}${Math.abs(historical.priceGrowth).toFixed(1)}%`, marginLeft + kpiColWidth * 2, yPos + 13);
+    doc.setFontSize(5);
+    doc.setFont('helvetica', 'normal');
+    doc.setTextColor(148, 163, 184);
+    doc.text('a.a.', marginLeft + kpiColWidth * 2, yPos + 19);
+    
+    // KPI 4: Total 5 Anos
+    const totalTrans = historical.yearlyData.reduce((sum, y) => sum + y.transacoes, 0);
+    doc.setFontSize(6);
+    doc.setTextColor(71, 85, 105);
+    doc.text('Total 5 Anos', marginLeft + kpiColWidth * 3, yPos + 4);
+    doc.setFontSize(12);
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(59, 130, 246);
+    doc.text(`${totalTrans}`, marginLeft + kpiColWidth * 3, yPos + 13);
+    doc.setFontSize(5);
+    doc.setFont('helvetica', 'normal');
+    doc.setTextColor(148, 163, 184);
+    doc.text('transacoes', marginLeft + kpiColWidth * 3, yPos + 19);
+    
+    yPos += kpiHeight + 4;
+    
+    // Tabela de dados por ano
+    const tableY = yPos;
+    doc.setFontSize(6);
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(71, 85, 105);
+    
+    // Headers
+    const colWidths = [25, 25, 35, 35, 35];
+    let tableX = marginLeft;
+    ['Ano', 'Trans.', 'Min/m2', 'Med/m2', 'Max/m2'].forEach((header, i) => {
+      doc.text(header, tableX, yPos);
+      tableX += colWidths[i];
+    });
+    
+    doc.setLineWidth(0.2);
+    doc.setDrawColor(203, 213, 225);
+    doc.line(marginLeft, yPos + 2, marginLeft + contentWidth, yPos + 2);
+    yPos += 5;
+    
+    // Data rows
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(6);
+    
+    historical.yearlyData.forEach((year, i) => {
+      tableX = marginLeft;
+      doc.setTextColor(71, 85, 105);
+      doc.text(year.ano.toString(), tableX, yPos);
+      tableX += colWidths[0];
+      
+      doc.setTextColor(59, 130, 246);
+      doc.text(year.transacoes.toString(), tableX, yPos);
+      tableX += colWidths[1];
+      
+      doc.setTextColor(71, 85, 105);
+      doc.text(year.valorMinM2 > 0 ? `R$ ${year.valorMinM2.toLocaleString('pt-BR')}` : '-', tableX, yPos);
+      tableX += colWidths[2];
+      
+      doc.setFont('helvetica', 'bold');
+      doc.text(year.valorMedioM2 > 0 ? `R$ ${year.valorMedioM2.toLocaleString('pt-BR')}` : '-', tableX, yPos);
+      doc.setFont('helvetica', 'normal');
+      tableX += colWidths[3];
+      
+      doc.text(year.valorMaxM2 > 0 ? `R$ ${year.valorMaxM2.toLocaleString('pt-BR')}` : '-', tableX, yPos);
+      
+      yPos += 4;
+    });
+    
+    yPos += 2;
+    
+    // Diagnóstico
+    doc.setFillColor(240, 249, 255);
+    doc.setDrawColor(59, 130, 246);
+    doc.setLineWidth(0.3);
+    
+    const diagText = historical.diagnostico;
+    const splitDiag = doc.splitTextToSize(diagText, contentWidth);
+    const diagHeight = 8 + splitDiag.length * 3.5;
+    
+    doc.roundedRect(marginLeft - 5, yPos, contentWidth + 10, diagHeight, 2, 2, 'FD');
+    
+    doc.setFontSize(6);
+    doc.setFont('helvetica', 'normal');
+    doc.setTextColor(30, 64, 175);
+    doc.text(splitDiag, marginLeft, yPos + 5);
+    
+    yPos += diagHeight + 4;
+    
+    // Alertas
+    if (historical.alertas.length > 0) {
+      const alertText = historical.alertas.join(' | ');
+      doc.setFontSize(6);
+      doc.setFont('helvetica', 'normal');
+      doc.setTextColor(146, 64, 14);
+      const splitAlert = doc.splitTextToSize(alertText, contentWidth);
+      doc.text(splitAlert, marginLeft, yPos);
+      yPos += splitAlert.length * 3.5 + 4;
+    }
+  }
+
+  // 6. CARACTERÍSTICAS APLICADAS
   const appliedChars = state.responses.filter(r => r.response === 'sim' && r.weight_applied !== 0);
   if (appliedChars.length > 0) {
     yPos += 6;
