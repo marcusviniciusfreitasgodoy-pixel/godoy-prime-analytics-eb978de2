@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
+import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -12,6 +13,13 @@ import {
   TableHeader, 
   TableRow 
 } from "@/components/ui/table";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from "@/components/ui/dialog";
 import { 
   History, 
   Search, 
@@ -22,13 +30,16 @@ import {
   Minus,
   Calculator,
   MapPin,
-  Calendar
+  Calendar,
+  ClipboardCheck,
+  X
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useAuth } from "@/hooks/useAuth";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { toast } from "sonner";
 
 interface Valuation {
   id: string;
@@ -54,7 +65,9 @@ interface Valuation {
 
 export default function HistoricoAvaliacoes() {
   const { user, isAdmin } = useAuth();
+  const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState("");
+  const [selectedValuation, setSelectedValuation] = useState<Valuation | null>(null);
 
   const { data: avaliacoes, isLoading } = useQuery({
     queryKey: ["avaliacoes-historico", user?.id, isAdmin],
@@ -114,6 +127,49 @@ export default function HistoricoAvaliacoes() {
     if (direction === "UP") return <TrendingUp className="h-4 w-4 text-emerald-600" />;
     if (direction === "DOWN") return <TrendingDown className="h-4 w-4 text-red-600" />;
     return <Minus className="h-4 w-4 text-muted-foreground" />;
+  };
+
+  const handleRowClick = (valuation: Valuation) => {
+    setSelectedValuation(valuation);
+  };
+
+  const handleGoToVistoria = () => {
+    if (!selectedValuation) return;
+    
+    // Prepara dados para transferir para Vistoria Digital
+    const vistoriaData = {
+      logradouro: selectedValuation.logradouro,
+      numero: selectedValuation.numero || "",
+      complemento: "",
+      bairro: selectedValuation.bairro,
+      nomeCondominio: "",
+      tipoImovel: selectedValuation.property_type || "",
+      areaM2: selectedValuation.property_area_m2.toString(),
+      quartos: "",
+      suites: "",
+      banheiros: "",
+      vagas: "",
+      proprietario: "",
+      telefone: "",
+      observacoes: "",
+      // Dados da avaliação para referência
+      avaliacaoData: {
+        valorProvavel: selectedValuation.final_value_med,
+        valorPessimista: selectedValuation.final_value_min,
+        valorOtimista: selectedValuation.final_value_max,
+        confidenceLevel: selectedValuation.confidence_level,
+        dataAvaliacao: selectedValuation.created_at,
+      }
+    };
+
+    toast.success("Dados transferidos para Vistoria Digital!");
+    
+    navigate("/vistoria-digital", {
+      state: {
+        fromAvaliacao: true,
+        propertyData: vistoriaData
+      }
+    });
   };
 
   // Estatísticas
@@ -227,7 +283,11 @@ export default function HistoricoAvaliacoes() {
                 </TableHeader>
                 <TableBody>
                   {filteredAvaliacoes.map((av) => (
-                    <TableRow key={av.id}>
+                    <TableRow 
+                      key={av.id}
+                      className="cursor-pointer hover:bg-muted/50 transition-colors"
+                      onClick={() => handleRowClick(av)}
+                    >
                       <TableCell className="whitespace-nowrap">
                         {format(new Date(av.created_at), "dd/MM/yyyy", { locale: ptBR })}
                       </TableCell>
@@ -278,7 +338,7 @@ export default function HistoricoAvaliacoes() {
               <Button 
                 variant="outline" 
                 className="mt-4"
-                onClick={() => window.location.href = "/avaliacao-imobiliaria"}
+                onClick={() => navigate("/avaliacao-imobiliaria")}
               >
                 <Calculator className="h-4 w-4 mr-2" />
                 Realizar Nova Avaliação
@@ -294,9 +354,107 @@ export default function HistoricoAvaliacoes() {
           <p className="text-sm text-muted-foreground">
             <strong>Legenda:</strong> Confiança indica a precisão estimada da avaliação. 
             Trend mostra a tendência de mercado na região comparando anúncios vs transações oficiais.
+            <span className="block mt-1 text-primary font-medium">Clique em uma linha para ver detalhes e seguir para vistoria.</span>
           </p>
         </CardContent>
       </Card>
+
+      {/* Dialog de Detalhes */}
+      <Dialog open={!!selectedValuation} onOpenChange={() => setSelectedValuation(null)}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <MapPin className="h-5 w-5 text-primary" />
+              Detalhes da Avaliação
+            </DialogTitle>
+            <DialogDescription>
+              {selectedValuation?.logradouro}{selectedValuation?.numero ? `, ${selectedValuation.numero}` : ""}
+            </DialogDescription>
+          </DialogHeader>
+          
+          {selectedValuation && (
+            <div className="space-y-4">
+              {/* Valores */}
+              <div className="bg-primary/10 rounded-lg p-4 text-center">
+                <p className="text-sm text-muted-foreground">Valor Provável</p>
+                <p className="text-2xl font-bold text-primary">
+                  {formatCurrency(selectedValuation.final_value_med)}
+                </p>
+                <div className="flex justify-center gap-4 mt-2 text-sm">
+                  <span className="text-red-600">Mín: {formatCurrency(selectedValuation.final_value_min)}</span>
+                  <span className="text-emerald-600">Máx: {formatCurrency(selectedValuation.final_value_max)}</span>
+                </div>
+              </div>
+
+              {/* Informações */}
+              <div className="grid grid-cols-2 gap-3 text-sm">
+                <div className="p-2 bg-muted/50 rounded">
+                  <p className="text-muted-foreground">Bairro</p>
+                  <p className="font-medium">{selectedValuation.bairro}</p>
+                </div>
+                <div className="p-2 bg-muted/50 rounded">
+                  <p className="text-muted-foreground">Área</p>
+                  <p className="font-medium">{selectedValuation.property_area_m2} m²</p>
+                </div>
+                <div className="p-2 bg-muted/50 rounded">
+                  <p className="text-muted-foreground">Tipo</p>
+                  <p className="font-medium">{selectedValuation.property_type || "Não informado"}</p>
+                </div>
+                <div className="p-2 bg-muted/50 rounded">
+                  <p className="text-muted-foreground">Data</p>
+                  <p className="font-medium">
+                    {format(new Date(selectedValuation.created_at), "dd/MM/yyyy HH:mm", { locale: ptBR })}
+                  </p>
+                </div>
+              </div>
+
+              {/* Métricas */}
+              <div className="flex items-center justify-between border-t pt-3">
+                <div className="flex items-center gap-2">
+                  <span className="text-sm text-muted-foreground">Confiança:</span>
+                  {getConfidenceBadge(selectedValuation.confidence_level)}
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="text-sm text-muted-foreground">Trend:</span>
+                  <TrendIcon direction={selectedValuation.trend_direction} />
+                  {selectedValuation.trend_percentage && (
+                    <span className="text-sm font-medium">
+                      {selectedValuation.trend_percentage > 0 ? "+" : ""}{selectedValuation.trend_percentage.toFixed(1)}%
+                    </span>
+                  )}
+                </div>
+              </div>
+
+              {/* Recomendação */}
+              {selectedValuation.recommendation_title && (
+                <div className="bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800 rounded-lg p-3">
+                  <p className="text-sm font-medium text-blue-800 dark:text-blue-200">
+                    {selectedValuation.recommendation_title}
+                  </p>
+                </div>
+              )}
+
+              {/* Ações */}
+              <div className="flex gap-3 pt-2">
+                <Button 
+                  onClick={handleGoToVistoria}
+                  className="flex-1"
+                >
+                  <ClipboardCheck className="h-4 w-4 mr-2" />
+                  Seguir para Vistoria
+                </Button>
+                <Button 
+                  variant="outline"
+                  onClick={() => setSelectedValuation(null)}
+                >
+                  <X className="h-4 w-4 mr-2" />
+                  Fechar
+                </Button>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
