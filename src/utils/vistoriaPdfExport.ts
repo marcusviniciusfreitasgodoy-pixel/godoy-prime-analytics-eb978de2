@@ -1,5 +1,6 @@
 import jsPDF from 'jspdf';
 import { drawGodoyHeader, drawSectionTitle, applyFootersToAllPages, BRAND_COLORS, getMaxContentY, drawResultBox } from './pdfTemplate';
+import { calculateVistoriaAdjustment, calculateAdjustedValues } from '@/components/vistoria/VistoriaAvaliacaoComparativo';
 
 interface ChecklistItem {
   id: string;
@@ -493,12 +494,114 @@ export async function generateVistoriaPDFDoc(params: VistoriaPDFParams): Promise
     doc.setFont('helvetica', 'normal');
     doc.setTextColor(...BRAND_COLORS.darkGray);
     
-    const formatCurrency = (v: number) => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 0 }).format(v);
     doc.text(`Pessimista: ${formatCurrency(avaliacaoData.valorPessimista)}`, marginLeft, yPos + 13);
     doc.text(`Provável: ${formatCurrency(avaliacaoData.valorProvavel)}`, marginLeft + 50, yPos + 13);
     doc.text(`Otimista: ${formatCurrency(avaliacaoData.valorOtimista)}`, marginLeft + 100, yPos + 13);
     
     yPos += 25;
+    
+    // ========== COMPARATIVO AVALIAÇÃO vs VISTORIA ==========
+    const adjusted = calculateAdjustedValues(avaliacaoData, finalScore);
+    
+    // Check if we need a new page
+    if (yPos > getMaxContentY() - 70) {
+      doc.addPage();
+      yPos = 20;
+    }
+    
+    yPos = drawSectionTitle(doc, 'Comparativo: Avaliação vs Vistoria', yPos, marginLeft);
+    
+    // Box with adjusted values
+    const compBoxHeight = 55;
+    doc.setFillColor(248, 250, 252);
+    doc.setDrawColor(...BRAND_COLORS.navy);
+    doc.setLineWidth(0.3);
+    doc.roundedRect(marginLeft - 5, yPos, contentWidth + 10, compBoxHeight, 2, 2, 'FD');
+    
+    // Score and adjustment header
+    const adjColor = adjusted.adjustment.adjustment >= 0 ? [5, 150, 105] : [220, 38, 38];
+    
+    doc.setFontSize(9);
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(...BRAND_COLORS.navy);
+    doc.text('Score Vistoria:', marginLeft, yPos + 8);
+    doc.setTextColor(...(adjColor as [number, number, number]));
+    doc.text(`${finalScore}/100 (${adjusted.adjustment.label})`, marginLeft + 30, yPos + 8);
+    
+    doc.setTextColor(...BRAND_COLORS.navy);
+    doc.text('Ajuste Aplicado:', marginLeft + 90, yPos + 8);
+    doc.setTextColor(...(adjColor as [number, number, number]));
+    const adjSign = adjusted.diferencaPercentual >= 0 ? '+' : '';
+    doc.text(`${adjSign}${adjusted.diferencaPercentual.toFixed(1)}%`, marginLeft + 120, yPos + 8);
+    
+    // Comparison table header
+    yPos += 16;
+    doc.setFontSize(7);
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(...BRAND_COLORS.gray);
+    doc.text('CENÁRIO', marginLeft + 2, yPos);
+    doc.text('AVALIAÇÃO', marginLeft + 40, yPos);
+    doc.text('PÓS-VISTORIA', marginLeft + 80, yPos);
+    doc.text('DIFERENÇA', marginLeft + 125, yPos);
+    
+    // Table rows
+    yPos += 6;
+    doc.setFont('helvetica', 'normal');
+    doc.setTextColor(...BRAND_COLORS.darkGray);
+    
+    // Pessimista
+    doc.text('Pessimista', marginLeft + 2, yPos);
+    doc.text(formatCurrency(avaliacaoData.valorPessimista), marginLeft + 40, yPos);
+    doc.text(formatCurrency(adjusted.valorPessimistaAjustado), marginLeft + 80, yPos);
+    doc.setTextColor(...(adjColor as [number, number, number]));
+    doc.text(`${adjSign}${adjusted.diferencaPercentual.toFixed(1)}%`, marginLeft + 125, yPos);
+    
+    // Provável (highlighted)
+    yPos += 7;
+    doc.setFillColor(240, 253, 244);
+    doc.roundedRect(marginLeft - 3, yPos - 3.5, contentWidth + 6, 7, 1, 1, 'F');
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(...BRAND_COLORS.navy);
+    doc.text('Provável', marginLeft + 2, yPos);
+    doc.setTextColor(...BRAND_COLORS.gray);
+    doc.text(formatCurrency(avaliacaoData.valorProvavel), marginLeft + 40, yPos);
+    doc.setTextColor(5, 150, 105);
+    doc.text(formatCurrency(adjusted.valorProvavelAjustado), marginLeft + 80, yPos);
+    doc.setTextColor(...(adjColor as [number, number, number]));
+    doc.text(`${adjSign}${adjusted.diferencaPercentual.toFixed(1)}%`, marginLeft + 125, yPos);
+    
+    // Otimista
+    yPos += 7;
+    doc.setFont('helvetica', 'normal');
+    doc.setTextColor(...BRAND_COLORS.darkGray);
+    doc.text('Otimista', marginLeft + 2, yPos);
+    doc.text(formatCurrency(avaliacaoData.valorOtimista), marginLeft + 40, yPos);
+    doc.text(formatCurrency(adjusted.valorOtimistaAjustado), marginLeft + 80, yPos);
+    doc.setTextColor(...(adjColor as [number, number, number]));
+    doc.text(`${adjSign}${adjusted.diferencaPercentual.toFixed(1)}%`, marginLeft + 125, yPos);
+    
+    // Justification note
+    yPos += 12;
+    doc.setFillColor(255, 251, 235);
+    doc.roundedRect(marginLeft - 5, yPos - 3, contentWidth + 10, 14, 2, 2, 'F');
+    
+    doc.setFontSize(6);
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(180, 83, 9);
+    doc.text('METODOLOGIA:', marginLeft, yPos + 2);
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(6);
+    const justification = finalScore >= 70 
+      ? `Estado físico acima do esperado (score ${finalScore}). Prêmio de ${adjusted.diferencaPercentual.toFixed(1)}% aplicado.`
+      : finalScore >= 50
+        ? `Estado físico adequado (score ${finalScore}). Ajuste mínimo de ${adjusted.diferencaPercentual.toFixed(1)}%.`
+        : `Pendências identificadas (score ${finalScore}). Desconto de ${Math.abs(adjusted.diferencaPercentual).toFixed(1)}% para cobrir reparos.`;
+    doc.text(justification, marginLeft + 22, yPos + 2);
+    
+    doc.setTextColor(...BRAND_COLORS.gray);
+    doc.text('Score da vistoria (0-100) aplica ajuste de -15% a +10% sobre o valor da avaliação prévia.', marginLeft, yPos + 8);
+    
+    yPos += 20;
   }
   
   // ========== TOP 5 CRITICAL ITEMS ==========
