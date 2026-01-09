@@ -439,7 +439,7 @@ const checklistApartamento: ChecklistCategory[] = [
     title: '7. Posição e Orientação',
     weight: 6,
     items: [
-      { id: 'andar-alto', label: 'Andar alto (acima do 10º)', tooltip: 'Andares altos geralmente são mais valorizados', score: null },
+      { id: 'andar-alto', label: 'Andar alto (acima do 6º)', tooltip: 'Andares altos geralmente são mais valorizados', score: null },
       { id: 'sol-manha', label: 'Sol da manhã (face leste)', tooltip: 'Mais valorizado que sol da tarde', score: null },
       { id: 'frente-fundos', label: 'Posição frente vs fundos', tooltip: 'Frente geralmente mais valorizado', score: null },
     ],
