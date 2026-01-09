@@ -20,15 +20,15 @@ export interface CombinedPrices {
   trend_original?: number; // Valor original antes do cap (para referência)
 }
 
-// Combina ITBI (75%) + Anúncios (25%)
+// Combina ITBI (70%) + Anúncios (30%)
 // ITBI = transações reais, Anúncios = sinal de tendência
 // Cap simétrico para evitar distorções extremas
 const TREND_CAP_UP = 35;   // Cap para trend positivo
 const TREND_CAP_DOWN = 35; // Cap para trend negativo
 
 // Pesos: ITBI como âncora principal
-const ITBI_WEIGHT = 0.75;
-const ANUNCIO_WEIGHT = 0.25;
+const ITBI_WEIGHT = 0.70;
+const ANUNCIO_WEIGHT = 0.30;
 
 export const calculateCombinedPrices = (
   itbi: ITBIData,
@@ -103,7 +103,7 @@ const CATEGORY_CAPS = {
 // Cap global por tipo de imóvel
 const GLOBAL_CAPS = {
   casa: { max: 0.35, min: -0.35 },
-  apartamento: { max: 0.30, min: -0.30 },
+  apartamento: { max: 0.35, min: -0.35 },
 };
 
 // Determina se o tipo de imóvel é casa
