@@ -6,7 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { MapPin, TrendingUp, TrendingDown, Minus, Search, Building2, Plus, X, Calculator, CheckCircle2, Database, Loader2, AlertTriangle, Info } from "lucide-react";
+import { MapPin, TrendingUp, TrendingDown, Minus, Search, Building2, Plus, X, Calculator, CheckCircle2, Database, Loader2, AlertTriangle, Info, ExternalLink } from "lucide-react";
 import { useOfficialStreetSuggestions, type OfficialStreetSuggestion } from "@/hooks/useOfficialStreetSuggestions";
 import { useCompanySettings } from "@/hooks/useCompanySettings";
 import type { ValuationState } from "@/types/valuation";
@@ -23,6 +23,7 @@ interface AnuncioEntry {
   id: string;
   valor_total: number;
   area_m2: number;
+  fonte?: string; // Link ou fonte do anúncio (opcional)
 }
 
 export function Step1Location({ state, updateState, combined }: Props) {
@@ -42,7 +43,7 @@ export function Step1Location({ state, updateState, combined }: Props) {
   
   // Estado para anúncios de referência
   const [anuncios, setAnuncios] = useState<AnuncioEntry[]>([
-    { id: "1", valor_total: 0, area_m2: 0 }
+    { id: "1", valor_total: 0, area_m2: 0, fonte: "" }
   ]);
 
   // Sincroniza searchTerm quando logradouro muda
@@ -191,7 +192,7 @@ export function Step1Location({ state, updateState, combined }: Props) {
 
   const addAnuncio = () => {
     if (anuncios.length < 5) {
-      setAnuncios([...anuncios, { id: Date.now().toString(), valor_total: 0, area_m2: 0 }]);
+      setAnuncios([...anuncios, { id: Date.now().toString(), valor_total: 0, area_m2: 0, fonte: "" }]);
     }
   };
 
@@ -201,7 +202,7 @@ export function Step1Location({ state, updateState, combined }: Props) {
     }
   };
 
-  const updateAnuncio = (id: string, field: 'valor_total' | 'area_m2', value: number) => {
+  const updateAnuncio = (id: string, field: 'valor_total' | 'area_m2' | 'fonte', value: number | string) => {
     setAnuncios(anuncios.map(a => 
       a.id === id ? { ...a, [field]: value } : a
     ));
@@ -459,6 +460,21 @@ export function Step1Location({ state, updateState, combined }: Props) {
                             className="h-9 sm:h-8 text-sm"
                           />
                         </div>
+                      </div>
+                      
+                      {/* Campo de fonte/link */}
+                      <div className="mt-2">
+                        <Label className="text-[10px] sm:text-xs mb-1 flex items-center gap-1">
+                          <ExternalLink className="h-3 w-3" />
+                          Fonte/Link <span className="text-muted-foreground">(recomendado)</span>
+                        </Label>
+                        <Input
+                          type="url"
+                          placeholder="https://..."
+                          value={anuncio.fonte || ""}
+                          onChange={(e) => updateAnuncio(anuncio.id, 'fonte', e.target.value)}
+                          className="h-9 sm:h-8 text-sm"
+                        />
                       </div>
                     </div>
                   );
