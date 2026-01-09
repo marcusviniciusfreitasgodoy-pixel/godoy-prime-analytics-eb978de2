@@ -355,19 +355,22 @@ export const generateRecommendation = (
   }
 
   // Regra 4: Mercado em alta + boa confiança
+  // NOTA: Anúncios são frequentemente inflados (até 15%), então o trend é apenas indicativo
+  // Não exibimos "potencial" pois cria expectativas irrealistas
   if (trend > 5 && score >= 70) {
     return {
       status: "WAIT_30_DAYS",
-      title: "Esperar Oportunidade",
+      title: "Mercado Aquecido",
       icon: PDF_ICONS.wait,
-      message: `Mercado em ALTA de ${trend.toFixed(1)}%. Aguardar 30-60 dias para melhor preço.`,
+      message: `Tendência de alta de ${trend.toFixed(0)}% nos anúncios. Momento favorável para venda.`,
       details: [
-        "Preparar imóvel (fotos, limpeza)",
-        "Monitorar trend do mercado",
-        "Anunciar após período de espera",
+        "Anúncios costumam ser inflados (margem de 10-15%)",
+        "Preparar imóvel para fotos profissionais",
+        "Anunciar próximo ao valor provável",
+        "Negociar com margem de 5-8% de desconto",
       ],
       urgency: "LOW",
-      potential_gain: provavel * (trend / 100),
+      // Removido potential_gain - era enganoso
     };
   }
 
