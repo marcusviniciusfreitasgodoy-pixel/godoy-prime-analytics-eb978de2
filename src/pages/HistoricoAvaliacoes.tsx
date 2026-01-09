@@ -179,6 +179,16 @@ export default function HistoricoAvaliacoes() {
   const handleExportPDF = () => {
     if (!selectedValuation) return;
 
+    // Cap de trend para evitar distorções (valores antigos salvos sem cap)
+    const TREND_CAP = 50;
+    let trendPercentage = selectedValuation.trend_percentage || 0;
+    let trendWasCapped = false;
+    
+    if (Math.abs(trendPercentage) > TREND_CAP) {
+      trendWasCapped = true;
+      trendPercentage = trendPercentage > 0 ? TREND_CAP : -TREND_CAP;
+    }
+
     // Reconstruir o state mínimo necessário para o PDF
     const state: ValuationState = {
       numero: selectedValuation.numero || "",
@@ -212,6 +222,20 @@ export default function HistoricoAvaliacoes() {
       tipoAvaliacao: "simples",
     };
 
+    // Limpa o título de possíveis emojis corrompidos
+    const cleanTitle = (title: string | null) => {
+      if (!title) return "Avaliação Concluída";
+      // Remove caracteres não-ASCII (emojis corrompidos)
+      return title.replace(/[^\x00-\x7F]/g, '').trim() || "Avaliação Concluída";
+    };
+
+    // Determina o ícone correto baseado no status/trend
+    const getRecommendationIcon = () => {
+      if (trendPercentage > 5) return "[^]"; // Mercado em alta
+      if (trendPercentage < -5) return "[v]"; // Mercado em baixa
+      return "[OK]"; // Normal
+    };
+
     // Reconstruir o result usando os tipos corretos
     const result: ValuationResult = {
       pessimista: selectedValuation.final_value_min,
@@ -223,30 +247,36 @@ export default function HistoricoAvaliacoes() {
       total_adjustment: selectedValuation.total_adjustment,
       auto_capped: false,
       recommendation: {
-        status: "PROCEED",
-        icon: "[OK]",
-        title: selectedValuation.recommendation_title || "Avaliação Concluída",
-        message: "",
+        status: trendPercentage > 5 ? "WAIT_30_DAYS" : "PROCEED",
+        icon: getRecommendationIcon(),
+        title: cleanTitle(selectedValuation.recommendation_title),
+        message: trendWasCapped 
+          ? `Trend original de ${selectedValuation.trend_percentage?.toFixed(1)}% limitado a ±${TREND_CAP}% (poucos dados de anúncios na região).`
+          : "",
       },
     };
 
-    // Combined prices simplificado
-    const combined = selectedValuation.trend_percentage ? {
+    // Combined prices com trend corrigido
+    const combined = {
       med_m2: selectedValuation.final_value_med / selectedValuation.property_area_m2,
       min_m2: selectedValuation.final_value_min / selectedValuation.property_area_m2,
       max_m2: selectedValuation.final_value_max / selectedValuation.property_area_m2,
-      trend_percentage: selectedValuation.trend_percentage,
-      trend_direction: selectedValuation.trend_direction as "UP" | "DOWN" | "STABLE",
-    } : null;
+      trend_percentage: trendPercentage,
+      trend_direction: (trendPercentage > 5 ? "UP" : trendPercentage < -5 ? "DOWN" : "STABLE") as "UP" | "DOWN" | "STABLE",
+    };
 
     try {
       exportValuationEnginePDF(result, state, combined);
+      if (trendWasCapped) {
+        toast.info(`Trend corrigido de ${selectedValuation.trend_percentage?.toFixed(1)}% para ${TREND_CAP}%`);
+      }
       toast.success("PDF gerado com sucesso!");
     } catch (error) {
       console.error("Erro ao gerar PDF:", error);
       toast.error("Erro ao gerar o PDF");
     }
   };
+
 
   // Estatísticas
   const stats = {
@@ -494,18 +524,30 @@ export default function HistoricoAvaliacoes() {
                   <span className="text-sm text-muted-foreground">Trend:</span>
                   <TrendIcon direction={selectedValuation.trend_direction} />
                   {selectedValuation.trend_percentage && (
-                    <span className="text-sm font-medium">
+                    <span className={`text-sm font-medium ${Math.abs(selectedValuation.trend_percentage) > 50 ? 'text-amber-600' : ''}`}>
                       {selectedValuation.trend_percentage > 0 ? "+" : ""}{selectedValuation.trend_percentage.toFixed(1)}%
+                      {Math.abs(selectedValuation.trend_percentage) > 50 && " *"}
                     </span>
                   )}
                 </div>
               </div>
 
+              {/* Alerta de trend alto */}
+              {selectedValuation.trend_percentage && Math.abs(selectedValuation.trend_percentage) > 50 && (
+                <div className="bg-amber-50 dark:bg-amber-950/30 border border-amber-300 dark:border-amber-700 rounded-lg p-3">
+                  <p className="text-xs text-amber-700 dark:text-amber-300">
+                    <strong>⚠ Atenção:</strong> Trend de {selectedValuation.trend_percentage.toFixed(1)}% indica possível baixa representatividade 
+                    de anúncios na região. Na reemissão do PDF será aplicado limite de ±50%.
+                  </p>
+                </div>
+              )}
+
               {/* Recomendação */}
               {selectedValuation.recommendation_title && (
                 <div className="bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800 rounded-lg p-3">
                   <p className="text-sm font-medium text-blue-800 dark:text-blue-200">
-                    {selectedValuation.recommendation_title}
+                    {/* Remove emojis corrompidos do título */}
+                    {selectedValuation.recommendation_title.replace(/[^\x00-\x7F]/g, '').trim() || "Avaliação Concluída"}
                   </p>
                 </div>
               )}
