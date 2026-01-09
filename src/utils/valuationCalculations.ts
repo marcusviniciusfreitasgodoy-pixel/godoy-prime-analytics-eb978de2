@@ -229,9 +229,12 @@ export const calculateTotalAdjustment = (
   return { total, auto_capped, by_category: cappedByCategory, global_cap: globalCap.max };
 };
 
-// Calcula os 3 valores finais com compressão de spread
-// Fator de compressão: aproxima min/max em direção à mediana para reduzir distorção
-const SPREAD_COMPRESSION = 0.35; // 35% de compressão do spread original
+// Calcula os 3 valores finais com compressão de spread AGRESSIVA
+// O valor pessimista não pode estar muito distante do provável (máximo -20%)
+// O valor otimista não pode estar muito distante do provável (máximo +15%)
+const SPREAD_COMPRESSION = 0.50; // 50% de compressão do spread original
+const MAX_PESSIMIST_DISCOUNT = 0.20; // Máximo 20% abaixo do provável
+const MAX_OPTIMIST_PREMIUM = 0.15;   // Máximo 15% acima do provável
 
 export const calculateFinalValues = (
   area_m2: number,
@@ -247,18 +250,30 @@ export const calculateFinalValues = (
   const base_max = combined.max_m2 * area_m2;
 
   // Aplica compressão: aproxima min/max em direção à mediana
-  // Isso reduz o spread mantendo o valor provável como âncora
-  const compressed_min = base_min + (base_med - base_min) * SPREAD_COMPRESSION;
-  const compressed_max = base_max - (base_max - base_med) * SPREAD_COMPRESSION;
+  let compressed_min = base_min + (base_med - base_min) * SPREAD_COMPRESSION;
+  let compressed_max = base_max - (base_max - base_med) * SPREAD_COMPRESSION;
 
-  const adjusted_min = compressed_min * multiplier;
-  const adjusted_med = base_med * multiplier;
-  const adjusted_max = compressed_max * multiplier;
+  // Valor provável ajustado (referência)
+  const adjusted_med = base_med * multiplier * doc_factor;
+
+  // Aplica limites de spread: pessimista não pode ser mais de 20% abaixo
+  let adjusted_min = compressed_min * multiplier * doc_factor;
+  const min_floor = adjusted_med * (1 - MAX_PESSIMIST_DISCOUNT);
+  if (adjusted_min < min_floor) {
+    adjusted_min = min_floor;
+  }
+
+  // Otimista não pode ser mais de 15% acima
+  let adjusted_max = compressed_max * multiplier * doc_factor;
+  const max_ceiling = adjusted_med * (1 + MAX_OPTIMIST_PREMIUM);
+  if (adjusted_max > max_ceiling) {
+    adjusted_max = max_ceiling;
+  }
 
   return {
-    pessimista: Math.round(adjusted_min * doc_factor),
-    provavel: Math.round(adjusted_med * doc_factor),
-    otimista: Math.round(adjusted_max * doc_factor),
+    pessimista: Math.round(adjusted_min),
+    provavel: Math.round(adjusted_med),
+    otimista: Math.round(adjusted_max),
   };
 };
 

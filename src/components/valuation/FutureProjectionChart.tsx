@@ -39,7 +39,12 @@ export function FutureProjectionChart({ currentValue, projection, area }: Props)
 
   const currentYear = new Date().getFullYear();
 
-  // Dados para o gráfico
+  // Calcula valores absolutos a partir dos multiplicadores
+  // projection.oneYear.probable é um multiplicador (ex: 1.062 para +6.2%)
+  // Precisamos multiplicar pelo currentValue para obter o valor absoluto
+  const getAbsoluteValue = (multiplier: number) => Math.round(currentValue * multiplier);
+
+  // Dados para o gráfico - convertendo multiplicadores em valores absolutos
   const chartData = [
     {
       year: currentYear.toString(),
@@ -51,29 +56,30 @@ export function FutureProjectionChart({ currentValue, projection, area }: Props)
     {
       year: (currentYear + 1).toString(),
       label: "1 ano",
-      pessimistic: projection.oneYear.pessimistic,
-      probable: projection.oneYear.probable,
-      optimistic: projection.oneYear.optimistic,
+      pessimistic: getAbsoluteValue(projection.oneYear.pessimistic),
+      probable: getAbsoluteValue(projection.oneYear.probable),
+      optimistic: getAbsoluteValue(projection.oneYear.optimistic),
     },
     {
       year: (currentYear + 2).toString(),
       label: "2 anos",
-      pessimistic: projection.twoYears.pessimistic,
-      probable: projection.twoYears.probable,
-      optimistic: projection.twoYears.optimistic,
+      pessimistic: getAbsoluteValue(projection.twoYears.pessimistic),
+      probable: getAbsoluteValue(projection.twoYears.probable),
+      optimistic: getAbsoluteValue(projection.twoYears.optimistic),
     },
     {
       year: (currentYear + 3).toString(),
       label: "3 anos",
-      pessimistic: projection.threeYears.pessimistic,
-      probable: projection.threeYears.probable,
-      optimistic: projection.threeYears.optimistic,
+      pessimistic: getAbsoluteValue(projection.threeYears.pessimistic),
+      probable: getAbsoluteValue(projection.threeYears.probable),
+      optimistic: getAbsoluteValue(projection.threeYears.optimistic),
     },
   ];
 
-  // Variações percentuais
-  const variacao1Ano = ((projection.oneYear.probable - currentValue) / currentValue) * 100;
-  const variacao3Anos = ((projection.threeYears.probable - currentValue) / currentValue) * 100;
+  // Variações percentuais (baseadas nos multiplicadores)
+  const variacao1Ano = (projection.oneYear.probable - 1) * 100;
+  const variacao3Anos = (projection.threeYears.probable - 1) * 100;
+  const variacao2Anos = (projection.twoYears.probable - 1) * 100;
 
   const getConfidenceConfig = () => {
     switch (projection.confidence) {
@@ -130,7 +136,7 @@ export function FutureProjectionChart({ currentValue, projection, area }: Props)
           <div className="bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-950/40 dark:to-blue-900/30 rounded-lg p-3 text-center border border-blue-200 dark:border-blue-800">
             <div className="text-[10px] text-blue-600 dark:text-blue-400 font-medium">1 ANO</div>
             <div className="text-sm sm:text-lg font-bold text-blue-800 dark:text-blue-200 mt-1">
-              {formatCurrencyCompact(projection.oneYear.probable)}
+              {formatCurrencyCompact(getAbsoluteValue(projection.oneYear.probable))}
             </div>
             <div className={`text-[10px] ${variacao1Ano >= 0 ? 'text-emerald-600' : 'text-red-600'}`}>
               {variacao1Ano >= 0 ? '+' : ''}{variacao1Ano.toFixed(1)}%
@@ -141,11 +147,10 @@ export function FutureProjectionChart({ currentValue, projection, area }: Props)
           <div className="bg-gradient-to-br from-purple-50 to-purple-100 dark:from-purple-950/40 dark:to-purple-900/30 rounded-lg p-3 text-center border border-purple-200 dark:border-purple-800">
             <div className="text-[10px] text-purple-600 dark:text-purple-400 font-medium">2 ANOS</div>
             <div className="text-sm sm:text-lg font-bold text-purple-800 dark:text-purple-200 mt-1">
-              {formatCurrencyCompact(projection.twoYears.probable)}
+              {formatCurrencyCompact(getAbsoluteValue(projection.twoYears.probable))}
             </div>
-            <div className={`text-[10px] ${((projection.twoYears.probable - currentValue) / currentValue * 100) >= 0 ? 'text-emerald-600' : 'text-red-600'}`}>
-              {((projection.twoYears.probable - currentValue) / currentValue * 100) >= 0 ? '+' : ''}
-              {((projection.twoYears.probable - currentValue) / currentValue * 100).toFixed(1)}%
+            <div className={`text-[10px] ${variacao2Anos >= 0 ? 'text-emerald-600' : 'text-red-600'}`}>
+              {variacao2Anos >= 0 ? '+' : ''}{variacao2Anos.toFixed(1)}%
             </div>
           </div>
 
@@ -153,7 +158,7 @@ export function FutureProjectionChart({ currentValue, projection, area }: Props)
           <div className="bg-gradient-to-br from-indigo-50 to-indigo-100 dark:from-indigo-950/40 dark:to-indigo-900/30 rounded-lg p-3 text-center border border-indigo-200 dark:border-indigo-800">
             <div className="text-[10px] text-indigo-600 dark:text-indigo-400 font-medium">3 ANOS</div>
             <div className="text-sm sm:text-lg font-bold text-indigo-800 dark:text-indigo-200 mt-1">
-              {formatCurrencyCompact(projection.threeYears.probable)}
+              {formatCurrencyCompact(getAbsoluteValue(projection.threeYears.probable))}
             </div>
             <div className={`text-[10px] ${variacao3Anos >= 0 ? 'text-emerald-600' : 'text-red-600'}`}>
               {variacao3Anos >= 0 ? '+' : ''}{variacao3Anos.toFixed(1)}%
