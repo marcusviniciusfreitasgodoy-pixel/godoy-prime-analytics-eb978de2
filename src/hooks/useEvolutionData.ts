@@ -43,7 +43,8 @@ export function useEvolutionData(bairro: string = 'BARRA DA TIJUCA', granularity
       const startDate = '2020-01-01';
       const outlierLimit = getOutlierLimit(bairro);
 
-      let allData: { data_transacao: string; valor_m2: number | null; tipologia: string | null }[] = [];
+      // IMPORTANTE: Buscar total_transacoes para contagem correta (cada registro pode representar múltiplas transações)
+      let allData: { data_transacao: string; valor_m2: number | null; tipologia: string | null; total_transacoes: number | null }[] = [];
       let offset = 0;
       const pageSize = 1000;
       let hasMore = true;
@@ -51,7 +52,7 @@ export function useEvolutionData(bairro: string = 'BARRA DA TIJUCA', granularity
       while (hasMore) {
         const { data, error } = await supabase
           .from('itbi_transactions')
-          .select('data_transacao, valor_m2, tipologia')
+          .select('data_transacao, valor_m2, tipologia, total_transacoes')
           .eq('uso', 'Residencial')
           .ilike('bairro', bairro)
           .not('valor_m2', 'is', null)
