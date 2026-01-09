@@ -158,17 +158,15 @@ export function exportValuationEnginePDF(
     doc.setLineWidth(0.5);
     doc.roundedRect(marginLeft - 5, yPos - 3, contentWidth + 10, cardHeight, 3, 3, 'FD');
     
-    // Grid de 3 colunas com estatísticas
-    const colWidth = (contentWidth + 10) / 3;
+    // Grid de 2 colunas com estatísticas
+    const colWidth = (contentWidth + 10) / 2;
     const col1X = marginLeft;
     const col2X = marginLeft + colWidth;
-    const col3X = marginLeft + colWidth * 2;
     
-    // Separadores verticais sutis
+    // Separador vertical sutil
     doc.setDrawColor(186, 230, 253);
     doc.setLineWidth(0.3);
     doc.line(col2X - 5, yPos + 2, col2X - 5, yPos + cardHeight - 8);
-    doc.line(col3X - 5, yPos + 2, col3X - 5, yPos + cardHeight - 8);
     
     // Coluna 1: Total de transações
     doc.setFontSize(22);
@@ -193,26 +191,6 @@ export function exportValuationEnginePDF(
     doc.setTextColor(71, 85, 105);
     doc.text('valor médio', col2X + colWidth / 2 - 14, yPos + 22);
     doc.text('por m²', col2X + colWidth / 2 - 9, yPos + 28);
-    
-    // Coluna 3: Preço médio total
-    doc.setFontSize(14);
-    doc.setFont('helvetica', 'bold');
-    doc.setTextColor(2, 132, 199);
-    const avgTransaction = state.itbiData.avg_valor_transacao;
-    let precoMedio = '-';
-    if (avgTransaction) {
-      if (avgTransaction >= 1000000) {
-        precoMedio = `R$ ${(avgTransaction / 1000000).toLocaleString('pt-BR', { minimumFractionDigits: 1, maximumFractionDigits: 1 })} mi`;
-      } else {
-        precoMedio = `R$ ${(avgTransaction / 1000).toLocaleString('pt-BR', { maximumFractionDigits: 0 })} mil`;
-      }
-    }
-    doc.text(precoMedio, col3X + colWidth / 2 - 18, yPos + 14);
-    doc.setFontSize(8);
-    doc.setFont('helvetica', 'normal');
-    doc.setTextColor(71, 85, 105);
-    doc.text('preço médio', col3X + colWidth / 2 - 14, yPos + 22);
-    doc.text('total', col3X + colWidth / 2 - 6, yPos + 28);
     
     yPos += cardHeight;
     
