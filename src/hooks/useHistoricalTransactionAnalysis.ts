@@ -57,6 +57,29 @@ export interface HistoricalAnalysis {
   futureProjection?: FutureProjection; // Nova projeção de valor futuro
 }
 
+// Limites MÍNIMOS de outliers por bairro (valores muito abaixo são suspeitos)
+const OUTLIER_MIN_LIMITS: Record<string, number> = {
+  'BARRA DA TIJUCA': 8000,
+  'RECREIO DOS BANDEIRANTES': 6000,
+  'LEBLON': 20000,
+  'IPANEMA': 18000,
+  'LAGOA': 15000,
+  'JARDIM BOTANICO': 12000,
+  'GAVEA': 12000,
+  'COPACABANA': 10000,
+  'BOTAFOGO': 10000,
+  'FLAMENGO': 8000,
+  'LARANJEIRAS': 8000,
+  'HUMAITA': 10000,
+  'TIJUCA': 6000,
+  'DEFAULT': 5000,
+};
+
+const getOutlierMinLimit = (bairro: string): number => {
+  const normalizedBairro = bairro.toUpperCase();
+  return OUTLIER_MIN_LIMITS[normalizedBairro] || OUTLIER_MIN_LIMITS['DEFAULT'];
+};
+
 export function useHistoricalTransactionAnalysis(logradouro: string, bairro: string, enabled: boolean = true) {
   return useQuery<HistoricalAnalysis | null>({
     queryKey: ['historical-analysis-5y', logradouro, bairro],
@@ -64,11 +87,12 @@ export function useHistoricalTransactionAnalysis(logradouro: string, bairro: str
       if (!logradouro || !bairro) return null;
       
       const outlierLimit = getOutlierLimit(bairro);
+      const outlierMinLimit = getOutlierMinLimit(bairro);
       
-      // Buscar transações dos últimos 5 anos
-      const fiveYearsAgo = new Date();
-      fiveYearsAgo.setFullYear(fiveYearsAgo.getFullYear() - 5);
-      const startDate = fiveYearsAgo.toISOString().split('T')[0];
+      // Buscar transações dos últimos 5 anos (de 2021 até o ano atual)
+      const currentYear = new Date().getFullYear();
+      const startYear = currentYear - 4; // 5 anos incluindo o atual
+      const startDate = `${startYear}-01-01`;
       
       // Primeiro buscar por logradouro específico
       let { data: transactions, error } = await supabase
@@ -79,6 +103,7 @@ export function useHistoricalTransactionAnalysis(logradouro: string, bairro: str
         .eq('uso', 'Residencial')
         .not('valor_m2', 'is', null)
         .lte('valor_m2', outlierLimit)
+        .gte('valor_m2', outlierMinLimit) // Filtrar outliers mínimos também
         .gte('data_transacao', startDate)
         .order('data_transacao', { ascending: true });
       
@@ -93,6 +118,7 @@ export function useHistoricalTransactionAnalysis(logradouro: string, bairro: str
           .eq('uso', 'Residencial')
           .not('valor_m2', 'is', null)
           .lte('valor_m2', outlierLimit)
+          .gte('valor_m2', outlierMinLimit) // Filtrar outliers mínimos também
           .gte('data_transacao', startDate)
           .order('data_transacao', { ascending: true });
         
@@ -102,27 +128,38 @@ export function useHistoricalTransactionAnalysis(logradouro: string, bairro: str
       
       if (!transactions || transactions.length === 0) return null;
       
-      // Agrupar por ano
-      const currentYear = new Date().getFullYear();
+      // Agrupar por ano (de startYear até currentYear)
       const yearlyMap: Record<number, { valores: number[], count: number }> = {};
       
-      // Inicializar últimos 5 anos
-      for (let i = 0; i < 5; i++) {
-        yearlyMap[currentYear - i] = { valores: [], count: 0 };
+      // Inicializar anos de startYear até currentYear
+      for (let year = startYear; year <= currentYear; year++) {
+        yearlyMap[year] = { valores: [], count: 0 };
       }
       
       transactions.forEach(t => {
         const year = new Date(t.data_transacao).getFullYear();
-        if (yearlyMap[year]) {
+        if (yearlyMap[year] && t.valor_m2! >= outlierMinLimit) {
           yearlyMap[year].valores.push(t.valor_m2!);
           yearlyMap[year].count++;
         }
       });
       
-      // Calcular estatísticas por ano
+      // Calcular estatísticas por ano com remoção de outliers usando IQR
       const yearlyData: YearlyData[] = Object.entries(yearlyMap)
         .map(([ano, data]) => {
-          const valores = data.valores;
+          let valores = data.valores;
+          
+          // Aplicar IQR (Interquartile Range) para remover outliers extremos
+          if (valores.length >= 4) {
+            valores.sort((a, b) => a - b);
+            const q1 = valores[Math.floor(valores.length * 0.25)];
+            const q3 = valores[Math.floor(valores.length * 0.75)];
+            const iqr = q3 - q1;
+            const lowerBound = q1 - 1.5 * iqr;
+            const upperBound = q3 + 1.5 * iqr;
+            valores = valores.filter(v => v >= lowerBound && v <= upperBound);
+          }
+          
           const valorMedioM2 = valores.length > 0 
             ? valores.reduce((a, b) => a + b, 0) / valores.length 
             : 0;
@@ -137,6 +174,7 @@ export function useHistoricalTransactionAnalysis(logradouro: string, bairro: str
             valorMaxM2: Math.round(valorMaxM2),
           };
         })
+        .filter(y => y.ano <= currentYear) // Garantir que termina no ano atual
         .sort((a, b) => a.ano - b.ano);
       
       // Calcular tendências (últimos 5 anos)

@@ -10,9 +10,18 @@ interface Props {
   anuncioData: AnuncioData | null;
   area: number;
   combined: CombinedPrices;
+  valorFinalRecomendado?: number; // Valor provável final (após ajustes)
+  ajusteTotal?: number; // Ajuste total aplicado (ex: 0.35 = +35%)
 }
 
-export function PriceComparisonCard({ itbiData, anuncioData, area, combined }: Props) {
+export function PriceComparisonCard({ 
+  itbiData, 
+  anuncioData, 
+  area, 
+  combined,
+  valorFinalRecomendado,
+  ajusteTotal = 0
+}: Props) {
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat("pt-BR", {
       style: "currency",
@@ -30,13 +39,16 @@ export function PriceComparisonCard({ itbiData, anuncioData, area, combined }: P
     }).format(value);
   };
 
-  // Preço Anúncio Sugerido: baseado na média combinada (que já inclui 30% anúncios)
-  const precoAnuncio = combined.med_m2 * area;
-  const precoAnuncioM2 = combined.med_m2;
+  // CORREÇÃO: Preço Anúncio Sugerido deve ser o VALOR FINAL RECOMENDADO (após ajustes)
+  // Se não informado, calcula usando a média combinada * area * (1 + ajuste)
+  const multiplier = 1 + ajusteTotal;
+  const precoAnuncio = valorFinalRecomendado || (combined.med_m2 * area * multiplier);
+  const precoAnuncioM2 = precoAnuncio / area;
 
-  // Preço Venda Rápida: 100% baseado em ITBI (transações reais)
-  const precoVendaRapida = itbiData.med_m2 * area;
-  const precoVendaRapidaM2 = itbiData.med_m2;
+  // Preço Venda Rápida: baseado em ITBI (transações reais) * ajuste
+  // Aplica o mesmo ajuste para manter consistência
+  const precoVendaRapida = itbiData.med_m2 * area * multiplier;
+  const precoVendaRapidaM2 = itbiData.med_m2 * multiplier;
 
   // Gap de Mercado: diferença percentual
   const marketGap = combined.market_gap_percentage;
