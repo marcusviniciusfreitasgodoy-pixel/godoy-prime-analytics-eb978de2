@@ -93,10 +93,15 @@ export function Step1Location({ state, updateState, combined }: Props) {
         const values = data.map(d => Number(d.valor_m2)).sort((a, b) => a - b);
         const mid = Math.floor(values.length / 2);
         
+        // Usa percentis para evitar outliers extremos
+        // P10 para mínimo, P50 para mediana, P90 para máximo
+        const p10Index = Math.max(0, Math.floor(values.length * 0.10));
+        const p90Index = Math.min(values.length - 1, Math.floor(values.length * 0.90));
+        
         const itbiData: ITBIData = {
-          min_m2: Math.round(values[0]),
+          min_m2: Math.round(values[p10Index]),
           med_m2: Math.round(values.length % 2 ? values[mid] : (values[mid - 1] + values[mid]) / 2),
-          max_m2: Math.round(values[values.length - 1]),
+          max_m2: Math.round(values[p90Index]),
           transaction_count: values.length,
         };
 
