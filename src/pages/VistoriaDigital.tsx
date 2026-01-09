@@ -45,10 +45,11 @@ import { useToast } from "@/hooks/use-toast";
 import { formatDate } from "@/utils/exportUtils";
 import { generateVistoriaPDF, generateVistoriaPDFDoc } from "@/utils/vistoriaPdfExport";
 import { SendPdfEmailDialog } from "@/components/SendPdfEmailDialog";
-import { VistoriaAvaliacaoComparativo, calculateAdjustedValues } from "@/components/vistoria/VistoriaAvaliacaoComparativo";
+import { VistoriaAvaliacaoComparativo, calculateAdjustedValues, calculateVistoriaAdjustment } from "@/components/vistoria/VistoriaAvaliacaoComparativo";
 import { supabase } from "@/integrations/supabase/client";
 import { normalizeStreetSearchTerm } from "@/lib/utils";
 import { useActivityTracking } from "@/hooks/useActivityTracking";
+import { useAuth } from "@/hooks/useAuth";
 
 // Street suggestion type
 interface StreetSuggestion {
@@ -603,6 +604,7 @@ export default function VistoriaDigital() {
   const location = useLocation();
   const isMobile = useIsMobile();
   const { trackVistoria, trackExport } = useActivityTracking();
+  const { user } = useAuth();
   
   // Street autocomplete state
   const [streetSearchTerm, setStreetSearchTerm] = useState("");
@@ -981,14 +983,74 @@ export default function VistoriaDigital() {
     setIsGeneratingPDF(true);
     
     try {
+      const finalScore = calculateFinalScore();
+      const progress = getProgress();
+      const criticalCount = getCriticalCount();
+      
+      // Calculate adjusted values if coming from valuation
+      let valorAvaliacao: number | null = null;
+      let valorAjustado: number | null = null;
+      let ajustePercentual: number | null = null;
+      
+      if (avaliacaoData) {
+        const adjustment = calculateVistoriaAdjustment(finalScore);
+        valorAvaliacao = avaliacaoData.valorProvavel;
+        valorAjustado = Math.round(avaliacaoData.valorProvavel * (1 + adjustment.adjustment));
+        ajustePercentual = adjustment.adjustment * 100;
+      }
+      
+      // Save vistoria to database
+      if (user?.id) {
+        const vistoriaData = {
+          user_id: user.id,
+          logradouro: propertyData.logradouro,
+          numero: propertyData.numero || null,
+          complemento: propertyData.complemento || null,
+          bairro: propertyData.bairro || 'BARRA DA TIJUCA',
+          nome_condominio: propertyData.nomeCondominio || null,
+          tipo_imovel: propertyData.tipoImovel || null,
+          tipo_vistoria: tipoVistoria,
+          area_m2: propertyData.areaM2 ? parseFloat(propertyData.areaM2) : null,
+          quartos: propertyData.quartos ? parseInt(propertyData.quartos) : null,
+          suites: propertyData.suites ? parseInt(propertyData.suites) : null,
+          banheiros: propertyData.banheiros ? parseInt(propertyData.banheiros) : null,
+          vagas: propertyData.vagas ? parseInt(propertyData.vagas) : null,
+          proprietario: propertyData.proprietario || null,
+          telefone: propertyData.telefone || null,
+          vistoriador: propertyData.vistoriador || null,
+          data_vistoria: propertyData.dataVistoria || new Date().toISOString().split('T')[0],
+          observacoes: propertyData.observacoes || null,
+          final_score: finalScore,
+          progress: progress,
+          critical_count: criticalCount,
+          checklist_data: JSON.parse(JSON.stringify(checklist)),
+          valor_avaliacao: valorAvaliacao,
+          valor_ajustado: valorAjustado,
+          ajuste_percentual: ajustePercentual,
+          pdf_generated: true,
+        };
+        
+        const { error: saveError } = await supabase
+          .from('vistorias')
+          .insert([vistoriaData]);
+        
+        if (saveError) {
+          console.error('Error saving vistoria:', saveError);
+          // Continue with PDF generation even if save fails
+        } else {
+          console.log('Vistoria saved successfully');
+        }
+      }
+      
+      // Generate PDF
       await generateVistoriaPDF({
         propertyData,
         checklist,
         photos,
         tipoVistoria,
-        finalScore: calculateFinalScore(),
-        progress: getProgress(),
-        criticalCount: getCriticalCount(),
+        finalScore,
+        progress,
+        criticalCount,
         avaliacaoData,
       });
       
@@ -998,7 +1060,9 @@ export default function VistoriaDigital() {
       
       toast({
         title: "PDF gerado com sucesso",
-        description: "O relatório de vistoria foi baixado.",
+        description: avaliacaoData 
+          ? "Vistoria salva e relatório baixado com valores ajustados."
+          : "A vistoria foi salva e o relatório foi baixado.",
       });
     } catch (error) {
       console.error('Error generating PDF:', error);
