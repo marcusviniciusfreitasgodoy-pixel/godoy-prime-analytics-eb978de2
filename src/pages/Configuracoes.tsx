@@ -1,11 +1,12 @@
 import { Helmet } from "react-helmet-async";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { CompanyLogoUpload } from "@/components/CompanyLogoUpload";
-import { Settings, Building2, Phone, MapPin, FileText, Globe, Eye } from "lucide-react";
+import { Settings, Building2, Phone, MapPin, FileText, Globe, Eye, Filter } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
-import { useCompanySettings } from "@/hooks/useCompanySettings";
+import { SimpleRadioGroup, SimpleRadioItem } from "@/components/ui/simple-radio";
+import { useCompanySettings, type OutlierFilterMethod } from "@/hooks/useCompanySettings";
 import { useState, useEffect } from "react";
 
 export default function Configuracoes() {
@@ -17,6 +18,7 @@ export default function Configuracoes() {
   const [companyAddress, setCompanyAddress] = useState('');
   const [companyCreci, setCompanyCreci] = useState('');
   const [companyWebsite, setCompanyWebsite] = useState('');
+  const [outlierMethod, setOutlierMethod] = useState<OutlierFilterMethod>('iqr');
   const [isSaving, setIsSaving] = useState(false);
 
   useEffect(() => {
@@ -27,6 +29,7 @@ export default function Configuracoes() {
       setCompanyAddress(settings.company_address);
       setCompanyCreci(settings.company_creci);
       setCompanyWebsite(settings.company_website);
+      setOutlierMethod(settings.outlier_filter_method);
     }
   }, [isLoading, settings]);
 
@@ -193,7 +196,54 @@ export default function Configuracoes() {
           </Card>
         </div>
 
-        {/* Preview do Rodapé */}
+        {/* Configurações de Avaliação */}
+        <Card>
+          <CardHeader className="p-4 sm:p-6">
+            <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
+              <Filter className="h-4 w-4 sm:h-5 sm:w-5" />
+              Filtro de Outliers (ITBI)
+            </CardTitle>
+            <CardDescription className="text-xs sm:text-sm">
+              Escolha o método para eliminar valores atípicos nos dados de transações
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="p-4 sm:p-6 pt-0 sm:pt-0 space-y-4">
+            <SimpleRadioGroup
+              value={outlierMethod}
+              onValueChange={(value) => {
+                setOutlierMethod(value as OutlierFilterMethod);
+                updateSetting('outlier_filter_method', value);
+              }}
+              className="space-y-3"
+            >
+              <div className="flex items-start space-x-3 p-3 rounded-lg border hover:bg-muted/30 transition-colors">
+                <SimpleRadioItem value="iqr" id="iqr" className="mt-1" />
+                <div className="flex-1">
+                  <Label htmlFor="iqr" className="cursor-pointer text-sm font-medium">
+                    IQR (Intervalo Interquartil)
+                  </Label>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Remove valores fora do intervalo Q1 - 1.5×IQR até Q3 + 1.5×IQR. 
+                    Método estatístico mais robusto, recomendado para dados com muitos outliers.
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex items-start space-x-3 p-3 rounded-lg border hover:bg-muted/30 transition-colors">
+                <SimpleRadioItem value="percentile" id="percentile" className="mt-1" />
+                <div className="flex-1">
+                  <Label htmlFor="percentile" className="cursor-pointer text-sm font-medium">
+                    Percentis P10/P90
+                  </Label>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Usa o percentil 10 como mínimo e percentil 90 como máximo. 
+                    Método mais simples, mantém 80% dos dados centrais.
+                  </p>
+                </div>
+              </div>
+            </SimpleRadioGroup>
+          </CardContent>
+        </Card>
         <Card>
           <CardHeader className="p-4 sm:p-6">
             <CardTitle className="flex items-center gap-2 text-base sm:text-lg">

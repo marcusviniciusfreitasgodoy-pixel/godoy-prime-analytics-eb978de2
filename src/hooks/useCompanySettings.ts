@@ -2,6 +2,8 @@ import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 
+export type OutlierFilterMethod = 'iqr' | 'percentile';
+
 export interface CompanySettings {
   custom_logo_url: string | null;
   company_name: string;
@@ -10,6 +12,7 @@ export interface CompanySettings {
   company_address: string;
   company_creci: string;
   company_website: string;
+  outlier_filter_method: OutlierFilterMethod;
 }
 
 const DEFAULT_SETTINGS: CompanySettings = {
@@ -20,6 +23,7 @@ const DEFAULT_SETTINGS: CompanySettings = {
   company_address: 'Av. das Américas 10101 Bloco 2, Sala 316, Barra da Tijuca, RJ',
   company_creci: 'CRECI 11841-PJ',
   company_website: 'www.godoyprime.com.br',
+  outlier_filter_method: 'iqr',
 };
 
 export function useCompanySettings() {
