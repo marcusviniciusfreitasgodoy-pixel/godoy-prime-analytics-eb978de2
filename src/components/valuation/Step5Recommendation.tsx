@@ -156,7 +156,10 @@ export function Step5Recommendation({ result, state, combined, onReset }: Props)
         ...state,
         tipoAvaliacao: isSimplified ? "simples" : "completa"
       };
-      exportValuationEnginePDF(result, stateWithType, combined);
+      
+      // Passa as fontes dos anúncios para o PDF
+      const anuncioFontes = state.anuncioData?.fontes;
+      exportValuationEnginePDF(result, stateWithType, combined, anuncioFontes);
       
       // Track the valuation export
       trackValuation();

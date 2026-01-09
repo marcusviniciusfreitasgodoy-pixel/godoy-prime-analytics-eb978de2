@@ -1,5 +1,5 @@
 import jsPDF from 'jspdf';
-import { drawGodoyHeader, drawSectionTitle, applyFootersToAllPages, BRAND_COLORS, getMaxContentY } from './pdfTemplate';
+import { drawGodoyHeader, drawSectionTitle, applyFootersToAllPages, BRAND_COLORS, getMaxContentY, drawResultBox } from './pdfTemplate';
 
 interface ChecklistItem {
   id: string;
@@ -43,12 +43,36 @@ interface PhotoItem {
   caption: string;
 }
 
+// Dados completos da avaliação para relatório integrado
 interface AvaliacaoData {
   valorProvavel: number;
   valorPessimista: number;
   valorOtimista: number;
   confidenceLevel: string;
+  confidenceScore?: number;
   dataAvaliacao: string;
+  // Dados de mercado (opcionais para compatibilidade)
+  itbiMinM2?: number;
+  itbiMedM2?: number;
+  itbiMaxM2?: number;
+  transactionCount?: number;
+  trendPercentage?: number;
+  trendDirection?: string;
+  // Fonte dos anúncios
+  anuncioFontes?: string[];
+  // Ajustes
+  totalAdjustment?: number;
+  spreadPercentage?: number;
+  // Recomendação
+  recommendationTitle?: string;
+  recommendationMessage?: string;
+}
+
+// Fontes dos anúncios para rastreabilidade
+interface AnuncioFonte {
+  valor: number;
+  area: number;
+  fonte?: string;
 }
 
 interface VistoriaPDFParams {
@@ -60,6 +84,7 @@ interface VistoriaPDFParams {
   progress: number;
   criticalCount: number;
   avaliacaoData?: AvaliacaoData | null;
+  anuncioFontes?: AnuncioFonte[];
 }
 
 const scoreLabels: Record<number | string, { label: string; color: [number, number, number] }> = {
@@ -193,15 +218,165 @@ function drawPolygon(doc: jsPDF, cx: number, cy: number, r: number, sides: numbe
 }
 
 export async function generateVistoriaPDFDoc(params: VistoriaPDFParams): Promise<jsPDF> {
-  const { propertyData, checklist, photos, tipoVistoria, finalScore, progress, criticalCount, avaliacaoData } = params;
+  const { propertyData, checklist, photos, tipoVistoria, finalScore, progress, criticalCount, avaliacaoData, anuncioFontes } = params;
   
   const doc = new jsPDF();
   const pageWidth = doc.internal.pageSize.getWidth();
   const marginLeft = 20;
   const contentWidth = pageWidth - marginLeft * 2;
   
-  // ========== PAGE 1: Cover + Summary ==========
-  let yPos = drawGodoyHeader(doc, 'Relatório de Vistoria Digital');
+  // Helper function
+  const formatCurrency = (v: number) => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 0 }).format(v);
+  
+  // ========== IF AVALIAÇÃO EXISTS: START WITH COMPLETE VALUATION REPORT ==========
+  if (avaliacaoData && avaliacaoData.itbiMedM2) {
+    // Page 1: Complete Valuation Report
+    let yPos = drawGodoyHeader(doc, 'Relatório Integrado: Avaliação + Vistoria');
+    
+    // Badge: Relatório Completo
+    doc.setFillColor(240, 253, 244);
+    doc.roundedRect(pageWidth / 2 - 40, yPos - 5, 80, 12, 2, 2, 'F');
+    doc.setFontSize(8);
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(5, 150, 105);
+    doc.text('RELATÓRIO COMPLETO', pageWidth / 2, yPos + 2, { align: 'center' });
+    yPos += 12;
+    
+    // Result Box (main values)
+    yPos = drawResultBox(
+      doc,
+      'RESULTADO DA AVALIAÇÃO',
+      formatCurrency(avaliacaoData.valorProvavel),
+      'Valor Provável de Mercado',
+      'Pessimista',
+      formatCurrency(avaliacaoData.valorPessimista),
+      'Otimista',
+      formatCurrency(avaliacaoData.valorOtimista),
+      yPos,
+      marginLeft
+    );
+    
+    // Market Reference Section
+    yPos = drawSectionTitle(doc, 'Referência de Mercado', yPos, marginLeft);
+    doc.setFontSize(9);
+    doc.setTextColor(...BRAND_COLORS.darkGray);
+    
+    const marketData = [
+      ['Preço Mínimo/m²:', `R$ ${avaliacaoData.itbiMinM2?.toLocaleString('pt-BR', { maximumFractionDigits: 0 }) || '-'}`],
+      ['Preço Médio/m²:', `R$ ${avaliacaoData.itbiMedM2?.toLocaleString('pt-BR', { maximumFractionDigits: 0 }) || '-'}`],
+      ['Preço Máximo/m²:', `R$ ${avaliacaoData.itbiMaxM2?.toLocaleString('pt-BR', { maximumFractionDigits: 0 }) || '-'}`],
+      ['Transações ITBI:', `${avaliacaoData.transactionCount || '-'} (últimos 12 meses)`],
+    ];
+    
+    if (avaliacaoData.trendPercentage !== undefined) {
+      const trendLabel = avaliacaoData.trendDirection === 'UP' ? 'Alta' : avaliacaoData.trendDirection === 'DOWN' ? 'Baixa' : 'Estável';
+      marketData.push(['Tendência:', `${avaliacaoData.trendPercentage > 0 ? '+' : ''}${avaliacaoData.trendPercentage.toFixed(1)}% (${trendLabel})`]);
+    }
+    
+    marketData.forEach((item) => {
+      doc.setFont('helvetica', 'normal');
+      doc.text(item[0], marginLeft + 5, yPos);
+      doc.setFont('helvetica', 'bold');
+      doc.text(item[1], marginLeft + 50, yPos);
+      yPos += 5;
+    });
+    
+    // Fontes dos Anúncios (se disponíveis)
+    const fontes = anuncioFontes?.filter(f => f.fonte && f.fonte.trim() !== '') || [];
+    if (fontes.length > 0 || (avaliacaoData.anuncioFontes && avaliacaoData.anuncioFontes.length > 0)) {
+      yPos += 5;
+      doc.setFillColor(250, 250, 250);
+      doc.roundedRect(marginLeft - 5, yPos - 3, contentWidth + 10, 8 + (fontes.length * 4), 2, 2, 'F');
+      
+      doc.setFontSize(8);
+      doc.setFont('helvetica', 'bold');
+      doc.setTextColor(...BRAND_COLORS.navy);
+      doc.text('Fontes dos Anúncios de Referência:', marginLeft, yPos + 3);
+      yPos += 6;
+      
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(7);
+      doc.setTextColor(...BRAND_COLORS.gray);
+      
+      if (fontes.length > 0) {
+        fontes.forEach((f, i) => {
+          const valorM2 = f.valor / f.area;
+          const text = `${i + 1}. R$ ${f.valor.toLocaleString('pt-BR')} | ${f.area}m² | R$ ${valorM2.toLocaleString('pt-BR', { maximumFractionDigits: 0 })}/m² → ${f.fonte}`;
+          const splitText = doc.splitTextToSize(text, contentWidth - 10);
+          doc.text(splitText[0], marginLeft, yPos);
+          yPos += 4;
+        });
+      } else if (avaliacaoData.anuncioFontes) {
+        avaliacaoData.anuncioFontes.forEach((fonte, i) => {
+          const splitText = doc.splitTextToSize(`${i + 1}. ${fonte}`, contentWidth - 10);
+          doc.text(splitText[0], marginLeft, yPos);
+          yPos += 4;
+        });
+      }
+      yPos += 3;
+    }
+    
+    // Metrics
+    yPos += 3;
+    yPos = drawSectionTitle(doc, 'Métricas de Confiança', yPos, marginLeft);
+    doc.setFontSize(9);
+    doc.setTextColor(...BRAND_COLORS.darkGray);
+    
+    const confidenceLabel = avaliacaoData.confidenceLevel === 'green' ? 'ALTA' :
+                            avaliacaoData.confidenceLevel === 'yellow_high' ? 'MÉDIA-ALTA' :
+                            avaliacaoData.confidenceLevel === 'yellow_medium' ? 'MÉDIA' : 'BAIXA';
+    
+    const metrics = [
+      ['Ajuste Total:', `${(avaliacaoData.totalAdjustment || 0) >= 0 ? '+' : ''}${((avaliacaoData.totalAdjustment || 0) * 100).toFixed(1)}%`],
+      ['Spread:', `${(avaliacaoData.spreadPercentage || 0).toFixed(1)}%`],
+      ['Score:', `${avaliacaoData.confidenceScore || '-'}/100`],
+      ['Nível:', confidenceLabel],
+    ];
+    
+    metrics.forEach((item) => {
+      doc.setFont('helvetica', 'normal');
+      doc.text(item[0], marginLeft + 5, yPos);
+      doc.setFont('helvetica', 'bold');
+      doc.text(item[1], marginLeft + 50, yPos);
+      yPos += 5;
+    });
+    
+    // Recommendation
+    if (avaliacaoData.recommendationTitle) {
+      yPos += 5;
+      doc.setFillColor(248, 248, 248);
+      doc.setDrawColor(...BRAND_COLORS.gold);
+      doc.setLineWidth(0.5);
+      const recHeight = 16 + (avaliacaoData.recommendationMessage ? doc.splitTextToSize(avaliacaoData.recommendationMessage, contentWidth - 10).length * 4 : 0);
+      doc.roundedRect(marginLeft - 5, yPos - 3, contentWidth + 10, recHeight, 2, 2, 'FD');
+      
+      doc.setFontSize(10);
+      doc.setFont('helvetica', 'bold');
+      doc.setTextColor(...BRAND_COLORS.navy);
+      doc.text(`RECOMENDAÇÃO: ${avaliacaoData.recommendationTitle}`, marginLeft, yPos + 5);
+      
+      if (avaliacaoData.recommendationMessage) {
+        doc.setFontSize(8);
+        doc.setFont('helvetica', 'normal');
+        doc.setTextColor(...BRAND_COLORS.darkGray);
+        const splitRec = doc.splitTextToSize(avaliacaoData.recommendationMessage, contentWidth - 10);
+        doc.text(splitRec, marginLeft, yPos + 12);
+      }
+      
+      yPos += recHeight + 5;
+    }
+    
+    // Date of valuation
+    doc.setFontSize(8);
+    doc.setTextColor(...BRAND_COLORS.gray);
+    doc.text(`Data da Avaliação: ${new Date(avaliacaoData.dataAvaliacao).toLocaleDateString('pt-BR')}`, marginLeft, yPos);
+    
+    // ========== NEW PAGE: VISTORIA SECTION ==========
+    doc.addPage();
+  }
+  
+  // ========== VISTORIA COVER PAGE ==========
+  let yPos = drawGodoyHeader(doc, avaliacaoData?.itbiMedM2 ? 'Complemento: Vistoria Digital' : 'Relatório de Vistoria Digital');
   
   // Property type badge
   doc.setFontSize(10);
