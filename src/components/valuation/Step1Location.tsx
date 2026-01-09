@@ -290,7 +290,13 @@ export function Step1Location({ state, updateState, combined }: Props) {
               setShowSuggestions(true);
               setUseCustomSearch(true);
             }}
-            onFocus={() => setShowSuggestions(true)}
+            onFocus={() => {
+              setShowSuggestions(true);
+              // Habilita busca customizada ao focar para permitir validação
+              if (state.logradouro && searchTerm) {
+                setUseCustomSearch(true);
+              }
+            }}
             placeholder="Digite o nome da rua..."
             className="pl-10 h-10 sm:h-9"
           />
