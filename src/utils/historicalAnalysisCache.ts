@@ -34,6 +34,8 @@ function generateCacheKey(bairro: string, logradouro: string): string {
  */
 export function getCachedAnalysis(bairro: string, logradouro: string): HistoricalAnalysis | null {
   try {
+    const normalizedBairro = bairro.toUpperCase().trim();
+    const normalizedLogradouro = logradouro.toUpperCase().trim();
     const key = generateCacheKey(bairro, logradouro);
     const cached = localStorage.getItem(key);
     
@@ -43,6 +45,13 @@ export function getCachedAnalysis(bairro: string, logradouro: string): Historica
     
     // Validar versão
     if (entry.version !== CACHE_VERSION) {
+      localStorage.removeItem(key);
+      return null;
+    }
+    
+    // CRÍTICO: Validar que bairro E logradouro correspondem exatamente
+    if (entry.bairro !== normalizedBairro || entry.logradouro !== normalizedLogradouro) {
+      console.warn(`[HistoricalCache] Mismatch: cached=${entry.bairro}/${entry.logradouro}, requested=${normalizedBairro}/${normalizedLogradouro}`);
       localStorage.removeItem(key);
       return null;
     }
@@ -62,7 +71,7 @@ export function getCachedAnalysis(bairro: string, logradouro: string): Historica
       return null;
     }
     
-    console.log(`[HistoricalCache] Hit: ${bairro}/${logradouro.substring(0, 20)}...`);
+    console.log(`[HistoricalCache] Hit: ${normalizedBairro}/${normalizedLogradouro.substring(0, 20)}...`);
     return entry.data;
   } catch (error) {
     console.warn('[HistoricalCache] Error reading cache:', error);
