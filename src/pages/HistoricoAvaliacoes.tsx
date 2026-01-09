@@ -76,9 +76,9 @@ interface Valuation {
   trend_percentage: number | null;
   pdf_generated: boolean | null;
   // Dados ITBI
-  itbi_min_m2: number;
-  itbi_med_m2: number;
-  itbi_max_m2: number;
+  itbi_min_m2?: number;
+  itbi_med_m2?: number;
+  itbi_max_m2?: number;
   itbi_transaction_count?: number | null;
   // Dados Anúncio
   anuncio_min_m2?: number | null;
@@ -159,6 +159,7 @@ export default function HistoricoAvaliacoes() {
   };
 
   const handleRowClick = (valuation: Valuation) => {
+    console.log("Row clicked, valuation:", valuation);
     setSelectedValuation(valuation);
   };
 
