@@ -45,6 +45,7 @@ import { useToast } from "@/hooks/use-toast";
 import { formatDate } from "@/utils/exportUtils";
 import { generateVistoriaPDF, generateVistoriaPDFDoc } from "@/utils/vistoriaPdfExport";
 import { SendPdfEmailDialog } from "@/components/SendPdfEmailDialog";
+import { VistoriaAvaliacaoComparativo, calculateAdjustedValues } from "@/components/vistoria/VistoriaAvaliacaoComparativo";
 import { supabase } from "@/integrations/supabase/client";
 import { normalizeStreetSearchTerm } from "@/lib/utils";
 import { useActivityTracking } from "@/hooks/useActivityTracking";
@@ -1159,6 +1160,15 @@ export default function VistoriaDigital() {
             </p>
           </CardContent>
         </Card>
+      )}
+
+      {/* Comparativo Avaliação vs Vistoria */}
+      {fromAvaliacao && avaliacaoData && getProgress() >= 50 && (
+        <VistoriaAvaliacaoComparativo
+          avaliacaoData={avaliacaoData}
+          vistoriaScore={finalScore}
+          progress={getProgress()}
+        />
       )}
 
       <div className="space-y-6">
