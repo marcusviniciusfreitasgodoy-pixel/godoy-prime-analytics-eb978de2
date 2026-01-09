@@ -215,52 +215,78 @@ export function useHistoricalTransactionAnalysis(logradouro: string, bairro: str
       const firstYear = yearsWithData[0];
       const lastYear = yearsWithData[yearsWithData.length - 1];
       const yearDiff = lastYear.ano - firstYear.ano;
-      
+
+      // Total de transações e média por ano
+      const totalTransactions = yearsWithData.reduce((sum, y) => sum + y.transacoes, 0);
+      const avgTransactionsPerYear = totalTransactions / yearsWithData.length;
+
+      // Crescimento de transações: só calcula se base >= 3 (evita distorções 1→3 = +200%)
       let transactionGrowth = 0;
-      if (yearDiff > 0 && firstYear.transacoes > 0) {
+      let transactionGrowthReliable = false;
+      if (yearDiff > 0 && firstYear.transacoes >= 3) {
         const totalGrowth = ((lastYear.transacoes - firstYear.transacoes) / firstYear.transacoes) * 100;
         transactionGrowth = totalGrowth / yearDiff;
+        transactionGrowthReliable = true;
+      } else if (yearDiff > 0 && firstYear.transacoes > 0) {
+        // Calcula mas marca como não confiável (base muito pequena)
+        const totalGrowth = ((lastYear.transacoes - firstYear.transacoes) / firstYear.transacoes) * 100;
+        transactionGrowth = totalGrowth / yearDiff;
+        transactionGrowthReliable = false;
       }
-      
+
       // Calcular crescimento médio de preços
       let priceGrowth = 0;
       if (yearDiff > 0 && firstYear.valorMedioM2 > 0) {
         const totalPriceGrowth = ((lastYear.valorMedioM2 - firstYear.valorMedioM2) / firstYear.valorMedioM2) * 100;
         priceGrowth = totalPriceGrowth / yearDiff;
       }
-      
+
       // Determinar tendência de transações
-      const transactionTrend: 'crescente' | 'estavel' | 'decrescente' = 
-        transactionGrowth > 5 ? 'crescente' :
-        transactionGrowth < -5 ? 'decrescente' : 'estavel';
-      
+      // CORREÇÃO: Só classifica como "crescente" se volume absoluto também for razoável
+      // ou se o crescimento for confiável (base >= 3)
+      let transactionTrend: 'crescente' | 'estavel' | 'decrescente' = 'estavel';
+      if (transactionGrowthReliable) {
+        transactionTrend = 
+          transactionGrowth > 10 ? 'crescente' :
+          transactionGrowth < -10 ? 'decrescente' : 'estavel';
+      } else if (avgTransactionsPerYear >= 10) {
+        // Se média é boa, podemos confiar mais na tendência
+        transactionTrend = 
+          transactionGrowth > 15 ? 'crescente' :
+          transactionGrowth < -15 ? 'decrescente' : 'estavel';
+      }
+      // Se base pequena E média baixa, mantém "estável" (não confiável)
+
       // Determinar tendência de preços
-      const priceTrend: 'alta' | 'estavel' | 'baixa' = 
+      const priceTrend: 'alta' | 'estavel' | 'baixa' =
         priceGrowth > 3 ? 'alta' :
         priceGrowth < -3 ? 'baixa' : 'estavel';
-      
-      // Calcular score de liquidez
-      const totalTransactions = yearsWithData.reduce((sum, y) => sum + y.transacoes, 0);
-      const avgTransactionsPerYear = totalTransactions / yearsWithData.length;
-      
-      // Score baseado em volume e tendência
-      let liquidityScore = Math.min(100, avgTransactionsPerYear * 2);
-      if (transactionTrend === 'crescente') liquidityScore += 15;
-      if (transactionTrend === 'decrescente') liquidityScore -= 15;
+
+      // Calcular score de liquidez (baseado apenas em volume absoluto)
+      // Score: média de transações/ano * 3 (escala ajustada)
+      // 20+ trans/ano = 60+ score, 30+ trans/ano = 90+ score
+      let liquidityScore = Math.min(100, avgTransactionsPerYear * 3);
+      // Bônus/penalidade por tendência SÓ se confiável
+      if (transactionGrowthReliable) {
+        if (transactionTrend === 'crescente') liquidityScore += 10;
+        if (transactionTrend === 'decrescente') liquidityScore -= 10;
+      }
       liquidityScore = Math.max(0, Math.min(100, liquidityScore));
-      
-      const liquidityLevel: 'alta' | 'media' | 'baixa' = 
+
+      const liquidityLevel: 'alta' | 'media' | 'baixa' =
         liquidityScore >= 70 ? 'alta' :
         liquidityScore >= 40 ? 'media' : 'baixa';
       
-      // Gerar diagnóstico
+      // Gerar diagnóstico (passando flag de confiabilidade)
       const diagnostico = generateDiagnostico(
-        transactionTrend, 
-        priceTrend, 
+        transactionTrend,
+        priceTrend,
         liquidityLevel,
         transactionGrowth,
         priceGrowth,
-        totalTransactions
+        totalTransactions,
+        transactionGrowthReliable,
+        avgTransactionsPerYear
       );
       
       // Gerar alertas
@@ -376,37 +402,41 @@ function generateDiagnostico(
   liquidityLevel: string,
   transactionGrowth: number,
   priceGrowth: number,
-  totalTransactions: number
+  totalTransactions: number,
+  transactionGrowthReliable: boolean,
+  avgTransactionsPerYear: number
 ): string {
   const parts: string[] = [];
-  
-  // Liquidez
+
+  // Liquidez (volume absoluto)
   if (liquidityLevel === 'alta') {
-    parts.push(`Região com alta liquidez (${totalTransactions} transações em 5 anos).`);
+    parts.push(`Região com alta liquidez (${totalTransactions} transações em 5 anos, média ${avgTransactionsPerYear.toFixed(0)}/ano).`);
   } else if (liquidityLevel === 'media') {
-    parts.push(`Região com liquidez moderada (${totalTransactions} transações em 5 anos).`);
+    parts.push(`Região com liquidez moderada (${totalTransactions} transações em 5 anos, média ${avgTransactionsPerYear.toFixed(0)}/ano).`);
   } else {
-    parts.push(`Região com baixa liquidez (${totalTransactions} transações em 5 anos), o que pode dificultar a venda.`);
+    parts.push(`Região com baixa liquidez (${totalTransactions} transações em 5 anos, média ${avgTransactionsPerYear.toFixed(0)}/ano), o que pode exigir maior tempo de comercialização.`);
   }
-  
-  // Tendência de transações
-  if (transactionTrend === 'crescente') {
-    parts.push(`O volume de negócios está crescendo (${transactionGrowth > 0 ? '+' : ''}${transactionGrowth.toFixed(1)}% a.a.), indicando aumento de interesse na região.`);
-  } else if (transactionTrend === 'decrescente') {
-    parts.push(`O volume de negócios está caindo (${transactionGrowth.toFixed(1)}% a.a.), sugerindo menor demanda.`);
+
+  // Tendência de transações (só exibe % se confiável)
+  if (transactionTrend === 'crescente' && transactionGrowthReliable) {
+    parts.push(`Volume de negócios em crescimento (${transactionGrowth > 0 ? '+' : ''}${transactionGrowth.toFixed(0)}% a.a.).`);
+  } else if (transactionTrend === 'decrescente' && transactionGrowthReliable) {
+    parts.push(`Volume de negócios em queda (${transactionGrowth.toFixed(0)}% a.a.).`);
+  } else if (!transactionGrowthReliable && totalTransactions < 50) {
+    parts.push(`Poucos dados para determinar tendência de volume com precisão.`);
   } else {
-    parts.push(`O volume de transações está estável.`);
+    parts.push(`Volume de transações estável no período.`);
   }
-  
+
   // Tendência de preços
   if (priceTrend === 'alta') {
-    parts.push(`Os preços apresentam tendência de alta (+${priceGrowth.toFixed(1)}% a.a.), valorizando o investimento.`);
+    parts.push(`Preços em tendência de alta (+${priceGrowth.toFixed(1)}% a.a.).`);
   } else if (priceTrend === 'baixa') {
-    parts.push(`Os preços estão em queda (${priceGrowth.toFixed(1)}% a.a.), indicando possível desvalorização.`);
+    parts.push(`Preços em tendência de queda (${priceGrowth.toFixed(1)}% a.a.).`);
   } else {
-    parts.push(`Os preços estão estáveis no período analisado.`);
+    parts.push(`Preços estáveis no período analisado.`);
   }
-  
+
   return parts.join(' ');
 }
 
@@ -430,15 +460,15 @@ function generateAlertas(
     alertas.push('📉 Tendência de queda nos preços - considerar precificação competitiva');
   }
   
-  if (priceTrend === 'alta' && transactionTrend === 'crescente') {
+  if (priceTrend === 'alta' && transactionTrend === 'crescente' && liquidityLevel !== 'baixa') {
     alertas.push('✅ Mercado aquecido - momento favorável para comercialização');
   }
-  
+
   // Verificar se último ano tem poucos dados
   const lastYear = yearsWithData[yearsWithData.length - 1];
-  const currentYear = new Date().getFullYear();
-  if (lastYear && lastYear.ano === currentYear && lastYear.transacoes < 5) {
-    alertas.push('ℹ️ Ano corrente com dados parciais');
+  const endYear = new Date().getFullYear() - 1; // Usamos ano fechado
+  if (lastYear && lastYear.ano === endYear && lastYear.transacoes < 5) {
+    alertas.push('ℹ️ Último ano com poucos dados registrados');
   }
   
   return alertas;
