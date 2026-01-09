@@ -763,9 +763,13 @@ export default function VistoriaDigital() {
     }
   }, [location.state, toast]);
 
-  // Load from localStorage on mount
+  // Load from localStorage on mount - ONLY if NOT coming from Avaliação
   useEffect(() => {
-    if (fromAvaliacao) {
+    // Check directly from location.state to avoid race condition with fromAvaliacao state
+    const locationState = location.state as { fromAvaliacao?: boolean } | null;
+    
+    // If coming from Avaliação, don't load from localStorage
+    if (locationState?.fromAvaliacao || fromAvaliacao) {
       setHasLoadedFromStorage(true);
       return;
     }
@@ -795,7 +799,7 @@ export default function VistoriaDigital() {
       setShowTypeDialog(true);
       setHasLoadedFromStorage(true);
     }
-  }, [fromAvaliacao, toast]);
+  }, [location.state, fromAvaliacao, toast]);
 
   // Save to localStorage when data changes
   useEffect(() => {
