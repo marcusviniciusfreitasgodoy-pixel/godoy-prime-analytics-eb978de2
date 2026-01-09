@@ -20,9 +20,15 @@ export interface CombinedPrices {
   trend_original?: number; // Valor original antes do cap (para referência)
 }
 
-// Combina ITBI (70%) + Anúncios (30%)
-// Com cap de trend para evitar distorções por poucos dados de anúncios
-const TREND_CAP = 50; // Limita trend a ±50%
+// Combina ITBI (80%) + Anúncios (20%)
+// ITBI = transações reais, Anúncios = sinal fraco (frequentemente inflados)
+// Cap assimétrico: anúncios acima do ITBI são mais limitados
+const TREND_CAP_UP = 20;   // Anúncios inflados: cap agressivo de +20%
+const TREND_CAP_DOWN = 40; // Mercado em queda: cap permissivo de -40%
+
+// Pesos: ITBI como âncora principal
+const ITBI_WEIGHT = 0.80;
+const ANUNCIO_WEIGHT = 0.20;
 
 export const calculateCombinedPrices = (
   itbi: ITBIData,
@@ -40,24 +46,26 @@ export const calculateCombinedPrices = (
     };
   }
 
-  const combined_min = itbi.min_m2 * 0.7 + anuncio.min_m2 * 0.3;
-  const combined_med = itbi.med_m2 * 0.7 + anuncio.med_m2 * 0.3;
-  const combined_max = itbi.max_m2 * 0.7 + anuncio.max_m2 * 0.3;
+  const combined_min = itbi.min_m2 * ITBI_WEIGHT + anuncio.min_m2 * ANUNCIO_WEIGHT;
+  const combined_med = itbi.med_m2 * ITBI_WEIGHT + anuncio.med_m2 * ANUNCIO_WEIGHT;
+  const combined_max = itbi.max_m2 * ITBI_WEIGHT + anuncio.max_m2 * ANUNCIO_WEIGHT;
 
   // Calcula trend: diferença entre anúncios e ITBI
   const trend_original = ((anuncio.med_m2 - itbi.med_m2) / itbi.med_m2) * 100;
   let trend_percentage = trend_original;
   let trend_capped = false;
   
-  // Aplica cap para evitar distorções extremas (poucos dados de anúncios)
-  if (trend_percentage > TREND_CAP) {
-    trend_percentage = TREND_CAP;
+  // Aplica cap ASSIMÉTRICO para refletir realidade de anúncios inflados
+  // Trend positivo (anúncios > ITBI): cap agressivo, pois anúncios são inflados
+  // Trend negativo (anúncios < ITBI): cap permissivo, pois indica mercado real em queda
+  if (trend_percentage > TREND_CAP_UP) {
+    trend_percentage = TREND_CAP_UP;
     trend_capped = true;
-    console.log(`[ValuationCalc] Trend capped: ${trend_original.toFixed(1)}% → ${TREND_CAP}%`);
-  } else if (trend_percentage < -TREND_CAP) {
-    trend_percentage = -TREND_CAP;
+    console.log(`[ValuationCalc] Trend UP capped: ${trend_original.toFixed(1)}% → +${TREND_CAP_UP}%`);
+  } else if (trend_percentage < -TREND_CAP_DOWN) {
+    trend_percentage = -TREND_CAP_DOWN;
     trend_capped = true;
-    console.log(`[ValuationCalc] Trend capped: ${trend_original.toFixed(1)}% → -${TREND_CAP}%`);
+    console.log(`[ValuationCalc] Trend DOWN capped: ${trend_original.toFixed(1)}% → -${TREND_CAP_DOWN}%`);
   }
   
   const trend_direction: "UP" | "STABLE" | "DOWN" =
