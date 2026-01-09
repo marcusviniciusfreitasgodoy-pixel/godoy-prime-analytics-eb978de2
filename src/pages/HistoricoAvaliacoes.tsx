@@ -33,8 +33,16 @@ import {
   Calendar,
   ClipboardCheck,
   X,
-  FileText
+  FileText,
+  RefreshCw,
+  HelpCircle
 } from "lucide-react";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { exportValuationEnginePDF } from "@/utils/valuationPdfExport";
 import type { ValuationState } from "@/types/valuation";
 import type { ValuationResult } from "@/utils/valuationCalculations";
@@ -529,6 +537,22 @@ export default function HistoricoAvaliacoes() {
                       {Math.abs(selectedValuation.trend_percentage) > 50 && " *"}
                     </span>
                   )}
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <HelpCircle className="h-4 w-4 text-muted-foreground cursor-help" />
+                      </TooltipTrigger>
+                      <TooltipContent className="max-w-xs">
+                        <p className="text-xs">
+                          <strong>Trend (Tendência de Mercado)</strong><br />
+                          Compara o preço médio dos anúncios atuais com o valor de transações oficiais (ITBI).<br /><br />
+                          <span className="text-emerald-500">▲ Positivo:</span> Anúncios acima das transações oficiais (mercado aquecido)<br />
+                          <span className="text-red-500">▼ Negativo:</span> Anúncios abaixo das transações oficiais (mercado retraído)<br />
+                          <span className="text-muted-foreground">— Neutro:</span> Valores alinhados (mercado estável)
+                        </p>
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
                 </div>
               </div>
 
@@ -554,16 +578,38 @@ export default function HistoricoAvaliacoes() {
 
               {/* Ações */}
               <div className="flex flex-col gap-2 pt-2">
+                <Button 
+                  onClick={() => {
+                    // Prepara dados para refazer avaliação
+                    const refazerData = {
+                      logradouro: selectedValuation.logradouro,
+                      numero: selectedValuation.numero || "",
+                      bairro: selectedValuation.bairro,
+                      tipoImovel: selectedValuation.property_type || "",
+                      areaM2: selectedValuation.property_area_m2.toString(),
+                    };
+                    toast.success("Dados carregados para nova avaliação");
+                    navigate("/avaliacao-imobiliaria", {
+                      state: { refazerData }
+                    });
+                  }}
+                  variant="default"
+                  className="w-full bg-primary"
+                >
+                  <RefreshCw className="h-4 w-4 mr-2" />
+                  Refazer / Editar Avaliação
+                </Button>
                 <div className="flex gap-3">
                   <Button 
                     onClick={handleGoToVistoria}
+                    variant="secondary"
                     className="flex-1"
                   >
                     <ClipboardCheck className="h-4 w-4 mr-2" />
                     Seguir para Vistoria
                   </Button>
                   <Button 
-                    variant="secondary"
+                    variant="outline"
                     onClick={handleExportPDF}
                     className="flex-1"
                   >
@@ -572,7 +618,7 @@ export default function HistoricoAvaliacoes() {
                   </Button>
                 </div>
                 <Button 
-                  variant="outline"
+                  variant="ghost"
                   onClick={() => setSelectedValuation(null)}
                   className="w-full"
                 >
