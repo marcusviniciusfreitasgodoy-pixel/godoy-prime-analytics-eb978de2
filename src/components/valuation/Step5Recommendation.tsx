@@ -51,6 +51,18 @@ export function Step5Recommendation({ result, state, combined, onReset }: Props)
           bairro: state.bairro,
           property_area_m2: state.area_m2,
           property_type: state.tipoImovel || null,
+          // Campos de identificação do imóvel
+          complemento: state.complemento || null,
+          nome_condominio: state.nomeCondominio || null,
+          quartos: state.quartos || null,
+          suites: state.suites || null,
+          banheiros: state.banheiros || null,
+          vagas: state.vagas || null,
+          andar: state.andar || null,
+          proprietario: state.proprietario || null,
+          telefone: state.telefone || null,
+          observacoes_imovel: state.observacoesImovel || null,
+          // Dados ITBI
           itbi_min_m2: state.itbiData?.min_m2 || 0,
           itbi_med_m2: state.itbiData?.med_m2 || 0,
           itbi_max_m2: state.itbiData?.max_m2 || 0,

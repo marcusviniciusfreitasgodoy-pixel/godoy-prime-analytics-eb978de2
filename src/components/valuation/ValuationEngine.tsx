@@ -79,6 +79,17 @@ interface EditarAvaliacaoData {
   proporcao_terreno?: number;
   bonus_terreno?: number;
   baseSelected?: string;
+  // Campos de identificação do imóvel
+  complemento?: string;
+  nomeCondominio?: string;
+  quartos?: number;
+  suites?: number;
+  banheiros?: number;
+  vagas?: number;
+  andar?: string;
+  proprietario?: string;
+  telefone?: string;
+  observacoesImovel?: string;
 }
 
 interface Props {
@@ -117,6 +128,17 @@ export function ValuationEngine({ bairro = "BARRA DA TIJUCA", vistoriaData, edit
         proporcao_terreno: editarData.proporcao_terreno || 0,
         bonus_terreno: editarData.bonus_terreno || 0,
         baseSelected: (editarData.baseSelected as "min" | "med" | "max" | "custom") || "med",
+        // Campos de identificação do imóvel
+        complemento: editarData.complemento || "",
+        nomeCondominio: editarData.nomeCondominio || "",
+        quartos: editarData.quartos || 0,
+        suites: editarData.suites || 0,
+        banheiros: editarData.banheiros || 0,
+        vagas: editarData.vagas || 0,
+        andar: editarData.andar || "",
+        proprietario: editarData.proprietario || "",
+        telefone: editarData.telefone || "",
+        observacoesImovel: editarData.observacoesImovel || "",
       }));
       // Clear location state after using it
       window.history.replaceState({}, document.title);
