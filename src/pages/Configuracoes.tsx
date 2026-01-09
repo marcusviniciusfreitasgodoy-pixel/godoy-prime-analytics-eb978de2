@@ -1,13 +1,15 @@
 import { Helmet } from "react-helmet-async";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { CompanyLogoUpload } from "@/components/CompanyLogoUpload";
-import { Settings, Building2, Phone, MapPin, FileText, Globe, Eye, Filter } from "lucide-react";
+import { Settings, Building2, Phone, MapPin, FileText, Globe, Eye, Filter, Database, Trash2 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { SimpleRadioGroup, SimpleRadioItem } from "@/components/ui/simple-radio";
 import { useCompanySettings, type OutlierFilterMethod } from "@/hooks/useCompanySettings";
 import { useState, useEffect } from "react";
+import { clearAllHistoricalCache, getCacheStats } from "@/utils/historicalAnalysisCache";
+import { toast } from "sonner";
 
 export default function Configuracoes() {
   const { settings, isLoading, updateSetting } = useCompanySettings();
@@ -20,6 +22,12 @@ export default function Configuracoes() {
   const [companyWebsite, setCompanyWebsite] = useState('');
   const [outlierMethod, setOutlierMethod] = useState<OutlierFilterMethod>('iqr');
   const [isSaving, setIsSaving] = useState(false);
+  const [cacheStats, setCacheStats] = useState<{ count: number; oldestDate: Date | null; newestDate: Date | null }>({ count: 0, oldestDate: null, newestDate: null });
+
+  // Atualizar estatísticas do cache
+  useEffect(() => {
+    setCacheStats(getCacheStats());
+  }, []);
 
   useEffect(() => {
     if (!isLoading) {
@@ -242,6 +250,49 @@ export default function Configuracoes() {
                 </div>
               </div>
             </SimpleRadioGroup>
+          </CardContent>
+        </Card>
+
+        {/* Cache de Análise Histórica */}
+        <Card>
+          <CardHeader className="p-4 sm:p-6">
+            <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
+              <Database className="h-4 w-4 sm:h-5 sm:w-5" />
+              Cache de Análise Histórica
+            </CardTitle>
+            <CardDescription className="text-xs sm:text-sm">
+              Gerenciar cache local de dados históricos para melhor performance
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="p-4 sm:p-6 pt-0 sm:pt-0 space-y-4">
+            <div className="flex items-center justify-between p-3 rounded-lg bg-muted/30 border">
+              <div>
+                <p className="text-sm font-medium">Entradas em Cache</p>
+                <p className="text-2xl font-bold text-primary">{cacheStats.count}</p>
+                {cacheStats.newestDate && (
+                  <p className="text-xs text-muted-foreground">
+                    Atualizado: {cacheStats.newestDate.toLocaleDateString('pt-BR')} às {cacheStats.newestDate.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
+                  </p>
+                )}
+              </div>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  clearAllHistoricalCache();
+                  setCacheStats({ count: 0, oldestDate: null, newestDate: null });
+                  toast.success("Cache limpo com sucesso!");
+                }}
+                disabled={cacheStats.count === 0}
+                className="gap-2"
+              >
+                <Trash2 className="h-4 w-4" />
+                Limpar Cache
+              </Button>
+            </div>
+            <p className="text-xs text-muted-foreground">
+              O cache armazena análises históricas por 24 horas. Limpar o cache força a reconsulta dos dados na próxima avaliação.
+            </p>
           </CardContent>
         </Card>
         <Card>
