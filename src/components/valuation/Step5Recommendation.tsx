@@ -203,13 +203,30 @@ export function Step5Recommendation({ result, state, combined, onReset }: Props)
       proprietario: state.proprietario,
       telefone: state.telefone,
       observacoes: state.observacoesImovel,
-      // Dados da avaliação para referência
+      // Dados COMPLETOS da avaliação para relatório integrado
       avaliacaoData: {
         valorProvavel: result.provavel,
         valorPessimista: result.pessimista,
         valorOtimista: result.otimista,
         confidenceLevel: result.confidence_level,
+        confidenceScore: result.confidence_score,
         dataAvaliacao: state.dataAvaliacao,
+        // Dados de mercado ITBI - usamos combined (ITBI+Anúncios) ou fallback para ITBI puro
+        itbiMinM2: combined?.min_m2 || state.itbiData?.min_m2,
+        itbiMedM2: combined?.med_m2 || state.itbiData?.med_m2,
+        itbiMaxM2: combined?.max_m2 || state.itbiData?.max_m2,
+        transactionCount: state.itbiData?.transaction_count,
+        // Tendência
+        trendPercentage: combined?.trend_percentage,
+        trendDirection: combined?.trend_direction,
+        // Métricas de ajuste
+        totalAdjustment: result.total_adjustment,
+        spreadPercentage: result.spread_percentage,
+        // Recomendação
+        recommendationTitle: result.recommendation.title,
+        recommendationMessage: result.recommendation.message,
+        // Fontes dos anúncios
+        anuncioFontes: state.anuncioData?.fontes?.filter(f => f.fonte)?.map(f => f.fonte) || [],
       }
     };
 
