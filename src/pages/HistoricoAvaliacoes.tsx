@@ -622,7 +622,36 @@ export default function HistoricoAvaliacoes() {
               {/* Ações */}
               <div className="flex flex-col gap-2 pt-2">
                 <Button 
-                  onClick={() => {
+                  onClick={async () => {
+                    // Buscar as respostas dos fatores de avaliação
+                    let savedResponses: { char_id: string; char_code: string; response: string; weight_applied: number }[] = [];
+                    
+                    try {
+                      const { data: responsesData, error: responsesError } = await supabase
+                        .from("valuation_responses")
+                        .select(`
+                          characteristic_id,
+                          response_value,
+                          weight_applied,
+                          valuation_characteristics (
+                            char_code
+                          )
+                        `)
+                        .eq("valuation_id", selectedValuation.id);
+                      
+                      if (!responsesError && responsesData) {
+                        savedResponses = responsesData.map((r: any) => ({
+                          char_id: r.characteristic_id,
+                          char_code: r.valuation_characteristics?.char_code || "",
+                          response: r.response_value as "sim" | "nao" | "nao_aplica",
+                          weight_applied: r.weight_applied || 0,
+                        }));
+                        console.log(`${savedResponses.length} fatores carregados`);
+                      }
+                    } catch (err) {
+                      console.error("Erro ao carregar respostas:", err);
+                    }
+                    
                     // Prepara dados completos para editar avaliação
                     const editarData = {
                       id: selectedValuation.id,
@@ -664,8 +693,10 @@ export default function HistoricoAvaliacoes() {
                       proprietario: selectedValuation.proprietario || "",
                       telefone: selectedValuation.telefone || "",
                       observacoesImovel: selectedValuation.observacoes_imovel || "",
+                      // Respostas dos fatores de avaliação
+                      responses: savedResponses,
                     };
-                    toast.success("Dados carregados para edição");
+                    toast.success(`Dados carregados para edição (${savedResponses.length} fatores)`);
                     navigate("/avaliacao-imobiliaria", {
                       state: { editarAvaliacao: true, avaliacaoData: editarData }
                     });
