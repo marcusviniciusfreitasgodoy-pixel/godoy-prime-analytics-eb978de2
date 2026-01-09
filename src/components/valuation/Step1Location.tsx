@@ -7,6 +7,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { MapPin, TrendingUp, TrendingDown, Minus, Search, Building2, Plus, X, Calculator, CheckCircle2, Database, Loader2 } from "lucide-react";
 import { useOfficialStreetSuggestions, type OfficialStreetSuggestion } from "@/hooks/useOfficialStreetSuggestions";
+import { useCompanySettings } from "@/hooks/useCompanySettings";
 import type { ValuationState } from "@/types/valuation";
 import type { CombinedPrices, ITBIData, AnuncioData } from "@/utils/valuationCalculations";
 import { supabase } from "@/integrations/supabase/client";
@@ -28,6 +29,9 @@ export function Step1Location({ state, updateState, combined }: Props) {
   const [searchTerm, setSearchTerm] = useState(state.logradouro || "");
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [useCustomSearch, setUseCustomSearch] = useState(!state.logradouro);
+  
+  // Configurações da empresa (método de filtro)
+  const { settings } = useCompanySettings();
   
   // Hook oficial para autocomplete
   const { data: suggestions = [], isLoading: loading } = useOfficialStreetSuggestions(
@@ -97,6 +101,21 @@ export function Step1Location({ state, updateState, combined }: Props) {
     return sorted.filter(v => v >= lowerBound && v <= upperBound);
   };
 
+  // Função para filtrar outliers usando Percentis P10/P90
+  const filterOutliersPercentile = (values: number[]): { values: number[]; min: number; max: number } => {
+    const sorted = [...values].sort((a, b) => a - b);
+    const n = sorted.length;
+    
+    const p10Index = Math.max(0, Math.floor(n * 0.10));
+    const p90Index = Math.min(n - 1, Math.floor(n * 0.90));
+    
+    return {
+      values: sorted,
+      min: sorted[p10Index],
+      max: sorted[p90Index],
+    };
+  };
+
   const handleSelectStreet = async (suggestion: OfficialStreetSuggestion) => {
     // Usa o logradouro normalizado para ITBI se disponível
     const logradouroParaBusca = suggestion.logradouro_itbi || suggestion.logradouro;
@@ -116,18 +135,33 @@ export function Step1Location({ state, updateState, combined }: Props) {
       if (!error && data && data.length >= 3) {
         const rawValues = data.map(d => Number(d.valor_m2));
         
-        // Aplica filtro IQR para remover outliers
-        const filteredValues = filterOutliersIQR(rawValues);
-        const values = filteredValues.sort((a, b) => a - b);
+        let minValue: number;
+        let maxValue: number;
+        let medValue: number;
         
-        // Se após filtro sobrar menos de 3, usa valores originais
-        const finalValues = values.length >= 3 ? values : rawValues.sort((a, b) => a - b);
-        const mid = Math.floor(finalValues.length / 2);
+        // Aplica filtro baseado na configuração
+        if (settings.outlier_filter_method === 'percentile') {
+          // Método Percentil P10/P90
+          const { values, min, max } = filterOutliersPercentile(rawValues);
+          const mid = Math.floor(values.length / 2);
+          minValue = min;
+          maxValue = max;
+          medValue = values.length % 2 ? values[mid] : (values[mid - 1] + values[mid]) / 2;
+        } else {
+          // Método IQR (padrão)
+          const filteredValues = filterOutliersIQR(rawValues);
+          const values = filteredValues.sort((a, b) => a - b);
+          const finalValues = values.length >= 3 ? values : rawValues.sort((a, b) => a - b);
+          const mid = Math.floor(finalValues.length / 2);
+          minValue = finalValues[0];
+          maxValue = finalValues[finalValues.length - 1];
+          medValue = finalValues.length % 2 ? finalValues[mid] : (finalValues[mid - 1] + finalValues[mid]) / 2;
+        }
         
         const itbiData: ITBIData = {
-          min_m2: Math.round(finalValues[0]),
-          med_m2: Math.round(finalValues.length % 2 ? finalValues[mid] : (finalValues[mid - 1] + finalValues[mid]) / 2),
-          max_m2: Math.round(finalValues[finalValues.length - 1]),
+          min_m2: Math.round(minValue),
+          med_m2: Math.round(medValue),
+          max_m2: Math.round(maxValue),
           transaction_count: data.length, // Mantém contagem original
         };
 
