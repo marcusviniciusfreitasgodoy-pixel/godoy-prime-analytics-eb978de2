@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -22,6 +22,7 @@ import type { ValuationState } from "@/types/valuation";
 import { exportValuationEnginePDF } from "@/utils/valuationPdfExport";
 import { useAuth } from "@/hooks/useAuth";
 import { useActivityTracking } from "@/hooks/useActivityTracking";
+import { supabase } from "@/integrations/supabase/client";
 
 interface Props {
   result: ValuationResult;
@@ -32,9 +33,69 @@ interface Props {
 
 export function Step5Recommendation({ result, state, combined, onReset }: Props) {
   const navigate = useNavigate();
-  const { isAdmin } = useAuth();
+  const { user, isAdmin } = useAuth();
   const { trackValuation, trackExport } = useActivityTracking();
   const [decisionMade, setDecisionMade] = useState<"sim" | "nao" | null>(null);
+  const [isSaved, setIsSaved] = useState(false);
+
+  // Salvar avaliação no banco ao montar o componente
+  useEffect(() => {
+    const saveValuation = async () => {
+      if (isSaved || !user?.id) return;
+      
+      try {
+        const { error } = await supabase.from("valuations").insert({
+          user_id: user.id,
+          logradouro: state.logradouro,
+          numero: state.numero || null,
+          bairro: state.bairro,
+          property_area_m2: state.area_m2,
+          property_type: state.tipoImovel || null,
+          itbi_min_m2: state.itbiData?.min_m2 || 0,
+          itbi_med_m2: state.itbiData?.med_m2 || 0,
+          itbi_max_m2: state.itbiData?.max_m2 || 0,
+          itbi_transaction_count: state.itbiData?.transaction_count || 0,
+          anuncio_min_m2: state.anuncioData?.min_m2 || null,
+          anuncio_med_m2: state.anuncioData?.med_m2 || null,
+          anuncio_max_m2: state.anuncioData?.max_m2 || null,
+          combined_min_m2: combined?.min_m2 || state.itbiData?.min_m2 || 0,
+          combined_med_m2: combined?.med_m2 || state.itbiData?.med_m2 || 0,
+          combined_max_m2: combined?.max_m2 || state.itbiData?.max_m2 || 0,
+          final_value_min: result.pessimista,
+          final_value_med: result.provavel,
+          final_value_max: result.otimista,
+          total_adjustment: result.total_adjustment,
+          confidence_level: result.confidence_level,
+          confidence_score: result.confidence_score,
+          spread_percentage: result.spread_percentage,
+          documentation_status: state.docStatus || "OK",
+          documentation_factor: state.docFactor || 1,
+          recommendation_title: result.recommendation.title,
+          recommendation_action: result.recommendation.status,
+          recommendation_details: result.recommendation.details ? { steps: result.recommendation.details } : null,
+          trend_direction: combined?.trend_direction || null,
+          trend_percentage: combined?.trend_percentage || null,
+          bonus_terreno: state.bonus_terreno || null,
+          area_terreno_m2: state.area_terreno_m2 || null,
+          proporcao_terreno: state.proporcao_terreno || null,
+          auto_capped: result.auto_capped || false,
+          pdf_generated: false,
+        });
+
+        if (error) {
+          console.error("Erro ao salvar avaliação:", error);
+          // Não exibir toast de erro para não atrapalhar UX
+        } else {
+          setIsSaved(true);
+          console.log("Avaliação salva com sucesso");
+        }
+      } catch (err) {
+        console.error("Erro ao salvar avaliação:", err);
+      }
+    };
+
+    saveValuation();
+  }, [user?.id, result, state, combined, isSaved]);
 
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat("pt-BR", {
