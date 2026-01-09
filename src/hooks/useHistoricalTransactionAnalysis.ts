@@ -61,7 +61,11 @@ export interface HistoricalAnalysis {
   priceGrowth: number; // % crescimento médio anual de preços
   diagnostico: string;
   alertas: string[];
-  futureProjection?: FutureProjection; // Nova projeção de valor futuro
+  futureProjection?: FutureProjection;
+  // Fonte dos dados
+  dataSource: 'logradouro' | 'bairro'; // Indica se usou logradouro específico ou bairro todo
+  logradouroUsado: string; // Logradouro usado na busca
+  bairroUsado: string; // Bairro usado na busca
 }
 
 // Limites MÍNIMOS de outliers por bairro (valores muito abaixo são suspeitos)
@@ -129,6 +133,9 @@ export function useHistoricalTransactionAnalysis(logradouro: string, bairro: str
 
       if (error) throw error;
 
+      // Rastrear fonte dos dados
+      let dataSource: 'logradouro' | 'bairro' = 'logradouro';
+
       // Se poucos dados do logradouro, buscar do bairro todo
       if (!transactions || transactions.length < 20) {
         const { data: bairroTransactions, error: bairroError } = await supabase
@@ -145,6 +152,7 @@ export function useHistoricalTransactionAnalysis(logradouro: string, bairro: str
 
         if (bairroError) throw bairroError;
         transactions = bairroTransactions;
+        dataSource = 'bairro'; // Mudou para bairro
       }
 
       if (!transactions || transactions.length === 0) return null;
@@ -234,6 +242,9 @@ export function useHistoricalTransactionAnalysis(logradouro: string, bairro: str
           priceGrowth: 0,
           diagnostico: 'Dados insuficientes para análise de tendência. Região com poucas transações registradas.',
           alertas: ['⚠️ Poucos dados históricos disponíveis'],
+          dataSource,
+          logradouroUsado: normalizedLogradouro,
+          bairroUsado: normalizedBairro,
         };
       }
       
@@ -341,6 +352,9 @@ export function useHistoricalTransactionAnalysis(logradouro: string, bairro: str
         diagnostico,
         alertas,
         futureProjection,
+        dataSource,
+        logradouroUsado: normalizedLogradouro,
+        bairroUsado: normalizedBairro,
       };
       
       // CACHE: Salvar resultado no cache persistente
