@@ -800,18 +800,21 @@ export type Database = {
       }
       valuations: {
         Row: {
+          andar: string | null
           anuncio_max_m2: number | null
           anuncio_med_m2: number | null
           anuncio_min_m2: number | null
           area_terreno_m2: number | null
           auto_capped: boolean | null
           bairro: string
+          banheiros: number | null
           base_price_custom_m2: number | null
           base_price_selected: string | null
           bonus_terreno: number | null
           combined_max_m2: number
           combined_med_m2: number
           combined_min_m2: number
+          complemento: string | null
           confidence_level: string
           confidence_score: number
           created_at: string | null
@@ -827,34 +830,44 @@ export type Database = {
           itbi_min_m2: number
           itbi_transaction_count: number | null
           logradouro: string
+          nome_condominio: string | null
           numero: string | null
+          observacoes_imovel: string | null
           pdf_generated: boolean | null
           property_area_m2: number
           property_type: string | null
           proporcao_terreno: number | null
+          proprietario: string | null
+          quartos: number | null
           recommendation_action: string | null
           recommendation_details: Json | null
           recommendation_title: string | null
           spread_percentage: number
+          suites: number | null
+          telefone: string | null
           total_adjustment: number
           trend_direction: string | null
           trend_percentage: number | null
           updated_at: string | null
           user_id: string | null
+          vagas: number | null
         }
         Insert: {
+          andar?: string | null
           anuncio_max_m2?: number | null
           anuncio_med_m2?: number | null
           anuncio_min_m2?: number | null
           area_terreno_m2?: number | null
           auto_capped?: boolean | null
           bairro?: string
+          banheiros?: number | null
           base_price_custom_m2?: number | null
           base_price_selected?: string | null
           bonus_terreno?: number | null
           combined_max_m2: number
           combined_med_m2: number
           combined_min_m2: number
+          complemento?: string | null
           confidence_level: string
           confidence_score: number
           created_at?: string | null
@@ -870,34 +883,44 @@ export type Database = {
           itbi_min_m2: number
           itbi_transaction_count?: number | null
           logradouro: string
+          nome_condominio?: string | null
           numero?: string | null
+          observacoes_imovel?: string | null
           pdf_generated?: boolean | null
           property_area_m2: number
           property_type?: string | null
           proporcao_terreno?: number | null
+          proprietario?: string | null
+          quartos?: number | null
           recommendation_action?: string | null
           recommendation_details?: Json | null
           recommendation_title?: string | null
           spread_percentage: number
+          suites?: number | null
+          telefone?: string | null
           total_adjustment: number
           trend_direction?: string | null
           trend_percentage?: number | null
           updated_at?: string | null
           user_id?: string | null
+          vagas?: number | null
         }
         Update: {
+          andar?: string | null
           anuncio_max_m2?: number | null
           anuncio_med_m2?: number | null
           anuncio_min_m2?: number | null
           area_terreno_m2?: number | null
           auto_capped?: boolean | null
           bairro?: string
+          banheiros?: number | null
           base_price_custom_m2?: number | null
           base_price_selected?: string | null
           bonus_terreno?: number | null
           combined_max_m2?: number
           combined_med_m2?: number
           combined_min_m2?: number
+          complemento?: string | null
           confidence_level?: string
           confidence_score?: number
           created_at?: string | null
@@ -913,20 +936,27 @@ export type Database = {
           itbi_min_m2?: number
           itbi_transaction_count?: number | null
           logradouro?: string
+          nome_condominio?: string | null
           numero?: string | null
+          observacoes_imovel?: string | null
           pdf_generated?: boolean | null
           property_area_m2?: number
           property_type?: string | null
           proporcao_terreno?: number | null
+          proprietario?: string | null
+          quartos?: number | null
           recommendation_action?: string | null
           recommendation_details?: Json | null
           recommendation_title?: string | null
           spread_percentage?: number
+          suites?: number | null
+          telefone?: string | null
           total_adjustment?: number
           trend_direction?: string | null
           trend_percentage?: number | null
           updated_at?: string | null
           user_id?: string | null
+          vagas?: number | null
         }
         Relationships: []
       }

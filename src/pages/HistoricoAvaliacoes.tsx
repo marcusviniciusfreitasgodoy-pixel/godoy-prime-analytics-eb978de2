@@ -90,6 +90,17 @@ interface Valuation {
   bonus_terreno?: number | null;
   base_price_selected?: string | null;
   auto_capped?: boolean | null;
+  // Campos de identificação do imóvel
+  complemento?: string | null;
+  nome_condominio?: string | null;
+  quartos?: number | null;
+  suites?: number | null;
+  banheiros?: number | null;
+  vagas?: number | null;
+  andar?: string | null;
+  proprietario?: string | null;
+  telefone?: string | null;
+  observacoes_imovel?: string | null;
 }
 
 export default function HistoricoAvaliacoes() {
@@ -607,9 +618,9 @@ export default function HistoricoAvaliacoes() {
                       area_m2: selectedValuation.property_area_m2,
                       // Dados ITBI
                       itbiData: {
-                        min_m2: selectedValuation.itbi_min_m2,
-                        med_m2: selectedValuation.itbi_med_m2,
-                        max_m2: selectedValuation.itbi_max_m2,
+                        min_m2: selectedValuation.itbi_min_m2 || 0,
+                        med_m2: selectedValuation.itbi_med_m2 || 0,
+                        max_m2: selectedValuation.itbi_max_m2 || 0,
                         transaction_count: selectedValuation.itbi_transaction_count || 0,
                       },
                       // Dados Anúncio (se existirem)
@@ -626,6 +637,17 @@ export default function HistoricoAvaliacoes() {
                       proporcao_terreno: selectedValuation.proporcao_terreno || 0,
                       bonus_terreno: selectedValuation.bonus_terreno || 0,
                       baseSelected: selectedValuation.base_price_selected || "med",
+                      // Campos de identificação do imóvel
+                      complemento: selectedValuation.complemento || "",
+                      nomeCondominio: selectedValuation.nome_condominio || "",
+                      quartos: selectedValuation.quartos || 0,
+                      suites: selectedValuation.suites || 0,
+                      banheiros: selectedValuation.banheiros || 0,
+                      vagas: selectedValuation.vagas || 0,
+                      andar: selectedValuation.andar || "",
+                      proprietario: selectedValuation.proprietario || "",
+                      telefone: selectedValuation.telefone || "",
+                      observacoesImovel: selectedValuation.observacoes_imovel || "",
                     };
                     toast.success("Dados carregados para edição");
                     navigate("/avaliacao-imobiliaria", {
