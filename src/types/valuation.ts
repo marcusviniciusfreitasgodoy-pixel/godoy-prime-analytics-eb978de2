@@ -50,6 +50,26 @@ export interface ValuationResult {
   recommendation: RecommendationResult;
 }
 
+export interface YearlyData {
+  ano: number;
+  transacoes: number;
+  valorMedioM2: number;
+  valorMinM2: number;
+  valorMaxM2: number;
+}
+
+export interface HistoricalAnalysis {
+  yearlyData: YearlyData[];
+  transactionTrend: 'crescente' | 'estavel' | 'decrescente';
+  priceTrend: 'alta' | 'estavel' | 'baixa';
+  liquidityScore: number;
+  liquidityLevel: 'alta' | 'media' | 'baixa';
+  transactionGrowth: number;
+  priceGrowth: number;
+  diagnostico: string;
+  alertas: string[];
+}
+
 export interface ValuationState {
   // Step 0: Identificação do Imóvel
   numero: string;
@@ -92,6 +112,9 @@ export interface ValuationState {
   
   // Results
   result: ValuationResult | null;
+  
+  // Histórico 5 anos
+  historicalAnalysis: HistoricalAnalysis | null;
   
   // Tipo de avaliação
   tipoAvaliacao: "simples" | "completa";
@@ -139,6 +162,9 @@ export const initialValuationState: ValuationState = {
   
   // Results
   result: null,
+  
+  // Histórico 5 anos
+  historicalAnalysis: null,
   
   // Tipo de avaliação
   tipoAvaliacao: "simples",

@@ -1,10 +1,13 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
+import { Skeleton } from "@/components/ui/skeleton";
 import { CheckCircle, AlertTriangle, XCircle, TrendingUp, TrendingDown, Minus, Home, Building2 } from "lucide-react";
 import type { ValuationResult, CombinedPrices } from "@/utils/valuationCalculations";
 import type { ValuationState } from "@/types/valuation";
 import { isCasaType, calculateTerrainBonus } from "@/hooks/useValuationCharacteristics";
+import { useHistoricalTransactionAnalysis } from "@/hooks/useHistoricalTransactionAnalysis";
+import { HistoricalAnalysisChart } from "./HistoricalAnalysisChart";
 
 interface Props {
   result: ValuationResult;
@@ -18,6 +21,13 @@ export function Step4Results({ result, state, combined }: Props) {
   const terrainInfo = isCasa && state.area_m2 > 0 && state.area_terreno_m2 > 0 
     ? calculateTerrainBonus(state.area_m2, state.area_terreno_m2)
     : null;
+
+  // Buscar análise histórica de 5 anos
+  const { data: historicalAnalysis, isLoading: loadingHistorical } = useHistoricalTransactionAnalysis(
+    state.logradouro,
+    state.bairro,
+    !!state.logradouro && !!state.bairro
+  );
 
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat("pt-BR", {
@@ -287,6 +297,26 @@ export function Step4Results({ result, state, combined }: Props) {
           </div>
         </CardContent>
       </Card>
+
+      {/* Análise Histórica 5 Anos */}
+      {loadingHistorical ? (
+        <Card>
+          <CardHeader className="pb-2">
+            <Skeleton className="h-5 w-48" />
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <Skeleton className="h-32 w-full" />
+            <div className="grid grid-cols-4 gap-3">
+              <Skeleton className="h-20" />
+              <Skeleton className="h-20" />
+              <Skeleton className="h-20" />
+              <Skeleton className="h-20" />
+            </div>
+          </CardContent>
+        </Card>
+      ) : historicalAnalysis ? (
+        <HistoricalAnalysisChart analysis={historicalAnalysis} />
+      ) : null}
     </div>
   );
 }
