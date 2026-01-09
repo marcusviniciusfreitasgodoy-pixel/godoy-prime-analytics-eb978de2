@@ -20,15 +20,15 @@ export interface CombinedPrices {
   trend_original?: number; // Valor original antes do cap (para referência)
 }
 
-// Combina ITBI (80%) + Anúncios (20%)
-// ITBI = transações reais, Anúncios = sinal fraco (frequentemente inflados)
-// Cap assimétrico: anúncios acima do ITBI são mais limitados
-const TREND_CAP_UP = 20;   // Anúncios inflados: cap agressivo de +20%
-const TREND_CAP_DOWN = 40; // Mercado em queda: cap permissivo de -40%
+// Combina ITBI (75%) + Anúncios (25%)
+// ITBI = transações reais, Anúncios = sinal de tendência
+// Cap simétrico para evitar distorções extremas
+const TREND_CAP_UP = 35;   // Cap para trend positivo
+const TREND_CAP_DOWN = 35; // Cap para trend negativo
 
 // Pesos: ITBI como âncora principal
-const ITBI_WEIGHT = 0.80;
-const ANUNCIO_WEIGHT = 0.20;
+const ITBI_WEIGHT = 0.75;
+const ANUNCIO_WEIGHT = 0.25;
 
 export const calculateCombinedPrices = (
   itbi: ITBIData,
