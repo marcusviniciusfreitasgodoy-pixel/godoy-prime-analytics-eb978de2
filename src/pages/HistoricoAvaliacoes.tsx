@@ -32,8 +32,12 @@ import {
   MapPin,
   Calendar,
   ClipboardCheck,
-  X
+  X,
+  FileText
 } from "lucide-react";
+import { exportValuationEnginePDF } from "@/utils/valuationPdfExport";
+import type { ValuationState } from "@/types/valuation";
+import type { ValuationResult } from "@/utils/valuationCalculations";
 import { supabase } from "@/integrations/supabase/client";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useAuth } from "@/hooks/useAuth";
@@ -170,6 +174,78 @@ export default function HistoricoAvaliacoes() {
         propertyData: vistoriaData
       }
     });
+  };
+
+  const handleExportPDF = () => {
+    if (!selectedValuation) return;
+
+    // Reconstruir o state mínimo necessário para o PDF
+    const state: ValuationState = {
+      numero: selectedValuation.numero || "",
+      complemento: "",
+      nomeCondominio: "",
+      tipoImovel: selectedValuation.property_type || "",
+      quartos: 0,
+      suites: 0,
+      banheiros: 0,
+      vagas: 0,
+      andar: "",
+      proprietario: "",
+      telefone: "",
+      dataAvaliacao: selectedValuation.created_at.split('T')[0],
+      observacoesImovel: "",
+      logradouro: selectedValuation.logradouro,
+      bairro: selectedValuation.bairro,
+      itbiData: null,
+      anuncioData: null,
+      area_m2: selectedValuation.property_area_m2,
+      baseSelected: "med",
+      customBaseM2: null,
+      area_terreno_m2: 0,
+      proporcao_terreno: 0,
+      bonus_terreno: 0,
+      responses: [],
+      docStatus: selectedValuation.documentation_status,
+      docFactor: 1,
+      docNotes: "",
+      result: null,
+      tipoAvaliacao: "simples",
+    };
+
+    // Reconstruir o result usando os tipos corretos
+    const result: ValuationResult = {
+      pessimista: selectedValuation.final_value_min,
+      provavel: selectedValuation.final_value_med,
+      otimista: selectedValuation.final_value_max,
+      spread_percentage: selectedValuation.spread_percentage,
+      confidence_score: selectedValuation.confidence_score,
+      confidence_level: selectedValuation.confidence_level as "green" | "yellow_high" | "yellow_medium" | "red",
+      total_adjustment: selectedValuation.total_adjustment,
+      auto_capped: false,
+      recommendation: {
+        status: "PROCEED",
+        icon: "[OK]",
+        title: selectedValuation.recommendation_title || "Avaliação Concluída",
+        message: "",
+      },
+    };
+
+    // Combined prices simplificado
+    const combined = selectedValuation.trend_percentage ? {
+      med_m2: selectedValuation.final_value_med / selectedValuation.property_area_m2,
+      min_m2: selectedValuation.final_value_min / selectedValuation.property_area_m2,
+      max_m2: selectedValuation.final_value_max / selectedValuation.property_area_m2,
+      trend_percentage: selectedValuation.trend_percentage,
+      trend_direction: selectedValuation.trend_direction as "UP" | "DOWN" | "STABLE",
+    } : null;
+
+    try {
+      exportValuationEnginePDF(result, state, combined);
+      toast.success("PDF gerado com sucesso!");
+    } catch (error) {
+      console.error("Erro ao gerar PDF:", error);
+      toast.error("Erro ao gerar o PDF");
+    }
   };
 
   // Estatísticas
@@ -435,17 +511,28 @@ export default function HistoricoAvaliacoes() {
               )}
 
               {/* Ações */}
-              <div className="flex gap-3 pt-2">
-                <Button 
-                  onClick={handleGoToVistoria}
-                  className="flex-1"
-                >
-                  <ClipboardCheck className="h-4 w-4 mr-2" />
-                  Seguir para Vistoria
-                </Button>
+              <div className="flex flex-col gap-2 pt-2">
+                <div className="flex gap-3">
+                  <Button 
+                    onClick={handleGoToVistoria}
+                    className="flex-1"
+                  >
+                    <ClipboardCheck className="h-4 w-4 mr-2" />
+                    Seguir para Vistoria
+                  </Button>
+                  <Button 
+                    variant="secondary"
+                    onClick={handleExportPDF}
+                    className="flex-1"
+                  >
+                    <FileText className="h-4 w-4 mr-2" />
+                    Reemitir PDF
+                  </Button>
+                </div>
                 <Button 
                   variant="outline"
                   onClick={() => setSelectedValuation(null)}
+                  className="w-full"
                 >
                   <X className="h-4 w-4 mr-2" />
                   Fechar
