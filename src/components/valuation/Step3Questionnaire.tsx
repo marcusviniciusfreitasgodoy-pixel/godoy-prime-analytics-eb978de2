@@ -228,6 +228,49 @@ export function Step3Questionnaire({
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab}>
+        {/* TabsList no topo para melhor UX */}
+        <TabsList className="grid grid-cols-6 w-full h-auto p-1 sm:p-2 gap-0.5 sm:gap-1 mb-3 sm:mb-4">
+          {Object.entries(groupedChars).map(([key, category]) => {
+            const Icon = CATEGORY_ICONS[key] || Eye;
+            const adjustment = getCategoryAdjustment(key);
+            const progress = getCategoryProgress(key);
+            const isComplete = progress.answered === progress.total;
+            return (
+              <TabsTrigger
+                key={key}
+                value={key}
+                className="flex flex-col items-center gap-0 sm:gap-0.5 py-1.5 sm:py-2 px-1 sm:px-3 text-xs relative"
+              >
+                <Icon className={`h-4 w-4 sm:h-5 sm:w-5 ${CATEGORY_COLORS[key]}`} />
+                <span className="text-[9px] sm:text-xs font-medium">{key}</span>
+                {isAdmin && adjustment !== 0 && (
+                  <Badge 
+                    variant={adjustment > 0 ? "default" : "destructive"} 
+                    className="text-[7px] sm:text-[10px] px-0.5 sm:px-1 py-0 h-3 sm:h-4 hidden sm:flex"
+                  >
+                    {formatPercent(adjustment)}
+                  </Badge>
+                )}
+                {isComplete && (
+                  <span className="absolute -top-0.5 -right-0.5 sm:-top-1 sm:-right-1 w-2.5 h-2.5 sm:w-3 sm:h-3 bg-emerald-500 rounded-full flex items-center justify-center text-[6px] sm:text-[8px] text-white">✓</span>
+                )}
+              </TabsTrigger>
+            );
+          })}
+          <TabsTrigger 
+            value="doc" 
+            className="flex flex-col items-center gap-0 sm:gap-0.5 py-1.5 sm:py-2 px-1 sm:px-3 text-xs"
+          >
+            <FileText className="h-4 w-4 sm:h-5 sm:w-5 text-amber-600" />
+            <span className="text-[9px] sm:text-xs font-medium">Doc</span>
+            {isAdmin && state.docFactor < 1 && (
+              <Badge variant="destructive" className="text-[7px] sm:text-[10px] px-0.5 sm:px-1 py-0 h-3 sm:h-4 hidden sm:flex">
+                {formatPercent(state.docFactor - 1)}
+              </Badge>
+            )}
+          </TabsTrigger>
+        </TabsList>
+
         {Object.entries(groupedChars).map(([key, category]) => (
           <TabsContent key={key} value={key} className="space-y-3 sm:space-y-4 mt-3 sm:mt-4">
             <div className="flex items-center justify-between gap-2">
@@ -365,48 +408,6 @@ export function Step3Questionnaire({
           </div>
         </TabsContent>
 
-        {/* TabsList movida para baixo - responsiva */}
-        <TabsList className="grid grid-cols-6 w-full mt-3 sm:mt-4 h-auto p-1 sm:p-2 gap-0.5 sm:gap-1">
-          {Object.entries(groupedChars).map(([key, category]) => {
-            const Icon = CATEGORY_ICONS[key] || Eye;
-            const adjustment = getCategoryAdjustment(key);
-            const progress = getCategoryProgress(key);
-            const isComplete = progress.answered === progress.total;
-            return (
-              <TabsTrigger
-                key={key}
-                value={key}
-                className="flex flex-col items-center gap-0 sm:gap-0.5 py-1.5 sm:py-2 px-1 sm:px-3 text-xs relative"
-              >
-                <Icon className={`h-4 w-4 sm:h-5 sm:w-5 ${CATEGORY_COLORS[key]}`} />
-                <span className="text-[9px] sm:text-xs font-medium">{key}</span>
-                {isAdmin && adjustment !== 0 && (
-                  <Badge 
-                    variant={adjustment > 0 ? "default" : "destructive"} 
-                    className="text-[7px] sm:text-[10px] px-0.5 sm:px-1 py-0 h-3 sm:h-4 hidden sm:flex"
-                  >
-                    {formatPercent(adjustment)}
-                  </Badge>
-                )}
-                {isComplete && (
-                  <span className="absolute -top-0.5 -right-0.5 sm:-top-1 sm:-right-1 w-2.5 h-2.5 sm:w-3 sm:h-3 bg-emerald-500 rounded-full flex items-center justify-center text-[6px] sm:text-[8px] text-white">✓</span>
-                )}
-              </TabsTrigger>
-            );
-          })}
-          <TabsTrigger 
-            value="doc" 
-            className="flex flex-col items-center gap-0 sm:gap-0.5 py-1.5 sm:py-2 px-1 sm:px-3 text-xs"
-          >
-            <FileText className="h-4 w-4 sm:h-5 sm:w-5 text-amber-600" />
-            <span className="text-[9px] sm:text-xs font-medium">Doc</span>
-            {isAdmin && state.docFactor < 1 && (
-              <Badge variant="destructive" className="text-[7px] sm:text-[10px] px-0.5 sm:px-1 py-0 h-3 sm:h-4 hidden sm:flex">
-                {formatPercent(state.docFactor - 1)}
-              </Badge>
-            )}
-          </TabsTrigger>
-        </TabsList>
       </Tabs>
 
       {/* Preview em tempo real */}
