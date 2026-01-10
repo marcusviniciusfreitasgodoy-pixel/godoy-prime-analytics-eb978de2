@@ -1,6 +1,6 @@
 import { useState, useMemo } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "./ui/card";
-import { ComposedChart, Bar, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from "recharts";
+import { ComposedChart, Bar, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "./ui/tabs";
 import { useEvolutionData, GranularityType } from "@/hooks/useEvolutionData";
 import { Skeleton } from "./ui/skeleton";
@@ -8,7 +8,12 @@ import { ToggleGroup, ToggleGroupItem } from "./ui/toggle-group";
 import { Calendar, CalendarDays, TrendingUp, TrendingDown, Minus } from "lucide-react";
 import { Badge } from "./ui/badge";
 import { Tooltip as UITooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "./ui/tooltip";
-import { StandardChartTooltip, createLegendFormatter, formatCurrencyBR } from "./ui/chart-tooltip";
+import { 
+  StandardChartTooltip, 
+  StandardChartLegend,
+  formatCurrencyBR,
+  type LegendItem 
+} from "./ui/chart-tooltip";
 
 const EVOLUTION_LABELS: Record<string, string> = {
   geral: "Preço Médio",
@@ -16,6 +21,11 @@ const EVOLUTION_LABELS: Record<string, string> = {
   casa: "Casa",
   variacao: "Variação",
 };
+
+const TIPOLOGIA_LEGEND_ITEMS: LegendItem[] = [
+  { dataKey: "apartamento", iconType: "line", color: "hsl(var(--accent))" },
+  { dataKey: "casa", iconType: "line", color: "hsl(var(--chart-3))" },
+];
 
 interface EvolutionChartProps {
   bairro?: string;
@@ -256,7 +266,11 @@ export function EvolutionChart({ bairro = "BARRA DA TIJUCA" }: EvolutionChartPro
                     />
                   }
                 />
-                <Legend formatter={createLegendFormatter(EVOLUTION_LABELS)} />
+                <StandardChartLegend 
+                  items={TIPOLOGIA_LEGEND_ITEMS}
+                  labelMap={EVOLUTION_LABELS}
+                  className="mt-2"
+                />
                 <Line 
                   type="monotone" 
                   dataKey="apartamento" 

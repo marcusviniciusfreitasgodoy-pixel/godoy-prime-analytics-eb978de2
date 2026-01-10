@@ -1,7 +1,6 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { 
-  LineChart, 
   Line, 
   XAxis, 
   YAxis, 
@@ -10,11 +9,15 @@ import {
   ResponsiveContainer,
   Area,
   ComposedChart,
-  Legend
 } from "recharts";
-import { TrendingUp, Calendar, AlertTriangle, Info } from "lucide-react";
+import { Calendar, AlertTriangle } from "lucide-react";
 import type { FutureProjection } from "@/hooks/useHistoricalTransactionAnalysis";
-import { StandardChartTooltip, createLegendFormatter, formatCurrencyBR } from "@/components/ui/chart-tooltip";
+import { 
+  StandardChartTooltip, 
+  StandardChartLegend,
+  formatCurrencyBR,
+  type LegendItem 
+} from "@/components/ui/chart-tooltip";
 
 interface Props {
   currentValue: number;
@@ -31,6 +34,13 @@ const PROJECTION_LABELS: Record<string, string> = {
   probable: "Provável",
   optimistic: "Otimista",
 };
+
+// Configuração da legenda
+const PROJECTION_LEGEND_ITEMS: LegendItem[] = [
+  { dataKey: "pessimistic", iconType: "dashed", color: "#ef4444" },
+  { dataKey: "probable", iconType: "line", color: "#8b5cf6" },
+  { dataKey: "optimistic", iconType: "dashed", color: "#10b981" },
+];
 
 export function FutureProjectionChart({ currentValue, projection, area }: Props) {
   const formatCurrencyCompact = (value: number) => {
@@ -194,9 +204,10 @@ export function FutureProjectionChart({ currentValue, projection, area }: Props)
                   />
                 } 
               />
-              <Legend 
-                wrapperStyle={{ fontSize: '10px' }}
-                formatter={createLegendFormatter(PROJECTION_LABELS)}
+              <StandardChartLegend 
+                items={PROJECTION_LEGEND_ITEMS}
+                labelMap={PROJECTION_LABELS}
+                className="mt-2"
               />
               <Area
                 type="monotone"

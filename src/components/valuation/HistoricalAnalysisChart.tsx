@@ -2,22 +2,22 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { 
-  LineChart, 
-  Line, 
   XAxis, 
   YAxis, 
   CartesianGrid, 
   Tooltip, 
   ResponsiveContainer, 
-  BarChart, 
   Bar,
-  Legend,
   ComposedChart,
-  Area
+  Line
 } from "recharts";
-import { TrendingUp, TrendingDown, Minus, Activity, AlertTriangle, CheckCircle, Info } from "lucide-react";
+import { TrendingUp, TrendingDown, Minus, Activity, Info } from "lucide-react";
 import type { HistoricalAnalysis } from "@/hooks/useHistoricalTransactionAnalysis";
-import { StandardChartTooltip, createLegendFormatter, formatCurrencyBR } from "@/components/ui/chart-tooltip";
+import { 
+  StandardChartTooltip, 
+  StandardChartLegend,
+  type LegendItem 
+} from "@/components/ui/chart-tooltip";
 
 interface Props {
   analysis: HistoricalAnalysis;
@@ -27,6 +27,11 @@ const HISTORICAL_LABELS: Record<string, string> = {
   transacoes: "Transações",
   valorM2: "Preço Médio/m²",
 };
+
+const HISTORICAL_LEGEND_ITEMS: LegendItem[] = [
+  { dataKey: "transacoes", iconType: "bar", color: "#3b82f6" },
+  { dataKey: "valorM2", iconType: "line", color: "#10b981" },
+];
 
 export function HistoricalAnalysisChart({ analysis }: Props) {
   const { 
@@ -243,9 +248,10 @@ export function HistoricalAnalysisChart({ analysis }: Props) {
                     />
                   }
                 />
-                <Legend 
-                  wrapperStyle={{ fontSize: '11px' }}
-                  formatter={createLegendFormatter(HISTORICAL_LABELS)}
+                <StandardChartLegend 
+                  items={HISTORICAL_LEGEND_ITEMS}
+                  labelMap={HISTORICAL_LABELS}
+                  className="mt-2"
                 />
                 <Bar 
                   yAxisId="left" 
