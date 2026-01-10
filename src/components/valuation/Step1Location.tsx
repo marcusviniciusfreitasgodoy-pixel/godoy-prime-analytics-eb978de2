@@ -363,22 +363,17 @@ export function Step1Location({ state, updateState, combined }: Props) {
 
   return (
     <div className="space-y-4 sm:space-y-6">
-      {/* Info quando logradouro veio do Step 0 */}
-      {state.logradouro && !useCustomSearch && (
+      {/* Loading indicator - só aparece durante carregamento automático */}
+      {autoFetchLoading && state.logradouro && (
         <div className="bg-primary/10 border border-primary/20 rounded-lg p-2.5 sm:p-3">
           <p className="text-xs sm:text-sm flex items-center gap-2">
-            {autoFetchLoading ? (
-              <Loader2 className="h-4 w-4 text-primary shrink-0 animate-spin" />
-            ) : (
-              <MapPin className="h-4 w-4 text-primary shrink-0" />
-            )}
+            <Loader2 className="h-4 w-4 text-primary shrink-0 animate-spin" />
             <span className="truncate">
-              {autoFetchLoading ? "Carregando dados de mercado para: " : "Buscando dados para: "}
-              <strong className="break-words">{state.logradouro}</strong>
+              Carregando dados de mercado para: <strong className="break-words">{state.logradouro}</strong>
             </span>
           </p>
           <p className="text-[10px] sm:text-xs text-muted-foreground mt-1">
-            {autoFetchLoading ? "Aguarde enquanto buscamos os preços..." : "Endereço informado na identificação"}
+            Aguarde enquanto buscamos os preços...
           </p>
         </div>
       )}
@@ -387,7 +382,7 @@ export function Step1Location({ state, updateState, combined }: Props) {
       <div className="space-y-2">
         <Label htmlFor="street-search" className="flex items-center gap-2 text-xs sm:text-sm">
           <MapPin className="h-4 w-4" />
-          Buscar Logradouro ou Condomínio
+          {state.itbiData ? "Logradouro Selecionado" : "Buscar Logradouro ou Condomínio"}
         </Label>
         <div className="relative">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -461,14 +456,6 @@ export function Step1Location({ state, updateState, combined }: Props) {
           {state.bairro} • Mínimo 3 transações
         </p>
       </div>
-
-      {/* Logradouro selecionado - exibição simples */}
-      {state.logradouro && (
-        <div className="flex items-center gap-2 p-3 bg-muted/50 rounded-lg">
-          <MapPin className="h-4 w-4 text-primary shrink-0" />
-          <span className="text-sm font-medium truncate">{state.logradouro}</span>
-        </div>
-      )}
 
       {/* Detalhes de preços por m² */}
       {state.itbiData && (
