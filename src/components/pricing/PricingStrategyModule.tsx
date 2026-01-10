@@ -160,7 +160,7 @@ export function PricingStrategyModule({
   // Analisa as estratégias
   const analyzeStrategies = (isNewListing: boolean = false) => {
     if (state.valor_itbi <= 0) {
-      toast.error('Informe o valor de avaliação (ITBI)');
+      toast.error('Informe o valor de avaliação');
       return;
     }
 
@@ -300,7 +300,7 @@ export function PricingStrategyModule({
             <CardHeader className="pb-3">
               <CardTitle className="text-base flex items-center gap-2">
                 <Target className="h-5 w-5 text-primary" />
-                Valor de Avaliação (ITBI)
+                Valor da Avaliação
               </CardTitle>
             </CardHeader>
             <CardContent>
@@ -325,7 +325,7 @@ export function PricingStrategyModule({
           {state.valor_itbi <= 0 && (
             <div className="flex items-center gap-2 text-amber-600 text-sm">
               <AlertCircle className="h-4 w-4" />
-              Informe o valor ITBI antes de prosseguir
+              Informe o valor da avaliação antes de prosseguir
             </div>
           )}
         </div>
@@ -342,7 +342,7 @@ export function PricingStrategyModule({
               <div className="flex items-center justify-between gap-4">
                 <div className="flex items-center gap-2">
                   <Target className="h-5 w-5 text-primary" />
-                  <span className="font-medium">Valor ITBI:</span>
+                  <span className="font-medium">Valor Avaliação:</span>
                   <span className="text-lg font-bold text-primary">
                     {formatCurrencyBRL(state.valor_itbi)}
                   </span>
@@ -394,7 +394,7 @@ export function PricingStrategyModule({
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                 <div className="flex items-center gap-4">
                   <div>
-                    <span className="text-sm text-muted-foreground">Valor ITBI</span>
+                    <span className="text-sm text-muted-foreground">Valor Avaliação</span>
                     <div className="text-xl font-bold text-primary">
                       {formatCurrencyBRL(state.valor_itbi)}
                     </div>
