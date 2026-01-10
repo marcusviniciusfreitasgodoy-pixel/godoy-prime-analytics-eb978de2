@@ -590,8 +590,8 @@ export function Step5Recommendation({ result, state, combined, onReset, existing
       </Card>
 
       {/* Estratégia de Preço - Novo Módulo */}
-      <Card className={`border-2 ${pricingCompleted ? 'border-green-500 bg-green-50/50' : 'border-primary'}`}>
-        <CardContent className="pt-4 sm:pt-6 px-3 sm:px-6">
+      <Card className={`border-2 ${pricingCompleted ? 'border-green-500 bg-green-50/50 dark:bg-green-950/20' : 'border-primary'}`}>
+        <CardContent className="pt-4 sm:pt-6 px-3 sm:px-6 space-y-4">
           <div className="flex items-center justify-between gap-4 flex-wrap">
             <div className="flex items-center gap-3">
               <Target className={`h-5 w-5 ${pricingCompleted ? 'text-green-600' : 'text-primary'}`} />
@@ -616,6 +616,26 @@ export function Step5Recommendation({ result, state, combined, onReset, existing
               <ArrowRight className="h-4 w-4 ml-2" />
             </Button>
           </div>
+          
+          {/* Botões de PDF - aparecem após confirmar estratégia */}
+          {pricingCompleted && (
+            <div className="border-t pt-4 space-y-3">
+              <p className="text-sm font-medium text-green-700 dark:text-green-400 flex items-center gap-2">
+                <CheckCircle className="h-4 w-4" />
+                Avaliação completa! Gere o relatório:
+              </p>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                <Button onClick={() => handleExportPDF(false)} className="h-10">
+                  <FileDown className="mr-2 h-4 w-4" />
+                  Baixar PDF Completo
+                </Button>
+                <Button onClick={() => setShowEmailDialog(true)} variant="outline" className="h-10">
+                  <Mail className="mr-2 h-4 w-4" />
+                  Enviar por E-mail
+                </Button>
+              </div>
+            </div>
+          )}
           
           {!pricingCompleted && (
             <>
