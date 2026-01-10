@@ -445,7 +445,8 @@ export function Step5Recommendation({ result, state, combined, onReset, existing
       });
     }
     
-    toast.success("Estratégia de precificação definida!");
+    // Fecha o módulo de precificação e volta para a tela principal
+    setShowPricingModule(false);
   };
 
   const handleClosePricingModule = () => {
