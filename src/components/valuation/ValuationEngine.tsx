@@ -295,6 +295,35 @@ export function ValuationEngine({ bairro = "BARRA DA TIJUCA", vistoriaData, edit
     );
   };
 
+  const progress = ((currentStep + 1) / 6) * 100;
+  const combined = state.itbiData 
+    ? calculateCombinedPrices(state.itbiData, state.anuncioData || undefined)
+    : null;
+
+  // Hooks de auto-save DEVEM ser chamados sempre (nunca após returns condicionais)
+  const isNewValuation = !fromEditar && !editingValuationId;
+  const canAutoPersist = !loadingChars && !loadingDocs;
+
+  // Auto-save para novas avaliações (cria rascunho desde a primeira etapa)
+  const { draftId, isCreating: isDraftCreating } = useDraftValuation({
+    state,
+    combined,
+    enabled: canAutoPersist && isNewValuation && currentStep < 4,
+    debounceMs: 800,
+  });
+
+  // Determina qual ID usar para auto-save: rascunho ou edição existente
+  const activeValuationId = fromEditar ? editingValuationId : draftId;
+
+  // Auto-save para modo de edição OU rascunho (somente nas etapas 0-3)
+  const { status: autoSaveStatus, lastSavedAt } = useAutoSaveValuation({
+    valuationId: activeValuationId || undefined,
+    state,
+    combined,
+    enabled: canAutoPersist && !!activeValuationId && currentStep < 4,
+    debounceMs: 800,
+  });
+
   if (loadingChars || loadingDocs) {
     return (
       <Card>
@@ -324,32 +353,6 @@ export function ValuationEngine({ bairro = "BARRA DA TIJUCA", vistoriaData, edit
       </Card>
     );
   }
-
-  const progress = ((currentStep + 1) / 6) * 100;
-  const combined = state.itbiData 
-    ? calculateCombinedPrices(state.itbiData, state.anuncioData || undefined)
-    : null;
-
-  // Auto-save para novas avaliações (cria rascunho desde a primeira etapa)
-  const isNewValuation = !fromEditar && !editingValuationId;
-  const { draftId, isCreating: isDraftCreating } = useDraftValuation({
-    state,
-    combined,
-    enabled: isNewValuation && currentStep < 4,
-    debounceMs: 800,
-  });
-
-  // Determina qual ID usar para auto-save: rascunho ou edição existente
-  const activeValuationId = fromEditar ? editingValuationId : draftId;
-
-  // Auto-save para modo de edição OU rascunho (somente nas etapas 0-3)
-  const { status: autoSaveStatus, lastSavedAt } = useAutoSaveValuation({
-    valuationId: activeValuationId || undefined,
-    state,
-    combined,
-    enabled: !!activeValuationId && currentStep < 4,
-    debounceMs: 800,
-  });
 
   return (
     <Card className="border-primary/20">
