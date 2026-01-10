@@ -1,10 +1,11 @@
 import { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
+import { Checkbox } from "@/components/ui/checkbox";
 import { 
   Table, 
   TableBody, 
@@ -20,6 +21,16 @@ import {
   DialogTitle,
   DialogDescription,
 } from "@/components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { 
   History, 
   Search, 
@@ -35,7 +46,9 @@ import {
   X,
   FileText,
   RefreshCw,
-  HelpCircle
+  HelpCircle,
+  Trash2,
+  CheckSquare
 } from "lucide-react";
 import {
   Tooltip,
@@ -108,8 +121,13 @@ interface Valuation {
 export default function HistoricoAvaliacoes() {
   const { user, isAdmin } = useAuth();
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedValuation, setSelectedValuation] = useState<Valuation | null>(null);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [isSelectionMode, setIsSelectionMode] = useState(false);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   const { data: avaliacoes, isLoading } = useQuery({
     queryKey: ["avaliacoes-historico", user?.id, isAdmin],
@@ -141,6 +159,89 @@ export default function HistoricoAvaliacoes() {
       av.numero?.toLowerCase().includes(term)
     );
   });
+
+  // Funções de seleção
+  const toggleSelection = (id: string) => {
+    setSelectedIds(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(id)) {
+        newSet.delete(id);
+      } else {
+        newSet.add(id);
+      }
+      return newSet;
+    });
+  };
+
+  const toggleSelectAll = () => {
+    if (!filteredAvaliacoes) return;
+    if (selectedIds.size === filteredAvaliacoes.length) {
+      setSelectedIds(new Set());
+    } else {
+      setSelectedIds(new Set(filteredAvaliacoes.map(av => av.id)));
+    }
+  };
+
+  const handleDeleteSelected = async () => {
+    if (selectedIds.size === 0) return;
+    
+    setIsDeleting(true);
+    try {
+      // Primeiro deletar as respostas associadas
+      const { error: responsesError } = await supabase
+        .from("valuation_responses")
+        .delete()
+        .in("valuation_id", Array.from(selectedIds));
+      
+      if (responsesError) {
+        console.error("Erro ao deletar respostas:", responsesError);
+      }
+      
+      // Depois deletar as avaliações
+      const { error } = await supabase
+        .from("valuations")
+        .delete()
+        .in("id", Array.from(selectedIds));
+      
+      if (error) throw error;
+      
+      toast.success(`${selectedIds.size} avaliação(ões) excluída(s) com sucesso`);
+      setSelectedIds(new Set());
+      setIsSelectionMode(false);
+      setDeleteDialogOpen(false);
+      queryClient.invalidateQueries({ queryKey: ["avaliacoes-historico"] });
+    } catch (error) {
+      console.error("Erro ao excluir avaliações:", error);
+      toast.error("Erro ao excluir avaliações");
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
+  const handleDeleteSingle = async (id: string) => {
+    try {
+      // Primeiro deletar as respostas associadas
+      await supabase
+        .from("valuation_responses")
+        .delete()
+        .eq("valuation_id", id);
+      
+      // Depois deletar a avaliação
+      const { error } = await supabase
+        .from("valuations")
+        .delete()
+        .eq("id", id);
+      
+      if (error) throw error;
+      
+      toast.success("Avaliação excluída com sucesso");
+      setSelectedValuation(null);
+      queryClient.invalidateQueries({ queryKey: ["avaliacoes-historico"] });
+    } catch (error) {
+      console.error("Erro ao excluir avaliação:", error);
+      toast.error("Erro ao excluir avaliação");
+    }
+  };
 
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat("pt-BR", {
@@ -405,19 +506,47 @@ export default function HistoricoAvaliacoes() {
         </Card>
       </div>
 
-      {/* Filtro */}
+      {/* Filtro e Ações */}
       <Card>
         <CardHeader>
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-            <CardTitle className="text-lg">Avaliações Realizadas</CardTitle>
-            <div className="relative w-full sm:w-64">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input
-                placeholder="Buscar por endereço..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-10"
-              />
+            <div className="flex items-center gap-3">
+              <CardTitle className="text-lg">Avaliações Realizadas</CardTitle>
+              {isSelectionMode && selectedIds.size > 0 && (
+                <Badge variant="secondary">{selectedIds.size} selecionada(s)</Badge>
+              )}
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="relative w-full sm:w-48">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input
+                  placeholder="Buscar..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="pl-10"
+                />
+              </div>
+              <Button
+                variant={isSelectionMode ? "secondary" : "outline"}
+                size="sm"
+                onClick={() => {
+                  setIsSelectionMode(!isSelectionMode);
+                  if (isSelectionMode) setSelectedIds(new Set());
+                }}
+              >
+                <CheckSquare className="h-4 w-4 mr-1" />
+                {isSelectionMode ? "Cancelar" : "Selecionar"}
+              </Button>
+              {isSelectionMode && selectedIds.size > 0 && (
+                <Button
+                  variant="destructive"
+                  size="sm"
+                  onClick={() => setDeleteDialogOpen(true)}
+                >
+                  <Trash2 className="h-4 w-4 mr-1" />
+                  Excluir ({selectedIds.size})
+                </Button>
+              )}
             </div>
           </div>
         </CardHeader>
@@ -427,6 +556,14 @@ export default function HistoricoAvaliacoes() {
               <Table>
                 <TableHeader>
                   <TableRow>
+                    {isSelectionMode && (
+                      <TableHead className="w-10">
+                        <Checkbox
+                          checked={filteredAvaliacoes.length > 0 && selectedIds.size === filteredAvaliacoes.length}
+                          onCheckedChange={toggleSelectAll}
+                        />
+                      </TableHead>
+                    )}
                     <TableHead className="whitespace-nowrap">Data</TableHead>
                     <TableHead>Endereço</TableHead>
                     <TableHead className="text-right hidden sm:table-cell">Área</TableHead>
@@ -440,9 +577,17 @@ export default function HistoricoAvaliacoes() {
                   {filteredAvaliacoes.map((av) => (
                     <TableRow 
                       key={av.id}
-                      className="cursor-pointer hover:bg-muted/50 transition-colors"
-                      onClick={() => handleRowClick(av)}
+                      className={`cursor-pointer hover:bg-muted/50 transition-colors ${selectedIds.has(av.id) ? 'bg-primary/10' : ''}`}
+                      onClick={() => isSelectionMode ? toggleSelection(av.id) : handleRowClick(av)}
                     >
+                      {isSelectionMode && (
+                        <TableCell onClick={(e) => e.stopPropagation()}>
+                          <Checkbox
+                            checked={selectedIds.has(av.id)}
+                            onCheckedChange={() => toggleSelection(av.id)}
+                          />
+                        </TableCell>
+                      )}
                       <TableCell className="whitespace-nowrap">
                         {format(new Date(av.created_at), "dd/MM/yyyy", { locale: ptBR })}
                       </TableCell>
@@ -725,19 +870,56 @@ export default function HistoricoAvaliacoes() {
                     Reemitir PDF
                   </Button>
                 </div>
-                <Button 
-                  variant="ghost"
-                  onClick={() => setSelectedValuation(null)}
-                  className="w-full"
-                >
-                  <X className="h-4 w-4 mr-2" />
-                  Fechar
-                </Button>
+                <div className="flex gap-3">
+                  <Button 
+                    variant="ghost"
+                    onClick={() => setSelectedValuation(null)}
+                    className="flex-1"
+                  >
+                    <X className="h-4 w-4 mr-2" />
+                    Fechar
+                  </Button>
+                  <Button 
+                    variant="destructive"
+                    onClick={() => handleDeleteSingle(selectedValuation.id)}
+                    className="flex-1"
+                  >
+                    <Trash2 className="h-4 w-4 mr-2" />
+                    Excluir
+                  </Button>
+                </div>
               </div>
             </div>
           )}
         </DialogContent>
       </Dialog>
+
+      {/* Dialog de confirmação de exclusão em lote */}
+      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2 text-destructive">
+              <Trash2 className="h-5 w-5" />
+              Confirmar Exclusão
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              Tem certeza que deseja excluir {selectedIds.size} avaliação(ões)?
+              <br />
+              <span className="text-destructive font-medium">Esta ação não pode ser desfeita.</span>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isDeleting}>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDeleteSelected}
+              disabled={isDeleting}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {isDeleting ? "Excluindo..." : `Excluir ${selectedIds.size} avaliação(ões)`}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

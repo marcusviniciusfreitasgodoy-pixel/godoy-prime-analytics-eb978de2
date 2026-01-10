@@ -39,9 +39,19 @@ export function Step5Recommendation({ result, state, combined, onReset }: Props)
   const [isSaved, setIsSaved] = useState(false);
 
   // Salvar avaliação no banco ao montar o componente
+  // IMPORTANTE: Esperar que state.responses tenha os 26 fatores antes de salvar
   useEffect(() => {
     const saveValuation = async () => {
       if (isSaved || !user?.id) return;
+      
+      // Aguarda que as respostas estejam disponíveis (26 fatores)
+      // Se ainda não tiver respostas, espera a próxima atualização do state
+      if (!state.responses || state.responses.length === 0) {
+        console.log("Aguardando respostas serem populadas...");
+        return;
+      }
+      
+      console.log(`Salvando avaliação com ${state.responses.length} fatores`);
       
       try {
         const insertData = {
@@ -108,25 +118,26 @@ export function Step5Recommendation({ result, state, combined, onReset }: Props)
 
         if (error) {
           console.error("Erro ao salvar avaliação:", error);
-        } else if (insertedValuation) {
+          return;
+        }
+        
+        if (insertedValuation) {
           // Salvar as respostas dos fatores de avaliação
-          if (state.responses && state.responses.length > 0) {
-            const responsesData = state.responses.map(r => ({
-              valuation_id: insertedValuation.id,
-              characteristic_id: r.char_id,
-              response_value: r.response,
-              weight_applied: r.weight_applied,
-            }));
-            
-            const { error: responsesError } = await supabase
-              .from("valuation_responses")
-              .insert(responsesData);
-            
-            if (responsesError) {
-              console.error("Erro ao salvar respostas:", responsesError);
-            } else {
-              console.log(`${responsesData.length} fatores de avaliação salvos`);
-            }
+          const responsesData = state.responses.map(r => ({
+            valuation_id: insertedValuation.id,
+            characteristic_id: r.char_id,
+            response_value: r.response,
+            weight_applied: r.weight_applied,
+          }));
+          
+          const { error: responsesError } = await supabase
+            .from("valuation_responses")
+            .insert(responsesData);
+          
+          if (responsesError) {
+            console.error("Erro ao salvar respostas:", responsesError);
+          } else {
+            console.log(`✅ ${responsesData.length} fatores de avaliação salvos com sucesso`);
           }
           
           setIsSaved(true);
@@ -138,7 +149,7 @@ export function Step5Recommendation({ result, state, combined, onReset }: Props)
     };
 
     saveValuation();
-  }, [user?.id, result, state, combined, isSaved]);
+  }, [user?.id, result, state, combined, isSaved, state.responses]);
 
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat("pt-BR", {
