@@ -368,10 +368,20 @@ export function ValuationEngine({ bairro = "BARRA DA TIJUCA", vistoriaData, edit
                     <TooltipTrigger asChild>
                       <Info className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-muted-foreground cursor-help shrink-0" />
                     </TooltipTrigger>
-                    <TooltipContent side="bottom" className="max-w-xs">
-                      <p className="text-sm">
-                        <strong>Metodologia:</strong> Combina 70% dados oficiais (últimos 12 meses) + 30% anúncios de mercado (últimos 30 dias) para calcular valores de referência por m².
-                      </p>
+                    <TooltipContent side="bottom" className="max-w-sm">
+                      <div className="space-y-2 text-xs">
+                        <p className="font-semibold">Metodologia de Cálculo</p>
+                        <ul className="space-y-1 list-disc list-inside">
+                          <li><strong>Fonte:</strong> Transações oficiais ITBI da Prefeitura do Rio</li>
+                          <li><strong>Filtro:</strong> Apenas imóveis com ≥90% de transferência</li>
+                          <li><strong>Mínimo:</strong> 3 transações para garantir precisão estatística</li>
+                          <li><strong>Faixa:</strong> Calculada com base em mín, mediana e máx do m²</li>
+                          <li><strong>Atualização:</strong> Diária automática às 02:00</li>
+                        </ul>
+                        <p className="text-muted-foreground italic pt-1 border-t border-border">
+                          Esta é uma ferramenta estatística e não substitui laudo PTAM.
+                        </p>
+                      </div>
                     </TooltipContent>
                   </Tooltip>
                 </TooltipProvider>
