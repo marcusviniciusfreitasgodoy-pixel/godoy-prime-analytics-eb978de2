@@ -63,6 +63,67 @@ export function Step1Location({ state, updateState, combined }: Props) {
     }
   }, [state.logradouro, useCustomSearch]);
 
+  // Auto-busca ITBI quando chega na etapa com logradouro já preenchido (vindo do Step 0)
+  useEffect(() => {
+    const autoFetchITBI = async () => {
+      // Só executa se: tem logradouro, tem bairro, mas NÃO tem dados ITBI ainda
+      if (!state.logradouro || !state.bairro || state.itbiData) return;
+
+      try {
+        const { data, error } = await supabase
+          .from("itbi_transactions")
+          .select("valor_m2, valor_transacao")
+          .eq("bairro", state.bairro)
+          .eq("uso", "Residencial")
+          .gte("percentual_transferido", 90)
+          .not("valor_m2", "is", null)
+          .lte("valor_m2", 40000)
+          .ilike("logradouro", `%${state.logradouro}%`);
+
+        if (!error && data && data.length >= 3) {
+          const rawValues = data.map(d => Number(d.valor_m2));
+          
+          let minValue: number;
+          let maxValue: number;
+          let medValue: number;
+          
+          // Aplica filtro baseado na configuração
+          if (settings.outlier_filter_method === 'percentile') {
+            const { values, min, max } = filterOutliersPercentile(rawValues);
+            const mid = Math.floor(values.length / 2);
+            minValue = min;
+            maxValue = max;
+            medValue = values.length % 2 ? values[mid] : (values[mid - 1] + values[mid]) / 2;
+          } else {
+            const filteredValues = filterOutliersIQR(rawValues);
+            const values = filteredValues.sort((a, b) => a - b);
+            const finalValues = values.length >= 3 ? values : rawValues.sort((a, b) => a - b);
+            const mid = Math.floor(finalValues.length / 2);
+            minValue = finalValues[0];
+            maxValue = finalValues[finalValues.length - 1];
+            medValue = finalValues.length % 2 ? finalValues[mid] : (finalValues[mid - 1] + finalValues[mid]) / 2;
+          }
+          
+          const avgValorTransacao = data.reduce((sum, d) => sum + (Number(d.valor_transacao) || 0), 0) / data.length;
+          
+          updateState({
+            itbiData: {
+              min_m2: Math.round(minValue),
+              med_m2: Math.round(medValue),
+              max_m2: Math.round(maxValue),
+              transaction_count: data.length,
+              avg_valor_transacao: Math.round(avgValorTransacao),
+            },
+          });
+        }
+      } catch (error) {
+        console.error("Erro ao auto-buscar dados ITBI:", error);
+      }
+    };
+
+    autoFetchITBI();
+  }, [state.logradouro, state.bairro, state.itbiData, settings.outlier_filter_method]);
+
   // Restaura anúncios quando state.anuncioData mudar (edição de avaliação)
   useEffect(() => {
     if (!anunciosInitialized && state.anuncioData?.fontes && state.anuncioData.fontes.length > 0) {
