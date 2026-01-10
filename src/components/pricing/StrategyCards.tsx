@@ -140,8 +140,10 @@ export function StrategyCards({ calculos, recomendada, valorItbi, onSelect }: St
                   <h4 className={`font-bold text-lg ${strategy.color}`}>
                     {strategy.name}
                   </h4>
-                  <Badge variant="outline" className="mt-1">
-                    {formatPercentage(calc.percentual)}
+                  <Badge 
+                    className={`mt-2 text-sm font-bold px-3 py-1 ${strategy.bgColor} ${strategy.color} border ${strategy.borderColor}`}
+                  >
+                    {formatPercentage(calc.percentual)} sobre ITBI
                   </Badge>
                 </div>
               </CardHeader>
