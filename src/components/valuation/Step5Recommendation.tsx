@@ -367,6 +367,15 @@ export function Step5Recommendation({ result, state, combined, onReset, existing
   };
 
   const handleOpenPricingModule = () => {
+    // A estratégia precisa ficar vinculada a uma avaliação salva (valuation_id) para aparecer no histórico/edição.
+    // Se o usuário abrir antes de salvar, a estratégia pode ser criada “órfã” (valuation_id = null).
+    if (!valuationId && !existingValuationId) {
+      toast.message("Aguarde um instante", {
+        description: "Estamos salvando a avaliação para liberar a estratégia de precificação.",
+      });
+      return;
+    }
+
     setShowPricingModule(true);
   };
 
