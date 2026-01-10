@@ -48,7 +48,8 @@ import {
   RefreshCw,
   HelpCircle,
   Trash2,
-  CheckSquare
+  CheckSquare,
+  Target
 } from "lucide-react";
 import {
   Tooltip,
@@ -65,6 +66,20 @@ import { useAuth } from "@/hooks/useAuth";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { toast } from "sonner";
+
+interface PricingStrategy {
+  id: string;
+  valor_itbi: number;
+  estrategia_selecionada: string | null;
+  estrategia_recomendada: string;
+  preco_anuncio_atracao: number | null;
+  preco_anuncio_mercado: number | null;
+  preco_anuncio_premium: number | null;
+  liquido_atracao: number | null;
+  liquido_mercado: number | null;
+  liquido_premium: number | null;
+  status: string;
+}
 
 interface Valuation {
   id: string;
@@ -116,6 +131,8 @@ interface Valuation {
   proprietario?: string | null;
   telefone?: string | null;
   observacoes_imovel?: string | null;
+  // Estratégia de precificação vinculada
+  pricing_strategies?: PricingStrategy[];
 }
 
 export default function HistoricoAvaliacoes() {
@@ -134,7 +151,22 @@ export default function HistoricoAvaliacoes() {
     queryFn: async () => {
       let query = supabase
         .from("valuations")
-        .select("*")
+        .select(`
+          *,
+          pricing_strategies (
+            id,
+            valor_itbi,
+            estrategia_selecionada,
+            estrategia_recomendada,
+            preco_anuncio_atracao,
+            preco_anuncio_mercado,
+            preco_anuncio_premium,
+            liquido_atracao,
+            liquido_mercado,
+            liquido_premium,
+            status
+          )
+        `)
         .order("created_at", { ascending: false });
       
       // Se não for admin, filtrar apenas avaliações do usuário
@@ -187,21 +219,33 @@ export default function HistoricoAvaliacoes() {
     
     setIsDeleting(true);
     try {
-      // Primeiro deletar as respostas associadas
+      const idsArray = Array.from(selectedIds);
+      
+      // Primeiro deletar as estratégias de precificação associadas
+      const { error: pricingError } = await supabase
+        .from("pricing_strategies")
+        .delete()
+        .in("valuation_id", idsArray);
+      
+      if (pricingError) {
+        console.error("Erro ao deletar estratégias:", pricingError);
+      }
+      
+      // Depois deletar as respostas associadas
       const { error: responsesError } = await supabase
         .from("valuation_responses")
         .delete()
-        .in("valuation_id", Array.from(selectedIds));
+        .in("valuation_id", idsArray);
       
       if (responsesError) {
         console.error("Erro ao deletar respostas:", responsesError);
       }
       
-      // Depois deletar as avaliações
+      // Por fim deletar as avaliações
       const { error } = await supabase
         .from("valuations")
         .delete()
-        .in("id", Array.from(selectedIds));
+        .in("id", idsArray);
       
       if (error) throw error;
       
@@ -220,13 +264,19 @@ export default function HistoricoAvaliacoes() {
 
   const handleDeleteSingle = async (id: string) => {
     try {
-      // Primeiro deletar as respostas associadas
+      // Primeiro deletar estratégia de precificação
+      await supabase
+        .from("pricing_strategies")
+        .delete()
+        .eq("valuation_id", id);
+      
+      // Depois deletar as respostas associadas
       await supabase
         .from("valuation_responses")
         .delete()
         .eq("valuation_id", id);
       
-      // Depois deletar a avaliação
+      // Por fim deletar a avaliação
       const { error } = await supabase
         .from("valuations")
         .delete()
@@ -763,6 +813,68 @@ export default function HistoricoAvaliacoes() {
                   </p>
                 </div>
               )}
+
+              {/* Estratégia de Precificação */}
+              {(() => {
+                const pricing = selectedValuation.pricing_strategies?.[0];
+                if (!pricing) return null;
+                
+                const getStrategyLabel = (s: string | null) => {
+                  if (s === 'atracao') return 'Atração';
+                  if (s === 'mercado') return 'Mercado';
+                  if (s === 'premium') return 'Premium';
+                  return s || '-';
+                };
+                
+                const getSelectedValue = () => {
+                  if (!pricing.estrategia_selecionada) return null;
+                  switch (pricing.estrategia_selecionada) {
+                    case 'atracao': return pricing.preco_anuncio_atracao;
+                    case 'mercado': return pricing.preco_anuncio_mercado;
+                    case 'premium': return pricing.preco_anuncio_premium;
+                    default: return null;
+                  }
+                };
+                
+                const selectedValue = getSelectedValue();
+                
+                return (
+                  <div className="bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-800 rounded-lg p-3 space-y-2">
+                    <div className="flex items-center gap-2">
+                      <Target className="h-4 w-4 text-emerald-600" />
+                      <span className="text-sm font-medium text-emerald-800 dark:text-emerald-200">
+                        Estratégia de Precificação
+                      </span>
+                      <Badge variant={pricing.status === 'confirmado' ? 'default' : 'secondary'} className="ml-auto text-xs">
+                        {pricing.status === 'confirmado' ? 'Confirmada' : 'Pendente'}
+                      </Badge>
+                    </div>
+                    
+                    {pricing.estrategia_selecionada && (
+                      <div className="grid grid-cols-2 gap-2 text-sm">
+                        <div>
+                          <span className="text-muted-foreground text-xs">Estratégia:</span>
+                          <p className="font-medium">{getStrategyLabel(pricing.estrategia_selecionada)}</p>
+                        </div>
+                        {selectedValue && (
+                          <div>
+                            <span className="text-muted-foreground text-xs">Preço Anúncio:</span>
+                            <p className="font-medium text-emerald-700 dark:text-emerald-300">
+                              {formatCurrency(selectedValue)}
+                            </p>
+                          </div>
+                        )}
+                      </div>
+                    )}
+                    
+                    {!pricing.estrategia_selecionada && (
+                      <p className="text-xs text-muted-foreground">
+                        Nenhuma estratégia selecionada ainda
+                      </p>
+                    )}
+                  </div>
+                );
+              })()}
 
               {/* Ações */}
               <div className="flex flex-col gap-2 pt-2">

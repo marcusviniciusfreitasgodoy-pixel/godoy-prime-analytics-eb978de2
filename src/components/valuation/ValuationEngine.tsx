@@ -113,6 +113,7 @@ export function ValuationEngine({ bairro = "BARRA DA TIJUCA", vistoriaData, edit
   const [state, setState] = useState<ValuationState>({ ...initialValuationState, bairro });
   const [fromVistoria, setFromVistoria] = useState(false);
   const [fromEditar, setFromEditar] = useState(false);
+  const [editingValuationId, setEditingValuationId] = useState<string | undefined>(undefined);
   
   const { data: characteristics, isLoading: loadingChars } = useValuationCharacteristics(state.tipoImovel);
   const { data: docFactors, isLoading: loadingDocs } = useDocumentationFactors();
@@ -128,6 +129,7 @@ export function ValuationEngine({ bairro = "BARRA DA TIJUCA", vistoriaData, edit
   useEffect(() => {
     if (editarData) {
       setFromEditar(true);
+      setEditingValuationId(editarData.id);
       setState(prev => ({
         ...prev,
         logradouro: editarData.logradouro,
@@ -476,6 +478,7 @@ export function ValuationEngine({ bairro = "BARRA DA TIJUCA", vistoriaData, edit
                 state={state}
                 combined={combined}
                 onReset={handleReset}
+                existingValuationId={editingValuationId}
               />
             </div>
           )}
