@@ -19,6 +19,7 @@ import { calculateValuation, calculateCombinedPrices } from "@/utils/valuationCa
 import { ValuationState, initialValuationState } from "@/types/valuation";
 import { useHistoricalTransactionAnalysis } from "@/hooks/useHistoricalTransactionAnalysis";
 import { useAutoSaveValuation } from "@/hooks/useAutoSaveValuation";
+import { useDraftValuation } from "@/hooks/useDraftValuation";
 
 const STEPS = [
   { id: 0, title: "Identificação", description: "Dados do imóvel" },
@@ -329,12 +330,24 @@ export function ValuationEngine({ bairro = "BARRA DA TIJUCA", vistoriaData, edit
     ? calculateCombinedPrices(state.itbiData, state.anuncioData || undefined)
     : null;
 
-  // Auto-save para modo de edição (somente nas etapas 0-3, antes de calcular resultado final)
-  const { status: autoSaveStatus, lastSavedAt } = useAutoSaveValuation({
-    valuationId: editingValuationId,
+  // Auto-save para novas avaliações (cria rascunho desde a primeira etapa)
+  const isNewValuation = !fromEditar && !editingValuationId;
+  const { draftId, isCreating: isDraftCreating } = useDraftValuation({
     state,
     combined,
-    enabled: fromEditar && !!editingValuationId && currentStep < 4,
+    enabled: isNewValuation && currentStep < 4,
+    debounceMs: 800,
+  });
+
+  // Determina qual ID usar para auto-save: rascunho ou edição existente
+  const activeValuationId = fromEditar ? editingValuationId : draftId;
+
+  // Auto-save para modo de edição OU rascunho (somente nas etapas 0-3)
+  const { status: autoSaveStatus, lastSavedAt } = useAutoSaveValuation({
+    valuationId: activeValuationId || undefined,
+    state,
+    combined,
+    enabled: !!activeValuationId && currentStep < 4,
     debounceMs: 800,
   });
 
@@ -378,9 +391,12 @@ export function ValuationEngine({ bairro = "BARRA DA TIJUCA", vistoriaData, edit
             </div>
           </div>
           <div className="flex items-center gap-2">
-            {/* Auto-save indicator (apenas em modo edição) */}
-            {fromEditar && currentStep < 4 && (
-              <AutoSaveIndicator status={autoSaveStatus} lastSavedAt={lastSavedAt} />
+            {/* Auto-save indicator (edição ou nova avaliação com rascunho) */}
+            {currentStep < 4 && (activeValuationId || isDraftCreating) && (
+              <AutoSaveIndicator 
+                status={isDraftCreating ? "saving" : autoSaveStatus} 
+                lastSavedAt={lastSavedAt} 
+              />
             )}
             <Badge variant="outline" className="w-fit text-xs">
               Etapa {currentStep + 1}/6
@@ -496,7 +512,7 @@ export function ValuationEngine({ bairro = "BARRA DA TIJUCA", vistoriaData, edit
                 state={state}
                 combined={combined}
                 onReset={handleReset}
-                existingValuationId={editingValuationId}
+                existingValuationId={activeValuationId || undefined}
               />
             </div>
           )}
