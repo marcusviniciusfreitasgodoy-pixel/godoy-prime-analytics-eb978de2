@@ -17,17 +17,19 @@ import {
   ClipboardCheck,
   FileText,
   Target,
-  ArrowRight
+  ArrowRight,
+  Mail
 } from "lucide-react";
 import { toast } from "sonner";
 import type { ValuationResult, CombinedPrices } from "@/utils/valuationCalculations";
 import type { ValuationState } from "@/types/valuation";
-import { exportValuationEnginePDF, PricingStrategyPDFData } from "@/utils/valuationPdfExport";
+import { exportValuationEnginePDF, generateValuationPDFForEmail, getValuationPDFFilename, PricingStrategyPDFData } from "@/utils/valuationPdfExport";
 import { useAuth } from "@/hooks/useAuth";
 import { useActivityTracking } from "@/hooks/useActivityTracking";
 import { supabase } from "@/integrations/supabase/client";
 import { PricingStrategyModule } from "@/components/pricing/PricingStrategyModule";
 import { PricingStrategyState, StrategyType } from "@/types/pricingStrategy";
+import { SendPdfEmailDialog } from "@/components/SendPdfEmailDialog";
 
 interface Props {
   result: ValuationResult;
@@ -46,6 +48,7 @@ export function Step5Recommendation({ result, state, combined, onReset }: Props)
   const [showPricingModule, setShowPricingModule] = useState(false);
   const [pricingCompleted, setPricingCompleted] = useState(false);
   const [pricingData, setPricingData] = useState<PricingStrategyPDFData | null>(null);
+  const [showEmailDialog, setShowEmailDialog] = useState(false);
 
   // Salvar avaliação no banco ao montar o componente
   // IMPORTANTE: Esperar que state.responses tenha os 26 fatores antes de salvar
@@ -322,6 +325,15 @@ export function Step5Recommendation({ result, state, combined, onReset }: Props)
     setShowPricingModule(false);
   };
 
+  // Função para gerar PDF para e-mail
+  const generatePdfForEmail = () => {
+    const stateWithType: ValuationState = {
+      ...state,
+      tipoAvaliacao: "completa"
+    };
+    return generateValuationPDFForEmail(result, stateWithType, combined, state.anuncioData?.fontes, pricingData);
+  };
+
   // Calcula valores para estratégia de preço (fallback simples)
   const listPrice = Math.round(result.provavel * 1.05);
   const minAcceptable = result.pessimista;
@@ -570,10 +582,16 @@ export function Step5Recommendation({ result, state, combined, onReset }: Props)
                 </p>
               </div>
               
-              <Button onClick={() => handleExportPDF(true)} variant="outline" className="w-full h-10 sm:h-9">
-                <FileDown className="mr-2 h-4 w-4" />
-                Baixar PDF
-              </Button>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                <Button onClick={() => handleExportPDF(true)} variant="outline" className="h-10 sm:h-9">
+                  <FileDown className="mr-2 h-4 w-4" />
+                  Baixar PDF
+                </Button>
+                <Button onClick={() => setShowEmailDialog(true)} variant="outline" className="h-10 sm:h-9">
+                  <Mail className="mr-2 h-4 w-4" />
+                  Enviar por E-mail
+                </Button>
+              </div>
             </div>
           ) : (
             <div className="bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800 rounded-lg p-3 sm:p-4">
@@ -590,6 +608,17 @@ export function Step5Recommendation({ result, state, combined, onReset }: Props)
       <p className="text-[10px] sm:text-xs text-muted-foreground text-center px-2">
         ⚠️ Ferramenta estatística. Não substitui laudo PTAM (NBR 14653-2).
       </p>
+
+      {/* Email Dialog */}
+      <SendPdfEmailDialog
+        open={showEmailDialog}
+        onOpenChange={setShowEmailDialog}
+        generatePdf={generatePdfForEmail}
+        documentType="avaliacao"
+        defaultName={state.proprietario || ''}
+        defaultSubject={`Avaliação Imobiliária - ${state.logradouro || 'Imóvel'}`}
+        pdfFilename={getValuationPDFFilename({...state, tipoAvaliacao: "completa"})}
+      />
     </div>
   );
 }

@@ -33,13 +33,14 @@ export interface PricingStrategyPDFData {
   planoAjusteAtivo: boolean;
 }
 
-export function exportValuationEnginePDF(
+// Internal function that creates the PDF document (shared between export and email)
+function createValuationPDF(
   result: ValuationResult,
   state: ValuationState,
   combined: CombinedPrices | null,
   anuncioFontes?: AnuncioFonte[],
   pricingStrategy?: PricingStrategyPDFData | null
-): void {
+): jsPDF {
   const doc = new jsPDF();
   const pageWidth = doc.internal.pageSize.getWidth();
   const marginLeft = 20;
@@ -1198,10 +1199,41 @@ export function exportValuationEnginePDF(
   // Apply footers to all pages
   applyFootersToAllPages(doc);
 
-  // Save
+  return doc;
+}
+
+// Export function that saves the PDF to disk
+export function exportValuationEnginePDF(
+  result: ValuationResult,
+  state: ValuationState,
+  combined: CombinedPrices | null,
+  anuncioFontes?: AnuncioFonte[],
+  pricingStrategy?: PricingStrategyPDFData | null
+): void {
+  const doc = createValuationPDF(result, state, combined, anuncioFontes, pricingStrategy);
+  
+  const isSimplified = state.tipoAvaliacao === "simples";
   const tipoSuffix = isSimplified ? '_simplificada' : '';
   const filename = `avaliacao${tipoSuffix}_${state.logradouro?.replace(/\s+/g, '_').substring(0, 25) || 'imovel'}_${new Date().toISOString().split('T')[0]}.pdf`;
   doc.save(filename);
+}
+
+// Generate PDF for email (returns jsPDF object without saving)
+export function generateValuationPDFForEmail(
+  result: ValuationResult,
+  state: ValuationState,
+  combined: CombinedPrices | null,
+  anuncioFontes?: AnuncioFonte[],
+  pricingStrategy?: PricingStrategyPDFData | null
+): jsPDF {
+  return createValuationPDF(result, state, combined, anuncioFontes, pricingStrategy);
+}
+
+// Get the filename for the PDF
+export function getValuationPDFFilename(state: ValuationState): string {
+  const isSimplified = state.tipoAvaliacao === "simples";
+  const tipoSuffix = isSimplified ? '_simplificada' : '';
+  return `avaliacao${tipoSuffix}_${state.logradouro?.replace(/\s+/g, '_').substring(0, 25) || 'imovel'}_${new Date().toISOString().split('T')[0]}.pdf`;
 }
 
 function getDocStatusLabel(status: string): string {
