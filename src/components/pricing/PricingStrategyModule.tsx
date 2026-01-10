@@ -74,55 +74,34 @@ export function PricingStrategyModule({
         
         if (data && !error) {
           console.log('Estratégia de precificação carregada:', data.id);
+
+          const diagnostico: DiagnosticAnswers = {
+            q1_tempo_mercado: data.q1_tempo_mercado,
+            q2_concorrencia: data.q2_concorrencia,
+            q3_prioridade: data.q3_prioridade,
+            q4_horizonte_tempo: data.q4_horizonte_tempo,
+            q5_situacao_financeira: data.q5_situacao_financeira,
+            q6_estado_mercado: data.q6_estado_mercado,
+            q7_clientes_potenciais: data.q7_clientes_potenciais,
+            q8_pronto_vender: data.q8_pronto_vender,
+            q9_padrao_imovel: data.q9_padrao_imovel,
+          };
+
+          // Recalcula sempre com as regras atuais (evita ficar preso em percentuais antigos salvos)
+          const calculos = calculateAllStrategies(data.valor_itbi, diagnostico);
+          const recomendada = data.is_new_listing ? 'mercado' : determineRecommendedStrategy(diagnostico);
+
           setState({
             id: data.id,
             valuation_id: data.valuation_id || undefined,
             valor_itbi: data.valor_itbi,
             is_new_listing: data.is_new_listing,
-            diagnostico: {
-              q1_tempo_mercado: data.q1_tempo_mercado,
-              q2_concorrencia: data.q2_concorrencia,
-              q3_prioridade: data.q3_prioridade,
-              q4_horizonte_tempo: data.q4_horizonte_tempo,
-              q5_situacao_financeira: data.q5_situacao_financeira,
-              q6_estado_mercado: data.q6_estado_mercado,
-              q7_clientes_potenciais: data.q7_clientes_potenciais,
-              q8_pronto_vender: data.q8_pronto_vender,
-              q9_padrao_imovel: data.q9_padrao_imovel,
-            },
-            estrategia_recomendada: data.estrategia_recomendada as StrategyType | null,
+            diagnostico,
+            estrategia_recomendada: recomendada,
             estrategia_selecionada: data.estrategia_selecionada as StrategyType | null,
-            calculos: data.preco_anuncio_mercado ? {
-              atracao: {
-                percentual: data.p_atracao,
-                preco_anuncio: data.preco_anuncio_atracao || 0,
-                corretagem: data.corretagem_atracao || 0,
-                liquido: data.liquido_atracao || 0,
-                piso_planejado: data.piso_planejado_atracao || 0,
-                liquido_min: data.liquido_min_atracao || 0,
-                premio_liquido_pct: data.premio_liquido_pct_atracao || 0,
-              },
-              mercado: {
-                percentual: data.p_mercado,
-                preco_anuncio: data.preco_anuncio_mercado || 0,
-                corretagem: data.corretagem_mercado || 0,
-                liquido: data.liquido_mercado || 0,
-                piso_planejado: data.piso_planejado_mercado || 0,
-                liquido_min: data.liquido_min_mercado || 0,
-                premio_liquido_pct: data.premio_liquido_pct_mercado || 0,
-              },
-              premium: {
-                percentual: data.p_premium,
-                preco_anuncio: data.preco_anuncio_premium || 0,
-                corretagem: data.corretagem_premium || 0,
-                liquido: data.liquido_premium || 0,
-                piso_planejado: data.piso_planejado_premium || 0,
-                liquido_min: data.liquido_min_premium || 0,
-                premio_liquido_pct: data.premio_liquido_pct_premium || 0,
-              },
-            } : null,
+            calculos,
             plano_ajuste_ativo: data.plano_ajuste_ativo || false,
-            status: data.status as PricingStrategyState['status'] || 'inicial',
+            status: (data.status as PricingStrategyState['status']) || 'inicial',
           });
         }
         setIsLoaded(true);
@@ -238,8 +217,8 @@ export function PricingStrategyModule({
         estrategia_recomendada: currentState.estrategia_recomendada || 'mercado',
         estrategia_selecionada: currentState.estrategia_selecionada,
         p_atracao: currentState.calculos?.atracao.percentual ?? 0.04,
-        p_mercado: currentState.calculos?.mercado.percentual ?? 0.09,
-        p_premium: currentState.calculos?.premium.percentual ?? 0.14,
+        p_mercado: currentState.calculos?.mercado.percentual ?? 0.08,
+        p_premium: currentState.calculos?.premium.percentual ?? 0.12,
         preco_anuncio_atracao: currentState.calculos?.atracao.preco_anuncio,
         corretagem_atracao: currentState.calculos?.atracao.corretagem,
         liquido_atracao: currentState.calculos?.atracao.liquido,
