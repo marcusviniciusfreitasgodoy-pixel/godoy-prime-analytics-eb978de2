@@ -459,7 +459,7 @@ export function Step1Location({ state, updateState, combined }: Props) {
           )}
         </div>
         <p className="text-[10px] sm:text-xs text-muted-foreground flex items-center gap-1">
-          <span>{state.bairro} • Mínimo de 3 transações</span>
+          <span>{state.bairro} • Mínimo de 3 anúncios publicados</span>
           <TooltipProvider>
             <Tooltip>
               <TooltipTrigger asChild>
