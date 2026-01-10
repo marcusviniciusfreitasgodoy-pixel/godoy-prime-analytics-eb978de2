@@ -3,7 +3,7 @@ import { useLocation } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
-import { ArrowLeft, ArrowRight, Calculator, ClipboardCheck, Info } from "lucide-react";
+import { ArrowLeft, ArrowRight, Calculator, ClipboardCheck, Info, Database, Megaphone } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { useValuationCharacteristics, useDocumentationFactors } from "@/hooks/useValuationCharacteristics";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -396,6 +396,40 @@ export function ValuationEngine({ bairro = "BARRA DA TIJUCA", vistoriaData, edit
                     <Calculator className="h-3 w-3 mr-1" />
                     Editando
                   </Badge>
+                )}
+                {/* Indicador de fonte de dados */}
+                {state.itbiData && (
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        {state.anuncioData ? (
+                          <Badge variant="outline" className="text-[10px] sm:text-xs bg-emerald-500/10 text-emerald-600 border-emerald-500/20 cursor-help">
+                            <Database className="h-3 w-3 mr-1" />
+                            <Megaphone className="h-3 w-3 mr-1" />
+                            <span className="hidden sm:inline">Dados Combinados</span>
+                            <span className="sm:hidden">Combinado</span>
+                          </Badge>
+                        ) : (
+                          <Badge variant="outline" className="text-[10px] sm:text-xs bg-blue-500/10 text-blue-600 border-blue-500/20 cursor-help">
+                            <Database className="h-3 w-3 mr-1" />
+                            <span className="hidden sm:inline">Dados Oficiais</span>
+                            <span className="sm:hidden">Oficial</span>
+                          </Badge>
+                        )}
+                      </TooltipTrigger>
+                      <TooltipContent side="bottom" className="max-w-xs">
+                        {state.anuncioData ? (
+                          <p className="text-xs">
+                            <strong>Avaliação combinada:</strong> Utilizando 70% dados oficiais ITBI + 30% anúncios de mercado para maior precisão.
+                          </p>
+                        ) : (
+                          <p className="text-xs">
+                            <strong>Apenas dados oficiais:</strong> Avaliação baseada exclusivamente em transações reais registradas (ITBI) — referência objetiva sem influência de preços de anúncio.
+                          </p>
+                        )}
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
                 )}
               </CardTitle>
               <p className="text-xs sm:text-sm text-muted-foreground">
