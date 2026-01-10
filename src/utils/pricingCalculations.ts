@@ -23,32 +23,32 @@ export function calculateAdjustedPercentages(answers: DiagnosticAnswers): {
     q9_padrao_imovel
   } = answers;
 
-  // ATRAÇÃO: default 4%, pode subir para 7%
+  // ATRAÇÃO: default 4%, pode subir para 6%
   let pAtracao = 0.04;
   if (
     q6_estado_mercado !== 'em_baixa' && 
     (q3_prioridade === 'vender_rapido' || q5_situacao_financeira === 'liquidez_rapida')
   ) {
-    pAtracao = 0.07;
+    pAtracao = 0.06;
   }
 
-  // MERCADO: default 9%, pode subir para 12%
-  let pMercado = 0.09;
+  // MERCADO: default 8%, pode subir para 10%
+  let pMercado = 0.08;
   if (
     q6_estado_mercado === 'em_alta' && 
     (q9_padrao_imovel === 'com_diferenciais' || q9_padrao_imovel === 'alto_padrao' || q9_padrao_imovel === 'premium')
   ) {
-    pMercado = 0.12;
+    pMercado = 0.10;
   }
 
-  // PREMIUM: default 14%, pode subir para 20%
-  let pPremium = 0.14;
+  // PREMIUM: default 12%, pode subir para 15%
+  let pPremium = 0.12;
   if (
     q9_padrao_imovel === 'premium' &&
     q4_horizonte_tempo === 'sem_pressa' &&
     (q2_concorrencia === 'poucos' || q6_estado_mercado === 'em_alta')
   ) {
-    pPremium = 0.20;
+    pPremium = 0.15;
   }
 
   return { atracao: pAtracao, mercado: pMercado, premium: pPremium };
