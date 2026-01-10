@@ -183,14 +183,16 @@ export function PricingStrategyModule({
 
   // Confirma a estratégia
   const handleConfirm = () => {
-    setState(prev => ({ ...prev, status: 'confirmado' }));
-    saveToDatabase({ ...state, status: 'confirmado' });
-    
-    if (onComplete) {
-      onComplete(state);
-    }
+    const updatedState: PricingStrategyState = { ...state, status: 'confirmado' };
+    setState(updatedState);
+    saveToDatabase(updatedState);
     
     toast.success('Estratégia de precificação confirmada!');
+    
+    // Chama callback com estado atualizado para fechar o módulo e voltar
+    if (onComplete) {
+      onComplete(updatedState);
+    }
   };
 
   // Volta para seleção (permite trocar estratégia)
