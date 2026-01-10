@@ -29,7 +29,7 @@ import { useActivityTracking } from "@/hooks/useActivityTracking";
 import { supabase } from "@/integrations/supabase/client";
 import { PricingStrategyModule } from "@/components/pricing/PricingStrategyModule";
 import { PricingStrategyState, StrategyType } from "@/types/pricingStrategy";
-import { SendPdfEmailDialog } from "@/components/SendPdfEmailDialog";
+import { SendPdfEmailDialog, ReportType } from "@/components/SendPdfEmailDialog";
 
 interface Props {
   result: ValuationResult;
@@ -453,11 +453,12 @@ export function Step5Recommendation({ result, state, combined, onReset, existing
     setShowPricingModule(false);
   };
 
-  // Função para gerar PDF para e-mail
-  const generatePdfForEmail = () => {
+  // Função para gerar PDF para e-mail (com suporte a tipo de relatório)
+  const generatePdfForEmail = (reportType: ReportType) => {
+    const tipoAvaliacao = reportType === 'simplificado' ? 'simples' : 'completa';
     const stateWithType: ValuationState = {
       ...state,
-      tipoAvaliacao: "completa"
+      tipoAvaliacao
     };
     return generateValuationPDFForEmail(result, stateWithType, combined, state.anuncioData?.fontes, pricingData);
   };
@@ -766,6 +767,7 @@ export function Step5Recommendation({ result, state, combined, onReset, existing
         defaultName={state.proprietario || ''}
         defaultSubject={`Avaliação Imobiliária - ${state.logradouro || 'Imóvel'}`}
         pdfFilename={getValuationPDFFilename({...state, tipoAvaliacao: "completa"})}
+        showReportTypeSelector={true}
       />
     </div>
   );
