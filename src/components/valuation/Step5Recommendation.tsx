@@ -142,10 +142,10 @@ export function Step5Recommendation({ result, state, combined, onReset, existing
           // Campos de identificação do imóvel
           complemento: state.complemento || null,
           nome_condominio: state.nomeCondominio || null,
-          quartos: state.quartos || null,
-          suites: state.suites || null,
-          banheiros: state.banheiros || null,
-          vagas: state.vagas || null,
+          quartos: state.quartos ?? null,
+          suites: state.suites ?? null,
+          banheiros: state.banheiros ?? null,
+          vagas: state.vagas ?? null,
           andar: state.andar || null,
           proprietario: state.proprietario || null,
           telefone: state.telefone || null,
@@ -172,17 +172,17 @@ export function Step5Recommendation({ result, state, combined, onReset, existing
           confidence_level: result.confidence_level,
           confidence_score: result.confidence_score,
           spread_percentage: result.spread_percentage,
-          documentation_status: state.docStatus || "OK",
-          documentation_factor: state.docFactor || 1,
+          documentation_status: state.docStatus || "ok",
+          documentation_factor: state.docFactor ?? 1,
           documentation_notes: state.docNotes || null,
           recommendation_title: result.recommendation.title,
           recommendation_action: result.recommendation.status,
           recommendation_details: result.recommendation.details ? { steps: result.recommendation.details } : null,
           trend_direction: combined?.trend_direction || null,
           trend_percentage: combined?.trend_percentage || null,
-          bonus_terreno: state.bonus_terreno || null,
-          area_terreno_m2: state.area_terreno_m2 || null,
-          proporcao_terreno: state.proporcao_terreno || null,
+          bonus_terreno: state.bonus_terreno ?? null,
+          area_terreno_m2: state.area_terreno_m2 ?? null,
+          proporcao_terreno: state.proporcao_terreno ?? null,
           auto_capped: result.auto_capped || false,
           pdf_generated: false,
           base_price_selected: state.baseSelected || "med",
@@ -214,6 +214,7 @@ export function Step5Recommendation({ result, state, combined, onReset, existing
           
           if (responsesError) {
             console.error("Erro ao salvar respostas:", responsesError);
+            toast.error("Não foi possível salvar os 26 itens da avaliação. Tente novamente.");
           } else {
             console.log(`✅ ${responsesData.length} fatores de avaliação salvos com sucesso`);
           }
