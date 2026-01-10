@@ -438,73 +438,73 @@ function createValuationPDF(
   
   yPos += metricCardHeight + 8;
   
-  // Explanation box with improved design
+  // Explanation box with improved design - FONTES AUMENTADAS
   doc.setFillColor(240, 249, 255);
   doc.setDrawColor(14, 165, 233);
   doc.setLineWidth(0.3);
-  const explanationHeight = 38;
+  const explanationHeight = 48;
   doc.roundedRect(marginLeft - 5, yPos, contentWidth + 10, explanationHeight, 2, 2, 'FD');
   
   // Blue accent bar on left
   doc.setFillColor(14, 165, 233);
   doc.rect(marginLeft - 5, yPos, 3, explanationHeight, 'F');
   
-  doc.setFontSize(8);
+  doc.setFontSize(10);
   doc.setFont('helvetica', 'bold');
   doc.setTextColor(3, 105, 161);
-  doc.text('[i] Entenda os Indicadores de Confianca', marginLeft + 2, yPos + 6);
+  doc.text('[i] Entenda os Indicadores de Confiança', marginLeft + 2, yPos + 7);
   
   doc.setFont('helvetica', 'normal');
-  doc.setFontSize(6.5);
+  doc.setFontSize(8);
   doc.setTextColor(30, 64, 175);
   
   const explanations = [
-    `- Ajuste Total: Valorizacao ou desvalorizacao aplicada com base nas caracteristicas do imovel (acabamento, vista, posicao, etc.).`,
-    `- Spread: Variacao entre valor minimo e maximo. Spread <=20% = Precisao Alta | 21-35% = Boa | 36-50% = Moderada | >50% = Baixa.`,
-    `- Score (0-100): Pontuacao de confiabilidade baseada na quantidade e qualidade dos dados disponiveis na regiao.`,
-    `- Nivel: Alta (80-100) | Media-Alta (60-79) | Media (40-59) | Baixa (<40) - Resume a qualidade geral desta avaliacao.`
+    `- Ajuste Total: Valorização ou desvalorização aplicada com base nas características do imóvel.`,
+    `- Spread: Variação entre valor mínimo e máximo. <=20% = Alta | 21-35% = Boa | 36-50% = Moderada | >50% = Baixa.`,
+    `- Score (0-100): Pontuação de confiabilidade baseada na quantidade e qualidade dos dados.`,
+    `- Nível: Alta (80-100) | Média-Alta (60-79) | Média (40-59) | Baixa (<40).`
   ];
   
-  let expY = yPos + 12;
+  let expY = yPos + 14;
   explanations.forEach((exp) => {
     const splitExp = doc.splitTextToSize(exp, contentWidth + 2);
     doc.text(splitExp, marginLeft + 2, expY);
-    expY += splitExp.length * 4;
+    expY += splitExp.length * 4.5;
   });
   
   yPos += explanationHeight + 4;
   
-  // Tips box: How to improve evaluation quality
+  // Tips box: How to improve evaluation quality - FONTES AUMENTADAS
   doc.setFillColor(254, 252, 232);
   doc.setDrawColor(202, 138, 4);
   doc.setLineWidth(0.3);
-  const tipsHeight = 32;
+  const tipsHeight = 40;
   doc.roundedRect(marginLeft - 5, yPos, contentWidth + 10, tipsHeight, 2, 2, 'FD');
   
   // Amber accent bar on left
   doc.setFillColor(202, 138, 4);
   doc.rect(marginLeft - 5, yPos, 3, tipsHeight, 'F');
   
-  doc.setFontSize(7);
+  doc.setFontSize(9);
   doc.setFont('helvetica', 'bold');
   doc.setTextColor(146, 64, 14);
-  doc.text('[^] Como Melhorar a Precisao da Avaliacao?', marginLeft + 2, yPos + 5);
+  doc.text('[^] Como Melhorar a Precisão da Avaliação?', marginLeft + 2, yPos + 6);
   
   doc.setFont('helvetica', 'normal');
-  doc.setFontSize(6);
+  doc.setFontSize(7.5);
   doc.setTextColor(120, 53, 15);
   
   const tips = [
-    `> Preencha todas as caracteristicas do imovel com precisao (vista, andar, estado de conservacao, reformas realizadas).`,
-    `> Realize a Vistoria Digital completa para ajuste de ate +/-15% com base nas condicoes reais verificadas in loco.`,
-    `> Quanto mais transacoes na regiao, maior o score. Aguarde mais dados se a regiao for recente ou pouco movimentada.`
+    `> Preencha todas as características do imóvel com precisão (vista, andar, estado de conservação).`,
+    `> Realize a Vistoria Digital completa para ajuste de até +/-15% com base nas condições reais.`,
+    `> Quanto mais transações na região, maior o score. Aguarde mais dados se necessário.`
   ];
   
-  let tipY = yPos + 11;
+  let tipY = yPos + 14;
   tips.forEach((tip) => {
     const splitTip = doc.splitTextToSize(tip, contentWidth + 2);
     doc.text(splitTip, marginLeft + 2, tipY);
-    tipY += splitTip.length * 3.8;
+    tipY += splitTip.length * 4.2;
   });
   
   yPos += tipsHeight + 6;
@@ -522,8 +522,8 @@ function createValuationPDF(
     
     const historical = state.historicalAnalysis;
     
-    // KPIs em linha
-    const kpiHeight = 28;
+    // KPIs em linha - FONTES AUMENTADAS
+    const kpiHeight = 35;
     doc.setFillColor(248, 250, 252);
     doc.setDrawColor(203, 213, 225);
     doc.setLineWidth(0.3);
@@ -535,79 +535,79 @@ function createValuationPDF(
     const liquidityColor: [number, number, number] = historical.liquidityLevel === 'alta' ? [22, 163, 74] :
       historical.liquidityLevel === 'media' ? [202, 138, 4] : [220, 38, 38];
     
-    doc.setFontSize(6);
+    doc.setFontSize(8);
     doc.setTextColor(71, 85, 105);
-    doc.text('Liquidez', marginLeft, yPos + 4);
-    doc.setFontSize(12);
+    doc.text('Liquidez', marginLeft, yPos + 5);
+    doc.setFontSize(16);
     doc.setFont('helvetica', 'bold');
     doc.setTextColor(...liquidityColor);
-    doc.text(`${historical.liquidityScore}/100`, marginLeft, yPos + 13);
-    doc.setFontSize(5);
+    doc.text(`${historical.liquidityScore}/100`, marginLeft, yPos + 17);
+    doc.setFontSize(7);
     doc.setFont('helvetica', 'normal');
     doc.setTextColor(148, 163, 184);
-    const liquidityLabel = historical.liquidityLevel === 'alta' ? 'Alta' : historical.liquidityLevel === 'media' ? 'Media' : 'Baixa';
-    doc.text(liquidityLabel, marginLeft, yPos + 19);
+    const liquidityLabel = historical.liquidityLevel === 'alta' ? 'Alta' : historical.liquidityLevel === 'media' ? 'Média' : 'Baixa';
+    doc.text(liquidityLabel, marginLeft, yPos + 25);
     
     // KPI 2: Vol. Transações
     const transColor: [number, number, number] = historical.transactionTrend === 'crescente' ? [22, 163, 74] :
       historical.transactionTrend === 'decrescente' ? [220, 38, 38] : [100, 100, 100];
     const transIcon = historical.transactionTrend === 'crescente' ? '+' : historical.transactionTrend === 'decrescente' ? '-' : '=';
     
-    doc.setFontSize(6);
+    doc.setFontSize(8);
     doc.setTextColor(71, 85, 105);
-    doc.text('Vol. Transacoes', marginLeft + kpiColWidth, yPos + 4);
-    doc.setFontSize(12);
+    doc.text('Vol. Transações', marginLeft + kpiColWidth, yPos + 5);
+    doc.setFontSize(16);
     doc.setFont('helvetica', 'bold');
     doc.setTextColor(...transColor);
-    doc.text(`${transIcon}${Math.abs(historical.transactionGrowth).toFixed(1)}%`, marginLeft + kpiColWidth, yPos + 13);
-    doc.setFontSize(5);
+    doc.text(`${transIcon}${Math.abs(historical.transactionGrowth).toFixed(1)}%`, marginLeft + kpiColWidth, yPos + 17);
+    doc.setFontSize(7);
     doc.setFont('helvetica', 'normal');
     doc.setTextColor(148, 163, 184);
-    doc.text('a.a.', marginLeft + kpiColWidth, yPos + 19);
+    doc.text('a.a.', marginLeft + kpiColWidth, yPos + 25);
     
     // KPI 3: Evolução Preço
     const priceColor: [number, number, number] = historical.priceTrend === 'alta' ? [22, 163, 74] :
       historical.priceTrend === 'baixa' ? [220, 38, 38] : [100, 100, 100];
     const priceIcon = historical.priceTrend === 'alta' ? '+' : historical.priceTrend === 'baixa' ? '-' : '=';
     
-    doc.setFontSize(6);
+    doc.setFontSize(8);
     doc.setTextColor(71, 85, 105);
-    doc.text('Evolucao Preco', marginLeft + kpiColWidth * 2, yPos + 4);
-    doc.setFontSize(12);
+    doc.text('Evolução Preço', marginLeft + kpiColWidth * 2, yPos + 5);
+    doc.setFontSize(16);
     doc.setFont('helvetica', 'bold');
     doc.setTextColor(...priceColor);
-    doc.text(`${priceIcon}${Math.abs(historical.priceGrowth).toFixed(1)}%`, marginLeft + kpiColWidth * 2, yPos + 13);
-    doc.setFontSize(5);
+    doc.text(`${priceIcon}${Math.abs(historical.priceGrowth).toFixed(1)}%`, marginLeft + kpiColWidth * 2, yPos + 17);
+    doc.setFontSize(7);
     doc.setFont('helvetica', 'normal');
     doc.setTextColor(148, 163, 184);
-    doc.text('a.a.', marginLeft + kpiColWidth * 2, yPos + 19);
+    doc.text('a.a.', marginLeft + kpiColWidth * 2, yPos + 25);
     
     // KPI 4: Total 5 Anos
     const totalTrans = historical.yearlyData.reduce((sum, y) => sum + y.transacoes, 0);
-    doc.setFontSize(6);
+    doc.setFontSize(8);
     doc.setTextColor(71, 85, 105);
-    doc.text('Total 5 Anos', marginLeft + kpiColWidth * 3, yPos + 4);
-    doc.setFontSize(12);
+    doc.text('Total 5 Anos', marginLeft + kpiColWidth * 3, yPos + 5);
+    doc.setFontSize(16);
     doc.setFont('helvetica', 'bold');
     doc.setTextColor(59, 130, 246);
-    doc.text(`${totalTrans}`, marginLeft + kpiColWidth * 3, yPos + 13);
-    doc.setFontSize(5);
+    doc.text(`${totalTrans}`, marginLeft + kpiColWidth * 3, yPos + 17);
+    doc.setFontSize(7);
     doc.setFont('helvetica', 'normal');
     doc.setTextColor(148, 163, 184);
-    doc.text('transacoes', marginLeft + kpiColWidth * 3, yPos + 19);
+    doc.text('transações', marginLeft + kpiColWidth * 3, yPos + 25);
     
     yPos += kpiHeight + 4;
     
-    // Tabela de dados por ano
+    // Tabela de dados por ano - FONTES AUMENTADAS
     const tableY = yPos;
-    doc.setFontSize(6);
+    doc.setFontSize(8);
     doc.setFont('helvetica', 'bold');
     doc.setTextColor(71, 85, 105);
     
     // Headers
     const colWidths = [25, 25, 35, 35, 35];
     let tableX = marginLeft;
-    ['Ano', 'Trans.', 'Min/m2', 'Med/m2', 'Max/m2'].forEach((header, i) => {
+    ['Ano', 'Trans.', 'Mín/m²', 'Méd/m²', 'Máx/m²'].forEach((header, i) => {
       doc.text(header, tableX, yPos);
       tableX += colWidths[i];
     });
@@ -615,11 +615,11 @@ function createValuationPDF(
     doc.setLineWidth(0.2);
     doc.setDrawColor(203, 213, 225);
     doc.line(marginLeft, yPos + 2, marginLeft + contentWidth, yPos + 2);
-    yPos += 5;
+    yPos += 6;
     
     // Data rows
     doc.setFont('helvetica', 'normal');
-    doc.setFontSize(6);
+    doc.setFontSize(8);
     
     historical.yearlyData.forEach((year, i) => {
       tableX = marginLeft;
@@ -642,38 +642,42 @@ function createValuationPDF(
       
       doc.text(year.valorMaxM2 > 0 ? `R$ ${year.valorMaxM2.toLocaleString('pt-BR')}` : '-', tableX, yPos);
       
-      yPos += 4;
+      yPos += 5;
     });
     
     yPos += 2;
     
-    // Diagnóstico
+    // Diagnóstico - Card azul com fonte aumentada
     doc.setFillColor(240, 249, 255);
     doc.setDrawColor(59, 130, 246);
-    doc.setLineWidth(0.3);
+    doc.setLineWidth(0.5);
     
     const diagText = historical.diagnostico;
-    const splitDiag = doc.splitTextToSize(diagText, contentWidth);
-    const diagHeight = 8 + splitDiag.length * 3.5;
+    const splitDiag = doc.splitTextToSize(diagText, contentWidth - 5);
+    const diagHeight = 10 + splitDiag.length * 4.5;
     
     doc.roundedRect(marginLeft - 5, yPos, contentWidth + 10, diagHeight, 2, 2, 'FD');
     
-    doc.setFontSize(6);
+    // Barra azul lateral
+    doc.setFillColor(59, 130, 246);
+    doc.rect(marginLeft - 5, yPos, 3, diagHeight, 'F');
+    
+    doc.setFontSize(8);
     doc.setFont('helvetica', 'normal');
     doc.setTextColor(30, 64, 175);
-    doc.text(splitDiag, marginLeft, yPos + 5);
+    doc.text(splitDiag, marginLeft + 2, yPos + 6);
     
     yPos += diagHeight + 4;
     
     // Alertas
     if (historical.alertas.length > 0) {
       const alertText = historical.alertas.join(' | ');
-      doc.setFontSize(6);
+      doc.setFontSize(7);
       doc.setFont('helvetica', 'normal');
       doc.setTextColor(146, 64, 14);
       const splitAlert = doc.splitTextToSize(alertText, contentWidth);
       doc.text(splitAlert, marginLeft, yPos);
-      yPos += splitAlert.length * 3.5 + 4;
+      yPos += splitAlert.length * 4 + 4;
     }
     
     // ========== GRÁFICO DE EVOLUÇÃO ANUAL DO PREÇO/M² ==========
@@ -914,7 +918,7 @@ function createValuationPDF(
       
       lineColors.forEach(({ key, color }) => {
         doc.setDrawColor(...color);
-        doc.setLineWidth(1);
+        doc.setLineWidth(1.2);
         
         for (let i = 0; i < projectionData.length - 1; i++) {
           const x1 = projGraphX + pointSpacing * i;
@@ -925,33 +929,33 @@ function createValuationPDF(
           doc.line(x1, y1, x2, y2);
         }
         
-        // Pontos
+        // Pontos maiores
         projectionData.forEach((point, i) => {
           const x = projGraphX + pointSpacing * i;
           const y = mapValueToY(point[key]);
           
           doc.setFillColor(255, 255, 255);
-          doc.circle(x, y, 2, 'F');
+          doc.circle(x, y, 3, 'FD');
           doc.setFillColor(...color);
-          doc.circle(x, y, 1.2, 'F');
+          doc.circle(x, y, 2, 'F');
         });
       });
       
-      // Labels do eixo X
+      // Labels do eixo X - FONTES AUMENTADAS
       projectionData.forEach((point, i) => {
         const x = projGraphX + pointSpacing * i;
-        doc.setFontSize(6);
+        doc.setFontSize(9);
         doc.setFont('helvetica', 'bold');
         doc.setTextColor(71, 85, 105);
         const labelWidth = doc.getTextWidth(point.label);
-        doc.text(point.label, x - labelWidth / 2, projGraphY + projGraphHeight + 6);
+        doc.text(point.label, x - labelWidth / 2, projGraphY + projGraphHeight + 8);
       });
       
-      // Valores no final (3 anos)
+      // Valores no final (3 anos) - FONTES AUMENTADAS
       const lastPoint = projectionData[projectionData.length - 1];
       const lastX = projGraphX + projGraphWidth + 3;
       
-      doc.setFontSize(5);
+      doc.setFontSize(7);
       doc.setFont('helvetica', 'bold');
       
       doc.setTextColor(34, 197, 94);
@@ -972,36 +976,36 @@ function createValuationPDF(
         : formatCurrencyPDF(lastPoint.pessimistic);
       doc.text(pessText, lastX, mapValueToY(lastPoint.pessimistic) + 1);
       
-      yPos = projChartY + projChartHeight + 8;
+      yPos = projChartY + projChartHeight + 10;
       
-      // Legenda
-      doc.setFontSize(5);
+      // Legenda - FONTES AUMENTADAS
+      doc.setFontSize(7);
       doc.setFont('helvetica', 'normal');
       
       lineColors.forEach((item, i) => {
-        const legendX = projChartX + (i * 45);
+        const legendX = projChartX + (i * 55);
         doc.setFillColor(...item.color);
-        doc.circle(legendX + 2, yPos - 1, 1.5, 'F');
+        doc.circle(legendX + 2, yPos - 1, 2, 'F');
         doc.setTextColor(...item.color);
-        doc.text(`${item.label} (${(projection[`${item.key.replace('istic', '')}Rate` as keyof typeof projection] as number || 0).toFixed(1)}% a.a.)`, legendX + 5, yPos);
+        doc.text(`${item.label} (${(projection[`${item.key.replace('istic', '')}Rate` as keyof typeof projection] as number || 0).toFixed(1)}% a.a.)`, legendX + 6, yPos);
       });
       
-      yPos += 6;
+      yPos += 8;
       
-      // Disclaimer da projeção
+      // Disclaimer da projeção - FONTE AUMENTADA
       doc.setFillColor(254, 252, 232);
       doc.setDrawColor(202, 138, 4);
       doc.setLineWidth(0.2);
-      doc.roundedRect(projChartX - 2, yPos, projChartWidth + 4, 10, 1, 1, 'FD');
+      doc.roundedRect(projChartX - 2, yPos, projChartWidth + 4, 12, 1, 1, 'FD');
       
-      doc.setFontSize(5);
+      doc.setFontSize(7);
       doc.setFont('helvetica', 'italic');
       doc.setTextColor(146, 64, 14);
       const disclaimerText = projection.disclaimer || 'Projeção baseada em tendências históricas. Valores sujeitos a variações de mercado.';
       const splitDisclaimer = doc.splitTextToSize(disclaimerText, projChartWidth);
-      doc.text(splitDisclaimer, projChartX, yPos + 4);
+      doc.text(splitDisclaimer, projChartX, yPos + 5);
       
-      yPos += 14;
+      yPos += 16;
     }
   }
 
