@@ -453,7 +453,7 @@ export function Step1Location({ state, updateState, combined }: Props) {
           )}
         </div>
         <p className="text-[10px] sm:text-xs text-muted-foreground">
-          {state.bairro} • Mínimo 3 transações
+          {state.bairro} • Mínimo de 3 transações oficiais para garantir precisão estatística na faixa de preços
         </p>
       </div>
 
