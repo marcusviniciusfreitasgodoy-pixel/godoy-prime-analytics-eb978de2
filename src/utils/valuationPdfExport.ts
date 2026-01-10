@@ -670,6 +670,334 @@ function createValuationPDF(
       doc.text(splitAlert, marginLeft, yPos);
       yPos += splitAlert.length * 3.5 + 4;
     }
+    
+    // ========== GRÁFICO DE EVOLUÇÃO ANUAL DO PREÇO/M² ==========
+    // Check if we need a new page
+    if (yPos > getMaxContentY() - 85) {
+      doc.addPage();
+      yPos = 20;
+    }
+    
+    yPos += 6;
+    doc.setFontSize(9);
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(...BRAND_COLORS.navy);
+    doc.text('Gráfico de Evolução Anual do Preço/m²', marginLeft, yPos);
+    yPos += 8;
+    
+    // Dimensões do gráfico
+    const chartWidth = contentWidth;
+    const chartHeight = 55;
+    const chartX = marginLeft;
+    const chartY = yPos;
+    
+    // Background do gráfico
+    doc.setFillColor(248, 250, 252);
+    doc.setDrawColor(203, 213, 225);
+    doc.setLineWidth(0.3);
+    doc.roundedRect(chartX - 2, chartY - 2, chartWidth + 4, chartHeight + 4, 2, 2, 'FD');
+    
+    // Calcular valores para escala
+    const yearlyValues = historical.yearlyData.filter(y => y.valorMedioM2 > 0);
+    if (yearlyValues.length > 0) {
+      const maxValue = Math.max(...yearlyValues.map(y => y.valorMedioM2));
+      const minValue = Math.min(...yearlyValues.map(y => y.valorMedioM2));
+      const valueRange = maxValue - minValue || maxValue * 0.1;
+      const paddedMin = minValue - valueRange * 0.15;
+      const paddedMax = maxValue + valueRange * 0.15;
+      const scaledRange = paddedMax - paddedMin;
+      
+      // Área útil do gráfico
+      const graphAreaX = chartX + 35; // Espaço para labels Y
+      const graphAreaY = chartY + 5;
+      const graphAreaWidth = chartWidth - 45;
+      const graphAreaHeight = chartHeight - 18;
+      
+      // Eixo Y - linhas de grade e labels
+      const numYLines = 4;
+      doc.setFontSize(5);
+      doc.setFont('helvetica', 'normal');
+      doc.setTextColor(100, 116, 139);
+      doc.setDrawColor(226, 232, 240);
+      doc.setLineWidth(0.1);
+      
+      for (let i = 0; i <= numYLines; i++) {
+        const yValue = paddedMin + (scaledRange * i / numYLines);
+        const yPosition = graphAreaY + graphAreaHeight - (graphAreaHeight * i / numYLines);
+        
+        // Linha de grade horizontal
+        doc.setLineDashPattern([1, 1], 0);
+        doc.line(graphAreaX, yPosition, graphAreaX + graphAreaWidth, yPosition);
+        doc.setLineDashPattern([], 0);
+        
+        // Label do valor
+        const valueLabel = `R$ ${Math.round(yValue).toLocaleString('pt-BR')}`;
+        doc.text(valueLabel, chartX + 2, yPosition + 1);
+      }
+      
+      // Desenhar barras
+      const barCount = yearlyValues.length;
+      const barWidth = Math.min(20, (graphAreaWidth - 10) / barCount - 4);
+      const barSpacing = (graphAreaWidth - barWidth * barCount) / (barCount + 1);
+      
+      yearlyValues.forEach((year, i) => {
+        const barHeight = ((year.valorMedioM2 - paddedMin) / scaledRange) * graphAreaHeight;
+        const barX = graphAreaX + barSpacing + (barWidth + barSpacing) * i;
+        const barY = graphAreaY + graphAreaHeight - barHeight;
+        
+        // Gradiente simulado com cores
+        const isGrowing = i > 0 && year.valorMedioM2 > yearlyValues[i - 1].valorMedioM2;
+        const baseColor: [number, number, number] = isGrowing ? [34, 197, 94] : [59, 130, 246];
+        
+        // Barra principal
+        doc.setFillColor(...baseColor);
+        doc.roundedRect(barX, barY, barWidth, barHeight, 1, 1, 'F');
+        
+        // Borda da barra
+        doc.setDrawColor(baseColor[0] - 20, baseColor[1] - 20, baseColor[2] - 20);
+        doc.setLineWidth(0.3);
+        doc.roundedRect(barX, barY, barWidth, barHeight, 1, 1, 'S');
+        
+        // Valor acima da barra
+        doc.setFontSize(5);
+        doc.setFont('helvetica', 'bold');
+        doc.setTextColor(...baseColor);
+        const valueText = `R$ ${Math.round(year.valorMedioM2).toLocaleString('pt-BR')}`;
+        const textWidth = doc.getTextWidth(valueText);
+        doc.text(valueText, barX + barWidth / 2 - textWidth / 2, barY - 2);
+        
+        // Label do ano (eixo X)
+        doc.setFontSize(6);
+        doc.setFont('helvetica', 'bold');
+        doc.setTextColor(71, 85, 105);
+        const yearText = year.ano.toString();
+        const yearWidth = doc.getTextWidth(yearText);
+        doc.text(yearText, barX + barWidth / 2 - yearWidth / 2, graphAreaY + graphAreaHeight + 6);
+        
+        // Número de transações
+        doc.setFontSize(4);
+        doc.setFont('helvetica', 'normal');
+        doc.setTextColor(148, 163, 184);
+        const transText = `${year.transacoes} trans.`;
+        const transWidth = doc.getTextWidth(transText);
+        doc.text(transText, barX + barWidth / 2 - transWidth / 2, graphAreaY + graphAreaHeight + 10);
+      });
+      
+      // Legenda
+      yPos = chartY + chartHeight + 8;
+      doc.setFontSize(5);
+      doc.setFont('helvetica', 'normal');
+      doc.setTextColor(100, 116, 139);
+      
+      // Verde = crescimento
+      doc.setFillColor(34, 197, 94);
+      doc.rect(chartX, yPos - 2, 4, 4, 'F');
+      doc.text('Crescimento vs. ano anterior', chartX + 6, yPos + 1);
+      
+      // Azul = queda ou primeiro ano
+      doc.setFillColor(59, 130, 246);
+      doc.rect(chartX + 55, yPos - 2, 4, 4, 'F');
+      doc.text('Queda ou primeiro ano da série', chartX + 61, yPos + 1);
+      
+      yPos += 8;
+    }
+    
+    // ========== GRÁFICO DE PROJEÇÃO DE VALORIZAÇÃO ==========
+    if (historical.futureProjection) {
+      // Check if we need a new page
+      if (yPos > getMaxContentY() - 85) {
+        doc.addPage();
+        yPos = 20;
+      }
+      
+      yPos += 6;
+      doc.setFontSize(9);
+      doc.setFont('helvetica', 'bold');
+      doc.setTextColor(...BRAND_COLORS.navy);
+      doc.text('Gráfico de Projeção de Valorização', marginLeft, yPos);
+      
+      // Badge de confiança
+      const projection = historical.futureProjection;
+      const confidenceColor: [number, number, number] = projection.confidence === 'alta' ? [22, 163, 74] :
+        projection.confidence === 'media' ? [202, 138, 4] : [220, 38, 38];
+      const confidenceLabel = projection.confidence === 'alta' ? 'ALTA' :
+        projection.confidence === 'media' ? 'MÉDIA' : 'BAIXA';
+      
+      doc.setFillColor(...confidenceColor);
+      const badgeX = marginLeft + 75;
+      doc.roundedRect(badgeX, yPos - 4, 22, 6, 1, 1, 'F');
+      doc.setFontSize(5);
+      doc.setFont('helvetica', 'bold');
+      doc.setTextColor(255, 255, 255);
+      doc.text(`Conf: ${confidenceLabel}`, badgeX + 2, yPos);
+      
+      yPos += 8;
+      
+      // Dimensões do gráfico de projeção
+      const projChartWidth = contentWidth;
+      const projChartHeight = 55;
+      const projChartX = marginLeft;
+      const projChartY = yPos;
+      
+      // Background
+      doc.setFillColor(248, 250, 252);
+      doc.setDrawColor(203, 213, 225);
+      doc.setLineWidth(0.3);
+      doc.roundedRect(projChartX - 2, projChartY - 2, projChartWidth + 4, projChartHeight + 4, 2, 2, 'FD');
+      
+      // Área útil
+      const projGraphX = projChartX + 35;
+      const projGraphY = projChartY + 5;
+      const projGraphWidth = projChartWidth - 45;
+      const projGraphHeight = projChartHeight - 18;
+      
+      // Dados de projeção
+      const currentArea = state.area_m2;
+      const currentValue = result.provavel;
+      
+      const projectionData = [
+        { label: 'Atual', optimistic: currentValue, probable: currentValue, pessimistic: currentValue },
+        { label: '1 Ano', ...projection.oneYear },
+        { label: '2 Anos', ...projection.twoYears },
+        { label: '3 Anos', ...projection.threeYears }
+      ];
+      
+      // Calcular escala
+      const allValues = projectionData.flatMap(p => [p.optimistic, p.probable, p.pessimistic]);
+      const projMaxValue = Math.max(...allValues);
+      const projMinValue = Math.min(...allValues);
+      const projRange = projMaxValue - projMinValue || projMaxValue * 0.1;
+      const projPaddedMin = projMinValue - projRange * 0.1;
+      const projPaddedMax = projMaxValue + projRange * 0.1;
+      const projScaledRange = projPaddedMax - projPaddedMin;
+      
+      // Eixo Y com labels
+      const numProjYLines = 4;
+      doc.setFontSize(5);
+      doc.setFont('helvetica', 'normal');
+      doc.setTextColor(100, 116, 139);
+      
+      for (let i = 0; i <= numProjYLines; i++) {
+        const yValue = projPaddedMin + (projScaledRange * i / numProjYLines);
+        const yPosition = projGraphY + projGraphHeight - (projGraphHeight * i / numProjYLines);
+        
+        doc.setDrawColor(226, 232, 240);
+        doc.setLineDashPattern([1, 1], 0);
+        doc.line(projGraphX, yPosition, projGraphX + projGraphWidth, yPosition);
+        doc.setLineDashPattern([], 0);
+        
+        const formattedValue = yValue >= 1000000 
+          ? `R$ ${(yValue / 1000000).toFixed(1)}M`
+          : `R$ ${Math.round(yValue / 1000)}K`;
+        doc.text(formattedValue, projChartX + 2, yPosition + 1);
+      }
+      
+      // Função para mapear valor para posição Y
+      const mapValueToY = (value: number) => {
+        return projGraphY + projGraphHeight - ((value - projPaddedMin) / projScaledRange) * projGraphHeight;
+      };
+      
+      // Espaçamento entre pontos
+      const pointSpacing = projGraphWidth / (projectionData.length - 1);
+      
+      // Desenhar linhas
+      const lineColors: { key: 'optimistic' | 'probable' | 'pessimistic'; color: [number, number, number]; label: string }[] = [
+        { key: 'optimistic', color: [34, 197, 94], label: 'Otimista' },
+        { key: 'probable', color: [59, 130, 246], label: 'Provável' },
+        { key: 'pessimistic', color: [239, 68, 68], label: 'Pessimista' }
+      ];
+      
+      lineColors.forEach(({ key, color }) => {
+        doc.setDrawColor(...color);
+        doc.setLineWidth(1);
+        
+        for (let i = 0; i < projectionData.length - 1; i++) {
+          const x1 = projGraphX + pointSpacing * i;
+          const y1 = mapValueToY(projectionData[i][key]);
+          const x2 = projGraphX + pointSpacing * (i + 1);
+          const y2 = mapValueToY(projectionData[i + 1][key]);
+          
+          doc.line(x1, y1, x2, y2);
+        }
+        
+        // Pontos
+        projectionData.forEach((point, i) => {
+          const x = projGraphX + pointSpacing * i;
+          const y = mapValueToY(point[key]);
+          
+          doc.setFillColor(255, 255, 255);
+          doc.circle(x, y, 2, 'F');
+          doc.setFillColor(...color);
+          doc.circle(x, y, 1.2, 'F');
+        });
+      });
+      
+      // Labels do eixo X
+      projectionData.forEach((point, i) => {
+        const x = projGraphX + pointSpacing * i;
+        doc.setFontSize(6);
+        doc.setFont('helvetica', 'bold');
+        doc.setTextColor(71, 85, 105);
+        const labelWidth = doc.getTextWidth(point.label);
+        doc.text(point.label, x - labelWidth / 2, projGraphY + projGraphHeight + 6);
+      });
+      
+      // Valores no final (3 anos)
+      const lastPoint = projectionData[projectionData.length - 1];
+      const lastX = projGraphX + projGraphWidth + 3;
+      
+      doc.setFontSize(5);
+      doc.setFont('helvetica', 'bold');
+      
+      doc.setTextColor(34, 197, 94);
+      const optText = lastPoint.optimistic >= 1000000 
+        ? `R$ ${(lastPoint.optimistic / 1000000).toFixed(2)}M`
+        : formatCurrencyPDF(lastPoint.optimistic);
+      doc.text(optText, lastX, mapValueToY(lastPoint.optimistic) + 1);
+      
+      doc.setTextColor(59, 130, 246);
+      const probText = lastPoint.probable >= 1000000 
+        ? `R$ ${(lastPoint.probable / 1000000).toFixed(2)}M`
+        : formatCurrencyPDF(lastPoint.probable);
+      doc.text(probText, lastX, mapValueToY(lastPoint.probable) + 1);
+      
+      doc.setTextColor(239, 68, 68);
+      const pessText = lastPoint.pessimistic >= 1000000 
+        ? `R$ ${(lastPoint.pessimistic / 1000000).toFixed(2)}M`
+        : formatCurrencyPDF(lastPoint.pessimistic);
+      doc.text(pessText, lastX, mapValueToY(lastPoint.pessimistic) + 1);
+      
+      yPos = projChartY + projChartHeight + 8;
+      
+      // Legenda
+      doc.setFontSize(5);
+      doc.setFont('helvetica', 'normal');
+      
+      lineColors.forEach((item, i) => {
+        const legendX = projChartX + (i * 45);
+        doc.setFillColor(...item.color);
+        doc.circle(legendX + 2, yPos - 1, 1.5, 'F');
+        doc.setTextColor(...item.color);
+        doc.text(`${item.label} (${(projection[`${item.key.replace('istic', '')}Rate` as keyof typeof projection] as number || 0).toFixed(1)}% a.a.)`, legendX + 5, yPos);
+      });
+      
+      yPos += 6;
+      
+      // Disclaimer da projeção
+      doc.setFillColor(254, 252, 232);
+      doc.setDrawColor(202, 138, 4);
+      doc.setLineWidth(0.2);
+      doc.roundedRect(projChartX - 2, yPos, projChartWidth + 4, 10, 1, 1, 'FD');
+      
+      doc.setFontSize(5);
+      doc.setFont('helvetica', 'italic');
+      doc.setTextColor(146, 64, 14);
+      const disclaimerText = projection.disclaimer || 'Projeção baseada em tendências históricas. Valores sujeitos a variações de mercado.';
+      const splitDisclaimer = doc.splitTextToSize(disclaimerText, projChartWidth);
+      doc.text(splitDisclaimer, projChartX, yPos + 4);
+      
+      yPos += 14;
+    }
   }
 
   // 6. CARACTERÍSTICAS APLICADAS
