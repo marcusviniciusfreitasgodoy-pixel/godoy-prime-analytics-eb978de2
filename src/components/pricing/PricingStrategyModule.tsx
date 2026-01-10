@@ -32,6 +32,8 @@ import { Label } from '@/components/ui/label';
 interface PricingStrategyModuleProps {
   valuationId?: string;
   valorItbiInicial?: number;
+  /** Estratégia existente para edição */
+  existingStrategy?: PricingStrategyState | null;
   onComplete?: (state: PricingStrategyState) => void;
   onBack?: () => void;
 }
@@ -39,16 +41,99 @@ interface PricingStrategyModuleProps {
 export function PricingStrategyModule({ 
   valuationId, 
   valorItbiInicial,
+  existingStrategy,
   onComplete,
   onBack
 }: PricingStrategyModuleProps) {
   const { user } = useAuthContext();
-  const [state, setState] = useState<PricingStrategyState>(() => ({
-    ...initialPricingStrategyState,
-    valuation_id: valuationId,
-    valor_itbi: valorItbiInicial || 0
-  }));
+  const [state, setState] = useState<PricingStrategyState>(() => {
+    // Se existir uma estratégia existente, usá-la
+    if (existingStrategy) {
+      return existingStrategy;
+    }
+    return {
+      ...initialPricingStrategyState,
+      valuation_id: valuationId,
+      valor_itbi: valorItbiInicial || 0
+    };
+  });
   const [saving, setSaving] = useState(false);
+  const [isLoaded, setIsLoaded] = useState(!!existingStrategy);
+
+  // Busca estratégia existente do banco quando valuationId é fornecido
+  useEffect(() => {
+    const loadExistingStrategy = async () => {
+      if (!valuationId || isLoaded || existingStrategy) return;
+      
+      try {
+        const { data, error } = await supabase
+          .from('pricing_strategies')
+          .select('*')
+          .eq('valuation_id', valuationId)
+          .maybeSingle();
+        
+        if (data && !error) {
+          console.log('Estratégia de precificação carregada:', data.id);
+          setState({
+            id: data.id,
+            valuation_id: data.valuation_id || undefined,
+            valor_itbi: data.valor_itbi,
+            is_new_listing: data.is_new_listing,
+            diagnostico: {
+              q1_tempo_mercado: data.q1_tempo_mercado,
+              q2_concorrencia: data.q2_concorrencia,
+              q3_prioridade: data.q3_prioridade,
+              q4_horizonte_tempo: data.q4_horizonte_tempo,
+              q5_situacao_financeira: data.q5_situacao_financeira,
+              q6_estado_mercado: data.q6_estado_mercado,
+              q7_clientes_potenciais: data.q7_clientes_potenciais,
+              q8_pronto_vender: data.q8_pronto_vender,
+              q9_padrao_imovel: data.q9_padrao_imovel,
+            },
+            estrategia_recomendada: data.estrategia_recomendada as StrategyType | null,
+            estrategia_selecionada: data.estrategia_selecionada as StrategyType | null,
+            calculos: data.preco_anuncio_mercado ? {
+              atracao: {
+                percentual: data.p_atracao,
+                preco_anuncio: data.preco_anuncio_atracao || 0,
+                corretagem: data.corretagem_atracao || 0,
+                liquido: data.liquido_atracao || 0,
+                piso_planejado: data.piso_planejado_atracao || 0,
+                liquido_min: data.liquido_min_atracao || 0,
+                premio_liquido_pct: data.premio_liquido_pct_atracao || 0,
+              },
+              mercado: {
+                percentual: data.p_mercado,
+                preco_anuncio: data.preco_anuncio_mercado || 0,
+                corretagem: data.corretagem_mercado || 0,
+                liquido: data.liquido_mercado || 0,
+                piso_planejado: data.piso_planejado_mercado || 0,
+                liquido_min: data.liquido_min_mercado || 0,
+                premio_liquido_pct: data.premio_liquido_pct_mercado || 0,
+              },
+              premium: {
+                percentual: data.p_premium,
+                preco_anuncio: data.preco_anuncio_premium || 0,
+                corretagem: data.corretagem_premium || 0,
+                liquido: data.liquido_premium || 0,
+                piso_planejado: data.piso_planejado_premium || 0,
+                liquido_min: data.liquido_min_premium || 0,
+                premio_liquido_pct: data.premio_liquido_pct_premium || 0,
+              },
+            } : null,
+            plano_ajuste_ativo: data.plano_ajuste_ativo || false,
+            status: data.status as PricingStrategyState['status'] || 'inicial',
+          });
+        }
+        setIsLoaded(true);
+      } catch (err) {
+        console.error('Erro ao carregar estratégia:', err);
+        setIsLoaded(true);
+      }
+    };
+    
+    loadExistingStrategy();
+  }, [valuationId, isLoaded, existingStrategy]);
 
   // Atualiza o diagnóstico
   const updateDiagnostic = (key: keyof DiagnosticAnswers, value: string) => {

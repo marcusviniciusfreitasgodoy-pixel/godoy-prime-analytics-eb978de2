@@ -36,19 +36,85 @@ interface Props {
   state: ValuationState;
   combined: CombinedPrices | null;
   onReset: () => void;
+  /** ID da avaliação existente (para edição do histórico) */
+  existingValuationId?: string;
 }
 
-export function Step5Recommendation({ result, state, combined, onReset }: Props) {
+export function Step5Recommendation({ result, state, combined, onReset, existingValuationId }: Props) {
   const navigate = useNavigate();
   const { user, isAdmin } = useAuth();
   const { trackValuation, trackExport } = useActivityTracking();
   const [decisionMade, setDecisionMade] = useState<"sim" | "nao" | null>(null);
-  const [isSaved, setIsSaved] = useState(false);
-  const [valuationId, setValuationId] = useState<string | null>(null);
+  const [isSaved, setIsSaved] = useState(!!existingValuationId);
+  const [valuationId, setValuationId] = useState<string | null>(existingValuationId || null);
   const [showPricingModule, setShowPricingModule] = useState(false);
   const [pricingCompleted, setPricingCompleted] = useState(false);
   const [pricingData, setPricingData] = useState<PricingStrategyPDFData | null>(null);
   const [showEmailDialog, setShowEmailDialog] = useState(false);
+
+  // Carregar estratégia de precificação existente para edição
+  useEffect(() => {
+    const loadExistingPricing = async () => {
+      if (!existingValuationId) return;
+      
+      try {
+        const { data, error } = await supabase
+          .from('pricing_strategies')
+          .select('*')
+          .eq('valuation_id', existingValuationId)
+          .maybeSingle();
+        
+        if (data && !error && data.estrategia_selecionada) {
+          setPricingCompleted(true);
+          
+          // Reconstruir dados para PDF
+          if (data.preco_anuncio_mercado) {
+            setPricingData({
+              valorItbi: data.valor_itbi,
+              estrategiaSelecionada: data.estrategia_selecionada as any,
+              estrategiaRecomendada: data.estrategia_recomendada as any,
+              calculos: {
+                atracao: {
+                  percentual: data.p_atracao,
+                  preco_anuncio: data.preco_anuncio_atracao || 0,
+                  corretagem: data.corretagem_atracao || 0,
+                  liquido: data.liquido_atracao || 0,
+                  piso_planejado: data.piso_planejado_atracao || 0,
+                  liquido_min: data.liquido_min_atracao || 0,
+                  premio_liquido_pct: data.premio_liquido_pct_atracao || 0,
+                },
+                mercado: {
+                  percentual: data.p_mercado,
+                  preco_anuncio: data.preco_anuncio_mercado || 0,
+                  corretagem: data.corretagem_mercado || 0,
+                  liquido: data.liquido_mercado || 0,
+                  piso_planejado: data.piso_planejado_mercado || 0,
+                  liquido_min: data.liquido_min_mercado || 0,
+                  premio_liquido_pct: data.premio_liquido_pct_mercado || 0,
+                },
+                premium: {
+                  percentual: data.p_premium,
+                  preco_anuncio: data.preco_anuncio_premium || 0,
+                  corretagem: data.corretagem_premium || 0,
+                  liquido: data.liquido_premium || 0,
+                  piso_planejado: data.piso_planejado_premium || 0,
+                  liquido_min: data.liquido_min_premium || 0,
+                  premio_liquido_pct: data.premio_liquido_pct_premium || 0,
+                },
+              },
+              planoAjusteAtivo: data.plano_ajuste_ativo || false
+            });
+          }
+          
+          console.log('Estratégia de precificação carregada do histórico');
+        }
+      } catch (err) {
+        console.error('Erro ao carregar estratégia:', err);
+      }
+    };
+    
+    loadExistingPricing();
+  }, [existingValuationId]);
 
   // Salvar avaliação no banco ao montar o componente
   // IMPORTANTE: Esperar que state.responses tenha os 26 fatores antes de salvar
