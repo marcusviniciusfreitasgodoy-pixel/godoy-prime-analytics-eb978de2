@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import {
   Dialog,
   DialogContent,
@@ -11,20 +11,23 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { Loader2, Mail, Send } from 'lucide-react';
+import { Loader2, Mail, Send, FileText, FileCheck } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { sendPdfByEmail, DocumentType } from '@/utils/pdfEmailService';
 import jsPDF from 'jspdf';
 
+export type ReportType = 'simplificado' | 'completo';
+
 interface SendPdfEmailDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  generatePdf: () => Promise<jsPDF> | jsPDF;
+  generatePdf: (reportType: ReportType) => Promise<jsPDF> | jsPDF;
   documentType: DocumentType;
   defaultEmail?: string;
   defaultName?: string;
   defaultSubject?: string;
   pdfFilename: string;
+  showReportTypeSelector?: boolean;
 }
 
 export function SendPdfEmailDialog({
@@ -36,13 +39,28 @@ export function SendPdfEmailDialog({
   defaultName = '',
   defaultSubject = '',
   pdfFilename,
+  showReportTypeSelector = false,
 }: SendPdfEmailDialogProps) {
   const [email, setEmail] = useState(defaultEmail);
   const [recipientName, setRecipientName] = useState(defaultName);
   const [subject, setSubject] = useState(defaultSubject);
   const [customMessage, setCustomMessage] = useState('');
   const [isSending, setIsSending] = useState(false);
+  const [reportType, setReportType] = useState<ReportType>('simplificado');
   const { toast } = useToast();
+
+  // Update email when defaultEmail changes
+  useEffect(() => {
+    setEmail(defaultEmail);
+  }, [defaultEmail]);
+
+  useEffect(() => {
+    setRecipientName(defaultName);
+  }, [defaultName]);
+
+  useEffect(() => {
+    setSubject(defaultSubject);
+  }, [defaultSubject]);
 
   const handleSend = async () => {
     if (!email) {
@@ -57,14 +75,18 @@ export function SendPdfEmailDialog({
     setIsSending(true);
 
     try {
-      const pdfDoc = await generatePdf();
+      const pdfDoc = await generatePdf(reportType);
+
+      const filenameWithType = showReportTypeSelector 
+        ? pdfFilename.replace('.pdf', `_${reportType}.pdf`)
+        : pdfFilename;
 
       const result = await sendPdfByEmail({
         to: email,
         recipientName: recipientName || 'Cliente',
-        subject: subject || `Documento - ${pdfFilename}`,
+        subject: subject || `Documento - ${filenameWithType}`,
         pdfDoc,
-        pdfFilename,
+        pdfFilename: filenameWithType,
         documentType,
         customMessage: customMessage || undefined,
       });
@@ -72,7 +94,7 @@ export function SendPdfEmailDialog({
       if (result.success) {
         toast({
           title: 'Email enviado!',
-          description: `O documento foi enviado para ${email}.`,
+          description: `O relatório ${reportType === 'simplificado' ? 'simplificado' : 'completo'} foi enviado para ${email}.`,
         });
         onOpenChange(false);
         // Reset form
@@ -106,6 +128,52 @@ export function SendPdfEmailDialog({
         </DialogHeader>
 
         <div className="space-y-4 py-4">
+          {showReportTypeSelector && (
+            <div className="space-y-3">
+              <Label>Tipo de Relatório</Label>
+              <div className="grid grid-cols-2 gap-3">
+                <button
+                  type="button"
+                  onClick={() => setReportType('simplificado')}
+                  className={`flex flex-col items-center gap-2 p-4 rounded-lg border-2 transition-all ${
+                    reportType === 'simplificado'
+                      ? 'border-primary bg-primary/5'
+                      : 'border-muted hover:border-muted-foreground/30'
+                  }`}
+                >
+                  <FileText className={`h-8 w-8 ${reportType === 'simplificado' ? 'text-primary' : 'text-muted-foreground'}`} />
+                  <div className="text-center">
+                    <p className={`font-medium text-sm ${reportType === 'simplificado' ? 'text-primary' : ''}`}>
+                      Simplificado
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      Resumo executivo
+                    </p>
+                  </div>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setReportType('completo')}
+                  className={`flex flex-col items-center gap-2 p-4 rounded-lg border-2 transition-all ${
+                    reportType === 'completo'
+                      ? 'border-primary bg-primary/5'
+                      : 'border-muted hover:border-muted-foreground/30'
+                  }`}
+                >
+                  <FileCheck className={`h-8 w-8 ${reportType === 'completo' ? 'text-primary' : 'text-muted-foreground'}`} />
+                  <div className="text-center">
+                    <p className={`font-medium text-sm ${reportType === 'completo' ? 'text-primary' : ''}`}>
+                      Completo
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      Análise detalhada
+                    </p>
+                  </div>
+                </button>
+              </div>
+            </div>
+          )}
+
           <div className="space-y-2">
             <Label htmlFor="email">Email do Destinatário *</Label>
             <Input
