@@ -117,22 +117,29 @@ export function Step5Recommendation({ result, state, combined, onReset, existing
   }, [existingValuationId]);
 
   // Salvar avaliação no banco ao montar o componente
+  // - Se for NOVA avaliação: INSERT em valuations + INSERT em valuation_responses
+  // - Se for EDIÇÃO (existingValuationId): UPDATE em valuations + substitui valuation_responses
   // IMPORTANTE: Esperar que state.responses tenha os 26 fatores antes de salvar
   useEffect(() => {
     const saveValuation = async () => {
-      if (isSaved || !user?.id) return;
-      
-      // Aguarda que as respostas estejam disponíveis (26 fatores)
-      // Se ainda não tiver respostas, espera a próxima atualização do state
+      if (!user?.id) return;
+
+      const targetValuationId = existingValuationId || valuationId;
+      const isEditing = !!existingValuationId;
+
+      // Evita resalvar sem necessidade em modo "nova"
+      if (!isEditing && isSaved) return;
+
+      // Aguarda respostas estarem disponíveis (idealmente 26 já normalizadas no Step 3 -> 4)
       if (!state.responses || state.responses.length === 0) {
         console.log("Aguardando respostas serem populadas...");
         return;
       }
-      
-      console.log(`Salvando avaliação com ${state.responses.length} fatores`);
-      
+
+      console.log(`${isEditing ? "Atualizando" : "Salvando"} avaliação com ${state.responses.length} fatores`);
+
       try {
-        const insertData = {
+        const payload = {
           user_id: user.id,
           logradouro: state.logradouro,
           numero: state.numero || null,
@@ -187,49 +194,93 @@ export function Step5Recommendation({ result, state, combined, onReset, existing
           pdf_generated: false,
           base_price_selected: state.baseSelected || "med",
         };
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const { data: insertedValuation, error } = await supabase
-          .from("valuations")
-          .insert(insertData as any)
-          .select("id")
-          .single();
 
-        if (error) {
-          console.error("Erro ao salvar avaliação:", error);
+        let finalValuationId: string | null = targetValuationId || null;
+
+        if (isEditing && existingValuationId) {
+          const { error: updateError } = await supabase
+            .from("valuations")
+            .update(payload)
+            .eq("id", existingValuationId);
+
+          if (updateError) {
+            console.error("Erro ao atualizar avaliação:", updateError);
+            toast.error("Não foi possível atualizar a avaliação. Tente novamente.");
+            return;
+          }
+
+          finalValuationId = existingValuationId;
+        } else {
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          const { data: insertedValuation, error: insertError } = await supabase
+            .from("valuations")
+            .insert(payload as any)
+            .select("id")
+            .single();
+
+          if (insertError) {
+            console.error("Erro ao salvar avaliação:", insertError);
+            toast.error("Não foi possível salvar a avaliação. Tente novamente.");
+            return;
+          }
+
+          finalValuationId = insertedValuation?.id ?? null;
+        }
+
+        if (!finalValuationId) {
+          toast.error("Não foi possível identificar o ID da avaliação para salvar os fatores.");
           return;
         }
-        
-        if (insertedValuation) {
-          // Salvar as respostas dos fatores de avaliação
-          const responsesData = state.responses.map(r => ({
-            valuation_id: insertedValuation.id,
-            characteristic_id: r.char_id,
-            response_value: r.response,
-            weight_applied: r.weight_applied,
-          }));
-          
-          const { error: responsesError } = await supabase
+
+        // Substitui as respostas (garante consistência com as 26 características)
+        const responsesData = state.responses.map((r) => ({
+          valuation_id: finalValuationId,
+          characteristic_id: r.char_id,
+          response_value: r.response,
+          weight_applied: r.weight_applied,
+        }));
+
+        // Em edição, removemos as antigas e inserimos novamente (simples e confiável)
+        if (isEditing) {
+          const { error: delErr } = await supabase
             .from("valuation_responses")
-            .insert(responsesData);
-          
-          if (responsesError) {
-            console.error("Erro ao salvar respostas:", responsesError);
-            toast.error("Não foi possível salvar os 26 itens da avaliação. Tente novamente.");
-          } else {
-            console.log(`✅ ${responsesData.length} fatores de avaliação salvos com sucesso`);
+            .delete()
+            .eq("valuation_id", finalValuationId);
+
+          if (delErr) {
+            console.error("Erro ao limpar respostas antigas:", delErr);
+            toast.error("Não foi possível atualizar os fatores da avaliação.");
+            return;
           }
-          
-          setIsSaved(true);
-          setValuationId(insertedValuation.id);
-          console.log("Avaliação salva com sucesso:", insertedValuation.id);
+        }
+
+        const { error: responsesError } = await supabase
+          .from("valuation_responses")
+          .insert(responsesData);
+
+        if (responsesError) {
+          console.error("Erro ao salvar respostas:", responsesError);
+          toast.error("Não foi possível salvar os 26 itens da avaliação. Tente novamente.");
+          return;
+        }
+
+        setIsSaved(true);
+        setValuationId(finalValuationId);
+
+        if (isEditing) {
+          toast.success("Avaliação atualizada com sucesso!");
+        } else {
+          console.log(`✅ ${responsesData.length} fatores de avaliação salvos com sucesso`);
+          console.log("Avaliação salva com sucesso:", finalValuationId);
         }
       } catch (err) {
         console.error("Erro ao salvar avaliação:", err);
+        toast.error("Erro inesperado ao salvar. Tente novamente.");
       }
     };
 
     saveValuation();
-  }, [user?.id, result, state, combined, isSaved, state.responses]);
+  }, [user?.id, result, state, combined, isSaved, state.responses, existingValuationId, valuationId]);
 
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat("pt-BR", {
