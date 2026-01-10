@@ -64,7 +64,7 @@ interface EmbeddedAdvancedSearchProps {
   defaultBairro?: string;
 }
 
-export function EmbeddedAdvancedSearch({ defaultBairro = "BARRA DA TIJUCA" }: EmbeddedAdvancedSearchProps) {
+export function EmbeddedAdvancedSearch({ defaultBairro = "" }: EmbeddedAdvancedSearchProps) {
   const { toast } = useToast();
   
   // Form state
@@ -84,7 +84,7 @@ export function EmbeddedAdvancedSearch({ defaultBairro = "BARRA DA TIJUCA" }: Em
   
   // Autocomplete suggestions
   const { data: bairroSuggestions } = useBairroSuggestions(bairro);
-  const { data: streetSuggestions } = useStreetSuggestions(logradouro, bairro || "BARRA DA TIJUCA");
+  const { data: streetSuggestions } = useStreetSuggestions(logradouro, bairro || undefined);
   
   // Search trigger
   const [searchParams, setSearchParams] = useState<{
@@ -239,7 +239,7 @@ export function EmbeddedAdvancedSearch({ defaultBairro = "BARRA DA TIJUCA" }: Em
     setTipologia("");
     setAnoInicio("");
     setAnoFim("");
-    setBairro(defaultBairro);
+    setBairro("");
     setLogradouro("");
     setSearchParams(null);
   };
@@ -406,9 +406,9 @@ export function EmbeddedAdvancedSearch({ defaultBairro = "BARRA DA TIJUCA" }: Em
                   }}
                   className="h-9 text-sm pl-8"
                 />
-                {bairro && bairro !== defaultBairro && (
+                {bairro && (
                   <button
-                    onClick={() => { setBairro(defaultBairro); setBairroPopoverOpen(false); }}
+                    onClick={() => { setBairro(""); setBairroPopoverOpen(false); }}
                     className="absolute right-2 top-1/2 -translate-y-1/2"
                   >
                     <X className="h-4 w-4 text-muted-foreground hover:text-foreground" />
