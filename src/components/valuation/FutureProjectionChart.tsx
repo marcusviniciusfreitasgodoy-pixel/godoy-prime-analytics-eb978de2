@@ -215,6 +215,8 @@ export function FutureProjectionChart({ currentValue, projection, area }: Props)
                 stroke="none"
                 fill="#10b981"
                 fillOpacity={0.1}
+                legendType="none"
+                name="optimisticArea"
               />
               <Area
                 type="monotone"
@@ -222,6 +224,8 @@ export function FutureProjectionChart({ currentValue, projection, area }: Props)
                 stroke="none"
                 fill="#ef4444"
                 fillOpacity={0.1}
+                legendType="none"
+                name="pessimisticArea"
               />
               <Line 
                 type="monotone" 
