@@ -552,6 +552,146 @@ export type Database = {
         }
         Relationships: []
       }
+      pricing_strategies: {
+        Row: {
+          corretagem_atracao: number | null
+          corretagem_mercado: number | null
+          corretagem_premium: number | null
+          created_at: string
+          estrategia_recomendada: string
+          estrategia_selecionada: string | null
+          id: string
+          is_new_listing: boolean
+          liquido_atracao: number | null
+          liquido_mercado: number | null
+          liquido_min_atracao: number | null
+          liquido_min_mercado: number | null
+          liquido_min_premium: number | null
+          liquido_premium: number | null
+          p_atracao: number
+          p_mercado: number
+          p_premium: number
+          piso_planejado_atracao: number | null
+          piso_planejado_mercado: number | null
+          piso_planejado_premium: number | null
+          plano_ajuste_ativo: boolean | null
+          preco_anuncio_atracao: number | null
+          preco_anuncio_mercado: number | null
+          preco_anuncio_premium: number | null
+          premio_liquido_pct_atracao: number | null
+          premio_liquido_pct_mercado: number | null
+          premio_liquido_pct_premium: number | null
+          q1_tempo_mercado: string | null
+          q2_concorrencia: string | null
+          q3_prioridade: string | null
+          q4_horizonte_tempo: string | null
+          q5_situacao_financeira: string | null
+          q6_estado_mercado: string | null
+          q7_clientes_potenciais: string | null
+          q8_pronto_vender: string | null
+          q9_padrao_imovel: string | null
+          status: string
+          updated_at: string
+          user_id: string
+          valor_itbi: number
+          valuation_id: string | null
+        }
+        Insert: {
+          corretagem_atracao?: number | null
+          corretagem_mercado?: number | null
+          corretagem_premium?: number | null
+          created_at?: string
+          estrategia_recomendada: string
+          estrategia_selecionada?: string | null
+          id?: string
+          is_new_listing?: boolean
+          liquido_atracao?: number | null
+          liquido_mercado?: number | null
+          liquido_min_atracao?: number | null
+          liquido_min_mercado?: number | null
+          liquido_min_premium?: number | null
+          liquido_premium?: number | null
+          p_atracao?: number
+          p_mercado?: number
+          p_premium?: number
+          piso_planejado_atracao?: number | null
+          piso_planejado_mercado?: number | null
+          piso_planejado_premium?: number | null
+          plano_ajuste_ativo?: boolean | null
+          preco_anuncio_atracao?: number | null
+          preco_anuncio_mercado?: number | null
+          preco_anuncio_premium?: number | null
+          premio_liquido_pct_atracao?: number | null
+          premio_liquido_pct_mercado?: number | null
+          premio_liquido_pct_premium?: number | null
+          q1_tempo_mercado?: string | null
+          q2_concorrencia?: string | null
+          q3_prioridade?: string | null
+          q4_horizonte_tempo?: string | null
+          q5_situacao_financeira?: string | null
+          q6_estado_mercado?: string | null
+          q7_clientes_potenciais?: string | null
+          q8_pronto_vender?: string | null
+          q9_padrao_imovel?: string | null
+          status?: string
+          updated_at?: string
+          user_id: string
+          valor_itbi: number
+          valuation_id?: string | null
+        }
+        Update: {
+          corretagem_atracao?: number | null
+          corretagem_mercado?: number | null
+          corretagem_premium?: number | null
+          created_at?: string
+          estrategia_recomendada?: string
+          estrategia_selecionada?: string | null
+          id?: string
+          is_new_listing?: boolean
+          liquido_atracao?: number | null
+          liquido_mercado?: number | null
+          liquido_min_atracao?: number | null
+          liquido_min_mercado?: number | null
+          liquido_min_premium?: number | null
+          liquido_premium?: number | null
+          p_atracao?: number
+          p_mercado?: number
+          p_premium?: number
+          piso_planejado_atracao?: number | null
+          piso_planejado_mercado?: number | null
+          piso_planejado_premium?: number | null
+          plano_ajuste_ativo?: boolean | null
+          preco_anuncio_atracao?: number | null
+          preco_anuncio_mercado?: number | null
+          preco_anuncio_premium?: number | null
+          premio_liquido_pct_atracao?: number | null
+          premio_liquido_pct_mercado?: number | null
+          premio_liquido_pct_premium?: number | null
+          q1_tempo_mercado?: string | null
+          q2_concorrencia?: string | null
+          q3_prioridade?: string | null
+          q4_horizonte_tempo?: string | null
+          q5_situacao_financeira?: string | null
+          q6_estado_mercado?: string | null
+          q7_clientes_potenciais?: string | null
+          q8_pronto_vender?: string | null
+          q9_padrao_imovel?: string | null
+          status?: string
+          updated_at?: string
+          user_id?: string
+          valor_itbi?: number
+          valuation_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pricing_strategies_valuation_id_fkey"
+            columns: ["valuation_id"]
+            isOneToOne: false
+            referencedRelation: "valuations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           created_at: string | null
