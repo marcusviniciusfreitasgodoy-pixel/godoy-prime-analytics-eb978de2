@@ -24,8 +24,15 @@ import {
   Camera,
   FileText,
   Sparkles,
-  Clock
+  Clock,
+  HelpCircle
 } from 'lucide-react';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
 
 import { StrategyType, StrategyCalculation } from '@/types/pricingStrategy';
 import { formatCurrencyBRL, formatPercentage } from '@/utils/pricingCalculations';
@@ -187,11 +194,42 @@ export function PostSelectionDetails({
             <div className="space-y-4">
               <div className="grid grid-cols-2 gap-4">
                 <div className="p-3 rounded-lg bg-muted/50">
-                  <div className="text-xs text-muted-foreground">Piso planejado (97%)</div>
+                  <div className="text-xs text-muted-foreground flex items-center gap-1">
+                    Piso planejado (97%)
+                    <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <HelpCircle className="h-3 w-3 cursor-help" />
+                        </TooltipTrigger>
+                        <TooltipContent className="max-w-xs">
+                          <p className="text-sm">
+                            <strong>97% do preço de anúncio.</strong><br/>
+                            Representa o limite mínimo aceitável na negociação (desconto máximo de 3%). 
+                            Abaixo deste valor, a estratégia de precificação fica comprometida.
+                          </p>
+                        </TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
+                  </div>
                   <div className="text-lg font-semibold">{formatCurrencyBRL(calc.piso_planejado)}</div>
                 </div>
                 <div className="p-3 rounded-lg bg-muted/50">
-                  <div className="text-xs text-muted-foreground">Líquido mínimo planejado</div>
+                  <div className="text-xs text-muted-foreground flex items-center gap-1">
+                    Líquido mínimo planejado
+                    <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <HelpCircle className="h-3 w-3 cursor-help" />
+                        </TooltipTrigger>
+                        <TooltipContent className="max-w-xs">
+                          <p className="text-sm">
+                            Valor que o vendedor recebe no pior cenário de negociação, 
+                            já descontada a corretagem sobre o piso planejado.
+                          </p>
+                        </TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
+                  </div>
                   <div className="text-lg font-semibold text-green-600">{formatCurrencyBRL(calc.liquido_min)}</div>
                 </div>
               </div>
@@ -299,7 +337,19 @@ export function PostSelectionDetails({
                     </td>
                   </tr>
                   <tr>
-                    <td className="py-2 px-1 text-muted-foreground">Piso planejado (97%)</td>
+                    <td className="py-2 px-1 text-muted-foreground flex items-center gap-1">
+                      Piso planejado (97%)
+                      <TooltipProvider>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <HelpCircle className="h-3 w-3 cursor-help" />
+                          </TooltipTrigger>
+                          <TooltipContent className="max-w-xs">
+                            <p className="text-sm">97% do preço de anúncio = desconto máximo de 3%</p>
+                          </TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
+                    </td>
                     <td className={`text-right py-2 px-1 ${estrategia === 'atracao' ? 'bg-blue-50' : ''}`}>
                       {formatCurrencyBRL(calculos.atracao.piso_planejado)}
                     </td>
@@ -311,7 +361,19 @@ export function PostSelectionDetails({
                     </td>
                   </tr>
                   <tr>
-                    <td className="py-2 px-1 text-muted-foreground">Líquido mínimo</td>
+                    <td className="py-2 px-1 text-muted-foreground flex items-center gap-1">
+                      Líquido mínimo
+                      <TooltipProvider>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <HelpCircle className="h-3 w-3 cursor-help" />
+                          </TooltipTrigger>
+                          <TooltipContent className="max-w-xs">
+                            <p className="text-sm">Valor líquido ao vendedor após desconto máximo e corretagem</p>
+                          </TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
+                    </td>
                     <td className={`text-right py-2 px-1 ${estrategia === 'atracao' ? 'bg-blue-50' : ''}`}>
                       {formatCurrencyBRL(calculos.atracao.liquido_min)}
                     </td>
