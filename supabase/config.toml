@@ -44,3 +44,6 @@ verify_jwt = false
 
 [functions.geo-logradouro]
 verify_jwt = false
+
+[functions.lead-operations]
+verify_jwt = false

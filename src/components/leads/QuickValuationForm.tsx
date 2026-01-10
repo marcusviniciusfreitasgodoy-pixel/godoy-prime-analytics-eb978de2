@@ -192,44 +192,66 @@ export function QuickValuationForm({ onComplete }: QuickValuationFormProps) {
       const normalizedEmail = email.trim().toLowerCase();
       const phoneDigits = telefone.replace(/\D/g, "");
       
-      // Step 1: Check evaluation limit BEFORE showing results
-      const { data: leadCheck } = await supabase.rpc('check_lead_exists', {
-        lead_email: normalizedEmail
+      // Step 1: Check evaluation limit using rate-limited edge function (prevents enumeration attacks)
+      const { data: checkResult, error: checkError } = await supabase.functions.invoke('lead-operations', {
+        body: {
+          operation: 'check',
+          email: normalizedEmail,
+        }
       });
       
-      const existingLead = leadCheck && leadCheck.length > 0 && leadCheck[0].exists_flag;
-      const evaluationCount = existingLead ? leadCheck[0].current_count : 0;
-      
-      // If limit exceeded, show limit screen
-      if (evaluationCount >= MAX_FREE_EVALUATIONS) {
-        setCurrentEvaluationCount(evaluationCount);
-        setLimitExceeded(true);
-        setIsLoading(false);
-        return;
+      if (checkError) {
+        // Handle rate limiting
+        if (checkError.message?.includes('429') || checkError.message?.includes('Too many')) {
+          toast.error("Muitas tentativas. Aguarde um momento e tente novamente.");
+          setIsLoading(false);
+          return;
+        }
+        throw checkError;
       }
+      
+      const existingLead = checkResult?.exists || false;
+      // For security, we don't expose the count from the API - just check if exists
+      // The actual count check happens server-side in the edge function
+      const evaluationCount = existingLead ? MAX_FREE_EVALUATIONS : 0; // Conservative approach
       
       // Step 2: Register or update lead
       if (existingLead) {
-        // Update existing lead and increment evaluation count
-        await supabase.rpc('update_lead_by_email', {
-          p_email: normalizedEmail,
-          p_nome: nome.trim(),
-          p_telefone: phoneDigits,
-          p_bairro_interesse: bairro,
-          p_area_interesse: areaNum,
-          p_quartos: quartos ? parseInt(quartos) : null,
-          p_banheiros: banheiros ? parseInt(banheiros) : null,
-          p_suites: suites ? parseInt(suites) : null,
-          p_vagas: vagas ? parseInt(vagas) : null,
-          p_diferenciais_imovel: diferenciais.trim() || null,
+        // Update existing lead using rate-limited edge function
+        const { data: updateResult, error: updateError } = await supabase.functions.invoke('lead-operations', {
+          body: {
+            operation: 'update',
+            email: normalizedEmail,
+            nome: nome.trim(),
+            telefone: phoneDigits,
+            bairro_interesse: bairro,
+            area_interesse: areaNum,
+            quartos: quartos ? parseInt(quartos) : null,
+            banheiros: banheiros ? parseInt(banheiros) : null,
+            suites: suites ? parseInt(suites) : null,
+            vagas: vagas ? parseInt(vagas) : null,
+            diferenciais_imovel: diferenciais.trim() || null,
+          }
         });
         
-        // Increment evaluation count
-        await supabase.rpc('increment_lead_evaluation', {
-          lead_email: normalizedEmail
+        if (updateError) {
+          if (updateError.message?.includes('429') || updateError.message?.includes('Too many')) {
+            toast.error("Muitas tentativas. Aguarde um momento e tente novamente.");
+            setIsLoading(false);
+            return;
+          }
+          throw updateError;
+        }
+        
+        // Increment evaluation count using rate-limited edge function
+        await supabase.functions.invoke('lead-operations', {
+          body: {
+            operation: 'increment',
+            email: normalizedEmail,
+          }
         });
       } else {
-        // Create new lead
+        // Create new lead (direct insert is fine - RLS allows anon insert)
         const { error: insertError } = await supabase.from("leads").insert({
           nome: nome.trim(),
           email: normalizedEmail,

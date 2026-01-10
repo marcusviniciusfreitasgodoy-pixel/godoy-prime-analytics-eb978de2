@@ -150,44 +150,63 @@ export function LeadCaptureForm({
       const normalizedEmail = data.email.trim().toLowerCase();
       const valorPedidoNum = data.valor_pedido ? parseInt(data.valor_pedido.replace(/\D/g, ""), 10) : null;
       
-      // Check if email exists using secure RPC function (doesn't expose PII)
-      const { data: leadCheck } = await supabase.rpc('check_lead_exists', {
-        lead_email: normalizedEmail
+      // Check if email exists using rate-limited edge function (prevents enumeration attacks)
+      const { data: checkResult, error: checkError } = await supabase.functions.invoke('lead-operations', {
+        body: {
+          operation: 'check',
+          email: normalizedEmail,
+        }
       });
       
-      const existingLead = leadCheck && leadCheck.length > 0 && leadCheck[0].exists_flag 
-        ? { evaluation_count: leadCheck[0].current_count } 
-        : null;
+      if (checkError) {
+        // Handle rate limiting
+        if (checkError.message?.includes('429') || checkError.message?.includes('Too many')) {
+          toast.error("Muitas tentativas. Aguarde um momento e tente novamente.");
+          return;
+        }
+        throw checkError;
+      }
+      
+      const existingLead = checkResult?.exists ? { exists: true } : null;
 
       if (existingLead) {
-        // Update existing lead using secure RPC function
-        const { data: updatedLeadId, error: updateError } = await supabase.rpc('update_lead_by_email', {
-          p_email: normalizedEmail,
-          p_nome: data.nome.trim(),
-          p_telefone: data.telefone.replace(/\D/g, ""),
-          p_bairro_interesse: bairroInteresse,
-          p_area_interesse: areaInteresse,
-          p_valor_interesse: valorInteresse,
-          p_quartos: quartos,
-          p_banheiros: banheiros,
-          p_suites: suites,
-          p_vagas: vagas,
-          p_objetivo: data.objetivo,
-          p_urgencia: data.urgencia,
-          p_preferencia_contato: data.preferencia_contato,
-          p_aceita_marketing: data.aceita_marketing || false,
-          p_diferenciais_imovel: diferenciais,
-          p_interesse: data.objetivo === "vender" ? "venda" : "compra",
-          p_endereco_imovel_analise: data.endereco_imovel || null,
-          p_valor_pedido_vendedor: valorPedidoNum,
+        // Update existing lead using rate-limited edge function
+        const { data: updateResult, error: updateError } = await supabase.functions.invoke('lead-operations', {
+          body: {
+            operation: 'update',
+            email: normalizedEmail,
+            nome: data.nome.trim(),
+            telefone: data.telefone.replace(/\D/g, ""),
+            bairro_interesse: bairroInteresse,
+            area_interesse: areaInteresse,
+            valor_interesse: valorInteresse,
+            quartos,
+            banheiros,
+            suites,
+            vagas,
+            objetivo: data.objetivo,
+            urgencia: data.urgencia,
+            preferencia_contato: data.preferencia_contato,
+            aceita_marketing: data.aceita_marketing || false,
+            diferenciais_imovel: diferenciais,
+            interesse: data.objetivo === "vender" ? "venda" : "compra",
+            endereco_imovel_analise: data.endereco_imovel || null,
+            valor_pedido_vendedor: valorPedidoNum,
+          }
         });
 
-        if (updateError) throw updateError;
+        if (updateError) {
+          if (updateError.message?.includes('429') || updateError.message?.includes('Too many')) {
+            toast.error("Muitas tentativas. Aguarde um momento e tente novamente.");
+            return;
+          }
+          throw updateError;
+        }
 
         toast.success("Dados atualizados com sucesso!");
         
         onSuccess({
-          id: updatedLeadId || '',
+          id: updateResult?.leadId || '',
           nome: data.nome.trim(),
           email: normalizedEmail,
           telefone: data.telefone.replace(/\D/g, ""),
