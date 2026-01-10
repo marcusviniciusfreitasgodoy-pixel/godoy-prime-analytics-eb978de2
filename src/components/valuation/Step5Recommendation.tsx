@@ -22,12 +22,12 @@ import {
 import { toast } from "sonner";
 import type { ValuationResult, CombinedPrices } from "@/utils/valuationCalculations";
 import type { ValuationState } from "@/types/valuation";
-import { exportValuationEnginePDF } from "@/utils/valuationPdfExport";
+import { exportValuationEnginePDF, PricingStrategyPDFData } from "@/utils/valuationPdfExport";
 import { useAuth } from "@/hooks/useAuth";
 import { useActivityTracking } from "@/hooks/useActivityTracking";
 import { supabase } from "@/integrations/supabase/client";
 import { PricingStrategyModule } from "@/components/pricing/PricingStrategyModule";
-import { PricingStrategyState } from "@/types/pricingStrategy";
+import { PricingStrategyState, StrategyType } from "@/types/pricingStrategy";
 
 interface Props {
   result: ValuationResult;
@@ -45,6 +45,7 @@ export function Step5Recommendation({ result, state, combined, onReset }: Props)
   const [valuationId, setValuationId] = useState<string | null>(null);
   const [showPricingModule, setShowPricingModule] = useState(false);
   const [pricingCompleted, setPricingCompleted] = useState(false);
+  const [pricingData, setPricingData] = useState<PricingStrategyPDFData | null>(null);
 
   // Salvar avaliação no banco ao montar o componente
   // IMPORTANTE: Esperar que state.responses tenha os 26 fatores antes de salvar
@@ -220,9 +221,9 @@ export function Step5Recommendation({ result, state, combined, onReset }: Props)
         tipoAvaliacao: isSimplified ? "simples" : "completa"
       };
       
-      // Passa as fontes dos anúncios para o PDF
+      // Passa as fontes dos anúncios e dados de precificação para o PDF
       const anuncioFontes = state.anuncioData?.fontes;
-      exportValuationEnginePDF(result, stateWithType, combined, anuncioFontes);
+      exportValuationEnginePDF(result, stateWithType, combined, anuncioFontes, pricingData);
       
       // Track the valuation export
       trackValuation();
@@ -302,6 +303,18 @@ export function Step5Recommendation({ result, state, combined, onReset }: Props)
 
   const handlePricingComplete = (pricingState: PricingStrategyState) => {
     setPricingCompleted(true);
+    
+    // Armazena dados para exportar no PDF
+    if (pricingState.calculos && pricingState.estrategia_selecionada && pricingState.estrategia_recomendada) {
+      setPricingData({
+        valorItbi: pricingState.valor_itbi,
+        estrategiaSelecionada: pricingState.estrategia_selecionada,
+        estrategiaRecomendada: pricingState.estrategia_recomendada,
+        calculos: pricingState.calculos,
+        planoAjusteAtivo: pricingState.plano_ajuste_ativo
+      });
+    }
+    
     toast.success("Estratégia de precificação definida!");
   };
 

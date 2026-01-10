@@ -1,6 +1,7 @@
 import jsPDF from 'jspdf';
 import type { ValuationResult, CombinedPrices } from './valuationCalculations';
 import type { ValuationState } from '@/types/valuation';
+import type { PricingStrategyState, StrategyType, StrategyCalculation } from '@/types/pricingStrategy';
 import {
   BRAND_COLORS,
   drawGodoyHeader,
@@ -19,11 +20,25 @@ export interface AnuncioFonte {
   fonte?: string;
 }
 
+// Interface para dados da estratégia de precificação no PDF
+export interface PricingStrategyPDFData {
+  valorItbi: number;
+  estrategiaSelecionada: StrategyType;
+  estrategiaRecomendada: StrategyType;
+  calculos: {
+    atracao: StrategyCalculation;
+    mercado: StrategyCalculation;
+    premium: StrategyCalculation;
+  };
+  planoAjusteAtivo: boolean;
+}
+
 export function exportValuationEnginePDF(
   result: ValuationResult,
   state: ValuationState,
   combined: CombinedPrices | null,
-  anuncioFontes?: AnuncioFonte[]
+  anuncioFontes?: AnuncioFonte[],
+  pricingStrategy?: PricingStrategyPDFData | null
 ): void {
   const doc = new jsPDF();
   const pageWidth = doc.internal.pageSize.getWidth();
@@ -675,68 +690,309 @@ export function exportValuationEnginePDF(
     yPos += splitChars.length * 4 + 4;
   }
 
-  // 6. ESTRATÉGIA DE PREÇO - Card visual
+  // 6. ESTRATÉGIA DE PRECIFICAÇÃO
   yPos += 4;
-  yPos = drawSectionTitle(doc, 'Estratégia de Preço', yPos, marginLeft);
   
-  // Card para estratégia
-  const strategyHeight = 32;
-  doc.setFillColor(255, 251, 235);
-  doc.setDrawColor(217, 119, 6);
-  doc.setLineWidth(0.3);
-  doc.roundedRect(marginLeft - 5, yPos - 3, contentWidth + 10, strategyHeight, 2, 2, 'FD');
+  // Se há dados da estratégia de precificação, exibir detalhadamente
+  if (pricingStrategy && pricingStrategy.calculos) {
+    // Check if we need a new page
+    if (yPos > getMaxContentY() - 180) {
+      doc.addPage();
+      yPos = 20;
+    }
+    
+    yPos = drawSectionTitle(doc, 'Estratégia de Precificação', yPos, marginLeft);
+    
+    const { calculos, estrategiaSelecionada, estrategiaRecomendada, valorItbi, planoAjusteAtivo } = pricingStrategy;
+    
+    // Valor ITBI de referência
+    doc.setFontSize(8);
+    doc.setFont('helvetica', 'normal');
+    doc.setTextColor(...BRAND_COLORS.gray);
+    doc.text(`Valor ITBI de Referência: ${formatCurrencyPDF(valorItbi)}`, marginLeft, yPos);
+    yPos += 8;
+    
+    // Cards das 3 estratégias
+    const strategyCardHeight = 55;
+    const strategyCardWidth = (contentWidth + 10) / 3 - 4;
+    
+    const strategies: { key: StrategyType; label: string; icon: string; color: [number, number, number]; bgColor: [number, number, number] }[] = [
+      { key: 'atracao', label: 'ATRAÇÃO', icon: '⚡', color: [59, 130, 246], bgColor: [239, 246, 255] },
+      { key: 'mercado', label: 'MERCADO', icon: '⚖️', color: [234, 88, 12], bgColor: [255, 247, 237] },
+      { key: 'premium', label: 'PREMIUM', icon: '💎', color: [139, 92, 246], bgColor: [250, 245, 255] },
+    ];
+    
+    strategies.forEach((strategy, i) => {
+      const cardX = marginLeft - 5 + (strategyCardWidth + 4) * i;
+      const calculo = calculos[strategy.key];
+      const isSelected = estrategiaSelecionada === strategy.key;
+      const isRecommended = estrategiaRecomendada === strategy.key;
+      
+      // Card background
+      doc.setFillColor(...strategy.bgColor);
+      doc.setDrawColor(...strategy.color);
+      doc.setLineWidth(isSelected ? 1.5 : 0.5);
+      doc.roundedRect(cardX, yPos, strategyCardWidth, strategyCardHeight, 2, 2, 'FD');
+      
+      // Top bar
+      doc.setFillColor(...strategy.color);
+      doc.rect(cardX, yPos, strategyCardWidth, 4, 'F');
+      
+      // Header with icon and label
+      doc.setFontSize(9);
+      doc.setFont('helvetica', 'bold');
+      doc.setTextColor(...strategy.color);
+      let headerText = `${strategy.icon} ${strategy.label}`;
+      if (isRecommended) headerText += ' ⭐';
+      if (isSelected) headerText += ' ✓';
+      doc.text(headerText, cardX + 3, yPos + 12);
+      
+      // Markup
+      doc.setFontSize(7);
+      doc.setFont('helvetica', 'normal');
+      doc.setTextColor(71, 85, 105);
+      doc.text(`Markup: +${(calculo.percentual * 100).toFixed(0)}%`, cardX + 3, yPos + 19);
+      
+      // Preço de Anúncio
+      doc.setFontSize(12);
+      doc.setFont('helvetica', 'bold');
+      doc.setTextColor(...strategy.color);
+      doc.text(formatCurrencyPDF(calculo.preco_anuncio), cardX + 3, yPos + 30);
+      
+      // Corretagem e Líquido
+      doc.setFontSize(6);
+      doc.setFont('helvetica', 'normal');
+      doc.setTextColor(100, 116, 139);
+      doc.text(`Corretagem (6%): ${formatCurrencyPDF(calculo.corretagem)}`, cardX + 3, yPos + 38);
+      doc.text(`Líquido: ${formatCurrencyPDF(calculo.liquido)}`, cardX + 3, yPos + 44);
+      doc.text(`Prêmio vs ITBI: +${calculo.premio_liquido_pct.toFixed(1)}%`, cardX + 3, yPos + 50);
+    });
+    
+    yPos += strategyCardHeight + 8;
+    
+    // Legenda
+    doc.setFontSize(6);
+    doc.setFont('helvetica', 'italic');
+    doc.setTextColor(100, 116, 139);
+    doc.text('⭐ Estratégia Recomendada | ✓ Estratégia Selecionada', marginLeft, yPos);
+    yPos += 8;
+    
+    // Detalhes da estratégia selecionada
+    const selectedCalculo = calculos[estrategiaSelecionada];
+    const selectedInfo = strategies.find(s => s.key === estrategiaSelecionada)!;
+    
+    // Box de destaque da seleção
+    doc.setFillColor(...selectedInfo.bgColor);
+    doc.setDrawColor(...selectedInfo.color);
+    doc.setLineWidth(0.8);
+    const selectedBoxHeight = 38;
+    doc.roundedRect(marginLeft - 5, yPos, contentWidth + 10, selectedBoxHeight, 2, 2, 'FD');
+    
+    // Left accent bar
+    doc.setFillColor(...selectedInfo.color);
+    doc.rect(marginLeft - 5, yPos, 4, selectedBoxHeight, 'F');
+    
+    doc.setFontSize(9);
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(...selectedInfo.color);
+    doc.text(`Estratégia Selecionada: ${selectedInfo.icon} ${selectedInfo.label}`, marginLeft + 3, yPos + 8);
+    
+    // Grid de valores
+    const detailColWidth = (contentWidth - 5) / 3;
+    
+    // Coluna 1: Anunciar por
+    doc.setFontSize(7);
+    doc.setFont('helvetica', 'normal');
+    doc.setTextColor(71, 85, 105);
+    doc.text('Anunciar por:', marginLeft + 3, yPos + 16);
+    doc.setFontSize(10);
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(...selectedInfo.color);
+    doc.text(formatCurrencyPDF(selectedCalculo.preco_anuncio), marginLeft + 3, yPos + 24);
+    
+    // Coluna 2: Piso Planejado (97%)
+    const col2X = marginLeft + 3 + detailColWidth;
+    doc.setFontSize(7);
+    doc.setFont('helvetica', 'normal');
+    doc.setTextColor(71, 85, 105);
+    doc.text('Piso Planejado (97%):', col2X, yPos + 16);
+    doc.setFontSize(10);
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(100, 116, 139);
+    doc.text(formatCurrencyPDF(selectedCalculo.piso_planejado), col2X, yPos + 24);
+    
+    // Coluna 3: Líquido Mínimo
+    const col3X = marginLeft + 3 + detailColWidth * 2;
+    doc.setFontSize(7);
+    doc.setFont('helvetica', 'normal');
+    doc.setTextColor(71, 85, 105);
+    doc.text('Líquido Mínimo:', col3X, yPos + 16);
+    doc.setFontSize(10);
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(71, 85, 105);
+    doc.text(formatCurrencyPDF(selectedCalculo.liquido_min), col3X, yPos + 24);
+    
+    // Corretagem na linha de baixo
+    doc.setFontSize(7);
+    doc.setFont('helvetica', 'normal');
+    doc.setTextColor(100, 116, 139);
+    doc.text(`Corretagem (6%): ${formatCurrencyPDF(selectedCalculo.corretagem)} | Líquido: ${formatCurrencyPDF(selectedCalculo.liquido)}`, marginLeft + 3, yPos + 33);
+    
+    yPos += selectedBoxHeight + 6;
+    
+    // Plano de Ajuste (se premium e ativo)
+    if (estrategiaSelecionada === 'premium' && planoAjusteAtivo) {
+      doc.setFillColor(250, 245, 255);
+      doc.setDrawColor(139, 92, 246);
+      doc.setLineWidth(0.3);
+      const planoHeight = 22;
+      doc.roundedRect(marginLeft - 5, yPos, contentWidth + 10, planoHeight, 2, 2, 'FD');
+      
+      doc.setFontSize(7);
+      doc.setFont('helvetica', 'bold');
+      doc.setTextColor(139, 92, 246);
+      doc.text('📅 Plano de Ajuste Sugerido Ativo:', marginLeft, yPos + 6);
+      
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(6);
+      doc.setTextColor(100, 116, 139);
+      doc.text('30 dias: -4% | 60 dias: -4% adicional | 90 dias: migrar para MERCADO', marginLeft, yPos + 12);
+      doc.text('Objetivo: maximizar valor com plano progressivo de ajuste caso necessário.', marginLeft, yPos + 17);
+      
+      yPos += planoHeight + 6;
+    }
+    
+    // Tabela comparativa
+    if (yPos > getMaxContentY() - 60) {
+      doc.addPage();
+      yPos = 20;
+    }
+    
+    doc.setFontSize(8);
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(...BRAND_COLORS.navy);
+    doc.text('Comparativo das Estratégias', marginLeft, yPos);
+    yPos += 6;
+    
+    // Cabeçalho da tabela
+    const tableColWidth = (contentWidth + 10) / 4;
+    doc.setFillColor(241, 245, 249);
+    doc.roundedRect(marginLeft - 5, yPos - 2, contentWidth + 10, 7, 1, 1, 'F');
+    
+    doc.setFontSize(6);
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(71, 85, 105);
+    doc.text('Métrica', marginLeft, yPos + 3);
+    doc.text('ATRAÇÃO', marginLeft + tableColWidth, yPos + 3);
+    doc.text('MERCADO', marginLeft + tableColWidth * 2, yPos + 3);
+    doc.text('PREMIUM', marginLeft + tableColWidth * 3, yPos + 3);
+    yPos += 8;
+    
+    // Linhas da tabela
+    const tableRows = [
+      ['Markup (%)', `+${(calculos.atracao.percentual * 100).toFixed(0)}%`, `+${(calculos.mercado.percentual * 100).toFixed(0)}%`, `+${(calculos.premium.percentual * 100).toFixed(0)}%`],
+      ['Preço Anúncio', formatCurrencyPDF(calculos.atracao.preco_anuncio), formatCurrencyPDF(calculos.mercado.preco_anuncio), formatCurrencyPDF(calculos.premium.preco_anuncio)],
+      ['Corretagem (6%)', formatCurrencyPDF(calculos.atracao.corretagem), formatCurrencyPDF(calculos.mercado.corretagem), formatCurrencyPDF(calculos.premium.corretagem)],
+      ['Líquido', formatCurrencyPDF(calculos.atracao.liquido), formatCurrencyPDF(calculos.mercado.liquido), formatCurrencyPDF(calculos.premium.liquido)],
+      ['Piso (97%)', formatCurrencyPDF(calculos.atracao.piso_planejado), formatCurrencyPDF(calculos.mercado.piso_planejado), formatCurrencyPDF(calculos.premium.piso_planejado)],
+      ['Líq. Mínimo', formatCurrencyPDF(calculos.atracao.liquido_min), formatCurrencyPDF(calculos.mercado.liquido_min), formatCurrencyPDF(calculos.premium.liquido_min)],
+      ['Prêmio vs ITBI', `+${calculos.atracao.premio_liquido_pct.toFixed(1)}%`, `+${calculos.mercado.premio_liquido_pct.toFixed(1)}%`, `+${calculos.premium.premio_liquido_pct.toFixed(1)}%`],
+    ];
+    
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(6);
+    
+    tableRows.forEach((row, rowIndex) => {
+      // Alternar cor de fundo
+      if (rowIndex % 2 === 0) {
+        doc.setFillColor(248, 250, 252);
+        doc.rect(marginLeft - 5, yPos - 2, contentWidth + 10, 5, 'F');
+      }
+      
+      doc.setTextColor(71, 85, 105);
+      doc.text(row[0], marginLeft, yPos + 2);
+      
+      // Destacar coluna selecionada
+      strategies.forEach((strategy, colIndex) => {
+        const isSelectedCol = strategy.key === estrategiaSelecionada;
+        if (isSelectedCol) {
+          doc.setFont('helvetica', 'bold');
+          doc.setTextColor(...strategy.color);
+        } else {
+          doc.setFont('helvetica', 'normal');
+          doc.setTextColor(100, 116, 139);
+        }
+        doc.text(row[colIndex + 1], marginLeft + tableColWidth * (colIndex + 1), yPos + 2);
+      });
+      
+      yPos += 5;
+    });
+    
+    yPos += 4;
+    
+  } else {
+    // Fallback: estratégia simples (código antigo)
+    yPos = drawSectionTitle(doc, 'Estratégia de Preço', yPos, marginLeft);
+    
+    // Card para estratégia
+    const strategyHeight = 32;
+    doc.setFillColor(255, 251, 235);
+    doc.setDrawColor(217, 119, 6);
+    doc.setLineWidth(0.3);
+    doc.roundedRect(marginLeft - 5, yPos - 3, contentWidth + 10, strategyHeight, 2, 2, 'FD');
 
-  const listPrice = Math.round(result.provavel * 1.05);
-  const priceY = yPos + 4;
-  
-  // Grid de 3 colunas
-  const priceColWidth = (contentWidth + 10) / 3;
-  
-  // Coluna 1: Anunciar por
-  doc.setFontSize(7);
-  doc.setFont('helvetica', 'normal');
-  doc.setTextColor(146, 64, 14);
-  doc.text('Anunciar por:', marginLeft, priceY);
-  doc.setFontSize(11);
-  doc.setFont('helvetica', 'bold');
-  doc.setTextColor(180, 83, 9);
-  doc.text(formatCurrencyPDF(listPrice), marginLeft, priceY + 8);
-  doc.setFontSize(6);
-  doc.setFont('helvetica', 'normal');
-  doc.setTextColor(146, 64, 14);
-  doc.text('(margem de negociação)', marginLeft, priceY + 14);
-  
-  // Coluna 2: Valor Target
-  const col2X = marginLeft + priceColWidth;
-  doc.setFontSize(7);
-  doc.setFont('helvetica', 'normal');
-  doc.setTextColor(21, 128, 61);
-  doc.text('Valor Target:', col2X, priceY);
-  doc.setFontSize(11);
-  doc.setFont('helvetica', 'bold');
-  doc.setTextColor(22, 163, 74);
-  doc.text(formatCurrencyPDF(result.provavel), col2X, priceY + 8);
-  doc.setFontSize(6);
-  doc.setFont('helvetica', 'normal');
-  doc.setTextColor(21, 128, 61);
-  doc.text('(expectativa de fechamento)', col2X, priceY + 14);
-  
-  // Coluna 3: Mínimo Aceitável
-  const col3X = marginLeft + priceColWidth * 2;
-  doc.setFontSize(7);
-  doc.setFont('helvetica', 'normal');
-  doc.setTextColor(127, 29, 29);
-  doc.text('Mínimo Aceitável:', col3X, priceY);
-  doc.setFontSize(11);
-  doc.setFont('helvetica', 'bold');
-  doc.setTextColor(185, 28, 28);
-  doc.text(formatCurrencyPDF(result.pessimista), col3X, priceY + 8);
-  doc.setFontSize(6);
-  doc.setFont('helvetica', 'normal');
-  doc.setTextColor(127, 29, 29);
-  doc.text('(piso de negociação)', col3X, priceY + 14);
-  
-  yPos += strategyHeight + 4;
+    const listPrice = Math.round(result.provavel * 1.05);
+    const priceY = yPos + 4;
+    
+    // Grid de 3 colunas
+    const priceColWidth = (contentWidth + 10) / 3;
+    
+    // Coluna 1: Anunciar por
+    doc.setFontSize(7);
+    doc.setFont('helvetica', 'normal');
+    doc.setTextColor(146, 64, 14);
+    doc.text('Anunciar por:', marginLeft, priceY);
+    doc.setFontSize(11);
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(180, 83, 9);
+    doc.text(formatCurrencyPDF(listPrice), marginLeft, priceY + 8);
+    doc.setFontSize(6);
+    doc.setFont('helvetica', 'normal');
+    doc.setTextColor(146, 64, 14);
+    doc.text('(margem de negociação)', marginLeft, priceY + 14);
+    
+    // Coluna 2: Valor Target
+    const col2X = marginLeft + priceColWidth;
+    doc.setFontSize(7);
+    doc.setFont('helvetica', 'normal');
+    doc.setTextColor(21, 128, 61);
+    doc.text('Valor Target:', col2X, priceY);
+    doc.setFontSize(11);
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(22, 163, 74);
+    doc.text(formatCurrencyPDF(result.provavel), col2X, priceY + 8);
+    doc.setFontSize(6);
+    doc.setFont('helvetica', 'normal');
+    doc.setTextColor(21, 128, 61);
+    doc.text('(expectativa de fechamento)', col2X, priceY + 14);
+    
+    // Coluna 3: Mínimo Aceitável
+    const col3X = marginLeft + priceColWidth * 2;
+    doc.setFontSize(7);
+    doc.setFont('helvetica', 'normal');
+    doc.setTextColor(127, 29, 29);
+    doc.text('Mínimo Aceitável:', col3X, priceY);
+    doc.setFontSize(11);
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(185, 28, 28);
+    doc.text(formatCurrencyPDF(result.pessimista), col3X, priceY + 8);
+    doc.setFontSize(6);
+    doc.setFont('helvetica', 'normal');
+    doc.setTextColor(127, 29, 29);
+    doc.text('(piso de negociação)', col3X, priceY + 14);
+    
+    yPos += strategyHeight + 4;
+  }
 
   // 7. RECOMENDAÇÃO
   yPos += 6;
