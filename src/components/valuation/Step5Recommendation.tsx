@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Separator } from "@/components/ui/separator";
 import { 
   TrendingUp, 
   TrendingDown, 
@@ -14,7 +15,9 @@ import {
   Wrench,
   XCircle,
   ClipboardCheck,
-  FileText
+  FileText,
+  Target,
+  ArrowRight
 } from "lucide-react";
 import { toast } from "sonner";
 import type { ValuationResult, CombinedPrices } from "@/utils/valuationCalculations";
@@ -23,6 +26,8 @@ import { exportValuationEnginePDF } from "@/utils/valuationPdfExport";
 import { useAuth } from "@/hooks/useAuth";
 import { useActivityTracking } from "@/hooks/useActivityTracking";
 import { supabase } from "@/integrations/supabase/client";
+import { PricingStrategyModule } from "@/components/pricing/PricingStrategyModule";
+import { PricingStrategyState } from "@/types/pricingStrategy";
 
 interface Props {
   result: ValuationResult;
@@ -37,6 +42,9 @@ export function Step5Recommendation({ result, state, combined, onReset }: Props)
   const { trackValuation, trackExport } = useActivityTracking();
   const [decisionMade, setDecisionMade] = useState<"sim" | "nao" | null>(null);
   const [isSaved, setIsSaved] = useState(false);
+  const [valuationId, setValuationId] = useState<string | null>(null);
+  const [showPricingModule, setShowPricingModule] = useState(false);
+  const [pricingCompleted, setPricingCompleted] = useState(false);
 
   // Salvar avaliação no banco ao montar o componente
   // IMPORTANTE: Esperar que state.responses tenha os 26 fatores antes de salvar
@@ -141,6 +149,7 @@ export function Step5Recommendation({ result, state, combined, onReset }: Props)
           }
           
           setIsSaved(true);
+          setValuationId(insertedValuation.id);
           console.log("Avaliação salva com sucesso:", insertedValuation.id);
         }
       } catch (err) {
@@ -287,9 +296,36 @@ export function Step5Recommendation({ result, state, combined, onReset }: Props)
     handleExportPDF(true);
   };
 
-  // Calcula valores para estratégia de preço
+  const handleOpenPricingModule = () => {
+    setShowPricingModule(true);
+  };
+
+  const handlePricingComplete = (pricingState: PricingStrategyState) => {
+    setPricingCompleted(true);
+    toast.success("Estratégia de precificação definida!");
+  };
+
+  const handleClosePricingModule = () => {
+    setShowPricingModule(false);
+  };
+
+  // Calcula valores para estratégia de preço (fallback simples)
   const listPrice = Math.round(result.provavel * 1.05);
   const minAcceptable = result.pessimista;
+
+  // Se o módulo de precificação estiver ativo, mostra apenas ele
+  if (showPricingModule) {
+    return (
+      <div className="space-y-4 sm:space-y-6">
+        <PricingStrategyModule
+          valuationId={valuationId || undefined}
+          valorItbiInicial={result.provavel}
+          onComplete={handlePricingComplete}
+          onBack={handleClosePricingModule}
+        />
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-4 sm:space-y-6">
@@ -401,26 +437,56 @@ export function Step5Recommendation({ result, state, combined, onReset }: Props)
         </CardContent>
       </Card>
 
-      {/* Estratégia de Preço */}
-      <Card>
+      {/* Estratégia de Preço - Novo Módulo */}
+      <Card className={`border-2 ${pricingCompleted ? 'border-green-500 bg-green-50/50' : 'border-primary'}`}>
         <CardContent className="pt-4 sm:pt-6 px-3 sm:px-6">
-          <h4 className="font-semibold mb-3 sm:mb-4 text-sm sm:text-base">💰 Estratégia de Preço</h4>
-          <div className="space-y-2 sm:space-y-3 text-xs sm:text-sm">
-            <div className="flex justify-between items-center p-1.5 sm:p-2 bg-muted/50 rounded">
-              <span>Anunciar:</span>
-              <span className="font-bold">{formatCurrency(listPrice)}</span>
+          <div className="flex items-center justify-between gap-4 flex-wrap">
+            <div className="flex items-center gap-3">
+              <Target className={`h-5 w-5 ${pricingCompleted ? 'text-green-600' : 'text-primary'}`} />
+              <div>
+                <h4 className="font-semibold text-sm sm:text-base">
+                  Estratégia de Precificação
+                </h4>
+                <p className="text-xs text-muted-foreground">
+                  {pricingCompleted 
+                    ? 'Estratégia definida ✓' 
+                    : 'Defina a melhor estratégia de preço'}
+                </p>
+              </div>
             </div>
-
-            <div className="flex justify-between items-center p-1.5 sm:p-2 bg-primary/10 rounded">
-              <span>Target:</span>
-              <span className="font-bold text-primary">{formatCurrency(result.provavel)}</span>
-            </div>
-
-            <div className="flex justify-between items-center p-1.5 sm:p-2 bg-muted/50 rounded">
-              <span>Mínimo:</span>
-              <span className="font-semibold text-red-600">{formatCurrency(minAcceptable)}</span>
-            </div>
+            <Button 
+              onClick={handleOpenPricingModule}
+              variant={pricingCompleted ? "outline" : "default"}
+              size="sm"
+              className="shrink-0"
+            >
+              {pricingCompleted ? 'Revisar' : 'Definir Estratégia'}
+              <ArrowRight className="h-4 w-4 ml-2" />
+            </Button>
           </div>
+          
+          {!pricingCompleted && (
+            <>
+              <Separator className="my-4" />
+              <div className="space-y-2 sm:space-y-3 text-xs sm:text-sm">
+                <p className="text-muted-foreground">Referência rápida (valores base):</p>
+                <div className="grid grid-cols-3 gap-2">
+                  <div className="p-2 bg-muted/50 rounded text-center">
+                    <div className="text-[10px] text-muted-foreground">Anunciar</div>
+                    <div className="font-semibold text-xs">{formatCurrency(listPrice)}</div>
+                  </div>
+                  <div className="p-2 bg-primary/10 rounded text-center">
+                    <div className="text-[10px] text-muted-foreground">Target</div>
+                    <div className="font-semibold text-xs text-primary">{formatCurrency(result.provavel)}</div>
+                  </div>
+                  <div className="p-2 bg-muted/50 rounded text-center">
+                    <div className="text-[10px] text-muted-foreground">Mínimo</div>
+                    <div className="font-semibold text-xs text-red-600">{formatCurrency(minAcceptable)}</div>
+                  </div>
+                </div>
+              </div>
+            </>
+          )}
         </CardContent>
       </Card>
 
