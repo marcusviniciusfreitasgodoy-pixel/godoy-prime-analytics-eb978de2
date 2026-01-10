@@ -441,8 +441,8 @@ function createValuationPDF(
     },
   ];
   
-  // Main metrics card with enhanced styling - FONTES AUMENTADAS
-  const metricCardHeight = 45;
+  // Main metrics card with enhanced styling - PADRONIZADO
+  const metricCardHeight = 50;
   const metricColWidth = (contentWidth + 10) / 4;
   
   metricsData.forEach((metric, i) => {
@@ -453,103 +453,102 @@ function createValuationPDF(
     doc.setFillColor(248, 250, 252);
     doc.setDrawColor(...(metric.color as [number, number, number]));
     doc.setLineWidth(0.5);
-    doc.roundedRect(colX + 1.5, yPos - 3, cardWidth, metricCardHeight, 2, 2, 'FD');
+    doc.roundedRect(colX + 1.5, yPos - 3, cardWidth, metricCardHeight, 3, 3, 'FD');
     
     // Colored top bar
     doc.setFillColor(...(metric.color as [number, number, number]));
-    doc.rect(colX + 1.5, yPos - 3, cardWidth, 4, 'F');
+    doc.rect(colX + 1.5, yPos - 3, cardWidth, 5, 'F');
     
-    // Label - AUMENTADO de 8pt para 9pt
-    doc.setFontSize(9);
+    // Label - padronizado 10pt
+    doc.setFontSize(10);
     doc.setFont('helvetica', 'bold');
     doc.setTextColor(71, 85, 105);
-    doc.text(metric.label, colX + 5, yPos + 10);
+    doc.text(metric.label, colX + cardWidth / 2, yPos + 12, { align: 'center' });
     
-    // Value - AUMENTADO de 16pt para 18pt
-    doc.setFontSize(18);
+    // Value - padronizado 20pt
+    doc.setFontSize(20);
     doc.setFont('helvetica', 'bold');
     doc.setTextColor(...(metric.color as [number, number, number]));
-    doc.text(metric.value, colX + 5, yPos + 26);
+    doc.text(metric.value, colX + cardWidth / 2, yPos + 30, { align: 'center' });
     
-    // Sublabel - AUMENTADO de 7pt para 8pt
-    doc.setFontSize(8);
+    // Sublabel - padronizado 9pt
+    doc.setFontSize(9);
     doc.setFont('helvetica', 'normal');
     doc.setTextColor(148, 163, 184);
-    doc.text(metric.sublabel, colX + 5, yPos + 35);
+    doc.text(metric.sublabel, colX + cardWidth / 2, yPos + 40, { align: 'center' });
   });
   
-  yPos += metricCardHeight + 8;
+  yPos += metricCardHeight + 10;
   
-  // Explanation box with improved design - FONTES AUMENTADAS
+  // Cards informativos com altura e estilo padronizado
+  const infoCardHeight = 58;
+  const infoCardWidth = (contentWidth + 10) / 2 - 4;
+  
+  // Card 1: Entenda Indicadores (lado esquerdo)
   doc.setFillColor(240, 249, 255);
   doc.setDrawColor(14, 165, 233);
-  doc.setLineWidth(0.3);
-  const explanationHeight = 54;
-  doc.roundedRect(marginLeft - 5, yPos, contentWidth + 10, explanationHeight, 2, 2, 'FD');
+  doc.setLineWidth(0.5);
+  doc.roundedRect(marginLeft - 5, yPos, infoCardWidth, infoCardHeight, 3, 3, 'FD');
   
   // Blue accent bar on left
   doc.setFillColor(14, 165, 233);
-  doc.rect(marginLeft - 5, yPos, 3, explanationHeight, 'F');
+  doc.rect(marginLeft - 5, yPos, 4, infoCardHeight, 'F');
   
   doc.setFontSize(11);
   doc.setFont('helvetica', 'bold');
   doc.setTextColor(3, 105, 161);
-  doc.text('[i] Entenda os Indicadores de Confiança', marginLeft + 2, yPos + 8);
+  doc.text('[i] Entenda os Indicadores', marginLeft + 3, yPos + 10);
   
   doc.setFont('helvetica', 'normal');
-  doc.setFontSize(9);
+  doc.setFontSize(8);
   doc.setTextColor(30, 64, 175);
   
   const explanations = [
-    `- Ajuste Total: Valorização ou desvalorização aplicada com base nas características do imóvel.`,
-    `- Spread: Variação entre valor mínimo e máximo. <=20% = Alta | 21-35% = Boa | 36-50% = Moderada | >50% = Baixa.`,
-    `- Score (0-100): Pontuação de confiabilidade baseada na quantidade e qualidade dos dados.`,
-    `- Nível: Alta (80-100) | Média-Alta (60-79) | Média (40-59) | Baixa (<40).`
+    `Ajuste: valor. ou desval. por características`,
+    `Spread: <=20% Alta | 21-35% Boa | >35% Baixa`,
+    `Score: confiabilidade (0-100)`,
+    `Nível: Alta (80+) | Média (40-79) | Baixa (<40)`
   ];
   
-  let expY = yPos + 16;
+  let expY = yPos + 20;
   explanations.forEach((exp) => {
-    const splitExp = doc.splitTextToSize(exp, contentWidth + 2);
-    doc.text(splitExp, marginLeft + 2, expY);
-    expY += splitExp.length * 5;
+    doc.text(exp, marginLeft + 3, expY);
+    expY += 9;
   });
   
-  yPos += explanationHeight + 4;
-  
-  // Tips box: How to improve evaluation quality - FONTES AUMENTADAS
+  // Card 2: Como Melhorar (lado direito)
+  const rightCardX = marginLeft - 5 + infoCardWidth + 8;
   doc.setFillColor(254, 252, 232);
   doc.setDrawColor(202, 138, 4);
-  doc.setLineWidth(0.3);
-  const tipsHeight = 45;
-  doc.roundedRect(marginLeft - 5, yPos, contentWidth + 10, tipsHeight, 2, 2, 'FD');
+  doc.setLineWidth(0.5);
+  doc.roundedRect(rightCardX, yPos, infoCardWidth, infoCardHeight, 3, 3, 'FD');
   
   // Amber accent bar on left
   doc.setFillColor(202, 138, 4);
-  doc.rect(marginLeft - 5, yPos, 3, tipsHeight, 'F');
+  doc.rect(rightCardX, yPos, 4, infoCardHeight, 'F');
   
-  doc.setFontSize(10);
+  doc.setFontSize(11);
   doc.setFont('helvetica', 'bold');
   doc.setTextColor(146, 64, 14);
-  doc.text('[^] Como Melhorar a Precisão da Avaliação?', marginLeft + 2, yPos + 8);
+  doc.text('[^] Como Melhorar a Precisão?', rightCardX + 8, yPos + 10);
   
   doc.setFont('helvetica', 'normal');
-  doc.setFontSize(8.5);
+  doc.setFontSize(8);
   doc.setTextColor(120, 53, 15);
   
   const tips = [
-    `> Preencha todas as características do imóvel com precisão (vista, andar, estado de conservação).`,
-    `> Realize a Vistoria Digital completa para ajuste de até +/-15% com base nas condições reais.`,
-    `> Quanto mais transações na região, maior o score. Aguarde mais dados se necessário.`
+    `> Preencha todas as características`,
+    `> Vistoria Digital: ajuste de ±15%`,
+    `> Mais transações = maior score`
   ];
   
-  let tipY = yPos + 17;
+  let tipY = yPos + 22;
   tips.forEach((tip) => {
-    const splitTip = doc.splitTextToSize(tip, contentWidth + 2);
-    doc.text(splitTip, marginLeft + 2, tipY);
-    tipY += splitTip.length * 5;
+    doc.text(tip, rightCardX + 8, tipY);
+    tipY += 11;
   });
   
-  yPos += tipsHeight + 6;
+  yPos += infoCardHeight + 8;
 
   // 5. ANÁLISE HISTÓRICA (5 ANOS)
   if (state.historicalAnalysis && state.historicalAnalysis.yearlyData.length > 0) {
@@ -564,81 +563,66 @@ function createValuationPDF(
     
     const historical = state.historicalAnalysis;
     
-    // KPIs em linha - FONTES AUMENTADAS
-    const kpiHeight = 40;
-    doc.setFillColor(248, 250, 252);
-    doc.setDrawColor(203, 213, 225);
-    doc.setLineWidth(0.3);
-    doc.roundedRect(marginLeft - 5, yPos - 3, contentWidth + 10, kpiHeight, 2, 2, 'FD');
-    
+    // KPIs em cards padronizados (mesmo estilo das Métricas de Confiança)
+    const kpiHeight = 50;
     const kpiColWidth = (contentWidth + 10) / 4;
     
-    // KPI 1: Liquidez
+    // Dados dos KPIs
     const liquidityColor: [number, number, number] = historical.liquidityLevel === 'alta' ? [22, 163, 74] :
       historical.liquidityLevel === 'media' ? [202, 138, 4] : [220, 38, 38];
-    
-    doc.setFontSize(9);
-    doc.setTextColor(71, 85, 105);
-    doc.text('Liquidez', marginLeft, yPos + 6);
-    doc.setFontSize(18);
-    doc.setFont('helvetica', 'bold');
-    doc.setTextColor(...liquidityColor);
-    doc.text(`${historical.liquidityScore}/100`, marginLeft, yPos + 20);
-    doc.setFontSize(8);
-    doc.setFont('helvetica', 'normal');
-    doc.setTextColor(148, 163, 184);
     const liquidityLabel = historical.liquidityLevel === 'alta' ? 'Alta' : historical.liquidityLevel === 'media' ? 'Média' : 'Baixa';
-    doc.text(liquidityLabel, marginLeft, yPos + 30);
     
-    // KPI 2: Vol. Transações
     const transColor: [number, number, number] = historical.transactionTrend === 'crescente' ? [22, 163, 74] :
       historical.transactionTrend === 'decrescente' ? [220, 38, 38] : [100, 100, 100];
     const transIcon = historical.transactionTrend === 'crescente' ? '+' : historical.transactionTrend === 'decrescente' ? '-' : '=';
     
-    doc.setFontSize(9);
-    doc.setTextColor(71, 85, 105);
-    doc.text('Vol. Transações', marginLeft + kpiColWidth, yPos + 6);
-    doc.setFontSize(18);
-    doc.setFont('helvetica', 'bold');
-    doc.setTextColor(...transColor);
-    doc.text(`${transIcon}${Math.abs(historical.transactionGrowth).toFixed(1)}%`, marginLeft + kpiColWidth, yPos + 20);
-    doc.setFontSize(8);
-    doc.setFont('helvetica', 'normal');
-    doc.setTextColor(148, 163, 184);
-    doc.text('a.a.', marginLeft + kpiColWidth, yPos + 30);
-    
-    // KPI 3: Evolução Preço
     const priceColor: [number, number, number] = historical.priceTrend === 'alta' ? [22, 163, 74] :
       historical.priceTrend === 'baixa' ? [220, 38, 38] : [100, 100, 100];
     const priceIcon = historical.priceTrend === 'alta' ? '+' : historical.priceTrend === 'baixa' ? '-' : '=';
     
-    doc.setFontSize(9);
-    doc.setTextColor(71, 85, 105);
-    doc.text('Evolução Preço', marginLeft + kpiColWidth * 2, yPos + 6);
-    doc.setFontSize(18);
-    doc.setFont('helvetica', 'bold');
-    doc.setTextColor(...priceColor);
-    doc.text(`${priceIcon}${Math.abs(historical.priceGrowth).toFixed(1)}%`, marginLeft + kpiColWidth * 2, yPos + 20);
-    doc.setFontSize(8);
-    doc.setFont('helvetica', 'normal');
-    doc.setTextColor(148, 163, 184);
-    doc.text('a.a.', marginLeft + kpiColWidth * 2, yPos + 30);
-    
-    // KPI 4: Total 5 Anos
     const totalTrans = historical.yearlyData.reduce((sum, y) => sum + y.transacoes, 0);
-    doc.setFontSize(9);
-    doc.setTextColor(71, 85, 105);
-    doc.text('Total 5 Anos', marginLeft + kpiColWidth * 3, yPos + 6);
-    doc.setFontSize(18);
-    doc.setFont('helvetica', 'bold');
-    doc.setTextColor(59, 130, 246);
-    doc.text(`${totalTrans}`, marginLeft + kpiColWidth * 3, yPos + 20);
-    doc.setFontSize(8);
-    doc.setFont('helvetica', 'normal');
-    doc.setTextColor(148, 163, 184);
-    doc.text('transações', marginLeft + kpiColWidth * 3, yPos + 30);
     
-    yPos += kpiHeight + 4;
+    const kpiData = [
+      { label: 'Liquidez', value: `${historical.liquidityScore}/100`, sublabel: liquidityLabel, color: liquidityColor },
+      { label: 'Vol. Transações', value: `${transIcon}${Math.abs(historical.transactionGrowth).toFixed(1)}%`, sublabel: 'a.a.', color: transColor },
+      { label: 'Evolução Preço', value: `${priceIcon}${Math.abs(historical.priceGrowth).toFixed(1)}%`, sublabel: 'a.a.', color: priceColor },
+      { label: 'Total 5 Anos', value: `${totalTrans}`, sublabel: 'transações', color: [59, 130, 246] as [number, number, number] },
+    ];
+    
+    kpiData.forEach((kpi, i) => {
+      const colX = marginLeft - 5 + (kpiColWidth * i);
+      const cardWidth = kpiColWidth - 3;
+      
+      // Individual card background
+      doc.setFillColor(248, 250, 252);
+      doc.setDrawColor(...kpi.color);
+      doc.setLineWidth(0.5);
+      doc.roundedRect(colX + 1.5, yPos - 3, cardWidth, kpiHeight, 3, 3, 'FD');
+      
+      // Colored top bar
+      doc.setFillColor(...kpi.color);
+      doc.rect(colX + 1.5, yPos - 3, cardWidth, 5, 'F');
+      
+      // Label - padronizado 10pt
+      doc.setFontSize(10);
+      doc.setFont('helvetica', 'bold');
+      doc.setTextColor(71, 85, 105);
+      doc.text(kpi.label, colX + cardWidth / 2, yPos + 12, { align: 'center' });
+      
+      // Value - padronizado 20pt
+      doc.setFontSize(20);
+      doc.setFont('helvetica', 'bold');
+      doc.setTextColor(...kpi.color);
+      doc.text(kpi.value, colX + cardWidth / 2, yPos + 30, { align: 'center' });
+      
+      // Sublabel - padronizado 9pt
+      doc.setFontSize(9);
+      doc.setFont('helvetica', 'normal');
+      doc.setTextColor(148, 163, 184);
+      doc.text(kpi.sublabel, colX + cardWidth / 2, yPos + 40, { align: 'center' });
+    });
+    
+    yPos += kpiHeight + 6;
     
     // Tabela de dados por ano - FONTES AUMENTADAS
     const tableY = yPos;
@@ -1316,67 +1300,54 @@ function createValuationPDF(
     yPos += 4;
     
   } else {
-    // Fallback: estratégia simples (código antigo)
+    // Fallback: estratégia simples - padronizada com cards individuais
     yPos = drawSectionTitle(doc, 'Estratégia de Preço', yPos, marginLeft);
     
-    // Card para estratégia
-    const strategyHeight = 32;
-    doc.setFillColor(255, 251, 235);
-    doc.setDrawColor(217, 119, 6);
-    doc.setLineWidth(0.3);
-    doc.roundedRect(marginLeft - 5, yPos - 3, contentWidth + 10, strategyHeight, 2, 2, 'FD');
-
     const listPrice = Math.round(result.provavel * 1.05);
-    const priceY = yPos + 4;
     
-    // Grid de 3 colunas
-    const priceColWidth = (contentWidth + 10) / 3;
+    // Cards de 3 colunas padronizados
+    const strategyCardHeight = 50;
+    const strategyCardWidth = (contentWidth + 10) / 3 - 4;
     
-    // Coluna 1: Anunciar por
-    doc.setFontSize(7);
-    doc.setFont('helvetica', 'normal');
-    doc.setTextColor(146, 64, 14);
-    doc.text('Anunciar por:', marginLeft, priceY);
-    doc.setFontSize(11);
-    doc.setFont('helvetica', 'bold');
-    doc.setTextColor(180, 83, 9);
-    doc.text(formatCurrencyPDF(listPrice), marginLeft, priceY + 8);
-    doc.setFontSize(6);
-    doc.setFont('helvetica', 'normal');
-    doc.setTextColor(146, 64, 14);
-    doc.text('(margem de negociação)', marginLeft, priceY + 14);
+    const priceCards = [
+      { label: 'Anunciar por', value: listPrice, sublabel: 'margem de negociação', color: [202, 138, 4] as [number, number, number], bgColor: [254, 252, 232] as [number, number, number] },
+      { label: 'Valor Target', value: result.provavel, sublabel: 'expectativa de fechamento', color: [22, 163, 74] as [number, number, number], bgColor: [240, 253, 244] as [number, number, number] },
+      { label: 'Mínimo Aceitável', value: result.pessimista, sublabel: 'piso de negociação', color: [220, 38, 38] as [number, number, number], bgColor: [254, 242, 242] as [number, number, number] },
+    ];
     
-    // Coluna 2: Valor Target
-    const col2X = marginLeft + priceColWidth;
-    doc.setFontSize(7);
-    doc.setFont('helvetica', 'normal');
-    doc.setTextColor(21, 128, 61);
-    doc.text('Valor Target:', col2X, priceY);
-    doc.setFontSize(11);
-    doc.setFont('helvetica', 'bold');
-    doc.setTextColor(22, 163, 74);
-    doc.text(formatCurrencyPDF(result.provavel), col2X, priceY + 8);
-    doc.setFontSize(6);
-    doc.setFont('helvetica', 'normal');
-    doc.setTextColor(21, 128, 61);
-    doc.text('(expectativa de fechamento)', col2X, priceY + 14);
+    priceCards.forEach((card, i) => {
+      const cardX = marginLeft - 5 + (strategyCardWidth + 4) * i;
+      
+      // Card background
+      doc.setFillColor(...card.bgColor);
+      doc.setDrawColor(...card.color);
+      doc.setLineWidth(0.5);
+      doc.roundedRect(cardX, yPos, strategyCardWidth, strategyCardHeight, 3, 3, 'FD');
+      
+      // Colored top bar
+      doc.setFillColor(...card.color);
+      doc.rect(cardX, yPos, strategyCardWidth, 5, 'F');
+      
+      // Label - padronizado 10pt
+      doc.setFontSize(10);
+      doc.setFont('helvetica', 'bold');
+      doc.setTextColor(71, 85, 105);
+      doc.text(card.label, cardX + strategyCardWidth / 2, yPos + 16, { align: 'center' });
+      
+      // Value - padronizado 14pt
+      doc.setFontSize(14);
+      doc.setFont('helvetica', 'bold');
+      doc.setTextColor(...card.color);
+      doc.text(formatCurrencyPDF(card.value), cardX + strategyCardWidth / 2, yPos + 30, { align: 'center' });
+      
+      // Sublabel - padronizado 8pt
+      doc.setFontSize(8);
+      doc.setFont('helvetica', 'normal');
+      doc.setTextColor(148, 163, 184);
+      doc.text(`(${card.sublabel})`, cardX + strategyCardWidth / 2, yPos + 40, { align: 'center' });
+    });
     
-    // Coluna 3: Mínimo Aceitável
-    const col3X = marginLeft + priceColWidth * 2;
-    doc.setFontSize(7);
-    doc.setFont('helvetica', 'normal');
-    doc.setTextColor(127, 29, 29);
-    doc.text('Mínimo Aceitável:', col3X, priceY);
-    doc.setFontSize(11);
-    doc.setFont('helvetica', 'bold');
-    doc.setTextColor(185, 28, 28);
-    doc.text(formatCurrencyPDF(result.pessimista), col3X, priceY + 8);
-    doc.setFontSize(6);
-    doc.setFont('helvetica', 'normal');
-    doc.setTextColor(127, 29, 29);
-    doc.text('(piso de negociação)', col3X, priceY + 14);
-    
-    yPos += strategyHeight + 4;
+    yPos += strategyCardHeight + 8;
   }
 
   // 7. RECOMENDAÇÃO
