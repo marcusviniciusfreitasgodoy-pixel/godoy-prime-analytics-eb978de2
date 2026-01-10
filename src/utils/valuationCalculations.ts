@@ -441,23 +441,22 @@ export const generateRecommendation = (
     };
   }
 
-  // Regra 4: Mercado em alta + boa confiança
-  // NOTA: Anúncios são frequentemente inflados (até 15%), então o trend é apenas indicativo
-  // Não exibimos "potencial" pois cria expectativas irrealistas
+  // Regra 4: Gap significativo entre anúncios e ITBI + boa confiança
+  // NOTA: Gap alto indica anúncios inflados, NÃO valorização real do mercado
   if (trend > 5 && score >= 70) {
     return {
       status: "WAIT_30_DAYS",
-      title: "Mercado Aquecido",
+      title: "Anúncios Acima do Mercado",
       icon: PDF_ICONS.wait,
-      message: `Tendência de alta de ${trend.toFixed(0)}% nos anúncios. Momento favorável para venda.`,
+      message: `Gap de ${trend.toFixed(0)}% entre anúncios e transações reais (ITBI). Anúncios estão inflados.`,
       details: [
-        "Anúncios costumam ser inflados (margem de 10-15%)",
-        "Preparar imóvel para fotos profissionais",
-        "Anunciar próximo ao valor provável",
-        "Negociar com margem de 5-8% de desconto",
+        `⚠️ Anúncios ${trend.toFixed(0)}% acima das vendas reais`,
+        "Isso NÃO significa valorização real",
+        "Use o valor ITBI (provável) como referência",
+        "Anúncios inflados demoram mais para vender",
+        "Negociar com margem de 5-10% sobre valor provável",
       ],
-      urgency: "LOW",
-      // Removido potential_gain - era enganoso
+      urgency: "MEDIUM",
     };
   }
 
