@@ -14,6 +14,7 @@ import {
 } from "recharts";
 import { TrendingUp, Calendar, AlertTriangle, Info } from "lucide-react";
 import type { FutureProjection } from "@/hooks/useHistoricalTransactionAnalysis";
+import { StandardChartTooltip, createLegendFormatter, formatCurrencyBR } from "@/components/ui/chart-tooltip";
 
 interface Props {
   currentValue: number;
@@ -21,55 +22,22 @@ interface Props {
   area: number;
 }
 
-export function FutureProjectionChart({ currentValue, projection, area }: Props) {
-  const formatCurrency = (value: number) => {
-    return new Intl.NumberFormat("pt-BR", {
-      style: "currency",
-      currency: "BRL",
-      maximumFractionDigits: 0,
-    }).format(value);
-  };
+// Keys que devem ser excluídos do tooltip (áreas duplicadas)
+const EXCLUDE_KEYS = new Set(["optimisticArea", "pessimisticArea"]);
 
+// Labels para o tooltip e legend
+const PROJECTION_LABELS: Record<string, string> = {
+  pessimistic: "Pessimista",
+  probable: "Provável",
+  optimistic: "Otimista",
+};
+
+export function FutureProjectionChart({ currentValue, projection, area }: Props) {
   const formatCurrencyCompact = (value: number) => {
     if (value >= 1000000) {
       return `R$ ${(value / 1000000).toFixed(2)}M`;
     }
     return `R$ ${(value / 1000).toFixed(0)}k`;
-  };
-
-  const seriesLabel: Record<string, string> = {
-    pessimistic: "Pessimista",
-    probable: "Provável",
-    optimistic: "Otimista",
-  };
-
-  const allowedTooltipKeys = new Set(["pessimistic", "probable", "optimistic"]);
-
-  const CustomTooltip = ({ active, payload, label }: any) => {
-    if (!active || !payload?.length) return null;
-
-    const clean = payload.filter((p: any) => allowedTooltipKeys.has(p.dataKey));
-
-    if (!clean.length) return null;
-
-    return (
-      <div
-        className="rounded-lg border bg-background/95 px-3 py-2 shadow-sm"
-        style={{ fontSize: "11px" }}
-      >
-        <div className="font-medium mb-1">{label}</div>
-        <div className="space-y-0.5">
-          {clean.map((p: any) => (
-            <div key={p.dataKey} className="flex items-center justify-between gap-3">
-              <span className="truncate" style={{ color: p.color }}>
-                {seriesLabel[p.dataKey] || p.dataKey}
-              </span>
-              <span className="font-medium">{formatCurrency(p.value)}</span>
-            </div>
-          ))}
-        </div>
-      </div>
-    );
   };
 
   const currentYear = new Date().getFullYear();
@@ -217,17 +185,18 @@ export function FutureProjectionChart({ currentValue, projection, area }: Props)
                 tickFormatter={(v) => `${(v / 1000000).toFixed(1)}M`}
                 width={50}
               />
-              <Tooltip content={<CustomTooltip />} />
+              <Tooltip 
+                content={
+                  <StandardChartTooltip 
+                    labelMap={PROJECTION_LABELS}
+                    valueFormatter={(v) => formatCurrencyBR(v)}
+                    excludeKeys={EXCLUDE_KEYS}
+                  />
+                } 
+              />
               <Legend 
                 wrapperStyle={{ fontSize: '10px' }}
-                formatter={(value) => {
-                  const labels: Record<string, string> = {
-                    pessimistic: 'Pessimista',
-                    probable: 'Provável',
-                    optimistic: 'Otimista',
-                  };
-                  return labels[value] || value;
-                }}
+                formatter={createLegendFormatter(PROJECTION_LABELS)}
               />
               <Area
                 type="monotone"
