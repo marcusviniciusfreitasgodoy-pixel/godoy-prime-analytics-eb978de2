@@ -167,14 +167,14 @@ function createValuationPDF(
     doc.text(splitTexto, marginLeft, yPos);
     yPos += splitTexto.length * 4 + 6;
     
-    // Card principal com gradiente azul
-    const cardHeight = 38;
+    // Card principal com design equilibrado
+    const cardHeight = 42;
     doc.setFillColor(240, 249, 255);
     doc.setDrawColor(14, 165, 233);
     doc.setLineWidth(0.5);
     doc.roundedRect(marginLeft - 5, yPos - 3, contentWidth + 10, cardHeight, 3, 3, 'FD');
     
-    // Grid de 2 colunas com estatísticas
+    // Grid de 2 colunas com estatísticas - tamanhos equalizados
     const colWidth = (contentWidth + 10) / 2;
     const col1X = marginLeft;
     const col2X = marginLeft + colWidth;
@@ -182,40 +182,50 @@ function createValuationPDF(
     // Separador vertical sutil
     doc.setDrawColor(186, 230, 253);
     doc.setLineWidth(0.3);
-    doc.line(col2X - 5, yPos + 2, col2X - 5, yPos + cardHeight - 8);
+    doc.line(col2X - 5, yPos + 4, col2X - 5, yPos + cardHeight - 8);
     
-    // Coluna 1: Total de transações
-    doc.setFontSize(22);
+    // Coluna 1: Total de transações - tamanhos equalizados
+    const transCount = String(state.itbiData.transaction_count);
+    doc.setFontSize(9);
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(71, 85, 105);
+    doc.text('TRANSAÇÕES', col1X + 5, yPos + 8);
+    
+    doc.setFontSize(20);
     doc.setFont('helvetica', 'bold');
     doc.setTextColor(2, 132, 199);
-    const transCount = String(state.itbiData.transaction_count);
-    doc.text(transCount, col1X + colWidth / 2 - 10, yPos + 14);
+    doc.text(transCount, col1X + 5, yPos + 22);
+    
     doc.setFontSize(8);
     doc.setFont('helvetica', 'normal');
-    doc.setTextColor(71, 85, 105);
-    doc.text('transações', col1X + colWidth / 2 - 14, yPos + 22);
-    doc.text('identificadas', col1X + colWidth / 2 - 16, yPos + 28);
+    doc.setTextColor(100, 116, 139);
+    doc.text('identificadas na região', col1X + 5, yPos + 30);
     
-    // Coluna 2: Valor médio do m²
-    doc.setFontSize(14);
+    // Coluna 2: Valor médio do m² - tamanhos equalizados
+    const valorMedM2 = `R$ ${state.itbiData.med_m2.toLocaleString('pt-BR', { maximumFractionDigits: 0 })}`;
+    doc.setFontSize(9);
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(71, 85, 105);
+    doc.text('VALOR MÉDIO', col2X + 5, yPos + 8);
+    
+    doc.setFontSize(20);
     doc.setFont('helvetica', 'bold');
     doc.setTextColor(3, 105, 161);
-    const valorMedM2 = `R$ ${state.itbiData.med_m2.toLocaleString('pt-BR', { maximumFractionDigits: 0 })}`;
-    doc.text(valorMedM2, col2X + colWidth / 2 - 20, yPos + 14);
+    doc.text(valorMedM2, col2X + 5, yPos + 22);
+    
     doc.setFontSize(8);
     doc.setFont('helvetica', 'normal');
-    doc.setTextColor(71, 85, 105);
-    doc.text('valor médio', col2X + colWidth / 2 - 14, yPos + 22);
-    doc.text('por m²', col2X + colWidth / 2 - 9, yPos + 28);
+    doc.setTextColor(100, 116, 139);
+    doc.text('por m² (mediana)', col2X + 5, yPos + 30);
     
-    yPos += cardHeight;
+    yPos += cardHeight + 2;
     
     // Fonte com ícone
     doc.setFontSize(7);
     doc.setFont('helvetica', 'italic');
     doc.setTextColor(100, 116, 139);
-    doc.text('Fonte: Guias de ITBI - Secretaria Municipal de Fazenda do Rio de Janeiro', marginLeft, yPos + 4);
-    yPos += 12;
+    doc.text('Fonte: Guias de ITBI - Secretaria Municipal de Fazenda do Rio de Janeiro', marginLeft, yPos + 2);
+    yPos += 10;
   }
 
   // 3. REFERÊNCIA DE MERCADO (Preços combinados)
@@ -389,47 +399,41 @@ function createValuationPDF(
     },
   ];
   
-  // Main metrics card with enhanced styling
-  const metricCardHeight = 36;
+  // Main metrics card with enhanced styling - tamanhos equalizados
+  const metricCardHeight = 40;
   const metricColWidth = (contentWidth + 10) / 4;
   
   metricsData.forEach((metric, i) => {
     const colX = marginLeft - 5 + (metricColWidth * i);
-    const cardWidth = metricColWidth - 4;
+    const cardWidth = metricColWidth - 3;
     
     // Individual card background
     doc.setFillColor(248, 250, 252);
     doc.setDrawColor(...(metric.color as [number, number, number]));
     doc.setLineWidth(0.5);
-    doc.roundedRect(colX + 2, yPos - 3, cardWidth, metricCardHeight, 2, 2, 'FD');
+    doc.roundedRect(colX + 1.5, yPos - 3, cardWidth, metricCardHeight, 2, 2, 'FD');
     
     // Colored top bar
     doc.setFillColor(...(metric.color as [number, number, number]));
-    doc.rect(colX + 2, yPos - 3, cardWidth, 3, 'F');
+    doc.rect(colX + 1.5, yPos - 3, cardWidth, 3, 'F');
     
-    // Icon
-    doc.setFontSize(10);
-    doc.setFont('helvetica', 'bold');
-    doc.setTextColor(...(metric.color as [number, number, number]));
-    doc.text(metric.icon, colX + cardWidth - 8, yPos + 8);
-    
-    // Label
-    doc.setFontSize(7);
+    // Label - tamanho equalizado (8pt para todos)
+    doc.setFontSize(8);
     doc.setFont('helvetica', 'bold');
     doc.setTextColor(71, 85, 105);
     doc.text(metric.label, colX + 5, yPos + 8);
     
-    // Value
-    doc.setFontSize(14);
+    // Value - tamanho equalizado (16pt para todos)
+    doc.setFontSize(16);
     doc.setFont('helvetica', 'bold');
     doc.setTextColor(...(metric.color as [number, number, number]));
-    doc.text(metric.value, colX + 5, yPos + 20);
+    doc.text(metric.value, colX + 5, yPos + 22);
     
-    // Sublabel
-    doc.setFontSize(6);
+    // Sublabel - tamanho equalizado (7pt para todos)
+    doc.setFontSize(7);
     doc.setFont('helvetica', 'normal');
     doc.setTextColor(148, 163, 184);
-    doc.text(metric.sublabel, colX + 5, yPos + 27);
+    doc.text(metric.sublabel, colX + 5, yPos + 30);
   });
   
   yPos += metricCardHeight + 8;
