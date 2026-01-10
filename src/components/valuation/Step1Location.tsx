@@ -55,6 +55,7 @@ export function Step1Location({ state, updateState, combined }: Props) {
     return [{ id: "1", valor_total: 0, area_m2: 0, fonte: "" }];
   });
   const [anunciosInitialized, setAnunciosInitialized] = useState(false);
+  const [autoFetchLoading, setAutoFetchLoading] = useState(false);
 
   // Sincroniza searchTerm quando logradouro muda
   useEffect(() => {
@@ -69,6 +70,7 @@ export function Step1Location({ state, updateState, combined }: Props) {
       // Só executa se: tem logradouro, tem bairro, mas NÃO tem dados ITBI ainda
       if (!state.logradouro || !state.bairro || state.itbiData) return;
 
+      setAutoFetchLoading(true);
       try {
         const { data, error } = await supabase
           .from("itbi_transactions")
@@ -118,6 +120,8 @@ export function Step1Location({ state, updateState, combined }: Props) {
         }
       } catch (error) {
         console.error("Erro ao auto-buscar dados ITBI:", error);
+      } finally {
+        setAutoFetchLoading(false);
       }
     };
 
@@ -363,11 +367,18 @@ export function Step1Location({ state, updateState, combined }: Props) {
       {state.logradouro && !useCustomSearch && (
         <div className="bg-primary/10 border border-primary/20 rounded-lg p-2.5 sm:p-3">
           <p className="text-xs sm:text-sm flex items-center gap-2">
-            <MapPin className="h-4 w-4 text-primary shrink-0" />
-            <span className="truncate">Buscando dados para: <strong className="break-words">{state.logradouro}</strong></span>
+            {autoFetchLoading ? (
+              <Loader2 className="h-4 w-4 text-primary shrink-0 animate-spin" />
+            ) : (
+              <MapPin className="h-4 w-4 text-primary shrink-0" />
+            )}
+            <span className="truncate">
+              {autoFetchLoading ? "Carregando dados de mercado para: " : "Buscando dados para: "}
+              <strong className="break-words">{state.logradouro}</strong>
+            </span>
           </p>
           <p className="text-[10px] sm:text-xs text-muted-foreground mt-1">
-            Endereço informado na identificação
+            {autoFetchLoading ? "Aguarde enquanto buscamos os preços..." : "Endereço informado na identificação"}
           </p>
         </div>
       )}
