@@ -37,6 +37,41 @@ export function FutureProjectionChart({ currentValue, projection, area }: Props)
     return `R$ ${(value / 1000).toFixed(0)}k`;
   };
 
+  const seriesLabel: Record<string, string> = {
+    pessimistic: "Pessimista",
+    probable: "Provável",
+    optimistic: "Otimista",
+  };
+
+  const allowedTooltipKeys = new Set(["pessimistic", "probable", "optimistic"]);
+
+  const CustomTooltip = ({ active, payload, label }: any) => {
+    if (!active || !payload?.length) return null;
+
+    const clean = payload.filter((p: any) => allowedTooltipKeys.has(p.dataKey));
+
+    if (!clean.length) return null;
+
+    return (
+      <div
+        className="rounded-lg border bg-background/95 px-3 py-2 shadow-sm"
+        style={{ fontSize: "11px" }}
+      >
+        <div className="font-medium mb-1">{label}</div>
+        <div className="space-y-0.5">
+          {clean.map((p: any) => (
+            <div key={p.dataKey} className="flex items-center justify-between gap-3">
+              <span className="truncate" style={{ color: p.color }}>
+                {seriesLabel[p.dataKey] || p.dataKey}
+              </span>
+              <span className="font-medium">{formatCurrency(p.value)}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  };
+
   const currentYear = new Date().getFullYear();
 
   // Calcula valores absolutos a partir dos multiplicadores
@@ -182,22 +217,7 @@ export function FutureProjectionChart({ currentValue, projection, area }: Props)
                 tickFormatter={(v) => `${(v / 1000000).toFixed(1)}M`}
                 width={50}
               />
-              <Tooltip 
-                formatter={(value: number, name: string) => {
-                  const labels: Record<string, string> = {
-                    pessimistic: 'Pessimista',
-                    probable: 'Provável',
-                    optimistic: 'Otimista',
-                  };
-                  return [formatCurrency(value), labels[name] || name];
-                }}
-                contentStyle={{ 
-                  fontSize: '11px', 
-                  backgroundColor: 'rgba(255,255,255,0.95)',
-                  border: '1px solid #e5e7eb',
-                  borderRadius: '8px'
-                }}
-              />
+              <Tooltip content={<CustomTooltip />} />
               <Legend 
                 wrapperStyle={{ fontSize: '10px' }}
                 formatter={(value) => {
