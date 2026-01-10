@@ -1,6 +1,7 @@
 import { useMemo } from 'react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import { StreetComparisonData } from '@/hooks/useStreetComparison';
+import { StandardChartTooltip, formatCurrencyBR } from '@/components/ui/chart-tooltip';
 
 interface StreetComparisonChartProps {
   data: StreetComparisonData[];
@@ -53,15 +54,17 @@ export function StreetComparisonChart({ data }: StreetComparisonChartProps) {
             width={40}
           />
           <Tooltip 
-            formatter={(value: number) => [`R$ ${value.toLocaleString('pt-BR')}/m²`, '']}
-            contentStyle={{ 
-              backgroundColor: 'hsl(var(--popover))', 
-              border: '1px solid hsl(var(--border))',
-              borderRadius: '6px',
-            }}
+            content={
+              <StandardChartTooltip 
+                labelMap={Object.fromEntries(
+                  data.map((street, idx) => [`rua${idx}`, street.logradouro?.substring(0, 25) || `Rua ${idx + 1}`])
+                )}
+                valueFormatter={(v) => `${formatCurrencyBR(v)}/m²`}
+              />
+            }
           />
           <Legend 
-            formatter={(value, entry) => {
+            formatter={(value) => {
               const idx = parseInt(value.replace('rua', ''));
               return data[idx]?.logradouro?.substring(0, 20) || value;
             }}

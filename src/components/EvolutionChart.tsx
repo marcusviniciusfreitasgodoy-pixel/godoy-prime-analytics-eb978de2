@@ -8,6 +8,14 @@ import { ToggleGroup, ToggleGroupItem } from "./ui/toggle-group";
 import { Calendar, CalendarDays, TrendingUp, TrendingDown, Minus } from "lucide-react";
 import { Badge } from "./ui/badge";
 import { Tooltip as UITooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "./ui/tooltip";
+import { StandardChartTooltip, createLegendFormatter, formatCurrencyBR } from "./ui/chart-tooltip";
+
+const EVOLUTION_LABELS: Record<string, string> = {
+  geral: "Preço Médio",
+  apartamento: "Apartamento",
+  casa: "Casa",
+  variacao: "Variação",
+};
 
 interface EvolutionChartProps {
   bairro?: string;
@@ -63,11 +71,9 @@ export function EvolutionChart({ bairro = "BARRA DA TIJUCA" }: EvolutionChartPro
     );
   }
 
-  const tooltipStyle = {
-    backgroundColor: 'hsl(var(--card))',
-    border: '1px solid hsl(var(--border))',
-    borderRadius: '8px',
-    padding: '12px',
+  const tooltipValueFormatter = (value: number, key: string) => {
+    if (key === 'variacao') return `${value.toFixed(2)}%`;
+    return formatCurrencyBR(value);
   };
 
   return (
@@ -192,11 +198,13 @@ export function EvolutionChart({ bairro = "BARRA DA TIJUCA" }: EvolutionChartPro
                   hide
                 />
                 <Tooltip 
-                  contentStyle={tooltipStyle}
-                  formatter={(value: number, name: string) => {
-                    if (name === 'geral') return [`R$ ${value.toLocaleString('pt-BR')}`, 'Preço Médio'];
-                    return [value, name];
-                  }}
+                  content={
+                    <StandardChartTooltip 
+                      labelMap={EVOLUTION_LABELS}
+                      valueFormatter={tooltipValueFormatter}
+                      excludeKeys={["Tendência"]}
+                    />
+                  }
                 />
                 <Bar 
                   yAxisId="price"
@@ -241,10 +249,14 @@ export function EvolutionChart({ bairro = "BARRA DA TIJUCA" }: EvolutionChartPro
                   tickFormatter={(value) => `R$ ${(value / 1000).toFixed(0)} mil`}
                 />
                 <Tooltip 
-                  contentStyle={tooltipStyle}
-                  formatter={(value: number) => `R$ ${value.toLocaleString('pt-BR')}`}
+                  content={
+                    <StandardChartTooltip 
+                      labelMap={EVOLUTION_LABELS}
+                      valueFormatter={tooltipValueFormatter}
+                    />
+                  }
                 />
-                <Legend />
+                <Legend formatter={createLegendFormatter(EVOLUTION_LABELS)} />
                 <Line 
                   type="monotone" 
                   dataKey="apartamento" 
@@ -288,8 +300,12 @@ export function EvolutionChart({ bairro = "BARRA DA TIJUCA" }: EvolutionChartPro
                   tickFormatter={(value) => `${value.toFixed(0)}%`}
                 />
                 <Tooltip 
-                  contentStyle={tooltipStyle}
-                  formatter={(value: number) => [`${value.toFixed(2)}%`, 'Variação']}
+                  content={
+                    <StandardChartTooltip 
+                      labelMap={EVOLUTION_LABELS}
+                      valueFormatter={tooltipValueFormatter}
+                    />
+                  }
                 />
                 <Bar 
                   dataKey="variacao" 

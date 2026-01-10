@@ -10,6 +10,13 @@ import {
   Legend,
 } from "recharts";
 import { Loader2 } from "lucide-react";
+import { StandardChartTooltip, createLegendFormatter } from "@/components/ui/chart-tooltip";
+
+const VISITAS_LABELS: Record<string, string> = {
+  realizadas: "Realizadas",
+  agendadas: "Agendadas",
+  canceladas: "Canceladas",
+};
 
 interface EvolucaoMensal {
   mes: string;
@@ -69,14 +76,13 @@ export function VisitasEvolutionChart({ data, isLoading }: VisitasEvolutionChart
               tick={{ fill: 'hsl(var(--muted-foreground))' }}
             />
             <Tooltip
-              contentStyle={{
-                backgroundColor: 'hsl(var(--card))',
-                border: '1px solid hsl(var(--border))',
-                borderRadius: '8px',
-              }}
-              labelStyle={{ color: 'hsl(var(--foreground))' }}
+              content={
+                <StandardChartTooltip 
+                  labelMap={VISITAS_LABELS}
+                />
+              }
             />
-            <Legend />
+            <Legend formatter={createLegendFormatter(VISITAS_LABELS)} />
             <Bar 
               dataKey="realizadas" 
               name="Realizadas" 

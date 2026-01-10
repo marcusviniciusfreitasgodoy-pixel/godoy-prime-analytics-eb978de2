@@ -13,6 +13,7 @@ import {
   Legend,
 } from 'recharts';
 import { TrendingUp, Activity } from 'lucide-react';
+import { StandardChartTooltip, formatCurrencyBR } from '@/components/ui/chart-tooltip';
 
 interface MicrobairroEvolutionChartProps {
   bairro: string;
@@ -44,14 +45,6 @@ const getRegionColor = (region: string, index: number): string => {
   }
   // Caso contrário, usar cor dinâmica baseada no índice
   return DYNAMIC_COLORS[index % DYNAMIC_COLORS.length];
-};
-
-const formatCurrency = (value: number) => {
-  return `R$ ${value.toLocaleString('pt-BR')}`;
-};
-
-const formatTransactions = (value: number) => {
-  return `${value.toLocaleString('pt-BR')} trans.`;
 };
 
 export const MicrobairroEvolutionChart = ({ bairro }: MicrobairroEvolutionChartProps) => {
@@ -174,17 +167,15 @@ export const MicrobairroEvolutionChart = ({ bairro }: MicrobairroEvolutionChartP
                 width={50}
               />
               <Tooltip
-                formatter={(value: number) => [
-                  metric === 'valorization' ? formatCurrency(value) : formatTransactions(value),
-                  ''
-                ]}
-                labelFormatter={(label) => `Período: ${label}`}
-                contentStyle={{
-                  backgroundColor: 'hsl(var(--background))',
-                  border: '1px solid hsl(var(--border))',
-                  borderRadius: '8px',
-                  fontSize: '12px',
-                }}
+                content={
+                  <StandardChartTooltip 
+                    valueFormatter={(v) => 
+                      metric === 'valorization' 
+                        ? formatCurrencyBR(v) 
+                        : `${v.toLocaleString('pt-BR')} trans.`
+                    }
+                  />
+                }
               />
               <Legend 
                 wrapperStyle={{ fontSize: '11px', paddingTop: '10px' }}

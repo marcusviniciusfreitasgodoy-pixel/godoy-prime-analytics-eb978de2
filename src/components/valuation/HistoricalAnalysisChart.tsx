@@ -17,10 +17,16 @@ import {
 } from "recharts";
 import { TrendingUp, TrendingDown, Minus, Activity, AlertTriangle, CheckCircle, Info } from "lucide-react";
 import type { HistoricalAnalysis } from "@/hooks/useHistoricalTransactionAnalysis";
+import { StandardChartTooltip, createLegendFormatter, formatCurrencyBR } from "@/components/ui/chart-tooltip";
 
 interface Props {
   analysis: HistoricalAnalysis;
 }
+
+const HISTORICAL_LABELS: Record<string, string> = {
+  transacoes: "Transações",
+  valorM2: "Preço Médio/m²",
+};
 
 export function HistoricalAnalysisChart({ analysis }: Props) {
   const { 
@@ -228,24 +234,18 @@ export function HistoricalAnalysisChart({ analysis }: Props) {
                   label={{ value: 'R$/m²', angle: 90, position: 'insideRight', fontSize: 10 }}
                 />
                 <Tooltip 
-                  formatter={(value: number, name: string) => {
-                    if (name === 'transacoes') return [value, 'Transações'];
-                    return [formatCurrency(value), 'Valor/m²'];
-                  }}
-                  contentStyle={{ 
-                    fontSize: '12px', 
-                    backgroundColor: 'rgba(255,255,255,0.95)',
-                    border: '1px solid #e5e7eb',
-                    borderRadius: '8px'
-                  }}
+                  content={
+                    <StandardChartTooltip 
+                      labelMap={HISTORICAL_LABELS}
+                      valueFormatter={(v, key) => 
+                        key === 'transacoes' ? String(v) : formatCurrency(v)
+                      }
+                    />
+                  }
                 />
                 <Legend 
                   wrapperStyle={{ fontSize: '11px' }}
-                  formatter={(value) => {
-                    if (value === 'transacoes') return 'Transações';
-                    if (value === 'valorM2') return 'Preço Médio/m²';
-                    return value;
-                  }}
+                  formatter={createLegendFormatter(HISTORICAL_LABELS)}
                 />
                 <Bar 
                   yAxisId="left" 
