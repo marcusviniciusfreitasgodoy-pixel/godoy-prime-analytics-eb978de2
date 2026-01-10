@@ -7,16 +7,21 @@ import {
   CartesianGrid,
   Tooltip,
   ResponsiveContainer,
-  Legend,
 } from "recharts";
 import { Loader2 } from "lucide-react";
-import { StandardChartTooltip, createLegendFormatter } from "@/components/ui/chart-tooltip";
+import { StandardChartTooltip, StandardChartLegend, type LegendItem } from "@/components/ui/chart-tooltip";
 
 const VISITAS_LABELS: Record<string, string> = {
   realizadas: "Realizadas",
   agendadas: "Agendadas",
   canceladas: "Canceladas",
 };
+
+const VISITAS_LEGEND_ITEMS: LegendItem[] = [
+  { dataKey: "realizadas", iconType: "bar", color: "hsl(var(--primary))" },
+  { dataKey: "agendadas", iconType: "bar", color: "hsl(var(--accent))" },
+  { dataKey: "canceladas", iconType: "bar", color: "hsl(var(--destructive))" },
+];
 
 interface EvolucaoMensal {
   mes: string;
@@ -82,7 +87,11 @@ export function VisitasEvolutionChart({ data, isLoading }: VisitasEvolutionChart
                 />
               }
             />
-            <Legend formatter={createLegendFormatter(VISITAS_LABELS)} />
+            <StandardChartLegend 
+              items={VISITAS_LEGEND_ITEMS}
+              labelMap={VISITAS_LABELS}
+              className="mt-2"
+            />
             <Bar 
               dataKey="realizadas" 
               name="Realizadas" 
