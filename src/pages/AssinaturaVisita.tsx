@@ -42,16 +42,37 @@ export default function AssinaturaVisita() {
       }
 
       try {
+        // Usar RPC seguro que retorna apenas campos necessários (não expõe PII)
         const { data, error } = await supabase
-          .from("fichas_visita")
-          .select("*")
-          .eq("codigo", codigo)
-          .single();
+          .rpc('get_ficha_for_signature', { p_codigo: codigo });
 
         if (error) throw error;
         
-        const fichaData = data as unknown as FichaVisita;
-        setFicha(fichaData);
+        if (!data || data.length === 0) {
+          setFicha(null);
+          setLoading(false);
+          return;
+        }
+
+        // O RPC retorna um array, pegamos o primeiro item
+        const fichaData = data[0] as Pick<FichaVisita, 'id' | 'codigo' | 'endereco_imovel' | 'data_visita' | 'nome_corretor' | 'status' | 'assinatura_visitante' | 'assinatura_corretor'>;
+        
+        // Criar objeto FichaVisita parcial com os campos disponíveis
+        setFicha({
+          ...fichaData,
+          // Campos não retornados pelo RPC (protegidos por segurança)
+          nome_visitante: '',
+          cpf_visitante: '',
+          telefone_visitante: '',
+          email_visitante: null,
+          codigo_imovel: null,
+          valor_imovel: null,
+          nome_proprietario: '',
+          corretor_id: null,
+          notas: null,
+          created_at: '',
+          updated_at: '',
+        } as FichaVisita);
 
         // Verificar se já está assinado
         const field = signatureType === "visitante" 

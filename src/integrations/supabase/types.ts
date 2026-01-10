@@ -1261,6 +1261,19 @@ export type Database = {
           status: Database["public"]["Enums"]["status_visita"]
         }[]
       }
+      get_ficha_for_signature: {
+        Args: { p_codigo: string }
+        Returns: {
+          assinatura_corretor: string
+          assinatura_visitante: string
+          codigo: string
+          data_visita: string
+          endereco_imovel: string
+          id: string
+          nome_corretor: string
+          status: Database["public"]["Enums"]["status_visita"]
+        }[]
+      }
       get_vault_secret: { Args: { secret_name: string }; Returns: string }
       has_role: {
         Args: {
