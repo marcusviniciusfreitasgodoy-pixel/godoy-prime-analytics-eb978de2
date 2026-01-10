@@ -341,12 +341,13 @@ function createValuationPDF(
     }
   };
   
+  // PDF-safe icons (avoiding emojis that corrupt in jsPDF)
   const getQualityIcon = (quality: string): string => {
     switch(quality) {
-      case 'excellent': return '★★★';
-      case 'good': return '★★☆';
-      case 'moderate': return '★☆☆';
-      default: return '○○○';
+      case 'excellent': return '[+++]';
+      case 'good': return '[++]';
+      case 'moderate': return '[+]';
+      default: return '[-]';
     }
   };
 
@@ -356,17 +357,17 @@ function createValuationPDF(
       label: 'Ajuste Total', 
       value: `${result.total_adjustment >= 0 ? '+' : ''}${(result.total_adjustment * 100).toFixed(1)}%`, 
       color: result.total_adjustment >= 0 ? [22, 163, 74] : [220, 38, 38] as [number, number, number],
-      icon: result.total_adjustment >= 0 ? '↗' : '↘',
-      sublabel: result.total_adjustment >= 0 ? 'Valorização' : 'Desvalorização'
+      icon: result.total_adjustment >= 0 ? '^' : 'v',
+      sublabel: result.total_adjustment >= 0 ? 'Valorizacao' : 'Desvalorizacao'
     },
     { 
       label: 'Spread', 
       value: `${result.spread_percentage.toFixed(1)}%`, 
       color: getQualityColor(spreadQuality),
       icon: getQualityIcon(spreadQuality),
-      sublabel: spreadQuality === 'excellent' ? 'Precisão Alta' : 
-                spreadQuality === 'good' ? 'Precisão Boa' : 
-                spreadQuality === 'moderate' ? 'Precisão Moderada' : 'Precisão Baixa'
+      sublabel: spreadQuality === 'excellent' ? 'Precisao Alta' : 
+                spreadQuality === 'good' ? 'Precisao Boa' : 
+                spreadQuality === 'moderate' ? 'Precisao Moderada' : 'Precisao Baixa'
     },
     { 
       label: 'Score', 
@@ -378,12 +379,12 @@ function createValuationPDF(
                 scoreQuality === 'moderate' ? 'Moderado' : 'Baixo'
     },
     { 
-      label: 'Nível', 
+      label: 'Nivel', 
       value: confidenceLabel, 
       color: confidenceColor,
-      icon: result.confidence_level === 'green' ? '●' : 
-            result.confidence_level === 'yellow_high' ? '◐' : 
-            result.confidence_level === 'yellow_medium' ? '◔' : '○',
+      icon: result.confidence_level === 'green' ? '(*)' : 
+            result.confidence_level === 'yellow_high' ? '(o)' : 
+            result.confidence_level === 'yellow_medium' ? '(-)' : '( )',
       sublabel: 'Confiabilidade'
     },
   ];
@@ -447,17 +448,17 @@ function createValuationPDF(
   doc.setFontSize(8);
   doc.setFont('helvetica', 'bold');
   doc.setTextColor(3, 105, 161);
-  doc.text('💡 Entenda os Indicadores de Confiança', marginLeft + 2, yPos + 6);
+  doc.text('[i] Entenda os Indicadores de Confianca', marginLeft + 2, yPos + 6);
   
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(6.5);
   doc.setTextColor(30, 64, 175);
   
   const explanations = [
-    `• Ajuste Total: Valorização ou desvalorização aplicada com base nas características do imóvel (acabamento, vista, posição, etc.).`,
-    `• Spread: Variação entre valor mínimo e máximo. Spread ≤20% = Precisão Alta | 21-35% = Boa | 36-50% = Moderada | >50% = Baixa.`,
-    `• Score (0-100): Pontuação de confiabilidade baseada na quantidade e qualidade dos dados disponíveis na região.`,
-    `• Nível: Alta (80-100) | Média-Alta (60-79) | Média (40-59) | Baixa (<40) - Resume a qualidade geral desta avaliação.`
+    `- Ajuste Total: Valorizacao ou desvalorizacao aplicada com base nas caracteristicas do imovel (acabamento, vista, posicao, etc.).`,
+    `- Spread: Variacao entre valor minimo e maximo. Spread <=20% = Precisao Alta | 21-35% = Boa | 36-50% = Moderada | >50% = Baixa.`,
+    `- Score (0-100): Pontuacao de confiabilidade baseada na quantidade e qualidade dos dados disponiveis na regiao.`,
+    `- Nivel: Alta (80-100) | Media-Alta (60-79) | Media (40-59) | Baixa (<40) - Resume a qualidade geral desta avaliacao.`
   ];
   
   let expY = yPos + 12;
@@ -483,16 +484,16 @@ function createValuationPDF(
   doc.setFontSize(7);
   doc.setFont('helvetica', 'bold');
   doc.setTextColor(146, 64, 14);
-  doc.text('📈 Como Melhorar a Precisão da Avaliação?', marginLeft + 2, yPos + 5);
+  doc.text('[^] Como Melhorar a Precisao da Avaliacao?', marginLeft + 2, yPos + 5);
   
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(6);
   doc.setTextColor(120, 53, 15);
   
   const tips = [
-    `→ Preencha todas as características do imóvel com precisão (vista, andar, estado de conservação, reformas realizadas).`,
-    `→ Realize a Vistoria Digital completa para ajuste de até ±15% com base nas condições reais verificadas in loco.`,
-    `→ Quanto mais transações na região, maior o score. Aguarde mais dados se a região for recente ou pouco movimentada.`
+    `> Preencha todas as caracteristicas do imovel com precisao (vista, andar, estado de conservacao, reformas realizadas).`,
+    `> Realize a Vistoria Digital completa para ajuste de ate +/-15% com base nas condicoes reais verificadas in loco.`,
+    `> Quanto mais transacoes na regiao, maior o score. Aguarde mais dados se a regiao for recente ou pouco movimentada.`
   ];
   
   let tipY = yPos + 11;
@@ -1003,8 +1004,13 @@ function createValuationPDF(
   // 6. CARACTERÍSTICAS APLICADAS
   const appliedChars = state.responses.filter(r => r.response === 'sim' && r.weight_applied !== 0);
   if (appliedChars.length > 0) {
+    // Check if we need a new page
+    if (yPos > getMaxContentY() - 30) {
+      doc.addPage();
+      yPos = 20;
+    }
     yPos += 6;
-    yPos = drawSectionTitle(doc, 'Características Aplicadas', yPos, marginLeft);
+    yPos = drawSectionTitle(doc, 'Caracteristicas Aplicadas', yPos, marginLeft);
     doc.setFontSize(9);
     doc.setFont('helvetica', 'normal');
     doc.setTextColor(60, 60, 60);
@@ -1046,9 +1052,9 @@ function createValuationPDF(
     const strategyCardWidth = (contentWidth + 10) / 3 - 4;
     
     const strategies: { key: StrategyType; label: string; icon: string; color: [number, number, number]; bgColor: [number, number, number] }[] = [
-      { key: 'atracao', label: 'ATRAÇÃO', icon: '⚡', color: [59, 130, 246], bgColor: [239, 246, 255] },
-      { key: 'mercado', label: 'MERCADO', icon: '⚖️', color: [234, 88, 12], bgColor: [255, 247, 237] },
-      { key: 'premium', label: 'PREMIUM', icon: '💎', color: [139, 92, 246], bgColor: [250, 245, 255] },
+      { key: 'atracao', label: 'ATRACAO', icon: '[!]', color: [59, 130, 246], bgColor: [239, 246, 255] },
+      { key: 'mercado', label: 'MERCADO', icon: '[=]', color: [234, 88, 12], bgColor: [255, 247, 237] },
+      { key: 'premium', label: 'PREMIUM', icon: '[+]', color: [139, 92, 246], bgColor: [250, 245, 255] },
     ];
     
     strategies.forEach((strategy, i) => {
@@ -1072,8 +1078,8 @@ function createValuationPDF(
       doc.setFont('helvetica', 'bold');
       doc.setTextColor(...strategy.color);
       let headerText = `${strategy.icon} ${strategy.label}`;
-      if (isRecommended) headerText += ' ⭐';
-      if (isSelected) headerText += ' ✓';
+      if (isRecommended) headerText += ' *';
+      if (isSelected) headerText += ' [OK]';
       doc.text(headerText, cardX + 3, yPos + 12);
       
       // Markup
@@ -1103,7 +1109,7 @@ function createValuationPDF(
     doc.setFontSize(6);
     doc.setFont('helvetica', 'italic');
     doc.setTextColor(100, 116, 139);
-    doc.text('⭐ Estratégia Recomendada | ✓ Estratégia Selecionada', marginLeft, yPos);
+    doc.text('* Estrategia Recomendada | [OK] Estrategia Selecionada', marginLeft, yPos);
     yPos += 8;
     
     // Detalhes da estratégia selecionada
@@ -1180,7 +1186,7 @@ function createValuationPDF(
       doc.setFontSize(7);
       doc.setFont('helvetica', 'bold');
       doc.setTextColor(139, 92, 246);
-      doc.text('📅 Plano de Ajuste Sugerido Ativo:', marginLeft, yPos + 6);
+      doc.text('[>] Plano de Ajuste Sugerido Ativo:', marginLeft, yPos + 6);
       
       doc.setFont('helvetica', 'normal');
       doc.setFontSize(6);
@@ -1324,6 +1330,12 @@ function createValuationPDF(
   }
 
   // 7. RECOMENDAÇÃO
+  // Check if we need a new page for recommendation section
+  if (yPos > getMaxContentY() - 40) {
+    doc.addPage();
+    yPos = 20;
+  }
+  
   yPos += 6;
   
   // Determina cor de fundo baseada no status

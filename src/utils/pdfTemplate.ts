@@ -170,9 +170,10 @@ export function formatCurrencyPDF(value: number): string {
 
 /**
  * Get maximum Y position before footer (content area limit)
+ * Footer starts at pageHeight - 10 = 287, so content should stop at ~270 to have safe margin
  */
 export function getMaxContentY(): number {
-  return 280; // More content space with smaller footer
+  return 270; // Safe content area limit before footer
 }
 
 /**
