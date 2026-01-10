@@ -467,21 +467,8 @@ export function Step1Location({ state, updateState, combined }: Props) {
               </TooltipTrigger>
               <TooltipContent side="top" className="max-w-sm">
                 <div className="space-y-2 text-xs">
-                  <p className="font-semibold">Metodologia de Cálculo</p>
-                  <ul className="space-y-1 list-disc list-inside">
-                    <li><strong>Fonte:</strong> Transações oficiais ITBI da Prefeitura do Rio</li>
-                    <li><strong>Filtro:</strong> Apenas imóveis com ≥90% de transferência</li>
-                    <li><strong>Mínimo:</strong> 3 transações para garantir precisão estatística</li>
-                    <li><strong>Faixa:</strong> Calculada com base em mín, mediana e máx do m²</li>
-                    <li><strong>Atualização:</strong> Diária automática às 02:00</li>
-                  </ul>
-                  <div className="pt-2 mt-2 border-t border-border space-y-1">
-                    <p className="font-semibold text-primary">💡 Sem anúncios? Sem problema!</p>
-                    <p>Você pode prosseguir usando <strong>apenas dados oficiais ITBI</strong>. Essa opção oferece uma avaliação baseada em transações reais de compra e venda, sem influência de preços de anúncio — ideal para uma referência de mercado mais objetiva.</p>
-                  </div>
-                  <p className="text-muted-foreground italic pt-1 border-t border-border">
-                    Esta é uma ferramenta estatística e não substitui laudo PTAM.
-                  </p>
+                  <p className="font-semibold text-primary">💡 Sem anúncios? Sem problema!</p>
+                  <p>Você pode prosseguir usando <strong>apenas dados oficiais ITBI</strong>. Essa opção oferece uma avaliação baseada em transações reais de compra e venda, sem influência de preços de anúncio — ideal para uma referência de mercado mais objetiva.</p>
                 </div>
               </TooltipContent>
             </Tooltip>
