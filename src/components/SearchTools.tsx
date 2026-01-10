@@ -229,7 +229,7 @@ export function SearchTools({ bairro = "BARRA DA TIJUCA", vistoriaData }: Search
 
           {/* Aba Localização - Usando busca avançada */}
           <TabsContent value="localizacao" className="space-y-4 mt-4">
-            <EmbeddedAdvancedSearch defaultBairro={bairro} />
+            <EmbeddedAdvancedSearch />
           </TabsContent>
 
           {/* Aba Transações */}
