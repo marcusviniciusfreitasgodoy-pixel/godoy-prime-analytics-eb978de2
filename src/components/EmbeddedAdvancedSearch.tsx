@@ -16,7 +16,6 @@ import { ScrollArea } from "./ui/scroll-area";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "./ui/dropdown-menu";
 import { Popover, PopoverContent, PopoverTrigger } from "./ui/popover";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "./ui/tooltip";
-import { useBairroSuggestions } from "@/hooks/useBairroSuggestions";
 import { useStreetSuggestions } from "@/hooks/useStreetSuggestions";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "./ui/dialog";
 
@@ -78,12 +77,10 @@ export function EmbeddedAdvancedSearch({ defaultBairro = "" }: EmbeddedAdvancedS
   const [bairro, setBairro] = useState(defaultBairro);
   const [logradouro, setLogradouro] = useState("");
   
-  // Autocomplete popover states
-  const [bairroPopoverOpen, setBairroPopoverOpen] = useState(false);
+  // Autocomplete popover state for logradouro only
   const [logradouroPopoverOpen, setLogradouroPopoverOpen] = useState(false);
   
-  // Autocomplete suggestions
-  const { data: bairroSuggestions } = useBairroSuggestions(bairro);
+  // Autocomplete suggestions for street
   const { data: streetSuggestions } = useStreetSuggestions(logradouro, bairro || undefined);
   
   // Search trigger
@@ -390,52 +387,36 @@ export function EmbeddedAdvancedSearch({ defaultBairro = "" }: EmbeddedAdvancedS
 
         <div className="space-y-1">
           <Label className="text-xs">Bairro</Label>
-          <Popover open={bairroPopoverOpen} onOpenChange={setBairroPopoverOpen}>
-            <PopoverTrigger asChild>
-              <div className="relative">
-                <MapPin className="absolute left-2 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                <Input
-                  placeholder="Bairro..."
-                  value={bairro}
-                  onChange={(e) => {
-                    setBairro(e.target.value);
-                    if (e.target.value.length >= 2) setBairroPopoverOpen(true);
-                  }}
-                  onFocus={() => {
-                    if (bairro.length >= 2) setBairroPopoverOpen(true);
-                  }}
-                  className="h-9 text-sm pl-8"
-                />
-                {bairro && (
-                  <button
-                    onClick={() => { setBairro(""); setBairroPopoverOpen(false); }}
-                    className="absolute right-2 top-1/2 -translate-y-1/2"
-                  >
-                    <X className="h-4 w-4 text-muted-foreground hover:text-foreground" />
-                  </button>
-                )}
-              </div>
-            </PopoverTrigger>
-            {bairroSuggestions && bairroSuggestions.length > 0 && (
-              <PopoverContent className="p-0 w-[250px]" align="start">
-                <ScrollArea className="h-[200px]">
-                  {bairroSuggestions.map((b) => (
-                    <button
-                      key={b.bairro}
-                      className="w-full px-3 py-2 text-left text-sm hover:bg-accent flex items-center justify-between"
-                      onClick={() => {
-                        setBairro(b.bairro);
-                        setBairroPopoverOpen(false);
-                      }}
-                    >
-                      <span className="truncate">{b.bairro}</span>
-                      <Badge variant="secondary" className="text-xs ml-2">{b.total_transacoes}</Badge>
-                    </button>
-                  ))}
-                </ScrollArea>
-              </PopoverContent>
-            )}
-          </Popover>
+          <Select 
+            value={bairro} 
+            onValueChange={(value) => setBairro(value === "todos" ? "" : value)}
+          >
+            <SelectTrigger className="h-9 text-sm">
+              <SelectValue placeholder="Todos os bairros" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="todos">Todos os bairros</SelectItem>
+              <SelectItem value="BARRA DA TIJUCA">Barra da Tijuca</SelectItem>
+              <SelectItem value="RECREIO DOS BANDEIRANTES">Recreio dos Bandeirantes</SelectItem>
+              <SelectItem value="JACAREPAGUA">Jacarepaguá</SelectItem>
+              <SelectItem value="COPACABANA">Copacabana</SelectItem>
+              <SelectItem value="IPANEMA">Ipanema</SelectItem>
+              <SelectItem value="LEBLON">Leblon</SelectItem>
+              <SelectItem value="BOTAFOGO">Botafogo</SelectItem>
+              <SelectItem value="TIJUCA">Tijuca</SelectItem>
+              <SelectItem value="FLAMENGO">Flamengo</SelectItem>
+              <SelectItem value="LARANJEIRAS">Laranjeiras</SelectItem>
+              <SelectItem value="GAVEA">Gávea</SelectItem>
+              <SelectItem value="JARDIM BOTANICO">Jardim Botânico</SelectItem>
+              <SelectItem value="LAGOA">Lagoa</SelectItem>
+              <SelectItem value="SAO CONRADO">São Conrado</SelectItem>
+              <SelectItem value="HUMAITA">Humaitá</SelectItem>
+              <SelectItem value="URCA">Urca</SelectItem>
+              <SelectItem value="CENTRO">Centro</SelectItem>
+              <SelectItem value="VILA ISABEL">Vila Isabel</SelectItem>
+              <SelectItem value="MEIER">Méier</SelectItem>
+            </SelectContent>
+          </Select>
         </div>
 
         <div className="space-y-1">
