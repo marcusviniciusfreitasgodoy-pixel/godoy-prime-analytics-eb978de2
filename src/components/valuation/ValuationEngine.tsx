@@ -14,9 +14,11 @@ import { Step2BasicData } from "./Step2BasicData";
 import { Step3Questionnaire } from "./Step3Questionnaire";
 import { Step4Results } from "./Step4Results";
 import { Step5Recommendation } from "./Step5Recommendation";
+import { AutoSaveIndicator } from "./AutoSaveIndicator";
 import { calculateValuation, calculateCombinedPrices } from "@/utils/valuationCalculations";
 import { ValuationState, initialValuationState } from "@/types/valuation";
 import { useHistoricalTransactionAnalysis } from "@/hooks/useHistoricalTransactionAnalysis";
+import { useAutoSaveValuation } from "@/hooks/useAutoSaveValuation";
 
 const STEPS = [
   { id: 0, title: "Identificação", description: "Dados do imóvel" },
@@ -327,6 +329,15 @@ export function ValuationEngine({ bairro = "BARRA DA TIJUCA", vistoriaData, edit
     ? calculateCombinedPrices(state.itbiData, state.anuncioData || undefined)
     : null;
 
+  // Auto-save para modo de edição (somente nas etapas 0-3, antes de calcular resultado final)
+  const { status: autoSaveStatus, lastSavedAt } = useAutoSaveValuation({
+    valuationId: editingValuationId,
+    state,
+    combined,
+    enabled: fromEditar && !!editingValuationId && currentStep < 4,
+    debounceMs: 800,
+  });
+
   return (
     <Card className="border-primary/20">
       <CardHeader className="pb-3 sm:pb-4 px-3 sm:px-6">
@@ -366,9 +377,15 @@ export function ValuationEngine({ bairro = "BARRA DA TIJUCA", vistoriaData, edit
               </p>
             </div>
           </div>
-          <Badge variant="outline" className="w-fit text-xs">
-            Etapa {currentStep + 1}/6
-          </Badge>
+          <div className="flex items-center gap-2">
+            {/* Auto-save indicator (apenas em modo edição) */}
+            {fromEditar && currentStep < 4 && (
+              <AutoSaveIndicator status={autoSaveStatus} lastSavedAt={lastSavedAt} />
+            )}
+            <Badge variant="outline" className="w-fit text-xs">
+              Etapa {currentStep + 1}/6
+            </Badge>
+          </div>
         </div>
         
         {/* Progress bar */}
