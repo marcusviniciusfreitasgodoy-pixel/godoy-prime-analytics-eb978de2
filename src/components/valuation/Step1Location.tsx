@@ -6,7 +6,13 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { MapPin, TrendingUp, TrendingDown, Minus, Search, Building2, Plus, X, Calculator, CheckCircle2, Database, Loader2, AlertTriangle, Info, ExternalLink } from "lucide-react";
+import { MapPin, TrendingUp, TrendingDown, Minus, Search, Building2, Plus, X, Calculator, CheckCircle2, Database, Loader2, AlertTriangle, Info, ExternalLink, HelpCircle } from "lucide-react";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { useOfficialStreetSuggestions, type OfficialStreetSuggestion } from "@/hooks/useOfficialStreetSuggestions";
 import { useCompanySettings } from "@/hooks/useCompanySettings";
 import type { ValuationState } from "@/types/valuation";
@@ -452,8 +458,30 @@ export function Step1Location({ state, updateState, combined }: Props) {
             </Card>
           )}
         </div>
-        <p className="text-[10px] sm:text-xs text-muted-foreground">
-          {state.bairro} • Mínimo de 3 transações oficiais para garantir precisão estatística na faixa de preços
+        <p className="text-[10px] sm:text-xs text-muted-foreground flex items-center gap-1">
+          <span>{state.bairro} • Mínimo de 3 transações</span>
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <HelpCircle className="h-3 w-3 cursor-help hover:text-primary transition-colors" />
+              </TooltipTrigger>
+              <TooltipContent side="top" className="max-w-xs">
+                <div className="space-y-2 text-xs">
+                  <p className="font-semibold">Metodologia de Cálculo</p>
+                  <ul className="space-y-1 list-disc list-inside">
+                    <li><strong>Fonte:</strong> Transações oficiais ITBI da Prefeitura do Rio</li>
+                    <li><strong>Filtro:</strong> Apenas imóveis com ≥90% de transferência</li>
+                    <li><strong>Mínimo:</strong> 3 transações para garantir precisão estatística</li>
+                    <li><strong>Faixa:</strong> Calculada com base em mín, mediana e máx do m²</li>
+                    <li><strong>Atualização:</strong> Diária automática às 02:00</li>
+                  </ul>
+                  <p className="text-muted-foreground italic pt-1 border-t border-border">
+                    Esta é uma ferramenta estatística e não substitui laudo PTAM.
+                  </p>
+                </div>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
         </p>
       </div>
 
