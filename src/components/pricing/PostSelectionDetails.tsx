@@ -323,7 +323,7 @@ export function PostSelectionDetails({
                     </td>
                   </tr>
                   <tr>
-                    <td className="py-2 px-1 text-muted-foreground">Prêmio vs. ITBI</td>
+                    <td className="py-2 px-1 text-muted-foreground">Prêmio vs. Avaliação</td>
                     <td className={`text-right py-2 px-1 ${estrategia === 'atracao' ? 'bg-blue-50' : ''}`}>
                       {calculos.atracao.premio_liquido_pct >= 0 ? '+' : ''}{calculos.atracao.premio_liquido_pct.toFixed(1)}%
                     </td>

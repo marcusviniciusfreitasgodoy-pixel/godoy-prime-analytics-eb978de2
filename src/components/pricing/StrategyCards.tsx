@@ -143,7 +143,7 @@ export function StrategyCards({ calculos, recomendada, valorItbi, onSelect }: St
                   <Badge 
                     className={`mt-2 text-sm font-bold px-3 py-1 ${strategy.bgColor} ${strategy.color} border ${strategy.borderColor}`}
                   >
-                    {formatPercentage(calc.percentual)} sobre ITBI
+                    {formatPercentage(calc.percentual)} sobre Avaliação
                   </Badge>
                 </div>
               </CardHeader>
@@ -184,9 +184,9 @@ export function StrategyCards({ calculos, recomendada, valorItbi, onSelect }: St
                   </div>
                 </div>
 
-                {/* Prêmio vs ITBI */}
+                {/* Prêmio vs Avaliação */}
                 <div className={`text-center p-2 rounded-lg ${strategy.bgColor}`}>
-                  <span className="text-xs text-muted-foreground">Prêmio líquido vs. ITBI</span>
+                  <span className="text-xs text-muted-foreground">Prêmio líquido vs. Avaliação</span>
                   <div className={`font-bold ${calc.premio_liquido_pct >= 0 ? 'text-green-600' : 'text-red-600'}`}>
                     {calc.premio_liquido_pct >= 0 ? '+' : ''}{calc.premio_liquido_pct.toFixed(1)}%
                   </div>
