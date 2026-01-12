@@ -376,6 +376,10 @@ export function Step5Recommendation({ result, state, combined, onReset, existing
       proprietario: state.proprietario,
       telefone: state.telefone,
       observacoes: state.observacoesImovel,
+      // Mantém o vínculo com a avaliação salva (quando existir)
+      valuationId: valuationId || existingValuationId || null,
+      // Estratégia de precificação (para aparecer no PDF de vistoria)
+      pricingStrategy: pricingData,
       // Dados COMPLETOS da avaliação para relatório integrado
       avaliacaoData: {
         valorProvavel: result.provavel,

@@ -1137,7 +1137,10 @@ export default function VistoriaDigital() {
       
       // Generate PDF - include pricingStrategy from location state if available
       const locationState = location.state as any;
-      const pricingStrategy = locationState?.vistoriaData?.pricingStrategy || null;
+      const pricingStrategy =
+        locationState?.vistoriaData?.pricingStrategy ??
+        locationState?.propertyData?.pricingStrategy ??
+        null;
       
       await generateVistoriaPDF({
         propertyData,
@@ -1183,7 +1186,10 @@ export default function VistoriaDigital() {
 
   const handleGeneratePdfForEmail = async () => {
     const locationState = location.state as any;
-    const pricingStrategy = locationState?.vistoriaData?.pricingStrategy || null;
+    const pricingStrategy =
+      locationState?.vistoriaData?.pricingStrategy ??
+      locationState?.propertyData?.pricingStrategy ??
+      null;
     
     return await generateVistoriaPDFDoc({
       propertyData,
