@@ -361,7 +361,7 @@ export function Step1Location({ state, updateState, combined }: Props) {
         return (
           <Badge variant="secondary" className="text-[10px] shrink-0">
             <Database className="h-3 w-3 mr-1" />
-            ITBI
+            Transações
           </Badge>
         );
     }
@@ -468,7 +468,7 @@ export function Step1Location({ state, updateState, combined }: Props) {
               <TooltipContent side="top" className="max-w-sm">
                 <div className="space-y-2 text-xs">
                   <p className="font-semibold text-primary">💡 Sem anúncios? Sem problema!</p>
-                  <p>Você pode prosseguir usando <strong>apenas dados oficiais ITBI</strong>. Essa opção oferece uma avaliação baseada em transações reais de compra e venda, sem influência de preços de anúncio — ideal para uma referência de mercado mais objetiva.</p>
+                  <p>Você pode prosseguir usando <strong>apenas dados oficiais de transações</strong>. Essa opção oferece uma avaliação baseada em transações reais de compra e venda, sem influência de preços de anúncio — ideal para uma referência de mercado mais objetiva.</p>
                 </div>
               </TooltipContent>
             </Tooltip>
@@ -638,7 +638,7 @@ export function Step1Location({ state, updateState, combined }: Props) {
                         <Alert variant="destructive" className="mt-2 py-2">
                           <AlertTriangle className="h-4 w-4" />
                           <AlertDescription className="text-xs">
-                            <strong>Atenção:</strong> Apenas {numAnuncios} anúncio(s) com variação de {rawTrend.toFixed(0)}% vs ITBI ({itbiCount} transações). 
+                            <strong>Atenção:</strong> Apenas {numAnuncios} anúncio(s) com variação de {rawTrend.toFixed(0)}% vs dados oficiais ({itbiCount} transações). 
                             Amostra insuficiente para representatividade. Adicione mais anúncios comparáveis.
                           </AlertDescription>
                         </Alert>
@@ -651,7 +651,7 @@ export function Step1Location({ state, updateState, combined }: Props) {
                           <Info className="h-4 w-4 text-amber-600" />
                           <AlertDescription className="text-xs text-amber-800 dark:text-amber-200">
                             <strong>Nota:</strong> Diferença de {rawTrend.toFixed(0)}% será limitada a ±50% no cálculo. 
-                            Causas comuns: anúncios com preços supervalorizados ou características muito distintas do mercado ITBI.
+                            Causas comuns: anúncios com preços supervalorizados ou características muito distintas dos dados oficiais.
                           </AlertDescription>
                         </Alert>
                       );
