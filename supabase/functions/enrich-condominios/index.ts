@@ -196,11 +196,12 @@ serve(async (req) => {
     const { 
       condominioId,
       bairro = 'BARRA DA TIJUCA',
+      microbairro,
       forceRefresh = false,
       limit = 50
     } = body;
     
-    console.log('Starting condominium enrichment', { condominioId, bairro, forceRefresh, limit });
+    console.log('Starting condominium enrichment', { condominioId, bairro, microbairro, forceRefresh, limit });
     
     // Buscar condomínios para enriquecer
     let query = supabase
@@ -215,8 +216,9 @@ serve(async (req) => {
       query = query.is('latitude', null);
     }
     
-    if (bairro) {
-      query = query.eq('microbairro', bairro).or(`microbairro.is.null`);
+    // Filtrar por microbairro apenas se especificado
+    if (microbairro) {
+      query = query.eq('microbairro', microbairro);
     }
     
     query = query.limit(limit);
