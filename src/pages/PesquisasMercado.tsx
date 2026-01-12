@@ -495,7 +495,12 @@ export default function PesquisasMercado() {
                       <TransactionMap 
                         data={mapData || []} 
                         bairro={transacaoBairro} 
-                        isLoading={mapLoading} 
+                        isLoading={mapLoading}
+                        initialFilters={{
+                          periodoMeses: parseInt(transacaoPeriodo),
+                          precoMin: 0,
+                          precoMax: 100000
+                        }}
                       />
                     </div>
                   ) : viewMode === 'chart' ? (

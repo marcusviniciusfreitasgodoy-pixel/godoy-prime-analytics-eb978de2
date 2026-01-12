@@ -1,7 +1,23 @@
 /// <reference types="@types/google.maps" />
-import { useEffect, useRef, useState, useCallback } from 'react';
-import { Loader2 } from 'lucide-react';
+import { useEffect, useRef, useState, useCallback, useMemo } from 'react';
+import { Loader2, Filter, X, Calendar, DollarSign, ChevronDown } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
+import { Button } from '@/components/ui/button';
+import { Slider } from '@/components/ui/slider';
+import { Badge } from '@/components/ui/badge';
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from '@/components/ui/popover';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import { cn } from '@/lib/utils';
 
 interface TransactionMapData {
   microbairro: string;
@@ -12,11 +28,37 @@ interface TransactionMapData {
   aproximado?: boolean;
 }
 
+interface MapFilters {
+  periodoMeses: number;
+  precoMin: number;
+  precoMax: number;
+}
+
 interface TransactionMapProps {
   data: TransactionMapData[];
   bairro: string;
   isLoading?: boolean;
+  onFiltersChange?: (filters: MapFilters) => void;
+  initialFilters?: Partial<MapFilters>;
 }
+
+// Faixas de preço pré-definidas
+const PRICE_RANGES = [
+  { label: 'Todos', min: 0, max: 100000 },
+  { label: 'Até R$ 10.000/m²', min: 0, max: 10000 },
+  { label: 'R$ 10.000 - 20.000/m²', min: 10000, max: 20000 },
+  { label: 'R$ 20.000 - 35.000/m²', min: 20000, max: 35000 },
+  { label: 'Acima de R$ 35.000/m²', min: 35000, max: 100000 },
+];
+
+// Períodos disponíveis
+const PERIOD_OPTIONS = [
+  { value: 3, label: 'Últimos 3 meses' },
+  { value: 6, label: 'Últimos 6 meses' },
+  { value: 12, label: 'Último ano' },
+  { value: 24, label: 'Últimos 2 anos' },
+  { value: 36, label: 'Últimos 3 anos' },
+];
 
 // Cores por faixa de preço/m²
 const getPriceColor = (preco: number): string => {
@@ -64,7 +106,13 @@ declare global {
   }
 }
 
-export function TransactionMap({ data, bairro, isLoading }: TransactionMapProps) {
+export function TransactionMap({ 
+  data, 
+  bairro, 
+  isLoading, 
+  onFiltersChange,
+  initialFilters 
+}: TransactionMapProps) {
   const mapContainer = useRef<HTMLDivElement>(null);
   const map = useRef<google.maps.Map | null>(null);
   const markers = useRef<google.maps.marker.AdvancedMarkerElement[]>([]);
@@ -73,6 +121,54 @@ export function TransactionMap({ data, bairro, isLoading }: TransactionMapProps)
   const [apiKeyLoading, setApiKeyLoading] = useState(true);
   const [apiKey, setApiKey] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  
+  // Estado dos filtros
+  const [filters, setFilters] = useState<MapFilters>({
+    periodoMeses: initialFilters?.periodoMeses || 12,
+    precoMin: initialFilters?.precoMin || 0,
+    precoMax: initialFilters?.precoMax || 100000,
+  });
+  const [filtersOpen, setFiltersOpen] = useState(false);
+
+  // Atualiza filtros e notifica parent
+  const updateFilters = useCallback((newFilters: Partial<MapFilters>) => {
+    setFilters(prev => {
+      const updated = { ...prev, ...newFilters };
+      onFiltersChange?.(updated);
+      return updated;
+    });
+  }, [onFiltersChange]);
+
+  // Filtra os dados localmente baseado nos filtros
+  const filteredData = useMemo(() => {
+    if (!data) return [];
+    return data.filter(item => {
+      const preco = item.preco_medio_m2;
+      return preco >= filters.precoMin && preco <= filters.precoMax;
+    });
+  }, [data, filters.precoMin, filters.precoMax]);
+
+  // Verifica se há filtros ativos
+  const hasActiveFilters = useMemo(() => {
+    return filters.periodoMeses !== 12 || filters.precoMin > 0 || filters.precoMax < 100000;
+  }, [filters]);
+
+  // Label do período selecionado
+  const selectedPeriodLabel = useMemo(() => {
+    return PERIOD_OPTIONS.find(p => p.value === filters.periodoMeses)?.label || 'Último ano';
+  }, [filters.periodoMeses]);
+
+  // Label da faixa de preço selecionada
+  const selectedPriceLabel = useMemo(() => {
+    const range = PRICE_RANGES.find(r => r.min === filters.precoMin && r.max === filters.precoMax);
+    if (range) return range.label;
+    return `R$ ${(filters.precoMin / 1000).toFixed(0)}k - ${(filters.precoMax / 1000).toFixed(0)}k`;
+  }, [filters.precoMin, filters.precoMax]);
+
+  // Limpa todos os filtros
+  const clearFilters = useCallback(() => {
+    updateFilters({ periodoMeses: 12, precoMin: 0, precoMax: 100000 });
+  }, [updateFilters]);
 
   // Busca a API key do Google Maps
   useEffect(() => {
@@ -80,8 +176,6 @@ export function TransactionMap({ data, bairro, isLoading }: TransactionMapProps)
       try {
         console.log('Fetching Google Maps API key...');
         const response = await supabase.functions.invoke('get-google-maps-key');
-        
-        console.log('Response:', response);
         
         if (response.error) {
           console.error('Error fetching Google Maps API key:', response.error);
@@ -181,7 +275,7 @@ export function TransactionMap({ data, bairro, isLoading }: TransactionMapProps)
 
   // Atualiza marcadores quando data/bairro muda
   useEffect(() => {
-    if (!mapReady || !map.current || !data) return;
+    if (!mapReady || !map.current || !filteredData) return;
 
     // Limpa marcadores anteriores
     markers.current.forEach(marker => {
@@ -189,11 +283,11 @@ export function TransactionMap({ data, bairro, isLoading }: TransactionMapProps)
     });
     markers.current = [];
 
-    if (data.length === 0) return;
+    if (filteredData.length === 0) return;
 
     const bounds = new google.maps.LatLngBounds();
 
-    data.forEach((item) => {
+    filteredData.forEach((item) => {
       if (!item.latitude || !item.longitude) return;
 
       const color = getPriceColor(item.preco_medio_m2);
@@ -241,10 +335,10 @@ export function TransactionMap({ data, bairro, isLoading }: TransactionMapProps)
     });
 
     // Ajusta o zoom para mostrar todos os marcadores
-    if (data.length > 1) {
+    if (filteredData.length > 1) {
       map.current.fitBounds(bounds, { top: 50, right: 50, bottom: 50, left: 50 });
     }
-  }, [data, mapReady, bairro, createCircleMarker]);
+  }, [filteredData, mapReady, bairro, createCircleMarker]);
 
   if (error) {
     return (
@@ -276,6 +370,145 @@ export function TransactionMap({ data, bairro, isLoading }: TransactionMapProps)
         </div>
       )}
 
+      {/* Controles de Filtro */}
+      <div className="absolute top-4 left-4 z-[1000] flex flex-col gap-2">
+        {/* Botão de Filtros */}
+        <Popover open={filtersOpen} onOpenChange={setFiltersOpen}>
+          <PopoverTrigger asChild>
+            <Button 
+              variant="outline" 
+              size="sm" 
+              className={cn(
+                "bg-background/95 backdrop-blur-sm shadow-lg border-border",
+                hasActiveFilters && "border-primary"
+              )}
+            >
+              <Filter className="h-4 w-4 mr-2" />
+              Filtros
+              {hasActiveFilters && (
+                <Badge variant="secondary" className="ml-2 h-5 px-1.5 text-xs bg-primary text-primary-foreground">
+                  {(filters.periodoMeses !== 12 ? 1 : 0) + (filters.precoMin > 0 || filters.precoMax < 100000 ? 1 : 0)}
+                </Badge>
+              )}
+              <ChevronDown className="h-4 w-4 ml-1" />
+            </Button>
+          </PopoverTrigger>
+          <PopoverContent className="w-80 p-4" align="start">
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <h4 className="font-semibold text-sm">Filtros do Mapa</h4>
+                {hasActiveFilters && (
+                  <Button 
+                    variant="ghost" 
+                    size="sm" 
+                    onClick={clearFilters}
+                    className="h-7 px-2 text-xs text-muted-foreground hover:text-foreground"
+                  >
+                    <X className="h-3 w-3 mr-1" />
+                    Limpar
+                  </Button>
+                )}
+              </div>
+
+              {/* Filtro de Período */}
+              <div className="space-y-2">
+                <label className="text-sm font-medium flex items-center gap-2">
+                  <Calendar className="h-4 w-4 text-muted-foreground" />
+                  Período
+                </label>
+                <Select 
+                  value={String(filters.periodoMeses)} 
+                  onValueChange={(val) => updateFilters({ periodoMeses: Number(val) })}
+                >
+                  <SelectTrigger className="w-full">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {PERIOD_OPTIONS.map(option => (
+                      <SelectItem key={option.value} value={String(option.value)}>
+                        {option.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* Filtro de Faixa de Preço */}
+              <div className="space-y-3">
+                <label className="text-sm font-medium flex items-center gap-2">
+                  <DollarSign className="h-4 w-4 text-muted-foreground" />
+                  Faixa de Preço/m²
+                </label>
+                
+                {/* Botões rápidos de faixa */}
+                <div className="grid grid-cols-2 gap-2">
+                  {PRICE_RANGES.map(range => (
+                    <Button
+                      key={range.label}
+                      variant={filters.precoMin === range.min && filters.precoMax === range.max ? "default" : "outline"}
+                      size="sm"
+                      className="text-xs h-8"
+                      onClick={() => updateFilters({ precoMin: range.min, precoMax: range.max })}
+                    >
+                      {range.label.replace('R$ ', '').replace('/m²', '')}
+                    </Button>
+                  ))}
+                </div>
+
+                {/* Slider customizado */}
+                <div className="pt-2">
+                  <div className="flex justify-between text-xs text-muted-foreground mb-2">
+                    <span>R$ {(filters.precoMin / 1000).toFixed(0)}k</span>
+                    <span>R$ {(filters.precoMax / 1000).toFixed(0)}k</span>
+                  </div>
+                  <Slider
+                    value={[filters.precoMin, filters.precoMax]}
+                    min={0}
+                    max={100000}
+                    step={5000}
+                    onValueChange={([min, max]) => updateFilters({ precoMin: min, precoMax: max })}
+                    className="w-full"
+                  />
+                </div>
+              </div>
+
+              {/* Resumo de resultados */}
+              <div className="pt-2 border-t border-border">
+                <p className="text-xs text-muted-foreground">
+                  Exibindo <strong className="text-foreground">{filteredData.length}</strong> de {data?.length || 0} logradouros
+                </p>
+              </div>
+            </div>
+          </PopoverContent>
+        </Popover>
+
+        {/* Badges de filtros ativos */}
+        {hasActiveFilters && (
+          <div className="flex flex-wrap gap-1.5">
+            {filters.periodoMeses !== 12 && (
+              <Badge 
+                variant="secondary" 
+                className="bg-background/95 backdrop-blur-sm shadow-sm text-xs cursor-pointer hover:bg-background"
+                onClick={() => updateFilters({ periodoMeses: 12 })}
+              >
+                {selectedPeriodLabel}
+                <X className="h-3 w-3 ml-1" />
+              </Badge>
+            )}
+            {(filters.precoMin > 0 || filters.precoMax < 100000) && (
+              <Badge 
+                variant="secondary" 
+                className="bg-background/95 backdrop-blur-sm shadow-sm text-xs cursor-pointer hover:bg-background"
+                onClick={() => updateFilters({ precoMin: 0, precoMax: 100000 })}
+              >
+                {selectedPriceLabel}
+                <X className="h-3 w-3 ml-1" />
+              </Badge>
+            )}
+          </div>
+        )}
+      </div>
+
       {/* Legenda */}
       <div className="absolute bottom-4 left-4 bg-background/95 backdrop-blur-sm rounded-lg p-3 shadow-lg z-[1000] border border-border">
         <div className="text-xs font-semibold mb-2 text-foreground">Preço/m²</div>
@@ -305,9 +538,9 @@ export function TransactionMap({ data, bairro, isLoading }: TransactionMapProps)
       </div>
 
       {/* Contador de pontos */}
-      {data && data.length > 0 && (
+      {filteredData && filteredData.length > 0 && (
         <div className="absolute top-4 right-4 bg-background/95 backdrop-blur-sm rounded-lg px-3 py-2 shadow-lg z-[1000] border border-border">
-          <span className="text-xs font-medium text-foreground">{data.length} logradouros</span>
+          <span className="text-xs font-medium text-foreground">{filteredData.length} logradouros</span>
         </div>
       )}
     </div>
