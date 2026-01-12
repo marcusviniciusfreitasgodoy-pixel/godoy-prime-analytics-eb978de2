@@ -4,15 +4,23 @@ import { Target, TrendingUp, DollarSign, Percent, CheckCircle2 } from "lucide-re
 import { formatCurrencyBRL, formatPercentage } from "@/utils/pricingCalculations";
 import { StrategyType, StrategyCalculation } from "@/types/pricingStrategy";
 
+// Suporta ambos os formatos: snake_case (do DB) e camelCase (do Step5Recommendation)
 interface PricingStrategyData {
-  estrategia_recomendada: StrategyType;
-  estrategia_selecionada: StrategyType | null;
-  valor_itbi: number;
+  // snake_case format (from DB/HistoricoVistorias)
+  estrategia_recomendada?: StrategyType;
+  estrategia_selecionada?: StrategyType | null;
+  valor_itbi?: number;
+  // camelCase format (from Step5Recommendation)
+  estrategiaRecomendada?: StrategyType;
+  estrategiaSelecionada?: StrategyType | null;
+  valorItbi?: number;
+  // calculos object (works with both formats)
   calculos?: {
     atracao: StrategyCalculation;
     mercado: StrategyCalculation;
     premium: StrategyCalculation;
   } | null;
+  // Flat structure fallback (from DB)
   p_atracao?: number;
   p_mercado?: number;
   p_premium?: number;
@@ -55,7 +63,15 @@ const strategyConfig: Record<StrategyType, { label: string; color: string; bgCol
 export function PricingStrategyPreview({ pricingStrategy }: PricingStrategyPreviewProps) {
   if (!pricingStrategy) return null;
 
-  const selectedStrategy = pricingStrategy.estrategia_selecionada || pricingStrategy.estrategia_recomendada;
+  // Normalize data - support both snake_case and camelCase
+  const estrategiaRecomendada = pricingStrategy.estrategia_recomendada || pricingStrategy.estrategiaRecomendada;
+  const estrategiaSelecionada = pricingStrategy.estrategia_selecionada ?? pricingStrategy.estrategiaSelecionada;
+  const valorItbi = pricingStrategy.valor_itbi || pricingStrategy.valorItbi || 0;
+
+  // If no strategy data, don't render
+  if (!estrategiaRecomendada) return null;
+
+  const selectedStrategy = estrategiaSelecionada || estrategiaRecomendada;
   const config = strategyConfig[selectedStrategy];
 
   // Extract values - support both calculos object and flat structure
@@ -77,15 +93,15 @@ export function PricingStrategyPreview({ pricingStrategy }: PricingStrategyPrevi
     const corretagemKey = `corretagem_${strategy}` as keyof PricingStrategyData;
     
     return {
-      percentual: pricingStrategy[pKey] as number || 0,
-      precoAnuncio: pricingStrategy[precoKey] as number || 0,
-      liquido: pricingStrategy[liquidoKey] as number || 0,
-      corretagem: pricingStrategy[corretagemKey] as number || 0,
+      percentual: (pricingStrategy[pKey] as number) || 0,
+      precoAnuncio: (pricingStrategy[precoKey] as number) || 0,
+      liquido: (pricingStrategy[liquidoKey] as number) || 0,
+      corretagem: (pricingStrategy[corretagemKey] as number) || 0,
     };
   };
 
   const selectedValues = getStrategyValues(selectedStrategy);
-  const isSelected = pricingStrategy.estrategia_selecionada !== null;
+  const isSelected = estrategiaSelecionada !== null && estrategiaSelecionada !== undefined;
 
   return (
     <Card className={`${config.bgColor} border`}>
@@ -109,7 +125,7 @@ export function PricingStrategyPreview({ pricingStrategy }: PricingStrategyPrevi
         {/* Valor ITBI de referência */}
         <div className="text-center p-2 bg-background/80 rounded">
           <p className="text-xs text-muted-foreground">Valor ITBI (Base)</p>
-          <p className="font-semibold text-sm">{formatCurrencyBRL(pricingStrategy.valor_itbi)}</p>
+          <p className="font-semibold text-sm">{formatCurrencyBRL(valorItbi)}</p>
         </div>
 
         {/* Cards das 3 estratégias */}

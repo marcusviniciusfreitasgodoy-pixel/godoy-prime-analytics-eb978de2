@@ -135,7 +135,70 @@ interface VistoriaPDFParams {
   criticalCount: number;
   avaliacaoData?: AvaliacaoData | null;
   anuncioFontes?: AnuncioFonte[];
-  pricingStrategy?: PricingStrategyPDFData | null;
+  pricingStrategy?: PricingStrategyPDFData | any | null; // Accept both formats
+}
+
+// Normalize pricing strategy data to ensure consistent format
+function normalizePricingStrategy(data: any): PricingStrategyPDFData | null {
+  if (!data) return null;
+  
+  // If already in correct format (has calculos and camelCase fields)
+  if (data.calculos && data.valorItbi !== undefined && data.estrategiaRecomendada) {
+    return data as PricingStrategyPDFData;
+  }
+  
+  // Convert from snake_case (DB format) to camelCase
+  if (data.valor_itbi !== undefined || data.estrategia_recomendada) {
+    const estrategiaRecomendada = data.estrategia_recomendada || data.estrategiaRecomendada;
+    const estrategiaSelecionada = data.estrategia_selecionada ?? data.estrategiaSelecionada;
+    const valorItbi = data.valor_itbi || data.valorItbi || 0;
+    
+    // Build calculos from flat structure if needed
+    let calculos = data.calculos;
+    if (!calculos && data.preco_anuncio_mercado) {
+      calculos = {
+        atracao: {
+          percentual: data.p_atracao || 0,
+          preco_anuncio: data.preco_anuncio_atracao || 0,
+          corretagem: data.corretagem_atracao || 0,
+          liquido: data.liquido_atracao || 0,
+          piso_planejado: data.piso_planejado_atracao || 0,
+          liquido_min: data.liquido_min_atracao || 0,
+          premio_liquido_pct: data.premio_liquido_pct_atracao || 0,
+        },
+        mercado: {
+          percentual: data.p_mercado || 0,
+          preco_anuncio: data.preco_anuncio_mercado || 0,
+          corretagem: data.corretagem_mercado || 0,
+          liquido: data.liquido_mercado || 0,
+          piso_planejado: data.piso_planejado_mercado || 0,
+          liquido_min: data.liquido_min_mercado || 0,
+          premio_liquido_pct: data.premio_liquido_pct_mercado || 0,
+        },
+        premium: {
+          percentual: data.p_premium || 0,
+          preco_anuncio: data.preco_anuncio_premium || 0,
+          corretagem: data.corretagem_premium || 0,
+          liquido: data.liquido_premium || 0,
+          piso_planejado: data.piso_planejado_premium || 0,
+          liquido_min: data.liquido_min_premium || 0,
+          premio_liquido_pct: data.premio_liquido_pct_premium || 0,
+        },
+      };
+    }
+    
+    if (!calculos || !estrategiaRecomendada) return null;
+    
+    return {
+      valorItbi,
+      estrategiaSelecionada: estrategiaSelecionada || estrategiaRecomendada,
+      estrategiaRecomendada,
+      calculos,
+      planoAjusteAtivo: data.plano_ajuste_ativo ?? data.planoAjusteAtivo ?? false,
+    };
+  }
+  
+  return null;
 }
 
 const scoreLabels: Record<number | string, { label: string; color: [number, number, number] }> = {
@@ -269,7 +332,10 @@ function drawPolygon(doc: jsPDF, cx: number, cy: number, r: number, sides: numbe
 }
 
 export async function generateVistoriaPDFDoc(params: VistoriaPDFParams): Promise<jsPDF> {
-  const { propertyData, checklist, photos, tipoVistoria, finalScore, progress, criticalCount, avaliacaoData, anuncioFontes, pricingStrategy } = params;
+  const { propertyData, checklist, photos, tipoVistoria, finalScore, progress, criticalCount, avaliacaoData, anuncioFontes, pricingStrategy: rawPricingStrategy } = params;
+  
+  // Normalize pricing strategy to ensure consistent format
+  const pricingStrategy = normalizePricingStrategy(rawPricingStrategy);
   
   const doc = new jsPDF();
   const pageWidth = doc.internal.pageSize.getWidth();
