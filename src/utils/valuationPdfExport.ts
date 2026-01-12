@@ -197,6 +197,11 @@ function createValuationPDF(
 
   // 2. TRANSAÇÕES REALIZADAS NA REGIÃO (Card consolidado ITBI)
   if (state.itbiData) {
+    // Verificar se há espaço suficiente (precisa de ~65mm para esta seção)
+    if (yPos > getMaxContentY() - 70) {
+      doc.addPage();
+      yPos = 20;
+    }
     yPos += 6;
     yPos = drawSectionTitle(doc, 'Transações Realizadas na Região', yPos, marginLeft);
     
@@ -272,6 +277,11 @@ function createValuationPDF(
 
   // 3. REFERÊNCIA DE MERCADO (Preços combinados)
   if (combined) {
+    // Verificar se há espaço suficiente para esta seção (~50mm)
+    if (yPos > getMaxContentY() - 55) {
+      doc.addPage();
+      yPos = 20;
+    }
     yPos += 4;
     yPos = drawSectionTitle(doc, 'Referência de Mercado', yPos, marginLeft);
     
@@ -344,6 +354,11 @@ function createValuationPDF(
   }
 
   // 3. RESULTADO DA AVALIAÇÃO - Box destacado
+  // Verificar se há espaço suficiente para o resultado (~55mm)
+  if (yPos > getMaxContentY() - 60) {
+    doc.addPage();
+    yPos = 20;
+  }
   yPos += 8;
   yPos = drawResultBox(
     doc,
@@ -479,6 +494,12 @@ function createValuationPDF(
   });
   
   yPos += metricCardHeight + 10;
+  
+  // Verificar se há espaço para os cards informativos (~60mm)
+  if (yPos > getMaxContentY() - 65) {
+    doc.addPage();
+    yPos = 20;
+  }
   
   // Cards informativos com altura e estilo padronizado
   const infoCardHeight = 58;
