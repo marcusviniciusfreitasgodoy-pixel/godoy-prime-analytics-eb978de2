@@ -511,9 +511,8 @@ export function TransactionMap({
         </div>
       )}
 
-      {/* Controles de Filtro */}
-      <div className="absolute top-4 left-4 z-[1000] flex flex-col gap-2">
-        {/* Toggle de Visualização */}
+      {/* Toggle de Visualização - posicionado no canto superior direito */}
+      <div className="absolute top-4 right-4 z-[1000]">
         <TooltipProvider>
           <div className="flex gap-2">
             <ToggleGroup 
@@ -558,6 +557,10 @@ export function TransactionMap({
             )}
           </div>
         </TooltipProvider>
+      </div>
+
+      {/* Controles de Filtro - posicionado no canto superior esquerdo */}
+      <div className="absolute top-4 left-4 z-[1000]">
 
         {/* Botão de Filtros */}
         <Popover open={filtersOpen} onOpenChange={setFiltersOpen}>
