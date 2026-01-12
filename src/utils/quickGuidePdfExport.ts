@@ -10,7 +10,7 @@ export function exportQuickGuidePDF() {
   const contentWidth = pageWidth - marginLeft - marginRight;
   let y = 20;
 
-  // Header compacto
+  // Cabeçalho compacto
   doc.setFillColor(BRAND_COLORS.navy[0], BRAND_COLORS.navy[1], BRAND_COLORS.navy[2]);
   doc.rect(0, 0, pageWidth, 28, 'F');
 
@@ -21,13 +21,13 @@ export function exportQuickGuidePDF() {
 
   doc.setTextColor(255, 255, 255);
   doc.setFontSize(11);
-  doc.text('Guia Rápido - Comece em 5 Minutos', pageWidth / 2, 22, { align: 'center' });
+  doc.text('Guia Rapido - Comece em 5 Minutos', pageWidth / 2, 22, { align: 'center' });
 
   y = 38;
 
-  // Seção 1: Acesso
+  // Funcao para desenhar secao
   const drawSection = (title: string, items: string[], icon: string) => {
-    // Verificar se precisa de nova página
+    // Verificar se precisa de nova pagina
     const estimatedHeight = 8 + (items.length * 6) + 8;
     if (y + estimatedHeight > pageHeight - 25) {
       doc.addPage();
@@ -57,88 +57,88 @@ export function exportQuickGuidePDF() {
     y += 4;
   };
 
-  drawSection('1. LOGIN E ACESSO', [
-    'Acesse app.godoyprime.com.br com seu email e senha',
-    'Na primeira visita, o Tour Guiado inicia automaticamente',
-    'Use o menu lateral (desktop) ou hamburguer (mobile) para navegar',
-    'Instale como PWA para acesso rapido pelo celular',
+  drawSection('1. ACESSO A PLATAFORMA', [
+    'Entre em app.godoyprime.com.br com seu email e senha',
+    'Na primeira vez, um tutorial guiado inicia automaticamente',
+    'Use o menu lateral (computador) ou o icone de menu (celular) para navegar',
+    'Adicione a plataforma na tela inicial do celular para acesso rapido',
   ], '>');
 
-  drawSection('2. DASHBOARD - Visao do Mercado', [
-    'KPIs mostram preco medio R$/m2, liquidez, variacao anual e regiao mais valorizada',
-    'Selecione o bairro no dropdown para filtrar todos os dados',
-    'Grafico de Evolucao: toggle Semestral/Anual com abas Geral, Tipologia e Variacao',
-    'Ranking de Microbairros: alterne entre R$/m2 e Volume de Transacoes',
-    'Mapa de Transacoes: visualize transacoes geograficamente',
+  drawSection('2. PAINEL PRINCIPAL - Visao do Mercado', [
+    'Indicadores mostram preco medio por metro quadrado, volume de vendas e variacao anual',
+    'Escolha o bairro na lista para filtrar todos os dados',
+    'Grafico de Evolucao: alterne entre visao Semestral ou Anual com abas por tipo de imovel',
+    'Ranking de Regioes: veja quais areas sao mais valorizadas ou tem mais vendas',
+    'Mapa de Vendas: visualize a localizacao das transacoes no mapa',
   ], '>');
 
-  drawSection('3. MICROREGIOES - Analise Local', [
-    'Pesquise por logradouro ou nome do condominio com autocomplete',
+  drawSection('3. ANALISE DE REGIOES', [
+    'Pesquise por nome da rua ou do condominio - o sistema sugere enquanto voce digita',
     'Compare precos entre ate 5 ruas da mesma regiao',
-    'Visualize historico de precos por logradouro',
-    'Cards mostram estatisticas detalhadas: mediana, media, min, max, transacoes',
+    'Veja o historico de precos de cada rua ao longo do tempo',
+    'Cada regiao mostra estatisticas: valor mediano, medio, minimo, maximo e quantidade de vendas',
   ], '>');
 
   drawSection('4. PESQUISAS DE MERCADO', [
-    'Aba Localizacao: busque por rua, numero ou condominio especifico',
-    'Aba Transacoes: encontre logradouros por faixa de valor (R$ 100 mil a R$ 100 mi)',
-    'Filtros: periodo (6-24 meses), tipologia, area em m2',
-    'Exporte resultados em Excel ou CSV',
+    'Aba Localizacao: busque por rua, numero ou nome do condominio',
+    'Aba Transacoes: encontre ruas por faixa de preco (de R$ 100 mil ate R$ 100 milhoes)',
+    'Filtros: periodo (6 a 24 meses), tipo de imovel e tamanho em metros quadrados',
+    'Baixe os resultados em planilha Excel ou arquivo de dados',
   ], '>');
 
-  drawSection('5. AVALIACAO IMOBILIARIA - Precificacao', [
-    'Etapa 0: Identifique proprietario, objetivo (venda/captacao) e tipo de imovel',
-    'Etapa 1: Selecione logradouro - sistema busca dados ITBI automaticamente',
-    'Etapa 2: Informe area, quartos, suites, banheiros, vagas e base de preco',
-    'Etapa 3: Responda 26 caracteristicas em 5 categorias (Posicao, Conservacao, etc)',
-    'Etapa 4: Receba valores pessimista, provavel e otimista com nivel de confianca',
-    'Etapa 5: Veja recomendacao estrategica e gere PDF profissional',
+  drawSection('5. AVALIACAO DE IMOVEIS - Precificacao', [
+    'Etapa 0: Identifique o proprietario, objetivo (venda ou captacao) e tipo de imovel',
+    'Etapa 1: Selecione a rua - o sistema busca os dados oficiais automaticamente',
+    'Etapa 2: Informe metragem, quartos, suites, banheiros, vagas e base de preco',
+    'Etapa 3: Responda 26 perguntas sobre caracteristicas em 5 categorias',
+    'Etapa 4: Receba 3 valores: conservador, provavel e otimista com nivel de confianca',
+    'Etapa 5: Veja a recomendacao e gere o relatorio em arquivo para impressao',
   ], '>');
 
-  drawSection('6. ESTRATEGIA DE PRECIFICACAO', [
-    'Responda 9 perguntas diagnosticas sobre o imovel e objetivos',
-    '3 estrategias: Atracao (venda rapida), Mercado (equilibrada), Premium (maximizacao)',
-    'Sistema recomenda estrategia ideal baseado nas respostas',
-    'Visualize preco de anuncio, comissao e liquido ao vendedor',
-    'Opcao de Plano de Ajuste para reducao programada',
+  drawSection('6. ESTRATEGIA DE PRECO', [
+    'Responda 9 perguntas sobre a situacao do imovel e objetivos do vendedor',
+    '3 estrategias: Atracao (venda rapida), Mercado (equilibrada), Valorizacao (maximo valor)',
+    'Sistema recomenda a melhor estrategia baseado nas respostas',
+    'Veja preco de anuncio, comissao estimada e valor liquido ao vendedor',
+    'Opcao de Plano de Ajuste para reducao programada caso nao venda',
   ], '>');
 
-  drawSection('7. VISTORIA DIGITAL - Inspecao', [
-    'Escolha tipo: Casa (55+ itens, 20 categorias) ou Apartamento (50+ itens, 18 categorias)',
-    'Avalie cada item: OK (5) / Atencao (3) / Critico (1) / N.V. / N/A',
+  drawSection('7. VISTORIA DO IMOVEL', [
+    'Escolha tipo: Casa (55 itens em 20 categorias) ou Apartamento (50 itens em 18 categorias)',
+    'Avalie cada item: Bom / Atencao / Critico / Nao Verificado / Nao se Aplica',
     'Adicione fotos para documentar problemas encontrados',
-    'Score de conservacao calculado automaticamente (0-100)',
-    'Gere laudo PDF com radar de diagnostico e galeria de fotos',
-    'Fluxo integrado: Vistoria -> Avaliacao -> Precificacao',
+    'Nota de conservacao calculada automaticamente de 0 a 100',
+    'Gere relatorio com grafico de diagnostico e galeria de fotos',
+    'Fluxo completo: Vistoria, depois Avaliacao, depois Estrategia de Preco',
   ], '>');
 
-  drawSection('8. AGENDAMENTO DE VISITAS', [
-    'Crie agendamentos com data/hora, tipo de servico e dados do cliente',
-    'Gere fichas de visita com codigo unico e declaracao de intermediacao',
-    'Gerencie disponibilidade do corretor no calendario',
-    'Colete assinaturas digitais (na tela ou via link remoto)',
-    'Envie link de feedback para avaliacao pos-visita',
-    'Dashboard com KPIs, grafico de evolucao e ranking de corretores',
+  drawSection('8. AGENDA DE VISITAS', [
+    'Crie agendamentos com data, hora, tipo de atendimento e dados do cliente',
+    'Gere fichas de visita com codigo unico e declaracao de trabalho exclusivo',
+    'Gerencie sua disponibilidade de horarios no calendario',
+    'Colete assinaturas na tela ou envie por mensagem para assinatura remota',
+    'Envie formulario de opiniao para o cliente avaliar o imovel apos a visita',
+    'Painel com graficos de evolucao e comparativo entre corretores',
   ], '>');
 
-  drawSection('9. DOCUMENTACAO - Due Diligence', [
-    'Checklist completo separado para Vendedor e Comprador',
-    'Perfis condicionais: PJ, Uniao Estavel, Comunhao de Bens',
-    'Use IA para analisar documentos enviados automaticamente',
-    'Exporte PDF separado por parte ou completo',
+  drawSection('9. DOCUMENTACAO - Analise Juridica', [
+    'Lista completa de documentos separada para Vendedor e Comprador',
+    'Perfis especiais: Empresa, Uniao Estavel, Comunhao de Bens',
+    'Use a assistente virtual para analisar documentos enviados',
+    'Baixe o relatorio por parte (Vendedor ou Comprador) ou completo',
   ], '>');
 
-  drawSection('10. SOFIA - ASSISTENTE IA', [
+  drawSection('10. SOFIA - ASSISTENTE VIRTUAL', [
     'Disponivel no canto inferior direito de todas as paginas',
-    'Pergunte sobre precos, tendencias, comparativos entre bairros',
-    'Use comandos de voz para interacao hands-free',
+    'Pergunte sobre precos, tendencias e comparativos entre regioes',
+    'Use comandos de voz para consultar sem precisar digitar',
     'Envie documentos para analise automatica',
   ], '>');
 
-  // Dicas rápidas
+  // Dicas rapidas
   y += 2;
   
-  // Verificar se precisa de nova página para as dicas
+  // Verificar se precisa de nova pagina para as dicas
   if (y + 35 > pageHeight - 25) {
     doc.addPage();
     y = 20;
@@ -157,11 +157,11 @@ export function exportQuickGuidePDF() {
   doc.setTextColor(BRAND_COLORS.darkGray[0], BRAND_COLORS.darkGray[1], BRAND_COLORS.darkGray[2]);
 
   const tips = [
-    '• Clique em "Tour Guiado" em qualquer pagina para aprender as funcionalidades',
-    '• Sofia (chat IA) responde duvidas sobre mercado e plataforma - canto inferior direito',
-    '• Todas as exportacoes (PDF/Excel) estao no botao "Exportar" de cada pagina',
-    '• Historico de avaliacoes e vistorias fica salvo automaticamente para consulta futura',
-    '• Use o fluxo integrado: Vistoria -> Avaliacao -> Estrategia para maxima eficiencia',
+    '* Clique em "Tutorial" em qualquer pagina para aprender as funcionalidades',
+    '* Sofia (assistente virtual) responde duvidas sobre mercado e plataforma - canto inferior direito',
+    '* Todas as opcoes de baixar arquivos estao no botao "Exportar" de cada pagina',
+    '* Historico de avaliacoes e vistorias fica salvo automaticamente para consulta futura',
+    '* Use o fluxo completo: Vistoria, Avaliacao e Estrategia de Preco para maior eficiencia',
   ];
 
   let tipY = y + 12;
@@ -170,7 +170,7 @@ export function exportQuickGuidePDF() {
     tipY += 4;
   });
 
-  // Footer
+  // Rodape
   y = pageHeight - 18;
   doc.setFillColor(BRAND_COLORS.navy[0], BRAND_COLORS.navy[1], BRAND_COLORS.navy[2]);
   doc.rect(0, y, pageWidth, 18, 'F');

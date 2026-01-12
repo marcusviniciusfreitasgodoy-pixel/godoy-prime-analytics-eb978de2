@@ -66,23 +66,23 @@ const faqCategories: FAQCategory[] = [
     titulo: "Geral",
     icon: <HelpCircle className="h-4 w-4" />,
     perguntas: [
-      { pergunta: "O que é o Godoy Prime Analytics?", resposta: "É uma plataforma de inteligência imobiliária que oferece análise de dados, avaliações automatizadas, vistorias digitais, estratégias de precificação e assistência por IA para profissionais do mercado imobiliário da Barra da Tijuca." },
+      { pergunta: "O que é o Godoy Prime Analytics?", resposta: "É uma plataforma de inteligência para o mercado imobiliário que oferece análise de dados de vendas, avaliações automatizadas, vistorias digitais, estratégias de preço e assistente virtual para profissionais do mercado da Barra da Tijuca." },
       { pergunta: "Quem pode usar a plataforma?", resposta: "Corretores de imóveis, avaliadores, gestores imobiliários e empresas do setor imobiliário." },
-      { pergunta: "A plataforma funciona em dispositivos móveis?", resposta: "Sim, a interface é totalmente responsiva e pode ser instalada como PWA para acesso rápido pelo celular." },
-      { pergunta: "Preciso instalar algum software?", resposta: "Não, a plataforma funciona diretamente no navegador web. Opcionalmente, pode instalar como PWA." },
-      { pergunta: "De onde vêm os dados da plataforma?", resposta: "Os dados são transações oficiais de ITBI da Prefeitura do Rio de Janeiro, sincronizados diariamente." }
+      { pergunta: "A plataforma funciona no celular?", resposta: "Sim, funciona em computadores, tablets e celulares. Você pode adicionar na tela inicial do celular para acesso rápido." },
+      { pergunta: "Preciso instalar algum programa?", resposta: "Não, a plataforma funciona diretamente no navegador de internet, sem necessidade de instalação." },
+      { pergunta: "De onde vêm os dados da plataforma?", resposta: "Os dados são de vendas oficiais registradas na Prefeitura do Rio de Janeiro, atualizados mensalmente." }
     ]
   },
   {
     id: "dashboard",
-    titulo: "Dashboard e Indicadores",
+    titulo: "Painel Principal e Indicadores",
     icon: <BarChart3 className="h-4 w-4" />,
     perguntas: [
-      { pergunta: "Com que frequência os dados são atualizados?", resposta: "Os dados são sincronizados diariamente com as bases oficiais de transações ITBI da Prefeitura do RJ." },
-      { pergunta: "O que significa a mediana de preço por m²?", resposta: "É o valor central quando todos os preços são ordenados, representando melhor o mercado por não ser afetado por valores extremos." },
-      { pergunta: "Como funciona o ranking de microbairros?", resposta: "Os microbairros são ordenados pela mediana de preço por m², permitindo identificar as regiões mais valorizadas." },
-      { pergunta: "Posso exportar os gráficos do dashboard?", resposta: "Sim, você pode exportar relatórios completos em PDF e dados em Excel/CSV usando o botão Exportar." },
-      { pergunta: "Como funciona o mapa de transações?", resposta: "O mapa mostra a localização geográfica das transações ITBI, permitindo visualizar padrões espaciais de preços." }
+      { pergunta: "Com que frequência os dados são atualizados?", resposta: "Os dados são atualizados mensalmente com as vendas oficiais registradas na Prefeitura do Rio de Janeiro." },
+      { pergunta: "O que significa o valor mediano por metro quadrado?", resposta: "É o valor do meio quando todos os preços são colocados em ordem. Representa melhor o mercado porque não é afetado por valores muito altos ou muito baixos." },
+      { pergunta: "Como funciona a lista de regiões?", resposta: "As regiões são ordenadas pelo preço por metro quadrado, permitindo ver quais áreas são mais valorizadas." },
+      { pergunta: "Posso baixar os gráficos do painel?", resposta: "Sim, você pode baixar relatórios completos em formato para impressão e dados em planilha." },
+      { pergunta: "Como funciona o mapa de vendas?", resposta: "O mapa mostra a localização das vendas oficiais, permitindo ver os padrões de preços em cada região." }
     ]
   },
   {
@@ -90,72 +90,72 @@ const faqCategories: FAQCategory[] = [
     titulo: "Pesquisas de Mercado",
     icon: <FileSearch className="h-4 w-4" />,
     perguntas: [
-      { pergunta: "Quais filtros estão disponíveis nas pesquisas?", resposta: "Localização (bairro, logradouro), faixa de valor (R$ 100 mil a R$ 100 milhões), período (6-24 meses), área e tipologia do imóvel." },
-      { pergunta: "Posso salvar minhas pesquisas favoritas?", resposta: "O histórico de pesquisas é salvo automaticamente para consulta posterior." },
-      { pergunta: "Qual o período máximo de dados disponíveis?", resposta: "Os dados cobrem os últimos 5+ anos de transações oficiais registradas." },
-      { pergunta: "Como exportar os resultados das pesquisas?", resposta: "Use os botões de exportação para gerar arquivos Excel ou CSV com todos os dados filtrados." },
-      { pergunta: "Posso pesquisar por condomínio específico?", resposta: "Sim, na aba Localização você pode buscar por nome do condomínio ou logradouro com autocomplete." }
+      { pergunta: "Quais filtros estão disponíveis nas pesquisas?", resposta: "Localização (bairro, rua), faixa de preço (de R$ 100 mil a R$ 100 milhões), período (6 a 24 meses), tamanho e tipo de imóvel." },
+      { pergunta: "Posso salvar minhas pesquisas?", resposta: "O histórico de pesquisas é salvo automaticamente para você consultar depois." },
+      { pergunta: "Qual o período máximo de dados disponíveis?", resposta: "Os dados cobrem mais de 5 anos de vendas oficiais registradas." },
+      { pergunta: "Como baixar os resultados das pesquisas?", resposta: "Use os botões de baixar para gerar planilhas com todos os dados encontrados." },
+      { pergunta: "Posso pesquisar por condomínio específico?", resposta: "Sim, na aba de localização você pode buscar por nome do condomínio ou da rua." }
     ]
   },
   {
     id: "microbairros",
-    titulo: "Microregiões",
+    titulo: "Análise de Regiões",
     icon: <MapPin className="h-4 w-4" />,
     perguntas: [
-      { pergunta: "O que são microbairros?", resposta: "São subdivisões dos bairros baseadas em padrões de preço e localização, permitindo análises mais granulares." },
-      { pergunta: "Como comparar ruas diferentes?", resposta: "Use a ferramenta de comparação de logradouros para adicionar até 5 ruas e ver gráfico comparativo de preços." },
-      { pergunta: "O que significa o indicador de tendência?", resposta: "Mostra se os preços estão subindo (↑), estáveis (→) ou caindo (↓) nos últimos períodos." },
-      { pergunta: "Como funciona a análise por condomínio?", resposta: "Busque pelo nome do condomínio para ver estatísticas específicas: mediana, média, mínimo, máximo e transações." }
+      { pergunta: "O que são as micro-regiões?", resposta: "São subdivisões dos bairros baseadas em padrões de preço e localização, permitindo análises mais detalhadas." },
+      { pergunta: "Como comparar ruas diferentes?", resposta: "Use a ferramenta de comparação para adicionar até 5 ruas e ver o gráfico comparativo de preços." },
+      { pergunta: "O que significa o indicador de tendência?", resposta: "Mostra se os preços estão subindo, estáveis ou caindo nos últimos períodos." },
+      { pergunta: "Como funciona a análise por condomínio?", resposta: "Busque pelo nome do condomínio para ver estatísticas específicas: valor mediano, médio, mínimo, máximo e quantidade de vendas." }
     ]
   },
   {
     id: "avaliacao",
-    titulo: "Avaliação Imobiliária",
+    titulo: "Avaliação de Imóveis",
     icon: <Calculator className="h-4 w-4" />,
     perguntas: [
-      { pergunta: "Quantas características são avaliadas?", resposta: "São 26 características divididas em 5 categorias: Posição/Vista, Conservação, Conforto, Segurança e Funcionalidade." },
-      { pergunta: "O que são os cenários pessimista, provável e otimista?", resposta: "São três estimativas de valor baseadas em diferentes condições: Pessimista (mínimo ITBI), Provável (mediana ITBI) e Otimista (máximo ITBI)." },
-      { pergunta: "Como é calculado o nível de confiança?", resposta: "Baseado na quantidade de transações disponíveis, spread percentual e consistência dos dados. Verde (alto), Amarelo (médio), Vermelho (baixo)." },
-      { pergunta: "Posso gerar um laudo em PDF?", resposta: "Sim, ao final da avaliação você pode gerar um laudo profissional de 5-7 páginas com gráficos e análises." },
-      { pergunta: "As avaliações ficam salvas?", resposta: "Sim, todas as avaliações são salvas no Histórico de Avaliações e podem ser consultadas ou atualizadas." },
-      { pergunta: "O que é a base de preço combinada?", resposta: "É a combinação de 70% dados oficiais ITBI + 30% preços de anúncios para uma estimativa mais equilibrada." }
+      { pergunta: "Quantas características são avaliadas?", resposta: "São 26 características divididas em 5 categorias: Posição e Vista, Conservação, Conforto, Segurança e Funcionalidade." },
+      { pergunta: "O que são os 3 cenários de valor?", resposta: "São três estimativas: Conservador (valor mínimo), Provável (valor mais esperado) e Otimista (valor máximo)." },
+      { pergunta: "Como é calculado o nível de confiança?", resposta: "Baseado na quantidade de vendas disponíveis na região e na consistência das características avaliadas. Verde (alto), Amarelo (médio), Vermelho (baixo)." },
+      { pergunta: "Posso gerar um relatório para impressão?", resposta: "Sim, ao final da avaliação você pode gerar um relatório profissional de 5 a 7 páginas com gráficos e análises." },
+      { pergunta: "As avaliações ficam salvas?", resposta: "Sim, todas as avaliações são salvas no histórico e podem ser consultadas ou atualizadas depois." },
+      { pergunta: "O que é a base de preço combinada?", resposta: "É a mistura de 70% de dados oficiais de vendas com 30% de preços de anúncios para uma estimativa mais equilibrada." }
     ]
   },
   {
     id: "precificacao",
-    titulo: "Estratégia de Precificação",
+    titulo: "Estratégia de Preço",
     icon: <Target className="h-4 w-4" />,
     perguntas: [
-      { pergunta: "O que é a Estratégia de Precificação?", resposta: "É um módulo que calcula 3 estratégias de preço (Atração, Mercado, Premium) baseado em 9 perguntas diagnósticas sobre o imóvel." },
-      { pergunta: "Quais são as 3 estratégias disponíveis?", resposta: "Atração (venda rápida, -5% a -10%), Mercado (equilibrada, valor de referência) e Premium (maximização, +5% a +10%)." },
-      { pergunta: "Como o sistema recomenda uma estratégia?", resposta: "Baseado nas respostas às 9 perguntas sobre tempo no mercado, concorrência, prioridade, horizonte de tempo, etc." },
+      { pergunta: "O que é a Estratégia de Preço?", resposta: "É um módulo que calcula 3 estratégias de preço (Atração, Mercado, Valorização) baseado em 9 perguntas sobre o imóvel." },
+      { pergunta: "Quais são as 3 estratégias disponíveis?", resposta: "Atração (venda rápida, preço menor), Mercado (equilibrada, preço de referência) e Valorização (maximização, preço maior)." },
+      { pergunta: "Como o sistema recomenda uma estratégia?", resposta: "Baseado nas respostas às 9 perguntas sobre tempo no mercado, concorrência, prioridade do vendedor, etc." },
       { pergunta: "O que é o Plano de Ajuste?", resposta: "É um cronograma de reduções programadas caso o imóvel não venda no prazo inicial." },
-      { pergunta: "Posso ver o líquido ao vendedor?", resposta: "Sim, para cada estratégia você vê o preço de anúncio, comissão estimada e valor líquido ao vendedor." }
+      { pergunta: "Posso ver o valor líquido ao vendedor?", resposta: "Sim, para cada estratégia você vê o preço de anúncio, comissão estimada e valor que sobra para o vendedor." }
     ]
   },
   {
     id: "vistoria",
-    titulo: "Vistoria Digital",
+    titulo: "Vistoria de Imóveis",
     icon: <ClipboardCheck className="h-4 w-4" />,
     perguntas: [
-      { pergunta: "Qual a diferença entre vistoria de casa e apartamento?", resposta: "Casas têm checklist com 55+ itens (20 categorias) incluindo área externa, enquanto apartamentos têm 50+ itens (18 categorias)." },
-      { pergunta: "Como funciona o sistema de scoring?", resposta: "Cada item é avaliado de 1 (Crítico) a 5 (OK). O score geral (0-100) é calculado automaticamente." },
-      { pergunta: "Posso anexar fotos à vistoria?", resposta: "Sim, você pode registrar fotos para documentar cada item avaliado. As fotos aparecem no laudo PDF." },
-      { pergunta: "O relatório de vistoria serve como laudo técnico?", resposta: "O relatório é uma documentação detalhada. Laudos oficiais PTAM requerem engenheiro/arquiteto habilitado." },
-      { pergunta: "Posso vincular a vistoria a uma avaliação?", resposta: "Sim, ao concluir a vistoria você pode prosseguir diretamente para a Avaliação Imobiliária com dados pré-preenchidos." }
+      { pergunta: "Qual a diferença entre vistoria de casa e apartamento?", resposta: "Casas têm lista com 55 itens (20 categorias) incluindo área externa, enquanto apartamentos têm 50 itens (18 categorias)." },
+      { pergunta: "Como funciona a nota de conservação?", resposta: "Cada item é avaliado de 1 (Crítico) a 5 (Bom). A nota geral (0 a 100) é calculada automaticamente." },
+      { pergunta: "Posso adicionar fotos à vistoria?", resposta: "Sim, você pode tirar fotos para documentar cada item avaliado. As fotos aparecem no relatório." },
+      { pergunta: "O relatório de vistoria serve como laudo técnico?", resposta: "O relatório é uma documentação detalhada. Laudos técnicos oficiais precisam de engenheiro ou arquiteto habilitado." },
+      { pergunta: "Posso vincular a vistoria a uma avaliação?", resposta: "Sim, ao concluir a vistoria você pode ir direto para a Avaliação com os dados já preenchidos." }
     ]
   },
   {
     id: "visitas",
-    titulo: "Agendamento de Visitas",
+    titulo: "Agenda de Visitas",
     icon: <CalendarCheck className="h-4 w-4" />,
     perguntas: [
-      { pergunta: "Como agendar uma visita?", resposta: "Clique em 'Nova Visita', preencha dados do cliente, imóvel, data/hora e tipo de serviço (visita, avaliação, consultoria, fotografia)." },
-      { pergunta: "O que é a ficha de visita digital?", resposta: "É um documento com código único contendo dados do imóvel, cliente, declaração de intermediação e espaço para assinaturas." },
-      { pergunta: "Como funciona a assinatura digital?", resposta: "Você pode assinar na tela ou enviar link via WhatsApp/email para que cliente assine remotamente pelo celular." },
-      { pergunta: "Como coletar feedback pós-visita?", resposta: "Envie o link de feedback ao cliente. Ele avalia o imóvel, informa interesse e pode deixar observações." },
-      { pergunta: "O que mostra o Dashboard de Visitas?", resposta: "KPIs (total de visitas, taxa de conversão), gráfico de evolução mensal e ranking de corretores." },
-      { pergunta: "Como gerenciar minha disponibilidade?", resposta: "Acesse 'Gerenciar Disponibilidade' para definir dias e horários disponíveis para agendamentos." }
+      { pergunta: "Como agendar uma visita?", resposta: "Clique em Nova Visita, preencha dados do cliente, imóvel, data e hora, e tipo de atendimento (visita, avaliação, consultoria, fotos)." },
+      { pergunta: "O que é a ficha de visita?", resposta: "É um documento com código único contendo dados do imóvel, cliente, declaração de trabalho exclusivo e espaço para assinaturas." },
+      { pergunta: "Como funciona a assinatura na tela?", resposta: "Você pode assinar diretamente na tela ou enviar um link por mensagem para que o cliente assine pelo celular." },
+      { pergunta: "Como coletar opinião após a visita?", resposta: "Envie o formulário de opinião ao cliente. Ele avalia o imóvel, informa interesse e pode deixar observações." },
+      { pergunta: "O que mostra o Painel de Visitas?", resposta: "Indicadores de volume, taxa de sucesso, gráfico de evolução mensal e comparativo entre corretores." },
+      { pergunta: "Como gerenciar minha disponibilidade?", resposta: "Acesse Gerenciar Disponibilidade para definir dias e horários disponíveis para agendamentos." }
     ]
   },
   {
@@ -163,21 +163,21 @@ const faqCategories: FAQCategory[] = [
     titulo: "Documentação",
     icon: <FileText className="h-4 w-4" />,
     perguntas: [
-      { pergunta: "Quais documentos são verificados no checklist?", resposta: "Documentos do imóvel (matrícula, IPTU), do vendedor (RG, CPF, certidões) e do comprador (RG, CPF, comprovantes)." },
-      { pergunta: "Como funciona o analisador de documentos por IA?", resposta: "Faça upload do documento e a IA identifica qual item do checklist corresponde e extrai informações relevantes." },
-      { pergunta: "O que são os perfis condicionais?", resposta: "Configurações que adicionam documentos extras: PJ (contrato social), União Estável (declaração), Comunhão de Bens (cônjuge)." },
-      { pergunta: "Posso exportar checklist separados?", resposta: "Sim, você pode exportar PDF separado para Vendedor, Comprador ou Documentação Completa." }
+      { pergunta: "Quais documentos são verificados na lista?", resposta: "Documentos do imóvel (matrícula, IPTU), do vendedor (RG, CPF, certidões) e do comprador (RG, CPF, comprovantes)." },
+      { pergunta: "Como funciona a análise de documentos pela assistente?", resposta: "Envie o documento e a assistente identifica qual item da lista corresponde e extrai informações importantes." },
+      { pergunta: "O que são os perfis especiais?", resposta: "Configurações que adicionam documentos extras: Empresa (contrato social), União Estável (declaração), Comunhão de Bens (cônjuge)." },
+      { pergunta: "Posso baixar listas separadas?", resposta: "Sim, você pode baixar lista separada para Vendedor, Comprador ou Completa." }
     ]
   },
   {
     id: "sofia",
-    titulo: "Sofia - Assistente IA",
+    titulo: "Sofia - Assistente Virtual",
     icon: <Bot className="h-4 w-4" />,
     perguntas: [
-      { pergunta: "Que tipo de perguntas posso fazer à Sofia?", resposta: "Perguntas sobre mercado imobiliário, avaliações, documentação, tendências de preços, comparativos entre bairros e dúvidas sobre a plataforma." },
-      { pergunta: "A Sofia pode analisar documentos?", resposta: "Sim, você pode enviar documentos para análise e a Sofia extrairá informações relevantes automaticamente." },
-      { pergunta: "As respostas da Sofia são confiáveis?", resposta: "A Sofia usa dados oficiais ITBI e base de conhecimento especializada. Recomenda-se validar informações críticas." },
-      { pergunta: "Posso usar comandos de voz?", resposta: "Sim, a Sofia aceita consultas por voz para interação hands-free." },
+      { pergunta: "Que tipo de perguntas posso fazer à Sofia?", resposta: "Perguntas sobre preços de mercado, tendências, comparativos entre regiões, documentação e dúvidas sobre a plataforma." },
+      { pergunta: "A Sofia pode analisar documentos?", resposta: "Sim, você pode enviar documentos para análise e a Sofia extrai informações importantes automaticamente." },
+      { pergunta: "As respostas da Sofia são confiáveis?", resposta: "A Sofia usa dados oficiais e conhecimento especializado. Recomenda-se confirmar informações importantes com fontes oficiais." },
+      { pergunta: "Posso usar comandos de voz?", resposta: "Sim, a Sofia aceita consultas por voz para você não precisar digitar." },
       { pergunta: "A Sofia funciona em todas as páginas?", resposta: "Sim, ela está disponível no canto inferior direito de todas as páginas da plataforma." }
     ]
   },
@@ -186,22 +186,22 @@ const faqCategories: FAQCategory[] = [
     titulo: "Históricos e Registros",
     icon: <History className="h-4 w-4" />,
     perguntas: [
-      { pergunta: "Onde vejo minhas avaliações anteriores?", resposta: "No menu 'Histórico de Avaliações' você encontra todas as avaliações realizadas com filtros por data e status." },
-      { pergunta: "Onde vejo minhas vistorias anteriores?", resposta: "No menu 'Histórico de Vistorias' você encontra todas as vistorias com score, tipo e data." },
-      { pergunta: "Posso regenerar um PDF antigo?", resposta: "Sim, você pode regenerar PDFs de avaliações e vistorias anteriores a qualquer momento." },
+      { pergunta: "Onde vejo minhas avaliações anteriores?", resposta: "No menu Histórico de Avaliações você encontra todas as avaliações realizadas com filtros por data." },
+      { pergunta: "Onde vejo minhas vistorias anteriores?", resposta: "No menu Histórico de Vistorias você encontra todas as vistorias com nota, tipo e data." },
+      { pergunta: "Posso gerar novamente um relatório antigo?", resposta: "Sim, você pode gerar novamente relatórios de avaliações e vistorias anteriores a qualquer momento." },
       { pergunta: "Por quanto tempo os dados ficam salvos?", resposta: "Os dados ficam salvos permanentemente enquanto sua conta estiver ativa." }
     ]
   },
   {
     id: "admin",
-    titulo: "Recursos Administrativos",
+    titulo: "Recursos de Administração",
     icon: <Settings className="h-4 w-4" />,
     perguntas: [
-      { pergunta: "Como gerenciar leads capturados?", resposta: "Acesse a seção Leads para visualizar, filtrar e acompanhar o status de cada prospect capturado." },
-      { pergunta: "Quem pode acessar o calibrador de avaliação?", resposta: "Apenas administradores têm acesso para ajustar pesos e fatores do sistema de avaliação." },
-      { pergunta: "Como adicionar novos usuários?", resposta: "Administradores podem convidar novos usuários na seção 'Gerenciar Usuários'." },
-      { pergunta: "O que é rastreado no log de atividades?", resposta: "Logins, avaliações realizadas, vistorias, pesquisas, exportações e outras ações na plataforma." },
-      { pergunta: "Como personalizar os PDFs da empresa?", resposta: "Em Configurações, faça upload do logo e configure dados da empresa (CNPJ, CRECI, contato)." }
+      { pergunta: "Como gerenciar contatos capturados?", resposta: "Acesse a seção de Contatos para ver, filtrar e acompanhar o andamento de cada interessado." },
+      { pergunta: "Quem pode acessar o ajuste de avaliação?", resposta: "Apenas administradores podem ajustar os pesos e fatores do sistema de avaliação." },
+      { pergunta: "Como adicionar novos usuários?", resposta: "Administradores podem convidar novos usuários na seção Gerenciar Usuários." },
+      { pergunta: "O que é registrado no histórico de atividades?", resposta: "Acessos, avaliações, vistorias, pesquisas, downloads e outras ações na plataforma." },
+      { pergunta: "Como personalizar os relatórios da empresa?", resposta: "Em Configurações, envie o logotipo e configure dados da empresa (CNPJ, CRECI, contato)." }
     ]
   },
   {
@@ -209,10 +209,10 @@ const faqCategories: FAQCategory[] = [
     titulo: "Suporte e Ajuda",
     icon: <HelpCircle className="h-4 w-4" />,
     perguntas: [
-      { pergunta: "Como entrar em contato com o suporte?", resposta: "Envie email para contato@godoyprime.com.br, WhatsApp (21) 99725-0515 ou use o chat da Sofia." },
-      { pergunta: "Existe treinamento disponível?", resposta: "Sim, oferecemos onboarding interativo, tours guiados em cada página, manual em PDF e roteiros de vídeo." },
-      { pergunta: "Como reportar um bug ou erro?", resposta: "Entre em contato pelo suporte descrevendo o problema, página onde ocorreu e passos para reproduzi-lo." },
-      { pergunta: "Há atualizações frequentes na plataforma?", resposta: "Sim, a plataforma recebe atualizações regulares com melhorias e novas funcionalidades." }
+      { pergunta: "Como entrar em contato com o suporte?", resposta: "Envie email para contato@godoyprime.com.br, mensagem no (21) 99725-0515 ou use a assistente Sofia." },
+      { pergunta: "Existe treinamento disponível?", resposta: "Sim, oferecemos tutorial interativo, guias em cada página, manual para impressão e roteiros de vídeo." },
+      { pergunta: "Como reportar um problema ou erro?", resposta: "Entre em contato pelo suporte descrevendo o problema, página onde ocorreu e passos para reproduzir." },
+      { pergunta: "Há atualizações frequentes na plataforma?", resposta: "Sim, a plataforma recebe melhorias e novas funcionalidades regularmente." }
     ]
   },
   {
@@ -220,11 +220,11 @@ const faqCategories: FAQCategory[] = [
     titulo: "Dicas de Uso",
     icon: <TrendingUp className="h-4 w-4" />,
     perguntas: [
-      { pergunta: "Qual a melhor forma de começar a usar a plataforma?", resposta: "Complete o onboarding, explore o dashboard, faça uma pesquisa de mercado e depois uma avaliação teste." },
-      { pergunta: "Como obter avaliações mais precisas?", resposta: "Preencha todas as 26 características com atenção, use base combinada e verifique transações da região." },
-      { pergunta: "Posso usar a plataforma offline?", resposta: "Não, é necessária conexão com internet para acessar dados em tempo real e funcionalidades da IA." },
-      { pergunta: "Devo atualizar minhas avaliações periodicamente?", resposta: "Sim, recomendamos revisar avaliações a cada 3-6 meses ou quando houver mudanças significativas no mercado." },
-      { pergunta: "Qual o fluxo ideal para captação?", resposta: "Vistoria Digital → Avaliação Imobiliária → Estratégia de Precificação → Ficha de Visita para máxima eficiência." }
+      { pergunta: "Qual a melhor forma de começar a usar a plataforma?", resposta: "Complete o tutorial, explore o painel principal, faça uma pesquisa de mercado e depois uma avaliação teste." },
+      { pergunta: "Como obter avaliações mais precisas?", resposta: "Preencha todas as 26 características com atenção, use base combinada e verifique as vendas da região." },
+      { pergunta: "Posso usar a plataforma sem internet?", resposta: "Não, é necessária conexão com internet para acessar dados atualizados e funcionalidades da assistente." },
+      { pergunta: "Devo atualizar minhas avaliações periodicamente?", resposta: "Sim, recomendamos revisar avaliações a cada 3 a 6 meses ou quando houver mudanças no mercado." },
+      { pergunta: "Qual o fluxo ideal para captação?", resposta: "Vistoria, depois Avaliação, depois Estratégia de Preço e Ficha de Visita para maior eficiência." }
     ]
   }
 ];
@@ -232,30 +232,30 @@ const faqCategories: FAQCategory[] = [
 const onboardingSteps: OnboardingStep[] = [
   {
     id: 1,
-    title: "Dashboard Principal",
-    description: "Visão geral do mercado imobiliário com KPIs, gráficos de evolução, ranking de microbairros e mapa de transações.",
+    title: "Painel Principal",
+    description: "Visão geral do mercado imobiliário com indicadores, gráficos de evolução, lista de regiões e mapa de vendas.",
     icon: <BarChart3 className="h-8 w-8" />,
     features: [
-      "KPIs em tempo real (mediana, liquidez, variação anual)",
-      "Gráfico de evolução semestral/anual",
-      "Ranking de microbairros por R$/m² e volume",
-      "Mapa de transações geolocalizado",
-      "Exportação PDF, Excel e CSV"
+      "Indicadores em tempo real (valor mediano, volume, variação anual)",
+      "Gráfico de evolução semestral ou anual",
+      "Lista de regiões por preço e volume de vendas",
+      "Mapa de vendas com localização geográfica",
+      "Baixar relatórios e planilhas"
     ],
     route: "/",
     color: "from-primary to-primary/70"
   },
   {
     id: 2,
-    title: "Microregiões",
-    description: "Análise detalhada por logradouro e condomínio, com comparação entre ruas e indicadores de tendência.",
+    title: "Análise de Regiões",
+    description: "Análise detalhada por rua e condomínio, com comparação entre locais e indicadores de tendência.",
     icon: <MapPin className="h-8 w-8" />,
     features: [
-      "Pesquisa por logradouro com autocomplete",
+      "Pesquisa por rua com sugestões automáticas",
       "Pesquisa por nome do condomínio",
-      "Comparação de até 5 ruas simultâneas",
-      "Gráfico de evolução por logradouro",
-      "Separação Apartamentos vs Casas"
+      "Comparação de até 5 ruas ao mesmo tempo",
+      "Gráfico de evolução por rua",
+      "Separação entre Apartamentos e Casas"
     ],
     route: "/microbairros",
     color: "from-blue-500 to-blue-400"
@@ -263,43 +263,43 @@ const onboardingSteps: OnboardingStep[] = [
   {
     id: 3,
     title: "Pesquisas de Mercado",
-    description: "Ferramenta avançada de busca com filtros por localização, valor, período e área.",
+    description: "Ferramenta de busca avançada com filtros por localização, preço, período e tamanho.",
     icon: <FileSearch className="h-8 w-8" />,
     features: [
-      "Aba Localização: busca por rua/condomínio",
-      "Aba Transações: busca por faixa de valor",
-      "Filtros por período (6-24 meses) e tipologia",
-      "Filtros por faixa de área em m²",
-      "Exportação Excel e CSV"
+      "Aba Localização: busca por rua ou condomínio",
+      "Aba por Valor: busca por faixa de preço",
+      "Filtros por período (6 a 24 meses) e tipo",
+      "Filtros por faixa de tamanho em metros quadrados",
+      "Baixar em planilha"
     ],
     route: "/pesquisas-mercado",
     color: "from-green-500 to-green-400"
   },
   {
     id: 4,
-    title: "Avaliação Imobiliária",
-    description: "Sistema de avaliação em 6 etapas com 26 características e geração de laudo profissional em PDF.",
+    title: "Avaliação de Imóveis",
+    description: "Sistema de avaliação em 6 etapas com 26 características e geração de relatório profissional.",
     icon: <Calculator className="h-8 w-8" />,
     features: [
       "Etapa 0: Identificação do imóvel e proprietário",
       "Etapa 1-2: Localização e dados básicos",
       "Etapa 3: 26 características em 5 categorias",
-      "Etapa 4: Valores pessimista/provável/otimista",
-      "Etapa 5: Recomendação e laudo PDF"
+      "Etapa 4: Valores conservador, provável e otimista",
+      "Etapa 5: Recomendação e relatório para impressão"
     ],
     route: "/avaliacao-imobiliaria",
     color: "from-yellow-500 to-yellow-400"
   },
   {
     id: 5,
-    title: "Estratégia de Precificação",
-    description: "Diagnóstico de 9 perguntas que gera 3 estratégias de preço: Atração, Mercado e Premium.",
+    title: "Estratégia de Preço",
+    description: "Diagnóstico de 9 perguntas que gera 3 estratégias de preço: Atração, Mercado e Valorização.",
     icon: <Target className="h-8 w-8" />,
     features: [
-      "9 perguntas diagnósticas sobre o imóvel",
+      "9 perguntas sobre a situação do imóvel",
       "Estratégia Atração (venda rápida)",
       "Estratégia Mercado (equilibrada)",
-      "Estratégia Premium (maximização)",
+      "Estratégia Valorização (máximo valor)",
       "Plano de Ajuste programado"
     ],
     route: "/avaliacao-imobiliaria",
@@ -307,30 +307,30 @@ const onboardingSteps: OnboardingStep[] = [
   },
   {
     id: 6,
-    title: "Vistoria Digital",
-    description: "Checklist completo para inspeção técnica com registro fotográfico e score de conservação.",
+    title: "Vistoria de Imóveis",
+    description: "Lista completa para inspeção técnica com registro de fotos e nota de conservação.",
     icon: <ClipboardCheck className="h-8 w-8" />,
     features: [
-      "55+ itens para Casas (20 categorias)",
-      "50+ itens para Apartamentos (18 categorias)",
-      "Sistema de scoring 0-100",
-      "Registro fotográfico por item",
-      "Laudo PDF com radar de diagnóstico"
+      "55 itens para Casas (20 categorias)",
+      "50 itens para Apartamentos (18 categorias)",
+      "Nota de conservação de 0 a 100",
+      "Registro de fotos por item",
+      "Relatório com gráfico de diagnóstico"
     ],
     route: "/vistoria-digital",
     color: "from-orange-500 to-orange-400"
   },
   {
     id: 7,
-    title: "Agendamento de Visitas",
-    description: "Gestão completa de visitas com fichas digitais, assinaturas eletrônicas e coleta de feedback.",
+    title: "Agenda de Visitas",
+    description: "Gestão completa de visitas com fichas, assinaturas na tela e coleta de opinião do cliente.",
     icon: <CalendarCheck className="h-8 w-8" />,
     features: [
-      "Agendamento com data/hora flexível",
+      "Agendamento com data e hora flexível",
       "Ficha de visita com código único",
-      "Assinatura digital (tela ou link remoto)",
-      "Coleta de feedback pós-visita",
-      "Dashboard com KPIs e ranking"
+      "Assinatura na tela ou por link remoto",
+      "Coleta de opinião após a visita",
+      "Painel com indicadores e comparativo"
     ],
     route: "/visitas",
     color: "from-teal-500 to-teal-400"
@@ -338,41 +338,41 @@ const onboardingSteps: OnboardingStep[] = [
   {
     id: 8,
     title: "Documentação",
-    description: "Checklist de due diligence para transações imobiliárias com análise de documentos por IA.",
+    description: "Lista de documentos para transações imobiliárias com análise pela assistente virtual.",
     icon: <FileText className="h-8 w-8" />,
     features: [
-      "Checklist separado Vendedor/Comprador",
-      "Perfis condicionais (PJ, União Estável)",
-      "Analisador de documentos com IA",
-      "Progresso de documentação coletada",
-      "Exportação PDF por parte ou completo"
+      "Lista separada Vendedor e Comprador",
+      "Perfis especiais (Empresa, União Estável)",
+      "Análise de documentos pela assistente",
+      "Acompanhamento de documentação coletada",
+      "Baixar relatório por parte ou completo"
     ],
     route: "/documentacao",
     color: "from-purple-500 to-purple-400"
   },
   {
     id: 9,
-    title: "Mapa de Transações",
-    description: "Visualização geográfica das transações ITBI com clusters e detalhes por localização.",
+    title: "Mapa de Vendas",
+    description: "Visualização geográfica das vendas oficiais com detalhes por localização.",
     icon: <Map className="h-8 w-8" />,
     features: [
-      "Mapa interativo com Leaflet",
-      "Clusters de transações por região",
+      "Mapa interativo com marcadores",
+      "Agrupamento de vendas por região",
       "Detalhes ao clicar em cada ponto",
-      "Filtros por período e tipologia",
-      "Integração com dados do dashboard"
+      "Filtros por período e tipo",
+      "Integração com dados do painel"
     ],
     route: "/",
     color: "from-emerald-500 to-emerald-400"
   },
   {
     id: 10,
-    title: "Sofia - Assistente IA",
-    description: "Assistente virtual inteligente para consultas sobre mercado imobiliário e uso da plataforma.",
+    title: "Sofia - Assistente Virtual",
+    description: "Assistente inteligente para consultas sobre mercado imobiliário e uso da plataforma.",
     icon: <Bot className="h-8 w-8" />,
     features: [
-      "Chat em tempo real com IA",
-      "Consultas por voz (hands-free)",
+      "Conversa em tempo real",
+      "Consultas por voz (sem precisar digitar)",
       "Análise de documentos enviados",
       "Base de conhecimento especializada",
       "Disponível em todas as páginas"
@@ -382,15 +382,15 @@ const onboardingSteps: OnboardingStep[] = [
   },
   {
     id: 11,
-    title: "Recursos Administrativos",
-    description: "Ferramentas para gestão de leads, usuários, calibração do sistema e configurações da empresa.",
+    title: "Recursos de Administração",
+    description: "Ferramentas para gestão de contatos, usuários, ajustes do sistema e configurações da empresa.",
     icon: <Settings className="h-8 w-8" />,
     features: [
-      "Base de Conhecimento da IA",
-      "Calibrador de Avaliação (pesos)",
-      "Gestão de Leads capturados",
+      "Base de Conhecimento da Assistente",
+      "Ajuste de Avaliação (pesos)",
+      "Gestão de Contatos capturados",
       "Gerenciamento de Usuários",
-      "Configurações da empresa (logo, dados)"
+      "Configurações da empresa (logotipo, dados)"
     ],
     route: "/usuarios",
     color: "from-slate-500 to-slate-400"
