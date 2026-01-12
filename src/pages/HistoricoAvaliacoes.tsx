@@ -706,7 +706,14 @@ export default function HistoricoAvaliacoes() {
                     <TableRow 
                       key={av.id}
                       className={`cursor-pointer hover:bg-muted/50 transition-colors ${selectedIds.has(av.id) ? 'bg-primary/10' : ''}`}
-                      onClick={() => isSelectionMode ? toggleSelection(av.id) : handleRowClick(av)}
+                      onClick={() => {
+                        console.log('[HistoricoAvaliacoes] Row clicked:', av.id, 'isSelectionMode:', isSelectionMode);
+                        if (isSelectionMode) {
+                          toggleSelection(av.id);
+                        } else {
+                          handleRowClick(av);
+                        }
+                      }}
                     >
                       {isSelectionMode && (
                         <TableCell onClick={(e) => e.stopPropagation()}>
