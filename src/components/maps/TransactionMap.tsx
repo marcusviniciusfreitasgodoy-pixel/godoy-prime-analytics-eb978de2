@@ -1,6 +1,6 @@
 /// <reference types="@types/google.maps" />
 import { useEffect, useRef, useState, useCallback, useMemo } from 'react';
-import { Loader2, Filter, X, Calendar, DollarSign, ChevronDown } from 'lucide-react';
+import { Loader2, Filter, X, Calendar, DollarSign, ChevronDown, CircleDot, Flame } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Slider } from '@/components/ui/slider';
@@ -17,6 +17,16 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import {
+  ToggleGroup,
+  ToggleGroupItem,
+} from '@/components/ui/toggle-group';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
 import { cn } from '@/lib/utils';
 
 interface TransactionMapData {
@@ -33,6 +43,9 @@ interface MapFilters {
   precoMin: number;
   precoMax: number;
 }
+
+type ViewMode = 'markers' | 'heatmap';
+type HeatmapMetric = 'density' | 'price';
 
 interface TransactionMapProps {
   data: TransactionMapData[];
@@ -116,11 +129,16 @@ export function TransactionMap({
   const mapContainer = useRef<HTMLDivElement>(null);
   const map = useRef<google.maps.Map | null>(null);
   const markers = useRef<google.maps.marker.AdvancedMarkerElement[]>([]);
+  const heatmapLayer = useRef<google.maps.visualization.HeatmapLayer | null>(null);
   const infoWindow = useRef<google.maps.InfoWindow | null>(null);
   const [mapReady, setMapReady] = useState(false);
   const [apiKeyLoading, setApiKeyLoading] = useState(true);
   const [apiKey, setApiKey] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  
+  // Estado de visualização
+  const [viewMode, setViewMode] = useState<ViewMode>('markers');
+  const [heatmapMetric, setHeatmapMetric] = useState<HeatmapMetric>('density');
   
   // Estado dos filtros
   const [filters, setFilters] = useState<MapFilters>({
@@ -201,12 +219,12 @@ export function TransactionMap({
     fetchApiKey();
   }, []);
 
-  // Carrega o script do Google Maps
+  // Carrega o script do Google Maps com biblioteca de visualização
   useEffect(() => {
     if (!apiKey) return;
 
     // Se o Google Maps já estiver disponível (script já carregado em outra tela), marcar como pronto
-    if (typeof window !== 'undefined' && window.google?.maps) {
+    if (typeof window !== 'undefined' && window.google?.maps?.visualization) {
       setMapReady(true);
       return;
     }
@@ -222,7 +240,8 @@ export function TransactionMap({
 
     const script = document.createElement('script');
     script.id = 'google-maps-script';
-    script.src = `https://maps.googleapis.com/maps/api/js?key=${apiKey}&libraries=marker&callback=initGoogleMap`;
+    // Adicionar biblioteca de visualização para heatmap
+    script.src = `https://maps.googleapis.com/maps/api/js?key=${apiKey}&libraries=marker,visualization&callback=initGoogleMap`;
     script.async = true;
     script.defer = true;
 
@@ -290,16 +309,28 @@ export function TransactionMap({
     return div;
   }, []);
 
-  // Atualiza marcadores quando data/bairro muda
-  useEffect(() => {
-    if (!mapReady || !map.current || !filteredData) return;
-
-    // Limpa marcadores anteriores
+  // Limpa marcadores
+  const clearMarkers = useCallback(() => {
     markers.current.forEach(marker => {
       marker.map = null;
     });
     markers.current = [];
+  }, []);
 
+  // Limpa heatmap
+  const clearHeatmap = useCallback(() => {
+    if (heatmapLayer.current) {
+      heatmapLayer.current.setMap(null);
+      heatmapLayer.current = null;
+    }
+  }, []);
+
+  // Cria os marcadores
+  const createMarkers = useCallback(() => {
+    if (!mapReady || !map.current || !filteredData) return;
+
+    clearMarkers();
+    
     if (filteredData.length === 0) return;
 
     const bounds = new google.maps.LatLngBounds();
@@ -355,7 +386,100 @@ export function TransactionMap({
     if (filteredData.length > 1) {
       map.current.fitBounds(bounds, { top: 50, right: 50, bottom: 50, left: 50 });
     }
-  }, [filteredData, mapReady, bairro, createCircleMarker]);
+  }, [filteredData, mapReady, createCircleMarker, clearMarkers]);
+
+  // Cria o heatmap
+  const createHeatmap = useCallback(() => {
+    if (!mapReady || !map.current || !filteredData || !window.google?.maps?.visualization) return;
+
+    clearHeatmap();
+    
+    if (filteredData.length === 0) return;
+
+    // Cria pontos ponderados para o heatmap
+    const heatmapData = filteredData
+      .filter(item => item.latitude && item.longitude)
+      .map(item => {
+        const location = new google.maps.LatLng(item.latitude!, item.longitude!);
+        // Peso baseado na métrica selecionada
+        let weight: number;
+        if (heatmapMetric === 'density') {
+          // Volume de transações
+          weight = item.total_transacoes;
+        } else {
+          // Preço normalizado (0-1 baseado no range)
+          weight = Math.min(item.preco_medio_m2 / 50000, 1) * 100;
+        }
+        return { location, weight };
+      });
+
+    // Gradiente de cores baseado na métrica
+    const gradient = heatmapMetric === 'density' 
+      ? [
+          'rgba(0, 255, 255, 0)',
+          'rgba(0, 255, 255, 1)',
+          'rgba(0, 191, 255, 1)',
+          'rgba(0, 127, 255, 1)',
+          'rgba(0, 63, 255, 1)',
+          'rgba(0, 0, 255, 1)',
+          'rgba(0, 0, 223, 1)',
+          'rgba(0, 0, 191, 1)',
+          'rgba(0, 0, 159, 1)',
+          'rgba(0, 0, 127, 1)',
+          'rgba(63, 0, 91, 1)',
+          'rgba(127, 0, 63, 1)',
+          'rgba(191, 0, 31, 1)',
+          'rgba(255, 0, 0, 1)',
+        ]
+      : [
+          'rgba(34, 197, 94, 0)',     // green transparent
+          'rgba(34, 197, 94, 0.8)',   // green
+          'rgba(132, 204, 22, 0.8)',  // lime
+          'rgba(234, 179, 8, 0.8)',   // yellow
+          'rgba(249, 115, 22, 0.8)',  // orange
+          'rgba(239, 68, 68, 0.9)',   // red
+          'rgba(220, 38, 38, 1)',     // red darker
+        ];
+
+    heatmapLayer.current = new google.maps.visualization.HeatmapLayer({
+      data: heatmapData,
+      map: map.current,
+      radius: 50,
+      opacity: 0.7,
+      gradient: gradient,
+    });
+
+    // Ajusta o zoom
+    if (filteredData.length > 1) {
+      const bounds = new google.maps.LatLngBounds();
+      filteredData.forEach(item => {
+        if (item.latitude && item.longitude) {
+          bounds.extend({ lat: item.latitude, lng: item.longitude });
+        }
+      });
+      map.current.fitBounds(bounds, { top: 50, right: 50, bottom: 50, left: 50 });
+    }
+  }, [filteredData, mapReady, heatmapMetric, clearHeatmap]);
+
+  // Atualiza visualização quando modo ou dados mudam
+  useEffect(() => {
+    if (!mapReady || !map.current) return;
+
+    if (viewMode === 'markers') {
+      clearHeatmap();
+      createMarkers();
+    } else {
+      clearMarkers();
+      createHeatmap();
+    }
+  }, [viewMode, filteredData, mapReady, bairro, createMarkers, createHeatmap, clearMarkers, clearHeatmap]);
+
+  // Atualiza heatmap quando métrica muda
+  useEffect(() => {
+    if (viewMode === 'heatmap' && mapReady && map.current) {
+      createHeatmap();
+    }
+  }, [heatmapMetric, viewMode, mapReady, createHeatmap]);
 
   if (error) {
     return (
@@ -389,6 +513,52 @@ export function TransactionMap({
 
       {/* Controles de Filtro */}
       <div className="absolute top-4 left-4 z-[1000] flex flex-col gap-2">
+        {/* Toggle de Visualização */}
+        <TooltipProvider>
+          <div className="flex gap-2">
+            <ToggleGroup 
+              type="single" 
+              value={viewMode} 
+              onValueChange={(v) => v && setViewMode(v as ViewMode)}
+              className="bg-background/95 backdrop-blur-sm shadow-lg border border-border rounded-md"
+            >
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <ToggleGroupItem value="markers" size="sm" className="px-3">
+                    <CircleDot className="h-4 w-4" />
+                  </ToggleGroupItem>
+                </TooltipTrigger>
+                <TooltipContent side="bottom">
+                  <p>Marcadores</p>
+                </TooltipContent>
+              </Tooltip>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <ToggleGroupItem value="heatmap" size="sm" className="px-3">
+                    <Flame className="h-4 w-4" />
+                  </ToggleGroupItem>
+                </TooltipTrigger>
+                <TooltipContent side="bottom">
+                  <p>Mapa de calor</p>
+                </TooltipContent>
+              </Tooltip>
+            </ToggleGroup>
+
+            {/* Seletor de métrica do heatmap */}
+            {viewMode === 'heatmap' && (
+              <Select value={heatmapMetric} onValueChange={(v) => setHeatmapMetric(v as HeatmapMetric)}>
+                <SelectTrigger className="w-[140px] h-9 bg-background/95 backdrop-blur-sm shadow-lg border-border text-xs">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="density">Volume</SelectItem>
+                  <SelectItem value="price">Preço/m²</SelectItem>
+                </SelectContent>
+              </Select>
+            )}
+          </div>
+        </TooltipProvider>
+
         {/* Botão de Filtros */}
         <Popover open={filtersOpen} onOpenChange={setFiltersOpen}>
           <PopoverTrigger asChild>
@@ -526,32 +696,63 @@ export function TransactionMap({
         )}
       </div>
 
-      {/* Legenda - posicionada no canto inferior direito para não conflitar com filtros */}
+      {/* Legenda - diferente para cada modo */}
       <div className="absolute bottom-4 right-14 bg-background/95 backdrop-blur-sm rounded-lg p-3 shadow-lg z-[900] border border-border">
-        <div className="text-xs font-semibold mb-2 text-foreground">Preço/m²</div>
-        <div className="space-y-1.5">
-          <div className="flex items-center gap-2">
-            <div className="w-3 h-3 rounded-full bg-[#22c55e]" />
-            <span className="text-xs text-muted-foreground">Até R$ 10.000</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <div className="w-3 h-3 rounded-full bg-[#eab308]" />
-            <span className="text-xs text-muted-foreground">R$ 10.000 - 20.000</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <div className="w-3 h-3 rounded-full bg-[#f97316]" />
-            <span className="text-xs text-muted-foreground">R$ 20.000 - 35.000</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <div className="w-3 h-3 rounded-full bg-[#ef4444]" />
-            <span className="text-xs text-muted-foreground">Acima de R$ 35.000</span>
-          </div>
-        </div>
-        <div className="mt-2 pt-2 border-t border-border">
-          <div className="text-[10px] text-muted-foreground">
-            Tamanho = volume de transações
-          </div>
-        </div>
+        {viewMode === 'markers' ? (
+          <>
+            <div className="text-xs font-semibold mb-2 text-foreground">Preço/m²</div>
+            <div className="space-y-1.5">
+              <div className="flex items-center gap-2">
+                <div className="w-3 h-3 rounded-full bg-[#22c55e]" />
+                <span className="text-xs text-muted-foreground">Até R$ 10.000</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <div className="w-3 h-3 rounded-full bg-[#eab308]" />
+                <span className="text-xs text-muted-foreground">R$ 10.000 - 20.000</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <div className="w-3 h-3 rounded-full bg-[#f97316]" />
+                <span className="text-xs text-muted-foreground">R$ 20.000 - 35.000</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <div className="w-3 h-3 rounded-full bg-[#ef4444]" />
+                <span className="text-xs text-muted-foreground">Acima de R$ 35.000</span>
+              </div>
+            </div>
+            <div className="mt-2 pt-2 border-t border-border">
+              <div className="text-[10px] text-muted-foreground">
+                Tamanho = volume de transações
+              </div>
+            </div>
+          </>
+        ) : (
+          <>
+            <div className="text-xs font-semibold mb-2 text-foreground">
+              {heatmapMetric === 'density' ? 'Volume de Transações' : 'Preço/m²'}
+            </div>
+            <div className="flex items-center gap-2">
+              <div 
+                className="w-full h-3 rounded"
+                style={{
+                  background: heatmapMetric === 'density'
+                    ? 'linear-gradient(to right, rgba(0,255,255,0.8), rgba(0,0,255,0.8), rgba(127,0,63,0.8), rgba(255,0,0,0.9))'
+                    : 'linear-gradient(to right, #22c55e, #eab308, #f97316, #ef4444)'
+                }}
+              />
+            </div>
+            <div className="flex justify-between text-[10px] text-muted-foreground mt-1">
+              <span>{heatmapMetric === 'density' ? 'Baixo' : 'Menor'}</span>
+              <span>{heatmapMetric === 'density' ? 'Alto' : 'Maior'}</span>
+            </div>
+            <div className="mt-2 pt-2 border-t border-border">
+              <div className="text-[10px] text-muted-foreground">
+                {heatmapMetric === 'density' 
+                  ? 'Áreas com mais transações' 
+                  : 'Cores quentes = preços mais altos'}
+              </div>
+            </div>
+          </>
+        )}
       </div>
 
       {/* Contador de pontos */}
