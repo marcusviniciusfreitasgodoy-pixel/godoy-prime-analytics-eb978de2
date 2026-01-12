@@ -203,7 +203,22 @@ export function TransactionMap({
 
   // Carrega o script do Google Maps
   useEffect(() => {
-    if (!apiKey || document.getElementById('google-maps-script')) return;
+    if (!apiKey) return;
+
+    // Se o Google Maps já estiver disponível (script já carregado em outra tela), marcar como pronto
+    if (typeof window !== 'undefined' && window.google?.maps) {
+      setMapReady(true);
+      return;
+    }
+
+    const existing = document.getElementById('google-maps-script') as HTMLScriptElement | null;
+    if (existing) {
+      // Script existe mas ainda não carregou: garantir callback e aguardar load
+      window.initGoogleMap = () => setMapReady(true);
+      existing.addEventListener('load', window.initGoogleMap, { once: true });
+      existing.addEventListener('error', () => setError('Erro ao carregar Google Maps'), { once: true });
+      return;
+    }
 
     const script = document.createElement('script');
     script.id = 'google-maps-script';
@@ -214,6 +229,8 @@ export function TransactionMap({
     window.initGoogleMap = () => {
       setMapReady(true);
     };
+
+    script.addEventListener('error', () => setError('Erro ao carregar Google Maps'));
 
     document.head.appendChild(script);
 
