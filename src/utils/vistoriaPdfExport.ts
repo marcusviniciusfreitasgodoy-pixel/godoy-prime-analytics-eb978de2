@@ -45,6 +45,28 @@ interface PhotoItem {
 }
 
 // Dados completos da avaliação para relatório integrado
+// Dados históricos para o gráfico
+interface HistoricalYearData {
+  ano: number;
+  transacoes: number;
+  valorMinM2: number;
+  valorMedioM2: number;
+  valorMaxM2: number;
+}
+
+interface HistoricalAnalysisData {
+  yearlyData: HistoricalYearData[];
+  liquidityScore: number;
+  liquidityLevel: 'alta' | 'media' | 'baixa';
+  transactionGrowth: number;
+  transactionTrend: 'crescente' | 'decrescente' | 'estavel';
+  priceGrowth: number;
+  priceTrend: 'alta' | 'baixa' | 'estavel';
+  diagnostico: string;
+  alertas: string[];
+}
+
+// Dados completos da avaliação para relatório integrado
 interface AvaliacaoData {
   valorProvavel: number;
   valorPessimista: number;
@@ -67,6 +89,8 @@ interface AvaliacaoData {
   // Recomendação
   recommendationTitle?: string;
   recommendationMessage?: string;
+  // Dados históricos
+  historicalAnalysis?: HistoricalAnalysisData;
 }
 
 // Fontes dos anúncios para rastreabilidade
@@ -580,28 +604,174 @@ export async function generateVistoriaPDFDoc(params: VistoriaPDFParams): Promise
     doc.setTextColor(...(adjColor as [number, number, number]));
     doc.text(`${adjSign}${adjusted.diferencaPercentual.toFixed(1)}%`, marginLeft + 125, yPos);
     
-    // Justification note
+    // Justification note - detalhada
     yPos += 12;
     doc.setFillColor(255, 251, 235);
-    doc.roundedRect(marginLeft - 5, yPos - 3, contentWidth + 10, 14, 2, 2, 'F');
+    doc.roundedRect(marginLeft - 5, yPos - 3, contentWidth + 10, 22, 2, 2, 'F');
     
-    doc.setFontSize(6);
+    doc.setFontSize(7);
     doc.setFont('helvetica', 'bold');
     doc.setTextColor(180, 83, 9);
-    doc.text('METODOLOGIA:', marginLeft, yPos + 2);
+    doc.text('POR QUE O VALOR MUDOU?', marginLeft, yPos + 3);
     doc.setFont('helvetica', 'normal');
-    doc.setFontSize(6);
-    const justification = finalScore >= 70 
-      ? `Estado físico acima do esperado (score ${finalScore}). Prêmio de ${adjusted.diferencaPercentual.toFixed(1)}% aplicado.`
-      : finalScore >= 50
-        ? `Estado físico adequado (score ${finalScore}). Ajuste mínimo de ${adjusted.diferencaPercentual.toFixed(1)}%.`
-        : `Pendências identificadas (score ${finalScore}). Desconto de ${Math.abs(adjusted.diferencaPercentual).toFixed(1)}% para cobrir reparos.`;
-    doc.text(justification, marginLeft + 22, yPos + 2);
+    doc.setFontSize(7);
+    doc.setTextColor(100, 80, 40);
     
-    doc.setTextColor(...BRAND_COLORS.gray);
-    doc.text('Score da vistoria (0-100) aplica ajuste de -15% a +10% sobre o valor da avaliação prévia.', marginLeft, yPos + 8);
+    let justificationLines: string[];
+    if (finalScore >= 70) {
+      justificationLines = [
+        `A vistoria identificou que o imóvel está em estado físico ACIMA DO ESPERADO (score ${finalScore}/100).`,
+        `Isso justifica um prêmio de ${adjusted.diferencaPercentual.toFixed(1)}% sobre a avaliação inicial.`
+      ];
+    } else if (finalScore >= 50) {
+      justificationLines = [
+        `A vistoria identificou que o imóvel está em estado físico ADEQUADO (score ${finalScore}/100).`,
+        `O ajuste de ${adjusted.diferencaPercentual.toFixed(1)}% reflete pequenas correções identificadas.`
+      ];
+    } else {
+      justificationLines = [
+        `A vistoria identificou PENDÊNCIAS que afetam o valor do imóvel (score ${finalScore}/100).`,
+        `O desconto de ${Math.abs(adjusted.diferencaPercentual).toFixed(1)}% cobre os reparos ou melhorias necessárias.`
+      ];
+    }
+    doc.text(justificationLines[0], marginLeft, yPos + 10);
+    doc.text(justificationLines[1], marginLeft, yPos + 15);
     
-    yPos += 20;
+    yPos += 28;
+    
+    // ========== ANÁLISE HISTÓRICA (se disponível) ==========
+    if (avaliacaoData.historicalAnalysis && avaliacaoData.historicalAnalysis.yearlyData.length > 0) {
+      if (yPos > getMaxContentY() - 100) {
+        doc.addPage();
+        yPos = 20;
+      }
+      
+      const historical = avaliacaoData.historicalAnalysis;
+      yPos = drawSectionTitle(doc, 'Análise Histórica (5 Anos)', yPos, marginLeft);
+      
+      // KPIs em cards
+      const kpiHeight = 40;
+      const kpiColWidth = (contentWidth + 10) / 4;
+      
+      const liquidityColor: [number, number, number] = historical.liquidityLevel === 'alta' ? [22, 163, 74] :
+        historical.liquidityLevel === 'media' ? [202, 138, 4] : [220, 38, 38];
+      const liquidityLabel = historical.liquidityLevel === 'alta' ? 'Alta' : historical.liquidityLevel === 'media' ? 'Média' : 'Baixa';
+      
+      const transColor: [number, number, number] = historical.transactionTrend === 'crescente' ? [22, 163, 74] :
+        historical.transactionTrend === 'decrescente' ? [220, 38, 38] : [100, 100, 100];
+      const transIcon = historical.transactionTrend === 'crescente' ? '+' : historical.transactionTrend === 'decrescente' ? '-' : '=';
+      
+      const priceColor: [number, number, number] = historical.priceTrend === 'alta' ? [22, 163, 74] :
+        historical.priceTrend === 'baixa' ? [220, 38, 38] : [100, 100, 100];
+      const priceIcon = historical.priceTrend === 'alta' ? '+' : historical.priceTrend === 'baixa' ? '-' : '=';
+      
+      const totalTrans = historical.yearlyData.reduce((sum, y) => sum + y.transacoes, 0);
+      
+      const kpiData = [
+        { label: 'Liquidez', value: `${historical.liquidityScore}/100`, sublabel: liquidityLabel, color: liquidityColor },
+        { label: 'Vol. Trans.', value: `${transIcon}${Math.abs(historical.transactionGrowth).toFixed(1)}%`, sublabel: 'a.a.', color: transColor },
+        { label: 'Evol. Preço', value: `${priceIcon}${Math.abs(historical.priceGrowth).toFixed(1)}%`, sublabel: 'a.a.', color: priceColor },
+        { label: 'Total 5 Anos', value: `${totalTrans}`, sublabel: 'trans.', color: [59, 130, 246] as [number, number, number] },
+      ];
+      
+      kpiData.forEach((kpi, i) => {
+        const colX = marginLeft - 5 + (kpiColWidth * i);
+        const cardWidth = kpiColWidth - 3;
+        
+        doc.setFillColor(248, 250, 252);
+        doc.setDrawColor(...kpi.color);
+        doc.setLineWidth(0.5);
+        doc.roundedRect(colX + 1.5, yPos - 3, cardWidth, kpiHeight, 2, 2, 'FD');
+        
+        doc.setFillColor(...kpi.color);
+        doc.rect(colX + 1.5, yPos - 3, cardWidth, 4, 'F');
+        
+        doc.setFontSize(8);
+        doc.setFont('helvetica', 'bold');
+        doc.setTextColor(71, 85, 105);
+        doc.text(kpi.label, colX + cardWidth / 2, yPos + 8, { align: 'center' });
+        
+        doc.setFontSize(14);
+        doc.setTextColor(...kpi.color);
+        doc.text(kpi.value, colX + cardWidth / 2, yPos + 22, { align: 'center' });
+        
+        doc.setFontSize(7);
+        doc.setFont('helvetica', 'normal');
+        doc.setTextColor(148, 163, 184);
+        doc.text(kpi.sublabel, colX + cardWidth / 2, yPos + 30, { align: 'center' });
+      });
+      
+      yPos += kpiHeight + 8;
+      
+      // Tabela de dados por ano
+      if (yPos > getMaxContentY() - 50) {
+        doc.addPage();
+        yPos = 20;
+      }
+      
+      doc.setFontSize(8);
+      doc.setFont('helvetica', 'bold');
+      doc.setTextColor(71, 85, 105);
+      
+      const colWidths = [25, 28, 36, 36, 36];
+      let tableX = marginLeft;
+      ['Ano', 'Trans.', 'Mín/m²', 'Méd/m²', 'Máx/m²'].forEach((header, i) => {
+        doc.text(header, tableX, yPos);
+        tableX += colWidths[i];
+      });
+      
+      doc.setLineWidth(0.2);
+      doc.setDrawColor(203, 213, 225);
+      doc.line(marginLeft, yPos + 2, marginLeft + contentWidth, yPos + 2);
+      yPos += 6;
+      
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(7);
+      
+      historical.yearlyData.forEach((year) => {
+        tableX = marginLeft;
+        doc.setTextColor(71, 85, 105);
+        doc.text(year.ano.toString(), tableX, yPos);
+        tableX += colWidths[0];
+        
+        doc.setTextColor(59, 130, 246);
+        doc.text(year.transacoes.toString(), tableX, yPos);
+        tableX += colWidths[1];
+        
+        doc.setTextColor(71, 85, 105);
+        doc.text(year.valorMinM2 > 0 ? `R$ ${year.valorMinM2.toLocaleString('pt-BR')}` : '-', tableX, yPos);
+        tableX += colWidths[2];
+        
+        doc.setFont('helvetica', 'bold');
+        doc.text(year.valorMedioM2 > 0 ? `R$ ${year.valorMedioM2.toLocaleString('pt-BR')}` : '-', tableX, yPos);
+        doc.setFont('helvetica', 'normal');
+        tableX += colWidths[3];
+        
+        doc.text(year.valorMaxM2 > 0 ? `R$ ${year.valorMaxM2.toLocaleString('pt-BR')}` : '-', tableX, yPos);
+        
+        yPos += 5;
+      });
+      
+      yPos += 4;
+      
+      // Diagnóstico
+      doc.setFillColor(240, 249, 255);
+      doc.setDrawColor(59, 130, 246);
+      doc.setLineWidth(0.3);
+      
+      const diagText = historical.diagnostico;
+      const splitDiag = doc.splitTextToSize(diagText, contentWidth - 5);
+      const diagHeight = 8 + splitDiag.length * 4;
+      
+      doc.roundedRect(marginLeft - 5, yPos, contentWidth + 10, diagHeight, 2, 2, 'FD');
+      
+      doc.setFontSize(7);
+      doc.setFont('helvetica', 'normal');
+      doc.setTextColor(30, 64, 175);
+      doc.text(splitDiag, marginLeft, yPos + 5);
+      
+      yPos += diagHeight + 8;
+    }
   }
   
   // ========== TOP 5 CRITICAL ITEMS ==========
@@ -616,28 +786,102 @@ export async function generateVistoriaPDFDoc(params: VistoriaPDFParams): Promise
   
   if (criticalItems.length > 0) {
     yPos += 3;
-    yPos = drawSectionTitle(doc, 'Pontos Críticos', yPos, marginLeft);
+    yPos = drawSectionTitle(doc, 'Pontos que Impactam o Valor', yPos, marginLeft);
     
-    criticalItems.slice(0, 5).forEach((item) => {
+    // Aviso de impacto
+    doc.setFillColor(254, 242, 242);
+    doc.setDrawColor(220, 38, 38);
+    doc.setLineWidth(0.3);
+    doc.roundedRect(marginLeft - 5, yPos - 3, contentWidth + 10, 10, 2, 2, 'FD');
+    
+    doc.setFontSize(7);
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(153, 27, 27);
+    doc.text(`⚠ ${criticalItems.length} ponto(s) identificado(s) que afetam diretamente a avaliação do imóvel.`, marginLeft, yPos + 3);
+    yPos += 14;
+    
+    criticalItems.slice(0, 6).forEach((item) => {
       if (yPos > getMaxContentY() - 15) return;
       
       const config = scoreLabels[item.score];
-      doc.setFillColor(...config.color);
-      doc.circle(marginLeft + 3, yPos - 1, 1.5, 'F');
       
+      // Badge com nota e label
+      doc.setFillColor(...config.color);
+      doc.roundedRect(marginLeft, yPos - 2, 8, 5, 1, 1, 'F');
+      doc.setFontSize(6);
+      doc.setTextColor(255, 255, 255);
+      doc.setFont('helvetica', 'bold');
+      doc.text(String(item.score), marginLeft + 4, yPos + 1, { align: 'center' });
+      
+      // Label da nota
+      doc.setTextColor(...config.color);
+      doc.setFontSize(7);
+      doc.text(config.label, marginLeft + 11, yPos + 1);
+      
+      // Item label
       doc.setFontSize(8);
       doc.setTextColor(...BRAND_COLORS.darkGray);
       doc.setFont('helvetica', 'normal');
-      const text = doc.splitTextToSize(item.label, contentWidth - 12);
-      doc.text(text[0], marginLeft + 8, yPos);
-      yPos += 6;
+      const text = doc.splitTextToSize(item.label, contentWidth - 35);
+      doc.text(text[0], marginLeft + 30, yPos + 1);
+      yPos += 7;
     });
+    
+    // Nota explicativa
+    yPos += 2;
+    doc.setFontSize(6);
+    doc.setFont('helvetica', 'italic');
+    doc.setTextColor(...BRAND_COLORS.gray);
+    doc.text('Nota: Itens com nota 1 (Crítico) ou 2 (Atenção) reduzem o score final da vistoria e consequentemente o valor ajustado.', marginLeft, yPos);
+    yPos += 8;
   }
   
-  // ========== PAGE 2+: CHECKLIST DETAILS ==========
+  // ========== PAGE: LEGENDA DAS NOTAS + CHECKLIST DETAILS ==========
   doc.addPage();
   yPos = 20;
   
+  // ========== LEGENDA DAS NOTAS ==========
+  yPos = drawSectionTitle(doc, 'Legenda das Notas de Vistoria', yPos, marginLeft);
+  
+  doc.setFillColor(248, 250, 252);
+  doc.setDrawColor(203, 213, 225);
+  doc.setLineWidth(0.3);
+  doc.roundedRect(marginLeft - 5, yPos - 3, contentWidth + 10, 52, 3, 3, 'FD');
+  
+  const legendItems = [
+    { score: 5, label: 'Excelente', desc: 'Estado perfeito, sem necessidade de reparos ou melhorias. Padrão de referência.', color: [5, 150, 105] as [number, number, number] },
+    { score: 4, label: 'Bom', desc: 'Pequenos desgastes naturais de uso. Não requer intervenção imediata.', color: [34, 197, 94] as [number, number, number] },
+    { score: 3, label: 'Adequado', desc: 'Condição média, uso normal. Pode haver desgaste visível, mas funcional.', color: [234, 179, 8] as [number, number, number] },
+    { score: 2, label: 'Atenção', desc: 'Necessita manutenção preventiva ou corretiva em breve. Impacta o valor.', color: [249, 115, 22] as [number, number, number] },
+    { score: 1, label: 'Crítico', desc: 'Necessita intervenção urgente. Risco ou degradação significativa. Alto impacto no valor.', color: [220, 38, 38] as [number, number, number] },
+  ];
+  
+  legendItems.forEach((item, index) => {
+    const itemY = yPos + 2 + (index * 10);
+    
+    // Score badge
+    doc.setFillColor(...item.color);
+    doc.roundedRect(marginLeft, itemY - 2, 10, 6, 1, 1, 'F');
+    doc.setFontSize(7);
+    doc.setTextColor(255, 255, 255);
+    doc.setFont('helvetica', 'bold');
+    doc.text(String(item.score), marginLeft + 5, itemY + 2, { align: 'center' });
+    
+    // Label
+    doc.setTextColor(...item.color);
+    doc.setFontSize(8);
+    doc.text(item.label, marginLeft + 14, itemY + 2);
+    
+    // Description
+    doc.setFont('helvetica', 'normal');
+    doc.setTextColor(...BRAND_COLORS.darkGray);
+    doc.setFontSize(7);
+    doc.text(item.desc, marginLeft + 35, itemY + 2);
+  });
+  
+  yPos += 58;
+  
+  // ========== CHECKLIST DETAILS ==========
   yPos = drawSectionTitle(doc, 'Checklist Detalhado', yPos, marginLeft);
   
   for (const category of checklist) {
@@ -673,18 +917,25 @@ export async function generateVistoriaPDFDoc(params: VistoriaPDFParams): Promise
       
       const config = scoreLabels[item.score];
       
-      // Score badge
+      // Score badge com número
       doc.setFillColor(...config.color);
-      doc.roundedRect(marginLeft, yPos - 2.5, 10, 4, 1, 1, 'F');
+      doc.roundedRect(marginLeft, yPos - 2.5, 8, 4, 1, 1, 'F');
       doc.setFontSize(6);
       doc.setTextColor(255, 255, 255);
-      doc.text(item.score === 'na' ? 'N/A' : String(item.score), marginLeft + 5, yPos, { align: 'center' });
+      doc.setFont('helvetica', 'bold');
+      doc.text(item.score === 'na' ? 'N/A' : String(item.score), marginLeft + 4, yPos, { align: 'center' });
+      
+      // Label da nota (Excelente, Bom, etc.)
+      doc.setFontSize(6);
+      doc.setTextColor(...config.color);
+      doc.text(config.label, marginLeft + 11, yPos);
       
       // Item label
       doc.setFontSize(8);
+      doc.setFont('helvetica', 'normal');
       doc.setTextColor(...BRAND_COLORS.darkGray);
-      const splitLabel = doc.splitTextToSize(item.label, contentWidth - 20);
-      doc.text(splitLabel[0], marginLeft + 14, yPos);
+      const splitLabel = doc.splitTextToSize(item.label, contentWidth - 40);
+      doc.text(splitLabel[0], marginLeft + 32, yPos);
       yPos += 5;
     }
     
