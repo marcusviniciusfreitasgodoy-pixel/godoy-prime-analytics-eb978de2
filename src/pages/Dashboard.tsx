@@ -547,21 +547,14 @@ export default function Dashboard() {
       </Card>
 
 
-      {/* Avisos - visíveis apenas em mobile, no final da página */}
-      <div className="sm:hidden space-y-3">
+      {/* Aviso jurídico - visível apenas em mobile, no final da página */}
+      <div className="sm:hidden">
         <Alert>
           <Info className="h-4 w-4" />
           <AlertDescription className="text-xs">
-            <strong>Disclaimer Jurídico:</strong> Esta ferramenta fornece análises estatísticas 
+            <strong>Aviso Legal:</strong> Esta ferramenta fornece análises estatísticas 
             baseadas em dados públicos de transações oficiais. As informações não substituem laudos oficiais 
             (PTAM) e devem ser utilizadas apenas como referência de mercado.
-          </AlertDescription>
-        </Alert>
-        <Alert className="bg-muted/50 border-muted">
-          <Monitor className="h-4 w-4" />
-          <AlertDescription className="text-xs">
-            <strong>Dica:</strong> Para melhor experiência com gráficos e análises detalhadas, 
-            recomendamos usar um computador ou tablet.
           </AlertDescription>
         </Alert>
       </div>
