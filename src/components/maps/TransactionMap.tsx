@@ -758,9 +758,9 @@ export function TransactionMap({
         )}
       </div>
 
-      {/* Contador de pontos */}
+      {/* Contador de pontos - posicionado à esquerda do toggle de visualização */}
       {filteredData && filteredData.length > 0 && (
-        <div className="absolute top-4 right-4 bg-background/95 backdrop-blur-sm rounded-lg px-3 py-2 shadow-lg z-[1000] border border-border">
+        <div className="absolute top-14 right-4 bg-background/95 backdrop-blur-sm rounded-lg px-3 py-2 shadow-lg z-[1000] border border-border">
           <span className="text-xs font-medium text-foreground">{filteredData.length} logradouros</span>
         </div>
       )}
