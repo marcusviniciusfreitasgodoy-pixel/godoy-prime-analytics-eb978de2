@@ -255,8 +255,8 @@ export function PriceComparisonCard({
               <span className="font-medium text-foreground">Recomendação: </span>
               {marketGap <= 10 && "Mercado equilibrado. Anuncie próximo ao valor médio combinado para venda em prazo normal."}
               {marketGap > 10 && marketGap <= 20 && "Gap moderado. Considere precificar entre os dois valores para equilibrar velocidade e retorno."}
-              {marketGap > 20 && marketGap <= 35 && "Gap alto. Precifique competitivamente (próximo ao valor ITBI) para garantir liquidez."}
-              {marketGap > 35 && "Gap crítico. Priorize o valor ITBI para venda no curto prazo. Anúncios na região estão muito inflados."}
+              {marketGap > 20 && marketGap <= 35 && "Gap alto. Precifique competitivamente (próximo ao valor de avaliação) para garantir liquidez."}
+              {marketGap > 35 && "Gap crítico. Priorize o valor de avaliação para venda no curto prazo. Anúncios na região estão muito inflados."}
             </div>
           </div>
         </div>

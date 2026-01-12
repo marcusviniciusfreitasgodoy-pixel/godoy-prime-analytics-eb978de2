@@ -266,7 +266,7 @@ function createValuationPDF(
     doc.setFontSize(7);
     doc.setFont('helvetica', 'italic');
     doc.setTextColor(100, 116, 139);
-    doc.text('Fonte: Guias de ITBI - Secretaria Municipal de Fazenda do Rio de Janeiro', marginLeft, yPos + 2);
+    doc.text('Fonte: Transações oficiais - Secretaria Municipal de Fazenda do Rio de Janeiro', marginLeft, yPos + 2);
     yPos += 10;
   }
 
@@ -282,8 +282,8 @@ function createValuationPDF(
     doc.setTextColor(...BRAND_COLORS.gray);
     
     const metodologiaTexto = temAnuncios
-      ? 'Metodologia: Os valores de referência são calculados com ponderação de 70% dados oficiais (ITBI) e 30% anúncios de mercado, garantindo equilíbrio entre transações reais e preços praticados atualmente.'
-      : 'Metodologia: Os valores de referência são calculados exclusivamente com base em dados oficiais de transações (100% ITBI), garantindo máxima objetividade baseada em negócios efetivamente realizados.';
+      ? 'Metodologia: Os valores de referência são calculados com ponderação de 70% dados oficiais de transações e 30% anúncios de mercado, garantindo equilíbrio entre transações reais e preços praticados atualmente.'
+      : 'Metodologia: Os valores de referência são calculados exclusivamente com base em dados oficiais de transações (100%), garantindo máxima objetividade baseada em negócios efetivamente realizados.';
     
     const splitMetodologia = doc.splitTextToSize(metodologiaTexto, contentWidth);
     doc.text(splitMetodologia, marginLeft, yPos);
@@ -1074,11 +1074,11 @@ function createValuationPDF(
     
     const { calculos, estrategiaSelecionada, estrategiaRecomendada, valorItbi, planoAjusteAtivo } = pricingStrategy;
     
-    // Valor ITBI de referência
+    // Valor de referência
     doc.setFontSize(8);
     doc.setFont('helvetica', 'normal');
     doc.setTextColor(...BRAND_COLORS.gray);
-    doc.text(`Valor ITBI de Referência: ${formatCurrencyPDF(valorItbi)}`, marginLeft, yPos);
+    doc.text(`Valor de Referência (Avaliação): ${formatCurrencyPDF(valorItbi)}`, marginLeft, yPos);
     yPos += 8;
     
     // Cards das 3 estratégias
@@ -1134,7 +1134,7 @@ function createValuationPDF(
       doc.setTextColor(100, 116, 139);
       doc.text(`Corretagem (6%): ${formatCurrencyPDF(calculo.corretagem)}`, cardX + 3, yPos + 38);
       doc.text(`Líquido: ${formatCurrencyPDF(calculo.liquido)}`, cardX + 3, yPos + 44);
-      doc.text(`Prêmio vs ITBI: +${calculo.premio_liquido_pct.toFixed(1)}%`, cardX + 3, yPos + 50);
+      doc.text(`Prêmio vs Avaliação: +${calculo.premio_liquido_pct.toFixed(1)}%`, cardX + 3, yPos + 50);
     });
     
     yPos += strategyCardHeight + 8;
@@ -1265,7 +1265,7 @@ function createValuationPDF(
       ['Líquido', formatCurrencyPDF(calculos.atracao.liquido), formatCurrencyPDF(calculos.mercado.liquido), formatCurrencyPDF(calculos.premium.liquido)],
       ['Piso (97%)', formatCurrencyPDF(calculos.atracao.piso_planejado), formatCurrencyPDF(calculos.mercado.piso_planejado), formatCurrencyPDF(calculos.premium.piso_planejado)],
       ['Líq. Mínimo', formatCurrencyPDF(calculos.atracao.liquido_min), formatCurrencyPDF(calculos.mercado.liquido_min), formatCurrencyPDF(calculos.premium.liquido_min)],
-      ['Prêmio vs ITBI', `+${calculos.atracao.premio_liquido_pct.toFixed(1)}%`, `+${calculos.mercado.premio_liquido_pct.toFixed(1)}%`, `+${calculos.premium.premio_liquido_pct.toFixed(1)}%`],
+      ['Prêmio vs Aval.', `+${calculos.atracao.premio_liquido_pct.toFixed(1)}%`, `+${calculos.mercado.premio_liquido_pct.toFixed(1)}%`, `+${calculos.premium.premio_liquido_pct.toFixed(1)}%`],
     ];
     
     doc.setFont('helvetica', 'normal');
@@ -1465,7 +1465,7 @@ function createValuationPDF(
   const glossaryItems = [
     {
       term: 'Valor Provável',
-      definition: 'Valor mais provável de venda do imóvel, calculado como média ponderada entre dados de transações oficiais (ITBI) e anúncios de mercado.'
+      definition: 'Valor mais provável de venda do imóvel, calculado como média ponderada entre dados de transações oficiais e anúncios de mercado.'
     },
     {
       term: 'Valor Pessimista',
@@ -1476,8 +1476,8 @@ function createValuationPDF(
       definition: 'Estimativa máxima do valor do imóvel, representando o cenário de venda sem urgência em mercado aquecido.'
     },
     {
-      term: 'ITBI (Imposto de Transmissão)',
-      definition: 'Base de dados oficial de transações imobiliárias registradas na Secretaria Municipal de Fazenda. Reflete valores reais de compra e venda.'
+      term: 'Dados Oficiais de Transações',
+      definition: 'Base de dados de transações imobiliárias registradas junto à Secretaria Municipal de Fazenda. Reflete valores reais de compra e venda.'
     },
     {
       term: 'Ajuste Total',

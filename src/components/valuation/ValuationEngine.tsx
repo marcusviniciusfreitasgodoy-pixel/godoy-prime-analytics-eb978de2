@@ -372,7 +372,7 @@ export function ValuationEngine({ bairro = "BARRA DA TIJUCA", vistoriaData, edit
                       <div className="space-y-2 text-xs">
                         <p className="font-semibold">Metodologia de Cálculo</p>
                         <ul className="space-y-1 list-disc list-inside">
-                          <li><strong>Fonte:</strong> Transações oficiais ITBI da Prefeitura do Rio</li>
+                          <li><strong>Fonte:</strong> Transações oficiais da Prefeitura do Rio</li>
                           <li><strong>Filtro:</strong> Apenas imóveis com ≥90% de transferência</li>
                           <li><strong>Mínimo:</strong> 3 transações para garantir precisão estatística</li>
                           <li><strong>Faixa:</strong> Calculada com base em mín, mediana e máx do m²</li>
@@ -420,11 +420,11 @@ export function ValuationEngine({ bairro = "BARRA DA TIJUCA", vistoriaData, edit
                       <TooltipContent side="bottom" className="max-w-xs">
                         {state.anuncioData ? (
                           <p className="text-xs">
-                            <strong>Avaliação combinada:</strong> Utilizando 70% dados oficiais ITBI + 30% anúncios de mercado para maior precisão.
+                            <strong>Avaliação combinada:</strong> Utilizando 70% dados oficiais + 30% anúncios de mercado para maior precisão.
                           </p>
                         ) : (
                           <p className="text-xs">
-                            <strong>Apenas dados oficiais:</strong> Avaliação baseada exclusivamente em transações reais registradas (ITBI) — referência objetiva sem influência de preços de anúncio.
+                            <strong>Apenas dados oficiais:</strong> Avaliação baseada exclusivamente em transações reais registradas — referência objetiva sem influência de preços de anúncio.
                           </p>
                         )}
                       </TooltipContent>
