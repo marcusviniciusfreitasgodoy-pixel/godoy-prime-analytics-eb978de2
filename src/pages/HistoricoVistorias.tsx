@@ -78,9 +78,30 @@ export default function HistoricoVistorias() {
   const { data: vistorias, isLoading } = useQuery({
     queryKey: ["vistorias-historico", user?.id, isAdmin],
     queryFn: async () => {
+      // Buscar vistorias com dados da avaliação vinculada
       let query = supabase
         .from("vistorias")
-        .select("*")
+        .select(`
+          *,
+          valuations (
+            id,
+            final_value_min,
+            final_value_med,
+            final_value_max,
+            itbi_min_m2,
+            itbi_med_m2,
+            itbi_max_m2,
+            itbi_transaction_count,
+            trend_percentage,
+            trend_direction,
+            total_adjustment,
+            spread_percentage,
+            confidence_level,
+            confidence_score,
+            recommendation_title,
+            anuncio_fontes
+          )
+        `)
         .order("created_at", { ascending: false });
       
       if (!isAdmin && user?.id) {
@@ -90,7 +111,7 @@ export default function HistoricoVistorias() {
       const { data, error } = await query;
       
       if (error) throw error;
-      return data as Vistoria[];
+      return data as (Vistoria & { valuations: any })[];
     },
     enabled: !!user?.id,
   });
@@ -130,7 +151,34 @@ export default function HistoricoVistorias() {
     navigate("/vistoria-digital");
   };
 
-  const handleEditVistoria = (vistoria: Vistoria) => {
+  const handleEditVistoria = (vistoria: Vistoria & { valuations?: any }) => {
+    // Preparar dados da avaliação completa se houver valuation vinculada
+    const val = vistoria.valuations;
+    const avaliacaoCompleta = val ? {
+      valorProvavel: val.final_value_med,
+      valorPessimista: val.final_value_min,
+      valorOtimista: val.final_value_max,
+      confidenceLevel: val.confidence_level || 'MÉDIA',
+      confidenceScore: val.confidence_score,
+      dataAvaliacao: new Date().toISOString(),
+      itbiMinM2: val.itbi_min_m2,
+      itbiMedM2: val.itbi_med_m2,
+      itbiMaxM2: val.itbi_max_m2,
+      transactionCount: val.itbi_transaction_count,
+      trendPercentage: val.trend_percentage,
+      trendDirection: val.trend_direction,
+      totalAdjustment: val.total_adjustment,
+      spreadPercentage: val.spread_percentage,
+      recommendationTitle: val.recommendation_title,
+      anuncioFontes: val.anuncio_fontes || [],
+    } : vistoria.valor_avaliacao ? {
+      valorProvavel: vistoria.valor_avaliacao,
+      valorPessimista: vistoria.valor_avaliacao * 0.9,
+      valorOtimista: vistoria.valor_avaliacao * 1.1,
+      confidenceLevel: 'MÉDIA',
+      dataAvaliacao: new Date().toISOString(),
+    } : null;
+    
     // Prepare data to pass to VistoriaDigital
     navigate("/vistoria-digital", {
       state: {
@@ -159,6 +207,7 @@ export default function HistoricoVistorias() {
           checklist: vistoria.checklist_data,
           valorAvaliacao: vistoria.valor_avaliacao,
           valuationId: vistoria.valuation_id,
+          avaliacaoData: avaliacaoCompleta,
         },
       },
     });
