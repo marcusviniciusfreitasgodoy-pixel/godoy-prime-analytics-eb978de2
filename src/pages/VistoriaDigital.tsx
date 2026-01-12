@@ -749,6 +749,7 @@ export default function VistoriaDigital() {
         checklist: ChecklistCategory[];
         valorAvaliacao: number | null;
         valuationId: string | null;
+        avaliacaoData?: AvaliacaoData | null;
       };
       propertyData?: {
         logradouro?: string;
@@ -787,8 +788,10 @@ export default function VistoriaDigital() {
         )));
       }
       
-      // Set avaliacao data if there was a valuation
-      if (data.valorAvaliacao) {
+      // Set avaliacao data - prioriza dados completos, fallback para básico
+      if (data.avaliacaoData) {
+        setAvaliacaoData(data.avaliacaoData);
+      } else if (data.valorAvaliacao) {
         setAvaliacaoData({
           valorProvavel: data.valorAvaliacao,
           valorPessimista: data.valorAvaliacao * 0.9,
