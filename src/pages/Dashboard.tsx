@@ -64,11 +64,17 @@ export default function Dashboard() {
   const { data: rankingData } = useMicrobairroRanking(selectedBairro);
   const { data: evolutionData } = useEvolutionData(selectedBairro, 'semester');
   
-  // Hook para dados do mapa
-  const { data: mapData, isLoading: isMapLoading } = useTransactionMapData({
+  // Hook para dados do mapa com filtros
+  const [mapFilters, setMapFilters] = useState({ periodoMeses: 12, precoMin: 0, precoMax: 100000 });
+  const { data: mapData, isLoading: isMapLoading, refetch: refetchMapData } = useTransactionMapData({
     bairro: selectedBairro,
-    periodoMeses: 12,
+    periodoMeses: mapFilters.periodoMeses,
   });
+  
+  // Refetch quando período muda
+  useEffect(() => {
+    refetchMapData();
+  }, [mapFilters.periodoMeses, refetchMapData]);
 
   const fetchExportData = async () => {
     const { data, error } = await supabase
@@ -532,7 +538,9 @@ export default function Dashboard() {
             <TransactionMap 
               data={mapData || []} 
               bairro={selectedBairro} 
-              isLoading={isMapLoading} 
+              isLoading={isMapLoading}
+              onFiltersChange={setMapFilters}
+              initialFilters={mapFilters}
             />
           </div>
         </CardContent>
