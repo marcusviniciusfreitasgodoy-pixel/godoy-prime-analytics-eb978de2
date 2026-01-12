@@ -1,10 +1,11 @@
 /// <reference types="@types/google.maps" />
 import { useEffect, useRef, useState, useCallback, useMemo } from 'react';
-import { Loader2, Filter, X, Calendar, DollarSign, ChevronDown, CircleDot, Flame } from 'lucide-react';
+import { Loader2, Filter, X, Calendar, DollarSign, ChevronDown, CircleDot, Flame, Monitor, AlertCircle } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Slider } from '@/components/ui/slider';
 import { Badge } from '@/components/ui/badge';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 import {
   Popover,
   PopoverContent,
@@ -28,7 +29,7 @@ import {
   TooltipTrigger,
 } from '@/components/ui/tooltip';
 import { cn } from '@/lib/utils';
-
+import { useIsMobile } from '@/hooks/use-mobile';
 interface TransactionMapData {
   microbairro: string;
   total_transacoes: number;
@@ -482,42 +483,62 @@ export function TransactionMap({
   }, [heatmapMetric, viewMode, mapReady, createHeatmap]);
 
 
+  const isMobile = useIsMobile();
+
   return (
-    <div className="flex flex-col gap-4">
-      {/* Barra de controles acima do mapa */}
-      <div className="flex flex-wrap items-center justify-between gap-3 bg-muted/50 rounded-lg p-3 border border-border">
-        {/* Lado esquerdo - Filtros */}
-        <div className="flex flex-wrap items-center gap-3">
+    <div className="flex flex-col gap-3 md:gap-4">
+      {/* Aviso para usuários mobile */}
+      {isMobile && (
+        <Alert className="bg-amber-50 border-amber-200 dark:bg-amber-950/30 dark:border-amber-800">
+          <Monitor className="h-4 w-4 text-amber-600 dark:text-amber-400" />
+          <AlertDescription className="text-xs text-amber-700 dark:text-amber-300">
+            Para melhor visualização do mapa e análise detalhada, recomendamos usar um computador ou girar o celular na horizontal.
+          </AlertDescription>
+        </Alert>
+      )}
+
+      {/* Barra de controles acima do mapa - Layout responsivo */}
+      <div className={cn(
+        "bg-muted/50 rounded-lg p-2 md:p-3 border border-border",
+        isMobile ? "flex flex-col gap-2" : "flex flex-wrap items-center justify-between gap-3"
+      )}>
+        {/* Linha superior no mobile: Filtros + Toggle de visualização */}
+        <div className={cn(
+          isMobile 
+            ? "flex items-center justify-between w-full" 
+            : "flex flex-wrap items-center gap-3"
+        )}>
+          {/* Botão de Filtros */}
           <Popover open={filtersOpen} onOpenChange={setFiltersOpen}>
             <PopoverTrigger asChild>
               <Button 
                 variant="outline" 
                 size="sm" 
                 className={cn(
-                  "border-border",
+                  "border-border h-8 text-xs md:text-sm",
                   hasActiveFilters && "border-primary"
                 )}
               >
-                <Filter className="h-4 w-4 mr-2" />
-                Filtros
+                <Filter className="h-3.5 w-3.5 md:h-4 md:w-4 mr-1 md:mr-2" />
+                <span className="hidden sm:inline">Filtros</span>
                 {hasActiveFilters && (
-                  <Badge variant="secondary" className="ml-2 h-5 px-1.5 text-xs bg-primary text-primary-foreground">
+                  <Badge variant="secondary" className="ml-1 md:ml-2 h-4 md:h-5 px-1 md:px-1.5 text-[10px] md:text-xs bg-primary text-primary-foreground">
                     {(filters.periodoMeses !== 12 ? 1 : 0) + (filters.precoMin > 0 || filters.precoMax < 100000 ? 1 : 0)}
                   </Badge>
                 )}
-                <ChevronDown className="h-4 w-4 ml-1" />
+                <ChevronDown className="h-3 w-3 md:h-4 md:w-4 ml-0.5 md:ml-1" />
               </Button>
             </PopoverTrigger>
-            <PopoverContent className="w-80 p-4" align="start">
-              <div className="space-y-4">
+            <PopoverContent className="w-[280px] md:w-80 p-3 md:p-4" align="start">
+              <div className="space-y-3 md:space-y-4">
                 <div className="flex items-center justify-between">
-                  <h4 className="font-semibold text-sm">Filtros do Mapa</h4>
+                  <h4 className="font-semibold text-xs md:text-sm">Filtros do Mapa</h4>
                   {hasActiveFilters && (
                     <Button 
                       variant="ghost" 
                       size="sm" 
                       onClick={clearFilters}
-                      className="h-7 px-2 text-xs text-muted-foreground hover:text-foreground"
+                      className="h-6 md:h-7 px-2 text-[10px] md:text-xs text-muted-foreground hover:text-foreground"
                     >
                       <X className="h-3 w-3 mr-1" />
                       Limpar
@@ -526,21 +547,21 @@ export function TransactionMap({
                 </div>
 
                 {/* Filtro de Período */}
-                <div className="space-y-2">
-                  <label className="text-sm font-medium flex items-center gap-2">
-                    <Calendar className="h-4 w-4 text-muted-foreground" />
+                <div className="space-y-1.5 md:space-y-2">
+                  <label className="text-xs md:text-sm font-medium flex items-center gap-2">
+                    <Calendar className="h-3.5 w-3.5 md:h-4 md:w-4 text-muted-foreground" />
                     Período
                   </label>
                   <Select 
                     value={String(filters.periodoMeses)} 
                     onValueChange={(val) => updateFilters({ periodoMeses: Number(val) })}
                   >
-                    <SelectTrigger className="w-full">
+                    <SelectTrigger className="w-full h-8 md:h-9 text-xs md:text-sm">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
                       {PERIOD_OPTIONS.map(option => (
-                        <SelectItem key={option.value} value={String(option.value)}>
+                        <SelectItem key={option.value} value={String(option.value)} className="text-xs md:text-sm">
                           {option.label}
                         </SelectItem>
                       ))}
@@ -549,20 +570,20 @@ export function TransactionMap({
                 </div>
 
                 {/* Filtro de Faixa de Preço */}
-                <div className="space-y-3">
-                  <label className="text-sm font-medium flex items-center gap-2">
-                    <DollarSign className="h-4 w-4 text-muted-foreground" />
+                <div className="space-y-2 md:space-y-3">
+                  <label className="text-xs md:text-sm font-medium flex items-center gap-2">
+                    <DollarSign className="h-3.5 w-3.5 md:h-4 md:w-4 text-muted-foreground" />
                     Faixa de Preço/m²
                   </label>
                   
                   {/* Botões rápidos de faixa */}
-                  <div className="grid grid-cols-2 gap-2">
+                  <div className="grid grid-cols-2 gap-1.5 md:gap-2">
                     {PRICE_RANGES.map(range => (
                       <Button
                         key={range.label}
                         variant={filters.precoMin === range.min && filters.precoMax === range.max ? "default" : "outline"}
                         size="sm"
-                        className="text-xs h-8"
+                        className="text-[10px] md:text-xs h-7 md:h-8 px-2"
                         onClick={() => updateFilters({ precoMin: range.min, precoMax: range.max })}
                       >
                         {range.label.replace('R$ ', '').replace('/m²', '')}
@@ -572,7 +593,7 @@ export function TransactionMap({
 
                   {/* Slider customizado */}
                   <div className="pt-2">
-                    <div className="flex justify-between text-xs text-muted-foreground mb-2">
+                    <div className="flex justify-between text-[10px] md:text-xs text-muted-foreground mb-2">
                       <span>R$ {(filters.precoMin / 1000).toFixed(0)}k</span>
                       <span>R$ {(filters.precoMax / 1000).toFixed(0)}k</span>
                     </div>
@@ -589,7 +610,7 @@ export function TransactionMap({
 
                 {/* Resumo de resultados */}
                 <div className="pt-2 border-t border-border">
-                  <p className="text-xs text-muted-foreground">
+                  <p className="text-[10px] md:text-xs text-muted-foreground">
                     Exibindo <strong className="text-foreground">{filteredData.length}</strong> de {data?.length || 0} logradouros
                   </p>
                 </div>
@@ -597,100 +618,103 @@ export function TransactionMap({
             </PopoverContent>
           </Popover>
 
-          {/* Badges de filtros ativos */}
-          {hasActiveFilters && (
-            <div className="flex flex-wrap gap-1.5">
-              {filters.periodoMeses !== 12 && (
-                <Badge 
-                  variant="secondary" 
-                  className="text-xs cursor-pointer hover:bg-secondary/80"
-                  onClick={() => updateFilters({ periodoMeses: 12 })}
+          {/* Toggle de visualização - Simplificado no mobile */}
+          <div className="flex items-center gap-1.5 md:gap-2">
+            {/* Contador de pontos - compacto no mobile */}
+            {filteredData && filteredData.length > 0 && (
+              <span className="text-[10px] md:text-xs text-muted-foreground mr-1">
+                <strong className="text-foreground">{filteredData.length}</strong>
+                <span className="hidden sm:inline"> logradouros</span>
+              </span>
+            )}
+
+            <TooltipProvider>
+              <div className="flex gap-1 md:gap-2">
+                <ToggleGroup 
+                  type="single" 
+                  value={viewMode} 
+                  onValueChange={(v) => v && setViewMode(v as ViewMode)}
+                  className="border border-border rounded-md h-8"
                 >
-                  {selectedPeriodLabel}
-                  <X className="h-3 w-3 ml-1" />
-                </Badge>
-              )}
-              {(filters.precoMin > 0 || filters.precoMax < 100000) && (
-                <Badge 
-                  variant="secondary" 
-                  className="text-xs cursor-pointer hover:bg-secondary/80"
-                  onClick={() => updateFilters({ precoMin: 0, precoMax: 100000 })}
-                >
-                  {selectedPriceLabel}
-                  <X className="h-3 w-3 ml-1" />
-                </Badge>
-              )}
-            </div>
-          )}
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <ToggleGroupItem value="markers" size="sm" className="px-2 md:px-3 h-7">
+                        <CircleDot className="h-3.5 w-3.5 md:h-4 md:w-4" />
+                      </ToggleGroupItem>
+                    </TooltipTrigger>
+                    <TooltipContent side="bottom">
+                      <p>Marcadores</p>
+                    </TooltipContent>
+                  </Tooltip>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <ToggleGroupItem value="heatmap" size="sm" className="px-2 md:px-3 h-7">
+                        <Flame className="h-3.5 w-3.5 md:h-4 md:w-4" />
+                      </ToggleGroupItem>
+                    </TooltipTrigger>
+                    <TooltipContent side="bottom">
+                      <p>Mapa de calor</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </ToggleGroup>
+
+                {/* Seletor de métrica do heatmap */}
+                {viewMode === 'heatmap' && (
+                  <Select value={heatmapMetric} onValueChange={(v) => setHeatmapMetric(v as HeatmapMetric)}>
+                    <SelectTrigger className="w-[80px] md:w-[120px] h-8 text-[10px] md:text-xs">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="density" className="text-xs">Volume</SelectItem>
+                      <SelectItem value="price" className="text-xs">Preço/m²</SelectItem>
+                    </SelectContent>
+                  </Select>
+                )}
+              </div>
+            </TooltipProvider>
+          </div>
         </div>
 
-        {/* Lado direito - Toggle de visualização e contador */}
-        <div className="flex items-center gap-3">
-          {/* Contador de pontos */}
-          {filteredData && filteredData.length > 0 && (
-            <span className="text-xs text-muted-foreground">
-              <strong className="text-foreground">{filteredData.length}</strong> logradouros
-            </span>
-          )}
-
-          {/* Toggle de Visualização */}
-          <TooltipProvider>
-            <div className="flex gap-2">
-              <ToggleGroup 
-                type="single" 
-                value={viewMode} 
-                onValueChange={(v) => v && setViewMode(v as ViewMode)}
-                className="border border-border rounded-md"
+        {/* Badges de filtros ativos - linha separada no mobile se houver */}
+        {hasActiveFilters && (
+          <div className={cn(
+            "flex flex-wrap gap-1 md:gap-1.5",
+            isMobile && "pt-1 border-t border-border/50"
+          )}>
+            {filters.periodoMeses !== 12 && (
+              <Badge 
+                variant="secondary" 
+                className="text-[10px] md:text-xs cursor-pointer hover:bg-secondary/80 h-5 md:h-6"
+                onClick={() => updateFilters({ periodoMeses: 12 })}
               >
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <ToggleGroupItem value="markers" size="sm" className="px-3">
-                      <CircleDot className="h-4 w-4" />
-                    </ToggleGroupItem>
-                  </TooltipTrigger>
-                  <TooltipContent side="bottom">
-                    <p>Marcadores</p>
-                  </TooltipContent>
-                </Tooltip>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <ToggleGroupItem value="heatmap" size="sm" className="px-3">
-                      <Flame className="h-4 w-4" />
-                    </ToggleGroupItem>
-                  </TooltipTrigger>
-                  <TooltipContent side="bottom">
-                    <p>Mapa de calor</p>
-                  </TooltipContent>
-                </Tooltip>
-              </ToggleGroup>
-
-              {/* Seletor de métrica do heatmap */}
-              {viewMode === 'heatmap' && (
-                <Select value={heatmapMetric} onValueChange={(v) => setHeatmapMetric(v as HeatmapMetric)}>
-                  <SelectTrigger className="w-[120px] h-9 text-xs">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="density">Volume</SelectItem>
-                    <SelectItem value="price">Preço/m²</SelectItem>
-                  </SelectContent>
-                </Select>
-              )}
-            </div>
-          </TooltipProvider>
-        </div>
+                {selectedPeriodLabel}
+                <X className="h-2.5 w-2.5 md:h-3 md:w-3 ml-1" />
+              </Badge>
+            )}
+            {(filters.precoMin > 0 || filters.precoMax < 100000) && (
+              <Badge 
+                variant="secondary" 
+                className="text-[10px] md:text-xs cursor-pointer hover:bg-secondary/80 h-5 md:h-6"
+                onClick={() => updateFilters({ precoMin: 0, precoMax: 100000 })}
+              >
+                {selectedPriceLabel}
+                <X className="h-2.5 w-2.5 md:h-3 md:w-3 ml-1" />
+              </Badge>
+            )}
+          </div>
+        )}
       </div>
 
       {/* Mapa */}
-      <div className="relative w-full h-full min-h-[400px] rounded-lg overflow-hidden border border-border">
+      <div className="relative w-full h-full min-h-[300px] md:min-h-[400px] rounded-lg overflow-hidden border border-border">
         <div ref={mapContainer} className="absolute inset-0" />
         
         {/* Loading overlay */}
         {(isLoading || apiKeyLoading || !mapReady) && (
           <div className="absolute inset-0 bg-background/80 flex items-center justify-center z-[1000]">
             <div className="flex flex-col items-center gap-2">
-              <Loader2 className="h-8 w-8 animate-spin text-primary" />
-              <span className="text-sm text-muted-foreground">
+              <Loader2 className="h-6 w-6 md:h-8 md:w-8 animate-spin text-primary" />
+              <span className="text-xs md:text-sm text-muted-foreground">
                 {apiKeyLoading ? 'Carregando configurações...' : 'Carregando mapa...'}
               </span>
             </div>
@@ -700,65 +724,79 @@ export function TransactionMap({
         {error && (
           <div className="absolute inset-0 bg-background/80 flex items-center justify-center z-[1000]">
             <div className="text-center p-4">
-              <p className="text-sm text-destructive mb-2">{error}</p>
-              <p className="text-xs text-muted-foreground">
-                Configure GOOGLE_MAPS_API_KEY nas configurações do backend
+              <p className="text-xs md:text-sm text-destructive mb-2">{error}</p>
+              <p className="text-[10px] md:text-xs text-muted-foreground">
+                Configure GOOGLE_MAPS_API_KEY nas configurações do sistema
               </p>
             </div>
           </div>
         )}
       </div>
 
-      {/* Legenda abaixo do mapa */}
-      <div className="flex flex-wrap items-start justify-between gap-4 bg-muted/50 rounded-lg p-3 border border-border">
+      {/* Legenda abaixo do mapa - Layout responsivo */}
+      <div className={cn(
+        "bg-muted/50 rounded-lg p-2 md:p-3 border border-border",
+        isMobile ? "space-y-2" : "flex flex-wrap items-start justify-between gap-4"
+      )}>
         {viewMode === 'markers' ? (
           <>
-            <div className="flex flex-wrap items-center gap-4">
-              <span className="text-xs font-semibold text-foreground">Preço/m²:</span>
-              <div className="flex items-center gap-2">
-                <div className="w-3 h-3 rounded-full bg-[#22c55e]" />
-                <span className="text-xs text-muted-foreground">Até R$ 10.000</span>
+            {/* Legenda de cores */}
+            <div className={cn(
+              isMobile 
+                ? "grid grid-cols-2 gap-x-3 gap-y-1.5" 
+                : "flex flex-wrap items-center gap-4"
+            )}>
+              {!isMobile && (
+                <span className="text-xs font-semibold text-foreground">Preço/m²:</span>
+              )}
+              <div className="flex items-center gap-1.5">
+                <div className="w-2.5 h-2.5 md:w-3 md:h-3 rounded-full bg-[#22c55e]" />
+                <span className="text-[10px] md:text-xs text-muted-foreground">Até R$ 10k</span>
               </div>
-              <div className="flex items-center gap-2">
-                <div className="w-3 h-3 rounded-full bg-[#eab308]" />
-                <span className="text-xs text-muted-foreground">R$ 10.000 - 20.000</span>
+              <div className="flex items-center gap-1.5">
+                <div className="w-2.5 h-2.5 md:w-3 md:h-3 rounded-full bg-[#eab308]" />
+                <span className="text-[10px] md:text-xs text-muted-foreground">R$ 10k - 20k</span>
               </div>
-              <div className="flex items-center gap-2">
-                <div className="w-3 h-3 rounded-full bg-[#f97316]" />
-                <span className="text-xs text-muted-foreground">R$ 20.000 - 35.000</span>
+              <div className="flex items-center gap-1.5">
+                <div className="w-2.5 h-2.5 md:w-3 md:h-3 rounded-full bg-[#f97316]" />
+                <span className="text-[10px] md:text-xs text-muted-foreground">R$ 20k - 35k</span>
               </div>
-              <div className="flex items-center gap-2">
-                <div className="w-3 h-3 rounded-full bg-[#ef4444]" />
-                <span className="text-xs text-muted-foreground">Acima de R$ 35.000</span>
+              <div className="flex items-center gap-1.5">
+                <div className="w-2.5 h-2.5 md:w-3 md:h-3 rounded-full bg-[#ef4444]" />
+                <span className="text-[10px] md:text-xs text-muted-foreground">Acima de R$ 35k</span>
               </div>
             </div>
-            <span className="text-[10px] text-muted-foreground">
+            {/* Nota sobre tamanho */}
+            <span className="text-[9px] md:text-[10px] text-muted-foreground block">
               Tamanho do marcador = volume de transações
             </span>
           </>
         ) : (
           <>
-            <div className="flex flex-wrap items-center gap-4">
-              <span className="text-xs font-semibold text-foreground">
+            {/* Legenda do heatmap */}
+            <div className={cn(
+              isMobile ? "space-y-1.5" : "flex flex-wrap items-center gap-4"
+            )}>
+              <span className="text-[10px] md:text-xs font-semibold text-foreground">
                 {heatmapMetric === 'density' ? 'Volume de Transações:' : 'Preço/m²:'}
               </span>
               <div className="flex items-center gap-2">
                 <div 
-                  className="w-24 h-3 rounded"
+                  className="w-16 md:w-24 h-2.5 md:h-3 rounded"
                   style={{
                     background: heatmapMetric === 'density'
                       ? 'linear-gradient(to right, rgba(0,255,255,0.8), rgba(0,0,255,0.8), rgba(127,0,63,0.8), rgba(255,0,0,0.9))'
                       : 'linear-gradient(to right, #22c55e, #eab308, #f97316, #ef4444)'
                   }}
                 />
-              </div>
-              <div className="flex gap-3 text-[10px] text-muted-foreground">
-                <span>{heatmapMetric === 'density' ? 'Baixo' : 'Menor'}</span>
-                <span>→</span>
-                <span>{heatmapMetric === 'density' ? 'Alto' : 'Maior'}</span>
+                <div className="flex gap-2 text-[9px] md:text-[10px] text-muted-foreground">
+                  <span>{heatmapMetric === 'density' ? 'Baixo' : 'Menor'}</span>
+                  <span>→</span>
+                  <span>{heatmapMetric === 'density' ? 'Alto' : 'Maior'}</span>
+                </div>
               </div>
             </div>
-            <span className="text-[10px] text-muted-foreground">
+            <span className="text-[9px] md:text-[10px] text-muted-foreground block">
               {heatmapMetric === 'density' 
                 ? 'Áreas com mais transações' 
                 : 'Cores quentes = preços mais altos'}
