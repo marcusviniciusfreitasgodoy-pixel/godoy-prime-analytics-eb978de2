@@ -9,10 +9,10 @@ export const tourConfigs: Record<string, Step[]> = {
   microbairros: [
     {
       target: '[data-tour="microbairros-search"]',
-      content: 'Pesquise por nome do logradouro. O sistema sugere automaticamente enquanto você digita.',
+      content: 'Pesquise por nome da rua. O sistema sugere automaticamente enquanto você digita.',
       disableBeacon: true,
       placement: 'bottom',
-      title: '🔍 Busca por Logradouro',
+      title: '🔍 Busca por Rua',
     },
     {
       target: '[data-tour="microbairros-condominio"]',
@@ -24,7 +24,7 @@ export const tourConfigs: Record<string, Step[]> = {
       target: '[data-tour="microbairros-selector"]',
       content: 'Selecione uma microregião específica para ver estatísticas detalhadas: mediana, média, mínimo, máximo e número de transações.',
       placement: 'bottom',
-      title: '📍 Seleção de Microbairro',
+      title: '📍 Seleção de Microregião',
     },
     {
       target: '[data-tour="microbairros-stats"]',
@@ -34,9 +34,9 @@ export const tourConfigs: Record<string, Step[]> = {
     },
     {
       target: '[data-tour="microbairros-compare"]',
-      content: 'Compare até 5 logradouros simultaneamente. Adicione ruas para ver gráfico comparativo de evolução de preços.',
+      content: 'Compare até 5 ruas ao mesmo tempo. Adicione ruas para ver gráfico comparativo de evolução de preços.',
       placement: 'bottom',
-      title: '📈 Comparar Logradouros',
+      title: '📈 Comparar Ruas',
     },
     {
       target: '[data-tour="microbairros-chart"]',
@@ -57,19 +57,19 @@ export const tourConfigs: Record<string, Step[]> = {
     },
     {
       target: '[data-tour="pesquisas-localizacao"]',
-      content: 'Busque por nome de rua ou condomínio. Sistema sugere automaticamente enquanto você digita. Filtre por tipologia, área e período.',
+      content: 'Busque por nome de rua ou condomínio. Sistema sugere automaticamente enquanto você digita. Filtre por tipo de imóvel, área e período.',
       placement: 'bottom',
       title: '🔍 Busca por Localização',
     },
     {
       target: '[data-tour="pesquisas-transacoes"]',
-      content: 'Encontre logradouros por faixa de valor (R$ 100 mil a R$ 100 milhões). Ideal para identificar regiões dentro do seu orçamento.',
+      content: 'Encontre ruas por faixa de valor (R$ 100 mil a R$ 100 milhões). Ideal para identificar regiões dentro do seu orçamento.',
       placement: 'bottom',
       title: '💰 Busca por Transações',
     },
     {
       target: '[data-tour="pesquisas-filtros"]',
-      content: 'Refine sua busca: bairro, tipologia (Apto/Casa), período (6 a 24 meses) e faixa de área (m²).',
+      content: 'Refine sua busca: bairro, tipo de imóvel (Apartamento/Casa), período (6 a 24 meses) e faixa de área (m²).',
       placement: 'top',
       title: '⚙️ Filtros Avançados',
     },
@@ -98,13 +98,13 @@ export const tourConfigs: Record<string, Step[]> = {
     },
     {
       target: '[data-tour="avaliacao-step1"]',
-      content: 'Busque a rua para ver estatísticas oficiais ITBI. Opcionalmente insira dados de anúncios para base combinada (70% + 30%).',
+      content: 'Busque a rua para ver estatísticas oficiais da Prefeitura. Opcionalmente insira dados de anúncios para base combinada (70% + 30%).',
       placement: 'bottom',
       title: '📍 Etapa 1: Localização',
     },
     {
       target: '[data-tour="avaliacao-step2"]',
-      content: 'Confirme a área, quartos, suítes, banheiros, vagas. Escolha a base de preço: Oficial, Combinada ou Customizada.',
+      content: 'Confirme a área, quartos, suítes, banheiros, vagas. Escolha a base de preço: Oficial, Combinada ou Personalizada.',
       placement: 'bottom',
       title: '📐 Etapa 2: Dados Básicos',
     },
@@ -116,7 +116,7 @@ export const tourConfigs: Record<string, Step[]> = {
     },
     {
       target: '[data-tour="avaliacao-step4"]',
-      content: 'Três cenários de valor: Pessimista, Provável e Otimista. Veja spread percentual e nível de confiança (Verde/Amarelo/Vermelho).',
+      content: 'Três cenários de valor: Pessimista, Provável e Otimista. Veja faixa percentual e nível de confiança (Verde/Amarelo/Vermelho).',
       placement: 'top',
       title: '💰 Etapa 4: Resultados',
     },
@@ -167,7 +167,7 @@ export const tourConfigs: Record<string, Step[]> = {
   historico: [
     {
       target: '[data-tour="historico-list"]',
-      content: 'Todas as avaliações realizadas, ordenadas por data. Veja endereço, área, valor final, confiança e status do PDF.',
+      content: 'Todas as avaliações realizadas, ordenadas por data. Veja endereço, área, valor final, confiança e situação do PDF.',
       disableBeacon: true,
       placement: 'bottom',
       title: '📋 Lista de Avaliações',
@@ -190,16 +190,16 @@ export const tourConfigs: Record<string, Step[]> = {
   historicoVistorias: [
     {
       target: '[data-tour="historico-vistorias-list"]',
-      content: 'Todas as vistorias realizadas. Veja endereço, tipo (Casa/Apto), score de conservação e data.',
+      content: 'Todas as vistorias realizadas. Veja endereço, tipo (Casa/Apartamento), nota de conservação e data.',
       disableBeacon: true,
       placement: 'bottom',
       title: '📋 Lista de Vistorias',
     },
     {
       target: '[data-tour="historico-vistorias-score"]',
-      content: 'Score de conservação (0-100): Verde (≥80 Excelente), Amarelo (≥60 Bom), Vermelho (<60 Atenção).',
+      content: 'Nota de conservação (0-100): Verde (80 ou mais = Excelente), Amarelo (60 ou mais = Bom), Vermelho (abaixo de 60 = Atenção).',
       placement: 'bottom',
-      title: '⭐ Score',
+      title: '⭐ Nota',
     },
     {
       target: '[data-tour="historico-vistorias-acoes"]',
@@ -213,32 +213,32 @@ export const tourConfigs: Record<string, Step[]> = {
   vistoria: [
     {
       target: '[data-tour="vistoria-tipo"]',
-      content: 'Selecione o tipo: Casa (20 categorias, ~55 itens) ou Apartamento (18 categorias, ~50 itens).',
+      content: 'Selecione o tipo: Casa (20 categorias, cerca de 55 itens) ou Apartamento (18 categorias, cerca de 50 itens).',
       disableBeacon: true,
       placement: 'bottom',
       title: '🏠 Tipo de Imóvel',
     },
     {
       target: '[data-tour="vistoria-score"]',
-      content: 'Pontuação global (0-100) calculada automaticamente. Verde (≥80), Amarelo (≥60), Vermelho (<60). Mostra itens críticos e fotos.',
+      content: 'Pontuação global (0-100) calculada automaticamente. Verde (80 ou mais), Amarelo (60 ou mais), Vermelho (abaixo de 60). Mostra itens críticos e fotos.',
       placement: 'bottom',
-      title: '⭐ Score e Progresso',
+      title: '⭐ Nota e Progresso',
     },
     {
       target: '[data-tour="vistoria-dados"]',
-      content: 'Preencha identificação: endereço (autocomplete), tipo, metragem, cômodos, proprietário e data.',
+      content: 'Preencha identificação: endereço (com sugestões), tipo, metragem, cômodos, proprietário e data.',
       placement: 'top',
       title: '📝 Dados do Imóvel',
     },
     {
       target: '[data-tour="vistoria-checklist"]',
-      content: 'Avalie cada item: OK (5), Atenção (3), Crítico (1), Não Verificado ou N/A. Clique na câmera para adicionar fotos.',
+      content: 'Avalie cada item: OK (5), Atenção (3), Crítico (1), Não Verificado ou Não se Aplica. Clique na câmera para adicionar fotos.',
       placement: 'top',
-      title: '✅ Checklist de Vistoria',
+      title: '✅ Lista de Verificação',
     },
     {
       target: '[data-tour="vistoria-pdf"]',
-      content: 'Gere laudo PDF (5-7 páginas): capa, resumo executivo, radar de diagnóstico, checklist e galeria de fotos. Disponível após 50%.',
+      content: 'Gere laudo PDF (5-7 páginas): capa, resumo executivo, gráfico de diagnóstico, lista de verificação e galeria de fotos. Disponível após 50%.',
       placement: 'left',
       title: '📄 Gerar Laudo PDF',
     },
@@ -254,10 +254,10 @@ export const tourConfigs: Record<string, Step[]> = {
   visitas: [
     {
       target: '[data-tour="visitas-kpis"]',
-      content: 'KPIs principais: total de visitas, agendamentos pendentes, taxa de conversão e média por corretor. Tempo real.',
+      content: 'Indicadores principais: total de visitas, agendamentos pendentes, taxa de conversão e média por corretor. Tempo real.',
       disableBeacon: true,
       placement: 'bottom',
-      title: '📊 KPIs de Visitas',
+      title: '📊 Indicadores de Visitas',
     },
     {
       target: '[data-tour="visitas-nova"]',
@@ -273,7 +273,7 @@ export const tourConfigs: Record<string, Step[]> = {
     },
     {
       target: '[data-tour="visitas-tabs"]',
-      content: 'Navegue: Dashboard (gráficos), Agendamentos (próximas), Fichas (realizadas) e Ranking (desempenho).',
+      content: 'Navegue: Painel (gráficos), Agendamentos (próximas), Fichas (realizadas) e Ranking (desempenho).',
       placement: 'bottom',
       title: '🗂️ Abas',
     },
@@ -281,23 +281,23 @@ export const tourConfigs: Record<string, Step[]> = {
       target: '[data-tour="visitas-dashboard"]',
       content: 'Evolução mensal de visitas e ranking dos corretores por atendimentos realizados.',
       placement: 'top',
-      title: '📈 Dashboard',
+      title: '📈 Painel',
     },
     {
       target: '[data-tour="visitas-agendamentos"]',
-      content: 'Lista com status (Agendada, Confirmada, Realizada, Cancelada). Clique para detalhes ou converter em ficha.',
+      content: 'Lista com situação (Agendada, Confirmada, Realizada, Cancelada). Clique para detalhes ou converter em ficha.',
       placement: 'top',
       title: '📋 Agendamentos',
     },
     {
       target: '[data-tour="visitas-fichas"]',
-      content: 'Fichas completas: dados do cliente, imóvel, declaração de intermediação, assinaturas e feedback.',
+      content: 'Fichas completas: dados do cliente, imóvel, declaração de intermediação, assinaturas e avaliação.',
       placement: 'top',
       title: '📝 Fichas de Visita',
     },
     {
       target: '[data-tour="visitas-ranking"]',
-      content: 'Ranking dos corretores por número de visitas. Identifique top performers.',
+      content: 'Ranking dos corretores por número de visitas. Identifique os melhores desempenhos.',
       placement: 'top',
       title: '🏆 Ranking',
     },
@@ -307,7 +307,7 @@ export const tourConfigs: Record<string, Step[]> = {
   fichaVisita: [
     {
       target: '[data-tour="ficha-header"]',
-      content: 'Código único, status atual e data. Use seletor para alterar status (Agendada → Confirmada → Realizada).',
+      content: 'Código único, situação atual e data. Use seletor para alterar situação (Agendada → Confirmada → Realizada).',
       disableBeacon: true,
       placement: 'bottom',
       title: '📋 Identificação',
@@ -338,13 +338,13 @@ export const tourConfigs: Record<string, Step[]> = {
     },
     {
       target: '[data-tour="ficha-assinaturas"]',
-      content: 'Assinaturas digitais do visitante e corretor. Canvas para assinar ou envie link remoto.',
+      content: 'Assinaturas digitais do visitante e corretor. Área para assinar ou envie link remoto.',
       placement: 'top',
       title: '✍️ Assinaturas Digitais',
     },
     {
       target: '[data-tour="ficha-info"]',
-      content: 'Resumo: data/hora, corretor responsável, status das assinaturas (verde = assinado).',
+      content: 'Resumo: data/hora, corretor responsável, situação das assinaturas (verde = assinado).',
       placement: 'left',
       title: '📅 Informações',
     },
@@ -356,30 +356,30 @@ export const tourConfigs: Record<string, Step[]> = {
     },
     {
       target: '[data-tour="ficha-feedback"]',
-      content: 'Link de feedback pós-visita. Cliente avalia imóvel e informa interesse.',
+      content: 'Link de avaliação pós-visita. Cliente avalia imóvel e informa interesse.',
       placement: 'left',
-      title: '⭐ Feedback',
+      title: '⭐ Avaliação',
     },
   ],
 
-  // Documentação / Due Diligence
+  // Documentação / Segurança Jurídica
   documentacao: [
     {
       target: '[data-tour="documentacao-progress"]',
-      content: 'Barra de progresso mostra documentos coletados. Acompanhe due diligence em tempo real.',
+      content: 'Barra de progresso mostra documentos coletados. Acompanhe segurança jurídica em tempo real.',
       disableBeacon: true,
       placement: 'bottom',
       title: '📊 Progresso',
     },
     {
       target: '[data-tour="documentacao-analyzer"]',
-      content: 'IA analisa documentos enviados. Identifica automaticamente qual item do checklist corresponde.',
+      content: 'Inteligência Artificial analisa documentos enviados. Identifica automaticamente qual item da lista corresponde.',
       placement: 'bottom',
       title: '🤖 Análise Inteligente',
     },
     {
       target: '[data-tour="documentacao-perfil-vendedor"]',
-      content: 'Perfil do vendedor: marque PJ ou União Estável para adicionar documentos específicos.',
+      content: 'Perfil do vendedor: marque Empresa ou União Estável para adicionar documentos específicos.',
       placement: 'bottom',
       title: '👤 Perfil do Vendedor',
     },
@@ -391,9 +391,9 @@ export const tourConfigs: Record<string, Step[]> = {
     },
     {
       target: '[data-tour="documentacao-checklist"]',
-      content: 'Marque documentos coletados. Use tooltips (?) para explicações detalhadas.',
+      content: 'Marque documentos coletados. Use dicas (?) para explicações detalhadas.',
       placement: 'top',
-      title: '✅ Checklist',
+      title: '✅ Lista de Verificação',
     },
     {
       target: '[data-tour="documentacao-export"]',
@@ -407,10 +407,10 @@ export const tourConfigs: Record<string, Step[]> = {
   configuracoes: [
     {
       target: '[data-tour="config-logo"]',
-      content: 'Upload do logo da empresa. Aparecerá nos cabeçalhos de todos os PDFs.',
+      content: 'Envie a logomarca da empresa. Aparecerá nos cabeçalhos de todos os PDFs.',
       disableBeacon: true,
       placement: 'bottom',
-      title: '🖼️ Logo da Empresa',
+      title: '🖼️ Logomarca da Empresa',
     },
     {
       target: '[data-tour="config-dados"]',
@@ -422,24 +422,24 @@ export const tourConfigs: Record<string, Step[]> = {
       target: '[data-tour="config-preview"]',
       content: 'Visualize em tempo real como o rodapé dos PDFs aparecerá.',
       placement: 'top',
-      title: '👁️ Preview do Rodapé',
+      title: '👁️ Visualização do Rodapé',
     },
   ],
 
-  // Leads (Admin)
+  // Contatos (Admin)
   leads: [
     {
       target: '[data-tour="leads-stats"]',
-      content: 'Estatísticas: total de leads, convertidos, taxa de conversão e leads na última semana.',
+      content: 'Estatísticas: total de contatos, convertidos, taxa de conversão e contatos na última semana.',
       disableBeacon: true,
       placement: 'bottom',
       title: '📊 Estatísticas',
     },
     {
       target: '[data-tour="leads-list"]',
-      content: 'Lista de leads capturados: nome, email, telefone, interesse, origem e data.',
+      content: 'Lista de contatos capturados: nome, email, telefone, interesse, origem e data.',
       placement: 'top',
-      title: '📋 Lista de Leads',
+      title: '📋 Lista de Contatos',
     },
     {
       target: '[data-tour="leads-detail"]',
@@ -453,14 +453,14 @@ export const tourConfigs: Record<string, Step[]> = {
   usuarios: [
     {
       target: '[data-tour="usuarios-list"]',
-      content: 'Usuários da plataforma: nome, email, papel (admin/corretor/gerente) e última atividade.',
+      content: 'Usuários da plataforma: nome, email, papel (administrador/corretor/gerente) e última atividade.',
       disableBeacon: true,
       placement: 'bottom',
       title: '👥 Lista de Usuários',
     },
     {
       target: '[data-tour="usuarios-stats"]',
-      content: 'Estatísticas de uso: logins, pesquisas, avaliações, vistorias e exportações.',
+      content: 'Estatísticas de uso: acessos, pesquisas, avaliações, vistorias e exportações.',
       placement: 'top',
       title: '📊 Estatísticas de Uso',
     },
