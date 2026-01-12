@@ -23,6 +23,7 @@ interface Props {
   state: ValuationState;
   updateState: (updates: Partial<ValuationState>) => void;
   combined: CombinedPrices | null;
+  onAutoValidated?: () => void;
 }
 
 interface AnuncioEntry {
@@ -32,7 +33,7 @@ interface AnuncioEntry {
   fonte?: string; // Link ou fonte do anúncio (opcional)
 }
 
-export function Step1Location({ state, updateState, combined }: Props) {
+export function Step1Location({ state, updateState, combined, onAutoValidated }: Props) {
   // Usa logradouro do Step 0 se disponível, senão permite busca
   const [searchTerm, setSearchTerm] = useState(state.logradouro || "");
   const [showSuggestions, setShowSuggestions] = useState(false);
@@ -123,6 +124,7 @@ export function Step1Location({ state, updateState, combined }: Props) {
               avg_valor_transacao: Math.round(avgValorTransacao),
             },
           });
+          onAutoValidated?.();
         }
       } catch (error) {
         console.error("Erro ao auto-buscar dados ITBI:", error);
@@ -132,7 +134,7 @@ export function Step1Location({ state, updateState, combined }: Props) {
     };
 
     autoFetchITBI();
-  }, [state.logradouro, state.bairro, state.itbiData, settings.outlier_filter_method]);
+  }, [state.logradouro, state.bairro, state.itbiData, settings.outlier_filter_method, updateState, onAutoValidated]);
 
   // Restaura anúncios quando state.anuncioData mudar (edição de avaliação)
   useEffect(() => {
