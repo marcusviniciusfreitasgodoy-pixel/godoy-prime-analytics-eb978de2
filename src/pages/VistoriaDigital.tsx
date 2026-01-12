@@ -46,6 +46,7 @@ import { formatDate } from "@/utils/exportUtils";
 import { generateVistoriaPDF, generateVistoriaPDFDoc } from "@/utils/vistoriaPdfExport";
 import { SendPdfEmailDialog } from "@/components/SendPdfEmailDialog";
 import { VistoriaAvaliacaoComparativo, calculateAdjustedValues, calculateVistoriaAdjustment } from "@/components/vistoria/VistoriaAvaliacaoComparativo";
+import { PricingStrategyPreview } from "@/components/vistoria/PricingStrategyPreview";
 import { supabase } from "@/integrations/supabase/client";
 import { normalizeStreetSearchTerm } from "@/lib/utils";
 import { useActivityTracking } from "@/hooks/useActivityTracking";
@@ -617,6 +618,7 @@ export default function VistoriaDigital() {
   const [hasLoadedFromStorage, setHasLoadedFromStorage] = useState(false);
   const [fromAvaliacao, setFromAvaliacao] = useState(false);
   const [avaliacaoData, setAvaliacaoData] = useState<AvaliacaoData | null>(null);
+  const [pricingStrategyState, setPricingStrategyState] = useState<any>(null);
   const [showEmailDialog, setShowEmailDialog] = useState(false);
   const [editMode, setEditMode] = useState(false);
   const [editingVistoriaId, setEditingVistoriaId] = useState<string | null>(null);
@@ -768,6 +770,7 @@ export default function VistoriaDigital() {
         telefone?: string;
         observacoes?: string;
         avaliacaoData?: AvaliacaoData;
+        pricingStrategy?: any;
       };
     } | null;
     
@@ -802,6 +805,11 @@ export default function VistoriaDigital() {
         });
       }
       
+      // Set pricing strategy from edit data
+      if (data.pricingStrategy) {
+        setPricingStrategyState(data.pricingStrategy);
+      }
+      
       setHasLoadedFromStorage(true);
       window.history.replaceState({}, document.title);
       
@@ -819,6 +827,11 @@ export default function VistoriaDigital() {
       
       if (data.avaliacaoData) {
         setAvaliacaoData(data.avaliacaoData);
+      }
+      
+      // Set pricing strategy from avaliação data
+      if (data.pricingStrategy) {
+        setPricingStrategyState(data.pricingStrategy);
       }
       
       setPropertyData(prev => ({
@@ -1135,13 +1148,7 @@ export default function VistoriaDigital() {
         }
       }
       
-      // Generate PDF - include pricingStrategy from location state if available
-      const locationState = location.state as any;
-      const pricingStrategy =
-        locationState?.vistoriaData?.pricingStrategy ??
-        locationState?.propertyData?.pricingStrategy ??
-        null;
-      
+      // Generate PDF - use pricingStrategy from state (loaded from location on mount)
       await generateVistoriaPDF({
         propertyData,
         checklist,
@@ -1151,7 +1158,7 @@ export default function VistoriaDigital() {
         progress,
         criticalCount,
         avaliacaoData,
-        pricingStrategy,
+        pricingStrategy: pricingStrategyState,
       });
       
       // Track vistoria completion
@@ -1185,12 +1192,6 @@ export default function VistoriaDigital() {
   };
 
   const handleGeneratePdfForEmail = async () => {
-    const locationState = location.state as any;
-    const pricingStrategy =
-      locationState?.vistoriaData?.pricingStrategy ??
-      locationState?.propertyData?.pricingStrategy ??
-      null;
-    
     return await generateVistoriaPDFDoc({
       propertyData,
       checklist,
@@ -1200,7 +1201,7 @@ export default function VistoriaDigital() {
       progress: getProgress(),
       criticalCount: getCriticalCount(),
       avaliacaoData,
-      pricingStrategy,
+      pricingStrategy: pricingStrategyState,
     });
   };
 
@@ -1354,6 +1355,11 @@ export default function VistoriaDigital() {
           vistoriaScore={finalScore}
           progress={getProgress()}
         />
+      )}
+
+      {/* Preview da Estratégia de Precificação */}
+      {pricingStrategyState && (
+        <PricingStrategyPreview pricingStrategy={pricingStrategyState} />
       )}
 
       <div className="space-y-6">
