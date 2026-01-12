@@ -400,6 +400,8 @@ export function Step5Recommendation({ result, state, combined, onReset, existing
         recommendationMessage: result.recommendation.message,
         // Fontes dos anúncios
         anuncioFontes: state.anuncioData?.fontes?.filter(f => f.fonte)?.map(f => f.fonte) || [],
+        // Dados históricos para o relatório de vistoria
+        historicalAnalysis: state.historicalAnalysis,
       }
     };
 

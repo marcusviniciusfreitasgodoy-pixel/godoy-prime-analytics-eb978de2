@@ -59,6 +59,26 @@ interface StreetSuggestion {
 }
 
 // Types - Dados COMPLETOS da avaliação para relatório integrado
+interface HistoricalYearData {
+  ano: number;
+  transacoes: number;
+  valorMinM2: number;
+  valorMedioM2: number;
+  valorMaxM2: number;
+}
+
+interface HistoricalAnalysisData {
+  yearlyData: HistoricalYearData[];
+  liquidityScore: number;
+  liquidityLevel: 'alta' | 'media' | 'baixa';
+  transactionGrowth: number;
+  transactionTrend: 'crescente' | 'decrescente' | 'estavel';
+  priceGrowth: number;
+  priceTrend: 'alta' | 'baixa' | 'estavel';
+  diagnostico: string;
+  alertas: string[];
+}
+
 interface AvaliacaoData {
   valorProvavel: number;
   valorPessimista: number;
@@ -82,6 +102,8 @@ interface AvaliacaoData {
   recommendationMessage?: string;
   // Fontes dos anúncios
   anuncioFontes?: string[];
+  // Dados históricos
+  historicalAnalysis?: HistoricalAnalysisData;
 }
 
 interface PropertyData {
