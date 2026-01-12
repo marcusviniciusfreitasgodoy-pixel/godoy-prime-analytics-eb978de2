@@ -47,3 +47,9 @@ verify_jwt = false
 
 [functions.lead-operations]
 verify_jwt = false
+
+[functions.enrich-condominios]
+verify_jwt = true
+
+[functions.get-google-maps-key]
+verify_jwt = false

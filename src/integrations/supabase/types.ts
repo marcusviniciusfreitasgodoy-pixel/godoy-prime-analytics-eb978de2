@@ -109,33 +109,54 @@ export type Database = {
       condominios_mapeamento: {
         Row: {
           created_at: string | null
+          endereco_completo: string | null
+          google_place_id: string | null
           id: string
+          latitude: number | null
+          logradouro_itbi_normalizado: string | null
           logradouro_padrao: string
+          longitude: number | null
           microbairro: string | null
           nome_condominio: string
           numero_fim: number | null
           numero_inicio: number | null
           padrao_construtivo: string | null
+          ruas_internas: string[] | null
+          updated_at: string | null
         }
         Insert: {
           created_at?: string | null
+          endereco_completo?: string | null
+          google_place_id?: string | null
           id?: string
+          latitude?: number | null
+          logradouro_itbi_normalizado?: string | null
           logradouro_padrao: string
+          longitude?: number | null
           microbairro?: string | null
           nome_condominio: string
           numero_fim?: number | null
           numero_inicio?: number | null
           padrao_construtivo?: string | null
+          ruas_internas?: string[] | null
+          updated_at?: string | null
         }
         Update: {
           created_at?: string | null
+          endereco_completo?: string | null
+          google_place_id?: string | null
           id?: string
+          latitude?: number | null
+          logradouro_itbi_normalizado?: string | null
           logradouro_padrao?: string
+          longitude?: number | null
           microbairro?: string | null
           nome_condominio?: string
           numero_fim?: number | null
           numero_inicio?: number | null
           padrao_construtivo?: string | null
+          ruas_internas?: string[] | null
+          updated_at?: string | null
         }
         Relationships: []
       }
@@ -549,6 +570,33 @@ export type Database = {
           longitude?: number | null
           tipo_logradouro?: string | null
           velocidade_regulamentada?: number | null
+        }
+        Relationships: []
+      }
+      logradouros_normalizacao: {
+        Row: {
+          bairro: string | null
+          created_at: string
+          id: string
+          logradouro_normalizado: string
+          logradouro_original: string
+          tipo_logradouro: string | null
+        }
+        Insert: {
+          bairro?: string | null
+          created_at?: string
+          id?: string
+          logradouro_normalizado: string
+          logradouro_original: string
+          tipo_logradouro?: string | null
+        }
+        Update: {
+          bairro?: string | null
+          created_at?: string
+          id?: string
+          logradouro_normalizado?: string
+          logradouro_original?: string
+          tipo_logradouro?: string | null
         }
         Relationships: []
       }
