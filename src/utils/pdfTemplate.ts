@@ -171,9 +171,10 @@ export function formatCurrencyPDF(value: number): string {
 /**
  * Get maximum Y position before footer (content area limit)
  * Footer starts at pageHeight - 10 = 287, so content should stop with generous margin
+ * A4 page height is 297mm, footer at 287, so safe area ends around 250
  */
 export function getMaxContentY(): number {
-  return 260; // Safe content area limit before footer (increased margin)
+  return 250; // Safe content area limit before footer (larger margin to prevent overlap)
 }
 
 /**
