@@ -4,266 +4,344 @@ import { drawGodoyHeader, drawGodoyFooter, drawSectionTitle, BRAND_COLORS, apply
 const manualContent = {
   introducao: {
     titulo: "Introdução",
-    texto: "O Godoy Prime Analytics é uma plataforma completa de inteligência imobiliária desenvolvida para corretores, avaliadores e gestores do mercado imobiliário do Rio de Janeiro. A ferramenta oferece análise de dados de transações oficiais, avaliações automatizadas, vistorias digitais, agendamento de visitas, documentação de due diligence e assistência por inteligência artificial."
+    texto: "O Godoy Prime Analytics é a plataforma mais completa de inteligência imobiliária do Rio de Janeiro. Desenvolvida para corretores, avaliadores e gestores do mercado de alto padrão, oferece análise de dados oficiais de transações ITBI, avaliações automatizadas com metodologia própria, vistorias digitais, gestão de visitas com assinatura digital, documentação de due diligence, estratégias de precificação e assistência por inteligência artificial. Versão 2.0 - Janeiro 2026."
   },
   modulos: [
     {
       titulo: "1. Dashboard",
-      descricao: "Visão geral do mercado imobiliário com indicadores em tempo real baseados em dados oficiais.",
+      descricao: "Visão geral do mercado imobiliário com indicadores em tempo real baseados em dados oficiais de transações ITBI da Prefeitura do Rio de Janeiro.",
       funcionalidades: [
-        "KPIs Principais: Preço médio R$/m², liquidez acumulada, variação anual (YoY)",
+        "KPIs Principais: Preço médio R$/m², liquidez acumulada, variação anual (YoY), região mais valorizada",
         "Separação por Tipologia: Apartamentos vs Casas com métricas independentes",
-        "Gráfico de Evolução: Visualização semestral/anual com indicadores de tendência",
-        "Ranking de Microbairros: Comparativo por R$/m² ou volume de transações",
-        "Seletor de Bairro: Filtro para segmentar todas as análises",
-        "Exportação: PDF (KPIs + Ranking), Excel completo e Backup"
+        "Gráfico de Evolução: Visualização semestral/anual com indicadores de tendência desde 2020",
+        "Evolução por Microbairro: Comparativo de valorização entre diferentes regiões",
+        "Ranking de Microbairros: Ordenado por R$/m² ou volume de transações",
+        "Mapa de Transações: Visualização geográfica das transações com filtros",
+        "Seletor de Bairro: Filtro global que atualiza todos os gráficos e KPIs",
+        "Exportação: PDF (KPIs + Ranking), Excel completo, CSV e Backup de dados"
       ],
-      beneficios: "Permite tomada de decisão rápida baseada em dados atualizados do mercado."
+      beneficios: "Permite tomada de decisão rápida baseada em dados oficiais atualizados do mercado."
     },
     {
-      titulo: "2. Manual / Tour",
-      descricao: "Central de aprendizado com onboarding interativo e tours guiados.",
+      titulo: "2. Manual / Onboarding",
+      descricao: "Central de aprendizado com onboarding interativo, tours guiados e documentação completa.",
       funcionalidades: [
-        "Onboarding em Cards: 10 módulos explicativos da plataforma",
-        "FAQ Completo: 40+ perguntas organizadas em 10 categorias",
-        "Busca Integrada: Encontre respostas rapidamente",
+        "Onboarding em Cards: 10 módulos explicativos da plataforma com navegação livre",
+        "FAQ Completo: 50+ perguntas organizadas em 12 categorias temáticas",
+        "Busca Integrada: Encontre respostas rapidamente com filtro inteligente",
         "Tours Guiados: Tutoriais interativos ativados na primeira visita de cada página",
-        "Download PDF: Manual completo para consulta offline"
+        "Download PDF: Manual completo, Guia Rápido e Roteiro de Vídeo disponíveis",
+        "Vídeos de Treinamento: Acesso a conteúdos explicativos em vídeo"
       ],
       beneficios: "Acelera o aprendizado e reduz curva de adaptação à plataforma."
     },
     {
       titulo: "3. Microregiões",
-      descricao: "Análise detalhada por logradouro e condomínio com comparativos.",
+      descricao: "Análise detalhada por logradouro e condomínio com comparativos e tendências.",
       funcionalidades: [
-        "Pesquisa por Logradouro: Busca inteligente com autocomplete",
-        "Análise de Condomínios: Dados específicos por empreendimento",
-        "Separação por Tipologia: Casas vs Apartamentos",
-        "Comparativo de Ruas: Gráfico comparando até 5 logradouros",
-        "Gráfico de Evolução: Histórico de preços por rua"
+        "Pesquisa por Logradouro: Busca inteligente com autocomplete baseado em dados oficiais",
+        "Análise de Condomínios: Dados específicos por empreendimento com mapeamento",
+        "Separação por Tipologia: Casas vs Apartamentos com métricas independentes",
+        "Comparativo de Ruas: Gráfico comparando até 5 logradouros simultaneamente",
+        "Gráfico de Evolução: Histórico de preços por rua com linha de tendência",
+        "Cards de Microbairro: Estatísticas detalhadas (mediana, média, min, max, transações)"
       ],
-      beneficios: "Identifica oportunidades em micro-mercados específicos."
+      beneficios: "Identifica oportunidades em micro-mercados específicos com precisão."
     },
     {
       titulo: "4. Pesquisas de Mercado",
-      descricao: "Ferramenta avançada de busca de transações oficiais.",
+      descricao: "Ferramenta avançada de busca de transações oficiais com múltiplos filtros.",
       funcionalidades: [
-        "Filtros por Localização: Bairro, logradouro, número",
-        "Filtros por Valor: Faixa de preço total e por m²",
-        "Filtros por Período: Intervalo de datas desde 2020",
-        "Filtros por Área: Metragem mínima e máxima",
-        "Resultados em Tabela: Paginação e ordenação",
+        "Aba Localização: Busca por rua, número ou condomínio específico",
+        "Aba Transações: Encontre logradouros por faixa de valor (R$ 100 mil a R$ 100 milhões)",
+        "Filtros por Período: Intervalo de 6 a 24 meses desde 2020",
+        "Filtros por Área: Metragem mínima e máxima em m²",
+        "Filtros por Tipologia: Apartamentos, Casas ou ambos",
+        "Resultados em Tabela: Paginação, ordenação e estatísticas automáticas",
+        "Histórico de Pesquisas: Consultas salvas automaticamente",
         "Exportação: CSV e Excel com dados completos"
       ],
-      beneficios: "Fundamenta avaliações com comparativos de mercado confiáveis."
+      beneficios: "Fundamenta avaliações com comparativos de mercado confiáveis e oficiais."
     },
     {
       titulo: "5. Avaliação Imobiliária",
-      descricao: "Sistema de avaliação automatizado em 6 etapas com geração de parecer.",
+      descricao: "Sistema de avaliação automatizado em 6 etapas com metodologia Godoy Prime e geração de parecer técnico.",
       funcionalidades: [
-        "Etapa 1 - Identificação: Dados do proprietário, objetivo e tipo de imóvel",
-        "Etapa 2 - Localização: Endereço com autocomplete e dados oficiais",
-        "Etapa 3 - Dados Básicos: Área, quartos, suítes, banheiros, vagas",
-        "Etapa 4 - Questionário: 26 características em 5 categorias avaliadas",
-        "Etapa 5 - Resultados: Valores pessimista, provável e otimista com spread",
-        "Etapa 6 - Recomendação: Estratégia de precificação personalizada",
-        "PDF Profissional: Laudo completo com metodologia e dados de mercado"
+        "Etapa 0 - Identificação: Dados do proprietário, objetivo (venda/captação) e tipo de imóvel",
+        "Etapa 1 - Localização: Endereço com autocomplete e busca automática de dados ITBI oficiais",
+        "Etapa 2 - Dados Básicos: Área, quartos, suítes, banheiros, vagas e escolha da base de preço",
+        "Etapa 3 - Questionário: 26 características em 5 categorias (Posição, Conservação, Conforto, Segurança, Funcionalidade)",
+        "Etapa 4 - Resultados: Valores pessimista, provável e otimista com spread e nível de confiança",
+        "Etapa 5 - Recomendação: Estratégia de precificação personalizada com próximos passos",
+        "Análise Histórica: Gráfico de evolução e projeção futura baseada em tendências",
+        "PDF Profissional: Laudo completo com metodologia, dados de mercado e gráficos"
       ],
-      beneficios: "Produz avaliações profissionais com metodologia consistente."
+      beneficios: "Produz avaliações profissionais com metodologia consistente e dados oficiais."
     },
     {
       titulo: "6. Histórico de Avaliações",
-      descricao: "Consulta e gerenciamento de todas as avaliações realizadas.",
+      descricao: "Consulta, gerenciamento e exportação de todas as avaliações realizadas.",
       funcionalidades: [
-        "Lista Completa: Todas as avaliações salvas com data e valores",
-        "Filtros: Por período, logradouro, faixa de valor",
-        "Detalhamento: Visualização completa de cada avaliação",
+        "Lista Completa: Todas as avaliações salvas com data, valores e status",
+        "Filtros: Por período, logradouro, faixa de valor e nível de confiança",
+        "Detalhamento: Visualização completa de cada avaliação em modal",
+        "Edição: Reabra avaliações para atualização de dados",
+        "Seleção Múltipla: Selecione várias avaliações para ações em lote",
         "Regeneração de PDF: Gere novos laudos a qualquer momento",
-        "Exportação: Lista em Excel para análise externa"
+        "Exportação: Lista em Excel/CSV para análise externa",
+        "Integração: Acesse vistoria ou estratégia de precificação diretamente"
       ],
-      beneficios: "Mantém histórico organizado para consulta e atualização."
+      beneficios: "Mantém histórico organizado para consulta, atualização e análise de produtividade."
     },
     {
-      titulo: "7. Vistoria Digital",
-      descricao: "Checklist completo para inspeção técnica de imóveis com fotos.",
+      titulo: "7. Estratégia de Precificação",
+      descricao: "Módulo avançado para definição de estratégia de venda com diagnóstico e análise de cenários.",
       funcionalidades: [
-        "55+ Itens para Casas: Inclui área externa, telhado, jardim",
-        "50+ Itens para Apartamentos: Áreas comuns e privativas",
-        "Sistema de Scoring: OK / Atenção / Crítico / N.V. / N/A",
-        "Registro Fotográfico: Documentação visual por item",
-        "Laudo PDF: Relatório profissional com radar de diagnóstico",
-        "Persistência: Dados salvos automaticamente no navegador"
+        "Diagnóstico Inicial: 9 perguntas sobre situação do imóvel e objetivos do proprietário",
+        "3 Estratégias: Atração (venda rápida), Mercado (equilibrada) e Premium (maximização)",
+        "Cálculos Automáticos: Preço de anúncio, comissão, líquido ao vendedor e prêmio",
+        "Recomendação Inteligente: Sistema sugere estratégia ideal baseado nas respostas",
+        "Plano de Ajuste: Opção de redução programada após período sem venda",
+        "Seleção e Confirmação: Escolha a estratégia e confirme para gerar materiais",
+        "Integração: Conectado ao motor de avaliação para valores precisos"
       ],
-      beneficios: "Padroniza vistorias e reduz riscos em transações."
+      beneficios: "Define posicionamento estratégico de preço com base técnica e mercadológica."
     },
     {
-      titulo: "8. Agendamento de Visitas",
-      descricao: "Gestão completa de visitas com fichas, assinaturas e feedback.",
+      titulo: "8. Vistoria Digital",
+      descricao: "Checklist completo para inspeção técnica de imóveis com fotos e score de conservação.",
       funcionalidades: [
-        "Fichas de Visita: Criação com código único para cada visita",
-        "Gestão de Disponibilidade: Calendário do corretor com horários",
-        "Assinaturas Digitais: Visitante e corretor assinam na tela",
-        "Link de Feedback: Envio automático para avaliação pós-visita",
-        "Dashboard de Visitas: KPIs e gráficos de performance",
-        "Ranking de Corretores: Comparativo por volume de visitas"
+        "55+ Itens para Casas: 20 categorias incluindo área externa, telhado, jardim, piscina",
+        "50+ Itens para Apartamentos: 18 categorias para áreas comuns e privativas",
+        "Sistema de Scoring: OK / Atenção / Crítico / N.V. / N/A com peso automático",
+        "Registro Fotográfico: Documentação visual por item com upload direto",
+        "Score de Conservação: Pontuação 0-100 com classificação por cores",
+        "Persistência: Dados salvos automaticamente no banco de dados",
+        "Integração: Fluxo direto para avaliação com dados pré-preenchidos",
+        "Laudo PDF: Relatório profissional com radar de diagnóstico e galeria de fotos"
       ],
-      beneficios: "Profissionaliza o processo de visitas e coleta feedback valioso."
+      beneficios: "Padroniza vistorias, documenta estado do imóvel e reduz riscos em transações."
     },
     {
-      titulo: "9. Documentação (Due Diligence)",
-      descricao: "Checklist completo para garantir segurança jurídica em transações.",
+      titulo: "9. Histórico de Vistorias",
+      descricao: "Consulta e gerenciamento de todas as vistorias realizadas.",
       funcionalidades: [
-        "Checklist Dinâmico: Documentos para Vendedor e Comprador",
-        "Perfil Condicional: Campos extras para PJ ou União Estável",
-        "Analisador IA: Upload de documentos com identificação automática",
-        "Status Visual: Acompanhamento por documento",
-        "Exportação PDF: Relatório separado por parte"
+        "Lista Completa: Todas as vistorias com data, endereço, score e status",
+        "Filtros: Por período, tipo de imóvel, faixa de score",
+        "Visualização: Detalhes completos de cada vistoria",
+        "Regeneração PDF: Gere novos laudos quando necessário",
+        "Integração: Acesse avaliação vinculada diretamente"
       ],
-      beneficios: "Garante segurança jurídica e organização nas transações."
+      beneficios: "Mantém registro organizado de todas as inspeções realizadas."
     },
     {
-      titulo: "10. Configurações",
+      titulo: "10. Agendamento de Visitas",
+      descricao: "Gestão completa de visitas com fichas digitais, assinaturas e feedback.",
+      funcionalidades: [
+        "Dashboard de Visitas: KPIs de volume, conversão e performance",
+        "Agendamentos: Criação com data/hora, tipo de serviço e dados do cliente",
+        "Fichas de Visita: Código único, dados completos e declaração de intermediação",
+        "Gestão de Disponibilidade: Calendário do corretor com horários livres",
+        "Assinaturas Digitais: Visitante e corretor assinam na tela ou via link remoto",
+        "Link de Feedback: Envio automático para avaliação pós-visita pelo cliente",
+        "Gráfico de Evolução: Histórico mensal de visitas realizadas",
+        "Ranking de Corretores: Comparativo por volume de visitas e conversão"
+      ],
+      beneficios: "Profissionaliza o processo de visitas, coleta feedback valioso e melhora conversão."
+    },
+    {
+      titulo: "11. Documentação (Due Diligence)",
+      descricao: "Checklist completo para garantir segurança jurídica em transações imobiliárias.",
+      funcionalidades: [
+        "Checklist Dinâmico: Documentos separados para Vendedor e Comprador",
+        "Perfil Condicional: Campos extras para PJ, União Estável ou Comunhão de Bens",
+        "Analisador IA: Upload de documentos com identificação automática de tipo",
+        "Status Visual: Acompanhamento do progresso de coleta por documento",
+        "Alertas: Notificação de documentos pendentes ou com prazo de validade",
+        "Exportação PDF: Relatório separado por parte (Vendedor/Comprador/Completo)"
+      ],
+      beneficios: "Garante segurança jurídica e organização profissional nas transações."
+    },
+    {
+      titulo: "12. Configurações",
       descricao: "Personalização da plataforma e dados da empresa.",
       funcionalidades: [
-        "Logo da Empresa: Upload para exibir nos PDFs gerados",
-        "Dados de Contato: Configuração de email e telefone",
+        "Logo da Empresa: Upload para exibir nos cabeçalhos de todos os PDFs",
+        "Dados Corporativos: Nome, CNPJ, CRECI, telefone, email e endereço",
+        "Preview em Tempo Real: Visualize como ficará o rodapé dos relatórios",
         "Preferências: Ajustes de interface e notificações"
       ],
-      beneficios: "Permite personalização para identidade visual própria."
+      beneficios: "Permite personalização para identidade visual própria da imobiliária."
     },
     {
-      titulo: "11. Sofia - Assistente IA",
-      descricao: "Assistente virtual inteligente disponível em todas as páginas.",
+      titulo: "13. Sofia - Assistente IA",
+      descricao: "Assistente virtual inteligente disponível em todas as páginas da plataforma.",
       funcionalidades: [
-        "Chat em Tempo Real: Respostas instantâneas sobre mercado",
-        "Consultas por Voz: Interação hands-free com microfone",
-        "Análise de Documentos: Upload e interpretação automática",
-        "Base de Conhecimento: Informações especializadas do mercado",
-        "Sugestões Inteligentes: Recomendações contextuais"
+        "Chat em Tempo Real: Respostas instantâneas sobre mercado e plataforma",
+        "Consultas por Voz: Interação hands-free com reconhecimento de fala",
+        "Análise de Documentos: Upload e interpretação automática de certidões",
+        "Base de Conhecimento: Informações especializadas do mercado da Barra da Tijuca",
+        "Sugestões Inteligentes: Recomendações contextuais baseadas na página atual",
+        "Síntese de Voz: Respostas podem ser ouvidas em áudio"
       ],
-      beneficios: "Acelera consultas e fornece insights especializados."
+      beneficios: "Acelera consultas e fornece insights especializados em tempo real."
     },
     {
-      titulo: "12. Recursos Administrativos",
+      titulo: "14. Recursos Administrativos",
       descricao: "Ferramentas de gestão exclusivas para administradores.",
       funcionalidades: [
-        "Base de Conhecimento Sofia: Gerenciar conteúdo da IA",
-        "Calibrador de Avaliação: Ajustar pesos e fatores do sistema",
-        "Gestão de Leads: Acompanhar prospects capturados",
-        "Gerenciamento de Usuários: Controle de acessos e papéis",
-        "Rastreamento de Atividades: Auditoria completa de uso"
+        "Base de Conhecimento Sofia: Gerenciar conteúdo e treinamento da IA",
+        "Calibrador de Avaliação: Ajustar pesos e fatores do sistema de avaliação",
+        "Gestão de Leads: Acompanhar prospects capturados com filtros e exportação",
+        "Gerenciamento de Usuários: Controle de acessos, papéis e permissões",
+        "Rastreamento de Atividades: Auditoria completa de uso por usuário",
+        "Sincronização ITBI: Atualização manual de dados da Prefeitura",
+        "Mapeamento de Condomínios: Cadastro de empreendimentos e microbairros"
       ],
-      beneficios: "Permite personalização e controle total da plataforma."
+      beneficios: "Permite personalização, controle total e gestão profissional da plataforma."
     }
   ],
   recursosAdicionais: [
     {
       titulo: "Tours Guiados",
-      descricao: "Tutoriais interativos em cada página, ativados automaticamente na primeira visita ou via botão 'Tour Guiado'."
+      descricao: "Tutoriais interativos em cada página, ativados automaticamente na primeira visita ou via botão 'Tour Guiado'. 16 tours específicos cobrindo todas as funcionalidades."
     },
     {
-      titulo: "Exportações",
-      descricao: "Suporte a PDF, Excel e CSV para todos os relatórios e pesquisas. Material de Apoio inclui Manual, Roteiro de Vídeo e Checklist de Testes."
+      titulo: "Exportações Completas",
+      descricao: "Suporte a PDF profissional, Excel, CSV e Backup de dados para todos os módulos. Material de Apoio inclui Manual Completo, Guia Rápido e Roteiro de Vídeo."
     },
     {
-      titulo: "Responsividade",
-      descricao: "Interface totalmente adaptada para desktop, tablet e smartphone com gestos touch."
+      titulo: "Responsividade Total",
+      descricao: "Interface totalmente adaptada para desktop, tablet e smartphone com gestos touch e navegação otimizada para cada dispositivo."
     },
     {
-      titulo: "PWA",
-      descricao: "Instale a plataforma como app no celular para acesso rápido via ícone na tela inicial."
+      titulo: "PWA - Progressive Web App",
+      descricao: "Instale a plataforma como app no celular para acesso rápido via ícone na tela inicial, sem necessidade de loja de aplicativos."
+    },
+    {
+      titulo: "Mapa de Transações",
+      descricao: "Visualização geográfica das transações ITBI com marcadores interativos, filtros por período e valor, e integração com pesquisas."
+    },
+    {
+      titulo: "Avaliação Pública",
+      descricao: "Página pública para captação de leads via avaliação rápida. Visitantes inserem dados básicos e recebem estimativa preliminar."
     }
   ],
   faq: [
     {
       categoria: "Geral",
       perguntas: [
-        { p: "O que é o Godoy Prime Analytics?", r: "É uma plataforma de inteligência imobiliária que oferece análise de dados, avaliações automatizadas, vistorias digitais e assistência por IA para profissionais do mercado imobiliário da Barra da Tijuca." },
-        { p: "Quem pode usar a plataforma?", r: "Corretores de imóveis, avaliadores, gestores imobiliários e empresas do setor imobiliário." },
-        { p: "A plataforma funciona em dispositivos móveis?", r: "Sim, a interface é totalmente responsiva e funciona em desktops, tablets e smartphones." },
-        { p: "Preciso instalar algum software?", r: "Não, a plataforma funciona diretamente no navegador web, sem necessidade de instalação." }
+        { p: "O que é o Godoy Prime Analytics?", r: "É a plataforma de inteligência imobiliária mais completa do Rio de Janeiro, oferecendo análise de dados oficiais ITBI, avaliações automatizadas, vistorias digitais, gestão de visitas e assistência por IA." },
+        { p: "Quem pode usar a plataforma?", r: "Corretores de imóveis, avaliadores, gestores imobiliários e empresas do setor imobiliário que atuam no mercado de alto padrão do Rio de Janeiro." },
+        { p: "A plataforma funciona em dispositivos móveis?", r: "Sim, a interface é totalmente responsiva e funciona em desktops, tablets e smartphones. Pode ser instalada como PWA." },
+        { p: "Preciso instalar algum software?", r: "Não, a plataforma funciona diretamente no navegador web, sem necessidade de instalação. Opcionalmente, pode ser instalada como PWA." },
+        { p: "Com que frequência a plataforma é atualizada?", r: "A plataforma recebe atualizações contínuas com melhorias de funcionalidades, novos recursos e correções." }
       ]
     },
     {
       categoria: "Dashboard e Indicadores",
       perguntas: [
-        { p: "Com que frequência os dados são atualizados?", r: "Os dados são sincronizados diariamente com as bases oficiais de transações." },
-        { p: "O que significa a mediana de preço por m²?", r: "É o valor central quando todos os preços são ordenados, representando melhor o mercado por não ser afetado por valores extremos." },
-        { p: "Como funciona o ranking de microbairros?", r: "Os microbairros são ordenados pela mediana de preço por m², permitindo identificar as regiões mais valorizadas." },
-        { p: "Posso exportar os gráficos do dashboard?", r: "Sim, você pode exportar relatórios completos em PDF e dados em Excel/CSV." }
+        { p: "Com que frequência os dados são atualizados?", r: "Os dados ITBI são sincronizados mensalmente com as bases oficiais da Prefeitura do Rio de Janeiro." },
+        { p: "O que significa a mediana de preço por m²?", r: "É o valor central quando todos os preços são ordenados, representando melhor o mercado por não ser afetado por valores extremos ou outliers." },
+        { p: "Como funciona o ranking de microbairros?", r: "Os microbairros são ordenados pela mediana de preço por m² ou volume de transações, permitindo identificar as regiões mais valorizadas ou mais líquidas." },
+        { p: "Posso exportar os gráficos do dashboard?", r: "Sim, você pode exportar relatórios completos em PDF, dados em Excel/CSV e fazer backup completo do banco de dados." },
+        { p: "O que é o mapa de transações?", r: "É uma visualização geográfica das transações ITBI com marcadores interativos mostrando localização, valor e data de cada transação." }
       ]
     },
     {
       categoria: "Pesquisas de Mercado",
       perguntas: [
-        { p: "Quais filtros estão disponíveis nas pesquisas?", r: "Localização (bairro, logradouro), faixa de valor, período, área e tipologia do imóvel." },
-        { p: "Posso salvar minhas pesquisas favoritas?", r: "O histórico de pesquisas é salvo automaticamente para consulta posterior." },
-        { p: "Qual o período máximo de dados disponíveis?", r: "Os dados cobrem os últimos 5 anos de transações oficiais registradas." },
-        { p: "Como exportar os resultados das pesquisas?", r: "Use os botões de exportação para gerar arquivos CSV ou Excel com todos os dados filtrados." }
+        { p: "Quais filtros estão disponíveis nas pesquisas?", r: "Localização (bairro, logradouro), faixa de valor (R$ 100 mil a R$ 100 milhões), período (6 a 24 meses), área em m² e tipologia (Apto/Casa)." },
+        { p: "Posso salvar minhas pesquisas favoritas?", r: "Sim, o histórico de pesquisas é salvo automaticamente para consulta posterior." },
+        { p: "Qual o período máximo de dados disponíveis?", r: "Os dados cobrem transações desde 2020, representando mais de 5 anos de histórico oficial." },
+        { p: "Como exportar os resultados das pesquisas?", r: "Use os botões de exportação para gerar arquivos CSV ou Excel com todos os dados filtrados, incluindo estatísticas." }
       ]
     },
     {
       categoria: "Avaliação Imobiliária",
       perguntas: [
-        { p: "Quantas características são avaliadas?", r: "São 26 características divididas em categorias: localização, estrutura, acabamentos e diferenciais." },
-        { p: "O que são os cenários pessimista, provável e otimista?", r: "São três estimativas de valor que consideram diferentes condições de mercado e negociação." },
-        { p: "Como é calculado o nível de confiança?", r: "Baseado na quantidade de dados de mercado disponíveis e na consistência das características avaliadas." },
-        { p: "Posso gerar um laudo em PDF?", r: "Sim, ao final da avaliação você pode gerar um laudo profissional completo em PDF." },
-        { p: "As avaliações ficam salvas?", r: "Sim, todas as avaliações são salvas no histórico e podem ser consultadas ou atualizadas posteriormente." }
+        { p: "Quantas características são avaliadas?", r: "São 26 características divididas em 5 categorias: Posição/Vista, Conservação, Conforto, Segurança e Funcionalidade." },
+        { p: "O que são os cenários pessimista, provável e otimista?", r: "São três estimativas de valor que consideram diferentes condições de mercado e negociação, oferecendo uma faixa de valores realista." },
+        { p: "Como é calculado o nível de confiança?", r: "Baseado na quantidade de transações ITBI disponíveis para o logradouro e na consistência das características avaliadas." },
+        { p: "Posso gerar um laudo em PDF?", r: "Sim, ao final da avaliação você pode gerar um laudo profissional completo com metodologia, gráficos e dados de mercado." },
+        { p: "As avaliações ficam salvas?", r: "Sim, todas as avaliações são salvas no histórico e podem ser consultadas, editadas ou atualizadas posteriormente." },
+        { p: "O que é a estratégia de precificação?", r: "É um módulo adicional que define a melhor estratégia de venda (Atração, Mercado ou Premium) baseado em diagnóstico do imóvel e objetivos do proprietário." }
       ]
     },
     {
       categoria: "Vistoria Digital",
       perguntas: [
-        { p: "Qual a diferença entre vistoria de casa e apartamento?", r: "Casas têm checklist com 55+ itens incluindo área externa, enquanto apartamentos têm 50+ itens focados em áreas comuns e privativas." },
-        { p: "Como funciona o sistema de scoring?", r: "Cada item é avaliado e recebe uma pontuação que compõe o score geral de conservação do imóvel." },
-        { p: "Posso anexar fotos à vistoria?", r: "Sim, você pode registrar fotos para documentar cada item avaliado." },
-        { p: "O relatório de vistoria serve como laudo técnico?", r: "O relatório serve como documentação detalhada, mas laudos oficiais requerem profissional habilitado." }
+        { p: "Qual a diferença entre vistoria de casa e apartamento?", r: "Casas têm checklist com 55+ itens em 20 categorias incluindo área externa, telhado e jardim. Apartamentos têm 50+ itens em 18 categorias focadas em áreas comuns e privativas." },
+        { p: "Como funciona o sistema de scoring?", r: "Cada item é avaliado de 1 (Crítico) a 5 (Excelente) ou N/A. O sistema calcula automaticamente um score de conservação de 0 a 100." },
+        { p: "Posso anexar fotos à vistoria?", r: "Sim, você pode registrar fotos para documentar cada item avaliado, com upload direto pelo celular ou computador." },
+        { p: "O relatório de vistoria serve como laudo técnico?", r: "O relatório serve como documentação detalhada do estado do imóvel, mas laudos técnicos oficiais requerem profissional habilitado (engenheiro/arquiteto)." },
+        { p: "Posso continuar uma vistoria depois?", r: "Sim, todas as vistorias são salvas automaticamente e podem ser retomadas a qualquer momento." }
+      ]
+    },
+    {
+      categoria: "Agendamento de Visitas",
+      perguntas: [
+        { p: "Como funciona o agendamento de visitas?", r: "Você cria agendamentos com data/hora, dados do cliente e tipo de serviço. O sistema gera fichas de visita com código único." },
+        { p: "O que é a assinatura digital?", r: "Cliente e corretor podem assinar a ficha de visita diretamente na tela ou via link remoto enviado por WhatsApp/email." },
+        { p: "Como funciona o feedback pós-visita?", r: "Após a visita, um link é enviado ao cliente para avaliar o imóvel, informar interesse e registrar observações." },
+        { p: "Posso ver estatísticas de visitas?", r: "Sim, o dashboard mostra KPIs de volume, conversão, evolução mensal e ranking dos corretores." },
+        { p: "Como gerencio minha disponibilidade?", r: "Na aba Disponibilidade, defina os dias e horários em que está disponível para agendamentos." }
       ]
     },
     {
       categoria: "Documentação",
       perguntas: [
-        { p: "Quais documentos são verificados no checklist?", r: "Documentos do imóvel (matrícula, IPTU), do proprietário (RG, CPF) e da transação (contrato, certidões)." },
-        { p: "Como funciona o analisador de documentos por IA?", r: "Você faz upload do documento e a IA identifica informações relevantes e possíveis inconsistências." },
+        { p: "Quais documentos são verificados no checklist?", r: "Documentos do imóvel (matrícula, IPTU, habite-se), do vendedor/comprador (RG, CPF, certidões) e da transação (contrato, procurações)." },
+        { p: "Como funciona o analisador de documentos por IA?", r: "Você faz upload do documento e a IA identifica automaticamente qual tipo de documento é e extrai informações relevantes." },
         { p: "Posso usar o checklist para qualquer tipo de transação?", r: "Sim, o checklist é adaptável para compra, venda, locação e outras operações imobiliárias." },
-        { p: "Os documentos enviados ficam armazenados?", r: "Os documentos são processados temporariamente e não ficam armazenados na plataforma por segurança." }
+        { p: "Os documentos enviados ficam armazenados?", r: "Os documentos são processados temporariamente para análise e não ficam armazenados na plataforma por segurança." }
       ]
     },
     {
       categoria: "Sofia - Assistente IA",
       perguntas: [
-        { p: "Que tipo de perguntas posso fazer à Sofia?", r: "Perguntas sobre mercado imobiliário, avaliações, documentação, tendências de preços e dúvidas sobre a plataforma." },
-        { p: "A Sofia pode analisar documentos?", r: "Sim, você pode enviar documentos para análise e a Sofia extrairá informações relevantes." },
-        { p: "As respostas da Sofia são confiáveis?", r: "A Sofia usa dados atualizados e base de conhecimento especializada, mas recomenda-se validar informações críticas." },
-        { p: "Posso usar comandos de voz?", r: "Sim, a Sofia aceita consultas por voz para interação hands-free." }
+        { p: "Que tipo de perguntas posso fazer à Sofia?", r: "Perguntas sobre preços de mercado, tendências, comparativos entre bairros, documentação necessária e dúvidas sobre a plataforma." },
+        { p: "A Sofia pode analisar documentos?", r: "Sim, você pode enviar documentos para análise e a Sofia extrairá informações relevantes e identificará possíveis problemas." },
+        { p: "As respostas da Sofia são confiáveis?", r: "A Sofia usa dados atualizados e base de conhecimento especializada, mas recomenda-se validar informações críticas com fontes oficiais." },
+        { p: "Posso usar comandos de voz?", r: "Sim, a Sofia aceita consultas por voz para interação hands-free e pode responder com síntese de voz." }
       ]
     },
     {
       categoria: "Recursos Administrativos",
       perguntas: [
-        { p: "Como gerenciar leads capturados?", r: "Acesse a seção Leads para visualizar, filtrar e acompanhar o status de cada prospect." },
+        { p: "Como gerenciar leads capturados?", r: "Acesse a seção Leads para visualizar, filtrar por origem/interesse/período e acompanhar o status de cada prospect." },
         { p: "Quem pode acessar o calibrador de avaliação?", r: "Apenas administradores têm acesso para ajustar pesos e fatores do sistema de avaliação." },
-        { p: "Como adicionar novos usuários?", r: "Administradores podem convidar novos usuários na seção Gerenciar Usuários." },
-        { p: "O que é rastreado no log de atividades?", r: "Logins, avaliações realizadas, vistorias, pesquisas, exportações e outras ações na plataforma." }
+        { p: "Como adicionar novos usuários?", r: "Administradores podem convidar novos usuários na seção Gerenciar Usuários, definindo papel (admin/corretor/gerente)." },
+        { p: "O que é rastreado no log de atividades?", r: "Logins, avaliações, vistorias, visitas, pesquisas, exportações e todas as ações relevantes na plataforma." },
+        { p: "Como atualizar os dados ITBI?", r: "Administradores podem usar o botão de sincronização no dashboard para buscar novos dados da Prefeitura." }
+      ]
+    },
+    {
+      categoria: "Estratégia de Precificação",
+      perguntas: [
+        { p: "O que é a estratégia de precificação?", r: "É um módulo que ajuda a definir o melhor preço de anúncio baseado em diagnóstico do imóvel, objetivos do vendedor e condições de mercado." },
+        { p: "Quais são as estratégias disponíveis?", r: "Atração (venda rápida com preço competitivo), Mercado (equilíbrio entre velocidade e valor) e Premium (maximização do valor líquido)." },
+        { p: "Como o sistema recomenda uma estratégia?", r: "Baseado em 9 perguntas diagnósticas sobre tempo de mercado, concorrência, urgência, situação financeira e perfil do imóvel." },
+        { p: "O que é o plano de ajuste?", r: "É uma opção para programar reduções automáticas de preço após períodos sem propostas, mantendo competitividade." }
       ]
     },
     {
       categoria: "Suporte e Ajuda",
       perguntas: [
-        { p: "Como entrar em contato com o suporte?", r: "Envie email para contato@godoyprime.com.br ou use o chat da Sofia para dúvidas rápidas." },
-        { p: "Existe treinamento disponível?", r: "Sim, oferecemos onboarding interativo, tours guiados em cada página e manual completo em PDF." },
-        { p: "Como reportar um bug ou erro?", r: "Entre em contato pelo email de suporte descrevendo o problema e os passos para reproduzi-lo." },
-        { p: "Há atualizações frequentes na plataforma?", r: "Sim, a plataforma recebe atualizações regulares com melhorias e novas funcionalidades." }
+        { p: "Como entrar em contato com o suporte?", r: "Envie email para contato@godoyprime.com.br, use o chat da Sofia ou ligue para (21) 4040-0067." },
+        { p: "Existe treinamento disponível?", r: "Sim, oferecemos onboarding interativo, 16 tours guiados, manual em PDF, guia rápido, roteiro de vídeo e vídeos de treinamento." },
+        { p: "Como reportar um bug ou erro?", r: "Entre em contato pelo email de suporte descrevendo o problema detalhadamente, incluindo screenshots se possível." },
+        { p: "Há atualizações frequentes na plataforma?", r: "Sim, a plataforma recebe atualizações contínuas com melhorias e novas funcionalidades baseadas no feedback dos usuários." }
       ]
     },
     {
       categoria: "Dicas de Uso",
       perguntas: [
-        { p: "Qual a melhor forma de começar a usar a plataforma?", r: "Complete o onboarding, explore o dashboard e faça uma avaliação teste para conhecer o fluxo." },
-        { p: "Como obter avaliações mais precisas?", r: "Preencha todas as 26 características com atenção e use dados de mercado atualizados como referência." },
+        { p: "Qual a melhor forma de começar a usar a plataforma?", r: "Complete o onboarding, explore o dashboard, faça uma avaliação teste e uma vistoria para conhecer todos os fluxos." },
+        { p: "Como obter avaliações mais precisas?", r: "Preencha todas as 26 características com atenção, use dados de mercado atualizados e inclua informações de anúncios quando disponíveis." },
         { p: "Posso usar a plataforma offline?", r: "Não, é necessária conexão com internet para acessar dados em tempo real e funcionalidades da IA." },
-        { p: "Devo atualizar minhas avaliações periodicamente?", r: "Sim, recomendamos revisar avaliações a cada 3-6 meses ou quando houver mudanças significativas no mercado." }
+        { p: "Devo atualizar minhas avaliações periodicamente?", r: "Sim, recomendamos revisar avaliações a cada 3-6 meses ou quando houver mudanças significativas no mercado." },
+        { p: "Como melhorar minha produtividade?", r: "Use atalhos, fluxos integrados (vistoria → avaliação → precificação), exporte em lote e configure sua disponibilidade." }
       ]
     }
   ]
@@ -295,9 +373,10 @@ export function exportManualPDF() {
   doc.setFontSize(12);
   doc.setTextColor(200, 200, 200);
   doc.text('Plataforma de Inteligência Imobiliária', pageWidth / 2, 160, { align: 'center' });
+  doc.text('Rio de Janeiro - Mercado de Alto Padrão', pageWidth / 2, 170, { align: 'center' });
   
   const today = new Date().toLocaleDateString('pt-BR');
-  doc.text(`Versão 1.0 - ${today}`, pageWidth / 2, 250, { align: 'center' });
+  doc.text(`Versão 2.0 - ${today}`, pageWidth / 2, 250, { align: 'center' });
 
   // Introduction page
   doc.addPage();
@@ -322,9 +401,9 @@ export function exportManualPDF() {
     y += 6;
   });
   y += 5;
-  doc.text('9. Recursos Adicionais', marginLeft + 5, y);
+  doc.text('15. Recursos Adicionais', marginLeft + 5, y);
   y += 6;
-  doc.text('10. Perguntas Frequentes (FAQ)', marginLeft + 5, y);
+  doc.text('16. Perguntas Frequentes (FAQ)', marginLeft + 5, y);
 
   // Module pages
   manualContent.modulos.forEach((modulo) => {
@@ -379,7 +458,7 @@ export function exportManualPDF() {
   doc.addPage();
   y = drawGodoyHeader(doc, 'Manual do Usuário');
   
-  y = drawSectionTitle(doc, '9. Recursos Adicionais', y, marginLeft);
+  y = drawSectionTitle(doc, '15. Recursos Adicionais', y, marginLeft);
   y += 10;
   
   manualContent.recursosAdicionais.forEach((recurso) => {
@@ -401,7 +480,7 @@ export function exportManualPDF() {
   doc.addPage();
   y = drawGodoyHeader(doc, 'Manual do Usuário');
   
-  y = drawSectionTitle(doc, '10. Perguntas Frequentes (FAQ)', y, marginLeft);
+  y = drawSectionTitle(doc, '16. Perguntas Frequentes (FAQ)', y, marginLeft);
   y += 10;
 
   manualContent.faq.forEach((categoria) => {
@@ -459,13 +538,17 @@ export function exportManualPDF() {
   y += 8;
   doc.text('Email: contato@godoyprime.com.br', marginLeft + 5, y);
   y += 6;
-  doc.text('Telefone: (21) 99999-9999', marginLeft + 5, y);
+  doc.text('Telefone: (21) 4040-0067 | (21) 99725-0515', marginLeft + 5, y);
   y += 6;
   doc.text('Site: www.godoyprime.com.br', marginLeft + 5, y);
+  y += 6;
+  doc.text('Endereço: Av. das Américas, 10101 Bloco 2 Sala 316 - Barra da Tijuca', marginLeft + 5, y);
+  y += 12;
+  doc.text('CRECI: 11841-PJ', marginLeft + 5, y);
 
   // Apply footers
   applyFootersToAllPages(doc);
 
   // Save
-  doc.save('Manual_Godoy_Prime_Analytics.pdf');
+  doc.save('Manual_Godoy_Prime_Analytics_v2.pdf');
 }
