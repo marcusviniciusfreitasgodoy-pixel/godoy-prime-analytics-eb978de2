@@ -360,7 +360,7 @@ function createValuationPDF(
 
   // 4. MÉTRICAS DE CONFIANÇA - Design visual aprimorado
   // Verificar se há espaço suficiente para a seção expandida
-  if (yPos > getMaxContentY() - 120) {
+  if (yPos > getMaxContentY() - 140) {
     doc.addPage();
     yPos = 20;
   }
@@ -552,8 +552,8 @@ function createValuationPDF(
 
   // 5. ANÁLISE HISTÓRICA (5 ANOS)
   if (state.historicalAnalysis && state.historicalAnalysis.yearlyData.length > 0) {
-    // Check if we need a new page
-    if (yPos > getMaxContentY() - 120) {
+    // Check if we need a new page - seção grande precisa de espaço
+    if (yPos > getMaxContentY() - 140) {
       doc.addPage();
       yPos = 20;
     }
@@ -707,8 +707,8 @@ function createValuationPDF(
     }
     
     // ========== GRÁFICO DE EVOLUÇÃO ANUAL DO PREÇO/M² ==========
-    // Check if we need a new page
-    if (yPos > getMaxContentY() - 85) {
+    // Check if we need a new page - precisa de mais espaço para o gráfico completo
+    if (yPos > getMaxContentY() - 100) {
       doc.addPage();
       yPos = 20;
     }
@@ -839,8 +839,8 @@ function createValuationPDF(
     
     // ========== GRÁFICO DE PROJEÇÃO DE VALORIZAÇÃO ==========
     if (historical.futureProjection) {
-      // Check if we need a new page
-      if (yPos > getMaxContentY() - 85) {
+      // Check if we need a new page - precisa de mais espaço para o gráfico completo
+      if (yPos > getMaxContentY() - 110) {
         doc.addPage();
         yPos = 20;
       }
@@ -886,15 +886,31 @@ function createValuationPDF(
       const projGraphWidth = projChartWidth - 45;
       const projGraphHeight = projChartHeight - 18;
       
-      // Dados de projeção
-      const currentArea = state.area_m2;
+      // Dados de projeção - NOTA: projection.oneYear contém MULTIPLICADORES, não valores absolutos
+      // Ex: { optimistic: 1.092, probable: 1.062, pessimistic: 1.032 } para taxas de 9.2%, 6.2%, 3.2%
       const currentValue = result.provavel;
       
+      // Converter multiplicadores para valores absolutos
       const projectionData = [
         { label: 'Atual', optimistic: currentValue, probable: currentValue, pessimistic: currentValue },
-        { label: '1 Ano', ...projection.oneYear },
-        { label: '2 Anos', ...projection.twoYears },
-        { label: '3 Anos', ...projection.threeYears }
+        { 
+          label: '1 Ano', 
+          optimistic: currentValue * projection.oneYear.optimistic,
+          probable: currentValue * projection.oneYear.probable,
+          pessimistic: currentValue * projection.oneYear.pessimistic
+        },
+        { 
+          label: '2 Anos', 
+          optimistic: currentValue * projection.twoYears.optimistic,
+          probable: currentValue * projection.twoYears.probable,
+          pessimistic: currentValue * projection.twoYears.pessimistic
+        },
+        { 
+          label: '3 Anos', 
+          optimistic: currentValue * projection.threeYears.optimistic,
+          probable: currentValue * projection.threeYears.probable,
+          pessimistic: currentValue * projection.threeYears.pessimistic
+        }
       ];
       
       // Calcular escala
@@ -1008,12 +1024,21 @@ function createValuationPDF(
       doc.setFontSize(8);
       doc.setFont('helvetica', 'normal');
       
+      // Map keys to correct rate property names
+      const rateKeyMap: Record<string, keyof typeof projection> = {
+        'optimistic': 'optimisticRate',
+        'probable': 'probableRate',
+        'pessimistic': 'pessimisticRate'
+      };
+      
       lineColors.forEach((item, i) => {
         const legendX = projChartX + (i * 55);
         doc.setFillColor(...item.color);
         doc.circle(legendX + 2, yPos - 1, 2.5, 'F');
         doc.setTextColor(...item.color);
-        doc.text(`${item.label} (${(projection[`${item.key.replace('istic', '')}Rate` as keyof typeof projection] as number || 0).toFixed(1)}% a.a.)`, legendX + 7, yPos);
+        const rateKey = rateKeyMap[item.key];
+        const rateValue = rateKey ? (projection[rateKey] as number || 0) : 0;
+        doc.text(`${item.label} (${rateValue.toFixed(1)}% a.a.)`, legendX + 7, yPos);
       });
       
       yPos += 10;
@@ -1039,7 +1064,7 @@ function createValuationPDF(
   const appliedChars = state.responses.filter(r => r.response === 'sim' && r.weight_applied !== 0);
   if (appliedChars.length > 0) {
     // Check if we need a new page
-    if (yPos > getMaxContentY() - 30) {
+    if (yPos > getMaxContentY() - 40) {
       doc.addPage();
       yPos = 20;
     }
@@ -1065,7 +1090,7 @@ function createValuationPDF(
   // Se há dados da estratégia de precificação, exibir detalhadamente
   if (pricingStrategy && pricingStrategy.calculos) {
     // Check if we need a new page
-    if (yPos > getMaxContentY() - 180) {
+    if (yPos > getMaxContentY() - 190) {
       doc.addPage();
       yPos = 20;
     }
@@ -1232,7 +1257,7 @@ function createValuationPDF(
     }
     
     // Tabela comparativa
-    if (yPos > getMaxContentY() - 60) {
+    if (yPos > getMaxContentY() - 70) {
       doc.addPage();
       yPos = 20;
     }
@@ -1352,7 +1377,7 @@ function createValuationPDF(
 
   // 7. RECOMENDAÇÃO
   // Check if we need a new page for recommendation section
-  if (yPos > getMaxContentY() - 40) {
+  if (yPos > getMaxContentY() - 50) {
     doc.addPage();
     yPos = 20;
   }
@@ -1409,7 +1434,7 @@ function createValuationPDF(
   yPos += recBoxHeight + 8;
 
   // Check if we need a new page for disclaimer
-  if (yPos > getMaxContentY() - 30) {
+  if (yPos > getMaxContentY() - 40) {
     doc.addPage();
     yPos = 20;
   }
@@ -1417,7 +1442,7 @@ function createValuationPDF(
   // 8. DISCLAIMER ADICIONAL PARA AVALIAÇÃO SIMPLIFICADA
   if (isSimplified) {
     // Check if we need a new page
-    if (yPos > getMaxContentY() - 40) {
+    if (yPos > getMaxContentY() - 50) {
       doc.addPage();
       yPos = 20;
     }
