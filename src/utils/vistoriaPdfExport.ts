@@ -100,6 +100,31 @@ interface AnuncioFonte {
   fonte?: string;
 }
 
+// Dados da estratégia de precificação
+export interface StrategyCalculation {
+  percentual: number;
+  preco_anuncio: number;
+  corretagem: number;
+  liquido: number;
+  piso_planejado: number;
+  liquido_min: number;
+  premio_liquido_pct: number;
+}
+
+export type StrategyType = 'atracao' | 'mercado' | 'premium';
+
+export interface PricingStrategyPDFData {
+  valorItbi: number;
+  estrategiaSelecionada: StrategyType;
+  estrategiaRecomendada: StrategyType;
+  calculos: {
+    atracao: StrategyCalculation;
+    mercado: StrategyCalculation;
+    premium: StrategyCalculation;
+  };
+  planoAjusteAtivo: boolean;
+}
+
 interface VistoriaPDFParams {
   propertyData: PropertyData;
   checklist: ChecklistCategory[];
@@ -110,6 +135,7 @@ interface VistoriaPDFParams {
   criticalCount: number;
   avaliacaoData?: AvaliacaoData | null;
   anuncioFontes?: AnuncioFonte[];
+  pricingStrategy?: PricingStrategyPDFData | null;
 }
 
 const scoreLabels: Record<number | string, { label: string; color: [number, number, number] }> = {
@@ -243,7 +269,7 @@ function drawPolygon(doc: jsPDF, cx: number, cy: number, r: number, sides: numbe
 }
 
 export async function generateVistoriaPDFDoc(params: VistoriaPDFParams): Promise<jsPDF> {
-  const { propertyData, checklist, photos, tipoVistoria, finalScore, progress, criticalCount, avaliacaoData, anuncioFontes } = params;
+  const { propertyData, checklist, photos, tipoVistoria, finalScore, progress, criticalCount, avaliacaoData, anuncioFontes, pricingStrategy } = params;
   
   const doc = new jsPDF();
   const pageWidth = doc.internal.pageSize.getWidth();
@@ -389,6 +415,176 @@ export async function generateVistoriaPDFDoc(params: VistoriaPDFParams): Promise
       }
       
       yPos += recHeight + 5;
+    }
+    
+    // ========== ESTRATÉGIA DE PRECIFICAÇÃO ==========
+    if (pricingStrategy && pricingStrategy.calculos) {
+      // Check if we need a new page
+      if (yPos > getMaxContentY() - 120) {
+        doc.addPage();
+        yPos = 20;
+      }
+      
+      yPos += 8;
+      yPos = drawSectionTitle(doc, 'Estratégia de Precificação', yPos, marginLeft);
+      
+      const { calculos, estrategiaSelecionada, estrategiaRecomendada, valorItbi, planoAjusteAtivo } = pricingStrategy;
+      
+      // Valor de referência
+      doc.setFontSize(8);
+      doc.setFont('helvetica', 'normal');
+      doc.setTextColor(...BRAND_COLORS.gray);
+      doc.text(`Valor de Referência (Avaliação): ${formatCurrency(valorItbi)}`, marginLeft, yPos);
+      yPos += 8;
+      
+      // Cards das 3 estratégias
+      const strategyCardHeight = 50;
+      const strategyCardWidth = (contentWidth + 10) / 3 - 4;
+      
+      const strategies: { key: StrategyType; label: string; icon: string; color: [number, number, number]; bgColor: [number, number, number] }[] = [
+        { key: 'atracao', label: 'ATRACAO', icon: '[!]', color: [59, 130, 246], bgColor: [239, 246, 255] },
+        { key: 'mercado', label: 'MERCADO', icon: '[=]', color: [234, 88, 12], bgColor: [255, 247, 237] },
+        { key: 'premium', label: 'PREMIUM', icon: '[+]', color: [139, 92, 246], bgColor: [250, 245, 255] },
+      ];
+      
+      strategies.forEach((strategy, i) => {
+        const cardX = marginLeft - 5 + (strategyCardWidth + 4) * i;
+        const calculo = calculos[strategy.key];
+        const isSelected = estrategiaSelecionada === strategy.key;
+        const isRecommended = estrategiaRecomendada === strategy.key;
+        
+        // Card background
+        doc.setFillColor(...strategy.bgColor);
+        doc.setDrawColor(...strategy.color);
+        doc.setLineWidth(isSelected ? 1.5 : 0.5);
+        doc.roundedRect(cardX, yPos, strategyCardWidth, strategyCardHeight, 2, 2, 'FD');
+        
+        // Top bar
+        doc.setFillColor(...strategy.color);
+        doc.rect(cardX, yPos, strategyCardWidth, 4, 'F');
+        
+        // Header with icon and label
+        doc.setFontSize(8);
+        doc.setFont('helvetica', 'bold');
+        doc.setTextColor(...strategy.color);
+        let headerText = `${strategy.icon} ${strategy.label}`;
+        if (isRecommended) headerText += ' *';
+        if (isSelected) headerText += ' [OK]';
+        doc.text(headerText, cardX + 3, yPos + 11);
+        
+        // Markup
+        doc.setFontSize(6);
+        doc.setFont('helvetica', 'normal');
+        doc.setTextColor(71, 85, 105);
+        doc.text(`Markup: +${(calculo.percentual * 100).toFixed(0)}%`, cardX + 3, yPos + 17);
+        
+        // Preço de Anúncio
+        doc.setFontSize(10);
+        doc.setFont('helvetica', 'bold');
+        doc.setTextColor(...strategy.color);
+        doc.text(formatCurrency(calculo.preco_anuncio), cardX + 3, yPos + 27);
+        
+        // Corretagem e Líquido
+        doc.setFontSize(5);
+        doc.setFont('helvetica', 'normal');
+        doc.setTextColor(100, 116, 139);
+        doc.text(`Corretagem (6%): ${formatCurrency(calculo.corretagem)}`, cardX + 3, yPos + 34);
+        doc.text(`Líquido: ${formatCurrency(calculo.liquido)}`, cardX + 3, yPos + 39);
+        doc.text(`Prêmio vs Avaliação: +${calculo.premio_liquido_pct.toFixed(1)}%`, cardX + 3, yPos + 44);
+      });
+      
+      yPos += strategyCardHeight + 6;
+      
+      // Legenda
+      doc.setFontSize(6);
+      doc.setFont('helvetica', 'italic');
+      doc.setTextColor(100, 116, 139);
+      doc.text('* Estrategia Recomendada | [OK] Estrategia Selecionada', marginLeft, yPos);
+      yPos += 6;
+      
+      // Box de destaque da estratégia selecionada
+      const selectedCalculo = calculos[estrategiaSelecionada];
+      const selectedInfo = strategies.find(s => s.key === estrategiaSelecionada)!;
+      
+      doc.setFillColor(...selectedInfo.bgColor);
+      doc.setDrawColor(...selectedInfo.color);
+      doc.setLineWidth(0.8);
+      const selectedBoxHeight = 32;
+      doc.roundedRect(marginLeft - 5, yPos, contentWidth + 10, selectedBoxHeight, 2, 2, 'FD');
+      
+      // Left accent bar
+      doc.setFillColor(...selectedInfo.color);
+      doc.rect(marginLeft - 5, yPos, 4, selectedBoxHeight, 'F');
+      
+      doc.setFontSize(8);
+      doc.setFont('helvetica', 'bold');
+      doc.setTextColor(...selectedInfo.color);
+      doc.text(`Estratégia Selecionada: ${selectedInfo.icon} ${selectedInfo.label}`, marginLeft + 3, yPos + 7);
+      
+      // Grid de valores
+      const detailColWidth = (contentWidth - 5) / 3;
+      
+      // Coluna 1: Anunciar por
+      doc.setFontSize(6);
+      doc.setFont('helvetica', 'normal');
+      doc.setTextColor(71, 85, 105);
+      doc.text('Anunciar por:', marginLeft + 3, yPos + 13);
+      doc.setFontSize(9);
+      doc.setFont('helvetica', 'bold');
+      doc.setTextColor(...selectedInfo.color);
+      doc.text(formatCurrency(selectedCalculo.preco_anuncio), marginLeft + 3, yPos + 20);
+      
+      // Coluna 2: Piso Planejado (97%)
+      const col2X = marginLeft + 3 + detailColWidth;
+      doc.setFontSize(6);
+      doc.setFont('helvetica', 'normal');
+      doc.setTextColor(71, 85, 105);
+      doc.text('Piso Planejado (97%):', col2X, yPos + 13);
+      doc.setFontSize(9);
+      doc.setFont('helvetica', 'bold');
+      doc.setTextColor(100, 116, 139);
+      doc.text(formatCurrency(selectedCalculo.piso_planejado), col2X, yPos + 20);
+      
+      // Coluna 3: Líquido Mínimo
+      const col3X = marginLeft + 3 + detailColWidth * 2;
+      doc.setFontSize(6);
+      doc.setFont('helvetica', 'normal');
+      doc.setTextColor(71, 85, 105);
+      doc.text('Líquido Mínimo:', col3X, yPos + 13);
+      doc.setFontSize(9);
+      doc.setFont('helvetica', 'bold');
+      doc.setTextColor(71, 85, 105);
+      doc.text(formatCurrency(selectedCalculo.liquido_min), col3X, yPos + 20);
+      
+      // Corretagem na linha de baixo
+      doc.setFontSize(6);
+      doc.setFont('helvetica', 'normal');
+      doc.setTextColor(100, 116, 139);
+      doc.text(`Corretagem (6%): ${formatCurrency(selectedCalculo.corretagem)} | Líquido: ${formatCurrency(selectedCalculo.liquido)}`, marginLeft + 3, yPos + 28);
+      
+      yPos += selectedBoxHeight + 5;
+      
+      // Plano de Ajuste (se premium e ativo)
+      if (estrategiaSelecionada === 'premium' && planoAjusteAtivo) {
+        doc.setFillColor(250, 245, 255);
+        doc.setDrawColor(139, 92, 246);
+        doc.setLineWidth(0.3);
+        const planoHeight = 18;
+        doc.roundedRect(marginLeft - 5, yPos, contentWidth + 10, planoHeight, 2, 2, 'FD');
+        
+        doc.setFontSize(6);
+        doc.setFont('helvetica', 'bold');
+        doc.setTextColor(139, 92, 246);
+        doc.text('[>] Plano de Ajuste Sugerido Ativo:', marginLeft, yPos + 5);
+        
+        doc.setFont('helvetica', 'normal');
+        doc.setFontSize(5);
+        doc.setTextColor(100, 116, 139);
+        doc.text('30 dias: -4% | 60 dias: -4% adicional | 90 dias: migrar para MERCADO', marginLeft, yPos + 10);
+        doc.text('Objetivo: maximizar valor com plano progressivo de ajuste caso necessário.', marginLeft, yPos + 14);
+        
+        yPos += planoHeight + 4;
+      }
     }
     
     // Date of valuation

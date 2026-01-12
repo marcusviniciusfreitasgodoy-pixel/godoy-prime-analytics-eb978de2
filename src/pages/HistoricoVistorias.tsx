@@ -78,7 +78,7 @@ export default function HistoricoVistorias() {
   const { data: vistorias, isLoading } = useQuery({
     queryKey: ["vistorias-historico", user?.id, isAdmin],
     queryFn: async () => {
-      // Buscar vistorias com dados da avaliação vinculada
+      // Buscar vistorias com dados da avaliação vinculada e estratégia de precificação
       let query = supabase
         .from("vistorias")
         .select(`
@@ -99,7 +99,35 @@ export default function HistoricoVistorias() {
             confidence_level,
             confidence_score,
             recommendation_title,
-            anuncio_fontes
+            anuncio_fontes,
+            pricing_strategies (
+              id,
+              valor_itbi,
+              estrategia_recomendada,
+              estrategia_selecionada,
+              p_atracao,
+              p_mercado,
+              p_premium,
+              preco_anuncio_atracao,
+              preco_anuncio_mercado,
+              preco_anuncio_premium,
+              corretagem_atracao,
+              corretagem_mercado,
+              corretagem_premium,
+              liquido_atracao,
+              liquido_mercado,
+              liquido_premium,
+              piso_planejado_atracao,
+              piso_planejado_mercado,
+              piso_planejado_premium,
+              liquido_min_atracao,
+              liquido_min_mercado,
+              liquido_min_premium,
+              premio_liquido_pct_atracao,
+              premio_liquido_pct_mercado,
+              premio_liquido_pct_premium,
+              plano_ajuste_ativo
+            )
           )
         `)
         .order("created_at", { ascending: false });
@@ -179,6 +207,44 @@ export default function HistoricoVistorias() {
       dataAvaliacao: new Date().toISOString(),
     } : null;
     
+    // Preparar dados da estratégia de precificação se disponível
+    const pricing = val?.pricing_strategies?.[0];
+    const pricingStrategy = pricing ? {
+      valorItbi: pricing.valor_itbi,
+      estrategiaRecomendada: pricing.estrategia_recomendada,
+      estrategiaSelecionada: pricing.estrategia_selecionada,
+      calculos: {
+        atracao: {
+          percentual: pricing.p_atracao,
+          preco_anuncio: pricing.preco_anuncio_atracao,
+          corretagem: pricing.corretagem_atracao,
+          liquido: pricing.liquido_atracao,
+          piso_planejado: pricing.piso_planejado_atracao,
+          liquido_min: pricing.liquido_min_atracao,
+          premio_liquido_pct: pricing.premio_liquido_pct_atracao,
+        },
+        mercado: {
+          percentual: pricing.p_mercado,
+          preco_anuncio: pricing.preco_anuncio_mercado,
+          corretagem: pricing.corretagem_mercado,
+          liquido: pricing.liquido_mercado,
+          piso_planejado: pricing.piso_planejado_mercado,
+          liquido_min: pricing.liquido_min_mercado,
+          premio_liquido_pct: pricing.premio_liquido_pct_mercado,
+        },
+        premium: {
+          percentual: pricing.p_premium,
+          preco_anuncio: pricing.preco_anuncio_premium,
+          corretagem: pricing.corretagem_premium,
+          liquido: pricing.liquido_premium,
+          piso_planejado: pricing.piso_planejado_premium,
+          liquido_min: pricing.liquido_min_premium,
+          premio_liquido_pct: pricing.premio_liquido_pct_premium,
+        },
+      },
+      planoAjusteAtivo: pricing.plano_ajuste_ativo || false,
+    } : null;
+    
     // Prepare data to pass to VistoriaDigital
     navigate("/vistoria-digital", {
       state: {
@@ -208,6 +274,7 @@ export default function HistoricoVistorias() {
           valorAvaliacao: vistoria.valor_avaliacao,
           valuationId: vistoria.valuation_id,
           avaliacaoData: avaliacaoCompleta,
+          pricingStrategy: pricingStrategy,
         },
       },
     });
