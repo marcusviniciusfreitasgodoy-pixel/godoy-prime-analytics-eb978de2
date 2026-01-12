@@ -526,8 +526,8 @@ export function TransactionMap({
         )}
       </div>
 
-      {/* Legenda */}
-      <div className="absolute bottom-4 left-4 bg-background/95 backdrop-blur-sm rounded-lg p-3 shadow-lg z-[1000] border border-border">
+      {/* Legenda - posicionada no canto inferior direito para não conflitar com filtros */}
+      <div className="absolute bottom-4 right-14 bg-background/95 backdrop-blur-sm rounded-lg p-3 shadow-lg z-[900] border border-border">
         <div className="text-xs font-semibold mb-2 text-foreground">Preço/m²</div>
         <div className="space-y-1.5">
           <div className="flex items-center gap-2">
