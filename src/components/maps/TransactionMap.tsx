@@ -78,21 +78,26 @@ export function TransactionMap({ data, bairro, isLoading }: TransactionMapProps)
   useEffect(() => {
     const fetchApiKey = async () => {
       try {
-        const { data, error } = await supabase.functions.invoke('get-google-maps-key');
+        console.log('Fetching Google Maps API key...');
+        const response = await supabase.functions.invoke('get-google-maps-key');
         
-        if (error) {
-          console.error('Error fetching Google Maps API key:', error);
+        console.log('Response:', response);
+        
+        if (response.error) {
+          console.error('Error fetching Google Maps API key:', response.error);
           setError('Erro ao carregar chave do Google Maps');
           return;
         }
 
-        if (data?.apiKey) {
-          setApiKey(data.apiKey);
+        if (response.data?.apiKey) {
+          console.log('API key loaded successfully');
+          setApiKey(response.data.apiKey);
         } else {
+          console.error('No API key in response:', response.data);
           setError('Chave do Google Maps não configurada');
         }
       } catch (err) {
-        console.error('Error:', err);
+        console.error('Error fetching API key:', err);
         setError('Erro ao conectar com o servidor');
       } finally {
         setApiKeyLoading(false);
