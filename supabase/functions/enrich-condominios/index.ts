@@ -126,27 +126,30 @@ async function searchGooglePlaces(
   }
 }
 
-// Interface para transação
-interface TransactionRecord {
-  logradouro: string | null;
+// Interface para logradouro geo
+interface LogradouroGeoRecord {
+  logradouro: string;
+  latitude: number | null;
+  longitude: number | null;
 }
 
-// Função para buscar transações próximas e identificar ruas internas
+// Função para buscar logradouros próximos e identificar ruas internas
 async function findInternalStreets(
   supabaseUrl: string,
   supabaseKey: string,
   lat: number,
   lng: number,
-  radiusMeters: number = 300
+  radiusMeters: number = 500
 ): Promise<string[]> {
   // Converter raio de metros para graus (aproximadamente)
   const radiusDegrees = radiusMeters / 111000; // ~111km por grau
   
   const client = createClient(supabaseUrl, supabaseKey);
   
+  // Buscar na tabela logradouros_geo que tem coordenadas
   const { data, error } = await client
-    .from('itbi_transactions')
-    .select('logradouro')
+    .from('logradouros_geo')
+    .select('logradouro, latitude, longitude')
     .gte('latitude', lat - radiusDegrees)
     .lte('latitude', lat + radiusDegrees)
     .gte('longitude', lng - radiusDegrees)
@@ -154,25 +157,23 @@ async function findInternalStreets(
     .not('logradouro', 'is', null);
   
   if (error) {
-    console.error('Error finding internal streets:', error);
+    console.error('Error finding internal streets from geo:', error);
+    
+    // Fallback: buscar logradouros únicos de transações ITBI (sem filtro geográfico)
+    // Isso é menos preciso mas ainda pode ajudar
     return [];
   }
   
-  // Agrupar e contar logradouros únicos
-  const streetCounts = new Map<string, number>();
-  const transactions = data as TransactionRecord[] | null;
-  transactions?.forEach(t => {
-    if (t.logradouro) {
-      const count = streetCounts.get(t.logradouro) || 0;
-      streetCounts.set(t.logradouro, count + 1);
+  // Retornar logradouros únicos
+  const uniqueStreets = new Set<string>();
+  const geoRecords = data as LogradouroGeoRecord[] | null;
+  geoRecords?.forEach(r => {
+    if (r.logradouro) {
+      uniqueStreets.add(r.logradouro);
     }
   });
   
-  // Retornar logradouros com pelo menos 2 transações
-  return Array.from(streetCounts.entries())
-    .filter(([_, count]) => count >= 2)
-    .sort((a, b) => b[1] - a[1])
-    .map(([street]) => street);
+  return Array.from(uniqueStreets);
 }
 
 serve(async (req) => {
