@@ -34,53 +34,71 @@ const tourSteps: Step[] = [
     placement: 'top',
     title: '🏆 Ranking de Microbairros',
   },
+  {
+    target: '[data-tour="transaction-map"]',
+    content: 'Mapa interativo com transações geolocalizadas. Clique em um marcador para ver detalhes da transação. Use zoom para explorar regiões específicas.',
+    placement: 'top',
+    title: '🗺️ Mapa de Transações',
+  },
   
   // Navegação Principal
   {
     target: '[data-tour="nav-microregioes"]',
-    content: 'Análise detalhada das microregiões. Veja estatísticas específicas, tendências e comparativos entre diferentes áreas.',
+    content: 'Análise detalhada por logradouro e condomínio. Compare até 5 ruas, veja evolução de preços e indicadores de tendência.',
     placement: 'right',
     title: '📍 Microregiões',
   },
   {
     target: '[data-tour="nav-pesquisas"]',
-    content: 'Ferramentas de pesquisa avançadas: busque por rua/condomínio (Localização) ou encontre microbairros por faixa de valor (Transações). Exporte resultados em PDF, Excel ou CSV.',
+    content: 'Pesquise por localização (rua/condomínio) ou por faixa de valor (R$ 100 mil a R$ 100 mi). Exporte resultados em Excel ou CSV.',
     placement: 'right',
     title: '🔍 Pesquisas de Mercado',
   },
   {
     target: '[data-tour="nav-avaliacao"]',
-    content: 'Motor de Avaliação Godoy Prime: calcule o valor de mercado usando 70% dados oficiais + 30% anúncios. 6 etapas com 26 características geram 3 cenários de valor com nível de confiança.',
+    content: 'Motor de Avaliação: 6 etapas, 26 características, 3 cenários de valor. Base combinada 70% dados oficiais + 30% anúncios. Gera laudo PDF profissional.',
     placement: 'right',
     title: '🧮 Avaliação Imobiliária',
   },
   {
+    target: '[data-tour="nav-precificacao"]',
+    content: 'Estratégia de Precificação: 9 perguntas diagnósticas geram 3 estratégias (Atração, Mercado, Premium) com preço de anúncio, comissão e líquido ao vendedor.',
+    placement: 'right',
+    title: '🎯 Estratégia de Precificação',
+  },
+  {
     target: '[data-tour="nav-historico"]',
-    content: 'Histórico de todas as avaliações realizadas. Filtre por data, endereço ou nível de confiança. Acompanhe sua produtividade e revise avaliações anteriores.',
+    content: 'Histórico de todas as avaliações realizadas. Filtre por data, endereço ou nível de confiança. Regenere PDFs e acompanhe sua produtividade.',
     placement: 'right',
     title: '📋 Histórico de Avaliações',
   },
   {
     target: '[data-tour="nav-vistoria"]',
-    content: 'Vistoria Digital 3.1: checklist completo para Casa (20 categorias) ou Apartamento (18 categorias) com pontuação 1-5. Gera laudo PDF profissional com radar de diagnóstico.',
+    content: 'Vistoria Digital: Casa (55+ itens, 20 categorias) ou Apartamento (50+ itens, 18 categorias). Score 0-100, fotos por item, laudo PDF com radar.',
     placement: 'right',
     title: '📝 Vistoria Digital',
   },
   {
+    target: '[data-tour="nav-historico-vistorias"]',
+    content: 'Histórico de vistorias realizadas. Veja score, tipo de imóvel, data e regenere laudos PDF a qualquer momento.',
+    placement: 'right',
+    title: '📋 Histórico de Vistorias',
+  },
+  {
     target: '[data-tour="nav-visitas"]',
-    content: 'Gestão completa de visitas: agende, acompanhe, registre fichas com assinatura digital, colete feedbacks e gere relatórios. Dashboard com KPIs e ranking de corretores.',
+    content: 'Gestão completa: agende, crie fichas com código único, colete assinaturas digitais, envie feedback. Dashboard com KPIs e ranking de corretores.',
     placement: 'right',
     title: '📅 Agendamento de Visitas',
   },
   {
     target: '[data-tour="nav-documentacao"]',
-    content: 'Checklist de Due Diligence para transações imobiliárias. Marque documentos coletados, exporte PDFs separados para Vendedor/Comprador e use IA para analisar documentos.',
+    content: 'Checklist de Due Diligence separado Vendedor/Comprador. Perfis condicionais (PJ, União Estável). Analise documentos com IA.',
     placement: 'right',
     title: '📚 Documentação',
   },
   {
     target: '[data-tour="nav-configuracoes"]',
-    content: 'Configure dados da empresa (nome, CNPJ, CRECI), faça upload do logo e personalize os relatórios PDF gerados pela plataforma.',
+    content: 'Configure dados da empresa (nome, CNPJ, CRECI), faça upload do logo e personalize todos os PDFs gerados.',
     placement: 'right',
     title: '⚙️ Configurações',
   },
@@ -88,7 +106,7 @@ const tourSteps: Step[] = [
   // Assistente Sofia
   {
     target: '[data-tour="sofia-assistant"]',
-    content: 'Sofia é sua assistente de mercado com IA. Pergunte sobre preços, tendências, comparativos entre bairros. Aceita entrada por voz e responde com dados oficiais!',
+    content: 'Sofia é sua assistente IA de mercado. Pergunte sobre preços, tendências, comparativos. Aceita voz e analisa documentos!',
     placement: 'left',
     title: '🤖 Assistente Sofia',
   },
@@ -96,7 +114,7 @@ const tourSteps: Step[] = [
   // Exportação
   {
     target: '[data-tour="export-button"]',
-    content: 'Exporte dados em Excel, CSV ou PDF. Inclui opção de Backup Completo com todas as transações do banco de dados para análises externas.',
+    content: 'Exporte dados em Excel, CSV ou PDF. Inclui opção de Backup Completo com todas as transações para análises externas.',
     placement: 'bottom',
     title: '📥 Exportar Dados',
   },
@@ -104,7 +122,7 @@ const tourSteps: Step[] = [
   // Sincronização Dados Oficiais (admin)
   {
     target: '[data-tour="sync-itbi"]',
-    content: 'Sincronize dados de transações oficiais diretamente da API da Prefeitura do RJ. Selecione ano e meses específicos, visualize meses faltantes e atualize o banco de dados.',
+    content: 'Sincronize dados de transações ITBI diretamente da API da Prefeitura. Selecione ano/mês e atualize o banco de dados.',
     placement: 'bottom',
     title: '🔄 Atualizar Dados',
   },
@@ -112,7 +130,7 @@ const tourSteps: Step[] = [
   // Manual
   {
     target: '[data-tour="nav-onboarding"]',
-    content: 'Acesse o Manual completo da plataforma com explicações detalhadas de cada funcionalidade, dicas de uso e FAQ. Você pode reiniciar este tour a qualquer momento!',
+    content: 'Manual completo com 11 módulos, 60+ FAQs e tours guiados. Baixe o PDF ou reinicie este tour a qualquer momento!',
     placement: 'right',
     title: '📖 Manual e Tour',
   },

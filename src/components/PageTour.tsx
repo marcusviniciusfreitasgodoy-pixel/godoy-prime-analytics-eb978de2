@@ -8,9 +8,21 @@ export const tourConfigs: Record<string, Step[]> = {
   // Microregiões
   microbairros: [
     {
+      target: '[data-tour="microbairros-search"]',
+      content: 'Pesquise por nome do logradouro. O sistema sugere automaticamente enquanto você digita.',
+      disableBeacon: true,
+      placement: 'bottom',
+      title: '🔍 Busca por Logradouro',
+    },
+    {
+      target: '[data-tour="microbairros-condominio"]',
+      content: 'Ou pesquise por nome do condomínio para ver estatísticas específicas daquele empreendimento.',
+      placement: 'bottom',
+      title: '🏢 Busca por Condomínio',
+    },
+    {
       target: '[data-tour="microbairros-selector"]',
       content: 'Selecione uma microregião específica para ver estatísticas detalhadas: mediana, média, mínimo, máximo e número de transações.',
-      disableBeacon: true,
       placement: 'bottom',
       title: '📍 Seleção de Microbairro',
     },
@@ -19,6 +31,12 @@ export const tourConfigs: Record<string, Step[]> = {
       content: 'Estatísticas detalhadas da microregião: preço médio, mediana, valores mínimo e máximo, e total de transações nos últimos 24 meses.',
       placement: 'bottom',
       title: '📊 Estatísticas',
+    },
+    {
+      target: '[data-tour="microbairros-compare"]',
+      content: 'Compare até 5 logradouros simultaneamente. Adicione ruas para ver gráfico comparativo de evolução de preços.',
+      placement: 'bottom',
+      title: '📈 Comparar Logradouros',
     },
     {
       target: '[data-tour="microbairros-chart"]',
@@ -74,39 +92,74 @@ export const tourConfigs: Record<string, Step[]> = {
     },
     {
       target: '[data-tour="avaliacao-step0"]',
-      content: 'Informe os dados do imóvel: endereço, tipo (Casa/Apartamento), metragem, quartos, vagas e dados do proprietário.',
+      content: 'Informe os dados do imóvel: endereço, tipo (Casa/Apartamento), e dados do proprietário (nome, telefone, objetivo).',
       placement: 'bottom',
-      title: '📝 Etapa 1: Identificação',
+      title: '📝 Etapa 0: Identificação',
     },
     {
       target: '[data-tour="avaliacao-step1"]',
-      content: 'Busque a rua para ver estatísticas oficiais da região. Você pode inserir dados de anúncios para combinação 70% dados oficiais + 30% mercado.',
+      content: 'Busque a rua para ver estatísticas oficiais ITBI. Opcionalmente insira dados de anúncios para base combinada (70% + 30%).',
       placement: 'bottom',
-      title: '📍 Etapa 2: Localização',
+      title: '📍 Etapa 1: Localização',
     },
     {
       target: '[data-tour="avaliacao-step2"]',
-      content: 'Confirme a área do imóvel e escolha a base de preço: apenas dados oficiais, combinada (Oficiais+Anúncios) ou valor customizado.',
+      content: 'Confirme a área, quartos, suítes, banheiros, vagas. Escolha a base de preço: Oficial, Combinada ou Customizada.',
       placement: 'bottom',
-      title: '📐 Etapa 3: Dados Básicos',
+      title: '📐 Etapa 2: Dados Básicos',
     },
     {
       target: '[data-tour="avaliacao-step3"]',
-      content: '26 características em 5 categorias: Posição/Vista, Conservação, Conforto, Segurança e Funcionalidade. Cada resposta ajusta o valor final.',
+      content: '26 características em 5 categorias: Posição/Vista, Conservação, Conforto, Segurança e Funcionalidade. Cada resposta ajusta o valor.',
       placement: 'top',
-      title: '✅ Etapa 4: Características',
+      title: '✅ Etapa 3: Características',
     },
     {
       target: '[data-tour="avaliacao-step4"]',
-      content: 'Três cenários de valor: Pessimista, Provável e Otimista. Veja o spread percentual e o nível de confiança (Verde/Amarelo/Vermelho).',
+      content: 'Três cenários de valor: Pessimista, Provável e Otimista. Veja spread percentual e nível de confiança (Verde/Amarelo/Vermelho).',
       placement: 'top',
-      title: '💰 Etapa 5: Resultados',
+      title: '💰 Etapa 4: Resultados',
     },
     {
       target: '[data-tour="avaliacao-step5"]',
-      content: 'Recomendação final com próximos passos. Escolha entre prosseguir para Vistoria Digital completa ou gerar relatório simplificado.',
+      content: 'Recomendação final. Prossiga para Vistoria Digital, Estratégia de Precificação ou gere laudo PDF profissional.',
       placement: 'top',
-      title: '📋 Etapa 6: Recomendação',
+      title: '📋 Etapa 5: Recomendação',
+    },
+  ],
+
+  // Estratégia de Precificação
+  precificacao: [
+    {
+      target: '[data-tour="precificacao-diagnostico"]',
+      content: 'Responda 9 perguntas diagnósticas sobre o imóvel: tempo no mercado, concorrência, prioridade, horizonte de tempo, etc.',
+      disableBeacon: true,
+      placement: 'bottom',
+      title: '🎯 Diagnóstico',
+    },
+    {
+      target: '[data-tour="precificacao-estrategias"]',
+      content: '3 estratégias calculadas: Atração (venda rápida, -5% a -10%), Mercado (equilibrada) e Premium (maximização, +5% a +10%).',
+      placement: 'top',
+      title: '📊 Estratégias',
+    },
+    {
+      target: '[data-tour="precificacao-recomendacao"]',
+      content: 'O sistema recomenda automaticamente a estratégia ideal baseado nas suas respostas ao diagnóstico.',
+      placement: 'top',
+      title: '⭐ Recomendação',
+    },
+    {
+      target: '[data-tour="precificacao-detalhes"]',
+      content: 'Para cada estratégia: preço de anúncio, comissão estimada, líquido ao vendedor e prêmio/desconto sobre valor de referência.',
+      placement: 'top',
+      title: '💰 Detalhes Financeiros',
+    },
+    {
+      target: '[data-tour="precificacao-ajuste"]',
+      content: 'Plano de Ajuste: cronograma de reduções programadas caso o imóvel não venda no prazo inicial.',
+      placement: 'top',
+      title: '📉 Plano de Ajuste',
     },
   ],
 
@@ -127,7 +180,30 @@ export const tourConfigs: Record<string, Step[]> = {
     },
     {
       target: '[data-tour="historico-acoes"]',
-      content: 'Ações disponíveis: visualizar detalhes, gerar/baixar PDF ou excluir a avaliação.',
+      content: 'Ações disponíveis: visualizar detalhes, regenerar PDF, prosseguir para Precificação ou excluir.',
+      placement: 'left',
+      title: '⚙️ Ações',
+    },
+  ],
+
+  // Histórico de Vistorias
+  historicoVistorias: [
+    {
+      target: '[data-tour="historico-vistorias-list"]',
+      content: 'Todas as vistorias realizadas. Veja endereço, tipo (Casa/Apto), score de conservação e data.',
+      disableBeacon: true,
+      placement: 'bottom',
+      title: '📋 Lista de Vistorias',
+    },
+    {
+      target: '[data-tour="historico-vistorias-score"]',
+      content: 'Score de conservação (0-100): Verde (≥80 Excelente), Amarelo (≥60 Bom), Vermelho (<60 Atenção).',
+      placement: 'bottom',
+      title: '⭐ Score',
+    },
+    {
+      target: '[data-tour="historico-vistorias-acoes"]',
+      content: 'Ações: visualizar detalhes, regenerar laudo PDF ou prosseguir para Avaliação Imobiliária.',
       placement: 'left',
       title: '⚙️ Ações',
     },
@@ -137,38 +213,38 @@ export const tourConfigs: Record<string, Step[]> = {
   vistoria: [
     {
       target: '[data-tour="vistoria-tipo"]',
-      content: 'Badge indica o tipo de vistoria selecionado: Casa (20 categorias, ~55 itens) ou Apartamento (18 categorias, ~50 itens).',
+      content: 'Selecione o tipo: Casa (20 categorias, ~55 itens) ou Apartamento (18 categorias, ~50 itens).',
       disableBeacon: true,
       placement: 'bottom',
       title: '🏠 Tipo de Imóvel',
     },
     {
       target: '[data-tour="vistoria-score"]',
-      content: 'Pontuação global (0-100) calculada automaticamente com base nas avaliações. Verde (≥80), Amarelo (≥60), Vermelho (<60). Mostra também quantidade de itens críticos e fotos.',
+      content: 'Pontuação global (0-100) calculada automaticamente. Verde (≥80), Amarelo (≥60), Vermelho (<60). Mostra itens críticos e fotos.',
       placement: 'bottom',
       title: '⭐ Score e Progresso',
     },
     {
       target: '[data-tour="vistoria-dados"]',
-      content: 'Preencha os dados de identificação: endereço (com autocomplete), tipo, metragem, cômodos, proprietário e data da vistoria.',
+      content: 'Preencha identificação: endereço (autocomplete), tipo, metragem, cômodos, proprietário e data.',
       placement: 'top',
       title: '📝 Dados do Imóvel',
     },
     {
       target: '[data-tour="vistoria-checklist"]',
-      content: 'Avalie cada item de 1 (Crítico) a 5 (Excelente) ou N/A. Clique no ícone de câmera para adicionar fotos. No mobile, deslize para navegar entre categorias.',
+      content: 'Avalie cada item: OK (5), Atenção (3), Crítico (1), Não Verificado ou N/A. Clique na câmera para adicionar fotos.',
       placement: 'top',
       title: '✅ Checklist de Vistoria',
     },
     {
       target: '[data-tour="vistoria-pdf"]',
-      content: 'Gere o laudo PDF profissional (5-7 páginas) com capa, resumo executivo, radar de diagnóstico, checklist e galeria de fotos. Disponível após 50% de preenchimento.',
+      content: 'Gere laudo PDF (5-7 páginas): capa, resumo executivo, radar de diagnóstico, checklist e galeria de fotos. Disponível após 50%.',
       placement: 'left',
       title: '📄 Gerar Laudo PDF',
     },
     {
       target: '[data-tour="vistoria-avaliacao"]',
-      content: 'Após a vistoria, vá para Avaliação Imobiliária com todos os dados pré-preenchidos para calcular o valor de mercado baseado em dados oficiais.',
+      content: 'Após a vistoria, prossiga para Avaliação Imobiliária com dados pré-preenchidos.',
       placement: 'left',
       title: '💰 Ir para Avaliação',
     },
@@ -178,50 +254,50 @@ export const tourConfigs: Record<string, Step[]> = {
   visitas: [
     {
       target: '[data-tour="visitas-kpis"]',
-      content: 'Métricas principais: total de visitas, agendamentos pendentes, taxa de conversão e média de visitas por corretor. Atualizadas em tempo real.',
+      content: 'KPIs principais: total de visitas, agendamentos pendentes, taxa de conversão e média por corretor. Tempo real.',
       disableBeacon: true,
       placement: 'bottom',
       title: '📊 KPIs de Visitas',
     },
     {
       target: '[data-tour="visitas-nova"]',
-      content: 'Crie um novo agendamento de visita. Preencha dados do cliente, imóvel, data/hora e tipo de serviço (visita, avaliação, consultoria ou fotografia).',
+      content: 'Crie agendamento: dados do cliente, imóvel, data/hora e tipo (visita, avaliação, consultoria, fotografia).',
       placement: 'bottom',
       title: '➕ Nova Visita',
     },
     {
       target: '[data-tour="visitas-disponibilidade"]',
-      content: 'Gerencie sua disponibilidade de horários. Defina dias e horários disponíveis para agendamentos automáticos.',
+      content: 'Gerencie sua disponibilidade de horários. Defina dias e horários para agendamentos automáticos.',
       placement: 'bottom',
       title: '📅 Disponibilidade',
     },
     {
       target: '[data-tour="visitas-tabs"]',
-      content: 'Navegue entre: Dashboard (gráficos e métricas), Agendamentos (próximas visitas), Fichas (visitas realizadas) e Ranking (desempenho dos corretores).',
+      content: 'Navegue: Dashboard (gráficos), Agendamentos (próximas), Fichas (realizadas) e Ranking (desempenho).',
       placement: 'bottom',
-      title: '🗂️ Abas de Navegação',
+      title: '🗂️ Abas',
     },
     {
       target: '[data-tour="visitas-dashboard"]',
-      content: 'Visualize a evolução mensal de visitas e o ranking dos corretores por número de atendimentos.',
+      content: 'Evolução mensal de visitas e ranking dos corretores por atendimentos realizados.',
       placement: 'top',
       title: '📈 Dashboard',
     },
     {
       target: '[data-tour="visitas-agendamentos"]',
-      content: 'Lista de visitas agendadas com status (Agendada, Confirmada, Realizada, Cancelada). Clique em um card para ver detalhes ou converter em ficha.',
+      content: 'Lista com status (Agendada, Confirmada, Realizada, Cancelada). Clique para detalhes ou converter em ficha.',
       placement: 'top',
       title: '📋 Agendamentos',
     },
     {
       target: '[data-tour="visitas-fichas"]',
-      content: 'Fichas de visita preenchidas com dados completos do cliente, imóvel e declaração de intermediação. Inclui assinaturas digitais e feedback.',
+      content: 'Fichas completas: dados do cliente, imóvel, declaração de intermediação, assinaturas e feedback.',
       placement: 'top',
       title: '📝 Fichas de Visita',
     },
     {
       target: '[data-tour="visitas-ranking"]',
-      content: 'Ranking dos corretores por número de visitas realizadas. Identifique os top performers da equipe.',
+      content: 'Ranking dos corretores por número de visitas. Identifique top performers.',
       placement: 'top',
       title: '🏆 Ranking',
     },
@@ -231,58 +307,58 @@ export const tourConfigs: Record<string, Step[]> = {
   fichaVisita: [
     {
       target: '[data-tour="ficha-header"]',
-      content: 'Código único da ficha, status atual e data de criação. Use o seletor ao lado para alterar o status (Agendada → Confirmada → Realizada).',
+      content: 'Código único, status atual e data. Use seletor para alterar status (Agendada → Confirmada → Realizada).',
       disableBeacon: true,
       placement: 'bottom',
-      title: '📋 Identificação da Ficha',
+      title: '📋 Identificação',
     },
     {
       target: '[data-tour="ficha-export-pdf"]',
-      content: 'Gere o PDF profissional da ficha com todos os dados, declaração de intermediação e assinaturas. Ideal para arquivamento e comprovação.',
+      content: 'Gere PDF profissional com dados, declaração e assinaturas. Ideal para arquivamento.',
       placement: 'bottom',
       title: '📄 Exportar PDF',
     },
     {
       target: '[data-tour="ficha-imovel"]',
-      content: 'Dados completos do imóvel: endereço, código interno, valor de referência e nome do proprietário. Clique em "Editar" para alterar.',
+      content: 'Dados do imóvel: endereço, código, valor e proprietário. Clique em "Editar" para alterar.',
       placement: 'right',
       title: '🏠 Dados do Imóvel',
     },
     {
       target: '[data-tour="ficha-visitante"]',
-      content: 'Informações do cliente visitante: nome completo, CPF, telefone e email. Essenciais para a declaração de intermediação.',
+      content: 'Dados do cliente: nome, CPF, telefone e email. Essenciais para declaração.',
       placement: 'right',
       title: '👤 Dados do Visitante',
     },
     {
       target: '[data-tour="ficha-observacoes"]',
-      content: 'Campo livre para anotações sobre a visita: impressões do cliente, pontos de interesse, objeções levantadas, etc.',
+      content: 'Anotações da visita: impressões, pontos de interesse, objeções levantadas.',
       placement: 'top',
       title: '📝 Observações',
     },
     {
       target: '[data-tour="ficha-assinaturas"]',
-      content: 'Assinaturas digitais do visitante e corretor. Use o canvas para assinar diretamente ou envie o link para assinatura remota.',
+      content: 'Assinaturas digitais do visitante e corretor. Canvas para assinar ou envie link remoto.',
       placement: 'top',
       title: '✍️ Assinaturas Digitais',
     },
     {
       target: '[data-tour="ficha-info"]',
-      content: 'Resumo: data/hora da visita, corretor responsável e status das assinaturas (verde = assinado).',
+      content: 'Resumo: data/hora, corretor responsável, status das assinaturas (verde = assinado).',
       placement: 'left',
-      title: '📅 Informações da Visita',
+      title: '📅 Informações',
     },
     {
       target: '[data-tour="ficha-assinatura-digital"]',
-      content: 'Links para assinatura remota: envie via WhatsApp ou email para que cliente e corretor assinem pelo celular, sem necessidade de estar presencial.',
+      content: 'Links para assinatura remota via WhatsApp ou email. Cliente assina pelo celular.',
       placement: 'left',
       title: '📲 Links de Assinatura',
     },
     {
       target: '[data-tour="ficha-feedback"]',
-      content: 'Link para coleta de feedback pós-visita. O cliente avalia o imóvel, informa interesse e pode registrar observações. Envie por email diretamente.',
+      content: 'Link de feedback pós-visita. Cliente avalia imóvel e informa interesse.',
       placement: 'left',
-      title: '⭐ Feedback do Cliente',
+      title: '⭐ Feedback',
     },
   ],
 
@@ -290,38 +366,38 @@ export const tourConfigs: Record<string, Step[]> = {
   documentacao: [
     {
       target: '[data-tour="documentacao-progress"]',
-      content: 'Barra de progresso mostra quantos documentos já foram coletados. Acompanhe o andamento da due diligence em tempo real.',
+      content: 'Barra de progresso mostra documentos coletados. Acompanhe due diligence em tempo real.',
       disableBeacon: true,
       placement: 'bottom',
       title: '📊 Progresso',
     },
     {
       target: '[data-tour="documentacao-analyzer"]',
-      content: 'Use IA para analisar documentos enviados. O sistema identifica automaticamente qual item do checklist corresponde ao documento.',
+      content: 'IA analisa documentos enviados. Identifica automaticamente qual item do checklist corresponde.',
       placement: 'bottom',
       title: '🤖 Análise Inteligente',
     },
     {
       target: '[data-tour="documentacao-perfil-vendedor"]',
-      content: 'Configure o perfil do vendedor: marque se é empresário/PJ ou está em união estável para adicionar documentos específicos ao checklist.',
+      content: 'Perfil do vendedor: marque PJ ou União Estável para adicionar documentos específicos.',
       placement: 'bottom',
       title: '👤 Perfil do Vendedor',
     },
     {
       target: '[data-tour="documentacao-perfil-comprador"]',
-      content: 'Configure o perfil do comprador: comunhão total de bens ou união estável adiciona campos para qualificação do cônjuge.',
+      content: 'Perfil do comprador: comunhão de bens ou união estável adiciona campos do cônjuge.',
       placement: 'bottom',
       title: '👥 Perfil do Comprador',
     },
     {
       target: '[data-tour="documentacao-checklist"]',
-      content: 'Marque os documentos conforme forem coletados. Use as tooltips (?) para ver explicações detalhadas de cada documento.',
+      content: 'Marque documentos coletados. Use tooltips (?) para explicações detalhadas.',
       placement: 'top',
       title: '✅ Checklist',
     },
     {
       target: '[data-tour="documentacao-export"]',
-      content: 'Exporte PDFs separados: Checklist do Vendedor, Checklist do Comprador ou Documentação Completa.',
+      content: 'Exporte PDFs separados: Vendedor, Comprador ou Documentação Completa.',
       placement: 'left',
       title: '📄 Exportar PDF',
     },
@@ -331,20 +407,20 @@ export const tourConfigs: Record<string, Step[]> = {
   configuracoes: [
     {
       target: '[data-tour="config-logo"]',
-      content: 'Faça upload do logo da empresa. Ele aparecerá nos cabeçalhos de todos os PDFs gerados pela plataforma.',
+      content: 'Upload do logo da empresa. Aparecerá nos cabeçalhos de todos os PDFs.',
       disableBeacon: true,
       placement: 'bottom',
       title: '🖼️ Logo da Empresa',
     },
     {
       target: '[data-tour="config-dados"]',
-      content: 'Configure os dados da empresa: Nome, CNPJ, CRECI, telefone, email e endereço. Esses dados aparecem nos rodapés dos relatórios.',
+      content: 'Dados da empresa: Nome, CNPJ, CRECI, telefone, email e endereço. Aparecem nos rodapés.',
       placement: 'top',
       title: '📝 Dados da Empresa',
     },
     {
       target: '[data-tour="config-preview"]',
-      content: 'Visualize em tempo real como o rodapé dos PDFs aparecerá com os dados configurados.',
+      content: 'Visualize em tempo real como o rodapé dos PDFs aparecerá.',
       placement: 'top',
       title: '👁️ Preview do Rodapé',
     },
@@ -354,20 +430,20 @@ export const tourConfigs: Record<string, Step[]> = {
   leads: [
     {
       target: '[data-tour="leads-stats"]',
-      content: 'Estatísticas gerais: total de leads, convertidos, taxa de conversão e leads na última semana.',
+      content: 'Estatísticas: total de leads, convertidos, taxa de conversão e leads na última semana.',
       disableBeacon: true,
       placement: 'bottom',
       title: '📊 Estatísticas',
     },
     {
       target: '[data-tour="leads-list"]',
-      content: 'Lista de todos os leads capturados. Veja nome, email, telefone, interesse, origem e data.',
+      content: 'Lista de leads capturados: nome, email, telefone, interesse, origem e data.',
       placement: 'top',
       title: '📋 Lista de Leads',
     },
     {
       target: '[data-tour="leads-detail"]',
-      content: 'Clique em um lead para ver detalhes completos: imóvel de interesse, faixa de valor, diferenciais buscados.',
+      content: 'Clique para detalhes: imóvel de interesse, faixa de valor, diferenciais buscados.',
       placement: 'left',
       title: '🔍 Detalhes',
     },
@@ -377,16 +453,62 @@ export const tourConfigs: Record<string, Step[]> = {
   usuarios: [
     {
       target: '[data-tour="usuarios-list"]',
-      content: 'Todos os usuários da plataforma com nome, email, papel (admin/corretor/gerente) e última atividade.',
+      content: 'Usuários da plataforma: nome, email, papel (admin/corretor/gerente) e última atividade.',
       disableBeacon: true,
       placement: 'bottom',
       title: '👥 Lista de Usuários',
     },
     {
       target: '[data-tour="usuarios-stats"]',
-      content: 'Estatísticas de uso por usuário: logins, pesquisas realizadas, avaliações, vistorias e exportações.',
+      content: 'Estatísticas de uso: logins, pesquisas, avaliações, vistorias e exportações.',
       placement: 'top',
       title: '📊 Estatísticas de Uso',
+    },
+  ],
+
+  // Base de Conhecimento
+  baseConhecimento: [
+    {
+      target: '[data-tour="base-categorias"]',
+      content: 'Categorias de conhecimento: Plataforma, Mercado, Avaliação, Documentação, etc.',
+      disableBeacon: true,
+      placement: 'bottom',
+      title: '📚 Categorias',
+    },
+    {
+      target: '[data-tour="base-artigos"]',
+      content: 'Artigos que a Sofia usa para responder perguntas. Adicione conteúdo personalizado.',
+      placement: 'top',
+      title: '📝 Artigos',
+    },
+    {
+      target: '[data-tour="base-adicionar"]',
+      content: 'Adicione novos artigos para treinar a Sofia com conhecimento específico da sua empresa.',
+      placement: 'left',
+      title: '➕ Adicionar Artigo',
+    },
+  ],
+
+  // Calibrador de Avaliação
+  calibrador: [
+    {
+      target: '[data-tour="calibrador-categorias"]',
+      content: 'Categorias de características: Posição/Vista, Conservação, Conforto, Segurança, Funcionalidade.',
+      disableBeacon: true,
+      placement: 'bottom',
+      title: '📊 Categorias',
+    },
+    {
+      target: '[data-tour="calibrador-pesos"]',
+      content: 'Ajuste os pesos de cada característica. Valores maiores = maior impacto no valor final.',
+      placement: 'top',
+      title: '⚖️ Pesos',
+    },
+    {
+      target: '[data-tour="calibrador-caps"]',
+      content: 'Configure limites mínimo e máximo para cada categoria. Evita ajustes extremos.',
+      placement: 'top',
+      title: '🎚️ Limites',
     },
   ],
 };
@@ -466,13 +588,12 @@ export function PageTour({ page, run, onFinish }: PageTourProps) {
         close: 'Fechar',
         last: 'Finalizar',
         next: 'Próximo',
-        skip: 'Pular Tour',
+        skip: 'Pular',
       }}
     />
   );
 }
 
-// Reusable tour button component
 interface TourButtonProps {
   onClick: () => void;
   className?: string;
@@ -481,8 +602,13 @@ interface TourButtonProps {
 
 export function TourButton({ onClick, className, size = "sm" }: TourButtonProps) {
   return (
-    <Button variant="outline" size={size} onClick={onClick} className={className}>
-      <HelpCircle className="h-4 w-4 mr-2" />
+    <Button
+      variant="outline"
+      size={size}
+      onClick={onClick}
+      className={className}
+    >
+      <HelpCircle className="h-4 w-4 mr-1" />
       Tour
     </Button>
   );
