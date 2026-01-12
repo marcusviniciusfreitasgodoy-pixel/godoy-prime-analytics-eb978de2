@@ -750,6 +750,7 @@ export default function VistoriaDigital() {
         valorAvaliacao: number | null;
         valuationId: string | null;
         avaliacaoData?: AvaliacaoData | null;
+        pricingStrategy?: any;
       };
       propertyData?: {
         logradouro?: string;
@@ -1134,7 +1135,10 @@ export default function VistoriaDigital() {
         }
       }
       
-      // Generate PDF
+      // Generate PDF - include pricingStrategy from location state if available
+      const locationState = location.state as any;
+      const pricingStrategy = locationState?.vistoriaData?.pricingStrategy || null;
+      
       await generateVistoriaPDF({
         propertyData,
         checklist,
@@ -1144,6 +1148,7 @@ export default function VistoriaDigital() {
         progress,
         criticalCount,
         avaliacaoData,
+        pricingStrategy,
       });
       
       // Track vistoria completion
@@ -1177,6 +1182,9 @@ export default function VistoriaDigital() {
   };
 
   const handleGeneratePdfForEmail = async () => {
+    const locationState = location.state as any;
+    const pricingStrategy = locationState?.vistoriaData?.pricingStrategy || null;
+    
     return await generateVistoriaPDFDoc({
       propertyData,
       checklist,
@@ -1186,6 +1194,7 @@ export default function VistoriaDigital() {
       progress: getProgress(),
       criticalCount: getCriticalCount(),
       avaliacaoData,
+      pricingStrategy,
     });
   };
 
