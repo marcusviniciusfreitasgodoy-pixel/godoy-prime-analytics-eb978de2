@@ -70,25 +70,25 @@ const App = () => (
                             <Header />
                             <main className="flex-1 overflow-auto p-3 sm:p-4 lg:p-6">
                               <Routes>
-                                <Route path="/" element={<Dashboard />} />
-                                <Route path="/microbairros" element={<Microbairros />} />
-                                <Route path="/pesquisas-mercado" element={<PesquisasMercado />} />
-                                <Route path="/avaliacao-imobiliaria" element={<AvaliacaoImobiliaria />} />
-                                <Route path="/historico-avaliacoes" element={<HistoricoAvaliacoes />} />
-                                <Route path="/vistoria-digital" element={<VistoriaDigital />} />
-                                <Route path="/historico-vistorias" element={<HistoricoVistorias />} />
-                                <Route path="/documentacao" element={<Documentacao />} />
-                                <Route path="/manual" element={<ManualPlataforma />} />
-                                <Route path="/base-conhecimento" element={<BaseConhecimento />} />
-                                <Route path="/calibrador-avaliacao" element={<CalibradorAvaliacao />} />
-                                <Route path="/leads" element={<Leads />} />
-                                <Route path="/usuarios" element={<Usuarios />} />
-                                <Route path="/onboarding" element={<Onboarding />} />
-                                <Route path="/visitas" element={<Visitas />} />
-                                <Route path="/visitas/agendar" element={<AgendarVisita />} />
-                                <Route path="/visitas/disponibilidade" element={<DisponibilidadeVisitas />} />
-                                <Route path="/visitas/ficha/:id" element={<FichaVisitaPage />} />
-                                <Route path="/configuracoes" element={<Configuracoes />} />
+                              <Route path="/" element={<Dashboard />} />
+                              <Route path="/microbairros" element={<Microbairros />} />
+                              <Route path="/pesquisas-mercado" element={<PesquisasMercado />} />
+                              <Route path="/avaliacao-imobiliaria" element={<AvaliacaoImobiliaria />} />
+                              <Route path="/historico-avaliacoes" element={<HistoricoAvaliacoes />} />
+                              <Route path="/vistoria-digital" element={<VistoriaDigital />} />
+                              <Route path="/historico-vistorias" element={<HistoricoVistorias />} />
+                              <Route path="/documentacao" element={<Documentacao />} />
+                              <Route path="/manual" element={<ManualPlataforma />} />
+                              <Route path="/base-conhecimento" element={<ProtectedRoute requireAdmin={true}><BaseConhecimento /></ProtectedRoute>} />
+                              <Route path="/calibrador-avaliacao" element={<ProtectedRoute requireAdmin={true}><CalibradorAvaliacao /></ProtectedRoute>} />
+                              <Route path="/leads" element={<ProtectedRoute requireAdmin={true}><Leads /></ProtectedRoute>} />
+                              <Route path="/usuarios" element={<ProtectedRoute requireAdmin={true}><Usuarios /></ProtectedRoute>} />
+                              <Route path="/onboarding" element={<Onboarding />} />
+                              <Route path="/visitas" element={<Visitas />} />
+                              <Route path="/visitas/agendar" element={<AgendarVisita />} />
+                              <Route path="/visitas/disponibilidade" element={<DisponibilidadeVisitas />} />
+                              <Route path="/visitas/ficha/:id" element={<FichaVisitaPage />} />
+                              <Route path="/configuracoes" element={<Configuracoes />} />
                                 <Route path="*" element={<NotFound />} />
                               </Routes>
                             </main>
