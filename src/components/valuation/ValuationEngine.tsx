@@ -117,6 +117,7 @@ export function ValuationEngine({ bairro = "BARRA DA TIJUCA", vistoriaData, edit
   const [fromVistoria, setFromVistoria] = useState(false);
   const [fromEditar, setFromEditar] = useState(false);
   const [editingValuationId, setEditingValuationId] = useState<string | undefined>(undefined);
+  const [autoAdvanceAfterLocation, setAutoAdvanceAfterLocation] = useState(false);
   
   const { data: characteristics, isLoading: loadingChars } = useValuationCharacteristics(state.tipoImovel);
   const { data: docFactors, isLoading: loadingDocs } = useDocumentationFactors();
@@ -259,6 +260,13 @@ export function ValuationEngine({ bairro = "BARRA DA TIJUCA", vistoriaData, edit
 
         return { ...prev, responses: normalizedResponses, result, historicalAnalysis };
       });
+    }
+
+    if (currentStep === 0) {
+      // Ao entrar na etapa de localização, avançar automaticamente assim que os dados ITBI forem carregados
+      setAutoAdvanceAfterLocation(true);
+    } else {
+      setAutoAdvanceAfterLocation(false);
     }
 
     if (currentStep < 5) {
@@ -516,6 +524,12 @@ export function ValuationEngine({ bairro = "BARRA DA TIJUCA", vistoriaData, edit
                 state={state}
                 updateState={updateState}
                 combined={combined}
+                onAutoValidated={() => {
+                  if (autoAdvanceAfterLocation) {
+                    setAutoAdvanceAfterLocation(false);
+                    setCurrentStep(2);
+                  }
+                }}
               />
             </div>
           )}
