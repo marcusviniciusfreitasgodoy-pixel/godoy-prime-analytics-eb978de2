@@ -199,7 +199,7 @@ serve(async (req) => {
       bairro = 'BARRA DA TIJUCA',
       microbairro,
       forceRefresh = false,
-      limit = 300 // Aumentado para processar todos de uma vez
+      limit = 50 // Limite menor para evitar timeout (edge functions têm 60s)
     } = body;
     
     console.log('Starting condominium enrichment', { condominioId, bairro, microbairro, forceRefresh, limit });
@@ -335,8 +335,8 @@ serve(async (req) => {
           status: 'enriched'
         });
         
-        // Rate limiting - aguardar entre requisições
-        await new Promise(resolve => setTimeout(resolve, 200));
+        // Rate limiting menor para processar mais rápido (Google permite ~50 req/s)
+        await new Promise(resolve => setTimeout(resolve, 100));
         
       } catch (err) {
         const errorMessage = err instanceof Error ? err.message : 'Unknown error';
