@@ -30,7 +30,7 @@ export function EnrichCondominiosButton({ onComplete }: EnrichCondominiosButtonP
   const [result, setResult] = useState<EnrichmentResult | null>(null);
   const [errorMessage, setErrorMessage] = useState("");
   const [forceRefresh, setForceRefresh] = useState(false);
-  const [limit, setLimit] = useState<string>("300");
+  const [limit, setLimit] = useState<string>("50");
   const [progress, setProgress] = useState(0);
   const [pendingCount, setPendingCount] = useState(0);
 
@@ -64,7 +64,8 @@ export function EnrichCondominiosButton({ onComplete }: EnrichCondominiosButtonP
 
       setProgress(20);
 
-      const limitNum = limit === "all" ? undefined : parseInt(limit);
+      const parsedLimit = parseInt(limit);
+      const limitNum = Number.isFinite(parsedLimit) ? Math.min(parsedLimit, 50) : 50;
       
       const { data, error } = await supabase.functions.invoke("enrich-condominios", {
         body: { 
@@ -169,10 +170,9 @@ export function EnrichCondominiosButton({ onComplete }: EnrichCondominiosButtonP
                       <SelectValue placeholder="Selecione o limite" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="50">50 condomínios</SelectItem>
+                      <SelectItem value="50">50 condomínios (recomendado)</SelectItem>
                       <SelectItem value="100">100 condomínios</SelectItem>
                       <SelectItem value="150">150 condomínios</SelectItem>
-                      <SelectItem value="300">Todos ({pendingCount})</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
