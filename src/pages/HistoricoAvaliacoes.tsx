@@ -371,13 +371,13 @@ export default function HistoricoAvaliacoes() {
   const getConfidenceBadge = (level: string) => {
     switch (level) {
       case "green":
-        return <Badge className="bg-emerald-500">Alta</Badge>;
+        return <Badge className="bg-success text-success-foreground">Alta</Badge>;
       case "yellow_high":
-        return <Badge className="bg-amber-500">Média-Alta</Badge>;
+        return <Badge className="bg-accent text-accent-foreground">Média-Alta</Badge>;
       case "yellow_medium":
-        return <Badge className="bg-yellow-500">Média</Badge>;
+        return <Badge className="bg-accent/80 text-accent-foreground">Média</Badge>;
       case "yellow":
-        return <Badge className="bg-yellow-500">Média</Badge>;
+        return <Badge className="bg-accent/80 text-accent-foreground">Média</Badge>;
       case "red":
         return <Badge variant="destructive">Baixa</Badge>;
       default:
@@ -706,8 +706,9 @@ export default function HistoricoAvaliacoes() {
                     <TableRow 
                       key={av.id}
                       className={`cursor-pointer hover:bg-muted/50 transition-colors ${selectedIds.has(av.id) ? 'bg-primary/10' : ''}`}
-                      onClick={() => {
-                        console.log('[HistoricoAvaliacoes] Row clicked:', av.id, 'isSelectionMode:', isSelectionMode);
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
                         if (isSelectionMode) {
                           toggleSelection(av.id);
                         } else {
