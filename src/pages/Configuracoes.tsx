@@ -1,12 +1,12 @@
 import { Helmet } from "react-helmet-async";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { CompanyLogoUpload } from "@/components/CompanyLogoUpload";
-import { Settings, Building2, Phone, MapPin, FileText, Globe, Eye, Filter, Database, Trash2 } from "lucide-react";
+import { Settings, Building2, Phone, MapPin, FileText, Globe, Eye, Filter, Database, Trash2, User, Briefcase } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { SimpleRadioGroup, SimpleRadioItem } from "@/components/ui/simple-radio";
-import { useCompanySettings, type OutlierFilterMethod } from "@/hooks/useCompanySettings";
+import { useCompanySettings, type OutlierFilterMethod, type PersonType } from "@/hooks/useCompanySettings";
 import { useState, useEffect } from "react";
 import { clearAllHistoricalCache, getCacheStats } from "@/utils/historicalAnalysisCache";
 import { toast } from "sonner";
@@ -14,6 +14,7 @@ import { toast } from "sonner";
 export default function Configuracoes() {
   const { settings, isLoading, updateSetting } = useCompanySettings();
   
+  const [personType, setPersonType] = useState<PersonType>('pj');
   const [companyName, setCompanyName] = useState('');
   const [companyPhone, setCompanyPhone] = useState('');
   const [companyCnpj, setCompanyCnpj] = useState('');
@@ -31,6 +32,7 @@ export default function Configuracoes() {
 
   useEffect(() => {
     if (!isLoading) {
+      setPersonType(settings.person_type);
       setCompanyName(settings.company_name);
       setCompanyPhone(settings.company_phone);
       setCompanyCnpj(settings.company_cnpj);
@@ -45,6 +47,7 @@ export default function Configuracoes() {
     setIsSaving(true);
     try {
       await Promise.all([
+        updateSetting('person_type', personType),
         updateSetting('company_name', companyName),
         updateSetting('company_phone', companyPhone),
         updateSetting('company_cnpj', companyCnpj),
@@ -56,6 +59,8 @@ export default function Configuracoes() {
       setIsSaving(false);
     }
   };
+
+  const isPessoaFisica = personType === 'pf';
 
   // Get initials for the monogram
   const getMonogram = () => {
@@ -100,25 +105,56 @@ export default function Configuracoes() {
             </CardContent>
           </Card>
 
-          {/* Informações da Empresa */}
+          {/* Informações da Empresa/Corretor */}
           <Card>
             <CardHeader className="p-4 sm:p-6">
               <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
                 <FileText className="h-4 w-4 sm:h-5 sm:w-5" />
-                Informações da Empresa
+                {isPessoaFisica ? 'Informações do Corretor' : 'Informações da Empresa'}
               </CardTitle>
               <CardDescription className="text-xs sm:text-sm">
                 Configure os dados que aparecem nos PDFs
               </CardDescription>
             </CardHeader>
             <CardContent className="p-4 sm:p-6 pt-0 sm:pt-0 space-y-3 sm:space-y-4">
+              {/* Tipo de Pessoa */}
+              <div className="space-y-2">
+                <Label className="text-xs sm:text-sm">Tipo de Cadastro</Label>
+                <div className="flex gap-2">
+                  <Button
+                    type="button"
+                    variant={personType === 'pj' ? 'default' : 'outline'}
+                    size="sm"
+                    onClick={() => setPersonType('pj')}
+                    className="flex-1 gap-2"
+                    disabled={isLoading}
+                  >
+                    <Briefcase className="h-4 w-4" />
+                    Pessoa Jurídica
+                  </Button>
+                  <Button
+                    type="button"
+                    variant={personType === 'pf' ? 'default' : 'outline'}
+                    size="sm"
+                    onClick={() => setPersonType('pf')}
+                    className="flex-1 gap-2"
+                    disabled={isLoading}
+                  >
+                    <User className="h-4 w-4" />
+                    Pessoa Física
+                  </Button>
+                </div>
+              </div>
+
               <div className="space-y-1.5 sm:space-y-2">
-                <Label htmlFor="company_name" className="text-xs sm:text-sm">Nome da Empresa</Label>
+                <Label htmlFor="company_name" className="text-xs sm:text-sm">
+                  {isPessoaFisica ? 'Nome Completo' : 'Nome da Empresa'}
+                </Label>
                 <Input
                   id="company_name"
                   value={companyName}
                   onChange={(e) => setCompanyName(e.target.value)}
-                  placeholder="Nome da empresa"
+                  placeholder={isPessoaFisica ? 'Seu nome completo' : 'Nome da empresa'}
                   disabled={isLoading}
                   className="h-9 sm:h-10 text-sm"
                 />
@@ -126,12 +162,14 @@ export default function Configuracoes() {
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                 <div className="space-y-1.5 sm:space-y-2">
-                  <Label htmlFor="company_cnpj" className="text-xs sm:text-sm">CNPJ</Label>
+                  <Label htmlFor="company_cnpj" className="text-xs sm:text-sm">
+                    {isPessoaFisica ? 'CPF' : 'CNPJ'}
+                  </Label>
                   <Input
                     id="company_cnpj"
                     value={companyCnpj}
                     onChange={(e) => setCompanyCnpj(e.target.value)}
-                    placeholder="00.000.000/0000-00"
+                    placeholder={isPessoaFisica ? '000.000.000-00' : '00.000.000/0000-00'}
                     disabled={isLoading}
                     className="h-9 sm:h-10 text-sm"
                   />
@@ -142,7 +180,7 @@ export default function Configuracoes() {
                     id="company_creci"
                     value={companyCreci}
                     onChange={(e) => setCompanyCreci(e.target.value)}
-                    placeholder="CRECI 00000-PJ"
+                    placeholder={isPessoaFisica ? 'CRECI 00000' : 'CRECI 00000-PJ'}
                     disabled={isLoading}
                     className="h-9 sm:h-10 text-sm"
                   />
@@ -335,7 +373,9 @@ export default function Configuracoes() {
                     </p>
                   )}
                   {companyCnpj && (
-                    <p className="text-[6px] sm:text-[8px] text-white/80">CNPJ: {companyCnpj}</p>
+                    <p className="text-[6px] sm:text-[8px] text-white/80">
+                      {isPessoaFisica ? 'CPF' : 'CNPJ'}: {companyCnpj}
+                    </p>
                   )}
                 </div>
 

@@ -29,6 +29,7 @@ export interface CompanyInfo {
   cnpj?: string;
   website?: string;
   logoUrl?: string | null;
+  personType?: 'pf' | 'pj';
 }
 
 /**
@@ -51,6 +52,7 @@ export async function fetchCompanyInfoForPDF(): Promise<CompanyInfo> {
       website: CONTACT_INFO.website,
       cnpj: CONTACT_INFO.cnpj,
       logoUrl: null,
+      personType: 'pj',
     };
 
     data?.forEach((row) => {
@@ -76,6 +78,11 @@ export async function fetchCompanyInfoForPDF(): Promise<CompanyInfo> {
         case 'custom_logo_url':
           companyInfo.logoUrl = row.setting_value;
           break;
+        case 'person_type':
+          if (row.setting_value === 'pf' || row.setting_value === 'pj') {
+            companyInfo.personType = row.setting_value;
+          }
+          break;
       }
     });
 
@@ -90,6 +97,7 @@ export async function fetchCompanyInfoForPDF(): Promise<CompanyInfo> {
       website: CONTACT_INFO.website,
       cnpj: CONTACT_INFO.cnpj,
       logoUrl: null,
+      personType: 'pj',
     };
   }
 }

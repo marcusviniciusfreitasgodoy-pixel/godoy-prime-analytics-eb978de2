@@ -3,12 +3,14 @@ import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 
 export type OutlierFilterMethod = 'iqr' | 'percentile';
+export type PersonType = 'pj' | 'pf';
 
 export interface CompanySettings {
   custom_logo_url: string | null;
+  person_type: PersonType;
   company_name: string;
   company_phone: string;
-  company_cnpj: string;
+  company_cnpj: string; // CNPJ para PJ ou CPF para PF
   company_address: string;
   company_creci: string;
   company_website: string;
@@ -17,6 +19,7 @@ export interface CompanySettings {
 
 const DEFAULT_SETTINGS: CompanySettings = {
   custom_logo_url: null,
+  person_type: 'pj',
   company_name: 'GODOY PRIME REALTY',
   company_phone: '(21) 96407-5124',
   company_cnpj: '',
