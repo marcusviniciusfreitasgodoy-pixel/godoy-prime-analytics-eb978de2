@@ -51,7 +51,12 @@ export function Header() {
           />
           <div className="border-l border-accent/30 pl-2 sm:pl-4">
             <h1 className="font-bold text-sm sm:text-lg text-primary-foreground tracking-wider">GODOY PRIME</h1>
-            <p className="text-[10px] sm:text-xs text-accent font-semibold tracking-wide">ANALYTICS DASHBOARD</p>
+            <div className="flex items-center gap-2">
+              <p className="text-[10px] sm:text-xs text-accent font-semibold tracking-wide">ANALYTICS DASHBOARD</p>
+              <span className="text-[8px] sm:text-[9px] text-primary-foreground/40 font-mono bg-primary-foreground/5 px-1.5 py-0.5 rounded">
+                v{typeof __BUILD_TIMESTAMP__ !== 'undefined' ? __BUILD_TIMESTAMP__ : 'dev'}
+              </span>
+            </div>
           </div>
         </div>
         
