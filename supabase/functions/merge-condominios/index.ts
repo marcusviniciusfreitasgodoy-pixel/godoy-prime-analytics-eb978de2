@@ -6,23 +6,31 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
+// Novo formato do CSV: nome,logradouro,numero,bairro
 interface CSVCondominio {
-  id: string;
   nome: string;
-  rua: string;
+  logradouro: string;
+  numero: number | null;
   bairro: string;
-  cidade: string;
-  estado: string;
+}
+
+interface ExistingCondominio {
+  id: string;
+  nome_condominio: string;
+  logradouro_padrao: string;
+  numero_inicio: number | null;
 }
 
 function parseCSV(csvText: string): CSVCondominio[] {
   const lines = csvText.trim().split('\n');
-  const headers = lines[0].split(',').map(h => h.trim());
+  const headers = lines[0].split(',').map(h => h.trim().toLowerCase());
   
   console.log("Headers encontrados:", headers);
   
-  return lines.slice(1).map((line, index) => {
-    // Handle CSV with possible commas in values (though our data shouldn't have them)
+  // Suporta ambos os formatos de CSV
+  const isNewFormat = headers.includes('numero');
+  
+  return lines.slice(1).map((line) => {
     const values: string[] = [];
     let current = '';
     let inQuotes = false;
@@ -39,14 +47,31 @@ function parseCSV(csvText: string): CSVCondominio[] {
     }
     values.push(current.trim());
     
-    return {
-      id: values[headers.indexOf('id')] || '',
-      nome: values[headers.indexOf('nome')] || '',
-      rua: values[headers.indexOf('rua')] || '',
-      bairro: values[headers.indexOf('bairro')] || '',
-      cidade: values[headers.indexOf('cidade')] || '',
-      estado: values[headers.indexOf('estado')] || '',
-    } as CSVCondominio;
+    if (isNewFormat) {
+      // Novo formato: nome,logradouro,numero,bairro
+      const nomeIdx = headers.indexOf('nome');
+      const logradouroIdx = headers.indexOf('logradouro');
+      const numeroIdx = headers.indexOf('numero');
+      const bairroIdx = headers.indexOf('bairro');
+      
+      const numeroStr = values[numeroIdx];
+      const numero = numeroStr ? parseInt(numeroStr.replace(/\D/g, '')) : null;
+      
+      return {
+        nome: values[nomeIdx] || '',
+        logradouro: values[logradouroIdx] || '',
+        numero: isNaN(numero!) ? null : numero,
+        bairro: values[bairroIdx] || 'Barra da Tijuca',
+      } as CSVCondominio;
+    } else {
+      // Formato antigo: id,nome,rua,bairro,cidade,estado
+      return {
+        nome: values[headers.indexOf('nome')] || '',
+        logradouro: values[headers.indexOf('rua')] || '',
+        numero: null,
+        bairro: values[headers.indexOf('bairro')] || 'Barra da Tijuca',
+      } as CSVCondominio;
+    }
   }).filter(c => c.nome && c.nome.length > 0);
 }
 
@@ -69,40 +94,90 @@ function mapearMicrobairro(bairro: string, logradouro: string): string | null {
   
   // Barra da Tijuca - inferir microbairro pelo logradouro
   if (bairroNorm === 'barra da tijuca') {
-    if (logradouroNorm.includes('lucio costa') || logradouroNorm.includes('lúcio costa')) {
-      return 'Eixo Lúcio Costa';
-    }
-    if (logradouroNorm.includes('americas') || logradouroNorm.includes('américas')) {
-      return 'Eixo Américas';
-    }
-    if (logradouroNorm.includes('ayrton senna')) {
-      return 'Barra Central';
-    }
-    if (logradouroNorm.includes('peninsula') || logradouroNorm.includes('península') || 
-        logradouroNorm.includes('flamboyant')) {
+    // Península
+    if (logradouroNorm.includes('flamboyant') || logradouroNorm.includes('jacaranda') ||
+        logradouroNorm.includes('bauhíneas') || logradouroNorm.includes('bauhineas') ||
+        logradouroNorm.includes('acacias da peninsula') || logradouroNorm.includes('acácias da península') ||
+        logradouroNorm.includes('joao cabral de mello')) {
       return 'Península';
     }
+    
+    // ABM
+    if (logradouroNorm.includes('afonso arinos')) {
+      return 'ABM';
+    }
+    
+    // Jardim Oceânico
+    if (logradouroNorm.includes('olegario maciel') || logradouroNorm.includes('olegário maciel') ||
+        logradouroNorm.includes('armando lombardi') || logradouroNorm.includes('gastao senges') ||
+        logradouroNorm.includes('gastão senges') || logradouroNorm.includes('evandro lins')) {
+      return 'Jardim Oceânico';
+    }
+    
+    // Deck
+    if (logradouroNorm.includes('olyntho pillar') || logradouroNorm.includes('heitor doyle')) {
+      return 'Deck';
+    }
+    
+    // Blue Land
+    if (logradouroNorm.includes('cesar lattes') || logradouroNorm.includes('césar lattes') ||
+        logradouroNorm.includes('mario covas') || logradouroNorm.includes('mário covas')) {
+      return 'Blue Land';
+    }
+    
+    // Parque das Rosas
+    if (logradouroNorm.includes('ricardo marinho') || logradouroNorm.includes('raymundo magalhaes') ||
+        logradouroNorm.includes('raymundo magalhães')) {
+      return 'Parque das Rosas';
+    }
+    
+    // Marapendi
+    if (logradouroNorm.includes('henrique lott') || logradouroNorm.includes('fausto moreira') ||
+        logradouroNorm.includes('peregrino junior') || logradouroNorm.includes('peregrino júnior')) {
+      return 'Marapendi';
+    }
+    
+    // Centro Metropolitano
+    if (logradouroNorm.includes('abelardo bueno') || logradouroNorm.includes('salvador allende') ||
+        logradouroNorm.includes('tim lopes')) {
+      return 'Centro Metropolitano';
+    }
+    
+    // Ayrton Senna
+    if (logradouroNorm.includes('ayrton senna')) {
+      return 'Ayrton Senna';
+    }
+    
+    // Orla (Lúcio Costa)
+    if (logradouroNorm.includes('lucio costa') || logradouroNorm.includes('lúcio costa')) {
+      return 'Orla';
+    }
+    
+    // Américas
+    if (logradouroNorm.includes('americas') || logradouroNorm.includes('américas')) {
+      return 'Américas';
+    }
+    
+    // Itaúna (Dulcídio Cardoso alto)
     if (logradouroNorm.includes('dulcidio') || logradouroNorm.includes('dulcídio')) {
-      return 'Jardim Oceânico';
+      return 'Itaúna';
     }
-    if (logradouroNorm.includes('armando lombardi')) {
-      return 'Jardim Oceânico';
-    }
+    
+    // Barra Sul
     if (logradouroNorm.includes('erico verissimo') || logradouroNorm.includes('érico veríssimo')) {
       return 'Barra Sul';
     }
-    if (logradouroNorm.includes('henrique lott') || logradouroNorm.includes('marapendi')) {
-      return 'Marapendi';
-    }
-    if (logradouroNorm.includes('salvador allende')) {
-      return 'Ilha Pura';
-    }
+    
+    // Quintas do Rio
     if (logradouroNorm.includes('rachel de queiroz')) {
       return 'Quintas do Rio';
     }
-    if (logradouroNorm.includes('ricardo marinho')) {
-      return 'Parque das Rosas';
+    
+    // Ilha Pura
+    if (logradouroNorm.includes('ilha pura')) {
+      return 'Ilha Pura';
     }
+    
     // Default para Barra da Tijuca
     return 'Barra Central';
   }
@@ -116,11 +191,6 @@ function mapearMicrobairro(bairro: string, logradouro: string): string | null {
       return 'Recreio - Pontal';
     }
     return 'Recreio';
-  }
-  
-  // Barra Olímpica / Centro Metropolitano
-  if (bairroNorm === 'barra olímpica' || bairroNorm === 'barra olimpica') {
-    return 'Centro Metropolitano';
   }
   
   // Jacarepaguá
@@ -138,8 +208,6 @@ function mapearMicrobairro(bairro: string, logradouro: string): string | null {
     return 'Vargem';
   }
   
-  // Outros bairros fora da região principal - retornar null
-  // (Costa Verde, Angra, outras cidades, etc.)
   return null;
 }
 
@@ -201,52 +269,92 @@ serve(async (req) => {
     console.log(`CSV parseado: ${condominiosCSV.length} registros`);
     console.log("Primeiros 3 registros:", condominiosCSV.slice(0, 3));
 
-    // Buscar condominios existentes
+    // Buscar condominios existentes com todos os dados necessários
     const { data: existingCondos, error: fetchError } = await supabase
       .from("condominios_mapeamento")
-      .select("nome_condominio");
+      .select("id, nome_condominio, logradouro_padrao, numero_inicio");
 
     if (fetchError) {
       throw new Error(`Erro ao buscar existentes: ${fetchError.message}`);
     }
 
-    // Criar set de nomes normalizados existentes
-    const existingNames = new Set(
-      (existingCondos || []).map(c => normalizeForComparison(c.nome_condominio))
-    );
+    // Criar mapa de nomes normalizados para dados existentes
+    const existingMap = new Map<string, ExistingCondominio>();
+    for (const condo of (existingCondos || [])) {
+      const normalizedName = normalizeForComparison(condo.nome_condominio);
+      existingMap.set(normalizedName, condo);
+    }
 
-    console.log(`Condominios existentes: ${existingNames.size}`);
+    console.log(`Condominios existentes: ${existingMap.size}`);
 
-    // Filtrar apenas novos (não duplicados)
-    const novosCondominios = condominiosCSV.filter(c => 
-      !existingNames.has(normalizeForComparison(c.nome))
-    );
+    // Separar em: novos para inserir, existentes para atualizar número
+    const novosParaInserir: CSVCondominio[] = [];
+    const parasAtualizarNumero: { id: string; numero: number; logradouro?: string }[] = [];
+    let duplicadosCompletos = 0;
 
-    console.log(`Novos para inserir: ${novosCondominios.length}`);
-    console.log(`Duplicados encontrados: ${condominiosCSV.length - novosCondominios.length}`);
+    for (const csvCondo of condominiosCSV) {
+      const normalizedName = normalizeForComparison(csvCondo.nome);
+      const existing = existingMap.get(normalizedName);
+      
+      if (existing) {
+        // Já existe - verificar se podemos atualizar o número
+        if (existing.numero_inicio === null && csvCondo.numero !== null) {
+          // Atualizar número (e logradouro se diferente)
+          parasAtualizarNumero.push({
+            id: existing.id,
+            numero: csvCondo.numero,
+            logradouro: csvCondo.logradouro !== existing.logradouro_padrao ? csvCondo.logradouro : undefined
+          });
+        } else {
+          duplicadosCompletos++;
+        }
+      } else {
+        // Novo - inserir
+        novosParaInserir.push(csvCondo);
+      }
+    }
 
-    // Preparar dados para inserção
-    const dataToInsert = novosCondominios.map(c => ({
+    console.log(`Novos para inserir: ${novosParaInserir.length}`);
+    console.log(`Para atualizar número: ${parasAtualizarNumero.length}`);
+    console.log(`Duplicados completos: ${duplicadosCompletos}`);
+
+    // 1. Atualizar números nos existentes
+    let numerosAtualizados = 0;
+    const updateErrors: string[] = [];
+    
+    for (const update of parasAtualizarNumero) {
+      const updateData: { numero_inicio: number; logradouro_padrao?: string } = {
+        numero_inicio: update.numero
+      };
+      if (update.logradouro) {
+        updateData.logradouro_padrao = update.logradouro;
+      }
+      
+      const { error: updateError } = await supabase
+        .from("condominios_mapeamento")
+        .update(updateData)
+        .eq("id", update.id);
+      
+      if (updateError) {
+        updateErrors.push(`Update ${update.id}: ${updateError.message}`);
+      } else {
+        numerosAtualizados++;
+      }
+    }
+
+    // 2. Inserir novos
+    const dataToInsert = novosParaInserir.map(c => ({
       nome_condominio: c.nome,
-      logradouro_padrao: c.rua,
-      microbairro: mapearMicrobairro(c.bairro, c.rua),
-      numero_inicio: null,
+      logradouro_padrao: c.logradouro,
+      microbairro: mapearMicrobairro(c.bairro, c.logradouro),
+      numero_inicio: c.numero,
       numero_fim: null,
       latitude: null,
       longitude: null,
     }));
 
-    // Log de alguns exemplos de mapeamento
-    console.log("Exemplos de mapeamento de microbairro:", 
-      dataToInsert.slice(0, 5).map(d => ({
-        nome: d.nome_condominio,
-        microbairro: d.microbairro
-      }))
-    );
-
-    // Inserir em lotes de 100
     let inserted = 0;
-    const errors: string[] = [];
+    const insertErrors: string[] = [];
     const batchSize = 100;
 
     for (let i = 0; i < dataToInsert.length; i += batchSize) {
@@ -257,7 +365,7 @@ serve(async (req) => {
         .select();
 
       if (insertError) {
-        errors.push(`Lote ${Math.floor(i / batchSize) + 1}: ${insertError.message}`);
+        insertErrors.push(`Lote ${Math.floor(i / batchSize) + 1}: ${insertError.message}`);
         console.error(`Erro no lote ${i / batchSize + 1}:`, insertError);
       } else {
         inserted += insertedData?.length || 0;
@@ -265,15 +373,18 @@ serve(async (req) => {
       }
     }
 
+    const allErrors = [...updateErrors, ...insertErrors];
+
     return new Response(
       JSON.stringify({
         success: true,
         summary: {
           total_csv: condominiosCSV.length,
-          existentes: existingNames.size,
-          duplicados: condominiosCSV.length - novosCondominios.length,
+          existentes: existingMap.size,
+          duplicados: duplicadosCompletos,
+          numeros_atualizados: numerosAtualizados,
           novos_inseridos: inserted,
-          errors: errors.length > 0 ? errors : null,
+          errors: allErrors.length > 0 ? allErrors : null,
         },
       }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
