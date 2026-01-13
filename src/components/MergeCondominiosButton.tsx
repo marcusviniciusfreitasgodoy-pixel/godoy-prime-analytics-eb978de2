@@ -33,10 +33,10 @@ export function MergeCondominiosButton() {
     try {
       // Buscar o CSV do public/data
       setStatus("reading");
-      const response = await fetch("/data/condominios-import.csv");
+      const response = await fetch("/data/condominios-402.csv");
       
       if (!response.ok) {
-        throw new Error("Arquivo CSV não encontrado. Verifique se existe o arquivo em public/data/condominios-import.csv");
+        throw new Error("Arquivo CSV não encontrado. Verifique se existe o arquivo em public/data/condominios-402.csv");
       }
 
       const csvData = await response.text();
@@ -45,10 +45,10 @@ export function MergeCondominiosButton() {
         throw new Error("Arquivo CSV está vazio ou corrompido");
       }
 
-      // Verificar estrutura do CSV
-      const firstLine = csvData.split('\n')[0];
-      if (!firstLine.includes('nome') || !firstLine.includes('logradouro')) {
-        throw new Error("Formato do CSV inválido. Esperado: nome,logradouro,numero,cep,bairro,microbairro,latitude,longitude");
+      // Verificar estrutura do CSV (novo formato: id,nome,rua,bairro,cidade,estado)
+      const firstLine = csvData.split('\n')[0].toLowerCase();
+      if (!firstLine.includes('nome') || !firstLine.includes('rua') || !firstLine.includes('bairro')) {
+        throw new Error("Formato do CSV inválido. Esperado: id,nome,rua,bairro,cidade,estado");
       }
 
       setStatus("uploading");
@@ -110,7 +110,7 @@ export function MergeCondominiosButton() {
             Mesclar Base de Condomínios
           </DialogTitle>
           <DialogDescription>
-            Adiciona novos condomínios à base existente, preservando os registros atuais.
+            Importa 402 novos condomínios, preservando os registros existentes e evitando duplicatas.
           </DialogDescription>
         </DialogHeader>
 
@@ -120,9 +120,10 @@ export function MergeCondominiosButton() {
               <div className="p-4 rounded-lg bg-muted/50 border">
                 <h4 className="font-medium text-sm mb-2">O que será feito:</h4>
                 <ul className="text-xs text-muted-foreground space-y-1 list-disc list-inside">
-                  <li>Ler o arquivo CSV com 507 condomínios</li>
-                  <li>Comparar com os {273} registros existentes</li>
-                  <li>Inserir apenas os novos (sem duplicar)</li>
+                  <li>Ler arquivo CSV com 402 condomínios</li>
+                  <li>Comparar com registros existentes na base</li>
+                  <li>Inferir microbairro automaticamente pelo logradouro</li>
+                  <li>Inserir apenas novos (sem duplicar)</li>
                   <li>Preservar dados existentes (não sobrescreve)</li>
                 </ul>
               </div>
@@ -143,7 +144,7 @@ export function MergeCondominiosButton() {
                 <Loader2 className="h-8 w-8 animate-spin text-primary" />
               </div>
               <p className="text-center text-sm text-muted-foreground">
-                {status === "reading" ? "Lendo arquivo CSV..." : "Processando mesclagem..."}
+                {status === "reading" ? "Lendo arquivo CSV..." : "Processando mesclagem inteligente..."}
               </p>
               <Progress value={status === "reading" ? 30 : 70} className="h-2" />
             </div>

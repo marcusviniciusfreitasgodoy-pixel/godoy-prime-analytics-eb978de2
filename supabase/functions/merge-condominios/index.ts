@@ -7,28 +7,47 @@ const corsHeaders = {
 };
 
 interface CSVCondominio {
+  id: string;
   nome: string;
-  logradouro: string;
-  numero: string;
-  cep: string;
+  rua: string;
   bairro: string;
-  microbairro: string;
-  latitude: string;
-  longitude: string;
+  cidade: string;
+  estado: string;
 }
 
 function parseCSV(csvText: string): CSVCondominio[] {
   const lines = csvText.trim().split('\n');
-  const headers = lines[0].split(',');
+  const headers = lines[0].split(',').map(h => h.trim());
   
-  return lines.slice(1).map(line => {
-    const values = line.split(',');
-    const obj: any = {};
-    headers.forEach((header, index) => {
-      obj[header.trim()] = values[index]?.trim() || '';
-    });
-    return obj as CSVCondominio;
-  });
+  console.log("Headers encontrados:", headers);
+  
+  return lines.slice(1).map((line, index) => {
+    // Handle CSV with possible commas in values (though our data shouldn't have them)
+    const values: string[] = [];
+    let current = '';
+    let inQuotes = false;
+    
+    for (const char of line) {
+      if (char === '"') {
+        inQuotes = !inQuotes;
+      } else if (char === ',' && !inQuotes) {
+        values.push(current.trim());
+        current = '';
+      } else {
+        current += char;
+      }
+    }
+    values.push(current.trim());
+    
+    return {
+      id: values[headers.indexOf('id')] || '',
+      nome: values[headers.indexOf('nome')] || '',
+      rua: values[headers.indexOf('rua')] || '',
+      bairro: values[headers.indexOf('bairro')] || '',
+      cidade: values[headers.indexOf('cidade')] || '',
+      estado: values[headers.indexOf('estado')] || '',
+    } as CSVCondominio;
+  }).filter(c => c.nome && c.nome.length > 0);
 }
 
 function normalizeForComparison(name: string): string {
@@ -36,8 +55,92 @@ function normalizeForComparison(name: string): string {
     .toLowerCase()
     .normalize('NFD')
     .replace(/[\u0300-\u036f]/g, '') // Remove acentos
-    .replace(/\s+/g, ' ')
+    .replace(/[''`´"]/g, '')          // Remove apóstrofos e aspas
+    .replace(/[-_]/g, ' ')            // Substitui hífens e underlines por espaço
+    .replace(/\s+/g, ' ')             // Normaliza múltiplos espaços
+    .replace(/&/g, 'e')               // Substitui & por e
+    .replace(/[^\w\s]/g, '')          // Remove caracteres especiais restantes
     .trim();
+}
+
+function mapearMicrobairro(bairro: string, logradouro: string): string | null {
+  const bairroNorm = bairro.toLowerCase().trim();
+  const logradouroNorm = logradouro.toLowerCase();
+  
+  // Barra da Tijuca - inferir microbairro pelo logradouro
+  if (bairroNorm === 'barra da tijuca') {
+    if (logradouroNorm.includes('lucio costa') || logradouroNorm.includes('lúcio costa')) {
+      return 'Eixo Lúcio Costa';
+    }
+    if (logradouroNorm.includes('americas') || logradouroNorm.includes('américas')) {
+      return 'Eixo Américas';
+    }
+    if (logradouroNorm.includes('ayrton senna')) {
+      return 'Barra Central';
+    }
+    if (logradouroNorm.includes('peninsula') || logradouroNorm.includes('península') || 
+        logradouroNorm.includes('flamboyant')) {
+      return 'Península';
+    }
+    if (logradouroNorm.includes('dulcidio') || logradouroNorm.includes('dulcídio')) {
+      return 'Jardim Oceânico';
+    }
+    if (logradouroNorm.includes('armando lombardi')) {
+      return 'Jardim Oceânico';
+    }
+    if (logradouroNorm.includes('erico verissimo') || logradouroNorm.includes('érico veríssimo')) {
+      return 'Barra Sul';
+    }
+    if (logradouroNorm.includes('henrique lott') || logradouroNorm.includes('marapendi')) {
+      return 'Marapendi';
+    }
+    if (logradouroNorm.includes('salvador allende')) {
+      return 'Ilha Pura';
+    }
+    if (logradouroNorm.includes('rachel de queiroz')) {
+      return 'Quintas do Rio';
+    }
+    if (logradouroNorm.includes('ricardo marinho')) {
+      return 'Parque das Rosas';
+    }
+    // Default para Barra da Tijuca
+    return 'Barra Central';
+  }
+  
+  // Recreio dos Bandeirantes
+  if (bairroNorm === 'recreio dos bandeirantes' || bairroNorm === 'recreio') {
+    if (logradouroNorm.includes('tim maia')) {
+      return 'Recreio - Tim Maia';
+    }
+    if (logradouroNorm.includes('pontal')) {
+      return 'Recreio - Pontal';
+    }
+    return 'Recreio';
+  }
+  
+  // Barra Olímpica / Centro Metropolitano
+  if (bairroNorm === 'barra olímpica' || bairroNorm === 'barra olimpica') {
+    return 'Centro Metropolitano';
+  }
+  
+  // Jacarepaguá
+  if (bairroNorm === 'jacarepaguá' || bairroNorm === 'jacarepagua') {
+    return 'Jacarepaguá';
+  }
+  
+  // Itanhangá
+  if (bairroNorm === 'itanhangá' || bairroNorm === 'itanhanga') {
+    return 'Itanhangá';
+  }
+  
+  // Vargem Grande / Pequena
+  if (bairroNorm.includes('vargem')) {
+    return 'Vargem';
+  }
+  
+  // Outros bairros fora da região principal - retornar null
+  // (Costa Verde, Angra, outras cidades, etc.)
+  return null;
 }
 
 serve(async (req) => {
@@ -96,6 +199,7 @@ serve(async (req) => {
     // Parsear CSV
     const condominiosCSV = parseCSV(csvData);
     console.log(`CSV parseado: ${condominiosCSV.length} registros`);
+    console.log("Primeiros 3 registros:", condominiosCSV.slice(0, 3));
 
     // Buscar condominios existentes
     const { data: existingCondos, error: fetchError } = await supabase
@@ -113,26 +217,36 @@ serve(async (req) => {
 
     console.log(`Condominios existentes: ${existingNames.size}`);
 
-    // Filtrar apenas novos
+    // Filtrar apenas novos (não duplicados)
     const novosCondominios = condominiosCSV.filter(c => 
       !existingNames.has(normalizeForComparison(c.nome))
     );
 
     console.log(`Novos para inserir: ${novosCondominios.length}`);
+    console.log(`Duplicados encontrados: ${condominiosCSV.length - novosCondominios.length}`);
 
     // Preparar dados para inserção
     const dataToInsert = novosCondominios.map(c => ({
       nome_condominio: c.nome,
-      logradouro_padrao: c.logradouro,
-      numero_inicio: c.numero ? parseInt(c.numero) : null,
-      microbairro: c.microbairro || null,
-      latitude: c.latitude ? parseFloat(c.latitude) : null,
-      longitude: c.longitude ? parseFloat(c.longitude) : null,
+      logradouro_padrao: c.rua,
+      microbairro: mapearMicrobairro(c.bairro, c.rua),
+      numero_inicio: null,
+      numero_fim: null,
+      latitude: null,
+      longitude: null,
     }));
+
+    // Log de alguns exemplos de mapeamento
+    console.log("Exemplos de mapeamento de microbairro:", 
+      dataToInsert.slice(0, 5).map(d => ({
+        nome: d.nome_condominio,
+        microbairro: d.microbairro
+      }))
+    );
 
     // Inserir em lotes de 100
     let inserted = 0;
-    let errors: string[] = [];
+    const errors: string[] = [];
     const batchSize = 100;
 
     for (let i = 0; i < dataToInsert.length; i += batchSize) {
