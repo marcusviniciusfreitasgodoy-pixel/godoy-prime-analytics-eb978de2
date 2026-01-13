@@ -72,9 +72,12 @@ export function Footer() {
               Godoy Prime Realty
             </a>
           </p>
-          <p className="text-[8px] sm:text-[10px] text-primary-foreground/40 font-mono">
-            Build: {typeof __BUILD_TIMESTAMP__ !== 'undefined' ? __BUILD_TIMESTAMP__ : 'dev'}
-          </p>
+          <div className="flex items-center gap-2 bg-primary-foreground/5 px-3 py-1.5 rounded-full">
+            <div className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" />
+            <span className="text-[9px] sm:text-[10px] text-primary-foreground/60 font-mono">
+              Build: {typeof __BUILD_TIMESTAMP__ !== 'undefined' ? __BUILD_TIMESTAMP__ : 'dev'}
+            </span>
+          </div>
         </div>
       </div>
     </footer>
