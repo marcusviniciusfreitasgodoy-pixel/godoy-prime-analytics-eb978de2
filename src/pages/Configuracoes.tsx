@@ -250,10 +250,27 @@ export default function Configuracoes() {
               Filtro de Outliers (ITBI)
             </CardTitle>
             <CardDescription className="text-xs sm:text-sm">
-              Escolha o método para eliminar valores atípicos nos dados de transações
+              Configure como a plataforma trata valores extremos nas avaliações
             </CardDescription>
           </CardHeader>
           <CardContent className="p-4 sm:p-6 pt-0 sm:pt-0 space-y-4">
+            {/* Explicação didática */}
+            <div className="p-3 rounded-lg bg-muted/50 border border-muted">
+              <p className="text-xs sm:text-sm text-muted-foreground leading-relaxed">
+                <strong className="text-foreground">O que são outliers?</strong> São transações com valores muito diferentes do normal — por exemplo, 
+                um imóvel vendido muito abaixo do mercado (venda entre familiares, dívida) ou muito acima (imóvel único, reforma especial).
+              </p>
+              <p className="text-xs sm:text-sm text-muted-foreground leading-relaxed mt-2">
+                <strong className="text-foreground">Por que filtrar?</strong> Esses valores extremos podem distorcer a média de preços e prejudicar 
+                a precisão da sua avaliação. O filtro remove automaticamente essas anomalias para dar resultados mais confiáveis.
+              </p>
+              <p className="text-xs sm:text-sm text-muted-foreground leading-relaxed mt-2">
+                <strong className="text-foreground">Qual escolher?</strong> Na dúvida, mantenha o <span className="font-medium text-primary">IQR</span> — 
+                ele é mais preciso e usado por estatísticos profissionais. O método <span className="font-medium">Percentis</span> é uma opção 
+                mais simples se você preferir um corte fixo.
+              </p>
+            </div>
+
             <SimpleRadioGroup
               value={outlierMethod}
               onValueChange={(value) => {
@@ -265,12 +282,15 @@ export default function Configuracoes() {
               <div className="flex items-start space-x-3 p-3 rounded-lg border hover:bg-muted/30 transition-colors">
                 <SimpleRadioItem value="iqr" id="iqr" className="mt-1" />
                 <div className="flex-1">
-                  <Label htmlFor="iqr" className="cursor-pointer text-sm font-medium">
+                  <Label htmlFor="iqr" className="cursor-pointer text-sm font-medium flex items-center gap-2">
                     IQR (Intervalo Interquartil)
+                    <span className="text-[10px] px-1.5 py-0.5 rounded bg-primary/10 text-primary font-normal">Recomendado</span>
                   </Label>
                   <p className="text-xs text-muted-foreground mt-1">
-                    Remove valores fora do intervalo Q1 - 1.5×IQR até Q3 + 1.5×IQR. 
-                    Método estatístico mais robusto, recomendado para dados com muitos outliers.
+                    <strong>Melhor para:</strong> Bases de dados com muitas transações ou muitos valores extremos.
+                  </p>
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    Remove automaticamente valores muito fora do padrão, mantendo apenas as transações mais representativas do mercado.
                   </p>
                 </div>
               </div>
@@ -282,8 +302,10 @@ export default function Configuracoes() {
                     Percentis P10/P90
                   </Label>
                   <p className="text-xs text-muted-foreground mt-1">
-                    Usa o percentil 10 como mínimo e percentil 90 como máximo. 
-                    Método mais simples, mantém 80% dos dados centrais.
+                    <strong>Melhor para:</strong> Bases de dados menores ou quando você quer um corte mais previsível.
+                  </p>
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    Descarta os 10% mais baratos e os 10% mais caros, mantendo sempre os 80% centrais das transações.
                   </p>
                 </div>
               </div>
