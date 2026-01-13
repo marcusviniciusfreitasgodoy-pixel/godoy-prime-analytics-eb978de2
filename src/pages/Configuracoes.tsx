@@ -1,7 +1,8 @@
 import { Helmet } from "react-helmet-async";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { CompanyLogoUpload } from "@/components/CompanyLogoUpload";
-import { Settings, Building2, Phone, MapPin, FileText, Globe, Eye, Filter, Database, Trash2, User, Briefcase } from "lucide-react";
+import { Settings, Building2, Phone, MapPin, FileText, Globe, Eye, Filter, Database, Trash2, User, Briefcase, Home } from "lucide-react";
+import { MergeCondominiosButton } from "@/components/MergeCondominiosButton";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
@@ -355,6 +356,37 @@ export default function Configuracoes() {
             </p>
           </CardContent>
         </Card>
+
+        {/* Gestão de Condomínios */}
+        <Card>
+          <CardHeader className="p-4 sm:p-6">
+            <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
+              <Home className="h-4 w-4 sm:h-5 sm:w-5" />
+              Base de Condomínios
+            </CardTitle>
+            <CardDescription className="text-xs sm:text-sm">
+              Gerenciar a base de dados de condomínios mapeados
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="p-4 sm:p-6 pt-0 sm:pt-0 space-y-4">
+            <div className="p-3 rounded-lg bg-muted/30 border">
+              <p className="text-xs text-muted-foreground leading-relaxed">
+                A base de condomínios é usada para identificar automaticamente nomes de condomínios 
+                durante as avaliações, melhorando a precisão das sugestões de logradouro.
+              </p>
+            </div>
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium">Atualizar Base</p>
+                <p className="text-xs text-muted-foreground">
+                  Mesclar novos condomínios preservando os existentes
+                </p>
+              </div>
+              <MergeCondominiosButton />
+            </div>
+          </CardContent>
+        </Card>
+
         <Card>
           <CardHeader className="p-4 sm:p-6">
             <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
