@@ -1,5 +1,5 @@
 import jsPDF from 'jspdf';
-import { drawGodoyHeader, drawGodoyFooter, drawSectionTitle, BRAND_COLORS, applyFootersToAllPages } from './pdfTemplate';
+import { drawGodoyHeader, drawSectionTitle, BRAND_COLORS, applyFootersToAllPages, fetchCompanyInfoForPDF } from './pdfTemplate';
 
 const manualContent = {
   introducao: {
@@ -347,7 +347,7 @@ const manualContent = {
   ]
 };
 
-export function exportManualPDF() {
+export async function exportManualPDF() {
   const doc = new jsPDF();
   const marginLeft = 20;
   const marginRight = 20;
@@ -355,6 +355,9 @@ export function exportManualPDF() {
   const pageHeight = doc.internal.pageSize.getHeight();
   const contentWidth = pageWidth - marginLeft - marginRight;
   let y = 20;
+
+  // Buscar configurações da empresa
+  const companyInfo = await fetchCompanyInfoForPDF();
 
   // Cover page
   doc.setFillColor(BRAND_COLORS.navy[0], BRAND_COLORS.navy[1], BRAND_COLORS.navy[2]);
@@ -527,7 +530,7 @@ export function exportManualPDF() {
 
   // Support section
   doc.addPage();
-  y = drawGodoyHeader(doc, 'Manual do Usuário');
+  y = drawGodoyHeader(doc, 'Manual do Usuário', companyInfo);
   
   y = drawSectionTitle(doc, 'Suporte e Contato', y, marginLeft);
   y += 10;
@@ -536,18 +539,19 @@ export function exportManualPDF() {
   doc.setTextColor(BRAND_COLORS.darkGray[0], BRAND_COLORS.darkGray[1], BRAND_COLORS.darkGray[2]);
   doc.text('Para dúvidas ou sugestões, entre em contato:', marginLeft, y);
   y += 8;
-  doc.text('Email: contato@godoyprime.com.br', marginLeft + 5, y);
+  doc.text(`Telefone: ${companyInfo.phone}`, marginLeft + 5, y);
   y += 6;
-  doc.text('Telefone: (21) 4040-0067 | (21) 99725-0515', marginLeft + 5, y);
+  doc.text(`Site: ${companyInfo.website}`, marginLeft + 5, y);
   y += 6;
-  doc.text('Site: www.godoyprime.com.br', marginLeft + 5, y);
+  if (companyInfo.address) {
+    doc.text(`Endereço: ${companyInfo.address}`, marginLeft + 5, y);
+    y += 6;
+  }
   y += 6;
-  doc.text('Endereço: Av. das Américas, 10101 Bloco 2 Sala 316 - Barra da Tijuca', marginLeft + 5, y);
-  y += 12;
-  doc.text('CRECI: 11841-PJ', marginLeft + 5, y);
+  doc.text(`${companyInfo.creci}`, marginLeft + 5, y);
 
-  // Apply footers
-  applyFootersToAllPages(doc);
+  // Apply footers com dados da empresa
+  applyFootersToAllPages(doc, companyInfo);
 
   // Save
   doc.save('Manual_Godoy_Prime_Analytics_v2.pdf');

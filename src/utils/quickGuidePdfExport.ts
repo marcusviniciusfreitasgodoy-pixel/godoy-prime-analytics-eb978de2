@@ -1,7 +1,7 @@
 import jsPDF from 'jspdf';
-import { BRAND_COLORS, drawGodoyHeader, drawGodoyFooter } from './pdfTemplate';
+import { BRAND_COLORS, fetchCompanyInfoForPDF, applyFootersToAllPages, type CompanyInfo } from './pdfTemplate';
 
-export function exportQuickGuidePDF() {
+export async function exportQuickGuidePDF() {
   const doc = new jsPDF();
   const pageWidth = doc.internal.pageSize.getWidth();
   const pageHeight = doc.internal.pageSize.getHeight();
@@ -10,6 +10,9 @@ export function exportQuickGuidePDF() {
   const contentWidth = pageWidth - marginLeft - marginRight;
   let y = 20;
 
+  // Buscar configurações da empresa
+  const companyInfo = await fetchCompanyInfoForPDF();
+
   // Cabeçalho compacto
   doc.setFillColor(BRAND_COLORS.navy[0], BRAND_COLORS.navy[1], BRAND_COLORS.navy[2]);
   doc.rect(0, 0, pageWidth, 28, 'F');
@@ -17,7 +20,7 @@ export function exportQuickGuidePDF() {
   doc.setTextColor(BRAND_COLORS.gold[0], BRAND_COLORS.gold[1], BRAND_COLORS.gold[2]);
   doc.setFontSize(16);
   doc.setFont('helvetica', 'bold');
-  doc.text('GODOY PRIME ANALYTICS', pageWidth / 2, 12, { align: 'center' });
+  doc.text(companyInfo.name || 'GODOY PRIME ANALYTICS', pageWidth / 2, 12, { align: 'center' });
 
   doc.setTextColor(255, 255, 255);
   doc.setFontSize(11);
@@ -170,22 +173,28 @@ export function exportQuickGuidePDF() {
     tipY += 4;
   });
 
-  // Rodape
-  y = pageHeight - 18;
+  // Aplicar rodapé padronizado em todas as páginas
+  applyFootersToAllPages(doc, companyInfo);
+
+  // Rodapé final com informações extras na última página
+  const totalPages = doc.getNumberOfPages();
+  doc.setPage(totalPages);
+  
+  const footerY = pageHeight - 18;
   doc.setFillColor(BRAND_COLORS.navy[0], BRAND_COLORS.navy[1], BRAND_COLORS.navy[2]);
-  doc.rect(0, y, pageWidth, 18, 'F');
+  doc.rect(0, footerY, pageWidth, 18, 'F');
 
   doc.setTextColor(BRAND_COLORS.gold[0], BRAND_COLORS.gold[1], BRAND_COLORS.gold[2]);
   doc.setFontSize(8);
   doc.setFont('helvetica', 'bold');
-  doc.text('GODOY PRIME REALTY - CRECI 11841-PJ', pageWidth / 2, y + 6, { align: 'center' });
+  doc.text(`${companyInfo.name} - ${companyInfo.creci}`, pageWidth / 2, footerY + 6, { align: 'center' });
 
   doc.setTextColor(200, 200, 200);
   doc.setFont('helvetica', 'normal');
-  doc.text('(21) 4040-0067 | (21) 99725-0515 | contato@godoyprime.com.br', pageWidth / 2, y + 11, { align: 'center' });
+  doc.text(`${companyInfo.phone} | ${companyInfo.website}`, pageWidth / 2, footerY + 11, { align: 'center' });
 
   const today = new Date().toLocaleDateString('pt-BR');
-  doc.text(`Versao 2.0 - Gerado em ${today}`, pageWidth / 2, y + 15, { align: 'center' });
+  doc.text(`Versao 2.0 - Gerado em ${today}`, pageWidth / 2, footerY + 15, { align: 'center' });
 
   doc.save('Guia_Rapido_Godoy_Prime_v2.pdf');
 }

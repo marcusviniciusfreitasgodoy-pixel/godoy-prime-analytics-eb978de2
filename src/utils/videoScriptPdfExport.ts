@@ -1,4 +1,5 @@
 import jsPDF from 'jspdf';
+import { fetchCompanyInfoForPDF } from './pdfTemplate';
 
 const NAVY = '#0C2340';
 const GOLD = '#D4AF37';
@@ -11,13 +12,20 @@ export async function exportVideoScriptPdf() {
   const contentWidth = pageWidth - (margin * 2);
   let y = margin;
 
+  // Buscar configurações da empresa
+  const companyInfo = await fetchCompanyInfoForPDF();
+
   const addHeader = () => {
     doc.setFillColor(NAVY);
     doc.rect(0, 0, pageWidth, 25, 'F');
     doc.setTextColor(255, 255, 255);
     doc.setFontSize(16);
     doc.setFont('helvetica', 'bold');
-    doc.text('GODOY PRIME ANALYTICS', pageWidth / 2, 12, { align: 'center' });
+    doc.text(companyInfo.name || 'GODOY PRIME ANALYTICS', pageWidth / 2, 12, { align: 'center' });
+    doc.setFontSize(10);
+    doc.setFont('helvetica', 'normal');
+    doc.text('Roteiro de Vídeo e Perguntas Frequentes - Versão 2.0', pageWidth / 2, 19, { align: 'center' });
+  };
     doc.setFontSize(10);
     doc.setFont('helvetica', 'normal');
     doc.text('Roteiro de Vídeo e Perguntas Frequentes - Versão 2.0', pageWidth / 2, 19, { align: 'center' });
@@ -28,7 +36,7 @@ export async function exportVideoScriptPdf() {
     doc.rect(0, pageHeight - 15, pageWidth, 15, 'F');
     doc.setTextColor(255, 255, 255);
     doc.setFontSize(8);
-    doc.text('GODOY PRIME REALTY - CRECI 11841-PJ | (21) 4040-0067 | (21) 99725-0515', pageWidth / 2, pageHeight - 8, { align: 'center' });
+    doc.text(`${companyInfo.name} - ${companyInfo.creci} | ${companyInfo.phone}`, pageWidth / 2, pageHeight - 8, { align: 'center' });
     doc.text(`Página ${pageNum}`, pageWidth - margin, pageHeight - 8, { align: 'right' });
   };
 
@@ -158,10 +166,10 @@ export async function exportVideoScriptPdf() {
   doc.roundedRect(margin + 20, y, contentWidth - 40, 30, 3, 3, 'F');
   doc.setTextColor(255, 255, 255);
   doc.setFontSize(10);
-  doc.text('Godoy Prime Realty', pageWidth / 2, y + 10, { align: 'center' });
+  doc.text(companyInfo.name || 'Godoy Prime Realty', pageWidth / 2, y + 10, { align: 'center' });
   doc.setFontSize(8);
-  doc.text('Av. das Américas, 10101 Bloco 2 Sala 316', pageWidth / 2, y + 17, { align: 'center' });
-  doc.text('(21) 4040-0067 | (21) 99725-0515 | CRECI 11841-PJ', pageWidth / 2, y + 23, { align: 'center' });
+  doc.text(companyInfo.address || '', pageWidth / 2, y + 17, { align: 'center' });
+  doc.text(`${companyInfo.phone} | ${companyInfo.creci}`, pageWidth / 2, y + 23, { align: 'center' });
 
   addFooter(pageNum.value);
 
