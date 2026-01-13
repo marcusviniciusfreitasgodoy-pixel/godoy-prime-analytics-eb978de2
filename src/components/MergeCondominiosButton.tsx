@@ -12,6 +12,7 @@ interface MergeResult {
     total_csv: number;
     existentes: number;
     duplicados: number;
+    numeros_atualizados: number;
     novos_inseridos: number;
     errors: string[] | null;
   };
@@ -33,10 +34,10 @@ export function MergeCondominiosButton() {
     try {
       // Buscar o CSV do public/data
       setStatus("reading");
-      const response = await fetch("/data/condominios-402.csv");
+      const response = await fetch("/data/condominios-completo.csv");
       
       if (!response.ok) {
-        throw new Error("Arquivo CSV não encontrado. Verifique se existe o arquivo em public/data/condominios-402.csv");
+        throw new Error("Arquivo CSV não encontrado. Verifique se existe o arquivo em public/data/condominios-completo.csv");
       }
 
       const csvData = await response.text();
@@ -45,10 +46,10 @@ export function MergeCondominiosButton() {
         throw new Error("Arquivo CSV está vazio ou corrompido");
       }
 
-      // Verificar estrutura do CSV (novo formato: id,nome,rua,bairro,cidade,estado)
+      // Verificar estrutura do CSV (novo formato: nome,logradouro,numero,bairro)
       const firstLine = csvData.split('\n')[0].toLowerCase();
-      if (!firstLine.includes('nome') || !firstLine.includes('rua') || !firstLine.includes('bairro')) {
-        throw new Error("Formato do CSV inválido. Esperado: id,nome,rua,bairro,cidade,estado");
+      if (!firstLine.includes('nome') || !firstLine.includes('logradouro')) {
+        throw new Error("Formato do CSV inválido. Esperado: nome,logradouro,numero,bairro");
       }
 
       setStatus("uploading");
@@ -75,7 +76,8 @@ export function MergeCondominiosButton() {
       setResult(data as MergeResult);
       setStatus("success");
       
-      toast.success(`${data.summary.novos_inseridos} novos condomínios adicionados!`);
+      const totalChanges = data.summary.novos_inseridos + (data.summary.numeros_atualizados || 0);
+      toast.success(`${totalChanges} alterações realizadas! (${data.summary.novos_inseridos} novos, ${data.summary.numeros_atualizados || 0} atualizados)`);
     } catch (error) {
       console.error("Erro na mesclagem:", error);
       setErrorMessage(error instanceof Error ? error.message : "Erro desconhecido");
@@ -110,7 +112,7 @@ export function MergeCondominiosButton() {
             Mesclar Base de Condomínios
           </DialogTitle>
           <DialogDescription>
-            Importa 402 novos condomínios, preservando os registros existentes e evitando duplicatas.
+            Importa condomínios do CSV consolidado, atualizando números faltantes e adicionando novos registros.
           </DialogDescription>
         </DialogHeader>
 
@@ -120,11 +122,11 @@ export function MergeCondominiosButton() {
               <div className="p-4 rounded-lg bg-muted/50 border">
                 <h4 className="font-medium text-sm mb-2">O que será feito:</h4>
                 <ul className="text-xs text-muted-foreground space-y-1 list-disc list-inside">
-                  <li>Ler arquivo CSV com 402 condomínios</li>
+                  <li>Ler arquivo CSV consolidado com ~270 condomínios</li>
                   <li>Comparar com registros existentes na base</li>
-                  <li>Inferir microbairro automaticamente pelo logradouro</li>
+                  <li><strong>Atualizar números</strong> em registros sem número</li>
                   <li>Inserir apenas novos (sem duplicar)</li>
-                  <li>Preservar dados existentes (não sobrescreve)</li>
+                  <li>Inferir microbairro automaticamente pelo logradouro</li>
                 </ul>
               </div>
               <Button 
@@ -164,10 +166,16 @@ export function MergeCondominiosButton() {
                 </div>
                 <div className="p-3 rounded-lg bg-muted/50 border text-center">
                   <p className="text-2xl font-bold text-muted-foreground">{result.summary.duplicados}</p>
-                  <p className="text-xs text-muted-foreground">Já existiam</p>
+                  <p className="text-xs text-muted-foreground">Já completos</p>
                 </div>
-                <div className="p-3 rounded-lg bg-green-500/10 border border-green-500/30 text-center col-span-2">
-                  <p className="text-3xl font-bold text-green-600">{result.summary.novos_inseridos}</p>
+                {(result.summary.numeros_atualizados || 0) > 0 && (
+                  <div className="p-3 rounded-lg bg-blue-500/10 border border-blue-500/30 text-center">
+                    <p className="text-2xl font-bold text-blue-600">{result.summary.numeros_atualizados}</p>
+                    <p className="text-xs text-blue-700">Números atualizados</p>
+                  </div>
+                )}
+                <div className={`p-3 rounded-lg bg-green-500/10 border border-green-500/30 text-center ${(result.summary.numeros_atualizados || 0) > 0 ? '' : 'col-span-2'}`}>
+                  <p className="text-2xl font-bold text-green-600">{result.summary.novos_inseridos}</p>
                   <p className="text-xs text-green-700">Novos adicionados</p>
                 </div>
               </div>
