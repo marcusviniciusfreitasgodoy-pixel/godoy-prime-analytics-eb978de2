@@ -1,8 +1,10 @@
 import { Helmet } from "react-helmet-async";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { CompanyLogoUpload } from "@/components/CompanyLogoUpload";
-import { Settings, Building2, Phone, MapPin, FileText, Globe, Eye, Filter, Database, Trash2, User, Briefcase, Home } from "lucide-react";
+import { Settings, Building2, Phone, MapPin, FileText, Globe, Filter, Database, Trash2, User, Briefcase, Home, Loader2, Eye } from "lucide-react";
 import { MergeCondominiosButton } from "@/components/MergeCondominiosButton";
+import { EnrichCondominiosButton } from "@/components/EnrichCondominiosButton";
+import { useCondominiosStats } from "@/hooks/useCondominiosStats";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
@@ -14,6 +16,7 @@ import { toast } from "sonner";
 
 export default function Configuracoes() {
   const { settings, isLoading, updateSetting } = useCompanySettings();
+  const { stats: condominiosStats, refetch: refetchCondominiosStats } = useCondominiosStats();
   
   const [personType, setPersonType] = useState<PersonType>('pj');
   const [companyName, setCompanyName] = useState('');
@@ -369,20 +372,72 @@ export default function Configuracoes() {
             </CardDescription>
           </CardHeader>
           <CardContent className="p-4 sm:p-6 pt-0 sm:pt-0 space-y-4">
+            {/* Estatísticas da Base */}
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+              <div className="p-3 rounded-lg bg-muted/30 border text-center">
+                {condominiosStats.isLoading ? (
+                  <Loader2 className="h-5 w-5 animate-spin mx-auto text-muted-foreground" />
+                ) : (
+                  <p className="text-2xl font-bold text-primary">{condominiosStats.total}</p>
+                )}
+                <p className="text-xs text-muted-foreground">Total</p>
+              </div>
+              <div className="p-3 rounded-lg bg-green-500/10 border border-green-500/30 text-center">
+                {condominiosStats.isLoading ? (
+                  <Loader2 className="h-5 w-5 animate-spin mx-auto text-muted-foreground" />
+                ) : (
+                  <p className="text-2xl font-bold text-green-600">{condominiosStats.comCoordenadas}</p>
+                )}
+                <p className="text-xs text-green-700">Com coordenadas</p>
+              </div>
+              <div className="p-3 rounded-lg bg-muted/30 border text-center">
+                {condominiosStats.isLoading ? (
+                  <Loader2 className="h-5 w-5 animate-spin mx-auto text-muted-foreground" />
+                ) : (
+                  <p className="text-2xl font-bold text-muted-foreground">{condominiosStats.semCoordenadas}</p>
+                )}
+                <p className="text-xs text-muted-foreground">Sem coordenadas</p>
+              </div>
+              <div className="p-3 rounded-lg bg-muted/30 border text-center">
+                {condominiosStats.isLoading ? (
+                  <Loader2 className="h-5 w-5 animate-spin mx-auto text-muted-foreground" />
+                ) : (
+                  <p className="text-2xl font-bold text-muted-foreground">{condominiosStats.comMicrobairro}</p>
+                )}
+                <p className="text-xs text-muted-foreground">Com microbairro</p>
+              </div>
+            </div>
+
             <div className="p-3 rounded-lg bg-muted/30 border">
               <p className="text-xs text-muted-foreground leading-relaxed">
                 A base de condomínios é usada para identificar automaticamente nomes de condomínios 
                 durante as avaliações, melhorando a precisão das sugestões de logradouro.
               </p>
             </div>
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium">Atualizar Base</p>
-                <p className="text-xs text-muted-foreground">
-                  Mesclar novos condomínios preservando os existentes
-                </p>
+
+            {/* Ações */}
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium">Atualizar Base</p>
+                  <p className="text-xs text-muted-foreground">
+                    Mesclar novos condomínios preservando os existentes
+                  </p>
+                </div>
+                <MergeCondominiosButton />
               </div>
-              <MergeCondominiosButton />
+              
+              <div className="border-t pt-3">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-medium">Enriquecimento com Google Places</p>
+                    <p className="text-xs text-muted-foreground">
+                      Preenche coordenadas e endereços completos
+                    </p>
+                  </div>
+                  <EnrichCondominiosButton onComplete={refetchCondominiosStats} />
+                </div>
+              </div>
             </div>
           </CardContent>
         </Card>
