@@ -1,4 +1,5 @@
 import jsPDF from 'jspdf';
+import { supabase } from '@/integrations/supabase/client';
 
 // Godoy Prime Brand Colors (RGB)
 export const BRAND_COLORS = {
@@ -12,7 +13,7 @@ export const BRAND_COLORS = {
 
 // Default Contact Information (can be overridden by company settings)
 export const CONTACT_INFO = {
-  phone: '21. 96407 5124',
+  phone: '(21) 96407-5124',
   address: 'Av. das Américas 10101 Bloco 2, Sala 316, Barra da Tijuca, RJ',
   creci: 'CRECI 11841-PJ',
   website: 'www.godoyprime.com.br',
@@ -27,6 +28,70 @@ export interface CompanyInfo {
   name?: string;
   cnpj?: string;
   website?: string;
+  logoUrl?: string | null;
+}
+
+/**
+ * Fetch company settings from database for PDF generation
+ * Returns CompanyInfo with all settings from company_settings table
+ */
+export async function fetchCompanyInfoForPDF(): Promise<CompanyInfo> {
+  try {
+    const { data, error } = await supabase
+      .from('company_settings')
+      .select('setting_key, setting_value');
+
+    if (error) throw error;
+
+    const companyInfo: CompanyInfo = {
+      name: CONTACT_INFO.name,
+      phone: CONTACT_INFO.phone,
+      address: CONTACT_INFO.address,
+      creci: CONTACT_INFO.creci,
+      website: CONTACT_INFO.website,
+      cnpj: CONTACT_INFO.cnpj,
+      logoUrl: null,
+    };
+
+    data?.forEach((row) => {
+      switch (row.setting_key) {
+        case 'company_name':
+          if (row.setting_value) companyInfo.name = row.setting_value;
+          break;
+        case 'company_phone':
+          if (row.setting_value) companyInfo.phone = row.setting_value;
+          break;
+        case 'company_address':
+          if (row.setting_value) companyInfo.address = row.setting_value;
+          break;
+        case 'company_creci':
+          if (row.setting_value) companyInfo.creci = row.setting_value;
+          break;
+        case 'company_website':
+          if (row.setting_value) companyInfo.website = row.setting_value;
+          break;
+        case 'company_cnpj':
+          if (row.setting_value) companyInfo.cnpj = row.setting_value;
+          break;
+        case 'custom_logo_url':
+          companyInfo.logoUrl = row.setting_value;
+          break;
+      }
+    });
+
+    return companyInfo;
+  } catch (error) {
+    console.error('Error fetching company info for PDF:', error);
+    return {
+      name: CONTACT_INFO.name,
+      phone: CONTACT_INFO.phone,
+      address: CONTACT_INFO.address,
+      creci: CONTACT_INFO.creci,
+      website: CONTACT_INFO.website,
+      cnpj: CONTACT_INFO.cnpj,
+      logoUrl: null,
+    };
+  }
 }
 
 // Logo as base64 (simplified "GR" monogram for PDF embedding)
