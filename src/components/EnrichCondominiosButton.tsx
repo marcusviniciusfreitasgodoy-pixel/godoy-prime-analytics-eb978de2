@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { MapPin, Loader2, CheckCircle2, AlertCircle, Sparkles } from "lucide-react";
@@ -8,6 +8,7 @@ import { Progress } from "@/components/ui/progress";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Badge } from "@/components/ui/badge";
 
 interface EnrichmentResult {
   success: boolean;
@@ -29,8 +30,23 @@ export function EnrichCondominiosButton({ onComplete }: EnrichCondominiosButtonP
   const [result, setResult] = useState<EnrichmentResult | null>(null);
   const [errorMessage, setErrorMessage] = useState("");
   const [forceRefresh, setForceRefresh] = useState(false);
-  const [limit, setLimit] = useState<string>("50");
+  const [limit, setLimit] = useState<string>("300");
   const [progress, setProgress] = useState(0);
+  const [pendingCount, setPendingCount] = useState(0);
+
+  // Buscar quantidade pendente ao abrir
+  useEffect(() => {
+    const fetchPendingCount = async () => {
+      const { count } = await supabase
+        .from('condominios_mapeamento')
+        .select('id', { count: 'exact', head: true })
+        .or('latitude.is.null,google_place_id.is.null');
+      setPendingCount(count || 0);
+    };
+    if (isOpen) {
+      fetchPendingCount();
+    }
+  }, [isOpen]);
 
   const handleEnrich = async () => {
     setIsProcessing(true);
@@ -109,6 +125,11 @@ export function EnrichCondominiosButton({ onComplete }: EnrichCondominiosButtonP
         <Button variant="outline" size="sm" className="gap-2">
           <MapPin className="h-4 w-4" />
           Enriquecer Dados
+          {pendingCount > 0 && (
+            <Badge variant="secondary" className="ml-1 bg-amber-500/20 text-amber-700">
+              {pendingCount}
+            </Badge>
+          )}
         </Button>
       </DialogTrigger>
       <DialogContent className="sm:max-w-md">
@@ -125,13 +146,18 @@ export function EnrichCondominiosButton({ onComplete }: EnrichCondominiosButtonP
         <div className="space-y-4 py-4">
           {status === "idle" && (
             <div className="space-y-4">
-              <div className="p-4 rounded-lg bg-muted/50 border">
-                <h4 className="font-medium text-sm mb-2">O que será feito:</h4>
+              <div className="p-4 rounded-lg bg-amber-500/10 border border-amber-500/30">
+                <div className="flex items-center gap-2 mb-2">
+                  <MapPin className="h-4 w-4 text-amber-600" />
+                  <h4 className="font-medium text-sm text-amber-800">
+                    {pendingCount} condomínios aguardando enriquecimento
+                  </h4>
+                </div>
                 <ul className="text-xs text-muted-foreground space-y-1 list-disc list-inside">
                   <li>Buscar coordenadas via Google Places API</li>
                   <li>Preencher endereço completo formatado</li>
+                  <li>Obter Google Place ID para cada condomínio</li>
                   <li>Identificar ruas internas próximas</li>
-                  <li>Normalizar logradouros automaticamente</li>
                 </ul>
               </div>
 
@@ -143,16 +169,16 @@ export function EnrichCondominiosButton({ onComplete }: EnrichCondominiosButtonP
                       <SelectValue placeholder="Selecione o limite" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="10">10 condomínios</SelectItem>
                       <SelectItem value="50">50 condomínios</SelectItem>
                       <SelectItem value="100">100 condomínios</SelectItem>
-                      <SelectItem value="all">Todos sem coordenadas</SelectItem>
+                      <SelectItem value="150">150 condomínios</SelectItem>
+                      <SelectItem value="300">Todos ({pendingCount})</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
 
                 <div className="flex items-center space-x-2">
-                  <Checkbox 
+                  <Checkbox
                     id="forceRefresh" 
                     checked={forceRefresh}
                     onCheckedChange={(checked) => setForceRefresh(checked === true)}

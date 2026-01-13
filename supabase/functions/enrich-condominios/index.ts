@@ -199,7 +199,7 @@ serve(async (req) => {
       bairro = 'BARRA DA TIJUCA',
       microbairro,
       forceRefresh = false,
-      limit = 50
+      limit = 300 // Aumentado para processar todos de uma vez
     } = body;
     
     console.log('Starting condominium enrichment', { condominioId, bairro, microbairro, forceRefresh, limit });
@@ -213,8 +213,8 @@ serve(async (req) => {
     if (condominioId) {
       query = query.eq('id', condominioId);
     } else if (!forceRefresh) {
-      // Apenas condomínios sem coordenadas
-      query = query.is('latitude', null);
+      // Apenas condomínios sem coordenadas OU sem google_place_id
+      query = query.or('latitude.is.null,google_place_id.is.null');
     }
     
     // Filtrar por microbairro apenas se especificado
@@ -222,7 +222,9 @@ serve(async (req) => {
       query = query.eq('microbairro', microbairro);
     }
     
-    query = query.limit(limit);
+    if (limit) {
+      query = query.limit(limit);
+    }
     
     const { data: condominios, error: fetchError } = await query;
     
