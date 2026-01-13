@@ -26,10 +26,6 @@ export async function exportVideoScriptPdf() {
     doc.setFont('helvetica', 'normal');
     doc.text('Roteiro de Vídeo e Perguntas Frequentes - Versão 2.0', pageWidth / 2, 19, { align: 'center' });
   };
-    doc.setFontSize(10);
-    doc.setFont('helvetica', 'normal');
-    doc.text('Roteiro de Vídeo e Perguntas Frequentes - Versão 2.0', pageWidth / 2, 19, { align: 'center' });
-  };
 
   const addFooter = (pageNum: number) => {
     doc.setFillColor(NAVY);
