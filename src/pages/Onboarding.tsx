@@ -581,6 +581,23 @@ const allOnboardingSteps: OnboardingStep[] = [
   },
   {
     id: 19,
+    title: "Calibrador de Vistoria",
+    description: "Configure os itens do checklist de inspeção para casas e apartamentos.",
+    icon: <ClipboardCheck className="h-8 w-8" />,
+    features: [
+      "Gerenciar categorias de inspeção",
+      "Adicionar ou remover itens do checklist",
+      "Ajustar pesos por categoria",
+      "Configuração separada para casa e apartamento",
+      "Edição de descrições e dicas"
+    ],
+    route: "/calibrador-vistoria",
+    color: "from-orange-500 to-orange-400",
+    roles: ['admin'],
+    category: 'admin'
+  },
+  {
+    id: 20,
     title: "Configurações da Empresa",
     description: "Personalize os relatórios com logotipo e dados da empresa.",
     icon: <Shield className="h-8 w-8" />,
