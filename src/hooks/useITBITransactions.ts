@@ -17,48 +17,22 @@ const OUTLIER_LIMITS: Record<string, number> = {
   'LARANJEIRAS': 35000,
   'HUMAITA': 40000,
   'TIJUCA': 30000,
+  'VILA ISABEL': 25000,
+  'GRAJAU': 20000,
+  'GRAJAÚ': 20000,
+  'MEIER': 20000,
+  'MÉIER': 20000,
+  'JACAREPAGUA': 25000,
+  'JACAREPAGUÁ': 25000,
+  'FREGUESIA (JACAREPAGUÁ)': 25000,
+  'TAQUARA': 20000,
+  'PECHINCHA': 20000,
   'DEFAULT': 60000,
 };
 
 const getOutlierLimit = (bairro: string): number => {
   const normalizedBairro = bairro.toUpperCase();
   return OUTLIER_LIMITS[normalizedBairro] || OUTLIER_LIMITS['DEFAULT'];
-};
-
-// Classificar logradouros em microbairros da Barra da Tijuca
-const classificarMicrobairroBarra = (logradouro: string): string | null => {
-  const log = logradouro.toUpperCase();
-  
-  if (log.includes('LUCIO COSTA') || log.includes('LÚCIO COSTA') || 
-      log.includes('SERNAMBETIBA') || log.includes('PEPE') || log.includes('PEPÊ')) {
-    return 'Orla';
-  }
-  if (log.includes('PENINSULA') || log.includes('PENÍNSULA')) {
-    return 'Península';
-  }
-  if (log.includes('ABELARDO BUENO') || log.includes('EMBAIXADOR')) {
-    return 'Centro Metropolitano';
-  }
-  if (log.includes('AYRTON SENNA') || log.includes('VIA PARQUE') || log.includes('ALFA BARRA')) {
-    return 'Ayrton Senna';
-  }
-  if (log.includes('OLEGARIO') || log.includes('OLEGÁRIO') || 
-      log.includes('ERICO') || log.includes('ÉRICO') || log.includes('VERÍSSIMO') || log.includes('VERISSIMO')) {
-    return 'Jardim Oceânico';
-  }
-  if (log.includes('DULCIDIO') || log.includes('DULCÍDIO') || log.includes('CARDOSO')) {
-    return 'ABM';
-  }
-  if (log.includes('MARIO COVAS') || log.includes('MÁRIO COVAS') ||
-      log.includes('CESAR LATTES') || log.includes('CÉSAR LATTES') ||
-      log.includes('HENRIQUE CORDEIRO')) {
-    return 'Parque das Rosas';
-  }
-  if (log.includes('AMERICAS') || log.includes('AMÉRICAS')) {
-    return 'Eixo Américas';
-  }
-  
-  return null;
 };
 
 export interface ITBITransaction {
@@ -75,6 +49,7 @@ export interface ITBITransaction {
   tipologia: string | null;
   created_at: string;
   updated_at: string;
+  microbairro: string | null;
 }
 
 export interface MicrobairroRanking {
@@ -120,15 +95,25 @@ export function useITBITransactions() {
 
 export function useMicrobairroRanking(bairro: string = 'BARRA DA TIJUCA') {
   return useQuery<MicrobairroRanking[]>({
-    queryKey: ['microbairro-ranking-v5', bairro],
+    queryKey: ['microbairro-ranking-v6', bairro],
     queryFn: async () => {
       const outlierLimit = getOutlierLimit(bairro);
+      const normalizedBairro = bairro.toUpperCase();
       
       // Buscar transações dos últimos 12 meses
       const twelveMonthsAgo = new Date();
       twelveMonthsAgo.setMonth(twelveMonthsAgo.getMonth() - 12);
       const startDate = twelveMonthsAgo.toISOString().split('T')[0];
       
+      // Verificar se o bairro tem microbairros configurados
+      const { data: microbairrosGeo } = await supabase
+        .from('microbairros_geo')
+        .select('nome, keywords')
+        .eq('bairro', normalizedBairro);
+      
+      const hasMicrobairrosConfig = (microbairrosGeo?.length || 0) > 0;
+      
+      // Buscar transações
       const { data: transactions, error } = await supabase
         .from('itbi_transactions')
         .select('logradouro, valor_m2, total_transacoes, microbairro')
@@ -142,15 +127,9 @@ export function useMicrobairroRanking(bairro: string = 'BARRA DA TIJUCA') {
 
       if (error) throw error;
       
-      // Para Barra da Tijuca, agrupar por microbairro
-      if (bairro.toUpperCase() === 'BARRA DA TIJUCA') {
-        // Buscar keywords da tabela microbairros_geo para classificação dinâmica
-        const { data: microbairrosGeo } = await supabase
-          .from('microbairros_geo')
-          .select('nome, keywords')
-          .eq('bairro', 'BARRA DA TIJUCA');
-        
-        // Função para classificar usando keywords do banco
+      // Se o bairro tem microbairros configurados, agrupar por microbairro
+      if (hasMicrobairrosConfig) {
+        // Função para classificar usando keywords do banco (fallback para não classificados)
         const classifyByKeywords = (logradouro: string): string | null => {
           const log = logradouro.toUpperCase();
           for (const micro of microbairrosGeo || []) {
@@ -160,12 +139,11 @@ export function useMicrobairroRanking(bairro: string = 'BARRA DA TIJUCA') {
               }
             }
           }
-          // Fallback para função local se não encontrar no banco
-          return classificarMicrobairroBarra(logradouro);
+          return null;
         };
         
         const grouped = (transactions || []).reduce((acc, t) => {
-          // Usar microbairro do banco se disponível, senão classificar dinamicamente
+          // Usar microbairro do banco se disponível, senão classificar dinamicamente por keywords
           const micro = t.microbairro || classifyByKeywords(t.logradouro);
           if (!micro) return acc; // Ignorar logradouros não classificados
           
@@ -202,7 +180,7 @@ export function useMicrobairroRanking(bairro: string = 'BARRA DA TIJUCA') {
           .sort((a, b) => b.preco_medio_m2 - a.preco_medio_m2);
       }
       
-      // Para outros bairros, agrupar por logradouro
+      // Para bairros SEM microbairros configurados, agrupar por logradouro
       const grouped = (transactions || []).reduce((acc, t) => {
         const key = t.logradouro;
         if (!acc[key]) {
@@ -354,10 +332,18 @@ export function useMicrobairroDetalhado(bairro: string = 'BARRA DA TIJUCA') {
 
 export function useKPIStats(bairro: string = 'BARRA DA TIJUCA') {
   return useQuery({
-    queryKey: ['kpi-stats-v4', bairro],
+    queryKey: ['kpi-stats-v5', bairro],
     queryFn: async () => {
       const outlierLimit = getOutlierLimit(bairro);
-      const isBarra = bairro.toUpperCase().includes('BARRA DA TIJUCA');
+      const normalizedBairro = bairro.toUpperCase();
+      
+      // Verificar se o bairro tem microbairros configurados
+      const { data: microbairrosGeo } = await supabase
+        .from('microbairros_geo')
+        .select('nome, keywords')
+        .eq('bairro', normalizedBairro);
+      
+      const hasMicrobairrosConfig = (microbairrosGeo?.length || 0) > 0;
       
       const twentyFourMonthsAgo = new Date();
       twentyFourMonthsAgo.setMonth(twentyFourMonthsAgo.getMonth() - 24);
@@ -369,7 +355,7 @@ export function useKPIStats(bairro: string = 'BARRA DA TIJUCA') {
 
       const { data: currentPeriodData, error: currentError } = await supabase
         .from('itbi_transactions')
-        .select('logradouro, valor_m2, tipologia, uso, total_transacoes')
+        .select('logradouro, valor_m2, tipologia, uso, total_transacoes, microbairro')
         .eq('uso', 'Residencial')
         .ilike('bairro', bairro)
         .not('valor_m2', 'is', null)
@@ -411,12 +397,24 @@ export function useKPIStats(bairro: string = 'BARRA DA TIJUCA') {
       let bairroMaisValorizado = 'N/A';
       let precoMedioBairro = 0;
 
-      if (isBarra) {
-        // Para Barra, classificar por microbairro
+      if (hasMicrobairrosConfig) {
+        // Para bairros com microbairros configurados, classificar por microbairro
+        const classifyByKeywords = (logradouro: string): string | null => {
+          const log = logradouro.toUpperCase();
+          for (const micro of microbairrosGeo || []) {
+            for (const keyword of micro.keywords || []) {
+              if (log.includes(keyword.toUpperCase())) {
+                return micro.nome;
+              }
+            }
+          }
+          return null;
+        };
+
         const microbairroStats: Record<string, { sum: number; count: number }> = {};
         
         currentTransactions.forEach((t: any) => {
-          const micro = classificarMicrobairroBarra(t.logradouro);
+          const micro = t.microbairro || classifyByKeywords(t.logradouro);
           if (micro) {
             if (!microbairroStats[micro]) {
               microbairroStats[micro] = { sum: 0, count: 0 };

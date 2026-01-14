@@ -94,6 +94,9 @@ function classifyByLocation(lat: number, lng: number, microbairros: MicrobairroG
   return minDistance < 0.02 ? closest : null;
 }
 
+// Helper para aguardar (rate limiting)
+const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
+
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
@@ -107,9 +110,186 @@ Deno.serve(async (req) => {
     const body = await req.json();
     const { action, bairro = 'BARRA DA TIJUCA', limit = 100, forceGeocode = false } = body;
 
-    console.log(`[classify-microbairros] Action: ${action}, Bairro: ${bairro}, Limit: ${limit}`);
+    console.log(`[classify-microbairros] Action: ${action}, Bairro: ${bairro}, Limit: ${limit}, ForceGeocode: ${forceGeocode}`);
 
-    // Buscar definições de microbairros
+    // =========================================
+    // ACTION: classify-all-bairros
+    // Classifica TODOS os bairros configurados
+    // =========================================
+    if (action === 'classify-all-bairros') {
+      // Buscar lista de bairros únicos com microbairros configurados
+      const { data: configuredBairros, error: configError } = await supabase
+        .from('microbairros_geo')
+        .select('bairro')
+        .not('bairro', 'is', null);
+
+      if (configError) throw configError;
+
+      const uniqueBairros = [...new Set(configuredBairros?.map(b => b.bairro))];
+      console.log(`[classify-all-bairros] Bairros configurados: ${uniqueBairros.join(', ')}`);
+
+      const results: Record<string, { processed: number; classified: number; byKeyword: number; byGeo: number }> = {};
+      let grandTotalProcessed = 0;
+      let grandTotalClassified = 0;
+      let grandTotalByKeyword = 0;
+      let grandTotalByGeo = 0;
+
+      // Processar cada bairro em sequência
+      for (const bairroName of uniqueBairros) {
+        console.log(`[classify-all-bairros] Processando bairro: ${bairroName}`);
+
+        // Buscar microbairros do bairro
+        const { data: micros } = await supabase
+          .from('microbairros_geo')
+          .select('*')
+          .eq('bairro', bairroName);
+
+        const microbairros = (micros || []) as MicrobairroGeo[];
+        if (microbairros.length === 0) continue;
+
+        let bairroProcessed = 0;
+        let bairroClassified = 0;
+        let bairroByKeyword = 0;
+        let bairroByGeo = 0;
+        const batchSize = 500;
+
+        // Processar em lotes
+        while (true) {
+          const { data: transactions, error: txError } = await supabase
+            .from('itbi_transactions')
+            .select('id, logradouro')
+            .ilike('bairro', bairroName)
+            .is('microbairro', null)
+            .limit(batchSize);
+
+          if (txError) throw txError;
+          if (!transactions || transactions.length === 0) break;
+
+          const updates: { id: string; microbairro: string }[] = [];
+
+          for (const tx of transactions) {
+            let microbairro = classifyByKeywords(tx.logradouro, microbairros);
+
+            if (microbairro) {
+              bairroByKeyword++;
+            } else if (forceGeocode) {
+              // Geocodificar via Google se forceGeocode ativo
+              const coords = await geocodeWithGoogle(tx.logradouro, bairroName);
+              
+              if (coords) {
+                microbairro = classifyByLocation(coords.lat, coords.lng, microbairros);
+                if (microbairro) {
+                  bairroByGeo++;
+                }
+              }
+              
+              // Rate limiting para Google API (10 req/s)
+              await sleep(100);
+            }
+
+            if (microbairro) {
+              updates.push({ id: tx.id, microbairro });
+            }
+          }
+
+          // Atualizar em batch
+          for (const update of updates) {
+            await supabase
+              .from('itbi_transactions')
+              .update({ microbairro: update.microbairro })
+              .eq('id', update.id);
+          }
+
+          bairroProcessed += transactions.length;
+          bairroClassified += updates.length;
+
+          console.log(`[classify-all-bairros] ${bairroName}: ${transactions.length} processados, ${updates.length} classificados neste batch`);
+
+          // Safety limit por bairro
+          if (bairroProcessed >= 10000) break;
+        }
+
+        results[bairroName] = {
+          processed: bairroProcessed,
+          classified: bairroClassified,
+          byKeyword: bairroByKeyword,
+          byGeo: bairroByGeo,
+        };
+
+        grandTotalProcessed += bairroProcessed;
+        grandTotalClassified += bairroClassified;
+        grandTotalByKeyword += bairroByKeyword;
+        grandTotalByGeo += bairroByGeo;
+
+        console.log(`[classify-all-bairros] ${bairroName} concluído: ${bairroClassified}/${bairroProcessed} classificados`);
+      }
+
+      return new Response(
+        JSON.stringify({
+          success: true,
+          bairrosProcessados: uniqueBairros.length,
+          results,
+          grandTotalProcessed,
+          grandTotalClassified,
+          grandTotalByKeyword,
+          grandTotalByGeo,
+        }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // =========================================
+    // ACTION: stats-all-bairros
+    // Estatísticas de classificação de todos os bairros
+    // =========================================
+    if (action === 'stats-all-bairros') {
+      // Buscar lista de bairros únicos com microbairros configurados
+      const { data: configuredBairros } = await supabase
+        .from('microbairros_geo')
+        .select('bairro')
+        .not('bairro', 'is', null);
+
+      const uniqueBairros = [...new Set(configuredBairros?.map(b => b.bairro))];
+
+      const results: Record<string, { total: number; classified: number; unclassified: number; percent: string }> = {};
+      let grandTotal = 0;
+      let grandClassified = 0;
+
+      for (const bairroName of uniqueBairros) {
+        const { data: stats } = await supabase
+          .from('itbi_transactions')
+          .select('microbairro')
+          .ilike('bairro', bairroName);
+
+        const total = stats?.length || 0;
+        const classified = stats?.filter(s => s.microbairro !== null).length || 0;
+
+        results[bairroName] = {
+          total,
+          classified,
+          unclassified: total - classified,
+          percent: total > 0 ? ((classified / total) * 100).toFixed(1) : '0',
+        };
+
+        grandTotal += total;
+        grandClassified += classified;
+      }
+
+      return new Response(
+        JSON.stringify({
+          bairrosConfigurados: uniqueBairros.length,
+          results,
+          grandTotal,
+          grandClassified,
+          grandPercent: grandTotal > 0 ? ((grandClassified / grandTotal) * 100).toFixed(1) : '0',
+        }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // =========================================
+    // Buscar definições de microbairros para bairro específico
+    // =========================================
     const { data: microbairrosData, error: microError } = await supabase
       .from('microbairros_geo')
       .select('*')
@@ -120,7 +300,7 @@ Deno.serve(async (req) => {
 
     if (microbairros.length === 0) {
       return new Response(
-        JSON.stringify({ error: 'Nenhum microbairro configurado para este bairro' }),
+        JSON.stringify({ error: 'Nenhum microbairro configurado para este bairro', bairro }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
@@ -160,6 +340,9 @@ Deno.serve(async (req) => {
               classifiedByGeo++;
             }
           }
+          
+          // Rate limiting
+          await sleep(100);
         }
 
         if (microbairro) {
@@ -215,6 +398,7 @@ Deno.serve(async (req) => {
 
       return new Response(
         JSON.stringify({
+          bairro,
           total,
           classified,
           unclassified,
@@ -225,11 +409,13 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Action: classify-all - Classificar todas as transações (em lotes)
+    // Action: classify-all - Classificar todas as transações de um bairro (em lotes)
     if (action === 'classify-all') {
       const batchSize = 500;
       let totalProcessed = 0;
       let totalClassified = 0;
+      let totalByKeyword = 0;
+      let totalByGeo = 0;
       
       // Loop até não ter mais transações sem classificação
       while (true) {
@@ -246,7 +432,23 @@ Deno.serve(async (req) => {
         const updates: { id: string; microbairro: string }[] = [];
 
         for (const tx of transactions) {
-          const microbairro = classifyByKeywords(tx.logradouro, microbairros);
+          let microbairro = classifyByKeywords(tx.logradouro, microbairros);
+          
+          if (microbairro) {
+            totalByKeyword++;
+          } else if (forceGeocode) {
+            const coords = await geocodeWithGoogle(tx.logradouro, bairro);
+            
+            if (coords) {
+              microbairro = classifyByLocation(coords.lat, coords.lng, microbairros);
+              if (microbairro) {
+                totalByGeo++;
+              }
+            }
+            
+            await sleep(100);
+          }
+          
           if (microbairro) {
             updates.push({ id: tx.id, microbairro });
           }
@@ -265,22 +467,25 @@ Deno.serve(async (req) => {
 
         console.log(`[classify-microbairros] Batch: ${transactions.length} processados, ${updates.length} classificados`);
 
-        // Safety limit
-        if (totalProcessed >= 10000) break;
+        // Safety limit aumentado para 50.000
+        if (totalProcessed >= 50000) break;
       }
 
       return new Response(
         JSON.stringify({
           success: true,
+          bairro,
           totalProcessed,
           totalClassified,
+          totalByKeyword,
+          totalByGeo,
         }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
     return new Response(
-      JSON.stringify({ error: 'Ação inválida. Use: classify, stats, ou classify-all' }),
+      JSON.stringify({ error: 'Ação inválida. Use: classify, classify-all, classify-all-bairros, stats, stats-all-bairros' }),
       { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
 
