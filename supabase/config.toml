@@ -62,3 +62,6 @@ verify_jwt = true
 
 [functions.sync-logradouros-geo]
 verify_jwt = false
+
+[functions.send-whatsapp]
+verify_jwt = false
