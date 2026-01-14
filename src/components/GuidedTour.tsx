@@ -1,5 +1,5 @@
-import { useState, useEffect } from "react";
-import Joyride, { CallBackProps, STATUS, Step } from "react-joyride";
+import { useState, useEffect, useCallback } from "react";
+import Joyride, { CallBackProps, STATUS, Step, ACTIONS, EVENTS } from "react-joyride";
 
 const tourSteps: Step[] = [
   // Painel Principal - Visão Geral
@@ -136,43 +136,89 @@ const tourSteps: Step[] = [
   },
 ];
 
+// Filter steps to only include those with existing targets
+const getVisibleSteps = (): Step[] => {
+  return tourSteps.filter(step => {
+    const target = step.target as string;
+    const element = document.querySelector(target);
+    return element !== null;
+  });
+};
+
 interface GuidedTourProps {
   run: boolean;
   onFinish: () => void;
 }
 
 export function GuidedTour({ run, onFinish }: GuidedTourProps) {
-  const [stepIndex, setStepIndex] = useState(0);
+  const [visibleSteps, setVisibleSteps] = useState<Step[]>([]);
+  const [isReady, setIsReady] = useState(false);
 
+  // Prepare steps when tour starts
   useEffect(() => {
     if (run) {
-      setStepIndex(0);
+      // Small delay to ensure DOM is ready
+      const timer = setTimeout(() => {
+        const steps = getVisibleSteps();
+        console.log('[GuidedTour] Visible steps:', steps.length, 'of', tourSteps.length);
+        setVisibleSteps(steps);
+        setIsReady(true);
+      }, 500);
+      
+      return () => clearTimeout(timer);
+    } else {
+      setIsReady(false);
+      setVisibleSteps([]);
     }
   }, [run]);
 
-  const handleCallback = (data: CallBackProps) => {
-    const { status, index, type } = data;
+  const handleCallback = useCallback((data: CallBackProps) => {
+    const { status, action, type } = data;
     
+    console.log('[GuidedTour] Callback:', { status, action, type });
+    
+    // Handle finish or skip
     if (([STATUS.FINISHED, STATUS.SKIPPED] as string[]).includes(status)) {
+      console.log('[GuidedTour] Tour finished or skipped');
+      setIsReady(false);
       onFinish();
+      return;
     }
     
-    if (type === 'step:after') {
-      setStepIndex(index + 1);
+    // Handle close button
+    if (action === ACTIONS.CLOSE) {
+      console.log('[GuidedTour] Tour closed');
+      setIsReady(false);
+      onFinish();
+      return;
     }
-  };
+    
+    // Handle errors - skip to next step if target not found
+    if (type === EVENTS.TARGET_NOT_FOUND) {
+      console.log('[GuidedTour] Target not found, continuing...');
+    }
+  }, [onFinish]);
+
+  // Don't render until ready
+  if (!run || !isReady || visibleSteps.length === 0) {
+    return null;
+  }
 
   return (
     <Joyride
-      steps={tourSteps}
-      run={run}
+      steps={visibleSteps}
+      run={isReady}
       continuous
       showSkipButton
       showProgress
-      stepIndex={stepIndex}
+      disableOverlayClose={false}
+      spotlightClicks
       callback={handleCallback}
       scrollToFirstStep
       disableScrolling={false}
+      floaterProps={{
+        disableAnimation: true,
+      }}
       styles={{
         options: {
           primaryColor: '#D4AF37',
