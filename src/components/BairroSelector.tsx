@@ -9,13 +9,15 @@ import {
 } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { MapPin, Search } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 interface BairroSelectorProps {
   value: string;
   onChange: (value: string) => void;
+  className?: string;
 }
 
-export function BairroSelector({ value, onChange }: BairroSelectorProps) {
+export function BairroSelector({ value, onChange, className }: BairroSelectorProps) {
   const [searchFilter, setSearchFilter] = useState("");
   const { data: bairros, isLoading } = useAllBairros();
 
@@ -28,7 +30,7 @@ export function BairroSelector({ value, onChange }: BairroSelectorProps) {
     <div className="flex items-center gap-2">
       <MapPin className="h-4 w-4 text-accent shrink-0" />
       <Select value={value} onValueChange={onChange} disabled={isLoading}>
-        <SelectTrigger className="w-full sm:w-[180px] md:w-[220px] bg-background/50 border-border text-sm">
+        <SelectTrigger className={cn("w-full sm:w-[180px] md:w-[220px] bg-background/50 border-border text-sm", className)}>
           <SelectValue placeholder="Selecione o bairro" />
         </SelectTrigger>
         <SelectContent className="max-h-[300px] max-w-[90vw] sm:max-w-none">
