@@ -12,12 +12,18 @@ import { registerSW } from "virtual:pwa-register";
 const updateSW = registerSW({
   immediate: true,
   onNeedRefresh() {
-    // Auto-reload without confirmation to ensure fresh data
+    // Dispatch event to show update indicator
     console.log('[PWA] Nova versão detectada, atualizando automaticamente...');
-    updateSW(true); // Accept the update
+    window.dispatchEvent(new CustomEvent('sw-update-start'));
+    
+    // Small delay to ensure indicator is visible before reload
+    setTimeout(() => {
+      updateSW(true); // Accept the update
+    }, 500);
   },
   onOfflineReady() {
     console.log('[PWA] App pronto para uso offline');
+    window.dispatchEvent(new CustomEvent('sw-update-complete'));
   },
   onRegisteredSW(swUrl, registration) {
     // Check for updates every 5 minutes
