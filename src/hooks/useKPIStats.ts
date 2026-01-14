@@ -25,6 +25,42 @@ const getOutlierLimit = (bairro: string): number => {
   return OUTLIER_LIMITS[normalizedBairro] || OUTLIER_LIMITS['DEFAULT'];
 };
 
+// Classificar logradouros em microbairros da Barra da Tijuca
+const classificarMicrobairroBarra = (logradouro: string): string | null => {
+  const log = logradouro.toUpperCase();
+  
+  if (log.includes('LUCIO COSTA') || log.includes('LÚCIO COSTA') || 
+      log.includes('SERNAMBETIBA') || log.includes('PEPE') || log.includes('PEPÊ')) {
+    return 'Orla';
+  }
+  if (log.includes('PENINSULA') || log.includes('PENÍNSULA')) {
+    return 'Península';
+  }
+  if (log.includes('ABELARDO BUENO') || log.includes('EMBAIXADOR')) {
+    return 'Centro Metropolitano';
+  }
+  if (log.includes('AYRTON SENNA') || log.includes('VIA PARQUE') || log.includes('ALFA BARRA')) {
+    return 'Ayrton Senna';
+  }
+  if (log.includes('OLEGARIO') || log.includes('OLEGÁRIO') || 
+      log.includes('ERICO') || log.includes('ÉRICO') || log.includes('VERÍSSIMO') || log.includes('VERISSIMO')) {
+    return 'Jardim Oceânico';
+  }
+  if (log.includes('DULCIDIO') || log.includes('DULCÍDIO') || log.includes('CARDOSO')) {
+    return 'ABM';
+  }
+  if (log.includes('MARIO COVAS') || log.includes('MÁRIO COVAS') ||
+      log.includes('CESAR LATTES') || log.includes('CÉSAR LATTES') ||
+      log.includes('HENRIQUE CORDEIRO')) {
+    return 'Parque das Rosas';
+  }
+  if (log.includes('AMERICAS') || log.includes('AMÉRICAS')) {
+    return 'Eixo Américas';
+  }
+  
+  return null;
+};
+
 const MIN_REGISTROS_ANO_ATUAL = 30;
 const MIN_TRANSACOES_REAIS = 100;
 
@@ -239,45 +275,45 @@ export function useKPIStats(bairro: string = 'BARRA DA TIJUCA') {
       let precoMedioBairroCasa = 0;
 
       if (bairro.toUpperCase() === 'BARRA DA TIJUCA') {
-        const { data: rankingData } = await supabase
-          .from('view_ranking_microbairros')
-          .select('microbairro, preco_medio_m2')
-          .order('preco_medio_m2', { ascending: false })
-          .limit(1)
-          .maybeSingle();
-
-        if (rankingData?.microbairro) {
-          regiaoMaisValorizada = rankingData.microbairro;
-          precoMedioBairro = rankingData.preco_medio_m2 || 0;
-          precoMedioBairroApt = precoMedioBairro;
-          precoMedioBairroCasa = precoMedioBairro * 0.9;
-
-          const { data: bairroTransactions } = await supabase
-            .from('itbi_transactions')
-            .select('valor_m2, tipologia, total_transacoes')
-            .eq('uso', 'Residencial')
-            .ilike('bairro', bairro)
-            .gte('percentual_transferido', 90)
-            .lte('valor_m2', outlierLimit)
-            .ilike('logradouro', `%${rankingData.microbairro}%`)
-            .gte('data_transacao', startOfYear);
-
-          if (bairroTransactions && bairroTransactions.length > 0) {
-            const bairroApt = bairroTransactions.filter(t => 
-              t.tipologia?.toLowerCase().includes('apartamento')
-            );
-            const bairroCasa = bairroTransactions.filter(t => 
-              t.tipologia?.toLowerCase().includes('casa')
-            );
-            
-            if (bairroApt.length > 0) {
-              precoMedioBairroApt = calcMediaPonderada(bairroApt);
+        // Calcular microbairro mais valorizado dinamicamente usando classificação
+        const microbairroStats: Record<string, { somaValores: number; somaTransacoes: number; transacoes: TransactionData[] }> = {};
+        
+        for (const t of currentTransactions as any[]) {
+          const micro = classificarMicrobairroBarra(t.logradouro || '');
+          if (micro) {
+            if (!microbairroStats[micro]) {
+              microbairroStats[micro] = { somaValores: 0, somaTransacoes: 0, transacoes: [] };
             }
-            if (bairroCasa.length > 0) {
-              precoMedioBairroCasa = calcMediaPonderada(bairroCasa);
+            const peso = t.total_transacoes || 1;
+            microbairroStats[micro].somaValores += (t.valor_m2 || 0) * peso;
+            microbairroStats[micro].somaTransacoes += peso;
+            microbairroStats[micro].transacoes.push(t);
+          }
+        }
+
+        let maxPreco = 0;
+        let melhorMicrobairro = 'N/A';
+        let melhorTransacoes: TransactionData[] = [];
+
+        for (const [micro, stats] of Object.entries(microbairroStats)) {
+          if (stats.somaTransacoes >= 3) { // Mínimo 3 transações
+            const mediaMicro = stats.somaValores / stats.somaTransacoes;
+            if (mediaMicro > maxPreco) {
+              maxPreco = mediaMicro;
+              melhorMicrobairro = micro;
+              melhorTransacoes = stats.transacoes;
             }
           }
         }
+
+        regiaoMaisValorizada = melhorMicrobairro;
+        precoMedioBairro = Math.round(maxPreco);
+
+        const microApt = melhorTransacoes.filter(t => t.tipologia?.toLowerCase().includes('apartamento'));
+        const microCasa = melhorTransacoes.filter(t => t.tipologia?.toLowerCase().includes('casa'));
+        
+        precoMedioBairroApt = microApt.length > 0 ? calcMediaPonderada(microApt) : maxPreco;
+        precoMedioBairroCasa = microCasa.length > 0 ? calcMediaPonderada(microCasa) : maxPreco * 0.9;
       } else {
         const { data: logradouroData } = await supabase
           .from('itbi_transactions')
