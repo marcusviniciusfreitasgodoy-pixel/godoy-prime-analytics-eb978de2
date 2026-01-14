@@ -21,7 +21,7 @@ export function VisitCard({ ficha, agendamento, type, onCreateFicha }: VisitCard
   const navigate = useNavigate();
   const queryClient = useQueryClient();
 
-  const handleCancelAgendamento = async (id: string) => {
+  const handleCancelAgendamento = async (id: string, agendamentoData?: AgendamentoVisita) => {
     try {
       const { error } = await supabase
         .from('agendamentos_visita')
@@ -29,6 +29,27 @@ export function VisitCard({ ficha, agendamento, type, onCreateFicha }: VisitCard
         .eq('id', id);
       
       if (error) throw error;
+      
+      // Enviar e-mail de cancelamento se tiver email do visitante
+      if (agendamentoData?.email_visitante) {
+        try {
+          await supabase.functions.invoke('send-visit-email', {
+            body: {
+              type: 'agendamento_cancelado',
+              to: agendamentoData.email_visitante,
+              data: {
+                nome_visitante: agendamentoData.nome_visitante,
+                endereco_imovel: agendamentoData.endereco_imovel,
+                data_hora: agendamentoData.data_hora,
+                telefone_visitante: agendamentoData.telefone_visitante,
+              },
+              sendToAgency: true,
+            },
+          });
+        } catch (emailErr) {
+          console.error('Erro ao enviar e-mail de cancelamento:', emailErr);
+        }
+      }
       
       queryClient.invalidateQueries({ queryKey: ['agendamentos-visita'] });
       toast.success('Agendamento cancelado com sucesso');
@@ -145,7 +166,7 @@ export function VisitCard({ ficha, agendamento, type, onCreateFicha }: VisitCard
                   variant="ghost"
                   size="sm"
                   className="text-destructive hover:text-destructive hover:bg-destructive/10"
-                  onClick={() => handleCancelAgendamento(agendamento.id)}
+                  onClick={() => handleCancelAgendamento(agendamento.id, agendamento)}
                   title="Cancelar agendamento"
                 >
                   <XCircle className="h-4 w-4" />

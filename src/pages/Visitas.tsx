@@ -11,9 +11,10 @@ import { VisitCard } from "@/components/visitas/VisitCard";
 import { VisitasDashboardKPIs } from "@/components/visitas/VisitasDashboardKPIs";
 import { VisitasEvolutionChart } from "@/components/visitas/VisitasEvolutionChart";
 import { CorretorRanking } from "@/components/visitas/CorretorRanking";
+import { FeedbacksList } from "@/components/visitas/FeedbacksList";
 import { PageTour, TourButton } from "@/components/PageTour";
 import { AgendamentoVisita } from "@/types/visitas";
-import { Calendar, List, Plus, Loader2, LayoutDashboard, Trophy } from "lucide-react";
+import { Calendar, List, Plus, Loader2, LayoutDashboard, Trophy, MessageSquare } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 
@@ -91,7 +92,7 @@ export default function Visitas() {
         </div>
 
         <Tabs value={activeTab} onValueChange={setActiveTab}>
-          <TabsList className="grid w-full grid-cols-4 h-auto" data-tour="visitas-tabs">
+          <TabsList className="grid w-full grid-cols-5 h-auto" data-tour="visitas-tabs">
             <TabsTrigger value="dashboard" className="flex flex-col sm:flex-row items-center gap-1 sm:gap-2 py-2 px-1 sm:px-3 text-xs sm:text-sm">
               <LayoutDashboard className="h-4 w-4" />
               <span className="hidden sm:inline">Dashboard</span>
@@ -104,6 +105,10 @@ export default function Visitas() {
             <TabsTrigger value="fichas" className="flex flex-col sm:flex-row items-center gap-1 sm:gap-2 py-2 px-1 sm:px-3 text-xs sm:text-sm">
               <List className="h-4 w-4" />
               <span className="hidden sm:inline">Fichas ({fichas?.length || 0})</span>
+            </TabsTrigger>
+            <TabsTrigger value="feedbacks" className="flex flex-col sm:flex-row items-center gap-1 sm:gap-2 py-2 px-1 sm:px-3 text-xs sm:text-sm">
+              <MessageSquare className="h-4 w-4" />
+              <span className="hidden sm:inline">Feedbacks</span>
             </TabsTrigger>
             <TabsTrigger value="ranking" className="flex flex-col sm:flex-row items-center gap-1 sm:gap-2 py-2 px-1 sm:px-3 text-xs sm:text-sm">
               <Trophy className="h-4 w-4" />
@@ -162,6 +167,10 @@ export default function Visitas() {
                 <p>Nenhuma ficha de visita encontrada</p>
               </div>
             )}
+          </TabsContent>
+
+          <TabsContent value="feedbacks" className="mt-6" data-tour="visitas-feedbacks">
+            <FeedbacksList />
           </TabsContent>
 
           <TabsContent value="ranking" className="mt-6" data-tour="visitas-ranking">

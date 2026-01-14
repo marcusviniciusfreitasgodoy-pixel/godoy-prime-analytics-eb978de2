@@ -8,7 +8,7 @@ const corsHeaders = {
 };
 
 interface EmailRequest {
-  type: "agendamento_confirmado" | "visita_realizada" | "lembrete_visita";
+  type: "agendamento_confirmado" | "visita_realizada" | "lembrete_visita" | "agendamento_cancelado";
   to: string;
   data: {
     nome_visitante: string;
@@ -19,6 +19,7 @@ interface EmailRequest {
     nome_corretor?: string;
     codigo_visita?: string;
     feedback_url?: string;
+    motivo_cancelamento?: string;
   };
   sendToAgency?: boolean;
 }
@@ -250,6 +251,70 @@ function getVisitaRealizadaFeedbackHtml(data: EmailRequest["data"]): string {
   `;
 }
 
+function getAgendamentoCanceladoHtml(data: EmailRequest["data"]): string {
+  return `
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    </head>
+    <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background-color: #f5f5f5; margin: 0; padding: 20px;">
+      <div style="max-width: 600px; margin: 0 auto; background-color: #ffffff; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
+        
+        <!-- Header -->
+        <div style="background-color: #dc2626; padding: 30px; text-align: center;">
+          <h1 style="color: #ffffff; margin: 0; font-size: 24px;">Godoy Prime</h1>
+          <p style="color: #ffffff; margin: 10px 0 0 0; font-size: 14px;">Agendamento Cancelado</p>
+        </div>
+        
+        <!-- Content -->
+        <div style="padding: 30px;">
+          <p style="color: #333; font-size: 16px; margin: 0 0 20px 0;">
+            Olá <strong>${data.nome_visitante}</strong>,
+          </p>
+          
+          <p style="color: #666; font-size: 14px; margin: 0 0 20px 0;">
+            Informamos que seu agendamento de visita foi <strong style="color: #dc2626;">cancelado</strong>.
+          </p>
+          
+          <!-- Info Box -->
+          <div style="background-color: #fef2f2; border-radius: 8px; padding: 20px; margin: 20px 0; border-left: 4px solid #dc2626;">
+            <table style="width: 100%; border-collapse: collapse;">
+              <tr>
+                <td style="padding: 8px 0; color: #666; font-size: 14px;">📍 Imóvel:</td>
+                <td style="padding: 8px 0; color: #333; font-size: 14px; font-weight: bold;">${data.endereco_imovel}</td>
+              </tr>
+              <tr>
+                <td style="padding: 8px 0; color: #666; font-size: 14px;">📅 Data/Hora:</td>
+                <td style="padding: 8px 0; color: #333; font-size: 14px; font-weight: bold;">${data.data_hora ? formatDate(data.data_hora) : "N/A"}</td>
+              </tr>
+            </table>
+          </div>
+          
+          <p style="color: #666; font-size: 14px; margin: 20px 0;">
+            Caso deseje reagendar sua visita, entre em contato conosco pelo WhatsApp (21) 96407-5124 ou através do nosso site.
+          </p>
+          
+          <p style="color: #333; font-size: 14px; margin: 20px 0 0 0;">
+            Atenciosamente,<br>
+            <strong>Equipe Godoy Prime</strong>
+          </p>
+        </div>
+        
+        <!-- Footer -->
+        <div style="background-color: #f8f9fa; padding: 20px; text-align: center; border-top: 1px solid #eee;">
+          <p style="color: #999; font-size: 12px; margin: 0;">
+            Godoy Prime - Inteligência Imobiliária<br>
+            Este é um email automático, não responda.
+          </p>
+        </div>
+      </div>
+    </body>
+    </html>
+  `;
+}
+
 const handler = async (req: Request): Promise<Response> => {
   // Handle CORS preflight requests
   if (req.method === "OPTIONS") {
@@ -305,6 +370,24 @@ const handler = async (req: Request): Promise<Response> => {
             nome_visitante: data.nome_visitante,
           }),
         });
+        break;
+
+      case "agendamento_cancelado":
+        // Email de cancelamento para o cliente
+        emailsToSend.push({
+          to: [to],
+          subject: `Agendamento Cancelado - ${data.endereco_imovel}`,
+          html: getAgendamentoCanceladoHtml(data),
+        });
+
+        // Email para a imobiliária
+        if (sendToAgency) {
+          emailsToSend.push({
+            to: [AGENCY_EMAIL],
+            subject: `Agendamento Cancelado - ${data.nome_visitante}`,
+            html: getAgendamentoCanceladoHtml(data),
+          });
+        }
         break;
 
       default:

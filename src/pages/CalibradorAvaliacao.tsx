@@ -5,6 +5,9 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Textarea } from "@/components/ui/textarea";
 import { 
   Settings, 
   Save, 
@@ -16,7 +19,10 @@ import {
   LayoutGrid,
   FileText,
   AlertTriangle,
-  CheckCircle
+  CheckCircle,
+  Plus,
+  Trash2,
+  Pencil
 } from "lucide-react";
 import { toast } from "sonner";
 import { useValuationCharacteristics, useDocumentationFactors } from "@/hooks/useValuationCharacteristics";
@@ -47,6 +53,14 @@ const CATEGORY_NAMES: Record<string, string> = {
   E: "Funcionalidade / Layout",
 };
 
+interface NewCharacteristic {
+  char_name: string;
+  char_description: string;
+  char_type: "positive" | "negative";
+  category: string;
+  weight_value: number;
+}
+
 export default function CalibradorAvaliacao() {
   const { data: characteristics, isLoading: loadingChars, refetch: refetchChars } = useValuationCharacteristics();
   const { data: docFactors, isLoading: loadingDocs, refetch: refetchDocs } = useDocumentationFactors();
@@ -55,6 +69,27 @@ export default function CalibradorAvaliacao() {
   const [editedDocFactors, setEditedDocFactors] = useState<Record<string, number>>({});
   const [isSaving, setIsSaving] = useState(false);
   const [activeTab, setActiveTab] = useState("A");
+  
+  // Modal states
+  const [showAddModal, setShowAddModal] = useState(false);
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [selectedCharId, setSelectedCharId] = useState<string | null>(null);
+  const [newChar, setNewChar] = useState<NewCharacteristic>({
+    char_name: "",
+    char_description: "",
+    char_type: "positive",
+    category: "A",
+    weight_value: 0.02,
+  });
+  const [editChar, setEditChar] = useState<NewCharacteristic & { id: string }>({
+    id: "",
+    char_name: "",
+    char_description: "",
+    char_type: "positive",
+    category: "A",
+    weight_value: 0.02,
+  });
 
   const handleWeightChange = (charId: string, value: string) => {
     const numValue = parseFloat(value) / 100;
@@ -116,6 +151,132 @@ export default function CalibradorAvaliacao() {
     setEditedWeights({});
     setEditedDocFactors({});
     toast.info("Alterações descartadas");
+  };
+
+  // Adicionar nova característica
+  const handleAddCharacteristic = async () => {
+    if (!newChar.char_name.trim()) {
+      toast.error("Nome da característica é obrigatório");
+      return;
+    }
+
+    setIsSaving(true);
+    try {
+      const categoryChars = characteristics?.filter(c => c.category === newChar.category) || [];
+      const maxOrder = categoryChars.length > 0 
+        ? Math.max(...categoryChars.map(c => c.display_order)) 
+        : 0;
+      
+      const firstCategoryChar = categoryChars[0];
+      
+      const { error } = await supabase
+        .from("valuation_characteristics")
+        .insert({
+          char_name: newChar.char_name,
+          char_description: newChar.char_description,
+          char_type: newChar.char_type,
+          category: newChar.category,
+          category_name: CATEGORY_NAMES[newChar.category],
+          weight_value: newChar.weight_value,
+          char_code: `${newChar.category}${maxOrder + 1}`,
+          display_order: maxOrder + 1,
+          category_cap_min: firstCategoryChar?.category_cap_min || -0.15,
+          category_cap_max: firstCategoryChar?.category_cap_max || 0.15,
+          is_active: true,
+        });
+
+      if (error) throw error;
+
+      toast.success("Característica adicionada com sucesso!");
+      setShowAddModal(false);
+      setNewChar({
+        char_name: "",
+        char_description: "",
+        char_type: "positive",
+        category: activeTab || "A",
+        weight_value: 0.02,
+      });
+      refetchChars();
+    } catch (error) {
+      console.error("Erro ao adicionar:", error);
+      toast.error("Erro ao adicionar característica");
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  // Editar característica existente
+  const handleEditCharacteristic = async () => {
+    if (!editChar.char_name.trim()) {
+      toast.error("Nome da característica é obrigatório");
+      return;
+    }
+
+    setIsSaving(true);
+    try {
+      const { error } = await supabase
+        .from("valuation_characteristics")
+        .update({
+          char_name: editChar.char_name,
+          char_description: editChar.char_description,
+          char_type: editChar.char_type,
+          weight_value: editChar.weight_value,
+        })
+        .eq("id", editChar.id);
+
+      if (error) throw error;
+
+      toast.success("Característica atualizada com sucesso!");
+      setShowEditModal(false);
+      refetchChars();
+    } catch (error) {
+      console.error("Erro ao editar:", error);
+      toast.error("Erro ao atualizar característica");
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  // Excluir característica
+  const handleDeleteCharacteristic = async () => {
+    if (!selectedCharId) return;
+
+    setIsSaving(true);
+    try {
+      const { error } = await supabase
+        .from("valuation_characteristics")
+        .delete()
+        .eq("id", selectedCharId);
+
+      if (error) throw error;
+
+      toast.success("Característica excluída com sucesso!");
+      setShowDeleteModal(false);
+      setSelectedCharId(null);
+      refetchChars();
+    } catch (error) {
+      console.error("Erro ao excluir:", error);
+      toast.error("Erro ao excluir característica");
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const openEditModal = (char: any) => {
+    setEditChar({
+      id: char.id,
+      char_name: char.char_name,
+      char_description: char.char_description || "",
+      char_type: char.char_type,
+      category: char.category,
+      weight_value: char.weight_value,
+    });
+    setShowEditModal(true);
+  };
+
+  const openDeleteModal = (charId: string) => {
+    setSelectedCharId(charId);
+    setShowDeleteModal(true);
   };
 
   if (loadingChars || loadingDocs) {
@@ -245,12 +406,23 @@ export default function CalibradorAvaliacao() {
                               value={(currentWeight * 100).toFixed(1)}
                               onChange={(e) => handleWeightChange(char.id, e.target.value)}
                             />
+                            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openEditModal(char)}>
+                              <Pencil className="h-4 w-4" />
+                            </Button>
+                            <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive" onClick={() => openDeleteModal(char.id)}>
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
                           </div>
                         </div>
                       </div>
                     );
                   })}
                 </div>
+
+                <Button variant="outline" className="mt-4" onClick={() => { setNewChar(prev => ({ ...prev, category })); setShowAddModal(true); }}>
+                  <Plus className="h-4 w-4 mr-2" />
+                  Adicionar Característica
+                </Button>
 
                 <div className="pt-4 border-t">
                   <p className="text-sm text-muted-foreground">
@@ -369,6 +541,99 @@ export default function CalibradorAvaliacao() {
           </div>
         </CardContent>
       </Card>
+
+      {/* Modal Adicionar */}
+      <Dialog open={showAddModal} onOpenChange={setShowAddModal}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Adicionar Característica</DialogTitle>
+            <DialogDescription>Preencha os dados da nova característica</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <Label>Nome *</Label>
+              <Input value={newChar.char_name} onChange={(e) => setNewChar(prev => ({ ...prev, char_name: e.target.value }))} />
+            </div>
+            <div>
+              <Label>Descrição</Label>
+              <Textarea value={newChar.char_description} onChange={(e) => setNewChar(prev => ({ ...prev, char_description: e.target.value }))} />
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label>Tipo</Label>
+                <Select value={newChar.char_type} onValueChange={(v: "positive" | "negative") => setNewChar(prev => ({ ...prev, char_type: v }))}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="positive">Positivo</SelectItem>
+                    <SelectItem value="negative">Negativo</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label>Peso (%)</Label>
+                <Input type="number" step="0.5" value={(newChar.weight_value * 100).toFixed(1)} onChange={(e) => setNewChar(prev => ({ ...prev, weight_value: parseFloat(e.target.value) / 100 }))} />
+              </div>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowAddModal(false)}>Cancelar</Button>
+            <Button onClick={handleAddCharacteristic} disabled={isSaving}>{isSaving ? "Salvando..." : "Adicionar"}</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Modal Editar */}
+      <Dialog open={showEditModal} onOpenChange={setShowEditModal}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Editar Característica</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <Label>Nome *</Label>
+              <Input value={editChar.char_name} onChange={(e) => setEditChar(prev => ({ ...prev, char_name: e.target.value }))} />
+            </div>
+            <div>
+              <Label>Descrição</Label>
+              <Textarea value={editChar.char_description} onChange={(e) => setEditChar(prev => ({ ...prev, char_description: e.target.value }))} />
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label>Tipo</Label>
+                <Select value={editChar.char_type} onValueChange={(v: "positive" | "negative") => setEditChar(prev => ({ ...prev, char_type: v }))}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="positive">Positivo</SelectItem>
+                    <SelectItem value="negative">Negativo</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label>Peso (%)</Label>
+                <Input type="number" step="0.5" value={(editChar.weight_value * 100).toFixed(1)} onChange={(e) => setEditChar(prev => ({ ...prev, weight_value: parseFloat(e.target.value) / 100 }))} />
+              </div>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowEditModal(false)}>Cancelar</Button>
+            <Button onClick={handleEditCharacteristic} disabled={isSaving}>{isSaving ? "Salvando..." : "Salvar"}</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Modal Excluir */}
+      <Dialog open={showDeleteModal} onOpenChange={setShowDeleteModal}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Confirmar Exclusão</DialogTitle>
+            <DialogDescription>Tem certeza que deseja excluir esta característica? Esta ação não pode ser desfeita.</DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowDeleteModal(false)}>Cancelar</Button>
+            <Button variant="destructive" onClick={handleDeleteCharacteristic} disabled={isSaving}>{isSaving ? "Excluindo..." : "Excluir"}</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
