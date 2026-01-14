@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { Calculator, MapPin, Maximize2, Home, ArrowRight, Loader2, Building2, Search, BedDouble, Bath, Sparkles, Car, Star, User, Mail, Phone, Shield, CheckCircle2, Database } from "lucide-react";
+import { BairroSelector } from "@/components/BairroSelector";
 import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/integrations/supabase/client";
 import { useOfficialStreetSuggestions, type OfficialStreetSuggestion } from "@/hooks/useOfficialStreetSuggestions";
@@ -45,27 +46,6 @@ interface QuickValuationFormProps {
 
 const MAX_FREE_EVALUATIONS = 2;
 
-const BAIRROS_POPULARES = [
-  "BARRA DA TIJUCA",
-  "BOTAFOGO",
-  "CENTRO",
-  "COPACABANA",
-  "FLAMENGO",
-  "GAVEA",
-  "HUMAITA",
-  "IPANEMA",
-  "JACAREPAGUA",
-  "JARDIM BOTANICO",
-  "LAGOA",
-  "LARANJEIRAS",
-  "LEBLON",
-  "MEIER",
-  "RECREIO DOS BANDEIRANTES",
-  "SAO CONRADO",
-  "TIJUCA",
-  "URCA",
-  "VILA ISABEL",
-];
 
 const TIPOLOGIAS = [
   { value: "Apartamento", label: "Apartamento" },
@@ -79,7 +59,7 @@ export function QuickValuationForm({ onComplete }: QuickValuationFormProps) {
   const [telefone, setTelefone] = useState("");
   
   // Property fields
-  const [bairro, setBairro] = useState("BARRA DA TIJUCA");
+  const [bairro, setBairro] = useState("");
   const [logradouro, setLogradouro] = useState("");
   const [area, setArea] = useState("");
   const [tipologia, setTipologia] = useState("Apartamento");
@@ -458,21 +438,13 @@ export function QuickValuationForm({ onComplete }: QuickValuationFormProps) {
             
             <div className="space-y-2">
               <Label htmlFor="bairro" className="flex items-center gap-2 text-sm font-medium">
-                <MapPin className="h-4 w-4 text-accent" />
                 Bairro *
               </Label>
-              <Select value={bairro} onValueChange={setBairro}>
-                <SelectTrigger className="border-primary/20 focus:ring-accent/30">
-                  <SelectValue placeholder="Selecione o bairro" />
-                </SelectTrigger>
-                <SelectContent>
-                  {BAIRROS_POPULARES.map((b) => (
-                    <SelectItem key={b} value={b}>
-                      {b}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <BairroSelector
+                value={bairro}
+                onChange={setBairro}
+                className="w-full border-primary/20 focus:ring-accent/30"
+              />
             </div>
 
             <div className="space-y-2 relative">
