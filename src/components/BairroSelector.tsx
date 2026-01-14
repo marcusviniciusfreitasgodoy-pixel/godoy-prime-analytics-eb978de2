@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useAllBairros } from "@/hooks/useBairroSuggestions";
+import { useBairroSuggestions } from "@/hooks/useBairroSuggestions";
 import {
   Select,
   SelectContent,
@@ -19,18 +19,21 @@ interface BairroSelectorProps {
 
 export function BairroSelector({ value, onChange, className }: BairroSelectorProps) {
   const [searchFilter, setSearchFilter] = useState("");
-  const { data: bairros, isLoading } = useAllBairros();
+  const { data, isLoading } = useBairroSuggestions(searchFilter);
 
-  // Filtrar bairros baseado na busca
-  const filteredBairros = bairros?.filter((b) =>
-    b.bairro.toLowerCase().includes(searchFilter.toLowerCase())
-  ) || [];
+  const bairros = data ?? [];
+  const showHelper = searchFilter.trim().length < 2;
 
   return (
     <div className="flex items-center gap-2">
       <MapPin className="h-4 w-4 text-accent shrink-0" />
-      <Select value={value} onValueChange={onChange} disabled={isLoading}>
-        <SelectTrigger className={cn("w-full sm:w-[180px] md:w-[220px] bg-background/50 border-border text-sm", className)}>
+      <Select value={value} onValueChange={onChange} disabled={isLoading && bairros.length === 0}>
+        <SelectTrigger
+          className={cn(
+            "w-full sm:w-[180px] md:w-[220px] bg-background/50 border-border text-sm",
+            className,
+          )}
+        >
           <SelectValue placeholder="Selecione o bairro" />
         </SelectTrigger>
         <SelectContent className="max-h-[300px] max-w-[90vw] sm:max-w-none">
@@ -42,23 +45,30 @@ export function BairroSelector({ value, onChange, className }: BairroSelectorPro
               onChange={(e) => setSearchFilter(e.target.value)}
               className="h-8 text-sm"
               onClick={(e) => e.stopPropagation()}
+              autoComplete="off"
             />
           </div>
-          {filteredBairros.length === 0 && (
+
+          {showHelper ? (
+            <div className="py-2 px-2 text-sm text-muted-foreground text-center">
+              Digite pelo menos 2 letras para buscar
+            </div>
+          ) : (bairros || []).length === 0 ? (
             <div className="py-2 px-2 text-sm text-muted-foreground text-center">
               Nenhum bairro encontrado
             </div>
-          )}
-          {filteredBairros.map(({ bairro, total_transacoes }) => (
-            <SelectItem key={bairro} value={bairro}>
-              <span className="flex items-center justify-between w-full gap-2">
-                <span className="truncate">{bairro}</span>
-                <span className="text-xs text-muted-foreground">
-                  ({total_transacoes.toLocaleString("pt-BR")})
+          ) : (
+            (bairros || []).map(({ bairro, total_transacoes }) => (
+              <SelectItem key={bairro} value={bairro}>
+                <span className="flex items-center justify-between w-full gap-2">
+                  <span className="truncate">{bairro}</span>
+                  <span className="text-xs text-muted-foreground">
+                    ({total_transacoes.toLocaleString("pt-BR")})
+                  </span>
                 </span>
-              </span>
-            </SelectItem>
-          ))}
+              </SelectItem>
+            ))
+          )}
         </SelectContent>
       </Select>
     </div>
