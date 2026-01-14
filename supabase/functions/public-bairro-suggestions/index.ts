@@ -32,40 +32,33 @@ serve(async (req) => {
       );
     }
 
-    // We intentionally keep this lightweight: fetch a limited set and de-duplicate client-side.
+    // Query from cache table (much faster than aggregating itbi_transactions)
     const { data, error } = await supabase
-      .from("itbi_transactions")
+      .from("bairros_cache")
       .select("bairro, total_transacoes")
-      .not("bairro", "is", null)
       .ilike("bairro", `%${query}%`)
-      .limit(1000);
+      .order("bairro", { ascending: true })
+      .limit(limit);
 
     if (error) {
-      console.error("Database error:", error);
+      console.error("[public-bairro-suggestions] Database error:", error);
       return new Response(
         JSON.stringify({ error: "Erro ao consultar bairros" }),
         { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } },
       );
     }
 
-    const map = new Map<string, number>();
-    for (const row of data || []) {
-      const b = row.bairro as string | null;
-      if (!b) continue;
-      map.set(b, (map.get(b) || 0) + (row.total_transacoes || 1));
-    }
-
-    const suggestions = Array.from(map.entries())
-      .map(([bairro, total_transacoes]) => ({ bairro, total_transacoes }))
-      .sort((a, b) => a.bairro.localeCompare(b.bairro, "pt-BR"))
-      .slice(0, limit);
+    const suggestions = (data || []).map((row) => ({
+      bairro: row.bairro,
+      total_transacoes: row.total_transacoes,
+    }));
 
     return new Response(
       JSON.stringify({ success: true, suggestions }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } },
     );
   } catch (err) {
-    console.error("Error:", err);
+    console.error("[public-bairro-suggestions] Error:", err);
     return new Response(
       JSON.stringify({ error: "Erro interno do servidor" }),
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } },

@@ -85,6 +85,24 @@ export type Database = {
           },
         ]
       }
+      bairros_cache: {
+        Row: {
+          bairro: string
+          total_transacoes: number
+          updated_at: string
+        }
+        Insert: {
+          bairro: string
+          total_transacoes?: number
+          updated_at?: string
+        }
+        Update: {
+          bairro?: string
+          total_transacoes?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
       company_settings: {
         Row: {
           created_at: string
