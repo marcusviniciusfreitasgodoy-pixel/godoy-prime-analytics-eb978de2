@@ -6,7 +6,7 @@
 import type { HistoricalAnalysis } from '@/hooks/useHistoricalTransactionAnalysis';
 
 const CACHE_KEY_PREFIX = 'historical_analysis_';
-const CACHE_VERSION = 'v8'; // Invalida caches antigos após nova sincronização de dados ITBI
+const CACHE_VERSION = 'v9'; // Invalidate cache on version change - forced refresh 2026-01
 const CACHE_DURATION_MS = 24 * 60 * 60 * 1000; // 24 horas
 const MAX_CACHE_ENTRIES = 50; // Limitar memória do localStorage
 
