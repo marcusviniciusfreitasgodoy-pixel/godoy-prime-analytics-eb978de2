@@ -38,9 +38,9 @@ export function EnrichCondominiosButton({ onComplete }: EnrichCondominiosButtonP
   useEffect(() => {
     const fetchPendingCount = async () => {
       const { count } = await supabase
-        .from('condominios_mapeamento')
-        .select('id', { count: 'exact', head: true })
-        .or('latitude.is.null,google_place_id.is.null');
+        .from("condominios_mapeamento")
+        .select("id", { count: "exact", head: true })
+        .or("latitude.is.null,google_place_id.is.null");
       setPendingCount(count || 0);
     };
     if (isOpen) {
@@ -53,52 +53,95 @@ export function EnrichCondominiosButton({ onComplete }: EnrichCondominiosButtonP
     setStatus("processing");
     setResult(null);
     setErrorMessage("");
-    setProgress(10);
+    setProgress(5);
 
     try {
-      const { data: { session } } = await supabase.auth.getSession();
-      
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
+
       if (!session) {
         throw new Error("Você precisa estar logado para executar esta ação");
       }
 
-      setProgress(20);
+      // Sempre processamos em lotes de 50 para evitar timeout.
+      const batchSize = 50;
+      const parsedLimit = Number.parseInt(limit, 10);
+      const targetTotal = limit === "all" ? pendingCount : Number.isFinite(parsedLimit) ? parsedLimit : 50;
+      const safeTarget = Math.max(1, targetTotal);
 
-      const parsedLimit = parseInt(limit);
-      const limitNum = Number.isFinite(parsedLimit) ? Math.min(parsedLimit, 50) : 50;
-      
-      const { data, error } = await supabase.functions.invoke("enrich-condominios", {
-        body: { 
-          forceRefresh,
-          limit: limitNum,
-          bairro: "Barra da Tijuca"
-        },
-      });
+      let processedTotal = 0;
+      let enrichedTotal = 0;
+      let failedTotal = 0;
+      let skippedTotal = 0;
+      const details: Array<{ nome: string; status: string; error?: string }> = [];
 
-      setProgress(90);
+      const initialPending = pendingCount || safeTarget;
+      const denom = limit === "all" ? initialPending : safeTarget;
 
-      if (error) {
-        throw new Error(error.message || "Erro ao processar enriquecimento");
+      // Loop até atingir o total selecionado (ou até não haver mais pendentes)
+      while (true) {
+        const remaining = limit === "all" ? Number.POSITIVE_INFINITY : Math.max(0, safeTarget - processedTotal);
+        if (remaining <= 0) break;
+
+        const currentBatchLimit = Math.min(batchSize, remaining);
+
+        setProgress(() => {
+          const pct = denom > 0 ? Math.round((processedTotal / denom) * 90) : 10;
+          return Math.min(95, Math.max(10, pct));
+        });
+
+        const { data, error } = await supabase.functions.invoke("enrich-condominios", {
+          body: {
+            forceRefresh,
+            limit: currentBatchLimit,
+            bairro: "Barra da Tijuca",
+          },
+        });
+
+        if (error) {
+          throw new Error(error.message || "Erro ao processar enriquecimento");
+        }
+
+        if (!data?.success) {
+          throw new Error(data?.error || "Erro desconhecido no enriquecimento");
+        }
+
+        processedTotal += data.processed || 0;
+        enrichedTotal += data.enriched || 0;
+        failedTotal += data.failed || 0;
+        skippedTotal += data.skipped || 0;
+        if (Array.isArray(data.details)) details.push(...data.details);
+
+        // Se processou menos que o lote, não há mais registros elegíveis agora.
+        if ((data.processed || 0) < currentBatchLimit) break;
+
+        // Pequena pausa entre lotes para evitar picos
+        await new Promise((r) => setTimeout(r, 300));
       }
 
-      if (!data.success) {
-        throw new Error(data.error || "Erro desconhecido no enriquecimento");
-      }
+      setProgress(100);
 
       setResult({
         success: true,
-        processed: data.processed || 0,
-        enriched: data.enriched || 0,
-        failed: data.failed || 0,
-        skipped: data.skipped || 0,
-        details: data.details
+        processed: processedTotal,
+        enriched: enrichedTotal,
+        failed: failedTotal,
+        skipped: skippedTotal,
+        details,
       });
-      
+
       setStatus("success");
-      setProgress(100);
-      
-      toast.success(`${data.enriched} condomínios enriquecidos com sucesso!`);
+
+      toast.success(`${enrichedTotal} condomínios enriquecidos com sucesso!`);
       onComplete?.();
+
+      // Atualizar contador pendente após finalizar
+      const { count } = await supabase
+        .from("condominios_mapeamento")
+        .select("id", { count: "exact", head: true })
+        .or("latitude.is.null,google_place_id.is.null");
+      setPendingCount(count || 0);
     } catch (error) {
       console.error("Erro no enriquecimento:", error);
       setErrorMessage(error instanceof Error ? error.message : "Erro desconhecido");
@@ -167,12 +210,13 @@ export function EnrichCondominiosButton({ onComplete }: EnrichCondominiosButtonP
                   <Label className="text-sm">Quantidade a processar</Label>
                   <Select value={limit} onValueChange={setLimit}>
                     <SelectTrigger>
-                      <SelectValue placeholder="Selecione o limite" />
+                      <SelectValue placeholder="Selecione o total" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="50">50 condomínios (recomendado)</SelectItem>
-                      <SelectItem value="100">100 condomínios</SelectItem>
-                      <SelectItem value="150">150 condomínios</SelectItem>
+                      <SelectItem value="50">50 (1 lote)</SelectItem>
+                      <SelectItem value="100">100 (2 lotes)</SelectItem>
+                      <SelectItem value="150">150 (3 lotes)</SelectItem>
+                      <SelectItem value="all">Todos pendentes</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
