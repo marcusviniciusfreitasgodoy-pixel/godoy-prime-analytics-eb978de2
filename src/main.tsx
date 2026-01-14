@@ -8,19 +8,40 @@ import "./index.css";
 // In dev, the PWA is disabled via VitePWA devOptions.
 import { registerSW } from "virtual:pwa-register";
 
-registerSW({
+// Force immediate update without asking user - prevents stale cache issues
+const updateSW = registerSW({
   immediate: true,
   onNeedRefresh() {
-    // Force update + reload to avoid users seeing older UI strings/data labels.
-    // (This can happen when a Service Worker cached an older build.)
-    const shouldReload = window.confirm(
-      "Uma nova versão está disponível. Atualizar agora?"
-    );
-    if (shouldReload) {
-      window.location.reload();
+    // Auto-reload without confirmation to ensure fresh data
+    console.log('[PWA] Nova versão detectada, atualizando automaticamente...');
+    updateSW(true); // Accept the update
+  },
+  onOfflineReady() {
+    console.log('[PWA] App pronto para uso offline');
+  },
+  onRegisteredSW(swUrl, registration) {
+    // Check for updates every 5 minutes
+    if (registration) {
+      setInterval(() => {
+        console.log('[PWA] Verificando atualizações...');
+        registration.update();
+      }, 5 * 60 * 1000);
     }
   },
 });
+
+// Clear any stale caches on startup
+if ('caches' in window) {
+  caches.keys().then(names => {
+    // Only clear old workbox caches, not fonts
+    names.forEach(name => {
+      if (name.includes('workbox') && !name.includes('fonts')) {
+        console.log('[Cache] Limpando cache antigo:', name);
+        caches.delete(name);
+      }
+    });
+  });
+}
 
 const rootElement = document.getElementById("root");
 
