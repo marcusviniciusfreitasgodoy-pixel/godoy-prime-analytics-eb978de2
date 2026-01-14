@@ -268,7 +268,7 @@ export const SyncITBIButton = () => {
           </TooltipTrigger>
           <TooltipContent side="bottom" className="max-w-xs">
             <p className="text-xs">
-              <strong>Importa transações oficiais:</strong> Busca dados de ITBI diretamente da API da Prefeitura do RJ. Atualiza valores de mercado, KPIs e rankings.
+              <strong>Importa transações oficiais:</strong> Busca dados diretamente da API da Prefeitura do RJ. Atualiza valores de mercado, KPIs e rankings.
             </p>
           </TooltipContent>
         </Tooltip>
