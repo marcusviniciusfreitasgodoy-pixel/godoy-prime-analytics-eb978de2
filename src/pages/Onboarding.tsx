@@ -113,7 +113,7 @@ const faqCategories: FAQCategory[] = [
     titulo: "Avaliação de Imóveis",
     icon: <Calculator className="h-4 w-4" />,
     perguntas: [
-      { pergunta: "Quantas características são avaliadas?", resposta: "São 26 características divididas em 5 categorias: Posição e Vista, Conservação, Conforto, Segurança e Funcionalidade." },
+      { pergunta: "Quantas características são avaliadas?", resposta: "São 35 características divididas em 5 categorias: Posição e Vista, Conservação, Conforto, Segurança e Funcionalidade." },
       { pergunta: "O que são os 3 cenários de valor?", resposta: "São três estimativas: Conservador (valor mínimo), Provável (valor mais esperado) e Otimista (valor máximo)." },
       { pergunta: "Como é calculado o nível de confiança?", resposta: "Baseado na quantidade de vendas disponíveis na região e na consistência das características avaliadas. Verde (alto), Amarelo (médio), Vermelho (baixo)." },
       { pergunta: "Posso gerar um relatório para impressão?", resposta: "Sim, ao final da avaliação você pode gerar um relatório profissional de 5 a 7 páginas com gráficos e análises." },
@@ -278,12 +278,12 @@ const onboardingSteps: OnboardingStep[] = [
   {
     id: 4,
     title: "Avaliação de Imóveis",
-    description: "Sistema de avaliação em 6 etapas com 26 características e geração de relatório profissional.",
+    description: "Sistema de avaliação em 6 etapas com 35 características e geração de relatório profissional.",
     icon: <Calculator className="h-8 w-8" />,
     features: [
       "Etapa 0: Identificação do imóvel e proprietário",
       "Etapa 1-2: Localização e dados básicos",
-      "Etapa 3: 26 características em 5 categorias",
+      "Etapa 3: 35 características em 5 categorias",
       "Etapa 4: Valores conservador, provável e otimista",
       "Etapa 5: Recomendação e relatório para impressão"
     ],

@@ -1,7 +1,8 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
+import { useSearchParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -10,13 +11,15 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { useAgendamentos } from "@/hooks/useAgendamentos";
 import { useDisponibilidade } from "@/hooks/useDisponibilidade";
-import { TipoServicoVisita, OrigemAgendamento } from "@/types/visitas";
+import { TipoServicoVisita, OrigemAgendamento, AgendamentoVisita } from "@/types/visitas";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { format } from "date-fns";
+import { format, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { CalendarIcon, Loader2 } from "lucide-react";
+import { CalendarIcon, Loader2, XCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 
 const scheduleSchema = z.object({
   nome_visitante: z.string().min(3, "Nome deve ter pelo menos 3 caracteres"),
@@ -41,6 +44,9 @@ interface ScheduleFormProps {
 }
 
 export function ScheduleForm({ onSuccess, isPublic = false }: ScheduleFormProps) {
+  const [searchParams] = useSearchParams();
+  const editId = searchParams.get('edit');
+  
   const [selectedDate, setSelectedDate] = useState<Date>();
   const [horariosDisponiveis, setHorariosDisponiveis] = useState<string[]>([]);
   const [loadingHorarios, setLoadingHorarios] = useState(false);
@@ -48,8 +54,11 @@ export function ScheduleForm({ onSuccess, isPublic = false }: ScheduleFormProps)
   const [selectedDate2, setSelectedDate2] = useState<Date>();
   const [horariosDisponiveis2, setHorariosDisponiveis2] = useState<string[]>([]);
   const [loadingHorarios2, setLoadingHorarios2] = useState(false);
+  
+  const [isEditing, setIsEditing] = useState(false);
+  const [loadingEdit, setLoadingEdit] = useState(false);
 
-  const { createAgendamento } = useAgendamentos();
+  const { createAgendamento, updateAgendamento, agendamentos } = useAgendamentos();
   const { getHorariosDisponiveis } = useDisponibilidade();
 
   const form = useForm<ScheduleFormData>({
@@ -65,6 +74,88 @@ export function ScheduleForm({ onSuccess, isPublic = false }: ScheduleFormProps)
       notas: "",
     },
   });
+
+  // Carregar dados do agendamento para edição
+  useEffect(() => {
+    const loadAgendamento = async () => {
+      if (!editId) return;
+      
+      setLoadingEdit(true);
+      setIsEditing(true);
+      
+      try {
+        // Buscar agendamento pelo ID
+        const { data, error } = await supabase
+          .from('agendamentos_visita')
+          .select('*')
+          .eq('id', editId)
+          .single();
+        
+        if (error || !data) {
+          toast.error('Agendamento não encontrado');
+          setIsEditing(false);
+          return;
+        }
+        
+        const agendamento = data as AgendamentoVisita;
+        const dataHora = parseISO(agendamento.data_hora);
+        
+        // Preencher formulário com os dados
+        form.reset({
+          nome_visitante: agendamento.nome_visitante,
+          telefone_visitante: agendamento.telefone_visitante,
+          email_visitante: agendamento.email_visitante || "",
+          endereco_imovel: agendamento.endereco_imovel,
+          codigo_imovel: agendamento.codigo_imovel || "",
+          tipo_servico: agendamento.tipo_servico as TipoServicoVisita,
+          data: dataHora,
+          horario: format(dataHora, "HH:mm"),
+          origem: agendamento.origem || "site",
+          notas: agendamento.notas || "",
+        });
+        
+        setSelectedDate(dataHora);
+        
+        // Carregar horários para a data selecionada
+        const dateStr = format(dataHora, "yyyy-MM-dd");
+        const horarios = await getHorariosDisponiveis(dateStr);
+        if (horarios.length === 0) {
+          setHorariosDisponiveis([
+            "08:00", "09:00", "10:00", "11:00",
+            "14:00", "15:00", "16:00", "17:00", "18:00"
+          ]);
+        } else {
+          setHorariosDisponiveis(horarios);
+        }
+        
+        // Carregar segunda opção se existir
+        if (agendamento.data_hora_opcao2) {
+          const dataHora2 = parseISO(agendamento.data_hora_opcao2);
+          form.setValue("data2", dataHora2);
+          form.setValue("horario2", format(dataHora2, "HH:mm"));
+          setSelectedDate2(dataHora2);
+          
+          const dateStr2 = format(dataHora2, "yyyy-MM-dd");
+          const horarios2 = await getHorariosDisponiveis(dateStr2);
+          if (horarios2.length === 0) {
+            setHorariosDisponiveis2([
+              "08:00", "09:00", "10:00", "11:00",
+              "14:00", "15:00", "16:00", "17:00", "18:00"
+            ]);
+          } else {
+            setHorariosDisponiveis2(horarios2);
+          }
+        }
+      } catch (err) {
+        console.error('Erro ao carregar agendamento:', err);
+        toast.error('Erro ao carregar agendamento');
+      } finally {
+        setLoadingEdit(false);
+      }
+    };
+    
+    loadAgendamento();
+  }, [editId, form, getHorariosDisponiveis]);
 
   const handleDateSelect = async (date: Date | undefined) => {
     setSelectedDate(date);
@@ -124,18 +215,36 @@ export function ScheduleForm({ onSuccess, isPublic = false }: ScheduleFormProps)
       dataHoraOpcao2 = dataHora2.toISOString();
     }
 
-    await createAgendamento.mutateAsync({
-      nome_visitante: data.nome_visitante,
-      telefone_visitante: data.telefone_visitante,
-      email_visitante: data.email_visitante || null,
-      endereco_imovel: data.endereco_imovel,
-      codigo_imovel: data.codigo_imovel || null,
-      tipo_servico: data.tipo_servico as TipoServicoVisita,
-      data_hora: dataHora.toISOString(),
-      data_hora_opcao2: dataHoraOpcao2,
-      origem: (data.origem as OrigemAgendamento) || "site",
-      notas: data.notas || null,
-    });
+    if (isEditing && editId) {
+      // Atualizar agendamento existente
+      await updateAgendamento.mutateAsync({
+        id: editId,
+        nome_visitante: data.nome_visitante,
+        telefone_visitante: data.telefone_visitante,
+        email_visitante: data.email_visitante || null,
+        endereco_imovel: data.endereco_imovel,
+        codigo_imovel: data.codigo_imovel || null,
+        tipo_servico: data.tipo_servico as TipoServicoVisita,
+        data_hora: dataHora.toISOString(),
+        data_hora_opcao2: dataHoraOpcao2,
+        origem: (data.origem as OrigemAgendamento) || "site",
+        notas: data.notas || null,
+      });
+    } else {
+      // Criar novo agendamento
+      await createAgendamento.mutateAsync({
+        nome_visitante: data.nome_visitante,
+        telefone_visitante: data.telefone_visitante,
+        email_visitante: data.email_visitante || null,
+        endereco_imovel: data.endereco_imovel,
+        codigo_imovel: data.codigo_imovel || null,
+        tipo_servico: data.tipo_servico as TipoServicoVisita,
+        data_hora: dataHora.toISOString(),
+        data_hora_opcao2: dataHoraOpcao2,
+        origem: (data.origem as OrigemAgendamento) || "site",
+        notas: data.notas || null,
+      });
+    }
 
     form.reset();
     setSelectedDate(undefined);
@@ -143,6 +252,25 @@ export function ScheduleForm({ onSuccess, isPublic = false }: ScheduleFormProps)
     setHorariosDisponiveis([]);
     setHorariosDisponiveis2([]);
     onSuccess?.();
+  };
+
+  const handleCancelAgendamento = async () => {
+    if (!editId) return;
+    
+    try {
+      const { error } = await supabase
+        .from('agendamentos_visita')
+        .update({ status: 'cancelada' as const })
+        .eq('id', editId);
+      
+      if (error) throw error;
+      
+      toast.success('Agendamento cancelado com sucesso');
+      onSuccess?.();
+    } catch (err) {
+      console.error('Erro ao cancelar agendamento:', err);
+      toast.error('Erro ao cancelar agendamento');
+    }
   };
 
   const tipoServicoOptions = [
@@ -162,12 +290,27 @@ export function ScheduleForm({ onSuccess, isPublic = false }: ScheduleFormProps)
     { value: "outro", label: "Outro" },
   ];
 
+  if (loadingEdit) {
+    return (
+      <Card>
+        <CardContent className="pt-6">
+          <div className="flex items-center justify-center gap-2 py-8">
+            <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+            <span className="text-muted-foreground">Carregando agendamento...</span>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Agendar Visita</CardTitle>
+        <CardTitle>{isEditing ? 'Editar Agendamento' : 'Agendar Visita'}</CardTitle>
         <CardDescription>
-          Preencha os dados para agendar uma visita ao imóvel
+          {isEditing 
+            ? 'Atualize os dados do agendamento ou cancele a visita' 
+            : 'Preencha os dados para agendar uma visita ao imóvel'}
         </CardDescription>
       </CardHeader>
       <CardContent>
@@ -479,14 +622,29 @@ export function ScheduleForm({ onSuccess, isPublic = false }: ScheduleFormProps)
               )}
             />
 
-            <Button 
-              type="submit" 
-              className="w-full"
-              disabled={createAgendamento.isPending}
-            >
-              {createAgendamento.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              Agendar Visita
-            </Button>
+            <div className="flex flex-col sm:flex-row gap-2">
+              <Button 
+                type="submit" 
+                className="flex-1"
+                disabled={createAgendamento.isPending || updateAgendamento.isPending}
+              >
+                {(createAgendamento.isPending || updateAgendamento.isPending) && (
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                )}
+                {isEditing ? 'Salvar Alterações' : 'Agendar Visita'}
+              </Button>
+              
+              {isEditing && (
+                <Button 
+                  type="button" 
+                  variant="destructive"
+                  onClick={handleCancelAgendamento}
+                >
+                  <XCircle className="mr-2 h-4 w-4" />
+                  Cancelar Agendamento
+                </Button>
+              )}
+            </div>
           </form>
         </Form>
       </CardContent>

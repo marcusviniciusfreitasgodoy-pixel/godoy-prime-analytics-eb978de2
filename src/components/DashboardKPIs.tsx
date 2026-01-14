@@ -57,9 +57,9 @@ export function DashboardKPIs({ bairro = "BARRA DA TIJUCA" }: DashboardKPIsProps
         }}
       />
       <KPICard
-        title={`Liquidez (Acumulado ${currentYear})`}
+        title="Liquidez (Últimos 12 meses)"
         value={stats.liquidez.toString()}
-        subtitle="transações volume total"
+        subtitle="transações no período"
         icon={Activity}
         trend="neutral"
         breakdown={{
@@ -79,9 +79,9 @@ export function DashboardKPIs({ bairro = "BARRA DA TIJUCA" }: DashboardKPIsProps
         }}
       />
       <KPICard
-        title="Região Mais Valorizada"
+        title="Região Mais Valorizada (Ano)"
         value={stats.bairroMaisValorizado}
-        subtitle="média/m²"
+        subtitle={`R$ ${stats.precoMedioBairro.toLocaleString('pt-BR')}/m² • variação anual`}
         icon={MapPin}
         trend="up"
         breakdown={{
