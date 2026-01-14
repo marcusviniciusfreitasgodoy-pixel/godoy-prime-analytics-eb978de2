@@ -116,12 +116,25 @@ export default function FichaVisitaPage() {
     if (!ficha) return;
 
     try {
-      await exportFichaVisitaPdf({ 
+      const doc = await exportFichaVisitaPdf({ 
         ficha, 
         feedback: feedbacks && feedbacks.length > 0 ? feedbacks[0] : null 
       });
+      
+      // Force download using blob approach
+      const pdfBlob = doc.output('blob');
+      const url = URL.createObjectURL(pdfBlob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `ficha-visita-${ficha.codigo}.pdf`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+      
       toast.success("PDF exportado com sucesso!");
     } catch (error) {
+      console.error("Erro ao exportar PDF:", error);
       toast.error("Erro ao exportar PDF");
     }
   };

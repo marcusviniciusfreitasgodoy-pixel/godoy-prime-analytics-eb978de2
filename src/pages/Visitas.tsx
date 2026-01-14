@@ -6,23 +6,55 @@ import { Badge } from "@/components/ui/badge";
 import { useVisitas } from "@/hooks/useVisitas";
 import { useAgendamentos } from "@/hooks/useAgendamentos";
 import { useVisitasStats } from "@/hooks/useVisitasStats";
+import { useAuth } from "@/hooks/useAuth";
 import { VisitCard } from "@/components/visitas/VisitCard";
 import { VisitasDashboardKPIs } from "@/components/visitas/VisitasDashboardKPIs";
 import { VisitasEvolutionChart } from "@/components/visitas/VisitasEvolutionChart";
 import { CorretorRanking } from "@/components/visitas/CorretorRanking";
 import { PageTour, TourButton } from "@/components/PageTour";
+import { AgendamentoVisita } from "@/types/visitas";
 import { Calendar, List, Plus, Loader2, LayoutDashboard, Trophy } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { toast } from "sonner";
 
 export default function Visitas() {
   const navigate = useNavigate();
-  const { fichas, isLoading: loadingFichas } = useVisitas();
+  const { fichas, isLoading: loadingFichas, createFicha } = useVisitas();
   const { agendamentos, isLoading: loadingAgendamentos } = useAgendamentos();
   const { stats, corretorRanking, evolucaoMensal, isLoading: loadingStats } = useVisitasStats();
+  const { user } = useAuth();
   const [activeTab, setActiveTab] = useState("dashboard");
   const [runTour, setRunTour] = useState(false);
 
   const isLoading = loadingFichas || loadingAgendamentos;
+
+  // Função para criar ficha de visita a partir de um agendamento
+  const handleCreateFichaFromAgendamento = async (agendamento: AgendamentoVisita) => {
+    try {
+      // Gerar código único para a ficha
+      const codigo = `VIS-${Date.now().toString(36).toUpperCase()}`;
+      
+      await createFicha.mutateAsync({
+        codigo,
+        nome_visitante: agendamento.nome_visitante,
+        telefone_visitante: agendamento.telefone_visitante,
+        email_visitante: agendamento.email_visitante || null,
+        cpf_visitante: "A preencher",
+        endereco_imovel: agendamento.endereco_imovel,
+        codigo_imovel: agendamento.codigo_imovel || null,
+        nome_corretor: user?.email?.split('@')[0] || "Corretor",
+        nome_proprietario: "A preencher",
+        data_visita: agendamento.data_hora,
+        status: "agendada",
+      });
+      
+      toast.success("Ficha de visita criada com sucesso!");
+      setActiveTab("fichas");
+    } catch (error) {
+      console.error("Erro ao criar ficha:", error);
+      toast.error("Erro ao criar ficha de visita");
+    }
+  };
 
   return (
     <>
@@ -94,7 +126,12 @@ export default function Visitas() {
             ) : agendamentos && agendamentos.length > 0 ? (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 {agendamentos.map((agendamento) => (
-                  <VisitCard key={agendamento.id} agendamento={agendamento} type="agendamento" />
+                  <VisitCard 
+                    key={agendamento.id} 
+                    agendamento={agendamento} 
+                    type="agendamento" 
+                    onCreateFicha={handleCreateFichaFromAgendamento}
+                  />
                 ))}
               </div>
             ) : (

@@ -49,6 +49,12 @@ const TIPOLOGIA_OPTIONS = [
   { value: 'Apartamento', label: 'Apartamento' },
 ];
 
+const USO_OPTIONS = [
+  { value: '', label: 'Todos' },
+  { value: 'Residencial', label: 'Residencial' },
+  { value: 'Comercial', label: 'Comercial' },
+];
+
 const ANO_OPTIONS = [
   { value: '', label: 'Todos' },
   { value: '2025', label: '2025' },
@@ -72,6 +78,7 @@ export function EmbeddedAdvancedSearch({ defaultBairro = "" }: EmbeddedAdvancedS
   const [areaMin, setAreaMin] = useState("");
   const [areaMax, setAreaMax] = useState("");
   const [tipologia, setTipologia] = useState("");
+  const [uso, setUso] = useState("");
   const [anoInicio, setAnoInicio] = useState("");
   const [anoFim, setAnoFim] = useState("");
   const [bairro, setBairro] = useState(defaultBairro);
@@ -90,6 +97,7 @@ export function EmbeddedAdvancedSearch({ defaultBairro = "" }: EmbeddedAdvancedS
     areaMin?: number;
     areaMax?: number;
     tipologia?: string;
+    uso?: string;
     anoInicio?: string;
     anoFim?: string;
     bairro?: string;
@@ -110,10 +118,16 @@ export function EmbeddedAdvancedSearch({ defaultBairro = "" }: EmbeddedAdvancedS
       const buildBaseQuery = () => {
         let q = supabase
           .from('itbi_transactions')
-          .select('id, logradouro, numero, complemento, bairro, data_transacao, valor_transacao, area_m2, valor_m2, tipologia, total_transacoes')
-          .eq('uso', 'Residencial')
+          .select('id, logradouro, numero, complemento, bairro, data_transacao, valor_transacao, area_m2, valor_m2, tipologia, total_transacoes, uso')
           .gte('percentual_transferido', 90)
           .not('valor_m2', 'is', null);
+
+        // Apply uso filter - defaults to Residencial if not specified
+        if (searchParams.uso && searchParams.uso !== 'all') {
+          q = q.eq('uso', searchParams.uso as 'Residencial' | 'Comercial');
+        } else {
+          q = q.eq('uso', 'Residencial');
+        }
 
         if (searchParams.valorMin) q = q.gte('valor_transacao', searchParams.valorMin);
         if (searchParams.valorMax) q = q.lte('valor_transacao', searchParams.valorMax);
@@ -221,6 +235,7 @@ export function EmbeddedAdvancedSearch({ defaultBairro = "" }: EmbeddedAdvancedS
       areaMin: areaMin ? parseFloat(areaMin) : undefined,
       areaMax: areaMax ? parseFloat(areaMax) : undefined,
       tipologia: tipologia || undefined,
+      uso: uso || undefined,
       anoInicio: anoInicio || undefined,
       anoFim: anoFim || undefined,
       bairro: bairro || undefined,
@@ -234,6 +249,7 @@ export function EmbeddedAdvancedSearch({ defaultBairro = "" }: EmbeddedAdvancedS
     setAreaMin("");
     setAreaMax("");
     setTipologia("");
+    setUso("");
     setAnoInicio("");
     setAnoFim("");
     setBairro("");
@@ -415,6 +431,20 @@ export function EmbeddedAdvancedSearch({ defaultBairro = "" }: EmbeddedAdvancedS
               <SelectItem value="CENTRO">Centro</SelectItem>
               <SelectItem value="VILA ISABEL">Vila Isabel</SelectItem>
               <SelectItem value="MEIER">Méier</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+
+        <div className="space-y-1">
+          <Label className="text-xs">Finalidade</Label>
+          <Select value={uso} onValueChange={setUso}>
+            <SelectTrigger className="h-9 text-sm">
+              <SelectValue placeholder="Residencial" />
+            </SelectTrigger>
+            <SelectContent>
+              {USO_OPTIONS.map((opt) => (
+                <SelectItem key={opt.value} value={opt.value || 'all'}>{opt.label}</SelectItem>
+              ))}
             </SelectContent>
           </Select>
         </div>

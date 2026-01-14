@@ -313,7 +313,18 @@ export const generateFichaVisitaPdfDoc = exportFichaVisitaPdf;
 // Wrapper function for backward compatibility - saves the PDF
 export async function saveFichaVisitaPdf(data: FichaVisitaPdfData): Promise<void> {
   const doc = await exportFichaVisitaPdf(data);
-  doc.save(`ficha-visita-${data.ficha.codigo}.pdf`);
+  const filename = `ficha-visita-${data.ficha.codigo}.pdf`;
+  
+  // Force download by creating a blob and anchor element
+  const pdfBlob = doc.output('blob');
+  const url = URL.createObjectURL(pdfBlob);
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = filename;
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  URL.revokeObjectURL(url);
 }
 
 // ========== FUNÇÕES AUXILIARES ==========
