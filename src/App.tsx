@@ -23,6 +23,7 @@ import Documentacao from "./pages/Documentacao";
 import ManualPlataforma from "./pages/ManualPlataforma";
 import BaseConhecimento from "./pages/BaseConhecimento";
 import CalibradorAvaliacao from "./pages/CalibradorAvaliacao";
+import CalibradorVistoria from "./pages/CalibradorVistoria";
 import Leads from "./pages/Leads";
 import Usuarios from "./pages/Usuarios";
 import Auth from "./pages/Auth";
@@ -95,6 +96,7 @@ const App = () => (
                               <Route path="/manual" element={<ManualPlataforma />} />
                               <Route path="/base-conhecimento" element={<ProtectedRoute requireAdmin={true}><BaseConhecimento /></ProtectedRoute>} />
                               <Route path="/calibrador-avaliacao" element={<ProtectedRoute requireAdmin={true}><CalibradorAvaliacao /></ProtectedRoute>} />
+                              <Route path="/calibrador-vistoria" element={<ProtectedRoute requireAdmin={true}><CalibradorVistoria /></ProtectedRoute>} />
                               <Route path="/leads" element={<ProtectedRoute requireAdmin={true}><Leads /></ProtectedRoute>} />
                               <Route path="/usuarios" element={<ProtectedRoute requireAdmin={true}><Usuarios /></ProtectedRoute>} />
                               <Route path="/onboarding" element={<Onboarding />} />
