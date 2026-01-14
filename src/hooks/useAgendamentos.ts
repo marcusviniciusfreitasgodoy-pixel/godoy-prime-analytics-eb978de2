@@ -2,6 +2,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { AgendamentoVisita, AgendamentoVisitaInsert, StatusVisita } from "@/types/visitas";
 import { sendAgendamentoConfirmadoEmail } from "@/utils/visitEmailService";
+import { enviarConfirmacaoAgendamento, enviarReagendamentoVisita, enviarCancelamentoVisita } from "@/utils/whatsappService";
 import { toast } from "sonner";
 
 export function useAgendamentos() {
@@ -47,7 +48,26 @@ export function useAgendamentos() {
           toast.success("Email de confirmação enviado!");
         } catch (err) {
           console.error("Erro ao enviar email:", err);
-          // Não bloqueia o fluxo se o email falhar
+        }
+      }
+
+      // Enviar WhatsApp de confirmação se tiver telefone
+      if (data.telefone_visitante) {
+        try {
+          const resultado = await enviarConfirmacaoAgendamento(data.telefone_visitante, {
+            nome_visitante: data.nome_visitante,
+            endereco_imovel: data.endereco_imovel,
+            data_hora: data.data_hora,
+            codigo_imovel: data.codigo_imovel,
+            agendamentoId: data.id,
+          });
+          if (resultado.success) {
+            toast.success("WhatsApp de confirmação enviado!");
+          } else {
+            console.error("Erro ao enviar WhatsApp:", resultado.error);
+          }
+        } catch (err) {
+          console.error("Erro ao enviar WhatsApp:", err);
         }
       }
     },
@@ -69,9 +89,27 @@ export function useAgendamentos() {
       if (error) throw error;
       return data as unknown as AgendamentoVisita;
     },
-    onSuccess: () => {
+    onSuccess: async (data) => {
       queryClient.invalidateQueries({ queryKey: ["agendamentos-visita"] });
       toast.success("Agendamento atualizado!");
+
+      // Enviar WhatsApp de reagendamento se tiver telefone
+      if (data.telefone_visitante) {
+        try {
+          const resultado = await enviarReagendamentoVisita(data.telefone_visitante, {
+            nome_visitante: data.nome_visitante,
+            endereco_imovel: data.endereco_imovel,
+            data_hora: data.data_hora,
+            codigo_imovel: data.codigo_imovel,
+            agendamentoId: data.id,
+          });
+          if (resultado.success) {
+            toast.success("WhatsApp de reagendamento enviado!");
+          }
+        } catch (err) {
+          console.error("Erro ao enviar WhatsApp:", err);
+        }
+      }
     },
     onError: (error) => {
       toast.error("Erro ao atualizar agendamento");
@@ -81,6 +119,15 @@ export function useAgendamentos() {
 
   const updateStatus = useMutation({
     mutationFn: async ({ id, status }: { id: string; status: StatusVisita }) => {
+      // Buscar dados do agendamento antes de atualizar
+      const { data: agendamentoAtual } = await supabase
+        .from("agendamentos_visita" as any)
+        .select("*")
+        .eq("id", id)
+        .single();
+
+      const statusAnterior = (agendamentoAtual as unknown as AgendamentoVisita)?.status;
+
       const { data, error } = await supabase
         .from("agendamentos_visita" as any)
         .update({ status })
@@ -89,11 +136,32 @@ export function useAgendamentos() {
         .single();
 
       if (error) throw error;
-      return data as unknown as AgendamentoVisita;
+      
+      return { 
+        agendamento: data as unknown as AgendamentoVisita, 
+        statusAnterior,
+        novoStatus: status 
+      };
     },
-    onSuccess: () => {
+    onSuccess: async ({ agendamento, statusAnterior, novoStatus }) => {
       queryClient.invalidateQueries({ queryKey: ["agendamentos-visita"] });
       toast.success("Status atualizado!");
+
+      // Enviar WhatsApp de cancelamento se mudou para cancelada
+      if (novoStatus === 'cancelada' && statusAnterior !== 'cancelada' && agendamento.telefone_visitante) {
+        try {
+          const resultado = await enviarCancelamentoVisita(agendamento.telefone_visitante, {
+            nome_visitante: agendamento.nome_visitante,
+            endereco_imovel: agendamento.endereco_imovel,
+            data_hora: agendamento.data_hora,
+          });
+          if (resultado.success) {
+            toast.success("WhatsApp de cancelamento enviado!");
+          }
+        } catch (err) {
+          console.error("Erro ao enviar WhatsApp:", err);
+        }
+      }
     },
     onError: (error) => {
       toast.error("Erro ao atualizar status");
