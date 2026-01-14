@@ -10,62 +10,30 @@ export function useBairroSuggestions(query: string) {
   return useQuery<BairroSuggestion[]>({
     queryKey: ["bairro-suggestions", query],
     queryFn: async () => {
-      if (!query || query.length < 2) return [];
+      const q = (query || "").trim();
+      if (q.length < 2) return [];
 
-      // Buscar bairros que correspondem à query
-      const { data, error } = await supabase
-        .from("itbi_transactions")
-        .select("bairro, total_transacoes")
-        .not("bairro", "is", null)
-        .ilike("bairro", `%${query}%`)
-        .limit(5000);
+      const { data, error } = await supabase.functions.invoke("public-bairro-suggestions", {
+        body: {
+          query: q,
+          limit: 20,
+        },
+      });
 
       if (error) throw error;
-
-      // Agrupar por bairro e somar transações
-      const bairroMap: Record<string, number> = {};
-      for (const row of data || []) {
-        if (row.bairro) {
-          bairroMap[row.bairro] = (bairroMap[row.bairro] || 0) + (row.total_transacoes || 1);
-        }
-      }
-
-      // Converter para array e ordenar
-      return Object.entries(bairroMap)
-        .map(([bairro, total_transacoes]) => ({ bairro, total_transacoes }))
-        .sort((a, b) => a.bairro.localeCompare(b.bairro, 'pt-BR'))
-        .slice(0, 10);
+      return (data?.suggestions || []) as BairroSuggestion[];
     },
-    enabled: query.length >= 2,
+    enabled: (query || "").trim().length >= 2,
     staleTime: 30 * 1000,
   });
 }
 
+// Mantido por compatibilidade (BairroSelector antigo). Agora retorna lista vazia para evitar
+// consultas pesadas sem necessidade.
 export function useAllBairros() {
   return useQuery<BairroSuggestion[]>({
     queryKey: ["all-bairros"],
-    queryFn: async () => {
-      // Usar RPC ou query otimizada para buscar todos os bairros únicos
-      const { data, error } = await supabase
-        .from("itbi_transactions")
-        .select("bairro, total_transacoes")
-        .not("bairro", "is", null);
-
-      if (error) throw error;
-
-      // Agrupar por bairro e somar transações
-      const bairroMap: Record<string, number> = {};
-      for (const row of data || []) {
-        if (row.bairro) {
-          bairroMap[row.bairro] = (bairroMap[row.bairro] || 0) + (row.total_transacoes || 1);
-        }
-      }
-
-      // Converter para array e ordenar alfabeticamente
-      return Object.entries(bairroMap)
-        .map(([bairro, total_transacoes]) => ({ bairro, total_transacoes }))
-        .sort((a, b) => a.bairro.localeCompare(b.bairro, 'pt-BR'));
-    },
-    staleTime: 5 * 60 * 1000, // 5 minutos
+    queryFn: async () => [],
+    staleTime: 5 * 60 * 1000,
   });
 }
