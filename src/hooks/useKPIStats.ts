@@ -88,6 +88,7 @@ interface TransactionData {
   tipologia: string | null;
   total_transacoes: number | null;
   data_transacao?: string;
+  logradouro?: string;
 }
 
 const agruparPorMes = (transactions: TransactionData[]) => {
@@ -119,7 +120,7 @@ export function useKPIStats(bairro: string = 'BARRA DA TIJUCA') {
       
       const { data: currentYearData, error: currentYearError } = await supabase
         .from('itbi_transactions')
-        .select('valor_m2, tipologia, data_transacao, total_transacoes')
+        .select('valor_m2, tipologia, data_transacao, total_transacoes, logradouro')
         .eq('uso', 'Residencial')
         .ilike('bairro', bairro)
         .not('valor_m2', 'is', null)
@@ -151,7 +152,7 @@ export function useKPIStats(bairro: string = 'BARRA DA TIJUCA') {
 
         const { data: extendedData, error: extendedError } = await supabase
           .from('itbi_transactions')
-          .select('valor_m2, tipologia, data_transacao, total_transacoes')
+          .select('valor_m2, tipologia, data_transacao, total_transacoes, logradouro')
           .eq('uso', 'Residencial')
           .ilike('bairro', bairro)
           .not('valor_m2', 'is', null)
