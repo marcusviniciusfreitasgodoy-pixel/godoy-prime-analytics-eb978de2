@@ -205,14 +205,24 @@ export const SyncITBIButton = () => {
           total_transacoes_reais: data.total_transacoes_reais,
         });
 
-        // Invalidar queries para atualizar dados na tela
-        await queryClient.invalidateQueries({ queryKey: ['itbi-transactions'] });
-        await queryClient.invalidateQueries({ queryKey: ['kpi-stats'] });
-        await queryClient.invalidateQueries({ queryKey: ['kpi-stats-detailed'] });
-        await queryClient.invalidateQueries({ queryKey: ['microbairro-ranking'] });
-        await queryClient.invalidateQueries({ queryKey: ['microbairro-detalhado'] });
-        await queryClient.invalidateQueries({ queryKey: ['evolution-data'] });
-
+        // Invalidar TODAS as queries relacionadas a dados ITBI para forçar refetch
+        console.log('[SyncITBI] Invalidando todas as queries de dados...');
+        
+        // Usar invalidação parcial para capturar todas as versões de queryKeys
+        await queryClient.invalidateQueries({ predicate: (query) => {
+          const key = query.queryKey[0] as string;
+          return key?.includes('itbi') || 
+                 key?.includes('kpi') || 
+                 key?.includes('microbairro') || 
+                 key?.includes('evolution') ||
+                 key?.includes('transaction') ||
+                 key?.includes('ranking');
+        }});
+        
+        // Forçar refetch das queries principais
+        await queryClient.refetchQueries({ queryKey: ['kpi-stats-detailed-v5'] });
+        
+        console.log('[SyncITBI] Queries invalidadas com sucesso');
         toast({
           title: "Sincronização concluída!",
           description: `${data.registros_inseridos} registros (${data.total_transacoes_reais} transações) importados para ${selectedYear}.`,
