@@ -227,7 +227,7 @@ export function Step0Identification({ state, updateState }: Props) {
                   id="numero"
                   value={state.numero}
                   onChange={(e) => updateState({ numero: e.target.value })}
-                  placeholder="1000"
+                  placeholder="0"
                   className="h-10 sm:h-9"
                 />
               </div>
@@ -294,7 +294,7 @@ export function Step0Identification({ state, updateState }: Props) {
                 type="number"
                 value={state.area_m2 || ""}
                 onChange={(e) => updateState({ area_m2: Number(e.target.value) || 0 })}
-                placeholder="120"
+                placeholder="0"
                 className="h-10 sm:h-9"
               />
             </div>
@@ -310,7 +310,7 @@ export function Step0Identification({ state, updateState }: Props) {
                   type="number"
                   value={state.area_terreno_m2 || ""}
                   onChange={(e) => updateState({ area_terreno_m2: Number(e.target.value) || 0 })}
-                  placeholder="400"
+                  placeholder="0"
                   className="h-10 sm:h-9"
                 />
               </div>
@@ -321,7 +321,7 @@ export function Step0Identification({ state, updateState }: Props) {
                   id="andar"
                   value={state.andar}
                   onChange={(e) => updateState({ andar: e.target.value })}
-                  placeholder="15º"
+                  placeholder="0"
                   className="h-10 sm:h-9"
                 />
               </div>
@@ -354,7 +354,7 @@ export function Step0Identification({ state, updateState }: Props) {
                   id="andar"
                   value={state.andar}
                   onChange={(e) => updateState({ andar: e.target.value })}
-                  placeholder="2"
+                  placeholder="0"
                   className="h-10 sm:h-9"
                 />
               </div>
@@ -368,7 +368,7 @@ export function Step0Identification({ state, updateState }: Props) {
                 min="0"
                 value={state.quartos || ""}
                 onChange={(e) => updateState({ quartos: Number(e.target.value) || 0 })}
-                placeholder="3"
+                placeholder="0"
                 className="h-10 sm:h-9"
               />
             </div>
@@ -381,7 +381,7 @@ export function Step0Identification({ state, updateState }: Props) {
                 min="0"
                 value={state.suites || ""}
                 onChange={(e) => updateState({ suites: Number(e.target.value) || 0 })}
-                placeholder="1"
+                placeholder="0"
                 className="h-10 sm:h-9"
               />
             </div>
@@ -394,7 +394,7 @@ export function Step0Identification({ state, updateState }: Props) {
                 min="0"
                 value={state.banheiros || ""}
                 onChange={(e) => updateState({ banheiros: Number(e.target.value) || 0 })}
-                placeholder="2"
+                placeholder="0"
                 className="h-10 sm:h-9"
               />
             </div>
@@ -407,7 +407,7 @@ export function Step0Identification({ state, updateState }: Props) {
                 min="0"
                 value={state.vagas || ""}
                 onChange={(e) => updateState({ vagas: Number(e.target.value) || 0 })}
-                placeholder="2"
+                placeholder="0"
                 className="h-10 sm:h-9"
               />
             </div>
