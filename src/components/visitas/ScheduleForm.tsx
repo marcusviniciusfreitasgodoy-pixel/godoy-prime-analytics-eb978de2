@@ -78,7 +78,10 @@ export function ScheduleForm({ onSuccess, isPublic = false }: ScheduleFormProps)
   // Carregar dados do agendamento para edição
   useEffect(() => {
     const loadAgendamento = async () => {
-      if (!editId) return;
+      if (!editId) {
+        setIsEditing(false);
+        return;
+      }
       
       setLoadingEdit(true);
       setIsEditing(true);
@@ -89,34 +92,19 @@ export function ScheduleForm({ onSuccess, isPublic = false }: ScheduleFormProps)
           .from('agendamentos_visita')
           .select('*')
           .eq('id', editId)
-          .single();
+          .maybeSingle();
         
         if (error || !data) {
           toast.error('Agendamento não encontrado');
           setIsEditing(false);
+          setLoadingEdit(false);
           return;
         }
         
         const agendamento = data as AgendamentoVisita;
         const dataHora = parseISO(agendamento.data_hora);
         
-        // Preencher formulário com os dados
-        form.reset({
-          nome_visitante: agendamento.nome_visitante,
-          telefone_visitante: agendamento.telefone_visitante,
-          email_visitante: agendamento.email_visitante || "",
-          endereco_imovel: agendamento.endereco_imovel,
-          codigo_imovel: agendamento.codigo_imovel || "",
-          tipo_servico: agendamento.tipo_servico as TipoServicoVisita,
-          data: dataHora,
-          horario: format(dataHora, "HH:mm"),
-          origem: agendamento.origem || "site",
-          notas: agendamento.notas || "",
-        });
-        
-        setSelectedDate(dataHora);
-        
-        // Carregar horários para a data selecionada
+        // Carregar horários primeiro para a data selecionada
         const dateStr = format(dataHora, "yyyy-MM-dd");
         const horarios = await getHorariosDisponiveis(dateStr);
         if (horarios.length === 0) {
@@ -128,11 +116,11 @@ export function ScheduleForm({ onSuccess, isPublic = false }: ScheduleFormProps)
           setHorariosDisponiveis(horarios);
         }
         
+        setSelectedDate(dataHora);
+        
         // Carregar segunda opção se existir
         if (agendamento.data_hora_opcao2) {
           const dataHora2 = parseISO(agendamento.data_hora_opcao2);
-          form.setValue("data2", dataHora2);
-          form.setValue("horario2", format(dataHora2, "HH:mm"));
           setSelectedDate2(dataHora2);
           
           const dateStr2 = format(dataHora2, "yyyy-MM-dd");
@@ -146,6 +134,25 @@ export function ScheduleForm({ onSuccess, isPublic = false }: ScheduleFormProps)
             setHorariosDisponiveis2(horarios2);
           }
         }
+        
+        // Preencher formulário DEPOIS de carregar os horários
+        // Usar setTimeout para garantir que o reset aconteça após o render
+        setTimeout(() => {
+          form.reset({
+            nome_visitante: agendamento.nome_visitante,
+            telefone_visitante: agendamento.telefone_visitante,
+            email_visitante: agendamento.email_visitante || "",
+            endereco_imovel: agendamento.endereco_imovel,
+            codigo_imovel: agendamento.codigo_imovel || "",
+            tipo_servico: agendamento.tipo_servico as TipoServicoVisita,
+            data: dataHora,
+            horario: format(dataHora, "HH:mm"),
+            origem: (agendamento.origem as OrigemAgendamento) || "site",
+            notas: agendamento.notas || "",
+            data2: agendamento.data_hora_opcao2 ? parseISO(agendamento.data_hora_opcao2) : undefined,
+            horario2: agendamento.data_hora_opcao2 ? format(parseISO(agendamento.data_hora_opcao2), "HH:mm") : "",
+          });
+        }, 100);
       } catch (err) {
         console.error('Erro ao carregar agendamento:', err);
         toast.error('Erro ao carregar agendamento');
@@ -155,7 +162,7 @@ export function ScheduleForm({ onSuccess, isPublic = false }: ScheduleFormProps)
     };
     
     loadAgendamento();
-  }, [editId, form, getHorariosDisponiveis]);
+  }, [editId]);
 
   const handleDateSelect = async (date: Date | undefined) => {
     setSelectedDate(date);
