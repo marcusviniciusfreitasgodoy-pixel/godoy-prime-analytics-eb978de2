@@ -1,4 +1,4 @@
-import { MapPin, Menu, Home, ClipboardCheck, FileText, LogOut, Users, UserCog, Search, Calculator, RefreshCw } from "lucide-react";
+import { MapPin, Menu, Home, ClipboardCheck, ClipboardList, FileText, LogOut, Users, UserCog, Search, Calculator, RefreshCw, Settings, History, Brain, CalendarCheck, Cog, BookOpen, Rocket } from "lucide-react";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import logoSymbol from "@/assets/godoy-logo-symbol.png";
@@ -11,16 +11,26 @@ import { useAuthContext } from "@/contexts/AuthContext";
 import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
 
+// Manter sincronizado com AppSidebar.tsx
 const navItems = [
   { title: "Dashboard", url: "/", icon: Home },
+  { title: "Onboarding", url: "/onboarding", icon: Rocket },
+  { title: "Manual / Tour", url: "/manual", icon: BookOpen },
   { title: "Microregiões", url: "/microbairros", icon: MapPin },
   { title: "Pesquisas de Mercado", url: "/pesquisas-mercado", icon: Search },
   { title: "Avaliação Imobiliária", url: "/avaliacao-imobiliaria", icon: Calculator },
+  { title: "Histórico Avaliações", url: "/historico-avaliacoes", icon: History },
   { title: "Vistoria Digital", url: "/vistoria-digital", icon: ClipboardCheck },
+  { title: "Histórico Vistorias", url: "/historico-vistorias", icon: ClipboardList },
+  { title: "Agendamento de Visitas", url: "/visitas", icon: CalendarCheck },
   { title: "Documentação", url: "/documentacao", icon: FileText },
+  { title: "Configurações", url: "/configuracoes", icon: Cog },
 ];
 
 const adminItems = [
+  { title: "Base Conhecimento Sofia", url: "/base-conhecimento", icon: Brain },
+  { title: "Calibrador Avaliação", url: "/calibrador-avaliacao", icon: Settings },
+  { title: "Calibrador Vistoria", url: "/calibrador-vistoria", icon: ClipboardList },
   { title: "Leads", url: "/leads", icon: Users },
   { title: "Usuários", url: "/usuarios", icon: UserCog },
 ];
