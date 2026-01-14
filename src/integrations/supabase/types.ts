@@ -402,6 +402,7 @@ export type Database = {
           data_transacao: string
           id: string
           logradouro: string
+          microbairro: string | null
           numero: string | null
           percentual_transferido: number | null
           tipologia: string | null
@@ -419,6 +420,7 @@ export type Database = {
           data_transacao: string
           id?: string
           logradouro: string
+          microbairro?: string | null
           numero?: string | null
           percentual_transferido?: number | null
           tipologia?: string | null
@@ -436,6 +438,7 @@ export type Database = {
           data_transacao?: string
           id?: string
           logradouro?: string
+          microbairro?: string | null
           numero?: string | null
           percentual_transferido?: number | null
           tipologia?: string | null
@@ -597,6 +600,51 @@ export type Database = {
           logradouro_normalizado?: string
           logradouro_original?: string
           tipo_logradouro?: string | null
+        }
+        Relationships: []
+      }
+      microbairros_geo: {
+        Row: {
+          bairro: string
+          created_at: string | null
+          id: string
+          keywords: string[] | null
+          lat_max: number | null
+          lat_min: number | null
+          latitude_centro: number | null
+          lng_max: number | null
+          lng_min: number | null
+          longitude_centro: number | null
+          nome: string
+          updated_at: string | null
+        }
+        Insert: {
+          bairro?: string
+          created_at?: string | null
+          id?: string
+          keywords?: string[] | null
+          lat_max?: number | null
+          lat_min?: number | null
+          latitude_centro?: number | null
+          lng_max?: number | null
+          lng_min?: number | null
+          longitude_centro?: number | null
+          nome: string
+          updated_at?: string | null
+        }
+        Update: {
+          bairro?: string
+          created_at?: string | null
+          id?: string
+          keywords?: string[] | null
+          lat_max?: number | null
+          lat_min?: number | null
+          latitude_centro?: number | null
+          lng_max?: number | null
+          lng_min?: number | null
+          longitude_centro?: number | null
+          nome?: string
+          updated_at?: string | null
         }
         Relationships: []
       }
