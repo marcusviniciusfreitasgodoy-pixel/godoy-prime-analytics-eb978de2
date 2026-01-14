@@ -1,4 +1,5 @@
 import { MapPin, Phone, MessageCircle } from "lucide-react";
+import { Link } from "react-router-dom";
 import logoSymbol from "@/assets/godoy-logo-symbol.png";
 import { Button } from "@/components/ui/button";
 
@@ -60,6 +61,14 @@ export function Footer() {
 
         {/* Bottom bar */}
         <div className="mt-4 sm:mt-6 pt-3 sm:pt-4 border-t border-accent/20 flex flex-col items-center gap-2 sm:gap-3 text-[9px] sm:text-xs text-primary-foreground/60 text-center">
+          <div className="flex items-center gap-3">
+            <Link 
+              to="/politica-privacidade" 
+              className="hover:text-accent transition-colors underline"
+            >
+              Política de Privacidade
+            </Link>
+          </div>
           <p>© 2025 GODOY PRIME REALTY. CRECI 11841 - PJ.</p>
           <p>
             Desenvolvido por{" "}

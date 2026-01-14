@@ -25,6 +25,42 @@ const getOutlierLimit = (bairro: string): number => {
   return OUTLIER_LIMITS[normalizedBairro] || OUTLIER_LIMITS['DEFAULT'];
 };
 
+// Classificar logradouros em microbairros da Barra da Tijuca
+const classificarMicrobairroBarra = (logradouro: string): string | null => {
+  const log = logradouro.toUpperCase();
+  
+  if (log.includes('LUCIO COSTA') || log.includes('LÚCIO COSTA') || 
+      log.includes('SERNAMBETIBA') || log.includes('PEPE') || log.includes('PEPÊ')) {
+    return 'Orla';
+  }
+  if (log.includes('PENINSULA') || log.includes('PENÍNSULA')) {
+    return 'Península';
+  }
+  if (log.includes('ABELARDO BUENO') || log.includes('EMBAIXADOR')) {
+    return 'Centro Metropolitano';
+  }
+  if (log.includes('AYRTON SENNA') || log.includes('VIA PARQUE') || log.includes('ALFA BARRA')) {
+    return 'Ayrton Senna';
+  }
+  if (log.includes('OLEGARIO') || log.includes('OLEGÁRIO') || 
+      log.includes('ERICO') || log.includes('ÉRICO') || log.includes('VERÍSSIMO') || log.includes('VERISSIMO')) {
+    return 'Jardim Oceânico';
+  }
+  if (log.includes('DULCIDIO') || log.includes('DULCÍDIO') || log.includes('CARDOSO')) {
+    return 'ABM';
+  }
+  if (log.includes('MARIO COVAS') || log.includes('MÁRIO COVAS') ||
+      log.includes('CESAR LATTES') || log.includes('CÉSAR LATTES') ||
+      log.includes('HENRIQUE CORDEIRO')) {
+    return 'Parque das Rosas';
+  }
+  if (log.includes('AMERICAS') || log.includes('AMÉRICAS')) {
+    return 'Eixo Américas';
+  }
+  
+  return null;
+};
+
 export interface ITBITransaction {
   id: string;
   logradouro: string;
@@ -260,11 +296,12 @@ export function useMicrobairroDetalhado(bairro: string = 'BARRA DA TIJUCA') {
   });
 }
 
-export function useKPIStats() {
+export function useKPIStats(bairro: string = 'BARRA DA TIJUCA') {
   return useQuery({
-    queryKey: ['kpi-stats-v3'],
+    queryKey: ['kpi-stats-v4', bairro],
     queryFn: async () => {
-      const outlierLimit = getOutlierLimit('BARRA DA TIJUCA');
+      const outlierLimit = getOutlierLimit(bairro);
+      const isBarra = bairro.toUpperCase().includes('BARRA DA TIJUCA');
       
       const twentyFourMonthsAgo = new Date();
       twentyFourMonthsAgo.setMonth(twentyFourMonthsAgo.getMonth() - 24);
@@ -276,9 +313,9 @@ export function useKPIStats() {
 
       const { data: currentPeriodData, error: currentError } = await supabase
         .from('itbi_transactions')
-        .select('valor_m2, tipologia, uso, total_transacoes')
+        .select('logradouro, valor_m2, tipologia, uso, total_transacoes')
         .eq('uso', 'Residencial')
-        .ilike('bairro', 'BARRA DA TIJUCA')
+        .ilike('bairro', bairro)
         .not('valor_m2', 'is', null)
         .lte('valor_m2', outlierLimit)
         .gte('data_transacao', startDate12Months)
@@ -290,7 +327,7 @@ export function useKPIStats() {
         .from('itbi_transactions')
         .select('valor_m2')
         .eq('uso', 'Residencial')
-        .ilike('bairro', 'BARRA DA TIJUCA')
+        .ilike('bairro', bairro)
         .not('valor_m2', 'is', null)
         .lte('valor_m2', outlierLimit)
         .gte('data_transacao', startDate24Months)
@@ -314,22 +351,75 @@ export function useKPIStats() {
         ? ((precoMedio - precoMedioAnterior) / precoMedioAnterior) * 100
         : 0;
 
-      const { data: rankingData } = await supabase
-        .from('view_ranking_microbairros')
-        .select('microbairro, preco_medio_m2')
-        .order('preco_medio_m2', { ascending: false })
-        .limit(1)
-        .single();
+      // Calcular microbairro mais valorizado dinamicamente
+      let bairroMaisValorizado = 'N/A';
+      let precoMedioBairro = 0;
 
-      // CORRIGIDO: Somar total_transacoes ao invés de contar registros
+      if (isBarra) {
+        // Para Barra, classificar por microbairro
+        const microbairroStats: Record<string, { sum: number; count: number }> = {};
+        
+        currentTransactions.forEach((t: any) => {
+          const micro = classificarMicrobairroBarra(t.logradouro);
+          if (micro) {
+            if (!microbairroStats[micro]) {
+              microbairroStats[micro] = { sum: 0, count: 0 };
+            }
+            const transCount = t.total_transacoes || 1;
+            microbairroStats[micro].sum += (t.valor_m2 || 0) * transCount;
+            microbairroStats[micro].count += transCount;
+          }
+        });
+
+        // Encontrar o mais valorizado com pelo menos 3 transações
+        let maxAvg = 0;
+        Object.entries(microbairroStats).forEach(([micro, stats]) => {
+          if (stats.count >= 3) {
+            const avg = stats.sum / stats.count;
+            if (avg > maxAvg) {
+              maxAvg = avg;
+              bairroMaisValorizado = micro;
+              precoMedioBairro = Math.round(avg);
+            }
+          }
+        });
+      } else {
+        // Para outros bairros, usar o logradouro mais valorizado
+        const logradouroStats: Record<string, { sum: number; count: number }> = {};
+        
+        currentTransactions.forEach((t: any) => {
+          const log = t.logradouro;
+          if (!logradouroStats[log]) {
+            logradouroStats[log] = { sum: 0, count: 0 };
+          }
+          const transCount = t.total_transacoes || 1;
+          logradouroStats[log].sum += (t.valor_m2 || 0) * transCount;
+          logradouroStats[log].count += transCount;
+        });
+
+        let maxAvg = 0;
+        Object.entries(logradouroStats).forEach(([log, stats]) => {
+          if (stats.count >= 3) {
+            const avg = stats.sum / stats.count;
+            if (avg > maxAvg) {
+              maxAvg = avg;
+              // Simplificar nome do logradouro
+              bairroMaisValorizado = log.replace(/^(AVN?|RUA|EST|TV|PCA|AL)\s+/i, '').substring(0, 25);
+              precoMedioBairro = Math.round(avg);
+            }
+          }
+        });
+      }
+
+      // Somar total_transacoes ao invés de contar registros
       const liquidez = currentTransactions.reduce((sum, t) => sum + ((t as any).total_transacoes || 1), 0);
 
       return {
         precoMedio: Math.round(precoMedio),
         liquidez,
         variacaoAnual: variacaoAnual.toFixed(1),
-        bairroMaisValorizado: rankingData?.microbairro || 'N/A',
-        precoMedioBairro: rankingData?.preco_medio_m2 || 0,
+        bairroMaisValorizado,
+        precoMedioBairro,
       };
     },
   });
