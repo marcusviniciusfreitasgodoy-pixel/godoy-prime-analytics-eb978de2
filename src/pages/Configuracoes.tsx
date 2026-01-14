@@ -249,9 +249,9 @@ export default function Configuracoes() {
         {/* Configurações de Avaliação */}
         <Card>
           <CardHeader className="p-4 sm:p-6">
-            <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
+          <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
               <Filter className="h-4 w-4 sm:h-5 sm:w-5" />
-              Filtro de Outliers (ITBI)
+              Filtro de Outliers (Transações)
             </CardTitle>
             <CardDescription className="text-xs sm:text-sm">
               Configure como a plataforma trata valores extremos nas avaliações
