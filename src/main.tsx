@@ -26,12 +26,12 @@ const updateSW = registerSW({
     window.dispatchEvent(new CustomEvent('sw-update-complete'));
   },
   onRegisteredSW(swUrl, registration) {
-    // Check for updates every 5 minutes
+    // Check for updates every 24 hours
     if (registration) {
       setInterval(() => {
         console.log('[PWA] Verificando atualizações...');
         registration.update();
-      }, 5 * 60 * 1000);
+      }, 24 * 60 * 60 * 1000); // 24 hours
     }
   },
 });
