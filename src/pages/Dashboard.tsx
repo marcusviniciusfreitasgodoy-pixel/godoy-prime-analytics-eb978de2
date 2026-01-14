@@ -53,9 +53,11 @@ import {
 import { useActivityTracking } from "@/hooks/useActivityTracking";
 import { useFirstVisitTour } from "@/hooks/useFirstVisitTour";
 import { LastSyncIndicator } from "@/components/LastSyncIndicator";
+import { useOnboardingRedirect } from "@/hooks/useOnboardingRedirect";
 
 export default function Dashboard() {
   const { shouldRunTour, startTour, endTour } = useFirstVisitTour('dashboard');
+  const { isChecking } = useOnboardingRedirect();
   const [isExporting, setIsExporting] = useState(false);
   const { selectedBairro, setSelectedBairro } = useBairro();
   const { toast } = useToast();
@@ -328,6 +330,11 @@ export default function Dashboard() {
       setIsExporting(false);
     }
   };
+
+  // Se estiver verificando onboarding, não renderiza nada (vai redirecionar)
+  if (isChecking) {
+    return null;
+  }
 
   return (
     <div className="space-y-3 sm:space-y-6">
