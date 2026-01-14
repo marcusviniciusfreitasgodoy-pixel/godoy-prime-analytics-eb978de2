@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect, useCallback } from "react";
+import { useState, useRef, useEffect, useCallback, useMemo } from "react";
 import { useSwipeGesture } from "@/hooks/useSwipeGesture";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useNavigate, useLocation } from "react-router-dom";
@@ -51,6 +51,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { normalizeStreetSearchTerm } from "@/lib/utils";
 import { useActivityTracking } from "@/hooks/useActivityTracking";
 import { useAuth } from "@/hooks/useAuth";
+import { useVistoriaChecklistFull, CategoryWithItems } from "@/hooks/useVistoriaChecklist";
 
 // Street suggestion type
 interface StreetSuggestion {
@@ -632,6 +633,38 @@ export default function VistoriaDigital() {
   const { trackVistoria, trackExport } = useActivityTracking();
   const { user } = useAuth();
   
+  // Fetch checklist data from database
+  const { data: dbChecklistCasa, isLoading: loadingCasa } = useVistoriaChecklistFull('casa');
+  const { data: dbChecklistApartamento, isLoading: loadingApartamento } = useVistoriaChecklistFull('apartamento');
+  
+  // Convert database format to component format
+  const convertToChecklist = useCallback((dbData: CategoryWithItems[] | undefined, fallback: ChecklistCategory[]): ChecklistCategory[] => {
+    if (!dbData || dbData.length === 0) return JSON.parse(JSON.stringify(fallback));
+    
+    return dbData.map(cat => ({
+      id: cat.category_id,
+      title: cat.title,
+      weight: Number(cat.weight),
+      items: cat.items.map(item => ({
+        id: item.item_id,
+        label: item.label,
+        tooltip: item.tooltip || undefined,
+        score: null as ItemScore,
+      })),
+    }));
+  }, []);
+  
+  // Memoized checklists from DB with fallback
+  const checklistCasaFromDB = useMemo(() => 
+    convertToChecklist(dbChecklistCasa, checklistCasa), 
+    [dbChecklistCasa, convertToChecklist]
+  );
+  
+  const checklistApartamentoFromDB = useMemo(() => 
+    convertToChecklist(dbChecklistApartamento, checklistApartamento), 
+    [dbChecklistApartamento, convertToChecklist]
+  );
+  
   // Street autocomplete state
   const [streetSearchTerm, setStreetSearchTerm] = useState("");
   const [streetSuggestions, setStreetSuggestions] = useState<StreetSuggestion[]>([]);
@@ -788,7 +821,7 @@ export default function VistoriaDigital() {
         setChecklist(data.checklist);
       } else {
         setChecklist(JSON.parse(JSON.stringify(
-          data.tipoVistoria === 'casa' ? checklistCasa : checklistApartamento
+          data.tipoVistoria === 'casa' ? checklistCasaFromDB : checklistApartamentoFromDB
         )));
       }
       
@@ -856,10 +889,10 @@ export default function VistoriaDigital() {
       const tipo = data.tipoImovel?.toLowerCase();
       if (tipo === 'casa' || tipo === 'terreno') {
         setTipoVistoria('casa');
-        setChecklist(JSON.parse(JSON.stringify(checklistCasa)));
+        setChecklist(JSON.parse(JSON.stringify(checklistCasaFromDB)));
       } else if (tipo === 'apartamento' || tipo === 'cobertura') {
         setTipoVistoria('apartamento');
-        setChecklist(JSON.parse(JSON.stringify(checklistApartamento)));
+        setChecklist(JSON.parse(JSON.stringify(checklistApartamentoFromDB)));
       } else {
         setShowTypeDialog(true);
       }
@@ -932,7 +965,7 @@ export default function VistoriaDigital() {
 
   const handleSelectTipoVistoria = (tipo: 'casa' | 'apartamento') => {
     setTipoVistoria(tipo);
-    setChecklist(JSON.parse(JSON.stringify(tipo === 'casa' ? checklistCasa : checklistApartamento)));
+    setChecklist(JSON.parse(JSON.stringify(tipo === 'casa' ? checklistCasaFromDB : checklistApartamentoFromDB)));
     setShowTypeDialog(false);
     
     // Update tipoImovel based on selection
@@ -1055,7 +1088,7 @@ export default function VistoriaDigital() {
 
   const resetChecklist = () => {
     setShowResetDialog(false);
-    setChecklist(JSON.parse(JSON.stringify(tipoVistoria === 'casa' ? checklistCasa : checklistApartamento)));
+    setChecklist(JSON.parse(JSON.stringify(tipoVistoria === 'casa' ? checklistCasaFromDB : checklistApartamentoFromDB)));
     setPropertyData(initialPropertyData);
     setPhotos([]);
     setTipoVistoria(null);
