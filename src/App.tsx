@@ -10,6 +10,7 @@ import { BairroProvider } from "@/contexts/BairroContext";
 import { AppSidebar } from "@/components/AppSidebar";
 import { Header } from "@/components/Header";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
+import { UpdateIndicator } from "@/components/UpdateIndicator";
 import Dashboard from "./pages/Dashboard";
 import Microbairros from "./pages/Microbairros";
 import PesquisasMercado from "./pages/PesquisasMercado";
@@ -58,6 +59,7 @@ const App = () => (
       <TooltipProvider>
         <AuthProvider>
           <BairroProvider>
+            <UpdateIndicator />
             <Toaster />
             <Sonner />
             <BrowserRouter>
