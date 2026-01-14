@@ -395,7 +395,7 @@ export function ScheduleForm({ onSuccess, isPublic = false }: ScheduleFormProps)
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Tipo de Serviço *</FormLabel>
-                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                    <Select onValueChange={field.onChange} value={field.value}>
                       <FormControl>
                         <SelectTrigger>
                           <SelectValue placeholder="Selecione" />
@@ -583,7 +583,7 @@ export function ScheduleForm({ onSuccess, isPublic = false }: ScheduleFormProps)
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>Origem do Contato</FormLabel>
-                      <Select onValueChange={field.onChange} defaultValue={field.value}>
+                      <Select onValueChange={field.onChange} value={field.value}>
                         <FormControl>
                           <SelectTrigger>
                             <SelectValue placeholder="Selecione" />
