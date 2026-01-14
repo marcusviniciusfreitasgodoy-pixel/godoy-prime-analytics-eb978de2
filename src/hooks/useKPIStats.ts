@@ -316,52 +316,45 @@ export function useKPIStats(bairro: string = 'BARRA DA TIJUCA') {
         precoMedioBairroApt = microApt.length > 0 ? calcMediaPonderada(microApt) : maxPreco;
         precoMedioBairroCasa = microCasa.length > 0 ? calcMediaPonderada(microCasa) : maxPreco * 0.9;
       } else {
-        const { data: logradouroData } = await supabase
-          .from('itbi_transactions')
-          .select('logradouro, valor_m2, tipologia, total_transacoes')
-          .eq('uso', 'Residencial')
-          .ilike('bairro', bairro)
-          .not('valor_m2', 'is', null)
-          .lte('valor_m2', outlierLimit)
-          .gte('percentual_transferido', 90)
-          .gte('data_transacao', startOfYear);
-
-        if (logradouroData && logradouroData.length > 0) {
-          const logradouroStats: Record<string, { somaValores: number; somaTransacoes: number; transacoes: TransactionData[] }> = {};
-          
-          for (const t of logradouroData) {
-            const log = t.logradouro || 'N/A';
-            if (!logradouroStats[log]) {
-              logradouroStats[log] = { somaValores: 0, somaTransacoes: 0, transacoes: [] };
-            }
-            const peso = t.total_transacoes || 1;
-            logradouroStats[log].somaValores += (t.valor_m2 || 0) * peso;
-            logradouroStats[log].somaTransacoes += peso;
-            logradouroStats[log].transacoes.push(t);
+        // Para outros bairros, usar os dados já carregados (currentTransactions)
+        // que já aplicam fallback de 12 meses quando ano atual não tem dados suficientes
+        const logradouroStats: Record<string, { somaValores: number; somaTransacoes: number; transacoes: TransactionData[] }> = {};
+        
+        for (const t of currentTransactions as any[]) {
+          const log = t.logradouro || 'N/A';
+          if (!logradouroStats[log]) {
+            logradouroStats[log] = { somaValores: 0, somaTransacoes: 0, transacoes: [] };
           }
+          const peso = t.total_transacoes || 1;
+          logradouroStats[log].somaValores += (t.valor_m2 || 0) * peso;
+          logradouroStats[log].somaTransacoes += peso;
+          logradouroStats[log].transacoes.push(t);
+        }
 
-          let maxPreco = 0;
-          let melhorLogradouro = 'N/A';
-          let melhorTransacoes: TransactionData[] = [];
+        let maxPreco = 0;
+        let melhorLogradouro = 'N/A';
+        let melhorTransacoes: TransactionData[] = [];
 
-          for (const [log, stats] of Object.entries(logradouroStats)) {
-            const mediaLog = stats.somaTransacoes > 0 ? stats.somaValores / stats.somaTransacoes : 0;
+        // Requer mínimo de 2 transações para identificar o logradouro mais valorizado
+        for (const [log, stats] of Object.entries(logradouroStats)) {
+          if (stats.somaTransacoes >= 2) {
+            const mediaLog = stats.somaValores / stats.somaTransacoes;
             if (mediaLog > maxPreco) {
               maxPreco = mediaLog;
               melhorLogradouro = log;
               melhorTransacoes = stats.transacoes;
             }
           }
-
-          regiaoMaisValorizada = melhorLogradouro;
-          precoMedioBairro = maxPreco;
-
-          const logApt = melhorTransacoes.filter(t => t.tipologia?.toLowerCase().includes('apartamento'));
-          const logCasa = melhorTransacoes.filter(t => t.tipologia?.toLowerCase().includes('casa'));
-          
-          precoMedioBairroApt = logApt.length > 0 ? calcMediaPonderada(logApt) : maxPreco;
-          precoMedioBairroCasa = logCasa.length > 0 ? calcMediaPonderada(logCasa) : maxPreco * 0.9;
         }
+
+        regiaoMaisValorizada = melhorLogradouro;
+        precoMedioBairro = Math.round(maxPreco);
+
+        const logApt = melhorTransacoes.filter(t => t.tipologia?.toLowerCase().includes('apartamento'));
+        const logCasa = melhorTransacoes.filter(t => t.tipologia?.toLowerCase().includes('casa'));
+        
+        precoMedioBairroApt = logApt.length > 0 ? calcMediaPonderada(logApt) : maxPreco;
+        precoMedioBairroCasa = logCasa.length > 0 ? calcMediaPonderada(logCasa) : maxPreco * 0.9;
       }
 
       return {
