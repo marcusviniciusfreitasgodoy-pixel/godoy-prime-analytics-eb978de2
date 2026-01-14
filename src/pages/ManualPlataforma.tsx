@@ -863,6 +863,17 @@ export default function ManualPlataforma() {
                     </p>
                   </AccordionContent>
                 </AccordionItem>
+
+                <AccordionItem value="faq-9">
+                  <AccordionTrigger className="text-sm font-medium text-left">
+                    O que é o Calibrador de Vistoria?
+                  </AccordionTrigger>
+                  <AccordionContent>
+                    <p className="text-sm text-muted-foreground">
+                      O Calibrador de Vistoria é uma ferramenta administrativa para gerenciar os itens do checklist de inspeção. Permite adicionar, editar ou remover categorias e itens, além de ajustar os pesos de cada categoria separadamente para casas e apartamentos. Isso garante que a vistoria seja adaptada às necessidades específicas da sua imobiliária.
+                    </p>
+                  </AccordionContent>
+                </AccordionItem>
               </Accordion>
             </CardContent>
           </Card>
