@@ -204,6 +204,7 @@ const manualContent = {
       funcionalidades: [
         "Base de Conhecimento Sofia: Gerenciar conteúdo e treinamento da IA",
         "Calibrador de Avaliação: Ajustar pesos e fatores do sistema de avaliação",
+        "Calibrador de Vistoria: Gerenciar categorias e itens do checklist de inspeção para casas e apartamentos",
         "Gestão de Contatos: Acompanhar possíveis clientes capturados com filtros e exportação",
         "Gerenciamento de Usuários: Controle de acessos, papéis e permissões",
         "Rastreamento de Atividades: Acompanhamento completo de uso por usuário",
@@ -336,6 +337,7 @@ const manualContent = {
       perguntas: [
         { p: "Como gerenciar contatos capturados?", r: "Acesse a seção de Contatos para visualizar, filtrar por origem/interesse/período e acompanhar o progresso de cada possível cliente." },
         { p: "Quem pode acessar o calibrador de avaliação?", r: "Apenas administradores têm acesso para ajustar pesos e fatores do sistema de avaliação." },
+        { p: "O que é o Calibrador de Vistoria?", r: "É uma ferramenta administrativa para gerenciar os itens do checklist de inspeção. Permite adicionar, editar ou remover categorias e itens, além de ajustar os pesos de cada categoria separadamente para casas e apartamentos." },
         { p: "Como adicionar novos usuários?", r: "Administradores podem convidar novos usuários na seção Gerenciar Usuários, definindo papel (administrador/corretor/gerente)." },
         { p: "O que é rastreado no registro de atividades?", r: "Acessos, avaliações, vistorias, visitas, pesquisas, exportações e todas as ações relevantes na plataforma." },
         { p: "Como atualizar os dados da Prefeitura?", r: "Administradores podem usar o botão de sincronização no painel principal para buscar novos dados da Prefeitura." }
