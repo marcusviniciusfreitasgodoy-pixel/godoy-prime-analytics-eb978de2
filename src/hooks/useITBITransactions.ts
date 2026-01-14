@@ -120,21 +120,15 @@ export function useITBITransactions() {
 
 export function useMicrobairroRanking(bairro: string = 'BARRA DA TIJUCA') {
   return useQuery<MicrobairroRanking[]>({
-    queryKey: ['microbairro-ranking-v3', bairro],
+    queryKey: ['microbairro-ranking-v4', bairro],
     queryFn: async () => {
       const outlierLimit = getOutlierLimit(bairro);
       
-      // Para Barra da Tijuca, usar a view otimizada (já tem filtro de outliers de R$ 40k)
-      if (bairro.toUpperCase() === 'BARRA DA TIJUCA') {
-        const { data, error } = await supabase
-          .from('view_ranking_microbairros')
-          .select('*');
-
-        if (error) throw error;
-        return data as MicrobairroRanking[];
-      }
+      // Buscar transações dos últimos 12 meses
+      const twelveMonthsAgo = new Date();
+      twelveMonthsAgo.setMonth(twelveMonthsAgo.getMonth() - 12);
+      const startDate = twelveMonthsAgo.toISOString().split('T')[0];
       
-      // Para outros bairros, calcular dinamicamente com limite apropriado
       const { data: transactions, error } = await supabase
         .from('itbi_transactions')
         .select('logradouro, valor_m2, total_transacoes')
@@ -143,10 +137,51 @@ export function useMicrobairroRanking(bairro: string = 'BARRA DA TIJUCA') {
         .not('valor_m2', 'is', null)
         .lte('valor_m2', outlierLimit)
         .gte('percentual_transferido', 90)
-        .limit(5000);
+        .gte('data_transacao', startDate)
+        .limit(10000);
 
       if (error) throw error;
+      
+      // Para Barra da Tijuca, agrupar por microbairro
+      if (bairro.toUpperCase() === 'BARRA DA TIJUCA') {
+        const grouped = (transactions || []).reduce((acc, t) => {
+          const micro = classificarMicrobairroBarra(t.logradouro);
+          if (!micro) return acc; // Ignorar logradouros não classificados
+          
+          if (!acc[micro]) {
+            acc[micro] = { valores: [], total: 0 };
+          }
+          acc[micro].valores.push(t.valor_m2!);
+          acc[micro].total += t.total_transacoes || 1;
+          return acc;
+        }, {} as Record<string, { valores: number[], total: number }>);
 
+        const result = Object.entries(grouped).map(([microbairro, data]) => {
+          const sorted = [...data.valores].sort((a, b) => a - b);
+          const mediana = sorted.length > 0 
+            ? sorted[Math.floor(sorted.length / 2)] 
+            : 0;
+          const media = sorted.length > 0 
+            ? sorted.reduce((a, b) => a + b, 0) / sorted.length 
+            : 0;
+          
+          return {
+            microbairro,
+            total_transacoes: data.total,
+            preco_medio_m2: Math.round(media),
+            preco_min_m2: Math.min(...data.valores),
+            preco_max_m2: Math.max(...data.valores),
+            mediana_m2: Math.round(mediana),
+          };
+        });
+
+        // Mínimo de 3 transações para aparecer no ranking
+        return result
+          .filter(r => r.total_transacoes >= 3)
+          .sort((a, b) => b.preco_medio_m2 - a.preco_medio_m2);
+      }
+      
+      // Para outros bairros, agrupar por logradouro
       const grouped = (transactions || []).reduce((acc, t) => {
         const key = t.logradouro;
         if (!acc[key]) {
