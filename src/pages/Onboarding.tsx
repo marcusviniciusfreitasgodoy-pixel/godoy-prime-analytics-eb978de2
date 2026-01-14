@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Helmet } from 'react-helmet-async';
 import { Button } from '@/components/ui/button';
@@ -32,11 +32,18 @@ import {
   CalendarCheck,
   Target,
   Map,
-  History
+  History,
+  UserCog,
+  BarChart2,
+  Shield,
+  Briefcase
 } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { exportManualPDF } from '@/utils/manualPdfExport';
 import { toast } from 'sonner';
+import { useAuthContext } from '@/contexts/AuthContext';
+
+type UserRole = 'admin' | 'gerente' | 'corretor';
 
 interface OnboardingStep {
   id: number;
@@ -46,6 +53,8 @@ interface OnboardingStep {
   features: string[];
   route: string;
   color: string;
+  roles: UserRole[]; // Quais roles podem ver este step
+  category: 'operacional' | 'gestao' | 'admin'; // Categoria do módulo
 }
 
 interface FAQItem {
@@ -58,13 +67,16 @@ interface FAQCategory {
   titulo: string;
   icon: React.ReactNode;
   perguntas: FAQItem[];
+  roles: UserRole[]; // Quais roles podem ver esta categoria
 }
 
+// FAQs com filtro por role
 const faqCategories: FAQCategory[] = [
   {
     id: "geral",
     titulo: "Geral",
     icon: <HelpCircle className="h-4 w-4" />,
+    roles: ['corretor', 'gerente', 'admin'],
     perguntas: [
       { pergunta: "O que é o Godoy Prime Analytics?", resposta: "É uma plataforma de inteligência para o mercado imobiliário que oferece análise de dados de vendas, avaliações automatizadas, vistorias digitais, estratégias de preço e assistente virtual para profissionais do mercado da Barra da Tijuca." },
       { pergunta: "Quem pode usar a plataforma?", resposta: "Corretores de imóveis, avaliadores, gestores imobiliários e empresas do setor imobiliário." },
@@ -77,6 +89,7 @@ const faqCategories: FAQCategory[] = [
     id: "dashboard",
     titulo: "Painel Principal e Indicadores",
     icon: <BarChart3 className="h-4 w-4" />,
+    roles: ['corretor', 'gerente', 'admin'],
     perguntas: [
       { pergunta: "Com que frequência os dados são atualizados?", resposta: "Os dados são atualizados mensalmente com as vendas oficiais registradas na Prefeitura do Rio de Janeiro." },
       { pergunta: "O que significa o valor mediano por metro quadrado?", resposta: "É o valor do meio quando todos os preços são colocados em ordem. Representa melhor o mercado porque não é afetado por valores muito altos ou muito baixos." },
@@ -89,6 +102,7 @@ const faqCategories: FAQCategory[] = [
     id: "pesquisas",
     titulo: "Pesquisas de Mercado",
     icon: <FileSearch className="h-4 w-4" />,
+    roles: ['corretor', 'gerente', 'admin'],
     perguntas: [
       { pergunta: "Quais filtros estão disponíveis nas pesquisas?", resposta: "Localização (bairro, rua), faixa de preço (de R$ 100 mil a R$ 100 milhões), período (6 a 24 meses), tamanho e tipo de imóvel." },
       { pergunta: "Posso salvar minhas pesquisas?", resposta: "O histórico de pesquisas é salvo automaticamente para você consultar depois." },
@@ -101,6 +115,7 @@ const faqCategories: FAQCategory[] = [
     id: "microbairros",
     titulo: "Análise de Regiões",
     icon: <MapPin className="h-4 w-4" />,
+    roles: ['corretor', 'gerente', 'admin'],
     perguntas: [
       { pergunta: "O que são as micro-regiões?", resposta: "São subdivisões dos bairros baseadas em padrões de preço e localização, permitindo análises mais detalhadas." },
       { pergunta: "Como comparar ruas diferentes?", resposta: "Use a ferramenta de comparação para adicionar até 5 ruas e ver o gráfico comparativo de preços." },
@@ -112,6 +127,7 @@ const faqCategories: FAQCategory[] = [
     id: "avaliacao",
     titulo: "Avaliação de Imóveis",
     icon: <Calculator className="h-4 w-4" />,
+    roles: ['corretor', 'gerente', 'admin'],
     perguntas: [
       { pergunta: "Quantas características são avaliadas?", resposta: "São 35 características divididas em 5 categorias: Posição e Vista, Conservação, Conforto, Segurança e Funcionalidade." },
       { pergunta: "O que são os 3 cenários de valor?", resposta: "São três estimativas: Conservador (valor mínimo), Provável (valor mais esperado) e Otimista (valor máximo)." },
@@ -125,6 +141,7 @@ const faqCategories: FAQCategory[] = [
     id: "precificacao",
     titulo: "Estratégia de Preço",
     icon: <Target className="h-4 w-4" />,
+    roles: ['corretor', 'gerente', 'admin'],
     perguntas: [
       { pergunta: "O que é a Estratégia de Preço?", resposta: "É um módulo que calcula 3 estratégias de preço (Atração, Mercado, Valorização) baseado em 9 perguntas sobre o imóvel." },
       { pergunta: "Quais são as 3 estratégias disponíveis?", resposta: "Atração (venda rápida, preço menor), Mercado (equilibrada, preço de referência) e Valorização (maximização, preço maior)." },
@@ -137,6 +154,7 @@ const faqCategories: FAQCategory[] = [
     id: "vistoria",
     titulo: "Vistoria de Imóveis",
     icon: <ClipboardCheck className="h-4 w-4" />,
+    roles: ['corretor', 'gerente', 'admin'],
     perguntas: [
       { pergunta: "Qual a diferença entre vistoria de casa e apartamento?", resposta: "Casas têm lista com 55 itens (20 categorias) incluindo área externa, enquanto apartamentos têm 50 itens (18 categorias)." },
       { pergunta: "Como funciona a nota de conservação?", resposta: "Cada item é avaliado de 1 (Crítico) a 5 (Bom). A nota geral (0 a 100) é calculada automaticamente." },
@@ -149,6 +167,7 @@ const faqCategories: FAQCategory[] = [
     id: "visitas",
     titulo: "Agenda de Visitas",
     icon: <CalendarCheck className="h-4 w-4" />,
+    roles: ['corretor', 'gerente', 'admin'],
     perguntas: [
       { pergunta: "Como agendar uma visita?", resposta: "Clique em Nova Visita, preencha dados do cliente, imóvel, data e hora, e tipo de atendimento (visita, avaliação, consultoria, fotos)." },
       { pergunta: "O que é a ficha de visita?", resposta: "É um documento com código único contendo dados do imóvel, cliente, declaração de trabalho exclusivo e espaço para assinaturas." },
@@ -162,6 +181,7 @@ const faqCategories: FAQCategory[] = [
     id: "documentacao",
     titulo: "Documentação",
     icon: <FileText className="h-4 w-4" />,
+    roles: ['corretor', 'gerente', 'admin'],
     perguntas: [
       { pergunta: "Quais documentos são verificados na lista?", resposta: "Documentos do imóvel (matrícula, IPTU), do vendedor (RG, CPF, certidões) e do comprador (RG, CPF, comprovantes)." },
       { pergunta: "Como funciona a análise de documentos pela assistente?", resposta: "Envie o documento e a assistente identifica qual item da lista corresponde e extrai informações importantes." },
@@ -173,6 +193,7 @@ const faqCategories: FAQCategory[] = [
     id: "sofia",
     titulo: "Sofia - Assistente Virtual",
     icon: <Bot className="h-4 w-4" />,
+    roles: ['corretor', 'gerente', 'admin'],
     perguntas: [
       { pergunta: "Que tipo de perguntas posso fazer à Sofia?", resposta: "Perguntas sobre preços de mercado, tendências, comparativos entre regiões, documentação e dúvidas sobre a plataforma." },
       { pergunta: "A Sofia pode analisar documentos?", resposta: "Sim, você pode enviar documentos para análise e a Sofia extrai informações importantes automaticamente." },
@@ -185,6 +206,7 @@ const faqCategories: FAQCategory[] = [
     id: "historicos",
     titulo: "Históricos e Registros",
     icon: <History className="h-4 w-4" />,
+    roles: ['corretor', 'gerente', 'admin'],
     perguntas: [
       { pergunta: "Onde vejo minhas avaliações anteriores?", resposta: "No menu Histórico de Avaliações você encontra todas as avaliações realizadas com filtros por data." },
       { pergunta: "Onde vejo minhas vistorias anteriores?", resposta: "No menu Histórico de Vistorias você encontra todas as vistorias com nota, tipo e data." },
@@ -193,9 +215,22 @@ const faqCategories: FAQCategory[] = [
     ]
   },
   {
+    id: "gestao-equipe",
+    titulo: "Gestão de Equipe",
+    icon: <Users className="h-4 w-4" />,
+    roles: ['gerente', 'admin'],
+    perguntas: [
+      { pergunta: "Como acompanhar o desempenho dos corretores?", resposta: "O Ranking de Corretores mostra a pontuação de cada corretor baseada em visitas realizadas, avaliações e feedbacks positivos." },
+      { pergunta: "Como ver as visitas de toda a equipe?", resposta: "No módulo de Visitas você pode visualizar todas as visitas da equipe, filtrar por corretor e período." },
+      { pergunta: "Posso ver relatórios consolidados da equipe?", resposta: "Sim, os indicadores do Dashboard mostram dados consolidados de toda a equipe quando você tem permissão de gerente." },
+      { pergunta: "Como atribuir uma visita a outro corretor?", resposta: "Na ficha de visita você pode alterar o corretor responsável, desde que tenha permissão de gerente." }
+    ]
+  },
+  {
     id: "admin",
     titulo: "Recursos de Administração",
     icon: <Settings className="h-4 w-4" />,
+    roles: ['admin'],
     perguntas: [
       { pergunta: "Como gerenciar contatos capturados?", resposta: "Acesse a seção de Contatos para ver, filtrar e acompanhar o andamento de cada interessado." },
       { pergunta: "Quem pode acessar o ajuste de avaliação?", resposta: "Apenas administradores podem ajustar os pesos e fatores do sistema de avaliação." },
@@ -208,6 +243,7 @@ const faqCategories: FAQCategory[] = [
     id: "suporte",
     titulo: "Suporte e Ajuda",
     icon: <HelpCircle className="h-4 w-4" />,
+    roles: ['corretor', 'gerente', 'admin'],
     perguntas: [
       { pergunta: "Como entrar em contato com o suporte?", resposta: "Envie email para contato@godoyprime.com.br, mensagem no (21) 99725-0515 ou use a assistente Sofia." },
       { pergunta: "Existe treinamento disponível?", resposta: "Sim, oferecemos tutorial interativo, guias em cada página, manual para impressão e roteiros de vídeo." },
@@ -219,6 +255,7 @@ const faqCategories: FAQCategory[] = [
     id: "dicas",
     titulo: "Dicas de Uso",
     icon: <TrendingUp className="h-4 w-4" />,
+    roles: ['corretor', 'gerente', 'admin'],
     perguntas: [
       { pergunta: "Qual a melhor forma de começar a usar a plataforma?", resposta: "Complete o tutorial, explore o painel principal, faça uma pesquisa de mercado e depois uma avaliação teste." },
       { pergunta: "Como obter avaliações mais precisas?", resposta: "Preencha todas as 26 características com atenção, use base combinada e verifique as vendas da região." },
@@ -229,7 +266,9 @@ const faqCategories: FAQCategory[] = [
   }
 ];
 
-const onboardingSteps: OnboardingStep[] = [
+// Steps de onboarding com filtro por role
+const allOnboardingSteps: OnboardingStep[] = [
+  // === MÓDULOS OPERACIONAIS (CORRETOR) ===
   {
     id: 1,
     title: "Painel Principal",
@@ -243,7 +282,9 @@ const onboardingSteps: OnboardingStep[] = [
       "Baixar relatórios e planilhas"
     ],
     route: "/",
-    color: "from-primary to-primary/70"
+    color: "from-primary to-primary/70",
+    roles: ['corretor', 'gerente', 'admin'],
+    category: 'operacional'
   },
   {
     id: 2,
@@ -258,7 +299,9 @@ const onboardingSteps: OnboardingStep[] = [
       "Separação entre Apartamentos e Casas"
     ],
     route: "/microbairros",
-    color: "from-blue-500 to-blue-400"
+    color: "from-blue-500 to-blue-400",
+    roles: ['corretor', 'gerente', 'admin'],
+    category: 'operacional'
   },
   {
     id: 3,
@@ -273,7 +316,9 @@ const onboardingSteps: OnboardingStep[] = [
       "Baixar em planilha"
     ],
     route: "/pesquisas-mercado",
-    color: "from-green-500 to-green-400"
+    color: "from-green-500 to-green-400",
+    roles: ['corretor', 'gerente', 'admin'],
+    category: 'operacional'
   },
   {
     id: 4,
@@ -288,7 +333,9 @@ const onboardingSteps: OnboardingStep[] = [
       "Etapa 5: Recomendação e relatório para impressão"
     ],
     route: "/avaliacao-imobiliaria",
-    color: "from-yellow-500 to-yellow-400"
+    color: "from-yellow-500 to-yellow-400",
+    roles: ['corretor', 'gerente', 'admin'],
+    category: 'operacional'
   },
   {
     id: 5,
@@ -303,7 +350,9 @@ const onboardingSteps: OnboardingStep[] = [
       "Plano de Ajuste programado"
     ],
     route: "/avaliacao-imobiliaria",
-    color: "from-indigo-500 to-indigo-400"
+    color: "from-indigo-500 to-indigo-400",
+    roles: ['corretor', 'gerente', 'admin'],
+    category: 'operacional'
   },
   {
     id: 6,
@@ -318,7 +367,9 @@ const onboardingSteps: OnboardingStep[] = [
       "Relatório com gráfico de diagnóstico"
     ],
     route: "/vistoria-digital",
-    color: "from-orange-500 to-orange-400"
+    color: "from-orange-500 to-orange-400",
+    roles: ['corretor', 'gerente', 'admin'],
+    category: 'operacional'
   },
   {
     id: 7,
@@ -333,7 +384,9 @@ const onboardingSteps: OnboardingStep[] = [
       "Painel com indicadores e comparativo"
     ],
     route: "/visitas",
-    color: "from-teal-500 to-teal-400"
+    color: "from-teal-500 to-teal-400",
+    roles: ['corretor', 'gerente', 'admin'],
+    category: 'operacional'
   },
   {
     id: 8,
@@ -348,7 +401,9 @@ const onboardingSteps: OnboardingStep[] = [
       "Baixar relatório por parte ou completo"
     ],
     route: "/documentacao",
-    color: "from-purple-500 to-purple-400"
+    color: "from-purple-500 to-purple-400",
+    roles: ['corretor', 'gerente', 'admin'],
+    category: 'operacional'
   },
   {
     id: 9,
@@ -363,7 +418,9 @@ const onboardingSteps: OnboardingStep[] = [
       "Integração com dados do painel"
     ],
     route: "/",
-    color: "from-emerald-500 to-emerald-400"
+    color: "from-emerald-500 to-emerald-400",
+    roles: ['corretor', 'gerente', 'admin'],
+    category: 'operacional'
   },
   {
     id: 10,
@@ -378,36 +435,227 @@ const onboardingSteps: OnboardingStep[] = [
       "Disponível em todas as páginas"
     ],
     route: "/",
-    color: "from-pink-500 to-pink-400"
+    color: "from-pink-500 to-pink-400",
+    roles: ['corretor', 'gerente', 'admin'],
+    category: 'operacional'
   },
   {
     id: 11,
-    title: "Recursos de Administração",
-    description: "Ferramentas para gestão de contatos, usuários, ajustes do sistema e configurações da empresa.",
-    icon: <Settings className="h-8 w-8" />,
+    title: "Avaliação Pública",
+    description: "Ferramenta de captação de leads através de avaliações rápidas para clientes externos.",
+    icon: <Briefcase className="h-8 w-8" />,
     features: [
-      "Base de Conhecimento da Assistente",
-      "Ajuste de Avaliação (pesos)",
-      "Gestão de Contatos capturados",
-      "Gerenciamento de Usuários",
-      "Configurações da empresa (logotipo, dados)"
+      "Formulário simplificado para clientes",
+      "Captura automática de dados de contato",
+      "Estimativa rápida de valor",
+      "Integração com lista de leads",
+      "Link compartilhável"
+    ],
+    route: "/avaliacao-publica",
+    color: "from-cyan-500 to-cyan-400",
+    roles: ['corretor', 'gerente', 'admin'],
+    category: 'operacional'
+  },
+  
+  // === MÓDULOS DE GESTÃO (GERENTE) ===
+  {
+    id: 12,
+    title: "Ranking de Corretores",
+    description: "Acompanhe o desempenho da equipe com métricas de visitas, avaliações e feedbacks.",
+    icon: <BarChart2 className="h-8 w-8" />,
+    features: [
+      "Pontuação por visitas realizadas",
+      "Ranking por avaliações geradas",
+      "Taxa de feedbacks positivos",
+      "Comparativo mensal de desempenho",
+      "Filtro por período"
+    ],
+    route: "/visitas",
+    color: "from-amber-500 to-amber-400",
+    roles: ['gerente', 'admin'],
+    category: 'gestao'
+  },
+  {
+    id: 13,
+    title: "Gestão de Visitas da Equipe",
+    description: "Visualize e gerencie todas as visitas da equipe em um só lugar.",
+    icon: <Users className="h-8 w-8" />,
+    features: [
+      "Visão consolidada de todas as visitas",
+      "Filtro por corretor responsável",
+      "Reatribuição de visitas",
+      "Acompanhamento de status",
+      "Indicadores de produtividade"
+    ],
+    route: "/visitas",
+    color: "from-rose-500 to-rose-400",
+    roles: ['gerente', 'admin'],
+    category: 'gestao'
+  },
+  {
+    id: 14,
+    title: "Relatórios de Equipe",
+    description: "Relatórios consolidados de desempenho e produtividade da equipe.",
+    icon: <TrendingUp className="h-8 w-8" />,
+    features: [
+      "Volume de avaliações por corretor",
+      "Taxa de conversão de visitas",
+      "Comparativo entre períodos",
+      "Exportação para planilha",
+      "Gráficos de evolução"
+    ],
+    route: "/",
+    color: "from-lime-500 to-lime-400",
+    roles: ['gerente', 'admin'],
+    category: 'gestao'
+  },
+  
+  // === MÓDULOS DE ADMINISTRAÇÃO (ADMIN) ===
+  {
+    id: 15,
+    title: "Gestão de Usuários",
+    description: "Adicione, edite e gerencie os usuários da plataforma com diferentes níveis de acesso.",
+    icon: <UserCog className="h-8 w-8" />,
+    features: [
+      "Criar novos usuários",
+      "Atribuir roles (Corretor, Gerente, Admin)",
+      "Ativar/desativar contas",
+      "Histórico de atividades por usuário",
+      "Redefinição de senhas"
     ],
     route: "/usuarios",
-    color: "from-slate-500 to-slate-400"
+    color: "from-violet-500 to-violet-400",
+    roles: ['admin'],
+    category: 'admin'
+  },
+  {
+    id: 16,
+    title: "Gestão de Leads",
+    description: "Acompanhe e gerencie todos os contatos capturados pela plataforma.",
+    icon: <Briefcase className="h-8 w-8" />,
+    features: [
+      "Lista de leads com filtros",
+      "Status de acompanhamento",
+      "Origem do lead (avaliação pública, etc)",
+      "Atribuição a corretores",
+      "Exportação de contatos"
+    ],
+    route: "/leads",
+    color: "from-sky-500 to-sky-400",
+    roles: ['admin'],
+    category: 'admin'
+  },
+  {
+    id: 17,
+    title: "Base de Conhecimento",
+    description: "Gerencie o conhecimento da assistente Sofia com documentos e informações personalizadas.",
+    icon: <Bot className="h-8 w-8" />,
+    features: [
+      "Upload de documentos de referência",
+      "Edição de respostas padrão",
+      "Treinamento da assistente",
+      "Histórico de conversas",
+      "Métricas de uso"
+    ],
+    route: "/base-conhecimento",
+    color: "from-fuchsia-500 to-fuchsia-400",
+    roles: ['admin'],
+    category: 'admin'
+  },
+  {
+    id: 18,
+    title: "Calibrador de Avaliação",
+    description: "Ajuste os pesos e fatores do sistema de avaliação de imóveis.",
+    icon: <Settings className="h-8 w-8" />,
+    features: [
+      "Ajuste de pesos por característica",
+      "Fatores de ajuste regionais",
+      "Teste de calibração",
+      "Histórico de alterações",
+      "Restauração de padrões"
+    ],
+    route: "/calibrador-avaliacao",
+    color: "from-red-500 to-red-400",
+    roles: ['admin'],
+    category: 'admin'
+  },
+  {
+    id: 19,
+    title: "Configurações da Empresa",
+    description: "Personalize os relatórios com logotipo e dados da empresa.",
+    icon: <Shield className="h-8 w-8" />,
+    features: [
+      "Upload do logotipo",
+      "Dados da empresa (CNPJ, CRECI)",
+      "Informações de contato",
+      "Personalização de relatórios",
+      "Configurações gerais"
+    ],
+    route: "/configuracoes",
+    color: "from-slate-500 to-slate-400",
+    roles: ['admin'],
+    category: 'admin'
   }
 ];
 
+// Helper para obter a mensagem de boas-vindas por role
+const getWelcomeMessage = (role: UserRole): { title: string; subtitle: string } => {
+  switch (role) {
+    case 'admin':
+      return {
+        title: 'Bem-vindo, Administrador!',
+        subtitle: 'Explore todas as funcionalidades da plataforma, incluindo gestão de usuários e configurações avançadas'
+      };
+    case 'gerente':
+      return {
+        title: 'Bem-vindo, Gerente!',
+        subtitle: 'Acompanhe o desempenho da equipe e acesse todas as ferramentas operacionais'
+      };
+    default:
+      return {
+        title: 'Bem-vindo ao Godoy Prime Analytics',
+        subtitle: 'Conheça todas as funcionalidades da plataforma para potencializar seu trabalho'
+      };
+  }
+};
+
+// Helper para obter badge por role
+const getRoleBadge = (role: UserRole) => {
+  switch (role) {
+    case 'admin':
+      return { label: 'Administrador', variant: 'destructive' as const };
+    case 'gerente':
+      return { label: 'Gerente', variant: 'secondary' as const };
+    default:
+      return { label: 'Corretor', variant: 'outline' as const };
+  }
+};
+
 export default function Onboarding() {
   const navigate = useNavigate();
+  const { role: userRole } = useAuthContext();
   const [currentStep, setCurrentStep] = useState(0);
   const [completedSteps, setCompletedSteps] = useState<number[]>([]);
   const [showFAQ, setShowFAQ] = useState(false);
   const [faqSearch, setFaqSearch] = useState('');
 
+  // Determinar o role efetivo (default para corretor)
+  const effectiveRole: UserRole = (userRole as UserRole) || 'corretor';
+
+  // Filtrar steps baseado no role do usuário
+  const onboardingSteps = useMemo(() => {
+    return allOnboardingSteps.filter(step => step.roles.includes(effectiveRole));
+  }, [effectiveRole]);
+
+  // Filtrar FAQs baseado no role do usuário
+  const filteredFAQByRole = useMemo(() => {
+    return faqCategories.filter(category => category.roles.includes(effectiveRole));
+  }, [effectiveRole]);
+
   const progress = ((currentStep + 1) / onboardingSteps.length) * 100;
   const step = onboardingSteps[currentStep];
 
-  const filteredFAQ = faqCategories.map(category => ({
+  const filteredFAQ = filteredFAQByRole.map(category => ({
     ...category,
     perguntas: category.perguntas.filter(
       p => 
@@ -416,7 +664,18 @@ export default function Onboarding() {
     )
   })).filter(category => category.perguntas.length > 0);
 
-  const totalFAQCount = faqCategories.reduce((acc, cat) => acc + cat.perguntas.length, 0);
+  const totalFAQCount = filteredFAQByRole.reduce((acc, cat) => acc + cat.perguntas.length, 0);
+  
+  // Contagem de módulos por categoria
+  const moduleCountByCategory = useMemo(() => {
+    const operacional = onboardingSteps.filter(s => s.category === 'operacional').length;
+    const gestao = onboardingSteps.filter(s => s.category === 'gestao').length;
+    const admin = onboardingSteps.filter(s => s.category === 'admin').length;
+    return { operacional, gestao, admin };
+  }, [onboardingSteps]);
+
+  const welcomeMessage = getWelcomeMessage(effectiveRole);
+  const roleBadge = getRoleBadge(effectiveRole);
 
   const handleNext = () => {
     if (!completedSteps.includes(currentStep)) {
@@ -448,6 +707,18 @@ export default function Onboarding() {
     toast.success('Manual exportado com sucesso!');
   };
 
+  // Helper para obter a cor de fundo por categoria
+  const getCategoryBadge = (category: 'operacional' | 'gestao' | 'admin') => {
+    switch (category) {
+      case 'operacional':
+        return { label: 'Operacional', className: 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400' };
+      case 'gestao':
+        return { label: 'Gestão', className: 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400' };
+      case 'admin':
+        return { label: 'Administração', className: 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400' };
+    }
+  };
+
   return (
     <>
       <Helmet>
@@ -458,11 +729,16 @@ export default function Onboarding() {
       <div className="container mx-auto px-4 py-8 max-w-4xl">
         {/* Header */}
         <div className="text-center mb-8">
+          <div className="flex justify-center mb-3">
+            <Badge variant={roleBadge.variant} className="text-sm">
+              {roleBadge.label}
+            </Badge>
+          </div>
           <h1 className="text-3xl font-bold text-foreground mb-2">
-            Bem-vindo ao Godoy Prime Analytics
+            {welcomeMessage.title}
           </h1>
           <p className="text-muted-foreground">
-            Conheça todas as funcionalidades da plataforma em poucos minutos
+            {welcomeMessage.subtitle}
           </p>
         </div>
 
@@ -525,6 +801,11 @@ export default function Onboarding() {
             <Card className="mb-8 overflow-hidden">
               <div className={`h-2 bg-gradient-to-r ${step.color}`} />
               <CardHeader className="text-center pb-4">
+                <div className="flex justify-center gap-2 mb-2">
+                  <Badge className={getCategoryBadge(step.category).className}>
+                    {getCategoryBadge(step.category).label}
+                  </Badge>
+                </div>
                 <div className={`mx-auto w-16 h-16 rounded-full bg-gradient-to-r ${step.color} flex items-center justify-center text-white mb-4`}>
                   {step.icon}
                 </div>
@@ -664,23 +945,31 @@ export default function Onboarding() {
           </>
         )}
 
-        {/* Quick Stats */}
+        {/* Quick Stats - Agora mostra por categoria */}
         <div className="mt-12 grid grid-cols-2 md:grid-cols-4 gap-4">
           <Card className="p-4 text-center">
-            <div className="text-2xl font-bold text-primary">11</div>
-            <div className="text-xs text-muted-foreground">Módulos</div>
+            <div className="text-2xl font-bold text-primary">{onboardingSteps.length}</div>
+            <div className="text-xs text-muted-foreground">Módulos Disponíveis</div>
           </Card>
+          <Card className="p-4 text-center">
+            <div className="text-2xl font-bold text-blue-500">{moduleCountByCategory.operacional}</div>
+            <div className="text-xs text-muted-foreground">Operacionais</div>
+          </Card>
+          {moduleCountByCategory.gestao > 0 && (
+            <Card className="p-4 text-center">
+              <div className="text-2xl font-bold text-amber-500">{moduleCountByCategory.gestao}</div>
+              <div className="text-xs text-muted-foreground">Gestão</div>
+            </Card>
+          )}
+          {moduleCountByCategory.admin > 0 && (
+            <Card className="p-4 text-center">
+              <div className="text-2xl font-bold text-red-500">{moduleCountByCategory.admin}</div>
+              <div className="text-xs text-muted-foreground">Administração</div>
+            </Card>
+          )}
           <Card className="p-4 text-center">
             <div className="text-2xl font-bold text-primary">{totalFAQCount}+</div>
             <div className="text-xs text-muted-foreground">Perguntas FAQ</div>
-          </Card>
-          <Card className="p-4 text-center">
-            <div className="text-2xl font-bold text-primary">100+</div>
-            <div className="text-xs text-muted-foreground">Itens de Vistoria</div>
-          </Card>
-          <Card className="p-4 text-center">
-            <div className="text-2xl font-bold text-primary">IA</div>
-            <div className="text-xs text-muted-foreground">Integrada</div>
           </Card>
         </div>
       </div>
