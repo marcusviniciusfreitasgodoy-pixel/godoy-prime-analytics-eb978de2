@@ -134,23 +134,25 @@ export async function exportVideoScriptPdf() {
     'Este documento contém:',
     '',
     '• Texto de narração completo para vídeo explicativo',
-    '• Lista de mais de 40 imagens necessárias',
+    '• Lista de mais de 55 imagens necessárias',
     '• Perguntas Frequentes com mais de 50 perguntas em 12 categorias',
     '',
-    'Duração estimada do vídeo: 15-18 minutos',
+    'Duração estimada do vídeo: 18-20 minutos',
     'Formato recomendado: 1920x1080 (Alta Definição)',
     '',
     'Módulos apresentados:',
-    '  - Painel Principal e Indicadores',
     '  - Treinamento e Tutoriais Guiados',
-    '  - Microregiões e Pesquisas',
+    '  - Painel Principal e Indicadores',
+    '  - Pesquisas de Mercado',
     '  - Avaliação Imobiliária (6 etapas)',
     '  - Estratégia de Precificação',
+    '  - Microregiões',
     '  - Vistoria Digital',
     '  - Agendamento de Visitas',
     '  - Documentação e Segurança Jurídica',
     '  - Sofia - Assistente de Inteligência Artificial',
     '  - Recursos Administrativos',
+    '  - Históricos e Configurações',
   ];
   introText.forEach(line => {
     doc.text(line, pageWidth / 2, y, { align: 'center' });
@@ -297,13 +299,20 @@ export async function exportVideoScriptPdf() {
   addScreenshot(51, 'Calibrador de Avaliação', pageNum);
 
   // MÓDULO 11
-  addTitle('MÓDULO 11: EXPORTAÇÕES E MATERIAIS (16:15 - 16:45)', pageNum);
+  addTitle('MÓDULO 11: HISTÓRICOS E CONFIGURAÇÕES (16:15 - 17:00)', pageNum);
+  addNarration('Todas as avaliações e vistorias ficam salvas no Histórico, onde você pode consultar, filtrar, editar e regenerar PDFs. Na página de Configurações, envie a logomarca da sua empresa para personalizar todos os relatórios gerados pela plataforma com sua identidade visual.', pageNum);
+  addScreenshot(52, 'Histórico de Avaliações com filtros', pageNum);
+  addScreenshot(53, 'Histórico de Vistorias com notas', pageNum);
+  addScreenshot(54, 'Página de Configurações com upload de logo', pageNum);
+
+  // MÓDULO 12
+  addTitle('MÓDULO 12: EXPORTAÇÕES E MATERIAIS (17:00 - 17:30)', pageNum);
   addNarration('Todas as análises podem ser exportadas. No Painel Principal, exporte indicadores em Excel ou faça Cópia de Segurança Completa. Avaliações, Vistorias, Fichas de Visita e Documentação geram PDFs profissionais. Na página de Treinamento, baixe o Manual Completo, o Guia Rápido e o Roteiro de Vídeo.', pageNum);
-  addScreenshot(52, 'Menu de exportação do Painel Principal', pageNum);
-  addScreenshot(53, 'PDFs gerados pela plataforma', pageNum);
+  addScreenshot(55, 'Menu de exportação do Painel Principal', pageNum);
+  addScreenshot(56, 'PDFs gerados pela plataforma', pageNum);
 
   // ENCERRAMENTO
-  addTitle('ENCERRAMENTO (16:45 - 17:30)', pageNum);
+  addTitle('ENCERRAMENTO (17:30 - 18:15)', pageNum);
   addNarration('O Godoy Prime Analytics é mais do que uma ferramenta - é seu parceiro estratégico no mercado imobiliário de alto padrão. Dados oficiais da Prefeitura, avaliações automatizadas com metodologia própria, estratégia de precificação inteligente, vistorias digitais completas, gestão de visitas com assinatura digital, documentação de segurança jurídica, assistente com inteligência artificial e treinamento interativo - tudo em uma única plataforma. Acesse agora e transforme dados em resultados. Godoy Prime Realty - Inteligência que valoriza seu negócio.', pageNum);
 
   addFooter(pageNum.value);
