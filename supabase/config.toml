@@ -65,3 +65,9 @@ verify_jwt = false
 
 [functions.send-whatsapp]
 verify_jwt = false
+
+[functions.public-bairro-suggestions]
+verify_jwt = false
+
+[functions.sync-bairros-cache]
+verify_jwt = false
