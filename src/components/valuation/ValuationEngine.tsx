@@ -118,6 +118,7 @@ export function ValuationEngine({ bairro = "BARRA DA TIJUCA", vistoriaData, edit
   const [fromEditar, setFromEditar] = useState(false);
   const [editingValuationId, setEditingValuationId] = useState<string | undefined>(undefined);
   const [autoAdvanceAfterLocation, setAutoAdvanceAfterLocation] = useState(false);
+  const [showValidation, setShowValidation] = useState(false);
   
   const { data: characteristics, isLoading: loadingChars } = useValuationCharacteristics(state.tipoImovel);
   const { data: docFactors, isLoading: loadingDocs } = useDocumentationFactors();
@@ -228,6 +229,15 @@ export function ValuationEngine({ bairro = "BARRA DA TIJUCA", vistoriaData, edit
   };
 
   const handleNext = () => {
+    // Valida campos obrigatórios antes de avançar
+    if (!canProceed()) {
+      setShowValidation(true);
+      return;
+    }
+    
+    // Reset validation state when successfully proceeding
+    setShowValidation(false);
+    
     // Se avançando do step 3 para 4, calcula resultado e normaliza as 26 respostas em UMA única atualização
     // (evita condição de corrida onde o Step5 salva antes de responses estar preenchido)
     if (currentStep === 3 && characteristics) {
@@ -277,12 +287,14 @@ export function ValuationEngine({ bairro = "BARRA DA TIJUCA", vistoriaData, edit
   const handleBack = () => {
     if (currentStep > 0) {
       setCurrentStep(currentStep - 1);
+      setShowValidation(false);
     }
   };
 
   const handleReset = () => {
     setState({ ...initialValuationState, bairro });
     setCurrentStep(0);
+    setShowValidation(false);
   };
 
   // Calcula preview em tempo real
@@ -514,6 +526,7 @@ export function ValuationEngine({ bairro = "BARRA DA TIJUCA", vistoriaData, edit
               <Step0Identification
                 state={state}
                 updateState={updateState}
+                showValidation={showValidation}
               />
             </div>
           )}
@@ -595,7 +608,6 @@ export function ValuationEngine({ bairro = "BARRA DA TIJUCA", vistoriaData, edit
           {currentStep < 5 ? (
             <Button
               onClick={handleNext}
-              disabled={!canProceed()}
               size="sm"
               className="h-10 sm:h-9 px-3 sm:px-4"
             >

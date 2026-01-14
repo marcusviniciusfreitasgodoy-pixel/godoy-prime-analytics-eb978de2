@@ -4,7 +4,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Building2, User, Calendar, MapPin, Home, TrendingUp, TrendingDown, Minus, Search, Loader2, CheckCircle2, Database } from "lucide-react";
+import { Building2, User, Calendar, MapPin, Home, TrendingUp, TrendingDown, Minus, Search, Loader2, CheckCircle2, Database, AlertCircle } from "lucide-react";
 import type { ValuationState } from "@/types/valuation";
 import { isCasaType, calculateTerrainBonus } from "@/hooks/useValuationCharacteristics";
 import { useEffect, useState, useRef } from "react";
@@ -14,6 +14,7 @@ import { BairroSelector } from "@/components/BairroSelector";
 interface Props {
   state: ValuationState;
   updateState: (updates: Partial<ValuationState>) => void;
+  showValidation?: boolean;
 }
 
 const TIPOS_IMOVEL = [
@@ -27,7 +28,7 @@ const TIPOS_IMOVEL = [
   "Sala Comercial",
 ];
 
-export function Step0Identification({ state, updateState }: Props) {
+export function Step0Identification({ state, updateState, showValidation = false }: Props) {
   const showTerrainField = isCasaType(state.tipoImovel);
   
   // Street autocomplete states
@@ -35,6 +36,27 @@ export function Step0Identification({ state, updateState }: Props) {
   const [showSuggestions, setShowSuggestions] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
   const suggestionsRef = useRef<HTMLDivElement>(null);
+  
+  // Track touched fields for validation
+  const [touched, setTouched] = useState({
+    bairro: false,
+    logradouro: false,
+    tipoImovel: false,
+    area_m2: false,
+  });
+  
+  // Validation errors
+  const errors = {
+    bairro: !state.bairro,
+    logradouro: !state.logradouro?.trim(),
+    tipoImovel: !state.tipoImovel,
+    area_m2: !state.area_m2 || state.area_m2 <= 0,
+  };
+  
+  // Show error if touched or showValidation is true (from parent attempting to proceed)
+  const shouldShowError = (field: keyof typeof errors) => {
+    return (touched[field] || showValidation) && errors[field];
+  };
   
   // Hook unificado para sugestões (API oficial + ITBI)
   const { data: suggestions, isLoading: loadingSuggestions } = useOfficialStreetSuggestions(
@@ -140,23 +162,35 @@ export function Step0Identification({ state, updateState }: Props) {
           <div className="grid grid-cols-1 gap-3 sm:gap-4">
             {/* BAIRRO - PRIMEIRO CAMPO */}
             <div>
-              <Label className="text-xs sm:text-sm">Bairro *</Label>
+              <Label className={`text-xs sm:text-sm ${shouldShowError('bairro') ? 'text-destructive' : ''}`}>
+                Bairro *
+              </Label>
               <div className="mt-1">
                 <BairroSelector 
                   value={state.bairro}
                   onChange={(value) => {
                     updateState({ bairro: value });
+                    setTouched(prev => ({ ...prev, bairro: true }));
                     // Limpar logradouro ao mudar bairro para forçar nova busca
                     setSearchTerm("");
                     updateState({ logradouro: "" });
                   }}
+                  className={shouldShowError('bairro') ? 'border-destructive ring-destructive/20' : ''}
                 />
               </div>
+              {shouldShowError('bairro') && (
+                <p className="text-[10px] text-destructive mt-1 flex items-center gap-1">
+                  <AlertCircle className="h-3 w-3" />
+                  Selecione um bairro
+                </p>
+              )}
             </div>
 
             {/* Logradouro with autocomplete - SEGUNDO CAMPO */}
             <div className="relative">
-              <Label htmlFor="logradouro" className="text-xs sm:text-sm">Logradouro *</Label>
+              <Label htmlFor="logradouro" className={`text-xs sm:text-sm ${shouldShowError('logradouro') ? 'text-destructive' : ''}`}>
+                Logradouro *
+              </Label>
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                 <Input
@@ -169,14 +203,21 @@ export function Step0Identification({ state, updateState }: Props) {
                     setShowSuggestions(true);
                   }}
                   onFocus={() => setShowSuggestions(true)}
+                  onBlur={() => setTouched(prev => ({ ...prev, logradouro: true }))}
                   placeholder={state.bairro ? "Digite o nome da rua ou condomínio..." : "Selecione o bairro primeiro"}
                   disabled={!state.bairro}
-                  className="h-10 sm:h-9 pl-9"
+                  className={`h-10 sm:h-9 pl-9 ${shouldShowError('logradouro') ? 'border-destructive focus-visible:ring-destructive/20' : ''}`}
                 />
                 {loadingSuggestions && (
                   <Loader2 className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 animate-spin text-muted-foreground" />
                 )}
               </div>
+              {shouldShowError('logradouro') && (
+                <p className="text-[10px] text-destructive mt-1 flex items-center gap-1">
+                  <AlertCircle className="h-3 w-3" />
+                  Informe o logradouro
+                </p>
+              )}
               
               {/* Suggestions dropdown */}
               {showSuggestions && suggestions && suggestions.length > 0 && (
@@ -267,12 +308,17 @@ export function Step0Identification({ state, updateState }: Props) {
           
           <div className="grid grid-cols-2 gap-2 sm:gap-4">
             <div className="col-span-2">
-              <Label htmlFor="tipoImovel" className="text-xs sm:text-sm">Tipo de Imóvel *</Label>
+              <Label htmlFor="tipoImovel" className={`text-xs sm:text-sm ${shouldShowError('tipoImovel') ? 'text-destructive' : ''}`}>
+                Tipo de Imóvel *
+              </Label>
               <Select
                 value={state.tipoImovel}
-                onValueChange={(value) => updateState({ tipoImovel: value })}
+                onValueChange={(value) => {
+                  updateState({ tipoImovel: value });
+                  setTouched(prev => ({ ...prev, tipoImovel: true }));
+                }}
               >
-                <SelectTrigger className="h-10 sm:h-9">
+                <SelectTrigger className={`h-10 sm:h-9 ${shouldShowError('tipoImovel') ? 'border-destructive focus:ring-destructive/20' : ''}`}>
                   <SelectValue placeholder="Selecione..." />
                 </SelectTrigger>
                 <SelectContent>
@@ -283,10 +329,16 @@ export function Step0Identification({ state, updateState }: Props) {
                   ))}
                 </SelectContent>
               </Select>
+              {shouldShowError('tipoImovel') && (
+                <p className="text-[10px] text-destructive mt-1 flex items-center gap-1">
+                  <AlertCircle className="h-3 w-3" />
+                  Selecione o tipo de imóvel
+                </p>
+              )}
             </div>
             
             <div>
-              <Label htmlFor="area_m2" className="text-xs sm:text-sm">
+              <Label htmlFor="area_m2" className={`text-xs sm:text-sm ${shouldShowError('area_m2') ? 'text-destructive' : ''}`}>
                 {showTerrainField ? "Área Construída (m²) *" : "Área (m²) *"}
               </Label>
               <Input
@@ -294,9 +346,16 @@ export function Step0Identification({ state, updateState }: Props) {
                 type="number"
                 value={state.area_m2 || ""}
                 onChange={(e) => updateState({ area_m2: Number(e.target.value) || 0 })}
+                onBlur={() => setTouched(prev => ({ ...prev, area_m2: true }))}
                 placeholder="0"
-                className="h-10 sm:h-9"
+                className={`h-10 sm:h-9 ${shouldShowError('area_m2') ? 'border-destructive focus-visible:ring-destructive/20' : ''}`}
               />
+              {shouldShowError('area_m2') && (
+                <p className="text-[10px] text-destructive mt-1 flex items-center gap-1">
+                  <AlertCircle className="h-3 w-3" />
+                  Informe a área em m²
+                </p>
+              )}
             </div>
             
             {/* Campo de Área do Terreno - só para Casas */}
