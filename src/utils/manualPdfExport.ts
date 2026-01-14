@@ -127,10 +127,11 @@ const manualContent = {
       descricao: "Consulta e gerenciamento de todas as vistorias realizadas.",
       funcionalidades: [
         "Lista Completa: Todas as vistorias com data, endereço, nota e situação",
-        "Filtros: Por período, tipo de imóvel, faixa de nota",
-        "Visualização: Detalhes completos de cada vistoria",
+        "Filtros: Por período, tipo de imóvel, faixa de nota e status",
+        "Visualização: Detalhes completos de cada vistoria em janela",
         "Regeneração de PDF: Gere novos laudos quando necessário",
-        "Integração: Acesse avaliação vinculada diretamente"
+        "Integração: Acesse avaliação vinculada diretamente",
+        "Exportação: Lista em Excel/CSV para análise externa"
       ],
       beneficios: "Mantém registro organizado de todas as inspeções realizadas."
     },
@@ -163,7 +164,18 @@ const manualContent = {
       beneficios: "Garante segurança jurídica e organização profissional nas transações."
     },
     {
-      titulo: "12. Configurações",
+      titulo: "12. Onboarding e Tutoriais",
+      descricao: "Sistema de boas-vindas e treinamento interativo para novos usuários.",
+      funcionalidades: [
+        "Página de Boas-Vindas: Apresentação visual da plataforma",
+        "Tutorial Guiado: Passo a passo interativo em cada página",
+        "Navegação por Etapas: Conheca cada módulo no seu ritmo",
+        "Reativação: Reinicie tutoriais a qualquer momento pelo menu"
+      ],
+      beneficios: "Acelera a curva de aprendizado e reduz dúvidas iniciais."
+    },
+    {
+      titulo: "13. Configurações",
       descricao: "Personalização da plataforma e dados da empresa.",
       funcionalidades: [
         "Logomarca da Empresa: Envio para exibir nos cabeçalhos de todos os PDFs",
@@ -174,7 +186,7 @@ const manualContent = {
       beneficios: "Permite personalização para identidade visual própria da imobiliária."
     },
     {
-      titulo: "13. Sofia - Assistente de Inteligência Artificial",
+      titulo: "14. Sofia - Assistente de Inteligência Artificial",
       descricao: "Assistente virtual inteligente disponível em todas as páginas da plataforma.",
       funcionalidades: [
         "Conversa em Tempo Real: Respostas instantâneas sobre mercado e plataforma",
@@ -187,7 +199,7 @@ const manualContent = {
       beneficios: "Acelera consultas e fornece informações especializadas em tempo real."
     },
     {
-      titulo: "14. Recursos Administrativos",
+      titulo: "15. Recursos Administrativos",
       descricao: "Ferramentas de gestão exclusivas para administradores.",
       funcionalidades: [
         "Base de Conhecimento Sofia: Gerenciar conteúdo e treinamento da IA",
@@ -196,9 +208,22 @@ const manualContent = {
         "Gerenciamento de Usuários: Controle de acessos, papéis e permissões",
         "Rastreamento de Atividades: Acompanhamento completo de uso por usuário",
         "Sincronização de Dados: Atualização manual de dados da Prefeitura",
-        "Mapeamento de Condomínios: Cadastro de empreendimentos e microregiões"
+        "Mapeamento de Condomínios: Cadastro de empreendimentos e microregiões",
+        "Importação CSV: Carregamento de dados em lote"
       ],
       beneficios: "Permite personalização, controle total e gestão profissional da plataforma."
+    },
+    {
+      titulo: "16. Avaliação Pública",
+      descricao: "Página de captação de leads através de avaliação rápida.",
+      funcionalidades: [
+        "Acesso Sem Login: Visitantes podem usar sem criar conta",
+        "Formulário Simplificado: Dados básicos do imóvel e contato",
+        "Limite por Email: Controle de quantidade de avaliações por pessoa",
+        "Assistente Sofia Público: Versão simplificada para visitantes",
+        "Captura de Leads: Dados salvos automaticamente para acompanhamento"
+      ],
+      beneficios: "Gera leads qualificados através de ferramenta de valor para visitantes."
     }
   ],
   recursosAdicionais: [

@@ -131,7 +131,20 @@ export async function exportQuickGuidePDF() {
     'Baixe o relatorio por parte (Vendedor ou Comprador) ou completo',
   ], '>');
 
-  drawSection('10. SOFIA - ASSISTENTE VIRTUAL', [
+  drawSection('10. HISTORICOS', [
+    'Historico de Avaliacoes: consulte, edite e exporte avaliacoes salvas',
+    'Historico de Vistorias: acompanhe todas as inspecoes realizadas',
+    'Filtros por data, endereco, valor e tipo de imovel',
+    'Regenere arquivos PDF a qualquer momento',
+  ], '>');
+
+  drawSection('11. CONFIGURACOES', [
+    'Envie a logomarca da empresa para personalizar todos os relatorios',
+    'Configure dados da empresa: nome, CNPJ, CRECI, telefone e endereco',
+    'Veja como ficara o cabecalho e rodape dos relatorios',
+  ], '>');
+
+  drawSection('12. SOFIA - ASSISTENTE VIRTUAL', [
     'Disponivel no canto inferior direito de todas as paginas',
     'Pergunte sobre precos, tendencias e comparativos entre regioes',
     'Use comandos de voz para consultar sem precisar digitar',
