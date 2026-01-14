@@ -39,7 +39,18 @@ import AssinaturaVisita from "./pages/AssinaturaVisita";
 import AssinaturaLanding from "./pages/AssinaturaLanding";
 import Configuracoes from "./pages/Configuracoes";
 
-const queryClient = new QueryClient();
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      // Force fresh data on every mount - no stale cache
+      staleTime: 0,
+      gcTime: 5 * 60 * 1000, // 5 minutes garbage collection
+      refetchOnMount: true,
+      refetchOnWindowFocus: false, // Disable auto-refetch on focus to avoid confusion
+      retry: 2,
+    },
+  },
+});
 
 const App = () => (
   <HelmetProvider>

@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import {
   FileDown,
   Info,
@@ -58,6 +59,28 @@ export default function Dashboard() {
   const { selectedBairro, setSelectedBairro } = useBairro();
   const { toast } = useToast();
   const { trackExport } = useActivityTracking();
+  const queryClient = useQueryClient();
+
+  // Force invalidate all ITBI-related queries on Dashboard mount
+  // This ensures fresh data is always loaded
+  useEffect(() => {
+    console.log('[Dashboard] Invalidating all ITBI queries and cache for fresh data...');
+    
+    // Clear historical analysis cache from localStorage (force fresh data)
+    const historicalCacheKeys = Object.keys(localStorage).filter(k => k.startsWith('historical_analysis_'));
+    if (historicalCacheKeys.length > 0) {
+      historicalCacheKeys.forEach(key => localStorage.removeItem(key));
+      console.log(`[Dashboard] Cleared ${historicalCacheKeys.length} historical cache entries`);
+    }
+    
+    // Invalidate all React Query caches
+    queryClient.invalidateQueries({ queryKey: ['kpi-stats-detailed-v5'] });
+    queryClient.invalidateQueries({ queryKey: ['evolution-data-v8'] });
+    queryClient.invalidateQueries({ queryKey: ['microbairro-ranking'] });
+    queryClient.invalidateQueries({ queryKey: ['microbairro-detalhado'] });
+    queryClient.invalidateQueries({ queryKey: ['transaction-map-data'] });
+    queryClient.invalidateQueries({ queryKey: ['historical-analysis'] });
+  }, [queryClient]);
 
   // Hooks para dados do dashboard (usados na exportação completa)
   const { data: kpiStats } = useKPIStats(selectedBairro);
