@@ -32,6 +32,7 @@ const baseItems = [
 const adminItems = [
   { title: "Base Conhecimento Sofia", url: "/base-conhecimento", icon: Brain, tourId: "nav-base-conhecimento" },
   { title: "Calibrador Avaliação", url: "/calibrador-avaliacao", icon: Settings, tourId: "nav-calibrador" },
+  { title: "Calibrador Vistoria", url: "/calibrador-vistoria", icon: ClipboardList, tourId: "nav-calibrador-vistoria" },
   { title: "Leads", url: "/leads", icon: Users, tourId: "nav-leads" },
   { title: "Usuários", url: "/usuarios", icon: UserCog, tourId: "nav-usuarios" },
 ];
