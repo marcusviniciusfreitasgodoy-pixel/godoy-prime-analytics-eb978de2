@@ -11,6 +11,7 @@ import { AppSidebar } from "@/components/AppSidebar";
 import { Header } from "@/components/Header";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { UpdateIndicator } from "@/components/UpdateIndicator";
+import { PWAUpdateBanner } from "@/components/PWAUpdateBanner";
 import { TourProgressBar } from "@/components/TourProgressBar";
 import Dashboard from "./pages/Dashboard";
 import Microbairros from "./pages/Microbairros";
@@ -62,6 +63,7 @@ const App = () => (
         <AuthProvider>
           <BairroProvider>
             <UpdateIndicator />
+            <PWAUpdateBanner onUpdate={() => (window as any).__pwaUpdate?.()} />
             <Toaster />
             <Sonner />
             <BrowserRouter>
