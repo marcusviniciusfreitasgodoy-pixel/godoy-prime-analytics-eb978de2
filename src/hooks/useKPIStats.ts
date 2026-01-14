@@ -335,9 +335,9 @@ export function useKPIStats(bairro: string = 'BARRA DA TIJUCA') {
         let melhorLogradouro = 'N/A';
         let melhorTransacoes: TransactionData[] = [];
 
-        // Requer mínimo de 2 transações para identificar o logradouro mais valorizado
+        // Requer mínimo de 3 transações para identificar o logradouro mais valorizado
         for (const [log, stats] of Object.entries(logradouroStats)) {
-          if (stats.somaTransacoes >= 2) {
+          if (stats.somaTransacoes >= 3) {
             const mediaLog = stats.somaValores / stats.somaTransacoes;
             if (mediaLog > maxPreco) {
               maxPreco = mediaLog;
