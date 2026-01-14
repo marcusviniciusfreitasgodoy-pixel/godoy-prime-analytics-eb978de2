@@ -4,17 +4,39 @@ import { Button } from "@/components/ui/button";
 import { VisitStatusBadge } from "./VisitStatusBadge";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { MapPin, User, Phone, Calendar, Eye, FileText } from "lucide-react";
+import { MapPin, User, Phone, Calendar, Eye, FileText, XCircle, FilePlus } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
+import { useQueryClient } from "@tanstack/react-query";
 
 interface VisitCardProps {
   ficha?: FichaVisita;
   agendamento?: AgendamentoVisita;
   type: "ficha" | "agendamento";
+  onCreateFicha?: (agendamento: AgendamentoVisita) => void;
 }
 
-export function VisitCard({ ficha, agendamento, type }: VisitCardProps) {
+export function VisitCard({ ficha, agendamento, type, onCreateFicha }: VisitCardProps) {
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
+
+  const handleCancelAgendamento = async (id: string) => {
+    try {
+      const { error } = await supabase
+        .from('agendamentos_visita')
+        .update({ status: 'cancelada' as const })
+        .eq('id', id);
+      
+      if (error) throw error;
+      
+      queryClient.invalidateQueries({ queryKey: ['agendamentos-visita'] });
+      toast.success('Agendamento cancelado com sucesso');
+    } catch (err) {
+      console.error('Erro ao cancelar agendamento:', err);
+      toast.error('Erro ao cancelar agendamento');
+    }
+  };
 
   if (type === "ficha" && ficha) {
     return (
@@ -70,8 +92,10 @@ export function VisitCard({ ficha, agendamento, type }: VisitCardProps) {
   }
 
   if (type === "agendamento" && agendamento) {
+    const isCancelled = agendamento.status === 'cancelada';
+    
     return (
-      <Card className="hover:shadow-md transition-shadow">
+      <Card className={`hover:shadow-md transition-shadow ${isCancelled ? 'opacity-60' : ''}`}>
         <CardHeader className="pb-2">
           <div className="flex items-start justify-between">
             <CardTitle className="text-lg">{agendamento.nome_visitante}</CardTitle>
@@ -97,14 +121,40 @@ export function VisitCard({ ficha, agendamento, type }: VisitCardProps) {
           </div>
 
           <div className="flex gap-2 pt-2">
-            <Button
-              variant="outline"
-              size="sm"
-              className="flex-1"
-              onClick={() => navigate(`/visitas/agendar?edit=${agendamento.id}`)}
-            >
-              Editar
-            </Button>
+            {!isCancelled && (
+              <>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="flex-1"
+                  onClick={() => navigate(`/visitas/agendar?edit=${agendamento.id}`)}
+                >
+                  Editar
+                </Button>
+                {onCreateFicha && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => onCreateFicha(agendamento)}
+                    title="Criar Ficha de Visita"
+                  >
+                    <FilePlus className="h-4 w-4" />
+                  </Button>
+                )}
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                  onClick={() => handleCancelAgendamento(agendamento.id)}
+                  title="Cancelar agendamento"
+                >
+                  <XCircle className="h-4 w-4" />
+                </Button>
+              </>
+            )}
+            {isCancelled && (
+              <span className="text-sm text-muted-foreground italic">Cancelado</span>
+            )}
           </div>
         </CardContent>
       </Card>
