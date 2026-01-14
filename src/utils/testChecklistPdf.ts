@@ -15,7 +15,18 @@ interface ChecklistSection {
 
 const checklistSections: ChecklistSection[] = [
   {
-    title: "1. DASHBOARD - KPIs (4 cards)",
+    title: "1. AUTENTICAÇÃO E ACESSO",
+    items: [
+      "[ ] Login com email/senha funciona",
+      "[ ] Recuperação de senha funciona",
+      "[ ] Logout funciona corretamente",
+      "[ ] Redirecionamento para login quando não autenticado",
+      "[ ] Rotas admin protegidas (Base Conhecimento, Calibrador, Leads, Usuários)",
+      "[ ] Política de Privacidade acessível",
+    ]
+  },
+  {
+    title: "2. DASHBOARD - KPIs (4 cards)",
     items: [
       "[ ] Preço Médio R$/m² exibe valor correto (últimos 12 meses, Residencial)",
       "[ ] Liquidez Acumulado mostra total de transações",
@@ -26,7 +37,7 @@ const checklistSections: ChecklistSection[] = [
     ]
   },
   {
-    title: "2. GRÁFICO DE EVOLUÇÃO GERAL",
+    title: "3. GRÁFICO DE EVOLUÇÃO GERAL",
     items: [
       "[ ] Toggle Semestral/Anual funciona",
       "[ ] Indicadores de tendência (curto e longo prazo) exibem %",
@@ -36,7 +47,7 @@ const checklistSections: ChecklistSection[] = [
     ]
   },
   {
-    title: "3. RANKING DE MICROBAIRROS (✅ alterado)",
+    title: "4. RANKING DE MICROBAIRROS",
     items: [
       "[ ] Toggle R$/m² / Trans. alterna métricas",
       "[ ] Título dinâmico: 'Ranking por Valorização' ou 'Ranking por Liquidez'",
@@ -50,7 +61,7 @@ const checklistSections: ChecklistSection[] = [
     ]
   },
   {
-    title: "4. GRÁFICO EVOLUÇÃO POR MICROBAIRRO (✅ alterado)",
+    title: "5. GRÁFICO EVOLUÇÃO POR MICROBAIRRO",
     items: [
       "[ ] Toggle R$/m² / Trans. alterna métricas",
       "[ ] Toggle Semestral/Anual funciona",
@@ -64,7 +75,16 @@ const checklistSections: ChecklistSection[] = [
     ]
   },
   {
-    title: "5. FERRAMENTAS DE BUSCA - ABA LOCALIZAÇÃO",
+    title: "6. PÁGINA MICROBAIRROS",
+    items: [
+      "[ ] Mapa de transações exibe marcadores",
+      "[ ] Filtros de período funcionam",
+      "[ ] Cards de microbairro com estatísticas",
+      "[ ] Comparativo de ruas funciona",
+    ]
+  },
+  {
+    title: "7. FERRAMENTAS DE BUSCA - ABA LOCALIZAÇÃO",
     items: [
       "[ ] Autocomplete de logradouro funciona (min 2 chars)",
       "[ ] Filtros: Período, Tipologia, Área, Valor",
@@ -75,7 +95,7 @@ const checklistSections: ChecklistSection[] = [
     ]
   },
   {
-    title: "6. FERRAMENTAS DE BUSCA - ABA TRANSAÇÕES",
+    title: "8. FERRAMENTAS DE BUSCA - ABA TRANSAÇÕES",
     items: [
       "[ ] Filtros de valor (dropdowns predefinidos)",
       "[ ] Filtros de área funcionam",
@@ -83,8 +103,11 @@ const checklistSections: ChecklistSection[] = [
     ]
   },
   {
-    title: "7. MOTOR DE AVALIAÇÃO (5 etapas)",
+    title: "9. MOTOR DE AVALIAÇÃO (5 etapas) ✅",
     items: [
+      "[ ] Etapa 0: Identificação do imóvel com validação visual",
+      "[ ] Etapa 0: Campos obrigatórios destacados em vermelho",
+      "[ ] Etapa 0: Placeholders numéricos com '0'",
       "[ ] Etapa 1: Seleção de logradouro com dados oficiais",
       "[ ] Etapa 1: Entrada manual de preço anúncios",
       "[ ] Etapa 2: Área e seleção de base de preço",
@@ -94,19 +117,20 @@ const checklistSections: ChecklistSection[] = [
       "[ ] Etapa 4: Spread % e nível de confiança",
       "[ ] Etapa 5: Recomendação automática",
       "[ ] Etapa 5: Exportar PDF funciona",
+      "[ ] Auto-save de rascunho funciona",
     ]
   },
   {
-    title: "8. PESQUISA AVANÇADA",
+    title: "10. HISTÓRICO DE AVALIAÇÕES",
     items: [
-      "[ ] Filtros: Valor, Área, Ano, Bairro, Logradouro",
-      "[ ] Resultados em tabela paginada",
-      "[ ] Exportar XLSX funciona",
-      "[ ] Totalizadores corretos",
+      "[ ] Lista de avaliações salvas",
+      "[ ] Filtros por data/endereço funcionam",
+      "[ ] Abrir avaliação anterior funciona",
+      "[ ] Excluir avaliação funciona",
     ]
   },
   {
-    title: "9. VISTORIA DIGITAL",
+    title: "11. VISTORIA DIGITAL",
     items: [
       "[ ] 21 itens de inspeção organizados",
       "[ ] Status: Ok / Atenção / Crítico / N.V. / N/A",
@@ -117,10 +141,20 @@ const checklistSections: ChecklistSection[] = [
       "[ ] Gerar PDF de laudo",
       "[ ] Botão Limpar funciona",
       "[ ] Gerar Avaliação navega para Motor",
+      "[ ] Comparativo com avaliação (ajuste %)",
     ]
   },
   {
-    title: "10. DOCUMENTAÇÃO (DUE DILIGENCE)",
+    title: "12. HISTÓRICO DE VISTORIAS",
+    items: [
+      "[ ] Lista de vistorias salvas",
+      "[ ] Filtros funcionam",
+      "[ ] Visualizar vistoria anterior",
+      "[ ] Score e progresso exibidos",
+    ]
+  },
+  {
+    title: "13. DOCUMENTAÇÃO (DUE DILIGENCE)",
     items: [
       "[ ] Seção Vendedor: Dados e Documentos",
       "[ ] Seção Comprador: Dados e Documentos",
@@ -133,7 +167,90 @@ const checklistSections: ChecklistSection[] = [
     ]
   },
   {
-    title: "11. EXPORTAÇÕES",
+    title: "14. MÓDULO DE VISITAS",
+    items: [
+      "[ ] Dashboard de visitas com KPIs",
+      "[ ] Gráfico de evolução mensal",
+      "[ ] Ranking de corretores",
+      "[ ] Lista de fichas de visita",
+      "[ ] Lista de agendamentos",
+      "[ ] Agendar nova visita funciona",
+      "[ ] Editar agendamento funciona",
+      "[ ] Cancelar agendamento funciona",
+      "[ ] Status badge correto (Agendada/Confirmada/Realizada/Cancelada)",
+    ]
+  },
+  {
+    title: "15. FICHA DE VISITA",
+    items: [
+      "[ ] Criar nova ficha funciona",
+      "[ ] Dados do imóvel preenchidos",
+      "[ ] Assinatura digital do visitante",
+      "[ ] Assinatura digital do corretor",
+      "[ ] Exportar PDF da ficha",
+      "[ ] Link público para assinatura funciona",
+    ]
+  },
+  {
+    title: "16. FEEDBACK DE VISITA",
+    items: [
+      "[ ] Link público de feedback funciona",
+      "[ ] Avaliação geral (estrelas)",
+      "[ ] Campos de feedback preenchíveis",
+      "[ ] Envio de feedback funciona",
+      "[ ] Visualização de feedbacks recebidos",
+    ]
+  },
+  {
+    title: "17. DISPONIBILIDADE DE CORRETORES",
+    items: [
+      "[ ] Calendário de disponibilidade",
+      "[ ] Selecionar horários disponíveis",
+      "[ ] Salvar disponibilidade funciona",
+      "[ ] Limpar disponibilidade funciona",
+    ]
+  },
+  {
+    title: "18. MANUAL DA PLATAFORMA",
+    items: [
+      "[ ] Navegação por seções funciona",
+      "[ ] Conteúdo de cada módulo correto",
+      "[ ] Exportar PDF do manual",
+      "[ ] Exportar Guia Rápido PDF",
+    ]
+  },
+  {
+    title: "19. CONFIGURAÇÕES",
+    items: [
+      "[ ] Upload de logo da empresa",
+      "[ ] Remover/substituir logo",
+      "[ ] Configurações salvas corretamente",
+    ]
+  },
+  {
+    title: "20. FUNCIONALIDADES ADMIN",
+    items: [
+      "[ ] Base de Conhecimento (CRUD de artigos)",
+      "[ ] Calibrador de Avaliação (ajuste de pesos)",
+      "[ ] Gestão de Leads (lista e detalhes)",
+      "[ ] Gestão de Usuários (lista e roles)",
+      "[ ] Botão Importar CSV visível",
+      "[ ] Botão Sincronizar Dados visível",
+      "[ ] Botão Enriquecer Condomínios visível",
+    ]
+  },
+  {
+    title: "21. AVALIAÇÃO PÚBLICA",
+    items: [
+      "[ ] Acesso sem login (/avaliacao)",
+      "[ ] Captura de lead funciona",
+      "[ ] Limite de avaliações por email",
+      "[ ] Resultado simplificado exibido",
+      "[ ] Assistente Sofia funciona",
+    ]
+  },
+  {
+    title: "22. EXPORTAÇÕES",
     items: [
       "[ ] Dashboard: Exportar XLSX (KPIs + Transações)",
       "[ ] Dashboard: Backup Completo XLSX",
@@ -141,10 +258,12 @@ const checklistSections: ChecklistSection[] = [
       "[ ] Vistoria Digital: PDF Laudo",
       "[ ] Documentação: PDF Checklist",
       "[ ] Motor Avaliação: PDF Parecer",
+      "[ ] Manual: PDF Completo",
+      "[ ] Ficha Visita: PDF",
     ]
   },
   {
-    title: "12. NAVEGAÇÃO E UI",
+    title: "23. NAVEGAÇÃO E UI",
     items: [
       "[ ] Sidebar desktop funciona",
       "[ ] Menu hamburger mobile funciona",
@@ -152,10 +271,11 @@ const checklistSections: ChecklistSection[] = [
       "[ ] Footer com informações de contato",
       "[ ] Responsividade geral (mobile/tablet/desktop)",
       "[ ] Tour guiado (se disponível)",
+      "[ ] Breadcrumbs funcionam",
     ]
   },
   {
-    title: "13. DISCLAIMER E METODOLOGIA",
+    title: "24. DISCLAIMER E METODOLOGIA",
     items: [
       "[ ] Disclaimer legal visível no Dashboard",
       "[ ] Tooltip metodologia expandível",
@@ -163,19 +283,28 @@ const checklistSections: ChecklistSection[] = [
     ]
   },
   {
-    title: "14. SINCRONIZAÇÃO (ADMIN)",
+    title: "25. SINCRONIZAÇÃO (ADMIN)",
     items: [
       "[ ] Botão 'Atualizar Dados' visível",
       "[ ] Seletor de ano funciona",
       "[ ] Feedback de sincronização",
+      "[ ] Importar CSV ITBI funciona",
     ]
   },
   {
-    title: "15. PWA (PROGRESSIVE WEB APP)",
+    title: "26. PWA (PROGRESSIVE WEB APP)",
     items: [
       "[ ] Instalação mobile funciona",
       "[ ] Ícone correto na home screen",
       "[ ] Modo standalone abre corretamente",
+    ]
+  },
+  {
+    title: "27. ONBOARDING",
+    items: [
+      "[ ] Página de onboarding acessível",
+      "[ ] Tour guiado funciona",
+      "[ ] Navegação entre etapas",
     ]
   },
 ];
