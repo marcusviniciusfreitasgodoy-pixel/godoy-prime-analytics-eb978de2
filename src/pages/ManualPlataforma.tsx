@@ -474,6 +474,27 @@ const adminSections: ManualSection[] = [
       },
     ],
   },
+  {
+    id: "calibrador-vistoria",
+    title: "Calibrador de Vistoria",
+    icon: ClipboardCheck,
+    description: "Configure os itens do checklist de inspeção para casas e apartamentos.",
+    route: "/calibrador-vistoria",
+    features: [
+      {
+        title: "Categorias por Tipo de Imóvel",
+        description: "Gerencie categorias separadas para Casa (20 categorias) e Apartamento (19 categorias).",
+      },
+      {
+        title: "Gerenciamento de Itens",
+        description: "Adicione, edite ou remova itens de inspeção em cada categoria com descrição e dica opcional.",
+      },
+      {
+        title: "Pesos Personalizados",
+        description: "Ajuste o peso de cada categoria para influenciar o cálculo da nota de conservação.",
+      },
+    ],
+  },
 ];
 
 export default function ManualPlataforma() {

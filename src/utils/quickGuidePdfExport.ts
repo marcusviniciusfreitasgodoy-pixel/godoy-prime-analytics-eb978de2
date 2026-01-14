@@ -144,7 +144,14 @@ export async function exportQuickGuidePDF() {
     'Veja como ficara o cabecalho e rodape dos relatorios',
   ], '>');
 
-  drawSection('12. SOFIA - ASSISTENTE VIRTUAL', [
+  drawSection('12. RECURSOS ADMINISTRATIVOS (Admins)', [
+    'Calibrador de Avaliacao: ajuste pesos e fatores do sistema de avaliacao',
+    'Calibrador de Vistoria: gerencie categorias e itens do checklist de inspecao',
+    'Base de Conhecimento Sofia: adicione artigos para treinar a assistente',
+    'Gestao de Leads e Usuarios: acompanhe contatos e gerencie acessos',
+  ], '>');
+
+  drawSection('13. SOFIA - ASSISTENTE VIRTUAL', [
     'Disponivel no canto inferior direito de todas as paginas',
     'Pergunte sobre precos, tendencias e comparativos entre regioes',
     'Use comandos de voz para consultar sem precisar digitar',

@@ -292,11 +292,14 @@ export async function exportVideoScriptPdf() {
   addScreenshot(48, 'Análise de documento pela Sofia', pageNum);
 
   // MÓDULO 10
-  addTitle('MÓDULO 10: RECURSOS ADMINISTRATIVOS (15:15 - 16:15)', pageNum);
-  addNarration('Administradores têm acesso a recursos avançados: Base de Conhecimento para gerenciar conteúdo da Inteligência Artificial, Calibrador de Avaliação para ajustar pesos das características, Gestão de Contatos com filtros e exportação, Gerenciamento de Usuários com papéis e permissões, Rastreamento de Atividades para acompanhamento completo, e Sincronização de dados da Prefeitura.', pageNum);
+  addTitle('MÓDULO 10: RECURSOS ADMINISTRATIVOS (15:15 - 16:45)', pageNum);
+  addNarration('Administradores têm acesso a recursos avançados: Base de Conhecimento para gerenciar conteúdo da Inteligência Artificial, Calibrador de Avaliação para ajustar pesos das características, Calibrador de Vistoria para gerenciar categorias e itens do checklist de inspeção, Gestão de Contatos com filtros e exportação, Gerenciamento de Usuários com papéis e permissões, Rastreamento de Atividades para acompanhamento completo, e Sincronização de dados da Prefeitura.', pageNum);
   addScreenshot(49, 'Página de Gestão de Contatos', pageNum);
   addScreenshot(50, 'Gerenciamento de Usuários com atividades', pageNum);
   addScreenshot(51, 'Calibrador de Avaliação', pageNum);
+
+  addNarration('O Calibrador de Vistoria permite personalizar completamente os itens do checklist de inspeção. Você pode adicionar novas categorias, editar itens existentes, ajustar pesos e configurar separadamente para casas e apartamentos. Isso garante que a vistoria seja adaptada às necessidades específicas da sua imobiliária.', pageNum);
+  addScreenshot(52, 'Calibrador de Vistoria com lista de categorias e itens', pageNum);
 
   // MÓDULO 11
   addTitle('MÓDULO 11: HISTÓRICOS E CONFIGURAÇÕES (16:15 - 17:00)', pageNum);
