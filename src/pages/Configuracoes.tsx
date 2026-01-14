@@ -1,7 +1,7 @@
 import { Helmet } from "react-helmet-async";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { CompanyLogoUpload } from "@/components/CompanyLogoUpload";
-import { Settings, Building2, Phone, MapPin, FileText, Globe, Filter, Database, Trash2, User, Briefcase, Home, Loader2, Eye } from "lucide-react";
+import { Settings, Building2, Phone, MapPin, FileText, Globe, Filter, Database, Trash2, User, Briefcase, Home, Loader2, Eye, MessageCircle, Bell } from "lucide-react";
 import { MergeCondominiosButton } from "@/components/MergeCondominiosButton";
 import { EnrichCondominiosButton } from "@/components/EnrichCondominiosButton";
 import { useCondominiosStats } from "@/hooks/useCondominiosStats";
@@ -10,12 +10,16 @@ import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { SimpleRadioGroup, SimpleRadioItem } from "@/components/ui/simple-radio";
 import { useCompanySettings, type OutlierFilterMethod, type PersonType } from "@/hooks/useCompanySettings";
+import { useNotificationSettings } from "@/hooks/useNotificationSettings";
 import { useState, useEffect } from "react";
 import { clearAllHistoricalCache, getCacheStats } from "@/utils/historicalAnalysisCache";
 import { toast } from "sonner";
+import { Switch } from "@/components/ui/switch";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 export default function Configuracoes() {
   const { settings, isLoading, updateSetting } = useCompanySettings();
+  const { settings: notifSettings, isLoading: notifLoading, updateSettings: updateNotifSettings } = useNotificationSettings();
   const { stats: condominiosStats, refetch: refetchCondominiosStats } = useCondominiosStats();
   
   const [personType, setPersonType] = useState<PersonType>('pj');
@@ -245,6 +249,125 @@ export default function Configuracoes() {
             </CardContent>
           </Card>
         </div>
+
+        {/* Notificações WhatsApp */}
+        <Card>
+          <CardHeader className="p-4 sm:p-6">
+            <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
+              <MessageCircle className="h-4 w-4 sm:h-5 sm:w-5 text-green-500" />
+              Notificações WhatsApp
+            </CardTitle>
+            <CardDescription className="text-xs sm:text-sm">
+              Configure quais notificações automáticas serão enviadas via WhatsApp
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="p-4 sm:p-6 pt-0 sm:pt-0 space-y-4">
+            {notifLoading ? (
+              <div className="flex items-center justify-center py-8">
+                <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+              </div>
+            ) : (
+              <>
+                <div className="grid gap-4 sm:grid-cols-2">
+                  {/* Confirmação */}
+                  <div className="flex items-center justify-between p-3 rounded-lg border bg-muted/30">
+                    <div className="flex items-center gap-3">
+                      <div className="h-8 w-8 rounded-full bg-green-500/10 flex items-center justify-center">
+                        <Bell className="h-4 w-4 text-green-500" />
+                      </div>
+                      <div>
+                        <p className="text-sm font-medium">Confirmação</p>
+                        <p className="text-xs text-muted-foreground">Novo agendamento criado</p>
+                      </div>
+                    </div>
+                    <Switch
+                      checked={notifSettings.whatsapp_confirmacao}
+                      onCheckedChange={(checked) => updateNotifSettings({ whatsapp_confirmacao: checked })}
+                    />
+                  </div>
+
+                  {/* Lembrete */}
+                  <div className="flex items-center justify-between p-3 rounded-lg border bg-muted/30">
+                    <div className="flex items-center gap-3">
+                      <div className="h-8 w-8 rounded-full bg-blue-500/10 flex items-center justify-center">
+                        <Bell className="h-4 w-4 text-blue-500" />
+                      </div>
+                      <div>
+                        <p className="text-sm font-medium">Lembrete</p>
+                        <p className="text-xs text-muted-foreground">Antes da visita agendada</p>
+                      </div>
+                    </div>
+                    <Switch
+                      checked={notifSettings.whatsapp_lembrete}
+                      onCheckedChange={(checked) => updateNotifSettings({ whatsapp_lembrete: checked })}
+                    />
+                  </div>
+
+                  {/* Reagendamento */}
+                  <div className="flex items-center justify-between p-3 rounded-lg border bg-muted/30">
+                    <div className="flex items-center gap-3">
+                      <div className="h-8 w-8 rounded-full bg-orange-500/10 flex items-center justify-center">
+                        <Bell className="h-4 w-4 text-orange-500" />
+                      </div>
+                      <div>
+                        <p className="text-sm font-medium">Reagendamento</p>
+                        <p className="text-xs text-muted-foreground">Data/hora alterada</p>
+                      </div>
+                    </div>
+                    <Switch
+                      checked={notifSettings.whatsapp_reagendamento}
+                      onCheckedChange={(checked) => updateNotifSettings({ whatsapp_reagendamento: checked })}
+                    />
+                  </div>
+
+                  {/* Cancelamento */}
+                  <div className="flex items-center justify-between p-3 rounded-lg border bg-muted/30">
+                    <div className="flex items-center gap-3">
+                      <div className="h-8 w-8 rounded-full bg-red-500/10 flex items-center justify-center">
+                        <Bell className="h-4 w-4 text-red-500" />
+                      </div>
+                      <div>
+                        <p className="text-sm font-medium">Cancelamento</p>
+                        <p className="text-xs text-muted-foreground">Visita cancelada</p>
+                      </div>
+                    </div>
+                    <Switch
+                      checked={notifSettings.whatsapp_cancelamento}
+                      onCheckedChange={(checked) => updateNotifSettings({ whatsapp_cancelamento: checked })}
+                    />
+                  </div>
+                </div>
+
+                {/* Antecedência do Lembrete */}
+                <div className="flex items-center justify-between p-3 rounded-lg border bg-muted/30">
+                  <div>
+                    <p className="text-sm font-medium">Antecedência do Lembrete</p>
+                    <p className="text-xs text-muted-foreground">
+                      Quantas horas antes da visita o lembrete será enviado
+                    </p>
+                  </div>
+                  <Select
+                    value={String(notifSettings.lembrete_horas_antes)}
+                    onValueChange={(value) => updateNotifSettings({ lembrete_horas_antes: Number(value) })}
+                  >
+                    <SelectTrigger className="w-32">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="12">12 horas</SelectItem>
+                      <SelectItem value="24">24 horas</SelectItem>
+                      <SelectItem value="48">48 horas</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <p className="text-xs text-muted-foreground">
+                  💡 As mensagens são enviadas automaticamente via Evolution API. Certifique-se de que a instância está conectada.
+                </p>
+              </>
+            )}
+          </CardContent>
+        </Card>
 
         {/* Configurações de Avaliação */}
         <Card>
