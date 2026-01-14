@@ -52,6 +52,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { useActivityTracking } from "@/hooks/useActivityTracking";
 import { useFirstVisitTour } from "@/hooks/useFirstVisitTour";
+import { LastSyncIndicator } from "@/components/LastSyncIndicator";
 
 export default function Dashboard() {
   const { shouldRunTour, startTour, endTour } = useFirstVisitTour('dashboard');
@@ -370,6 +371,11 @@ export default function Dashboard() {
             </div>
           </div>
           
+          {/* Sync Indicator - Mobile */}
+          <div className="mb-2">
+            <LastSyncIndicator compact />
+          </div>
+          
           {/* Controls */}
           <div className="flex items-center justify-between gap-2">
             <BairroSelector value={selectedBairro} onChange={setSelectedBairro} />
@@ -455,6 +461,7 @@ export default function Dashboard() {
           </p>
         </div>
         <div className="flex flex-row items-center gap-4">
+          <LastSyncIndicator />
           <BairroSelector value={selectedBairro} onChange={setSelectedBairro} />
           <div className="flex gap-2">
             <Button variant="outline" size="sm" onClick={startTour}>
