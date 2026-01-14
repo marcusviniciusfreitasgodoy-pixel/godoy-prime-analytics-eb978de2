@@ -1,4 +1,5 @@
-import { MapPin, Menu, Home, ClipboardCheck, FileText, LogOut, Users, UserCog, Search, Calculator } from "lucide-react";
+import { MapPin, Menu, Home, ClipboardCheck, FileText, LogOut, Users, UserCog, Search, Calculator, RefreshCw } from "lucide-react";
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import logoSymbol from "@/assets/godoy-logo-symbol.png";
 import { SyncDataButton } from "./SyncDataButton";
@@ -28,6 +29,32 @@ export function Header() {
   const { user, isAdmin, signOut } = useAuthContext();
   const navigate = useNavigate();
   const { toast } = useToast();
+  const [isUpdating, setIsUpdating] = useState(false);
+
+  const handleForceUpdate = async () => {
+    setIsUpdating(true);
+    toast({
+      title: "Atualizando...",
+      description: "Limpando cache e baixando versão mais recente",
+    });
+    
+    // Clear all caches
+    if ('caches' in window) {
+      const cacheNames = await caches.keys();
+      await Promise.all(cacheNames.map(name => caches.delete(name)));
+    }
+    
+    // Unregister service worker
+    if ('serviceWorker' in navigator) {
+      const registrations = await navigator.serviceWorker.getRegistrations();
+      await Promise.all(registrations.map(reg => reg.unregister()));
+    }
+    
+    // Force reload
+    setTimeout(() => {
+      window.location.reload();
+    }, 500);
+  };
 
   const handleLogout = async () => {
     await signOut();
@@ -53,9 +80,17 @@ export function Header() {
             <h1 className="font-bold text-sm sm:text-lg text-primary-foreground tracking-wider">GODOY PRIME</h1>
             <div className="flex items-center gap-2">
               <p className="text-[10px] sm:text-xs text-accent font-semibold tracking-wide">ANALYTICS DASHBOARD</p>
-              <span className="text-[8px] sm:text-[9px] text-primary-foreground/40 font-mono bg-primary-foreground/5 px-1.5 py-0.5 rounded">
+              <button
+                onClick={handleForceUpdate}
+                disabled={isUpdating}
+                className="text-[8px] sm:text-[9px] text-primary-foreground/40 font-mono bg-primary-foreground/5 px-1.5 py-0.5 rounded hover:bg-primary-foreground/10 hover:text-primary-foreground/60 transition-colors flex items-center gap-1 cursor-pointer"
+                title="Clique para forçar atualização"
+              >
+                {isUpdating ? (
+                  <RefreshCw className="h-2.5 w-2.5 animate-spin" />
+                ) : null}
                 v{typeof __BUILD_TIMESTAMP__ !== 'undefined' ? __BUILD_TIMESTAMP__ : 'dev'}
-              </span>
+              </button>
             </div>
           </div>
         </div>
