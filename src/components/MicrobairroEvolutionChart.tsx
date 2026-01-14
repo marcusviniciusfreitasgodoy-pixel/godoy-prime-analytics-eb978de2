@@ -2,7 +2,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useMicrobairroEvolutionData, GranularityType, MetricType } from '@/hooks/useMicrobairroEvolutionData';
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import {
   LineChart,
   Line,
@@ -50,8 +50,21 @@ const getRegionColor = (region: string, index: number): string => {
 export const MicrobairroEvolutionChart = ({ bairro }: MicrobairroEvolutionChartProps) => {
   const [granularity, setGranularity] = useState<GranularityType>('semester');
   const [metric, setMetric] = useState<MetricType>('valorization');
+  const [hiddenLines, setHiddenLines] = useState<Set<string>>(new Set());
   
   const { data: evolutionData, isLoading } = useMicrobairroEvolutionData(bairro, granularity, metric);
+
+  const handleLegendClick = useCallback((dataKey: string) => {
+    setHiddenLines(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(dataKey)) {
+        newSet.delete(dataKey);
+      } else {
+        newSet.add(dataKey);
+      }
+      return newSet;
+    });
+  }, []);
 
   const title = metric === 'valorization' 
     ? 'Evolução de Valorização' 
@@ -178,12 +191,26 @@ export const MicrobairroEvolutionChart = ({ bairro }: MicrobairroEvolutionChartP
                 }
               />
               <Legend 
-                wrapperStyle={{ fontSize: '11px', paddingTop: '10px' }}
+                wrapperStyle={{ fontSize: '11px', paddingTop: '10px', cursor: 'pointer' }}
                 iconType="line"
+                onClick={(e: any) => {
+                  if (e?.dataKey) {
+                    handleLegendClick(e.dataKey);
+                  }
+                }}
+                formatter={(value: string) => (
+                  <span style={{ 
+                    textDecoration: hiddenLines.has(value) ? 'line-through' : 'none',
+                    opacity: hiddenLines.has(value) ? 0.5 : 1
+                  }}>
+                    {value}
+                  </span>
+                )}
               />
               
               {microbairros.map((microbairro, index) => {
                 const color = getRegionColor(microbairro, index);
+                const isHidden = hiddenLines.has(microbairro);
                 return (
                   <Line
                     key={microbairro}
@@ -191,10 +218,11 @@ export const MicrobairroEvolutionChart = ({ bairro }: MicrobairroEvolutionChartP
                     dataKey={microbairro}
                     name={microbairro}
                     stroke={color}
-                    strokeWidth={2.5}
-                    dot={{ r: 3, fill: color }}
-                    activeDot={{ r: 5 }}
+                    strokeWidth={isHidden ? 0 : 2.5}
+                    dot={isHidden ? false : { r: 3, fill: color }}
+                    activeDot={isHidden ? false : { r: 5 }}
                     connectNulls
+                    hide={isHidden}
                   />
                 );
               })}

@@ -144,7 +144,7 @@ export default function CalibradorAvaliacao() {
           <div>
             <h1 className="text-2xl font-bold text-foreground">Calibrador de Avaliação</h1>
             <p className="text-muted-foreground">
-              Configure os pesos das 26 características e fatores de documentação
+              Configure os pesos das 35 características e fatores de documentação
             </p>
           </div>
         </div>
