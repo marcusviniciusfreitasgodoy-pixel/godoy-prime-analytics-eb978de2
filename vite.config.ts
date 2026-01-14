@@ -59,7 +59,23 @@ export default defineConfig(({ mode }) => ({
         cleanupOutdatedCaches: true,
         skipWaiting: true,
         clientsClaim: true,
+        // Force navigation requests to always fetch from network first
+        navigateFallback: null,
+        navigateFallbackDenylist: [/^\/__/],
         runtimeCaching: [
+          {
+            // App shell and JS/CSS - always check network first
+            urlPattern: /\.(js|css|html)$/i,
+            handler: "NetworkFirst",
+            options: {
+              cacheName: "app-shell-cache",
+              expiration: {
+                maxEntries: 50,
+                maxAgeSeconds: 60 * 60, // 1 hour
+              },
+              networkTimeoutSeconds: 3,
+            },
+          },
           {
             urlPattern: /^https:\/\/fonts\.googleapis\.com\/.*/i,
             handler: "CacheFirst",
