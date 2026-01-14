@@ -120,7 +120,7 @@ export function useITBITransactions() {
 
 export function useMicrobairroRanking(bairro: string = 'BARRA DA TIJUCA') {
   return useQuery<MicrobairroRanking[]>({
-    queryKey: ['microbairro-ranking-v4', bairro],
+    queryKey: ['microbairro-ranking-v5', bairro],
     queryFn: async () => {
       const outlierLimit = getOutlierLimit(bairro);
       
@@ -131,7 +131,7 @@ export function useMicrobairroRanking(bairro: string = 'BARRA DA TIJUCA') {
       
       const { data: transactions, error } = await supabase
         .from('itbi_transactions')
-        .select('logradouro, valor_m2, total_transacoes')
+        .select('logradouro, valor_m2, total_transacoes, microbairro')
         .ilike('bairro', bairro)
         .eq('uso', 'Residencial')
         .not('valor_m2', 'is', null)
@@ -144,8 +144,29 @@ export function useMicrobairroRanking(bairro: string = 'BARRA DA TIJUCA') {
       
       // Para Barra da Tijuca, agrupar por microbairro
       if (bairro.toUpperCase() === 'BARRA DA TIJUCA') {
+        // Buscar keywords da tabela microbairros_geo para classificação dinâmica
+        const { data: microbairrosGeo } = await supabase
+          .from('microbairros_geo')
+          .select('nome, keywords')
+          .eq('bairro', 'BARRA DA TIJUCA');
+        
+        // Função para classificar usando keywords do banco
+        const classifyByKeywords = (logradouro: string): string | null => {
+          const log = logradouro.toUpperCase();
+          for (const micro of microbairrosGeo || []) {
+            for (const keyword of micro.keywords || []) {
+              if (log.includes(keyword.toUpperCase())) {
+                return micro.nome;
+              }
+            }
+          }
+          // Fallback para função local se não encontrar no banco
+          return classificarMicrobairroBarra(logradouro);
+        };
+        
         const grouped = (transactions || []).reduce((acc, t) => {
-          const micro = classificarMicrobairroBarra(t.logradouro);
+          // Usar microbairro do banco se disponível, senão classificar dinamicamente
+          const micro = t.microbairro || classifyByKeywords(t.logradouro);
           if (!micro) return acc; // Ignorar logradouros não classificados
           
           if (!acc[micro]) {

@@ -53,3 +53,12 @@ verify_jwt = false
 
 [functions.get-google-maps-key]
 verify_jwt = false
+
+[functions.classify-microbairros]
+verify_jwt = false
+
+[functions.merge-condominios]
+verify_jwt = true
+
+[functions.sync-logradouros-geo]
+verify_jwt = false
