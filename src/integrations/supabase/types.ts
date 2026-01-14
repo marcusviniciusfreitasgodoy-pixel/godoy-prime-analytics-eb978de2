@@ -1238,6 +1238,86 @@ export type Database = {
         }
         Relationships: []
       }
+      vistoria_checklist_categories: {
+        Row: {
+          applies_to: string
+          category_id: string
+          created_at: string | null
+          display_order: number
+          id: string
+          is_active: boolean | null
+          title: string
+          updated_at: string | null
+          weight: number
+        }
+        Insert: {
+          applies_to?: string
+          category_id: string
+          created_at?: string | null
+          display_order: number
+          id?: string
+          is_active?: boolean | null
+          title: string
+          updated_at?: string | null
+          weight?: number
+        }
+        Update: {
+          applies_to?: string
+          category_id?: string
+          created_at?: string | null
+          display_order?: number
+          id?: string
+          is_active?: boolean | null
+          title?: string
+          updated_at?: string | null
+          weight?: number
+        }
+        Relationships: []
+      }
+      vistoria_checklist_items: {
+        Row: {
+          category_id: string
+          created_at: string | null
+          display_order: number
+          id: string
+          is_active: boolean | null
+          item_id: string
+          label: string
+          tooltip: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          category_id: string
+          created_at?: string | null
+          display_order: number
+          id?: string
+          is_active?: boolean | null
+          item_id: string
+          label: string
+          tooltip?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          category_id?: string
+          created_at?: string | null
+          display_order?: number
+          id?: string
+          is_active?: boolean | null
+          item_id?: string
+          label?: string
+          tooltip?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "vistoria_checklist_items_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "vistoria_checklist_categories"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       vistorias: {
         Row: {
           ajuste_percentual: number | null
