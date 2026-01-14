@@ -25,7 +25,7 @@ const STEPS = [
   { id: 0, title: "Identificação", description: "Dados do imóvel" },
   { id: 1, title: "Localização", description: "Referência de mercado" },
   { id: 2, title: "Dados Básicos", description: "Área e base de preço" },
-  { id: 3, title: "Características", description: "26 fatores de avaliação" },
+  { id: 3, title: "Características", description: "Fatores de avaliação" },
   { id: 4, title: "Resultados", description: "3 cenários de valor" },
   { id: 5, title: "Recomendação", description: "Análise e próximos passos" },
 ];
