@@ -26,6 +26,7 @@ export type Database = {
           id: string
           lead_id: string | null
           lembrete_enviado: boolean | null
+          lembrete_enviado_at: string | null
           nome_visitante: string
           notas: string | null
           origem: Database["public"]["Enums"]["origem_agendamento"] | null
@@ -45,6 +46,7 @@ export type Database = {
           id?: string
           lead_id?: string | null
           lembrete_enviado?: boolean | null
+          lembrete_enviado_at?: string | null
           nome_visitante: string
           notas?: string | null
           origem?: Database["public"]["Enums"]["origem_agendamento"] | null
@@ -64,6 +66,7 @@ export type Database = {
           id?: string
           lead_id?: string | null
           lembrete_enviado?: boolean | null
+          lembrete_enviado_at?: string | null
           nome_visitante?: string
           notas?: string | null
           origem?: Database["public"]["Enums"]["origem_agendamento"] | null
@@ -645,6 +648,42 @@ export type Database = {
           longitude_centro?: number | null
           nome?: string
           updated_at?: string | null
+        }
+        Relationships: []
+      }
+      notification_settings: {
+        Row: {
+          created_at: string
+          id: string
+          lembrete_horas_antes: number
+          updated_at: string
+          user_id: string | null
+          whatsapp_cancelamento: boolean
+          whatsapp_confirmacao: boolean
+          whatsapp_lembrete: boolean
+          whatsapp_reagendamento: boolean
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          lembrete_horas_antes?: number
+          updated_at?: string
+          user_id?: string | null
+          whatsapp_cancelamento?: boolean
+          whatsapp_confirmacao?: boolean
+          whatsapp_lembrete?: boolean
+          whatsapp_reagendamento?: boolean
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          lembrete_horas_antes?: number
+          updated_at?: string
+          user_id?: string | null
+          whatsapp_cancelamento?: boolean
+          whatsapp_confirmacao?: boolean
+          whatsapp_lembrete?: boolean
+          whatsapp_reagendamento?: boolean
         }
         Relationships: []
       }

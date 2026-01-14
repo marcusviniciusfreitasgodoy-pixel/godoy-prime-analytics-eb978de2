@@ -1,4 +1,5 @@
 import { supabase } from "@/integrations/supabase/client";
+import { fetchNotificationSettings } from "@/hooks/useNotificationSettings";
 
 interface WhatsAppDados {
   nome_visitante: string;
@@ -17,6 +18,24 @@ export async function enviarWhatsApp(
   dados: WhatsAppDados
 ): Promise<{ success: boolean; error?: string }> {
   try {
+    // Verificar configurações de notificação
+    const settings = await fetchNotificationSettings();
+    
+    if (settings) {
+      const tipoConfig: Record<TipoMensagem, keyof typeof settings> = {
+        confirmacao: 'whatsapp_confirmacao',
+        lembrete: 'whatsapp_lembrete',
+        cancelamento: 'whatsapp_cancelamento',
+        reagendamento: 'whatsapp_reagendamento',
+      };
+      
+      const configKey = tipoConfig[tipo];
+      if (configKey && settings[configKey] === false) {
+        console.log(`WhatsApp ${tipo} desativado nas configurações`);
+        return { success: true, error: 'Notificação desativada' };
+      }
+    }
+
     const { data, error } = await supabase.functions.invoke('send-whatsapp', {
       body: { telefone, tipo, dados }
     });
