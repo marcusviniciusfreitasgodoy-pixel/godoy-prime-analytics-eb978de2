@@ -4,9 +4,10 @@ import { ErrorBoundary } from "./components/ErrorBoundary";
 import App from "./App.tsx";
 import "./index.css";
 
-// Ensures PWA clients pick up the newest version instead of staying on a stale cached bundle.
-// In dev, the PWA is disabled via VitePWA devOptions.
 import { registerSW } from "virtual:pwa-register";
+
+// Store the update function globally so components can trigger updates
+let triggerUpdate: (() => void) | null = null;
 
 // Clear ALL caches on startup to force fresh content
 const clearAllCaches = async () => {
@@ -15,7 +16,6 @@ const clearAllCaches = async () => {
     console.log('[PWA] Limpando caches:', cacheNames);
     await Promise.all(
       cacheNames.map(name => {
-        // Keep only font caches
         if (!name.includes('fonts')) {
           console.log('[Cache] Removendo:', name);
           return caches.delete(name);
@@ -26,37 +26,28 @@ const clearAllCaches = async () => {
   }
 };
 
-// Force immediate update without asking user - prevents stale cache issues
+// Register SW with manual update prompt instead of auto-update
 const updateSW = registerSW({
   immediate: true,
   onNeedRefresh() {
-    console.log('[PWA] Nova versão detectada, atualizando automaticamente...');
-    window.dispatchEvent(new CustomEvent('sw-update-start'));
-    
-    // Clear caches before updating
-    clearAllCaches().then(() => {
-      // Small delay to ensure indicator is visible before reload
-      setTimeout(() => {
-        updateSW(true); // Accept the update
-        // Force hard reload after update
-        window.location.reload();
-      }, 500);
-    });
+    console.log('[PWA] Nova versão detectada, aguardando ação do usuário...');
+    // Dispatch event for the banner component
+    window.dispatchEvent(new CustomEvent('sw-need-refresh'));
   },
   onOfflineReady() {
     console.log('[PWA] App pronto para uso offline');
     window.dispatchEvent(new CustomEvent('sw-update-complete'));
   },
   onRegisteredSW(swUrl, registration) {
-    // Check for updates more frequently - every 5 minutes
     if (registration) {
       // Check immediately on registration
       registration.update();
       
+      // Check for updates every 5 minutes
       setInterval(() => {
         console.log('[PWA] Verificando atualizações...');
         registration.update();
-      }, 5 * 60 * 1000); // 5 minutes instead of 24 hours
+      }, 5 * 60 * 1000);
     }
   },
   onRegisterError(error) {
@@ -64,8 +55,22 @@ const updateSW = registerSW({
   },
 });
 
-// Clear stale caches on every page load
-clearAllCaches();
+// Export function to trigger update from components
+triggerUpdate = async () => {
+  console.log('[PWA] Usuário solicitou atualização');
+  window.dispatchEvent(new CustomEvent('sw-update-start'));
+  
+  await clearAllCaches();
+  
+  // Accept the update and reload
+  setTimeout(() => {
+    updateSW(true);
+    window.location.reload();
+  }, 300);
+};
+
+// Make triggerUpdate available globally
+(window as any).__pwaUpdate = triggerUpdate;
 
 const rootElement = document.getElementById("root");
 
