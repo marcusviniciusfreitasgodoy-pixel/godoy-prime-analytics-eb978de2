@@ -11,6 +11,7 @@ import { AppSidebar } from "@/components/AppSidebar";
 import { Header } from "@/components/Header";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { UpdateIndicator } from "@/components/UpdateIndicator";
+import { TourProgressBar } from "@/components/TourProgressBar";
 import Dashboard from "./pages/Dashboard";
 import Microbairros from "./pages/Microbairros";
 import PesquisasMercado from "./pages/PesquisasMercado";
@@ -105,6 +106,7 @@ const App = () => (
                                 <Route path="*" element={<NotFound />} />
                               </Routes>
                             </main>
+                            <TourProgressBar />
                           </div>
                         </div>
                       </SidebarProvider>

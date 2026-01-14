@@ -40,6 +40,8 @@ import {
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useAuthContext } from "@/contexts/AuthContext";
+import { useTourNavigation } from "@/hooks/useTourNavigation";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 interface ManualSection {
   id: string;
@@ -478,6 +480,8 @@ export default function ManualPlataforma() {
   const [selectedTab, setSelectedTab] = useState("funcionalidades");
   const navigate = useNavigate();
   const { isAdmin } = useAuthContext();
+  const { startTour } = useTourNavigation();
+  const isMobile = useIsMobile();
 
   const allSections = isAdmin ? [...manualSections, ...adminSections] : manualSections;
 
@@ -493,10 +497,20 @@ export default function ManualPlataforma() {
             Guia completo de todas as funcionalidades do Godoy Prime Analytics
           </p>
         </div>
-        <Button variant="outline" size="sm" onClick={() => navigate("/onboarding")}>
-          <Play className="h-4 w-4 mr-2" />
-          Tour Guiado
-        </Button>
+        <div className="flex flex-col sm:flex-row gap-2">
+          <Button variant="outline" size="sm" onClick={() => navigate("/onboarding")}>
+            <Play className="h-4 w-4 mr-2" />
+            Tour Rápido
+          </Button>
+          <Button 
+            size="sm" 
+            onClick={startTour}
+            className="bg-primary hover:bg-primary/90"
+          >
+            <Play className="h-4 w-4 mr-2" />
+            {isMobile ? 'Tour Completo' : 'Tour Multi-Página'}
+          </Button>
+        </div>
       </div>
 
       <Tabs value={selectedTab} onValueChange={setSelectedTab}>

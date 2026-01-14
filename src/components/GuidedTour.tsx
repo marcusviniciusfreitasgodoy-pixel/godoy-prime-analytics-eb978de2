@@ -1,7 +1,9 @@
 import { useState, useEffect, useCallback } from "react";
 import Joyride, { CallBackProps, STATUS, Step, ACTIONS, EVENTS } from "react-joyride";
+import { useIsMobile } from "@/hooks/use-mobile";
 
-const tourSteps: Step[] = [
+// ==================== DESKTOP TOUR STEPS ====================
+const desktopTourSteps: Step[] = [
   // Painel Principal - Visão Geral
   {
     target: '[data-tour="kpis"]',
@@ -59,12 +61,6 @@ const tourSteps: Step[] = [
     content: 'Motor de Avaliação: 6 etapas, 26 características, 3 cenários de valor. Base combinada de dados oficiais e anúncios. Gera relatório profissional para impressão.',
     placement: 'right',
     title: '🧮 Avaliação de Imóveis',
-  },
-  {
-    target: '[data-tour="nav-precificacao"]',
-    content: 'Estratégia de Preço: 9 perguntas diagnósticas geram 3 estratégias (Atração, Mercado, Valorização) com preço de anúncio, comissão e valor líquido ao vendedor.',
-    placement: 'right',
-    title: '🎯 Estratégia de Preço',
   },
   {
     target: '[data-tour="nav-historico"]',
@@ -136,10 +132,80 @@ const tourSteps: Step[] = [
   },
 ];
 
+// ==================== MOBILE TOUR STEPS ====================
+const mobileTourSteps: Step[] = [
+  // Passo 1: Introdução Mobile
+  {
+    target: 'body',
+    content: 'Bem-vindo ao Godoy Prime! 📱 Este tour foi adaptado para seu dispositivo móvel. Vamos conhecer as principais funcionalidades.',
+    disableBeacon: true,
+    placement: 'center',
+    title: '🚀 Tour Mobile',
+  },
+  
+  // Passo 2: Menu Hambúrguer
+  {
+    target: '[data-tour="mobile-menu"]',
+    content: 'Toque aqui para abrir o menu de navegação. No menu você encontra todas as seções: Avaliações, Vistorias, Pesquisas e muito mais.',
+    placement: 'bottom',
+    title: '☰ Menu de Navegação',
+  },
+  
+  // Passo 3: KPIs (cards adaptados)
+  {
+    target: '[data-tour="kpis"]',
+    content: 'Indicadores do mercado em tempo real. Deslize os cards para ver: Preço Médio, Liquidez, Variação Anual e Região mais valorizada.',
+    placement: 'bottom',
+    title: '📊 Indicadores',
+  },
+  
+  // Passo 4: Seletor de Bairro
+  {
+    target: '[data-tour="bairro-selector"]',
+    content: 'Selecione o bairro para análise. Todos os dados serão filtrados para a região escolhida.',
+    placement: 'bottom',
+    title: '🗺️ Escolha o Bairro',
+  },
+  
+  // Passo 5: Gráficos (scroll)
+  {
+    target: '[data-tour="evolution-chart"]',
+    content: 'Role para baixo para ver os gráficos de evolução. Toque no gráfico para alternar entre visualização Semestral e Anual.',
+    placement: 'top',
+    title: '📈 Gráficos',
+  },
+  
+  // Passo 6: Ranking
+  {
+    target: '[data-tour="microbairro-ranking"]',
+    content: 'Lista das regiões mais valorizadas. Toque em uma região para expandir e ver detalhes.',
+    placement: 'top',
+    title: '🏆 Ranking de Regiões',
+  },
+  
+  // Passo 7: Assistente Sofia
+  {
+    target: '[data-tour="sofia-assistant"]',
+    content: 'Sofia é sua assistente de IA! Toque para abrir e pergunte sobre preços, tendências ou análises. Use o microfone para comandos de voz.',
+    placement: 'top',
+    title: '🤖 Assistente Sofia',
+  },
+  
+  // Passo 8: Próximos Passos
+  {
+    target: 'body',
+    content: 'Explore o menu para acessar:\n\n• 🧮 Avaliação de Imóveis\n• 📝 Vistoria Digital\n• 📅 Agenda de Visitas\n• 🔍 Pesquisas de Mercado\n\nO manual completo está disponível em "Manual / Tour".',
+    placement: 'center',
+    title: '✨ Próximos Passos',
+  },
+];
+
 // Filter steps to only include those with existing targets
-const getVisibleSteps = (): Step[] => {
-  return tourSteps.filter(step => {
+const getVisibleSteps = (steps: Step[]): Step[] => {
+  return steps.filter(step => {
     const target = step.target as string;
+    // 'body' target is always available
+    if (target === 'body') return true;
     const element = document.querySelector(target);
     return element !== null;
   });
@@ -151,6 +217,7 @@ interface GuidedTourProps {
 }
 
 export function GuidedTour({ run, onFinish }: GuidedTourProps) {
+  const isMobile = useIsMobile();
   const [visibleSteps, setVisibleSteps] = useState<Step[]>([]);
   const [isReady, setIsReady] = useState(false);
 
@@ -159,8 +226,9 @@ export function GuidedTour({ run, onFinish }: GuidedTourProps) {
     if (run) {
       // Small delay to ensure DOM is ready
       const timer = setTimeout(() => {
-        const steps = getVisibleSteps();
-        console.log('[GuidedTour] Visible steps:', steps.length, 'of', tourSteps.length);
+        const baseSteps = isMobile ? mobileTourSteps : desktopTourSteps;
+        const steps = getVisibleSteps(baseSteps);
+        console.log(`[GuidedTour] ${isMobile ? 'Mobile' : 'Desktop'} mode: ${steps.length} of ${baseSteps.length} steps visible`);
         setVisibleSteps(steps);
         setIsReady(true);
       }, 500);
@@ -170,7 +238,7 @@ export function GuidedTour({ run, onFinish }: GuidedTourProps) {
       setIsReady(false);
       setVisibleSteps([]);
     }
-  }, [run]);
+  }, [run, isMobile]);
 
   const handleCallback = useCallback((data: CallBackProps) => {
     const { status, action, type } = data;
@@ -226,26 +294,40 @@ export function GuidedTour({ run, onFinish }: GuidedTourProps) {
           backgroundColor: '#ffffff',
           arrowColor: '#ffffff',
           zIndex: 10000,
+          // Mobile: tooltip mais largo
+          width: isMobile ? 300 : 380,
         },
         buttonNext: {
           backgroundColor: '#D4AF37',
           color: '#0C2340',
           fontWeight: 600,
+          padding: isMobile ? '10px 16px' : '8px 12px',
+          fontSize: isMobile ? '14px' : '13px',
         },
         buttonBack: {
           color: '#0C2340',
+          padding: isMobile ? '10px 16px' : '8px 12px',
         },
         buttonSkip: {
           color: '#666',
+          fontSize: isMobile ? '14px' : '13px',
         },
         tooltip: {
-          borderRadius: '8px',
-          padding: '16px',
+          borderRadius: '12px',
+          padding: isMobile ? '20px' : '16px',
+          maxWidth: isMobile ? '90vw' : '400px',
         },
         tooltipTitle: {
-          fontSize: '16px',
+          fontSize: isMobile ? '18px' : '16px',
           fontWeight: 700,
-          marginBottom: '8px',
+          marginBottom: '10px',
+        },
+        tooltipContent: {
+          fontSize: isMobile ? '15px' : '14px',
+          lineHeight: '1.5',
+        },
+        spotlight: {
+          borderRadius: '8px',
         },
       }}
       locale={{
