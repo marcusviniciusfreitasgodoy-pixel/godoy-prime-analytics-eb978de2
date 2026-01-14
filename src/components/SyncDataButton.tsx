@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { useQueryClient } from "@tanstack/react-query";
 import { RefreshCw, CheckCircle2, AlertCircle } from "lucide-react";
 import {
   AlertDialog,
@@ -23,6 +24,7 @@ import {
 export const SyncDataButton = () => {
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
+  const queryClient = useQueryClient();
 
   const handleSync = async () => {
     setIsLoading(true);
@@ -49,6 +51,15 @@ export const SyncDataButton = () => {
       console.log("Resposta da sincronização:", data);
 
       if (data.success) {
+        // Invalidar queries de condominios e avaliações
+        console.log('[SyncData] Invalidando queries de condomínios e pesos...');
+        await queryClient.invalidateQueries({ predicate: (query) => {
+          const key = query.queryKey[0] as string;
+          return key?.includes('condominio') || 
+                 key?.includes('valuation') ||
+                 key?.includes('weights');
+        }});
+        
         toast({
           title: "Sincronização concluída!",
           description: `${data.condominios_synced} condomínios e ${data.weights_synced} pesos importados com sucesso.`,
