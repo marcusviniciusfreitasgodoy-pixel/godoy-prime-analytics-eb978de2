@@ -1,14 +1,20 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useBairroSuggestions } from "@/hooks/useBairroSuggestions";
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { Input } from "@/components/ui/input";
-import { MapPin, Search } from "lucide-react";
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from "@/components/ui/command";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import { Button } from "@/components/ui/button";
+import { MapPin, ChevronsUpDown, Check, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface BairroSelectorProps {
@@ -18,59 +24,91 @@ interface BairroSelectorProps {
 }
 
 export function BairroSelector({ value, onChange, className }: BairroSelectorProps) {
-  const [searchFilter, setSearchFilter] = useState("");
-  const { data, isLoading } = useBairroSuggestions(searchFilter);
+  const [open, setOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
+  const { data, isLoading } = useBairroSuggestions(searchQuery);
 
   const bairros = data ?? [];
-  const showHelper = searchFilter.trim().length < 2;
+
+  // Reset search when popover closes
+  useEffect(() => {
+    if (!open) {
+      setSearchQuery("");
+    }
+  }, [open]);
+
+  const handleSelect = (selectedBairro: string) => {
+    onChange(selectedBairro);
+    setOpen(false);
+  };
 
   return (
     <div className="flex items-center gap-2">
       <MapPin className="h-4 w-4 text-accent shrink-0" />
-      <Select value={value} onValueChange={onChange} disabled={isLoading && bairros.length === 0}>
-        <SelectTrigger
-          className={cn(
-            "w-full sm:w-[180px] md:w-[220px] bg-background/50 border-border text-sm",
-            className,
-          )}
-        >
-          <SelectValue placeholder="Selecione o bairro" />
-        </SelectTrigger>
-        <SelectContent className="max-h-[300px] max-w-[90vw] sm:max-w-none">
-          <div className="flex items-center px-2 pb-2 sticky top-0 bg-popover">
-            <Search className="h-4 w-4 text-muted-foreground mr-2" />
-            <Input
+      <Popover open={open} onOpenChange={setOpen}>
+        <PopoverTrigger asChild>
+          <Button
+            variant="outline"
+            role="combobox"
+            aria-expanded={open}
+            className={cn(
+              "w-full sm:w-[180px] md:w-[220px] justify-between bg-background/50 border-border text-sm font-normal",
+              !value && "text-muted-foreground",
+              className
+            )}
+          >
+            <span className="truncate">
+              {value || "Selecione o bairro"}
+            </span>
+            <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+          </Button>
+        </PopoverTrigger>
+        <PopoverContent className="w-[280px] p-0 z-50" align="start">
+          <Command shouldFilter={false}>
+            <CommandInput
               placeholder="Buscar bairro..."
-              value={searchFilter}
-              onChange={(e) => setSearchFilter(e.target.value)}
-              className="h-8 text-sm"
-              onClick={(e) => e.stopPropagation()}
-              autoComplete="off"
+              value={searchQuery}
+              onValueChange={setSearchQuery}
             />
-          </div>
-
-          {showHelper ? (
-            <div className="py-2 px-2 text-sm text-muted-foreground text-center">
-              Digite pelo menos 2 letras para buscar
-            </div>
-          ) : (bairros || []).length === 0 ? (
-            <div className="py-2 px-2 text-sm text-muted-foreground text-center">
-              Nenhum bairro encontrado
-            </div>
-          ) : (
-            (bairros || []).map(({ bairro, total_transacoes }) => (
-              <SelectItem key={bairro} value={bairro}>
-                <span className="flex items-center justify-between w-full gap-2">
-                  <span className="truncate">{bairro}</span>
-                  <span className="text-xs text-muted-foreground">
-                    ({total_transacoes.toLocaleString("pt-BR")})
-                  </span>
-                </span>
-              </SelectItem>
-            ))
-          )}
-        </SelectContent>
-      </Select>
+            <CommandList>
+              {searchQuery.length < 2 ? (
+                <div className="py-6 text-center text-sm text-muted-foreground">
+                  Digite pelo menos 2 letras para buscar
+                </div>
+              ) : isLoading ? (
+                <div className="py-6 text-center text-sm text-muted-foreground flex items-center justify-center gap-2">
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  Buscando...
+                </div>
+              ) : bairros.length === 0 ? (
+                <CommandEmpty>Nenhum bairro encontrado</CommandEmpty>
+              ) : (
+                <CommandGroup>
+                  {bairros.map(({ bairro, total_transacoes }) => (
+                    <CommandItem
+                      key={bairro}
+                      value={bairro}
+                      onSelect={() => handleSelect(bairro)}
+                      className="cursor-pointer"
+                    >
+                      <Check
+                        className={cn(
+                          "mr-2 h-4 w-4",
+                          value === bairro ? "opacity-100" : "opacity-0"
+                        )}
+                      />
+                      <span className="flex-1 truncate">{bairro}</span>
+                      <span className="text-xs text-muted-foreground ml-2">
+                        ({total_transacoes.toLocaleString("pt-BR")})
+                      </span>
+                    </CommandItem>
+                  ))}
+                </CommandGroup>
+              )}
+            </CommandList>
+          </Command>
+        </PopoverContent>
+      </Popover>
     </div>
   );
 }
