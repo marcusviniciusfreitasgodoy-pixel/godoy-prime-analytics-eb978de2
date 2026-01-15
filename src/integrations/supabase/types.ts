@@ -1519,6 +1519,16 @@ export type Database = {
         Args: { lead_email: string }
         Returns: undefined
       }
+      search_bairros_fuzzy: {
+        Args: { result_limit?: number; search_term: string }
+        Returns: {
+          bairro: string
+          similarity_score: number
+          total_transacoes: number
+        }[]
+      }
+      show_limit: { Args: never; Returns: number }
+      show_trgm: { Args: { "": string }; Returns: string[] }
       update_lead_by_email: {
         Args: {
           p_aceita_marketing?: boolean
