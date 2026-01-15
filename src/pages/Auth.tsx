@@ -292,11 +292,6 @@ Plataforma de Inteligência Imobiliária </CardDescription>
             </TabsContent>
           </Tabs>
           
-          <div className="mt-6 text-center">
-            <a href="https://avaliacao.godoyprime.com.br" target="_blank" rel="noopener noreferrer" className="text-sm text-muted-foreground hover:text-accent transition-colors">
-              Fazer avaliação rápida gratuita →
-            </a>
-          </div>
         </CardContent>
       </Card>
     </div>;
