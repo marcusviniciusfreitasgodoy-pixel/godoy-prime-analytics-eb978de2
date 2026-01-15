@@ -1,10 +1,6 @@
 import { useState, useEffect } from "react";
 import { useBairroSuggestions } from "@/hooks/useBairroSuggestions";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -29,6 +25,7 @@ export function BairroSelector({ value, onChange, className }: BairroSelectorPro
   }, [open]);
 
   const handleSelect = (selectedBairro: string) => {
+    console.debug("[BairroSelector] selected", selectedBairro);
     onChange(selectedBairro);
     setOpen(false);
   };
@@ -61,7 +58,11 @@ export function BairroSelector({ value, onChange, className }: BairroSelectorPro
               <Search className="h-4 w-4 text-muted-foreground absolute left-2 top-1/2 -translate-y-1/2" />
               <Input
                 value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
+                onChange={(e) => {
+                  const next = e.target.value;
+                  console.debug("[BairroSelector] query", next);
+                  setSearchQuery(next);
+                }}
                 placeholder="Buscar bairro..."
                 className="pl-8"
                 autoComplete="off"
@@ -94,9 +95,7 @@ export function BairroSelector({ value, onChange, className }: BairroSelectorPro
                     key={bairro}
                     type="button"
                     onClick={() => handleSelect(bairro)}
-                    className={cn(
-                      "w-full text-left flex items-center gap-2 rounded-sm px-2 py-2 text-sm hover:bg-accent/50 focus:outline-none focus-visible:ring-2 focus-visible:ring-ring",
-                    )}
+                    className="w-full text-left flex items-center gap-2 rounded-sm px-2 py-2 text-sm hover:bg-accent/50 focus:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                   >
                     <Check
                       className={cn(
