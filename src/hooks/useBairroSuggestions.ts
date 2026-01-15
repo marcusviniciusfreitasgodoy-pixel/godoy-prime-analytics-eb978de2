@@ -13,6 +13,8 @@ export function useBairroSuggestions(query: string) {
       const q = (query || "").trim();
       if (q.length < 2) return [];
 
+      console.debug("[useBairroSuggestions] fetching", { q });
+
       const { data, error } = await supabase.functions.invoke("public-bairro-suggestions", {
         body: {
           query: q,
@@ -20,8 +22,14 @@ export function useBairroSuggestions(query: string) {
         },
       });
 
-      if (error) throw error;
-      return (data?.suggestions || []) as BairroSuggestion[];
+      if (error) {
+        console.error("[useBairroSuggestions] invoke error", { q, error });
+        throw error;
+      }
+
+      const suggestions = (data?.suggestions || []) as BairroSuggestion[];
+      console.debug("[useBairroSuggestions] fetched", { q, count: suggestions.length });
+      return suggestions;
     },
     enabled: (query || "").trim().length >= 2,
     staleTime: 30 * 1000,
