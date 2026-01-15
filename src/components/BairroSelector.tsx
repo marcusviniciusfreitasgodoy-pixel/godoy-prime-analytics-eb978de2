@@ -25,7 +25,6 @@ export function BairroSelector({ value, onChange, className }: BairroSelectorPro
   }, [open]);
 
   const handleSelect = (selectedBairro: string) => {
-    console.debug("[BairroSelector] selected", selectedBairro);
     onChange(selectedBairro);
     setOpen(false);
   };
@@ -58,11 +57,7 @@ export function BairroSelector({ value, onChange, className }: BairroSelectorPro
               <Search className="h-4 w-4 text-muted-foreground absolute left-2 top-1/2 -translate-y-1/2" />
               <Input
                 value={searchQuery}
-                onChange={(e) => {
-                  const next = e.target.value;
-                  console.debug("[BairroSelector] query", next);
-                  setSearchQuery(next);
-                }}
+                onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder="Buscar bairro..."
                 className="pl-8"
                 autoComplete="off"
