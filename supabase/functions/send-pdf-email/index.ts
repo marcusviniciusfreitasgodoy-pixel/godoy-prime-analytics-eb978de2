@@ -1,4 +1,5 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY");
 
@@ -92,6 +93,36 @@ const handler = async (req: Request): Promise<Response> => {
   }
 
   try {
+    // ========== VERIFICAÇÃO DE AUTENTICAÇÃO ==========
+    const authHeader = req.headers.get('Authorization');
+    if (!authHeader?.startsWith('Bearer ')) {
+      console.error('Token de autenticação não fornecido');
+      return new Response(
+        JSON.stringify({ error: 'Token de autenticação não fornecido' }),
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
+    const supabaseAnonKey = Deno.env.get('SUPABASE_ANON_KEY')!;
+    const supabase = createClient(supabaseUrl, supabaseAnonKey, {
+      global: { headers: { Authorization: authHeader } }
+    });
+
+    const token = authHeader.replace('Bearer ', '');
+    const { data: claimsData, error: claimsError } = await supabase.auth.getUser(token);
+    
+    if (claimsError || !claimsData?.user) {
+      console.error('Erro de autenticação:', claimsError);
+      return new Response(
+        JSON.stringify({ error: 'Token inválido ou expirado' }),
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    console.log('Usuário autenticado:', claimsData.user.email);
+    // ========== FIM DA VERIFICAÇÃO ==========
+
     const { to, subject, recipientName, pdfBase64, pdfFilename, documentType, customMessage }: SendPdfEmailRequest = await req.json();
 
     console.log(`Sending PDF email to: ${to}, document type: ${documentType}`);
