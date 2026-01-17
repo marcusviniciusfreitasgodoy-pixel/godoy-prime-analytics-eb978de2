@@ -477,16 +477,6 @@ export default function AvaliacaoPublica() {
                   </div>
                 </div>
 
-                {/* Disclaimer */}
-                <div className="bg-white rounded-xl p-4 border border-gray-200">
-                  <div className="flex items-start gap-3">
-                    <AlertCircle className="h-5 w-5 text-muted-foreground shrink-0 mt-0.5" />
-                    <p className="text-xs text-muted-foreground">
-                      <strong className="text-foreground">Aviso:</strong> Esta é uma estimativa automática baseada em dados 
-                      históricos de transações oficiais. Não substitui um laudo técnico assinado por perito avaliador.
-                    </p>
-                  </div>
-                </div>
               </div>
             )}
           </div>
@@ -503,6 +493,20 @@ export default function AvaliacaoPublica() {
             </div>
           </section>
         )}
+
+        {/* ============ DISCLAIMER SECTION ============ */}
+        <section className="py-8 px-4 bg-white border-t border-gray-100">
+          <div className="container mx-auto max-w-3xl">
+            <div className="bg-gray-50 rounded-xl p-4 border border-gray-200">
+              <div className="flex items-start gap-3">
+                <AlertCircle className="h-5 w-5 text-muted-foreground shrink-0 mt-0.5" />
+                <p className="text-sm text-muted-foreground">
+                  <strong className="text-foreground">Aviso:</strong> Esta ferramenta fornece análises estatísticas baseadas em dados públicos de ITBI. As informações não substituem laudos oficiais e devem ser utilizadas apenas como referência de mercado.
+                </p>
+              </div>
+            </div>
+          </div>
+        </section>
 
         {/* ============ SECTION 7: FOOTER (Navy background) ============ */}
         <footer className="py-12 px-4 bg-[#0C2340]">
