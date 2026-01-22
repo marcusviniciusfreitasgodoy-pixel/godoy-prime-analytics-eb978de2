@@ -536,9 +536,7 @@ export default function Dashboard() {
       <Alert className="hidden sm:flex">
         <Info className="h-4 w-4" />
         <AlertDescription className="text-xs sm:text-sm">
-          <strong>Disclaimer Jurídico:</strong> Esta ferramenta fornece análises estatísticas 
-          baseadas em dados públicos de transações oficiais. As informações não substituem laudos oficiais 
-          (PTAM) e devem ser utilizadas apenas como referência de mercado.
+          <strong>Aviso:</strong> Esta ferramenta fornece análises estatísticas baseadas em dados públicos de ITBI. As informações não substituem laudos oficiais e devem ser utilizadas apenas como referência de mercado.
         </AlertDescription>
       </Alert>
 
