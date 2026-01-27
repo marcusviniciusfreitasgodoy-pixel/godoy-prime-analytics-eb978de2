@@ -286,6 +286,7 @@ export function SearchTools({ bairro = "BARRA DA TIJUCA", vistoriaData }: Search
                     <SelectItem value="todas">Todas</SelectItem>
                     <SelectItem value="apartamento">Apartamento</SelectItem>
                     <SelectItem value="casa">Casa</SelectItem>
+                    <SelectItem value="Comercial">Comercial (Lojas, Salas)</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
