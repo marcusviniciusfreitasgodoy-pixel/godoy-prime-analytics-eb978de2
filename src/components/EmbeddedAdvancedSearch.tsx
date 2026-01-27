@@ -47,10 +47,7 @@ const TIPOLOGIA_OPTIONS = [
   { value: '', label: 'Todas' },
   { value: 'Casa', label: 'Casa' },
   { value: 'Apartamento', label: 'Apartamento' },
-  { value: 'Loja', label: 'Loja' },
-  { value: 'Sala', label: 'Sala Comercial' },
-  { value: 'Galpao', label: 'Galpão' },
-  { value: 'Terreno', label: 'Terreno' },
+  { value: 'Comercial', label: 'Comercial (Lojas, Salas)' },
 ];
 
 const USO_OPTIONS = [
