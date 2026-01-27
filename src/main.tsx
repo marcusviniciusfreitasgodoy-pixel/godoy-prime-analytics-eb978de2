@@ -6,6 +6,8 @@ import "./index.css";
 
 import { registerSW } from "virtual:pwa-register";
 
+declare const __BUILD_TIMESTAMP__: string;
+
 // Store the update function globally so components can trigger updates
 let triggerUpdate: (() => void) | null = null;
 
@@ -54,6 +56,47 @@ const updateSW = registerSW({
     console.error('[PWA] Erro no registro:', error);
   },
 });
+
+/**
+ * No ambiente de preview do Lovable, é comum o Service Worker/cache manter uma build antiga.
+ * Para evitar confusão durante o desenvolvimento, forçamos uma atualização/limpeza uma vez
+ * por build no domínio `id-preview--*.lovable.app`.
+ */
+const isLovablePreview = window.location.hostname.startsWith('id-preview--');
+const buildVersion = typeof __BUILD_TIMESTAMP__ !== 'undefined' ? __BUILD_TIMESTAMP__ : 'dev';
+const PREVIEW_BUILD_KEY = '__lovable_preview_build__';
+
+if (isLovablePreview) {
+  const lastPreviewBuild = localStorage.getItem(PREVIEW_BUILD_KEY);
+
+  if (lastPreviewBuild !== buildVersion) {
+    console.log('[Preview] Build nova detectada. Limpando SW/cache para evitar versão antiga.', {
+      lastPreviewBuild,
+      buildVersion,
+    });
+
+    localStorage.setItem(PREVIEW_BUILD_KEY, buildVersion);
+
+    // Executar de forma assíncrona para não bloquear o render inicial.
+    (async () => {
+      try {
+        await clearAllCaches();
+
+        if ('serviceWorker' in navigator) {
+          const regs = await navigator.serviceWorker.getRegistrations();
+          await Promise.all(regs.map((r) => r.unregister()));
+        }
+
+        // Garante que a navegação vai buscar os assets mais recentes.
+        updateSW(true);
+      } catch (e) {
+        console.warn('[Preview] Falha ao limpar SW/cache:', e);
+      } finally {
+        window.location.reload();
+      }
+    })();
+  }
+}
 
 // Export function to trigger update from components
 triggerUpdate = async () => {
