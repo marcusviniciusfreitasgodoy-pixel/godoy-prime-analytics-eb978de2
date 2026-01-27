@@ -308,6 +308,7 @@ export default function PesquisasMercado() {
                       <SelectItem value="todas">Todas</SelectItem>
                       <SelectItem value="apartamento">Apartamento</SelectItem>
                       <SelectItem value="casa">Casa</SelectItem>
+                      <SelectItem value="Comercial">Comercial (Lojas, Salas)</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
