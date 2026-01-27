@@ -1,5 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
+import { useState, useEffect } from 'react';
 
 export interface StreetSuggestion {
   logradouro: string;
@@ -10,13 +11,36 @@ export interface StreetSuggestion {
   ruas_internas?: string[];
 }
 
-export function useStreetSuggestions(query: string, bairro: string = 'BARRA DA TIJUCA') {
-  return useQuery<StreetSuggestion[]>({
-    queryKey: ['street-suggestions', query, bairro],
-    queryFn: async () => {
-      if (!query || query.length < 2) return [];
+/**
+ * Hook para debounce de valores
+ */
+function useDebouncedValue<T>(value: T, delay: number): T {
+  const [debouncedValue, setDebouncedValue] = useState<T>(value);
 
-      const searchTerm = query.toUpperCase().trim();
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      setDebouncedValue(value);
+    }, delay);
+
+    return () => {
+      clearTimeout(handler);
+    };
+  }, [value, delay]);
+
+  return debouncedValue;
+}
+
+export function useStreetSuggestions(query: string, bairro: string = 'BARRA DA TIJUCA') {
+  // Debounce de 400ms para evitar queries excessivas durante digitação
+  const debouncedQuery = useDebouncedValue(query, 400);
+  const debouncedBairro = useDebouncedValue(bairro, 400);
+
+  return useQuery<StreetSuggestion[]>({
+    queryKey: ['street-suggestions', debouncedQuery, debouncedBairro],
+    queryFn: async () => {
+      if (!debouncedQuery || debouncedQuery.length < 2) return [];
+
+      const searchTerm = debouncedQuery.toUpperCase().trim();
       
       // Remove prefixos comuns para buscar pelo nome
       let cleanedSearch = searchTerm
@@ -33,7 +57,7 @@ export function useStreetSuggestions(query: string, bairro: string = 'BARRA DA T
         .from('logradouros_normalizacao')
         .select('logradouro_original, logradouro_normalizado')
         .or(`logradouro_original.ilike.%${cleanedSearch}%,logradouro_normalizado.ilike.%${cleanedSearch}%`)
-        .eq('bairro', bairro)
+        .eq('bairro', debouncedBairro)
         .limit(20);
 
       const normalizedLogradouros = (normalizedMatches || []).map(m => m.logradouro_original);
@@ -176,7 +200,7 @@ export function useStreetSuggestions(query: string, bairro: string = 'BARRA DA T
         .from('itbi_transactions')
         .select('logradouro')
         .eq('uso', 'Residencial')
-        .ilike('bairro', bairro)
+        .ilike('bairro', debouncedBairro)
         .or(orConditions)
         .limit(500);
 
@@ -229,7 +253,7 @@ export function useStreetSuggestions(query: string, bairro: string = 'BARRA DA T
 
       return suggestions;
     },
-    enabled: query.length >= 2,
+    enabled: debouncedQuery.length >= 2,
     staleTime: 30000,
   });
 }
