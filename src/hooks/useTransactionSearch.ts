@@ -51,10 +51,13 @@ export function useTransactionSearch(params: TransactionSearchParams, enabled: b
       
       const outlierLimit = params.bairro ? getOutlierLimit(params.bairro) : OUTLIER_LIMITS['DEFAULT'];
 
+      // Determina o uso baseado na tipologia selecionada
+      const isComercial = params.tipologia?.toLowerCase() === 'comercial';
+      
       let query = supabase
         .from('itbi_transactions')
-        .select('logradouro, valor_transacao, valor_m2, total_transacoes, data_transacao')
-        .eq('uso', 'Residencial')
+        .select('logradouro, valor_transacao, valor_m2, total_transacoes, data_transacao, tipologia')
+        .eq('uso', isComercial ? 'Comercial' : 'Residencial')
         .not('valor_m2', 'is', null)
         .lte('valor_m2', outlierLimit)
         .gte('percentual_transferido', 90)
@@ -64,7 +67,8 @@ export function useTransactionSearch(params: TransactionSearchParams, enabled: b
         query = query.ilike('bairro', params.bairro);
       }
 
-      if (params.tipologia) {
+      // Para tipologia residencial (casa/apartamento), aplica o filtro
+      if (params.tipologia && !isComercial) {
         query = query.ilike('tipologia', `%${params.tipologia}%`);
       }
 
