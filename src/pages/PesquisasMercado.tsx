@@ -441,9 +441,62 @@ export default function PesquisasMercado() {
                 )}
               </div>
               
-              {/* Results */}
+              {/* Results Summary */}
               {transactionResult && transactionResult.length > 0 && (
                 <div className="mt-4 space-y-3">
+                  {/* Summary Counter Card */}
+                  <div className="bg-muted/50 border border-border rounded-lg p-3 space-y-2">
+                    <div className="flex items-center justify-between flex-wrap gap-2">
+                      <div className="flex items-center gap-2">
+                        <Badge 
+                          variant={transacaoTipologia?.toLowerCase() === 'comercial' ? 'default' : 'secondary'}
+                          className={transacaoTipologia?.toLowerCase() === 'comercial' 
+                            ? 'bg-amber-500/20 text-amber-600 border-amber-500/30' 
+                            : 'bg-primary/20 text-primary border-primary/30'
+                          }
+                        >
+                          {transacaoTipologia?.toLowerCase() === 'comercial' ? '🏢 Comercial' : '🏠 Residencial'}
+                        </Badge>
+                        <span className="text-2xl font-bold text-foreground">
+                          {((transactionResult as any).__totalGeral || 0).toLocaleString('pt-BR')}
+                        </span>
+                        <span className="text-sm text-muted-foreground">transações encontradas</span>
+                      </div>
+                      <div className="flex items-center gap-3 text-xs text-muted-foreground">
+                        <span className="flex items-center gap-1">
+                          <span className="font-medium text-foreground">
+                            {(transactionResult as any).__totalLogradouros || transactionResult.length}
+                          </span>
+                          logradouros
+                        </span>
+                        <span>•</span>
+                        <span>{transacaoBairro}</span>
+                        <span>•</span>
+                        <span>Últimos {transacaoPeriodo} meses</span>
+                      </div>
+                    </div>
+                    {(transacaoAreaMin || transacaoAreaMax || valorMin || valorMax) && (
+                      <div className="flex flex-wrap gap-1.5">
+                        {transacaoAreaMin && (
+                          <Badge variant="outline" className="text-xs">Área ≥ {transacaoAreaMin}m²</Badge>
+                        )}
+                        {transacaoAreaMax && (
+                          <Badge variant="outline" className="text-xs">Área ≤ {transacaoAreaMax}m²</Badge>
+                        )}
+                        {valorMin && valorMin !== 'none' && (
+                          <Badge variant="outline" className="text-xs">
+                            Valor ≥ {VALOR_OPTIONS.find(o => o.value === valorMin)?.label}
+                          </Badge>
+                        )}
+                        {valorMax && valorMax !== 'none' && (
+                          <Badge variant="outline" className="text-xs">
+                            Valor ≤ {VALOR_OPTIONS.find(o => o.value === valorMax)?.label}
+                          </Badge>
+                        )}
+                      </div>
+                    )}
+                  </div>
+
                   <div className="space-y-1">
                     <div className="flex items-center justify-between">
                       <h4 className="font-semibold text-foreground text-sm">
@@ -476,9 +529,6 @@ export default function PesquisasMercado() {
                             <Map className="h-4 w-4" />
                           </Button>
                         </div>
-                        <Badge variant="secondary" className="text-xs">
-                          {(transactionResult as any).__totalLogradouros || transactionResult.length} logradouros
-                        </Badge>
                       </div>
                     </div>
                     <p className="text-xs text-muted-foreground">
@@ -487,7 +537,7 @@ export default function PesquisasMercado() {
                         : viewMode === 'chart'
                         ? `Top 15 logradouros por ${chartMetric === 'transacoes' ? 'número de transações' : 'preço médio/m²'}.`
                         : `Visualização geográfica das transações em ${transacaoBairro}.`
-                      } Total geral: {((transactionResult as any).__totalGeral || 0).toLocaleString('pt-BR')} transações no período.
+                      }
                     </p>
                   </div>
 
