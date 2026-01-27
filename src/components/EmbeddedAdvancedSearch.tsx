@@ -90,6 +90,12 @@ export function EmbeddedAdvancedSearch({ defaultBairro = "" }: EmbeddedAdvancedS
   
   // Autocomplete suggestions for street
   const { data: streetSuggestions } = useStreetSuggestions(logradouro, bairro || undefined);
+
+  // Evita duplicidades no dropdown (alguns cenários podem retornar o mesmo logradouro mais de uma vez)
+  const uniqueStreetSuggestions = (streetSuggestions || []).filter((s, idx, arr) => {
+    const key = `${s.logradouro}__${s.nome_condominio || ''}`;
+    return idx === arr.findIndex(x => `${x.logradouro}__${x.nome_condominio || ''}` === key);
+  });
   
   // Search trigger
   const [searchParams, setSearchParams] = useState<{
@@ -380,12 +386,12 @@ export function EmbeddedAdvancedSearch({ defaultBairro = "" }: EmbeddedAdvancedS
                 )}
               </div>
             </PopoverTrigger>
-            {streetSuggestions && streetSuggestions.length > 0 && (
+            {uniqueStreetSuggestions.length > 0 && (
               <PopoverContent className="p-0 w-[300px]" align="start">
                 <ScrollArea className="h-[200px]">
-                  {streetSuggestions.map((s) => (
+                  {uniqueStreetSuggestions.map((s) => (
                     <button
-                      key={s.logradouro}
+                      key={`${s.logradouro}__${s.nome_condominio || ''}`}
                       className="w-full px-3 py-2 text-left text-sm hover:bg-accent flex items-center justify-between"
                       onClick={() => {
                         setLogradouro(s.logradouro);

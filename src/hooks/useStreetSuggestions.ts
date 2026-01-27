@@ -143,16 +143,24 @@ export function useStreetSuggestions(query: string, bairro: string = 'BARRA DA T
       });
 
       // 1. Buscar condomínios (incluindo ruas internas)
+      // IMPORTANTE (performance): para termos muito curtos (ex: "am"), a busca por condomínio
+      // pode retornar muitos registros e gerar OR conditions gigantes, causando travamentos.
+      // Mantemos a busca por condomínio apenas a partir de 3 caracteres e com limite.
+      const shouldSearchCondominios = cleanedSearch.length >= 3;
+
       const condominioOrConditions = [
         ...searchVariations.map(v => `nome_condominio.ilike.%${v}%`),
         ...searchVariations.map(v => `logradouro_padrao.ilike.%${v}%`),
         ...searchVariations.map(v => `logradouro_itbi_normalizado.ilike.%${v}%`),
       ].join(',');
 
-      const { data: condominios } = await supabase
-        .from('condominios_mapeamento')
-        .select('logradouro_padrao, nome_condominio, microbairro, padrao_construtivo, ruas_internas, logradouro_itbi_normalizado')
-        .or(condominioOrConditions);
+      const { data: condominios } = shouldSearchCondominios
+        ? await supabase
+            .from('condominios_mapeamento')
+            .select('logradouro_padrao, nome_condominio, microbairro, padrao_construtivo, ruas_internas, logradouro_itbi_normalizado')
+            .or(condominioOrConditions)
+            .limit(80)
+        : { data: [] as any[] };
 
       // Criar mapa de logradouros para dados do condomínio
       const condominioMap = new Map<string, { nome: string; microbairro?: string; padrao?: string; ruasInternas?: string[] }>();
@@ -186,13 +194,16 @@ export function useStreetSuggestions(query: string, bairro: string = 'BARRA DA T
         }
         return streets;
       });
+
+      // Deduplicar para evitar OR conditions repetidas
+      const uniqueCondominioLogradouros = Array.from(new Set(condominioLogradouros));
       
       // Construir condições OR
       let orConditions = searchVariations.map(v => `logradouro.ilike.%${v}%`).join(',');
       
       // Adicionar logradouros dos condomínios
-      if (condominioLogradouros.length > 0) {
-        const condLogConditions = condominioLogradouros.slice(0, 20).map(l => `logradouro.eq.${l}`).join(',');
+      if (uniqueCondominioLogradouros.length > 0) {
+        const condLogConditions = uniqueCondominioLogradouros.slice(0, 20).map(l => `logradouro.eq.${l}`).join(',');
         orConditions += `,${condLogConditions}`;
       }
 
