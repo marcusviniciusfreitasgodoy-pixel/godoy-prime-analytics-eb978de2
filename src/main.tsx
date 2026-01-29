@@ -62,7 +62,10 @@ const updateSW = registerSW({
  * Para evitar confusão durante o desenvolvimento, forçamos uma atualização/limpeza uma vez
  * por build no domínio `id-preview--*.lovable.app`.
  */
-const isLovablePreview = window.location.hostname.startsWith('id-preview--');
+const isLovablePreview =
+  window.location.hostname.startsWith('id-preview--') ||
+  window.location.hostname.includes('.lovableproject.com');
+
 const buildVersion = typeof __BUILD_TIMESTAMP__ !== 'undefined' ? __BUILD_TIMESTAMP__ : 'dev';
 const PREVIEW_BUILD_KEY = '__lovable_preview_build__';
 
