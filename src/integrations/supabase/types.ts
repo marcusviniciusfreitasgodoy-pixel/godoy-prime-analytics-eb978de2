@@ -869,6 +869,33 @@ export type Database = {
         }
         Relationships: []
       }
+      rate_limit_log: {
+        Row: {
+          created_at: string | null
+          function_name: string
+          id: string
+          identifier: string
+          request_count: number | null
+          window_start: string
+        }
+        Insert: {
+          created_at?: string | null
+          function_name: string
+          id?: string
+          identifier: string
+          request_count?: number | null
+          window_start: string
+        }
+        Update: {
+          created_at?: string | null
+          function_name?: string
+          id?: string
+          identifier?: string
+          request_count?: number | null
+          window_start?: string
+        }
+        Relationships: []
+      }
       sofia_knowledge_base: {
         Row: {
           category: string
@@ -1482,6 +1509,21 @@ export type Database = {
           exists_flag: boolean
         }[]
       }
+      check_rate_limit: {
+        Args: {
+          p_function_name: string
+          p_identifier: string
+          p_max_requests?: number
+          p_window_seconds?: number
+        }
+        Returns: {
+          allowed: boolean
+          current_count: number
+          remaining: number
+          reset_at: string
+        }[]
+      }
+      cleanup_rate_limit_logs: { Args: never; Returns: number }
       generate_visit_code: { Args: never; Returns: string }
       get_ficha_by_codigo: {
         Args: { p_codigo: string }
