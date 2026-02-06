@@ -20,37 +20,44 @@ import Visitas from "@/pages/Visitas";
 import Configuracoes from "@/pages/Configuracoes";
 import NotFound from "@/pages/NotFound";
 
+const BANNER_HEIGHT = "36px";
+
 export default function DemoLayout() {
   return (
     <DemoProvider isDemo>
-      <SidebarProvider>
-        <DemoBanner />
-        <div className="min-h-[calc(100vh-40px)] flex w-full bg-background">
-          <DemoSidebar />
-          <div className="flex-1 flex flex-col min-w-0">
-            <DemoHeader />
-            <main className="flex-1 overflow-x-hidden overflow-y-auto p-3 sm:p-4 lg:p-6">
-              <Routes>
-                <Route path="/" element={<Dashboard />} />
-                <Route path="/microbairros" element={<Microbairros />} />
-                <Route path="/pesquisas-mercado" element={<PesquisasMercado />} />
-                <Route path="/avaliacao-imobiliaria" element={<AvaliacaoImobiliaria />} />
-                <Route path="/historico-avaliacoes" element={<HistoricoAvaliacoes />} />
-                <Route path="/vistoria-digital" element={<VistoriaDigital />} />
-                <Route path="/historico-vistorias" element={<HistoricoVistorias />} />
-                <Route path="/documentacao" element={<Documentacao />} />
-                <Route path="/manual" element={<ManualPlataforma />} />
-                <Route path="/calibrador-avaliacao" element={<CalibradorAvaliacao />} />
-                <Route path="/calibrador-vistoria" element={<CalibradorVistoria />} />
-                <Route path="/leads" element={<Leads />} />
-                <Route path="/visitas" element={<Visitas />} />
-                <Route path="/configuracoes" element={<Configuracoes />} />
-                <Route path="*" element={<NotFound />} />
-              </Routes>
-            </main>
+      {/* Banner fixo no topo, fora do SidebarProvider para não conflitar com sidebar fixed */}
+      <DemoBanner />
+      
+      {/* Conteúdo principal com offset do banner */}
+      <div style={{ height: `calc(100vh - ${BANNER_HEIGHT})` }} className="flex flex-col">
+        <SidebarProvider>
+          <div className="flex flex-1 w-full bg-background overflow-hidden">
+            <DemoSidebar />
+            <div className="flex-1 flex flex-col min-w-0">
+              <DemoHeader />
+              <main className="flex-1 overflow-x-hidden overflow-y-auto p-3 sm:p-4 lg:p-6">
+                <Routes>
+                  <Route path="/" element={<Dashboard />} />
+                  <Route path="/microbairros" element={<Microbairros />} />
+                  <Route path="/pesquisas-mercado" element={<PesquisasMercado />} />
+                  <Route path="/avaliacao-imobiliaria" element={<AvaliacaoImobiliaria />} />
+                  <Route path="/historico-avaliacoes" element={<HistoricoAvaliacoes />} />
+                  <Route path="/vistoria-digital" element={<VistoriaDigital />} />
+                  <Route path="/historico-vistorias" element={<HistoricoVistorias />} />
+                  <Route path="/documentacao" element={<Documentacao />} />
+                  <Route path="/manual" element={<ManualPlataforma />} />
+                  <Route path="/calibrador-avaliacao" element={<CalibradorAvaliacao />} />
+                  <Route path="/calibrador-vistoria" element={<CalibradorVistoria />} />
+                  <Route path="/leads" element={<Leads />} />
+                  <Route path="/visitas" element={<Visitas />} />
+                  <Route path="/configuracoes" element={<Configuracoes />} />
+                  <Route path="*" element={<NotFound />} />
+                </Routes>
+              </main>
+            </div>
           </div>
-        </div>
-      </SidebarProvider>
+        </SidebarProvider>
+      </div>
     </DemoProvider>
   );
 }

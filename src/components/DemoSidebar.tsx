@@ -34,13 +34,13 @@ export function DemoSidebar() {
 
   return (
     <div className="hidden xl:block">
-      <Sidebar className={open ? "w-64" : "w-16"} collapsible="icon">
-        <div className="p-4 flex justify-end">
+      <Sidebar className={open ? "w-60" : "w-14"} collapsible="icon">
+        <div className="p-3 flex justify-end">
           <SidebarTrigger />
         </div>
         <SidebarContent>
           <SidebarGroup>
-            <SidebarGroupLabel className="text-sidebar-foreground/60 px-4">
+            <SidebarGroupLabel className="text-sidebar-foreground/60 px-3 text-xs">
               Navegação (Demo)
             </SidebarGroupLabel>
             <SidebarGroupContent>
@@ -51,11 +51,11 @@ export function DemoSidebar() {
                       <NavLink
                         to={item.url}
                         end
-                        className="flex items-center gap-3 px-4 py-2 hover:bg-sidebar-accent rounded-md transition-colors"
+                        className="flex items-center gap-2.5 px-3 py-2 text-sm hover:bg-sidebar-accent rounded-md transition-colors"
                         activeClassName="bg-sidebar-accent text-sidebar-primary font-medium"
                       >
-                        <item.icon className="h-5 w-5 flex-shrink-0" />
-                        {open && <span>{item.title}</span>}
+                        <item.icon className="h-4 w-4 flex-shrink-0" />
+                        {open && <span className="truncate">{item.title}</span>}
                       </NavLink>
                     </SidebarMenuButton>
                   </SidebarMenuItem>
