@@ -1,106 +1,55 @@
 
-# Plano: Pagina de Apresentacao + Modo Demonstracao Completo
 
-## Situacao Atual
+# Plano: Atualizar Documentacao e Demo com Novas Funcionalidades
 
-O modo demo ja existe em `/demo` com dados fictitios para **Dashboard, KPIs, Evolucao e Microbairros**. Porem, varios modulos (Visitas, Vistoria Digital, Historico Avaliacoes, Historico Vistorias, Leads, Configuracoes) ainda fazem chamadas reais ao banco e dependem de autenticacao (`useAuth()`), o que causa erros ou telas vazias para visitantes nao autenticados.
+## Funcionalidades Implementadas Hoje (a documentar)
 
-## O Que Sera Feito
+1. **Exportacao PDF do Dashboard de Feedbacks Analiticos** - Botoes "Exportar PDF" e "Enviar por Email" no painel de feedbacks de visitas
+2. **Modo Demonstracao Completo** - Rota `/demo` com dados ficticios em todos os modulos (Visitas, Avaliacoes, Vistorias, Leads, Feedbacks)
+3. **Pagina de Apresentacao** - Landing page profissional em `/apresentacao` para imobiliarias
 
-### 1. Pagina de Apresentacao (`/apresentacao`)
+## Problema Encontrado
 
-Uma landing page profissional para apresentar a plataforma a imobiliarias, com:
-
-- **Hero Section**: Logo Godoy Prime + titulo "Plataforma de Inteligencia Imobiliaria" + subtitulo com proposta de valor + botao CTA "Explorar Demonstracao" que leva ao `/demo`
-- **Secao de Funcionalidades**: Grid com 6-8 cards destacando os modulos principais (Dashboard Analitico, Avaliacao Imobiliaria, Vistoria Digital, Agendamento de Visitas, Microregioes, Leads) com icones e descricoes curtas
-- **Secao de Diferenciais**: 3 colunas com beneficios-chave (Dados Oficiais de Transacoes, IA para Precificacao, Relatorios Profissionais em PDF)
-- **Secao de Screenshots/Preview**: Imagens ou mockups dos dashboards em acao
-- **CTA Final**: Botao "Agendar Apresentacao" (link para contato/WhatsApp) + "Explorar Demonstracao"
-- **Footer**: Disclaimer legal padrao + CRECI
-
-Visual: Navy (#0C2340) + Gold (#D4AF37), tipografia Montserrat, estetica premium alinhada com a marca.
-
-### 2. Dados Ficticios para Modulos Faltantes
-
-Expandir `src/data/demoData.ts` com dados mockados para:
-
-- **Visitas/Agendamentos**: 8-10 fichas de visita ficticias com status variados (agendada, realizada, cancelada), corretores ficticios, enderecos na Barra da Tijuca
-- **Feedbacks de Visita**: 5-6 feedbacks com notas, efeitos UAU, percepcao de valor
-- **Historico de Avaliacoes**: 5 avaliacoes salvas com enderecos, valores, datas
-- **Historico de Vistorias**: 4 vistorias com status variados
-- **Leads**: 6 leads ficticios com origens e status diferentes
-- **Stats de Visitas**: KPIs, ranking de corretores, evolucao mensal
-
-### 3. Adaptar Hooks para Modo Demo
-
-Adicionar verificacao `isDemo` nos hooks que ainda nao a possuem:
-
-| Hook | Acao |
-|---|---|
-| `useVisitas` | Retornar fichas ficticias quando `isDemo` |
-| `useAgendamentos` | Retornar agendamentos ficticios quando `isDemo` |
-| `useVisitasStats` | Retornar stats/ranking/evolucao ficticios quando `isDemo` |
-| `useFeedbackAnalytics` | Retornar analytics ficticios quando `isDemo` |
-| `useCorretores` | Retornar lista de corretores ficticios quando `isDemo` |
-
-### 4. Proteger Paginas contra Erros de Auth no Demo
-
-Nas paginas que chamam `useAuth()` diretamente (Visitas, VistoriaDigital, HistoricoAvaliacoes, HistoricoVistorias):
-
-- Adicionar import do `useDemo` e fornecer um usuario ficticio quando `isDemo` esta ativo
-- Desabilitar acoes de escrita (criar, editar, excluir) mostrando toast "Funcionalidade desabilitada no modo demonstracao"
-
-### 5. Rota no App.tsx
-
-- Adicionar rota publica `/apresentacao` apontando para a nova pagina
-- Atualizar `DemoBanner` para incluir botao "Voltar para Apresentacao"
-- Adicionar link "Ver Apresentacao" na pagina de login (`Auth.tsx`)
+O `DemoSidebar.tsx` lista uma rota `/demo/onboarding` mas o `DemoLayout.tsx` nao tem essa rota registrada nas `<Routes>`. Isso precisa ser corrigido.
 
 ---
 
-## Arquivos Envolvidos
+## Arquivos a Editar
 
-| Arquivo | Acao |
-|---|---|
-| `src/pages/Apresentacao.tsx` | **NOVO** - Landing page de apresentacao |
-| `src/data/demoData.ts` | **EDITAR** - Adicionar dados ficticios para Visitas, Feedbacks, Avaliacoes, Vistorias, Leads |
-| `src/hooks/useVisitas.ts` | **EDITAR** - Adicionar fallback demo |
-| `src/hooks/useAgendamentos.ts` | **EDITAR** - Adicionar fallback demo |
-| `src/hooks/useVisitasStats.ts` | **EDITAR** - Adicionar fallback demo |
-| `src/hooks/useFeedbackAnalytics.ts` | **EDITAR** - Adicionar fallback demo |
-| `src/pages/Visitas.tsx` | **EDITAR** - Proteger contra auth nulo no demo |
-| `src/pages/HistoricoAvaliacoes.tsx` | **EDITAR** - Proteger contra auth nulo no demo |
-| `src/pages/HistoricoVistorias.tsx` | **EDITAR** - Proteger contra auth nulo no demo |
-| `src/components/DemoBanner.tsx` | **EDITAR** - Adicionar link para `/apresentacao` |
-| `src/App.tsx` | **EDITAR** - Adicionar rota `/apresentacao` |
-| `src/pages/Auth.tsx` | **EDITAR** - Adicionar link para apresentacao |
+### 1. `src/pages/DemoLayout.tsx`
+- Adicionar rota `/onboarding` importando `Onboarding` para que o link do sidebar funcione
+
+### 2. `src/pages/ManualPlataforma.tsx`
+- Na secao "Agendamento de Visitas" (id: visitas), adicionar feature: "Relatorio PDF de Feedbacks" com descricao sobre exportacao e envio por email
+- Adicionar nova secao "Modo Demonstracao" descrevendo o acesso em `/demo` e `/apresentacao`
+- Adicionar FAQ: "O que e o modo demonstracao?" e "Como apresentar a plataforma para clientes?"
+
+### 3. `src/utils/manualPdfExport.ts`
+- Na secao "10. Agendamento de Visitas", adicionar funcionalidade: "Relatorio PDF de Feedbacks: Exportacao e envio por email do dashboard analitico com KPIs e graficos"
+- Adicionar nova secao sobre Modo Demonstracao e Apresentacao
+- Adicionar FAQs correspondentes na categoria "Geral"
+
+### 4. `src/utils/quickGuidePdfExport.ts`
+- Na secao "8. AGENDA DE VISITAS", adicionar item: "Exporte o relatorio de feedbacks em PDF ou envie por email diretamente"
+- Adicionar nova secao "14. MODO DEMONSTRACAO" com instrucoes de acesso em `/apresentacao` e `/demo`
+
+### 5. `src/utils/videoScriptPdfExport.ts`
+- No MODULO 7 (Agendamento de Visitas), adicionar narracao sobre o PDF de feedbacks analiticos
+- Adicionar MODULO sobre Modo Demonstracao/Apresentacao (antes do encerramento)
+- Atualizar lista de modulos na capa
+
+### 6. `src/pages/Apresentacao.tsx`
+- Adicionar "Feedback Analitico em PDF" como item nos diferenciais ou na descricao do card de Agendamento de Visitas
 
 ---
 
-## Secao Tecnica
+## Detalhes Tecnicos
 
-### Padrao dos Hooks Demo
+Todas as edicoes seguem os padroes existentes de cada arquivo:
 
-Cada hook adaptado seguira o padrao ja estabelecido:
+- **ManualPlataforma.tsx**: Adicionar objetos ao array `manualSections` seguindo a interface `ManualSection`
+- **manualPdfExport.ts**: Adicionar ao objeto `manualContent.modulos` e `manualContent.faq`
+- **quickGuidePdfExport.ts**: Adicionar chamadas `drawSection()` com arrays de strings
+- **videoScriptPdfExport.ts**: Adicionar chamadas `addTitle()`, `addNarration()`, `addScreenshot()`
+- **DemoLayout.tsx**: Importar e adicionar `<Route>` para Onboarding
 
-```text
-const { isDemo } = useDemo();
-// Na queryFn:
-if (isDemo) return DEMO_DADOS_FICTICIOS;
-// staleTime: isDemo ? Infinity : 0
-```
-
-### Protecao de Escrita no Demo
-
-Acoes de mutacao (criar ficha, agendar visita, etc.) verificarao `isDemo` e exibirao toast informativo em vez de tentar gravar no banco:
-
-```text
-if (isDemo) {
-  toast.info("Funcionalidade desabilitada no modo demonstracao");
-  return;
-}
-```
-
-### Estrutura da Landing Page
-
-A pagina `/apresentacao` sera um componente React standalone (sem sidebar/header), com scroll suave entre secoes e design responsivo mobile-first, usando os componentes UI existentes (Card, Button, Badge).
