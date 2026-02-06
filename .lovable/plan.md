@@ -1,42 +1,60 @@
 
-# Plano: Exportacao PDF do Dashboard de Feedbacks Analiticos
+# Plano: Pagina de Apresentacao + Modo Demonstracao Completo
 
-## Objetivo
+## Situacao Atual
 
-Adicionar botao "Exportar PDF" no dashboard de feedbacks que gera um relatorio profissional com KPIs e representacoes visuais dos graficos, seguindo o template visual padrao Godoy Prime (header navy/gold, footer com CRECI).
+O modo demo ja existe em `/demo` com dados fictitios para **Dashboard, KPIs, Evolucao e Microbairros**. Porem, varios modulos (Visitas, Vistoria Digital, Historico Avaliacoes, Historico Vistorias, Leads, Configuracoes) ainda fazem chamadas reais ao banco e dependem de autenticacao (`useAuth()`), o que causa erros ou telas vazias para visitantes nao autenticados.
 
----
+## O Que Sera Feito
 
-## Abordagem Tecnica
+### 1. Pagina de Apresentacao (`/apresentacao`)
 
-Como Recharts renderiza em SVG no browser e jsPDF nao suporta SVG nativamente, os graficos serao representados como **tabelas e barras desenhadas manualmente** no PDF (mesmo padrao usado no restante do projeto). Isso garante qualidade e consistencia visual sem depender de canvas ou html2canvas.
+Uma landing page profissional para apresentar a plataforma a imobiliarias, com:
 
----
+- **Hero Section**: Logo Godoy Prime + titulo "Plataforma de Inteligencia Imobiliaria" + subtitulo com proposta de valor + botao CTA "Explorar Demonstracao" que leva ao `/demo`
+- **Secao de Funcionalidades**: Grid com 6-8 cards destacando os modulos principais (Dashboard Analitico, Avaliacao Imobiliaria, Vistoria Digital, Agendamento de Visitas, Microregioes, Leads) com icones e descricoes curtas
+- **Secao de Diferenciais**: 3 colunas com beneficios-chave (Dados Oficiais de Transacoes, IA para Precificacao, Relatorios Profissionais em PDF)
+- **Secao de Screenshots/Preview**: Imagens ou mockups dos dashboards em acao
+- **CTA Final**: Botao "Agendar Apresentacao" (link para contato/WhatsApp) + "Explorar Demonstracao"
+- **Footer**: Disclaimer legal padrao + CRECI
 
-## Estrutura do PDF (3-4 paginas)
+Visual: Navy (#0C2340) + Gold (#D4AF37), tipografia Montserrat, estetica premium alinhada com a marca.
 
-### Pagina 1 - Capa + KPIs
-- Header padrao Godoy Prime (via `drawGodoyHeader`)
-- Subtitulo: "Relatorio Analitico de Feedbacks de Visitas"
-- 4 KPI boxes em grid 2x2:
-  - Avaliacao Media (estrelas)
-  - Taxa de Proposta (%)
-  - Percepcao Valor Justo (%)
-  - Total de Feedbacks
-- Conexao Emocional Media (barra visual)
+### 2. Dados Ficticios para Modulos Faltantes
 
-### Pagina 2 - Distribuicao e Percepcao
-- Secao "Distribuicao de Avaliacoes": barras horizontais desenhadas com `doc.rect()` para cada nota (1-5 estrelas)
-- Secao "Nivel de Interesse": tabela com barras coloridas (Muito Alto, Alto, Medio, Baixo)
-- Secao "Percepcao de Valor": tabela com barras coloridas (Abaixo, Justo, Acima)
+Expandir `src/data/demoData.ts` com dados mockados para:
 
-### Pagina 3 - Tendencias + Efeitos UAU
-- Secao "Evolucao da Satisfacao Mensal": tabela com mes, media, quantidade + mini barras
-- Secao "Efeitos UAU Mais Citados": barras horizontais com contagem
+- **Visitas/Agendamentos**: 8-10 fichas de visita ficticias com status variados (agendada, realizada, cancelada), corretores ficticios, enderecos na Barra da Tijuca
+- **Feedbacks de Visita**: 5-6 feedbacks com notas, efeitos UAU, percepcao de valor
+- **Historico de Avaliacoes**: 5 avaliacoes salvas com enderecos, valores, datas
+- **Historico de Vistorias**: 4 vistorias com status variados
+- **Leads**: 6 leads ficticios com origens e status diferentes
+- **Stats de Visitas**: KPIs, ranking de corretores, evolucao mensal
 
-### Pagina 4 - Feedbacks Recentes
-- Tabela compacta com: Data, Visitante, Endereco, Nota
-- Rodape com disclaimer e data de geracao
+### 3. Adaptar Hooks para Modo Demo
+
+Adicionar verificacao `isDemo` nos hooks que ainda nao a possuem:
+
+| Hook | Acao |
+|---|---|
+| `useVisitas` | Retornar fichas ficticias quando `isDemo` |
+| `useAgendamentos` | Retornar agendamentos ficticios quando `isDemo` |
+| `useVisitasStats` | Retornar stats/ranking/evolucao ficticios quando `isDemo` |
+| `useFeedbackAnalytics` | Retornar analytics ficticios quando `isDemo` |
+| `useCorretores` | Retornar lista de corretores ficticios quando `isDemo` |
+
+### 4. Proteger Paginas contra Erros de Auth no Demo
+
+Nas paginas que chamam `useAuth()` diretamente (Visitas, VistoriaDigital, HistoricoAvaliacoes, HistoricoVistorias):
+
+- Adicionar import do `useDemo` e fornecer um usuario ficticio quando `isDemo` esta ativo
+- Desabilitar acoes de escrita (criar, editar, excluir) mostrando toast "Funcionalidade desabilitada no modo demonstracao"
+
+### 5. Rota no App.tsx
+
+- Adicionar rota publica `/apresentacao` apontando para a nova pagina
+- Atualizar `DemoBanner` para incluir botao "Voltar para Apresentacao"
+- Adicionar link "Ver Apresentacao" na pagina de login (`Auth.tsx`)
 
 ---
 
@@ -44,24 +62,45 @@ Como Recharts renderiza em SVG no browser e jsPDF nao suporta SVG nativamente, o
 
 | Arquivo | Acao |
 |---|---|
-| `src/utils/feedbackAnalyticsPdfExport.ts` | **NOVO** - Funcao `exportFeedbackAnalyticsPdf(analytics)` que gera o PDF usando jsPDF + pdfTemplate |
-| `src/components/visitas/FeedbackAnalyticsDashboard.tsx` | **Editar** - Adicionar botao "Exportar PDF" e botao "Enviar por Email" no topo do dashboard |
+| `src/pages/Apresentacao.tsx` | **NOVO** - Landing page de apresentacao |
+| `src/data/demoData.ts` | **EDITAR** - Adicionar dados ficticios para Visitas, Feedbacks, Avaliacoes, Vistorias, Leads |
+| `src/hooks/useVisitas.ts` | **EDITAR** - Adicionar fallback demo |
+| `src/hooks/useAgendamentos.ts` | **EDITAR** - Adicionar fallback demo |
+| `src/hooks/useVisitasStats.ts` | **EDITAR** - Adicionar fallback demo |
+| `src/hooks/useFeedbackAnalytics.ts` | **EDITAR** - Adicionar fallback demo |
+| `src/pages/Visitas.tsx` | **EDITAR** - Proteger contra auth nulo no demo |
+| `src/pages/HistoricoAvaliacoes.tsx` | **EDITAR** - Proteger contra auth nulo no demo |
+| `src/pages/HistoricoVistorias.tsx` | **EDITAR** - Proteger contra auth nulo no demo |
+| `src/components/DemoBanner.tsx` | **EDITAR** - Adicionar link para `/apresentacao` |
+| `src/App.tsx` | **EDITAR** - Adicionar rota `/apresentacao` |
+| `src/pages/Auth.tsx` | **EDITAR** - Adicionar link para apresentacao |
 
-### Detalhes de implementacao
+---
 
-**`feedbackAnalyticsPdfExport.ts`:**
-- Importa `drawGodoyHeader`, `drawSectionTitle`, `applyFootersToAllPages`, `BRAND_COLORS`, `getMaxContentY`, `fetchCompanyInfoForPDF` de `pdfTemplate.ts`
-- Recebe `FeedbackAnalytics` como parametro
-- Desenha barras horizontais com `doc.setFillColor()` + `doc.rect()` proporcionais ao valor maximo
-- Retorna instancia `jsPDF` (compativel com `SendPdfEmailDialog`)
+## Secao Tecnica
 
-**`FeedbackAnalyticsDashboard.tsx`:**
-- Adicionar no topo (antes dos KPIs) uma row com botoes:
-  - `Download` (icone FileDown) - chama `exportFeedbackAnalyticsPdf` e salva localmente
-  - `Enviar por Email` (icone Mail) - abre `SendPdfEmailDialog` com `documentType: 'feedback_analytics'`
-- Integrar com `SendPdfEmailDialog` existente passando `generatePdf` como callback
-- Adicionar `'feedback_analytics'` como novo `DocumentType` no `pdfEmailService.ts`
+### Padrao dos Hooks Demo
 
-**`src/utils/pdfEmailService.ts`:**
-- Adicionar `'feedback_analytics'` ao tipo `DocumentType`
+Cada hook adaptado seguira o padrao ja estabelecido:
 
+```text
+const { isDemo } = useDemo();
+// Na queryFn:
+if (isDemo) return DEMO_DADOS_FICTICIOS;
+// staleTime: isDemo ? Infinity : 0
+```
+
+### Protecao de Escrita no Demo
+
+Acoes de mutacao (criar ficha, agendar visita, etc.) verificarao `isDemo` e exibirao toast informativo em vez de tentar gravar no banco:
+
+```text
+if (isDemo) {
+  toast.info("Funcionalidade desabilitada no modo demonstracao");
+  return;
+}
+```
+
+### Estrutura da Landing Page
+
+A pagina `/apresentacao` sera um componente React standalone (sem sidebar/header), com scroll suave entre secoes e design responsivo mobile-first, usando os componentes UI existentes (Card, Button, Badge).
