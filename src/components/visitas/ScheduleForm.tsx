@@ -11,6 +11,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { useAgendamentos } from "@/hooks/useAgendamentos";
 import { useDisponibilidade } from "@/hooks/useDisponibilidade";
+import { useCorretores } from "@/hooks/useCorretores";
 import { TipoServicoVisita, OrigemAgendamento, AgendamentoVisita } from "@/types/visitas";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -27,6 +28,7 @@ const scheduleSchema = z.object({
   email_visitante: z.string().email("Email inválido").optional().or(z.literal("")),
   endereco_imovel: z.string().min(5, "Endereço deve ter pelo menos 5 caracteres"),
   codigo_imovel: z.string().optional(),
+  corretor_id: z.string().optional(),
   tipo_servico: z.enum(["visita", "avaliacao", "consultoria", "fotografia"]),
   data: z.date({ required_error: "Selecione uma data" }),
   horario: z.string().min(1, "Selecione um horário"),
@@ -60,6 +62,7 @@ export function ScheduleForm({ onSuccess, isPublic = false }: ScheduleFormProps)
 
   const { createAgendamento, updateAgendamento, agendamentos } = useAgendamentos();
   const { getHorariosDisponiveis } = useDisponibilidade();
+  const { corretores, isLoading: loadingCorretores } = useCorretores();
 
   const form = useForm<ScheduleFormData>({
     resolver: zodResolver(scheduleSchema),
@@ -69,6 +72,7 @@ export function ScheduleForm({ onSuccess, isPublic = false }: ScheduleFormProps)
       email_visitante: "",
       endereco_imovel: "",
       codigo_imovel: "",
+      corretor_id: "",
       tipo_servico: "visita",
       origem: "site",
       notas: "",
@@ -222,8 +226,11 @@ export function ScheduleForm({ onSuccess, isPublic = false }: ScheduleFormProps)
       dataHoraOpcao2 = dataHora2.toISOString();
     }
 
+    const corretorSelecionado = data.corretor_id
+      ? corretores.find((c) => c.id === data.corretor_id)
+      : null;
+
     if (isEditing && editId) {
-      // Atualizar agendamento existente
       await updateAgendamento.mutateAsync({
         id: editId,
         nome_visitante: data.nome_visitante,
@@ -231,6 +238,7 @@ export function ScheduleForm({ onSuccess, isPublic = false }: ScheduleFormProps)
         email_visitante: data.email_visitante || null,
         endereco_imovel: data.endereco_imovel,
         codigo_imovel: data.codigo_imovel || null,
+        corretor_id: data.corretor_id || null,
         tipo_servico: data.tipo_servico as TipoServicoVisita,
         data_hora: dataHora.toISOString(),
         data_hora_opcao2: dataHoraOpcao2,
@@ -238,13 +246,13 @@ export function ScheduleForm({ onSuccess, isPublic = false }: ScheduleFormProps)
         notas: data.notas || null,
       });
     } else {
-      // Criar novo agendamento
       await createAgendamento.mutateAsync({
         nome_visitante: data.nome_visitante,
         telefone_visitante: data.telefone_visitante,
         email_visitante: data.email_visitante || null,
         endereco_imovel: data.endereco_imovel,
         codigo_imovel: data.codigo_imovel || null,
+        corretor_id: data.corretor_id || null,
         tipo_servico: data.tipo_servico as TipoServicoVisita,
         data_hora: dataHora.toISOString(),
         data_hora_opcao2: dataHoraOpcao2,
@@ -379,6 +387,33 @@ export function ScheduleForm({ onSuccess, isPublic = false }: ScheduleFormProps)
                   </FormItem>
                 )}
               />
+
+              {!isPublic && (
+                <FormField
+                  control={form.control}
+                  name="corretor_id"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Corretor Responsável</FormLabel>
+                      <Select onValueChange={field.onChange} value={field.value}>
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder={loadingCorretores ? "Carregando..." : "Selecione o corretor"} />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          {corretores.map((corretor) => (
+                            <SelectItem key={corretor.id} value={corretor.id}>
+                              {corretor.full_name}{corretor.creci ? ` (${corretor.creci})` : ""}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              )}
 
               {!isPublic && (
                 <FormField

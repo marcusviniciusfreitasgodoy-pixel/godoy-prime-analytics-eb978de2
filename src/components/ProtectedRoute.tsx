@@ -1,6 +1,7 @@
 import { Navigate } from "react-router-dom";
 import { useAuthContext } from "@/contexts/AuthContext";
 import { Loader2 } from "lucide-react";
+import { FeedbackRealtimeListener } from "@/components/visitas/FeedbackRealtimeListener";
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
@@ -34,5 +35,10 @@ export function ProtectedRoute({ children, requireAdmin = false, requireAdminOrG
     return <Navigate to="/" replace />;
   }
 
-  return <>{children}</>;
+  return (
+    <>
+      <FeedbackRealtimeListener />
+      {children}
+    </>
+  );
 }

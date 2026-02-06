@@ -1,7 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { AgendamentoVisita, AgendamentoVisitaInsert, StatusVisita } from "@/types/visitas";
-import { sendAgendamentoConfirmadoEmail } from "@/utils/visitEmailService";
+import { sendAgendamentoConfirmadoEmail, sendCorretorAgendamentoEmail } from "@/utils/visitEmailService";
 import { enviarConfirmacaoAgendamento, enviarReagendamentoVisita, enviarCancelamentoVisita } from "@/utils/whatsappService";
 import { toast } from "sonner";
 
@@ -48,6 +48,28 @@ export function useAgendamentos() {
           toast.success("Email de confirmação enviado!");
         } catch (err) {
           console.error("Erro ao enviar email:", err);
+        }
+      }
+
+      // Notificar corretor por email
+      if (data.corretor_id) {
+        try {
+          const { data: profile } = await supabase
+            .from("profiles")
+            .select("email, full_name" as any)
+            .eq("id", data.corretor_id)
+            .single();
+          const corretorProfile = profile as unknown as { email: string | null; full_name: string } | null;
+          if (corretorProfile?.email) {
+            await sendCorretorAgendamentoEmail(corretorProfile.email, {
+              nome_visitante: data.nome_visitante,
+              endereco_imovel: data.endereco_imovel,
+              data_hora: data.data_hora,
+              nome_corretor: corretorProfile.full_name,
+            });
+          }
+        } catch (err) {
+          console.error("Erro ao notificar corretor:", err);
         }
       }
 

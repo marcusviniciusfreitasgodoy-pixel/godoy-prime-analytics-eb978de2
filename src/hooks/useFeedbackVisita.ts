@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { FeedbackVisita, FeedbackVisitaInsert } from "@/types/visitas";
+import { sendFeedbackReceivedEmail } from "@/utils/visitEmailService";
 import { toast } from "sonner";
 
 export function useFeedbackVisita(fichaVisitaId?: string) {
@@ -37,9 +38,46 @@ export function useFeedbackVisita(fichaVisitaId?: string) {
       if (error) throw error;
       return null;
     },
-    onSuccess: () => {
+    onSuccess: async (_data, variables) => {
       queryClient.invalidateQueries({ queryKey: ["feedbacks-visita"] });
       toast.success("Feedback enviado com sucesso! Obrigado.");
+
+      // Notificar corretor e agência sobre o feedback recebido
+      try {
+        const { data: ficha } = await supabase
+          .from("fichas_visita" as any)
+          .select("id, codigo, endereco_imovel, nome_visitante, nome_corretor, corretor_id")
+          .eq("id", variables.ficha_visita_id)
+          .single();
+
+        const fichaData = ficha as unknown as {
+          codigo: string;
+          endereco_imovel: string;
+          nome_visitante: string;
+          nome_corretor: string;
+          corretor_id: string | null;
+        } | null;
+
+        if (fichaData?.corretor_id) {
+          const { data: profile } = await supabase
+            .from("profiles")
+            .select("email, full_name" as any)
+            .eq("id", fichaData.corretor_id)
+            .single();
+          const corretorProfile = profile as unknown as { email: string | null; full_name: string } | null;
+
+          if (corretorProfile?.email) {
+            await sendFeedbackReceivedEmail(corretorProfile.email, {
+              nome_visitante: fichaData.nome_visitante,
+              endereco_imovel: fichaData.endereco_imovel,
+              nome_corretor: corretorProfile.full_name,
+              codigo_visita: fichaData.codigo,
+            });
+          }
+        }
+      } catch (err) {
+        console.error("Erro ao notificar sobre feedback:", err);
+      }
     },
     onError: (error: any) => {
       const message =

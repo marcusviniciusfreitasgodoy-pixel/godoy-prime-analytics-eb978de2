@@ -105,3 +105,19 @@ export async function enviarReagendamentoVisita(
       : undefined,
   });
 }
+
+// Enviar link de feedback por WhatsApp após visita realizada
+export async function enviarSolicitacaoFeedback(
+  telefone: string,
+  dados: { nome_visitante: string; endereco_imovel: string; codigo_visita: string }
+): Promise<{ success: boolean; error?: string }> {
+  const baseUrl = window.location.origin;
+  const feedbackUrl = `${baseUrl}/visitas/feedback/${dados.codigo_visita}`;
+  
+  return enviarWhatsApp(telefone, 'confirmacao', {
+    nome_visitante: dados.nome_visitante,
+    endereco_imovel: dados.endereco_imovel,
+    data_hora: new Date().toISOString(),
+    link_assinatura: feedbackUrl,
+  });
+}
