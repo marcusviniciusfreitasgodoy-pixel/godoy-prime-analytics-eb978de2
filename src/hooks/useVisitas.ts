@@ -4,13 +4,18 @@ import { FichaVisita, FichaVisitaInsert, StatusVisita } from "@/types/visitas";
 import { sendFeedbackRequestEmail } from "@/utils/visitEmailService";
 import { enviarSolicitacaoFeedback } from "@/utils/whatsappService";
 import { toast } from "sonner";
+import { useDemo } from "@/contexts/DemoContext";
+import { DEMO_FICHAS_VISITA } from "@/data/demoData";
 
 export function useVisitas() {
   const queryClient = useQueryClient();
+  const { isDemo } = useDemo();
 
   const { data: fichas, isLoading, error } = useQuery({
     queryKey: ["fichas-visita"],
     queryFn: async () => {
+      if (isDemo) return DEMO_FICHAS_VISITA;
+
       const { data, error } = await supabase
         .from("fichas_visita" as any)
         .select("*")
@@ -19,10 +24,16 @@ export function useVisitas() {
       if (error) throw error;
       return data as unknown as FichaVisita[];
     },
+    staleTime: isDemo ? Infinity : 0,
   });
 
   const createFicha = useMutation({
     mutationFn: async (ficha: FichaVisitaInsert) => {
+      if (isDemo) {
+        toast.info("Funcionalidade desabilitada no modo demonstração");
+        return {} as FichaVisita;
+      }
+
       const { data, error } = await supabase
         .from("fichas_visita" as any)
         .insert(ficha)
@@ -33,10 +44,12 @@ export function useVisitas() {
       return data as unknown as FichaVisita;
     },
     onSuccess: () => {
+      if (isDemo) return;
       queryClient.invalidateQueries({ queryKey: ["fichas-visita"] });
       toast.success("Ficha de visita criada com sucesso!");
     },
     onError: (error) => {
+      if (isDemo) return;
       toast.error("Erro ao criar ficha de visita");
       console.error(error);
     },
@@ -44,6 +57,11 @@ export function useVisitas() {
 
   const updateFicha = useMutation({
     mutationFn: async ({ id, ...updates }: Partial<FichaVisita> & { id: string }) => {
+      if (isDemo) {
+        toast.info("Funcionalidade desabilitada no modo demonstração");
+        return {} as FichaVisita;
+      }
+
       const { data, error } = await supabase
         .from("fichas_visita" as any)
         .update(updates)
@@ -55,10 +73,12 @@ export function useVisitas() {
       return data as unknown as FichaVisita;
     },
     onSuccess: () => {
+      if (isDemo) return;
       queryClient.invalidateQueries({ queryKey: ["fichas-visita"] });
       toast.success("Ficha atualizada com sucesso!");
     },
     onError: (error) => {
+      if (isDemo) return;
       toast.error("Erro ao atualizar ficha");
       console.error(error);
     },
@@ -66,6 +86,11 @@ export function useVisitas() {
 
   const updateStatus = useMutation({
     mutationFn: async ({ id, status }: { id: string; status: StatusVisita }) => {
+      if (isDemo) {
+        toast.info("Funcionalidade desabilitada no modo demonstração");
+        return {} as FichaVisita;
+      }
+
       const { data, error } = await supabase
         .from("fichas_visita" as any)
         .update({ status })
@@ -77,12 +102,11 @@ export function useVisitas() {
       return data as unknown as FichaVisita;
     },
     onSuccess: async (data) => {
+      if (isDemo) return;
       queryClient.invalidateQueries({ queryKey: ["fichas-visita"] });
       toast.success("Status atualizado!");
 
-      // Disparo automático de feedback ao marcar como "realizada"
       if (data.status === "realizada") {
-        // Enviar email de feedback se tiver email do visitante
         if (data.email_visitante) {
           try {
             await sendFeedbackRequestEmail(data.email_visitante, {
@@ -96,7 +120,6 @@ export function useVisitas() {
           }
         }
 
-        // Enviar WhatsApp de feedback se tiver telefone
         if (data.telefone_visitante) {
           try {
             const resultado = await enviarSolicitacaoFeedback(data.telefone_visitante, {
@@ -114,12 +137,12 @@ export function useVisitas() {
       }
     },
     onError: (error) => {
+      if (isDemo) return;
       toast.error("Erro ao atualizar status");
       console.error(error);
     },
   });
 
-  // Returns minimal data for public feedback form (security: sensitive PII removed)
   const getFichaByCodigo = async (codigo: string): Promise<Pick<FichaVisita, 'id' | 'codigo' | 'endereco_imovel' | 'data_visita' | 'nome_corretor' | 'status'> | null> => {
     const { data, error } = await supabase
       .rpc('get_ficha_by_codigo', { p_codigo: codigo });
