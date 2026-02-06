@@ -1,290 +1,95 @@
 
-# Sistema de Rate Limiting Persistente com PostgreSQL
+# Plano: Melhorias no Fluxo de Agendamento de Visitas
 
-## Resumo
+## Problemas Identificados
 
-Implementar um sistema robusto de rate limiting usando PostgreSQL como armazenamento persistente, garantindo proteção contínua contra abusos mesmo após cold starts das Edge Functions.
-
-## Problema Atual
-
-O `lead-operations` já possui rate limiting, mas usa um `Map()` em memória que é perdido quando a função reinicia (cold start). Isso significa que atacantes podem contornar os limites simplesmente esperando o cache expirar ou forçando novos deploys.
-
----
-
-## Arquitetura da Solução
-
-```text
-┌─────────────────┐     ┌──────────────────┐     ┌────────────────────┐
-│  Edge Function  │────▶│  check_rate_limit│────▶│  rate_limit_log    │
-│  (qualquer)     │     │  (RPC function)  │     │  (tabela Postgres) │
-└─────────────────┘     └──────────────────┘     └────────────────────┘
-         │                       │
-         │                       ▼
-         │              ┌──────────────────┐
-         │              │  Retorna:        │
-         │              │  - allowed: bool │
-         │              │  - remaining: int│
-         │              │  - reset_at: ts  │
-         │              └──────────────────┘
-         ▼
-  ┌─────────────────────────────────────────┐
-  │  Se allowed=false → HTTP 429 Too Many   │
-  │  Se allowed=true  → Processa requisição │
-  └─────────────────────────────────────────┘
-```
+1. **Corretor responsavel sem cadastro de contato**: O campo `corretor_id` existe nas tabelas `agendamentos_visita` e `fichas_visita`, mas nao ha um seletor de corretor no formulario de agendamento. O nome do corretor e preenchido manualmente como texto livre (ou extraido do email do usuario logado). A tabela `profiles` tem apenas `full_name` e `phone` -- falta email e CRECI do corretor.
+2. **Cliente nao aparece no fluxo**: O visitante/cliente que criou o agendamento nao recebe notificacoes de acompanhamento alem da confirmacao inicial. Nao ha visibilidade do status para ele.
+3. **Feedback nao e disparado automaticamente**: A solicitacao de feedback e manual (botao na FichaVisitaPage). Deveria ser automatica ao marcar como "realizada".
+4. **Sem notificacao em tempo real para feedback recebido**: Nao ha Realtime subscription para alertar corretores quando um feedback chega.
+5. **Notificacoes incompletas**: Nem todos os envolvidos (visitante, corretor, agencia) recebem email + WhatsApp em todos os eventos.
 
 ---
 
-## Implementação
+## Mudancas Planejadas
 
-### 1. Criar tabela de logs de rate limiting
+### 1. Enriquecer perfil do Corretor (dados de contato)
 
-```sql
-CREATE TABLE public.rate_limit_log (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  identifier TEXT NOT NULL,        -- IP, email ou função
-  function_name TEXT NOT NULL,     -- Nome da Edge Function
-  window_start TIMESTAMPTZ NOT NULL,
-  request_count INTEGER DEFAULT 1,
-  created_at TIMESTAMPTZ DEFAULT now(),
-  
-  UNIQUE(identifier, function_name, window_start)
-);
+**Migracao SQL:**
+- Adicionar colunas `email`, `creci` e `avatar_url` na tabela `profiles`
+- Isso permite que cada corretor tenha seus dados de contato registrados
 
--- Índice para buscas rápidas
-CREATE INDEX idx_rate_limit_lookup 
-  ON rate_limit_log(identifier, function_name, window_start);
+**UI (Configuracoes):**
+- Adicionar secao "Meu Perfil de Corretor" na pagina de Configuracoes com campos: Nome, Telefone, Email, CRECI
 
--- Cleanup automático (registros > 24h)
-CREATE INDEX idx_rate_limit_cleanup ON rate_limit_log(window_start);
-```
+### 2. Seletor de Corretor no formulario de agendamento
 
-### 2. Criar função RPC para verificar/incrementar limites
+**ScheduleForm.tsx:**
+- Adicionar campo `Select` com lista de corretores (buscando de `profiles` + `user_roles`)
+- Ao selecionar, preencher `corretor_id` e associar automaticamente o nome e contato
+- Isso substitui o preenchimento manual de `nome_corretor`
 
-```sql
-CREATE OR REPLACE FUNCTION check_rate_limit(
-  p_identifier TEXT,
-  p_function_name TEXT,
-  p_window_seconds INTEGER DEFAULT 60,
-  p_max_requests INTEGER DEFAULT 10
-)
-RETURNS TABLE(
-  allowed BOOLEAN,
-  current_count INTEGER,
-  remaining INTEGER,
-  reset_at TIMESTAMPTZ
-)
-LANGUAGE plpgsql
-SECURITY DEFINER
-SET search_path TO 'public'
-AS $$
-DECLARE
-  v_window_start TIMESTAMPTZ;
-  v_count INTEGER;
-BEGIN
-  -- Calcular início da janela atual (arredondado)
-  v_window_start := date_trunc('minute', now()) 
-    - (EXTRACT(MINUTE FROM now())::INTEGER % (p_window_seconds / 60)) * INTERVAL '1 minute';
-  
-  -- Para janelas menores que 1 minuto, usar segundos
-  IF p_window_seconds < 60 THEN
-    v_window_start := date_trunc('second', now()) 
-      - (EXTRACT(SECOND FROM now())::INTEGER % p_window_seconds) * INTERVAL '1 second';
-  END IF;
+### 3. Disparo automatico de feedback ao marcar "realizada"
 
-  -- Inserir ou incrementar contador (upsert atômico)
-  INSERT INTO rate_limit_log (identifier, function_name, window_start, request_count)
-  VALUES (p_identifier, p_function_name, v_window_start, 1)
-  ON CONFLICT (identifier, function_name, window_start)
-  DO UPDATE SET request_count = rate_limit_log.request_count + 1
-  RETURNING request_count INTO v_count;
+**useVisitas.ts (updateStatus):**
+- Quando `status` mudar para `realizada`, disparar automaticamente:
+  - Email de solicitacao de feedback (via `sendFeedbackRequestEmail`)
+  - WhatsApp para o visitante com link de feedback
+- Remover necessidade de clique manual no botao "Enviar Link por Email"
 
-  -- Retornar resultado
-  RETURN QUERY SELECT
-    v_count <= p_max_requests AS allowed,
-    v_count AS current_count,
-    GREATEST(0, p_max_requests - v_count) AS remaining,
-    v_window_start + (p_window_seconds || ' seconds')::INTERVAL AS reset_at;
-END;
-$$;
-```
+### 4. Notificacao em tempo real quando feedback e recebido
 
-### 3. Criar função de limpeza automática
+**Migracao SQL:**
+- Habilitar Realtime na tabela `feedbacks_visita`: `ALTER PUBLICATION supabase_realtime ADD TABLE feedbacks_visita`
 
-```sql
-CREATE OR REPLACE FUNCTION cleanup_rate_limit_logs()
-RETURNS INTEGER
-LANGUAGE plpgsql
-SECURITY DEFINER
-AS $$
-DECLARE
-  deleted_count INTEGER;
-BEGIN
-  DELETE FROM rate_limit_log
-  WHERE window_start < now() - INTERVAL '24 hours';
-  
-  GET DIAGNOSTICS deleted_count = ROW_COUNT;
-  RETURN deleted_count;
-END;
-$$;
-```
+**Novo componente `FeedbackRealtimeListener.tsx`:**
+- Subscribir a `postgres_changes` na tabela `feedbacks_visita` (evento `INSERT`)
+- Ao receber novo feedback, exibir toast com link para visualizar
+- Buscar dados da ficha associada para contexto (endereco, visitante)
 
-### 4. Criar módulo helper compartilhado
+**Integracao no layout:**
+- Montar o listener no layout principal (dentro do `ProtectedRoute` ou `AppSidebar`)
+- Apenas usuarios autenticados (corretores/gerentes/admins) recebem a notificacao
 
-**Novo arquivo:** `supabase/functions/_shared/rate-limiter.ts`
+### 5. Notificacoes completas para todos os envolvidos
 
-```typescript
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+**Atualizar `useAgendamentos.ts` e `useVisitas.ts`:**
 
-export interface RateLimitConfig {
-  windowSeconds?: number;  // Janela de tempo (padrão: 60s)
-  maxRequests?: number;    // Máximo de requisições (padrão: 10)
-}
+Para cada evento, garantir que TODOS recebam por email E WhatsApp:
 
-export interface RateLimitResult {
-  allowed: boolean;
-  currentCount: number;
-  remaining: number;
-  resetAt: Date;
-}
+| Evento | Visitante (Email) | Visitante (WhatsApp) | Corretor (Email) | Agencia (Email) |
+|---|---|---|---|---|
+| Agendamento criado | Sim (ja existe) | Sim (ja existe) | **NOVO** | Sim (ja existe) |
+| Agendamento cancelado | Sim (ja existe) | Sim (ja existe) | **NOVO** | Sim (ja existe) |
+| Visita realizada | **NOVO** (feedback link) | **NOVO** (feedback link) | **NOVO** | **NOVO** |
+| Feedback recebido | - | - | **NOVO** (email + realtime) | **NOVO** (email) |
 
-export function getClientIdentifier(req: Request): string {
-  const cfConnectingIp = req.headers.get("cf-connecting-ip");
-  const realIp = req.headers.get("x-real-ip");
-  const forwardedFor = req.headers.get("x-forwarded-for");
-  
-  return cfConnectingIp || realIp || forwardedFor?.split(",")[0]?.trim() || "unknown";
-}
+**Implementacao:**
+- Criar funcao `notifyCorretor` que busca email/telefone do corretor via `corretor_id` na tabela `profiles`
+- Na edge function `send-visit-email`, adicionar template `feedback_recebido` para notificar corretor
+- Ao submeter feedback (hook `useFeedbackVisita`), invocar edge function para notificar corretor e agencia
 
-export async function checkRateLimit(
-  supabase: ReturnType<typeof createClient>,
-  identifier: string,
-  functionName: string,
-  config: RateLimitConfig = {}
-): Promise<RateLimitResult> {
-  const { windowSeconds = 60, maxRequests = 10 } = config;
+### 6. Incluir o cliente/visitante no fluxo
 
-  const { data, error } = await supabase.rpc("check_rate_limit", {
-    p_identifier: identifier,
-    p_function_name: functionName,
-    p_window_seconds: windowSeconds,
-    p_max_requests: maxRequests,
-  });
-
-  if (error) {
-    console.error("[rate-limiter] Database error:", error);
-    // Fail-open: permitir em caso de erro do banco
-    return { allowed: true, currentCount: 0, remaining: maxRequests, resetAt: new Date() };
-  }
-
-  const result = data?.[0] || data;
-  return {
-    allowed: result?.allowed ?? true,
-    currentCount: result?.current_count ?? 0,
-    remaining: result?.remaining ?? maxRequests,
-    resetAt: new Date(result?.reset_at || Date.now()),
-  };
-}
-
-export function rateLimitHeaders(result: RateLimitResult, maxRequests: number): Record<string, string> {
-  return {
-    "X-RateLimit-Limit": maxRequests.toString(),
-    "X-RateLimit-Remaining": result.remaining.toString(),
-    "X-RateLimit-Reset": Math.ceil(result.resetAt.getTime() / 1000).toString(),
-  };
-}
-
-export function rateLimitResponse(result: RateLimitResult, corsHeaders: Record<string, string>): Response {
-  const retryAfter = Math.ceil((result.resetAt.getTime() - Date.now()) / 1000);
-  
-  return new Response(
-    JSON.stringify({
-      error: "Too many requests. Please try again later.",
-      retryAfter,
-    }),
-    {
-      status: 429,
-      headers: {
-        "Content-Type": "application/json",
-        "Retry-After": retryAfter.toString(),
-        ...corsHeaders,
-      },
-    }
-  );
-}
-```
-
-### 5. Atualizar Edge Functions existentes
-
-**Exemplo:** Atualizar `lead-operations/index.ts` para usar o novo sistema:
-
-```typescript
-import { checkRateLimit, getClientIdentifier, rateLimitResponse, rateLimitHeaders } from "../_shared/rate-limiter.ts";
-
-// Dentro do handler:
-const clientIp = getClientIdentifier(req);
-const rateLimit = await checkRateLimit(supabase, clientIp, "lead-operations", {
-  windowSeconds: 60,
-  maxRequests: 5,
-});
-
-if (!rateLimit.allowed) {
-  return rateLimitResponse(rateLimit, corsHeaders);
-}
-
-// Adicionar headers de rate limit nas respostas
-const headers = { ...corsHeaders, ...rateLimitHeaders(rateLimit, 5) };
-```
-
-### 6. Configurar limpeza periódica (cron job)
-
-Adicionar chamada à função `cleanup_rate_limit_logs()` no cron existente (`sync-itbi-daily`) ou criar um novo job para executar diariamente.
+**VisitCard.tsx (agendamento):**
+- Mostrar email do visitante quando disponivel
+- Adicionar botao para reenviar confirmacao
 
 ---
 
-## Edge Functions a Proteger
+## Secao Tecnica - Resumo de Arquivos
 
-| Função | Limite Sugerido | Janela |
-|--------|-----------------|--------|
-| `lead-operations` | 5 req | 1 min |
-| `public-itbi-stats` | 20 req | 1 min |
-| `public-bairro-suggestions` | 30 req | 1 min |
-| `chat-mercado` | 10 req | 1 min |
-| `elevenlabs-tts` | 5 req | 1 min |
-| `send-lead-notification` | 3 req | 1 min |
-
----
-
-## Detalhes Técnicos
-
-### Vantagens da Abordagem
-- **Persistente**: Sobrevive a cold starts e redeployments
-- **Atômico**: `INSERT ... ON CONFLICT DO UPDATE` garante contagem precisa
-- **Distribuído**: Funciona mesmo com múltiplas instâncias da função
-- **Configurável**: Limites por função e janela flexíveis
-- **Fail-open**: Em caso de erro do banco, permite a requisição (evita downtime)
-
-### RLS Policy
-```sql
--- Apenas service_role pode acessar
-CREATE POLICY "service_role_only" ON rate_limit_log
-  FOR ALL TO service_role USING (true);
-
--- Nenhum acesso para usuários normais
-ALTER TABLE rate_limit_log ENABLE ROW LEVEL SECURITY;
-```
-
----
-
-## Arquivos a Criar/Modificar
-
-1. **Nova tabela**: `rate_limit_log` (via migration)
-2. **Nova função RPC**: `check_rate_limit`
-3. **Novo helper**: `supabase/functions/_shared/rate-limiter.ts`
-4. **Atualizar**: 
-   - `lead-operations/index.ts`
-   - `public-itbi-stats/index.ts`
-   - `public-bairro-suggestions/index.ts`
-   - `chat-mercado/index.ts`
-   - `elevenlabs-tts/index.ts`
-   - `send-lead-notification/index.ts`
+| Arquivo | Acao |
+|---|---|
+| Migracao SQL | Adicionar `email`, `creci` em `profiles`; habilitar Realtime em `feedbacks_visita` |
+| `src/hooks/useVisitas.ts` | Auto-disparar feedback email+WhatsApp ao marcar "realizada" |
+| `src/hooks/useAgendamentos.ts` | Notificar corretor por email ao criar/cancelar agendamento |
+| `src/hooks/useFeedbackVisita.ts` | Apos inserir feedback, notificar corretor e agencia |
+| `src/components/visitas/ScheduleForm.tsx` | Adicionar seletor de corretor com dados de `profiles` |
+| `src/components/visitas/FeedbackRealtimeListener.tsx` | **NOVO** - Realtime toast para feedback recebido |
+| `src/pages/Configuracoes.tsx` | Adicionar secao "Perfil do Corretor" (email, CRECI) |
+| `src/pages/FichaVisitaPage.tsx` | Exibir dados do corretor responsavel; ajustar botao feedback |
+| `src/components/visitas/VisitCard.tsx` | Mostrar email do visitante e dados do corretor |
+| `src/utils/visitEmailService.ts` | Adicionar funcao `sendFeedbackReceivedEmail` |
+| `src/utils/whatsappService.ts` | Adicionar funcao `enviarSolicitacaoFeedback` |
+| `supabase/functions/send-visit-email/index.ts` | Adicionar template `feedback_recebido` |
