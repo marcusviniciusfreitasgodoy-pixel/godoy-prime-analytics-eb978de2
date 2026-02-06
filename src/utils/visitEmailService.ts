@@ -91,3 +91,32 @@ export async function sendLembreteVisitaEmail(
 ): Promise<{ success: boolean; error?: string }> {
   return sendVisitEmail("lembrete_visita", email, data, false);
 }
+
+// Função para notificar corretor quando feedback é recebido
+export async function sendFeedbackReceivedEmail(
+  emailCorretor: string,
+  data: {
+    nome_visitante: string;
+    endereco_imovel: string;
+    nome_corretor: string;
+    codigo_visita: string;
+  }
+): Promise<{ success: boolean; error?: string }> {
+  return sendVisitEmail("feedback_recebido" as any, emailCorretor, {
+    ...data,
+    feedback_url: `${window.location.origin}/visitas/feedback/${data.codigo_visita}`,
+  }, true);
+}
+
+// Função para notificar corretor sobre novo agendamento
+export async function sendCorretorAgendamentoEmail(
+  emailCorretor: string,
+  data: {
+    nome_visitante: string;
+    endereco_imovel: string;
+    data_hora: string;
+    nome_corretor: string;
+  }
+): Promise<{ success: boolean; error?: string }> {
+  return sendVisitEmail("agendamento_confirmado", emailCorretor, data, false);
+}

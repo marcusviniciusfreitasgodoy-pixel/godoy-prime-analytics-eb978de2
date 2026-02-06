@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { VisitStatusBadge } from "./VisitStatusBadge";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { MapPin, User, Phone, Calendar, Eye, FileText, XCircle, FilePlus } from "lucide-react";
+import { MapPin, User, Phone, Calendar, Eye, FileText, XCircle, FilePlus, Mail } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -140,6 +140,13 @@ export function VisitCard({ ficha, agendamento, type, onCreateFicha }: VisitCard
             <Phone className="h-4 w-4" />
             <span>{agendamento.telefone_visitante}</span>
           </div>
+
+          {agendamento.email_visitante && (
+            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+              <Mail className="h-4 w-4" />
+              <span className="truncate">{agendamento.email_visitante}</span>
+            </div>
+          )}
 
           <div className="flex gap-2 pt-2">
             {!isCancelled && (

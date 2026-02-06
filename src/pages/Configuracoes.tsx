@@ -1,10 +1,11 @@
 import { Helmet } from "react-helmet-async";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { CompanyLogoUpload } from "@/components/CompanyLogoUpload";
-import { Settings, Building2, Phone, MapPin, FileText, Globe, Filter, Database, Trash2, User, Briefcase, Home, Loader2, Eye, MessageCircle, Bell } from "lucide-react";
+import { Settings, Building2, Phone, MapPin, FileText, Globe, Filter, Database, Trash2, User, Briefcase, Home, Loader2, Eye, MessageCircle, Bell, Mail, BadgeCheck } from "lucide-react";
 import { MergeCondominiosButton } from "@/components/MergeCondominiosButton";
 import { EnrichCondominiosButton } from "@/components/EnrichCondominiosButton";
 import { useCondominiosStats } from "@/hooks/useCondominiosStats";
+import { useCorretorProfile } from "@/hooks/useCorretorProfile";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
@@ -21,6 +22,13 @@ export default function Configuracoes() {
   const { settings, isLoading, updateSetting } = useCompanySettings();
   const { settings: notifSettings, isLoading: notifLoading, updateSettings: updateNotifSettings } = useNotificationSettings();
   const { stats: condominiosStats, refetch: refetchCondominiosStats } = useCondominiosStats();
+  const { profile: corretorProfile, isLoading: corretorLoading, updateProfile } = useCorretorProfile();
+
+  const [corretorName, setCorretorName] = useState('');
+  const [corretorPhone, setCorretorPhone] = useState('');
+  const [corretorEmail, setCorretorEmail] = useState('');
+  const [corretorCreci, setCorretorCreci] = useState('');
+  const [isSavingCorretor, setIsSavingCorretor] = useState(false);
   
   const [personType, setPersonType] = useState<PersonType>('pj');
   const [companyName, setCompanyName] = useState('');
@@ -51,6 +59,15 @@ export default function Configuracoes() {
     }
   }, [isLoading, settings]);
 
+  useEffect(() => {
+    if (!corretorLoading && corretorProfile) {
+      setCorretorName(corretorProfile.full_name || '');
+      setCorretorPhone(corretorProfile.phone || '');
+      setCorretorEmail(corretorProfile.email || '');
+      setCorretorCreci(corretorProfile.creci || '');
+    }
+  }, [corretorLoading, corretorProfile]);
+
   const handleSaveInfo = async () => {
     setIsSaving(true);
     try {
@@ -65,6 +82,20 @@ export default function Configuracoes() {
       ]);
     } finally {
       setIsSaving(false);
+    }
+  };
+
+  const handleSaveCorretorProfile = async () => {
+    setIsSavingCorretor(true);
+    try {
+      await updateProfile.mutateAsync({
+        full_name: corretorName,
+        phone: corretorPhone || null,
+        email: corretorEmail || null,
+        creci: corretorCreci || null,
+      });
+    } finally {
+      setIsSavingCorretor(false);
     }
   };
 
@@ -249,6 +280,91 @@ export default function Configuracoes() {
             </CardContent>
           </Card>
         </div>
+
+        {/* Meu Perfil de Corretor */}
+        <Card>
+          <CardHeader className="p-4 sm:p-6">
+            <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
+              <BadgeCheck className="h-4 w-4 sm:h-5 sm:w-5" />
+              Meu Perfil de Corretor
+            </CardTitle>
+            <CardDescription className="text-xs sm:text-sm">
+              Dados pessoais usados para notificações e identificação nas fichas de visita
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="p-4 sm:p-6 pt-0 sm:pt-0 space-y-3 sm:space-y-4">
+            {corretorLoading ? (
+              <div className="flex items-center justify-center py-8">
+                <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+              </div>
+            ) : (
+              <>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
+                  <div className="space-y-1.5 sm:space-y-2">
+                    <Label htmlFor="corretor_name" className="text-xs sm:text-sm">
+                      <User className="h-3 w-3 inline mr-1" /> Nome Completo
+                    </Label>
+                    <Input
+                      id="corretor_name"
+                      value={corretorName}
+                      onChange={(e) => setCorretorName(e.target.value)}
+                      placeholder="Seu nome completo"
+                      className="h-9 sm:h-10 text-sm"
+                    />
+                  </div>
+                  <div className="space-y-1.5 sm:space-y-2">
+                    <Label htmlFor="corretor_email" className="text-xs sm:text-sm">
+                      <Mail className="h-3 w-3 inline mr-1" /> Email
+                    </Label>
+                    <Input
+                      id="corretor_email"
+                      type="email"
+                      value={corretorEmail}
+                      onChange={(e) => setCorretorEmail(e.target.value)}
+                      placeholder="seu@email.com"
+                      className="h-9 sm:h-10 text-sm"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
+                  <div className="space-y-1.5 sm:space-y-2">
+                    <Label htmlFor="corretor_phone" className="text-xs sm:text-sm">
+                      <Phone className="h-3 w-3 inline mr-1" /> Telefone
+                    </Label>
+                    <Input
+                      id="corretor_phone"
+                      value={corretorPhone}
+                      onChange={(e) => setCorretorPhone(e.target.value)}
+                      placeholder="(21) 99999-9999"
+                      className="h-9 sm:h-10 text-sm"
+                    />
+                  </div>
+                  <div className="space-y-1.5 sm:space-y-2">
+                    <Label htmlFor="corretor_creci" className="text-xs sm:text-sm">
+                      <BadgeCheck className="h-3 w-3 inline mr-1" /> CRECI
+                    </Label>
+                    <Input
+                      id="corretor_creci"
+                      value={corretorCreci}
+                      onChange={(e) => setCorretorCreci(e.target.value)}
+                      placeholder="CRECI 00000"
+                      className="h-9 sm:h-10 text-sm"
+                    />
+                  </div>
+                </div>
+
+                <Button 
+                  onClick={handleSaveCorretorProfile} 
+                  disabled={isSavingCorretor}
+                  className="w-full h-9 sm:h-10 text-sm"
+                >
+                  {isSavingCorretor ? 'Salvando...' : 'Salvar Perfil'}
+                </Button>
+              </>
+            )}
+          </CardContent>
+        </Card>
 
         {/* Notificações WhatsApp */}
         <Card>

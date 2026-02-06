@@ -1,6 +1,8 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { FichaVisita, FichaVisitaInsert, StatusVisita } from "@/types/visitas";
+import { sendFeedbackRequestEmail } from "@/utils/visitEmailService";
+import { enviarSolicitacaoFeedback } from "@/utils/whatsappService";
 import { toast } from "sonner";
 
 export function useVisitas() {
@@ -74,9 +76,42 @@ export function useVisitas() {
       if (error) throw error;
       return data as unknown as FichaVisita;
     },
-    onSuccess: () => {
+    onSuccess: async (data) => {
       queryClient.invalidateQueries({ queryKey: ["fichas-visita"] });
       toast.success("Status atualizado!");
+
+      // Disparo automático de feedback ao marcar como "realizada"
+      if (data.status === "realizada") {
+        // Enviar email de feedback se tiver email do visitante
+        if (data.email_visitante) {
+          try {
+            await sendFeedbackRequestEmail(data.email_visitante, {
+              nome_visitante: data.nome_visitante,
+              endereco_imovel: data.endereco_imovel,
+              codigo_visita: data.codigo,
+            });
+            toast.success("Email de feedback enviado ao visitante!");
+          } catch (err) {
+            console.error("Erro ao enviar email de feedback:", err);
+          }
+        }
+
+        // Enviar WhatsApp de feedback se tiver telefone
+        if (data.telefone_visitante) {
+          try {
+            const resultado = await enviarSolicitacaoFeedback(data.telefone_visitante, {
+              nome_visitante: data.nome_visitante,
+              endereco_imovel: data.endereco_imovel,
+              codigo_visita: data.codigo,
+            });
+            if (resultado.success) {
+              toast.success("WhatsApp com link de feedback enviado!");
+            }
+          } catch (err) {
+            console.error("Erro ao enviar WhatsApp de feedback:", err);
+          }
+        }
+      }
     },
     onError: (error) => {
       toast.error("Erro ao atualizar status");

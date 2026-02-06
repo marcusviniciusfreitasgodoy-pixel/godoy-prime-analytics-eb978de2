@@ -9,7 +9,7 @@ const corsHeaders = {
 };
 
 interface EmailRequest {
-  type: "agendamento_confirmado" | "visita_realizada" | "lembrete_visita" | "agendamento_cancelado";
+  type: "agendamento_confirmado" | "visita_realizada" | "lembrete_visita" | "agendamento_cancelado" | "feedback_recebido";
   to: string;
   data: {
     nome_visitante: string;
@@ -417,6 +417,60 @@ const handler = async (req: Request): Promise<Response> => {
             to: [AGENCY_EMAIL],
             subject: `Agendamento Cancelado - ${data.nome_visitante}`,
             html: getAgendamentoCanceladoHtml(data),
+          });
+        }
+        break;
+
+      case "feedback_recebido":
+        // Email para o corretor notificando sobre feedback recebido
+        emailsToSend.push({
+          to: [to],
+          subject: `Novo Feedback Recebido - ${data.endereco_imovel}`,
+          html: `
+            <!DOCTYPE html>
+            <html>
+            <head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"></head>
+            <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background-color: #f5f5f5; margin: 0; padding: 20px;">
+              <div style="max-width: 600px; margin: 0 auto; background-color: #ffffff; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
+                <div style="background-color: #16a34a; padding: 30px; text-align: center;">
+                  <h1 style="color: #ffffff; margin: 0; font-size: 24px;">✅ Novo Feedback Recebido</h1>
+                </div>
+                <div style="padding: 30px;">
+                  <p style="color: #333; font-size: 16px; margin: 0 0 20px 0;">
+                    Olá <strong>${data.nome_corretor || 'Corretor'}</strong>,
+                  </p>
+                  <p style="color: #666; font-size: 14px; margin: 0 0 20px 0;">
+                    O visitante <strong>${data.nome_visitante}</strong> enviou um feedback sobre a visita ao imóvel:
+                  </p>
+                  <div style="background-color: #f0fdf4; border-radius: 8px; padding: 20px; margin: 20px 0; border-left: 4px solid #16a34a;">
+                    <p style="color: #333; font-size: 14px; margin: 0;"><strong>📍 Imóvel:</strong> ${data.endereco_imovel}</p>
+                  </div>
+                  ${data.feedback_url ? `
+                  <div style="text-align: center; margin: 30px 0;">
+                    <a href="${data.feedback_url}" style="background-color: #16a34a; color: #ffffff; padding: 15px 40px; text-decoration: none; border-radius: 8px; font-weight: bold; font-size: 16px; display: inline-block;">
+                      Ver Feedback Completo
+                    </a>
+                  </div>
+                  ` : ''}
+                  <p style="color: #333; font-size: 14px; margin: 20px 0 0 0;">
+                    Atenciosamente,<br><strong>Godoy Prime Analytics</strong>
+                  </p>
+                </div>
+                <div style="background-color: #f8f9fa; padding: 20px; text-align: center; border-top: 1px solid #eee;">
+                  <p style="color: #999; font-size: 12px; margin: 0;">Godoy Prime - Notificação automática</p>
+                </div>
+              </div>
+            </body>
+            </html>
+          `,
+        });
+
+        // Também notificar a agência
+        if (sendToAgency) {
+          emailsToSend.push({
+            to: [AGENCY_EMAIL],
+            subject: `Feedback Recebido - ${data.nome_visitante} - ${data.endereco_imovel}`,
+            html: emailsToSend[0].html,
           });
         }
         break;
