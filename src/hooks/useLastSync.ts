@@ -1,5 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { useDemo } from "@/contexts/DemoContext";
 
 interface LastSyncInfo {
   lastTransaction: string | null;
@@ -10,9 +11,20 @@ interface LastSyncInfo {
 }
 
 export function useLastSync() {
+  const { isDemo } = useDemo();
+  
   return useQuery({
-    queryKey: ['last-sync-info'],
+    queryKey: ['last-sync-info', isDemo],
     queryFn: async (): Promise<LastSyncInfo> => {
+      if (isDemo) {
+        return {
+          lastTransaction: new Date().toISOString(),
+          totalRecords: 15847,
+          formattedDate: new Date().toLocaleDateString('pt-BR'),
+          formattedTime: '02:00',
+          isRecent: true,
+        };
+      }
       // Get the most recent updated_at from itbi_transactions
       const { data, error } = await supabase
         .from('itbi_transactions')

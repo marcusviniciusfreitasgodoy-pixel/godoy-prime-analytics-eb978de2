@@ -1,5 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
+import { useDemo } from '@/contexts/DemoContext';
+import { DEMO_EVOLUTION_DATA } from '@/data/demoData';
 
 // Limites de outliers por bairro (baseados em percentil 99 + margem)
 const OUTLIER_LIMITS: Record<string, number> = {
@@ -35,11 +37,14 @@ export interface EvolutionData {
 export type GranularityType = 'semester' | 'annual';
 
 export function useEvolutionData(bairro: string = 'BARRA DA TIJUCA', granularity: GranularityType = 'semester') {
+  const { isDemo } = useDemo();
+  
   return useQuery<EvolutionData[]>({
-    queryKey: ['evolution-data-v8', bairro, granularity],
-    staleTime: 0,
-    refetchOnMount: 'always',
+    queryKey: ['evolution-data-v8', bairro, granularity, isDemo],
+    staleTime: isDemo ? Infinity : 0,
+    refetchOnMount: isDemo ? false : 'always',
     queryFn: async () => {
+      if (isDemo) return DEMO_EVOLUTION_DATA;
       const startDate = '2020-01-01';
       const outlierLimit = getOutlierLimit(bairro);
 

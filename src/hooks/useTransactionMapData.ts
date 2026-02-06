@@ -1,5 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
+import { useDemo } from '@/contexts/DemoContext';
+import { DEMO_MAP_DATA } from '@/data/demoData';
 
 interface TransactionMapData {
   microbairro: string;
@@ -45,10 +47,12 @@ const OUTLIER_LIMITS: Record<string, number> = {
 
 export function useTransactionMapData(params: UseTransactionMapDataParams, enabled: boolean = true) {
   const { bairro, periodoMeses = 12, valorMin, valorMax, areaMin, areaMax, tipologia } = params;
+  const { isDemo } = useDemo();
 
   return useQuery({
-    queryKey: ['transaction-map-data-v2', bairro, periodoMeses, valorMin, valorMax, areaMin, areaMax, tipologia],
+    queryKey: ['transaction-map-data-v2', bairro, periodoMeses, valorMin, valorMax, areaMin, areaMax, tipologia, isDemo],
     queryFn: async (): Promise<TransactionMapData[]> => {
+      if (isDemo) return DEMO_MAP_DATA;
       console.log('[useTransactionMapData] Buscando dados atualizados para', bairro);
       // Calcular data limite
       const dataLimite = new Date();

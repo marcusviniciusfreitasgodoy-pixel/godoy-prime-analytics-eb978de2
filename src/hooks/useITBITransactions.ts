@@ -1,6 +1,8 @@
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { isTechnicalCode } from '@/lib/utils';
+import { useDemo } from '@/contexts/DemoContext';
+import { DEMO_MICROBAIRRO_RANKING } from '@/data/demoData';
 
 // Limites de outliers por bairro
 const OUTLIER_LIMITS: Record<string, number> = {
@@ -94,9 +96,12 @@ export function useITBITransactions() {
 }
 
 export function useMicrobairroRanking(bairro: string = 'BARRA DA TIJUCA') {
+  const { isDemo } = useDemo();
+  
   return useQuery<MicrobairroRanking[]>({
-    queryKey: ['microbairro-ranking-v6', bairro],
+    queryKey: ['microbairro-ranking-v6', bairro, isDemo],
     queryFn: async () => {
+      if (isDemo) return DEMO_MICROBAIRRO_RANKING;
       const outlierLimit = getOutlierLimit(bairro);
       const normalizedBairro = bairro.toUpperCase();
       
