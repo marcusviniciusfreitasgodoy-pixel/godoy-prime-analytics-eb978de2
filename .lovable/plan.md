@@ -1,55 +1,100 @@
 
 
-# Plano: Atualizar Documentacao e Demo com Novas Funcionalidades
+# Plano: Atualizar Onboarding, Manual e Tour + Corrigir Demo
 
-## Funcionalidades Implementadas Hoje (a documentar)
+## Problemas Identificados
 
-1. **Exportacao PDF do Dashboard de Feedbacks Analiticos** - Botoes "Exportar PDF" e "Enviar por Email" no painel de feedbacks de visitas
-2. **Modo Demonstracao Completo** - Rota `/demo` com dados ficticios em todos os modulos (Visitas, Avaliacoes, Vistorias, Leads, Feedbacks)
-3. **Pagina de Apresentacao** - Landing page profissional em `/apresentacao` para imobiliarias
+### 1. Pagina Demo - Erro 404 (intermitente)
+A pagina `/demo` funcionou corretamente nos testes do browser. O 404 que apareceu no screenshot pode ter sido causado por um build anterior. No entanto, ha dois problemas reais que precisam de correcao:
 
-## Problema Encontrado
+- **ManualPlataforma.tsx** usa `useAuthContext()` (linha 537) que retorna `isAdmin: false` no demo, escondendo secoes administrativas
+- **Onboarding.tsx** usa `useAuthContext()` (linha 653) que retorna `role: null` no demo, mostrando apenas modulos de corretor
 
-O `DemoSidebar.tsx` lista uma rota `/demo/onboarding` mas o `DemoLayout.tsx` nao tem essa rota registrada nas `<Routes>`. Isso precisa ser corrigido.
+### 2. Funcionalidades Faltando no Onboarding
+O onboarding (`allOnboardingSteps`) nao inclui:
+- **Relatorio PDF de Feedbacks Analiticos** na descricao do modulo "Agenda de Visitas" (id: 7)
+- **Modo Demonstracao** como modulo proprio
+
+### 3. Funcionalidades Faltando no GuidedTour
+O tour interativo (`GuidedTour.tsx`) nao menciona:
+- PDF de feedbacks analiticos no step de Agenda de Visitas
+
+### 4. FAQs do Onboarding desatualizadas
+A secao de FAQs (`faqCategories`) nao inclui perguntas sobre:
+- Modo Demonstracao
+- Exportacao PDF de Feedbacks
 
 ---
 
 ## Arquivos a Editar
 
-### 1. `src/pages/DemoLayout.tsx`
-- Adicionar rota `/onboarding` importando `Onboarding` para que o link do sidebar funcione
+### 1. `src/pages/Onboarding.tsx`
+
+**a) Proteger contra auth nulo no demo:**
+- Importar `useDemo` de `@/contexts/DemoContext`
+- Quando `isDemo`, usar role `'admin'` como default para que o visitante veja TODOS os modulos
+
+**b) Atualizar step "Agenda de Visitas" (id: 7, linha 379):**
+- Adicionar feature: "Relatorio PDF de feedbacks analiticos"
+
+**c) Adicionar novo step "Modo Demonstracao" (antes dos modulos de gestao):**
+```text
+id: 21 (ou proximo disponivel)
+title: "Modo Demonstracao"
+description: "Apresente a plataforma a clientes com dados ficticios..."
+features: [
+  "Pagina de apresentacao profissional",
+  "Acesso sem login em /demo",
+  "Dados ficticios realistas",
+  "Todos os modulos disponiveis",
+  "Ideal para reunioes comerciais"
+]
+route: "/apresentacao"
+roles: ['admin']
+category: 'admin'
+```
+
+**d) Adicionar FAQ sobre Demo e PDF de Feedbacks:**
+- Na categoria "geral": "O que e o modo demonstracao?" e "Como exportar o relatorio de feedbacks?"
 
 ### 2. `src/pages/ManualPlataforma.tsx`
-- Na secao "Agendamento de Visitas" (id: visitas), adicionar feature: "Relatorio PDF de Feedbacks" com descricao sobre exportacao e envio por email
-- Adicionar nova secao "Modo Demonstracao" descrevendo o acesso em `/demo` e `/apresentacao`
-- Adicionar FAQ: "O que e o modo demonstracao?" e "Como apresentar a plataforma para clientes?"
 
-### 3. `src/utils/manualPdfExport.ts`
-- Na secao "10. Agendamento de Visitas", adicionar funcionalidade: "Relatorio PDF de Feedbacks: Exportacao e envio por email do dashboard analitico com KPIs e graficos"
-- Adicionar nova secao sobre Modo Demonstracao e Apresentacao
-- Adicionar FAQs correspondentes na categoria "Geral"
+**a) Proteger contra auth nulo no demo:**
+- Importar `useDemo` de `@/contexts/DemoContext`
+- Quando `isDemo`, forcar `isAdmin = true` para exibir todas as secoes
 
-### 4. `src/utils/quickGuidePdfExport.ts`
-- Na secao "8. AGENDA DE VISITAS", adicionar item: "Exporte o relatorio de feedbacks em PDF ou envie por email diretamente"
-- Adicionar nova secao "14. MODO DEMONSTRACAO" com instrucoes de acesso em `/apresentacao` e `/demo`
+### 3. `src/components/GuidedTour.tsx`
 
-### 5. `src/utils/videoScriptPdfExport.ts`
-- No MODULO 7 (Agendamento de Visitas), adicionar narracao sobre o PDF de feedbacks analiticos
-- Adicionar MODULO sobre Modo Demonstracao/Apresentacao (antes do encerramento)
-- Atualizar lista de modulos na capa
-
-### 6. `src/pages/Apresentacao.tsx`
-- Adicionar "Feedback Analitico em PDF" como item nos diferenciais ou na descricao do card de Agendamento de Visitas
+**a) Atualizar step de Agenda de Visitas (linha 84):**
+- Expandir content para mencionar: "Exporte relatorios analiticos de feedbacks em PDF"
 
 ---
 
 ## Detalhes Tecnicos
 
-Todas as edicoes seguem os padroes existentes de cada arquivo:
+### Protecao Auth no Demo (Onboarding)
 
-- **ManualPlataforma.tsx**: Adicionar objetos ao array `manualSections` seguindo a interface `ManualSection`
-- **manualPdfExport.ts**: Adicionar ao objeto `manualContent.modulos` e `manualContent.faq`
-- **quickGuidePdfExport.ts**: Adicionar chamadas `drawSection()` com arrays de strings
-- **videoScriptPdfExport.ts**: Adicionar chamadas `addTitle()`, `addNarration()`, `addScreenshot()`
-- **DemoLayout.tsx**: Importar e adicionar `<Route>` para Onboarding
+```text
+import { useDemo } from "@/contexts/DemoContext";
+// ...
+const { isDemo } = useDemo();
+const { role: userRole } = useAuthContext();
+const effectiveRole: UserRole = isDemo ? 'admin' : (userRole as UserRole) || 'corretor';
+```
+
+### Protecao Auth no Demo (ManualPlataforma)
+
+```text
+import { useDemo } from "@/contexts/DemoContext";
+// ...
+const { isDemo } = useDemo();
+const { isAdmin: authIsAdmin } = useAuthContext();
+const isAdmin = isDemo || authIsAdmin;
+```
+
+### Novo Step no Onboarding
+Segue o padrao existente da interface `OnboardingStep` com icone `Eye` ou `Rocket` do lucide-react.
+
+### Tour Update
+Apenas atualizar o texto do step existente que referencia `[data-tour="nav-visitas"]`.
 
