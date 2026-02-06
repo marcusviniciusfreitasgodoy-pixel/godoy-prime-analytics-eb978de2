@@ -33,7 +33,7 @@ export function DemoSidebar() {
   const { open } = useSidebar();
 
   return (
-    <div className="hidden lg:block">
+    <div className="hidden xl:block">
       <Sidebar className={open ? "w-64" : "w-16"} collapsible="icon">
         <div className="p-4 flex justify-end">
           <SidebarTrigger />
