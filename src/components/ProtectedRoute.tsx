@@ -1,5 +1,5 @@
 import { Navigate } from "react-router-dom";
-import { useAuth } from "@/hooks/useAuth";
+import { useAuthContext } from "@/contexts/AuthContext";
 import { Loader2 } from "lucide-react";
 
 interface ProtectedRouteProps {
@@ -9,7 +9,7 @@ interface ProtectedRouteProps {
 }
 
 export function ProtectedRoute({ children, requireAdmin = false, requireAdminOrGerente = false }: ProtectedRouteProps) {
-  const { user, isLoading, isAdmin, isAdminOrGerente } = useAuth();
+  const { user, isLoading, isAdmin, isAdminOrGerente } = useAuthContext();
 
   if (isLoading) {
     return (
