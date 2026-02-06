@@ -10,6 +10,8 @@ interface AuthState {
   isLoading: boolean;
   role: UserRole | null;
   isAdmin: boolean;
+  isGerente: boolean;
+  isAdminOrGerente: boolean;
 }
 
 export function useAuth() {
@@ -19,6 +21,8 @@ export function useAuth() {
     isLoading: true,
     role: null,
     isAdmin: false,
+    isGerente: false,
+    isAdminOrGerente: false,
   });
 
   useEffect(() => {
@@ -41,6 +45,8 @@ export function useAuth() {
             ...prev,
             role: null,
             isAdmin: false,
+            isGerente: false,
+            isAdminOrGerente: false,
             isLoading: false,
           }));
         }
@@ -77,8 +83,10 @@ export function useAuth() {
         console.error("Error fetching user role:", error);
         setAuthState(prev => ({
           ...prev,
-          role: "corretor", // Default role
+          role: "corretor",
           isAdmin: false,
+          isGerente: false,
+          isAdminOrGerente: false,
           isLoading: false,
         }));
         return;
@@ -89,6 +97,8 @@ export function useAuth() {
         ...prev,
         role,
         isAdmin: role === "admin",
+        isGerente: role === "gerente",
+        isAdminOrGerente: role === "admin" || role === "gerente",
         isLoading: false,
       }));
     } catch (error) {
@@ -97,6 +107,8 @@ export function useAuth() {
         ...prev,
         role: "corretor",
         isAdmin: false,
+        isGerente: false,
+        isAdminOrGerente: false,
         isLoading: false,
       }));
     }

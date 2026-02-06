@@ -97,9 +97,9 @@ const App = () => (
                               <Route path="/documentacao" element={<Documentacao />} />
                               <Route path="/manual" element={<ManualPlataforma />} />
                               <Route path="/base-conhecimento" element={<ProtectedRoute requireAdmin={true}><BaseConhecimento /></ProtectedRoute>} />
-                              <Route path="/calibrador-avaliacao" element={<ProtectedRoute requireAdmin={true}><CalibradorAvaliacao /></ProtectedRoute>} />
-                              <Route path="/calibrador-vistoria" element={<ProtectedRoute requireAdmin={true}><CalibradorVistoria /></ProtectedRoute>} />
-                              <Route path="/leads" element={<ProtectedRoute requireAdmin={true}><Leads /></ProtectedRoute>} />
+                              <Route path="/calibrador-avaliacao" element={<ProtectedRoute requireAdminOrGerente={true}><CalibradorAvaliacao /></ProtectedRoute>} />
+                              <Route path="/calibrador-vistoria" element={<ProtectedRoute requireAdminOrGerente={true}><CalibradorVistoria /></ProtectedRoute>} />
+                              <Route path="/leads" element={<ProtectedRoute requireAdminOrGerente={true}><Leads /></ProtectedRoute>} />
                               <Route path="/usuarios" element={<ProtectedRoute requireAdmin={true}><Usuarios /></ProtectedRoute>} />
                               <Route path="/onboarding" element={<Onboarding />} />
                               <Route path="/visitas" element={<Visitas />} />

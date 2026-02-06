@@ -29,19 +29,28 @@ const baseItems = [
   { title: "Configurações", url: "/configuracoes", icon: Cog, tourId: "nav-configuracoes" },
 ];
 
-const adminItems = [
-  { title: "Base Conhecimento Sofia", url: "/base-conhecimento", icon: Brain, tourId: "nav-base-conhecimento" },
+// Items available to gerente and admin
+const gerenteItems = [
   { title: "Calibrador Avaliação", url: "/calibrador-avaliacao", icon: Settings, tourId: "nav-calibrador" },
   { title: "Calibrador Vistoria", url: "/calibrador-vistoria", icon: ClipboardList, tourId: "nav-calibrador-vistoria" },
   { title: "Leads", url: "/leads", icon: Users, tourId: "nav-leads" },
+];
+
+// Items available only to admin
+const adminItems = [
+  { title: "Base Conhecimento Sofia", url: "/base-conhecimento", icon: Brain, tourId: "nav-base-conhecimento" },
   { title: "Usuários", url: "/usuarios", icon: UserCog, tourId: "nav-usuarios" },
 ];
 
 export function AppSidebar() {
   const { open } = useSidebar();
-  const { isAdmin } = useAuthContext();
+  const { isAdmin, isAdminOrGerente } = useAuthContext();
   
-  const items = isAdmin ? [...baseItems, ...adminItems] : baseItems;
+  const items = [
+    ...baseItems,
+    ...(isAdminOrGerente ? gerenteItems : []),
+    ...(isAdmin ? adminItems : []),
+  ];
 
   return (
     <div className="hidden lg:block">
