@@ -1,95 +1,119 @@
 
-# Plano: Melhorias no Fluxo de Agendamento de Visitas
 
-## Problemas Identificados
+# Plano: Dashboard Analitico de Feedbacks + Melhorias no Fluxo de Agendamento
 
-1. **Corretor responsavel sem cadastro de contato**: O campo `corretor_id` existe nas tabelas `agendamentos_visita` e `fichas_visita`, mas nao ha um seletor de corretor no formulario de agendamento. O nome do corretor e preenchido manualmente como texto livre (ou extraido do email do usuario logado). A tabela `profiles` tem apenas `full_name` e `phone` -- falta email e CRECI do corretor.
-2. **Cliente nao aparece no fluxo**: O visitante/cliente que criou o agendamento nao recebe notificacoes de acompanhamento alem da confirmacao inicial. Nao ha visibilidade do status para ele.
-3. **Feedback nao e disparado automaticamente**: A solicitacao de feedback e manual (botao na FichaVisitaPage). Deveria ser automatica ao marcar como "realizada".
-4. **Sem notificacao em tempo real para feedback recebido**: Nao ha Realtime subscription para alertar corretores quando um feedback chega.
-5. **Notificacoes incompletas**: Nem todos os envolvidos (visitante, corretor, agencia) recebem email + WhatsApp em todos os eventos.
+## Resumo
+
+Transformar a aba "Feedbacks" de uma simples lista de cards em um dashboard analitico completo com graficos de satisfacao, distribuicao de interesse, tendencias mensais e word cloud dos pontos positivos/negativos. Tambem melhorar o fluxo de agendamento e garantir que a notificacao em tempo real funcione corretamente.
 
 ---
 
-## Mudancas Planejadas
+## 1. Dashboard Analitico de Feedbacks (novo componente)
 
-### 1. Enriquecer perfil do Corretor (dados de contato)
+Substituir o conteudo da aba "Feedbacks" por um dashboard com:
 
-**Migracao SQL:**
-- Adicionar colunas `email`, `creci` e `avatar_url` na tabela `profiles`
-- Isso permite que cada corretor tenha seus dados de contato registrados
+**KPIs do Feedback (4 cards no topo):**
+- Avaliacao Media (estrelas)
+- NPS / Taxa de Proposta (% que quer fazer proposta)
+- Percepcao de Valor (% "justo")
+- Total de Feedbacks recebidos
 
-**UI (Configuracoes):**
-- Adicionar secao "Meu Perfil de Corretor" na pagina de Configuracoes com campos: Nome, Telefone, Email, CRECI
+**Graficos:**
 
-### 2. Seletor de Corretor no formulario de agendamento
+| Grafico | Tipo | Dados |
+|---|---|---|
+| Distribuicao de Avaliacoes (1-5) | BarChart horizontal | Contagem por nota |
+| Nivel de Interesse | PieChart/Donut | baixo/medio/alto/muito_alto |
+| Percepcao de Valor | PieChart/Donut | abaixo/justo/acima |
+| Evolucao da Satisfacao Mensal | LineChart | Media de avaliacao_geral por mes (ultimos 6 meses) |
+| Efeitos UAU mais citados | BarChart horizontal | Contagem por categoria de efeito_uau |
+| Conexao Emocional vs Interesse | ScatterChart ou comparativo | conexao_imovel vs nivel_interesse |
 
-**ScheduleForm.tsx:**
-- Adicionar campo `Select` com lista de corretores (buscando de `profiles` + `user_roles`)
-- Ao selecionar, preencher `corretor_id` e associar automaticamente o nome e contato
-- Isso substitui o preenchimento manual de `nome_corretor`
+**Lista de feedbacks recentes** abaixo dos graficos (manter o componente `FeedbacksList` existente, mas compactado com paginacao).
 
-### 3. Disparo automatico de feedback ao marcar "realizada"
-
-**useVisitas.ts (updateStatus):**
-- Quando `status` mudar para `realizada`, disparar automaticamente:
-  - Email de solicitacao de feedback (via `sendFeedbackRequestEmail`)
-  - WhatsApp para o visitante com link de feedback
-- Remover necessidade de clique manual no botao "Enviar Link por Email"
-
-### 4. Notificacao em tempo real quando feedback e recebido
-
-**Migracao SQL:**
-- Habilitar Realtime na tabela `feedbacks_visita`: `ALTER PUBLICATION supabase_realtime ADD TABLE feedbacks_visita`
-
-**Novo componente `FeedbackRealtimeListener.tsx`:**
-- Subscribir a `postgres_changes` na tabela `feedbacks_visita` (evento `INSERT`)
-- Ao receber novo feedback, exibir toast com link para visualizar
-- Buscar dados da ficha associada para contexto (endereco, visitante)
-
-**Integracao no layout:**
-- Montar o listener no layout principal (dentro do `ProtectedRoute` ou `AppSidebar`)
-- Apenas usuarios autenticados (corretores/gerentes/admins) recebem a notificacao
-
-### 5. Notificacoes completas para todos os envolvidos
-
-**Atualizar `useAgendamentos.ts` e `useVisitas.ts`:**
-
-Para cada evento, garantir que TODOS recebam por email E WhatsApp:
-
-| Evento | Visitante (Email) | Visitante (WhatsApp) | Corretor (Email) | Agencia (Email) |
-|---|---|---|---|---|
-| Agendamento criado | Sim (ja existe) | Sim (ja existe) | **NOVO** | Sim (ja existe) |
-| Agendamento cancelado | Sim (ja existe) | Sim (ja existe) | **NOVO** | Sim (ja existe) |
-| Visita realizada | **NOVO** (feedback link) | **NOVO** (feedback link) | **NOVO** | **NOVO** |
-| Feedback recebido | - | - | **NOVO** (email + realtime) | **NOVO** (email) |
-
-**Implementacao:**
-- Criar funcao `notifyCorretor` que busca email/telefone do corretor via `corretor_id` na tabela `profiles`
-- Na edge function `send-visit-email`, adicionar template `feedback_recebido` para notificar corretor
-- Ao submeter feedback (hook `useFeedbackVisita`), invocar edge function para notificar corretor e agencia
-
-### 6. Incluir o cliente/visitante no fluxo
-
-**VisitCard.tsx (agendamento):**
-- Mostrar email do visitante quando disponivel
-- Adicionar botao para reenviar confirmacao
+### Arquivos envolvidos:
+- **NOVO**: `src/components/visitas/FeedbackAnalyticsDashboard.tsx` - Dashboard principal com KPIs + graficos
+- **NOVO**: `src/hooks/useFeedbackAnalytics.ts` - Hook que busca todos os feedbacks e calcula metricas agregadas
+- **Editar**: `src/pages/Visitas.tsx` - Substituir `<FeedbacksList />` pelo novo dashboard na aba "Feedbacks"
 
 ---
 
-## Secao Tecnica - Resumo de Arquivos
+## 2. Melhorias no Fluxo de Agendamento
 
-| Arquivo | Acao |
-|---|---|
-| Migracao SQL | Adicionar `email`, `creci` em `profiles`; habilitar Realtime em `feedbacks_visita` |
-| `src/hooks/useVisitas.ts` | Auto-disparar feedback email+WhatsApp ao marcar "realizada" |
-| `src/hooks/useAgendamentos.ts` | Notificar corretor por email ao criar/cancelar agendamento |
-| `src/hooks/useFeedbackVisita.ts` | Apos inserir feedback, notificar corretor e agencia |
-| `src/components/visitas/ScheduleForm.tsx` | Adicionar seletor de corretor com dados de `profiles` |
-| `src/components/visitas/FeedbackRealtimeListener.tsx` | **NOVO** - Realtime toast para feedback recebido |
-| `src/pages/Configuracoes.tsx` | Adicionar secao "Perfil do Corretor" (email, CRECI) |
-| `src/pages/FichaVisitaPage.tsx` | Exibir dados do corretor responsavel; ajustar botao feedback |
-| `src/components/visitas/VisitCard.tsx` | Mostrar email do visitante e dados do corretor |
-| `src/utils/visitEmailService.ts` | Adicionar funcao `sendFeedbackReceivedEmail` |
-| `src/utils/whatsappService.ts` | Adicionar funcao `enviarSolicitacaoFeedback` |
-| `supabase/functions/send-visit-email/index.ts` | Adicionar template `feedback_recebido` |
+**2a. Filtros e ordenacao nos agendamentos:**
+- Adicionar filtro por status (agendada/confirmada/realizada/cancelada) na aba "Agendamentos"
+- Adicionar ordenacao por data (mais recente/mais antigo)
+
+**2b. Indicador visual de tempo restante:**
+- No `VisitCard` de agendamento, mostrar badge "Hoje", "Amanha" ou "Em X dias" para visitas proximas
+- Highlight visual para visitas nas proximas 24h
+
+**2c. Contador de badges nas tabs:**
+- Mostrar contadores nas abas (ex: "Feedbacks (5)") tambem em desktop, nao apenas mobile
+
+### Arquivos envolvidos:
+- **Editar**: `src/pages/Visitas.tsx` - Adicionar filtros na aba agendamentos + contadores nas tabs
+- **Editar**: `src/components/visitas/VisitCard.tsx` - Badge de proximidade temporal
+
+---
+
+## 3. Notificacao em Tempo Real (ja implementada - ajustes)
+
+O `FeedbackRealtimeListener` ja esta montado no `ProtectedRoute` e funciona. Melhorias:
+
+- Invalidar query cache de `feedbacks-list` e `visitas-stats` quando novo feedback chegar (para atualizar graficos automaticamente)
+- Adicionar som de notificacao (opcional) ao receber feedback
+
+### Arquivos envolvidos:
+- **Editar**: `src/components/visitas/FeedbackRealtimeListener.tsx` - Adicionar invalidacao de queries
+
+---
+
+## Secao Tecnica - Detalhamento
+
+### `useFeedbackAnalytics.ts` (novo hook)
+
+Busca todos os feedbacks com join na ficha e calcula:
+
+```text
+- distributionByRating: { nota: 1|2|3|4|5, count: number }[]
+- interestDistribution: { nivel: string, count: number }[]
+- valuePerception: { percepcao: string, count: number }[]
+- monthlyTrend: { mes: string, mediaAvaliacao: number, totalFeedbacks: number }[]
+- topEfeitosUau: { efeito: string, count: number }[]
+- proposalRate: number (%)
+- avgRating: number
+- avgConexao: number
+```
+
+### `FeedbackAnalyticsDashboard.tsx` (novo componente)
+
+Layout em grid responsivo:
+- 4 KPI cards no topo (grid-cols-2 md:grid-cols-4)
+- 2 graficos lado a lado (PieChart interesse + PieChart valor)
+- 1 grafico largo (LineChart evolucao satisfacao)
+- 1 grafico largo (BarChart efeitos UAU)
+- Lista compacta dos ultimos 10 feedbacks
+
+Usa Recharts (ja instalado) com `StandardChartTooltip` para consistencia visual.
+
+### `FeedbackRealtimeListener.tsx` (ajuste)
+
+Adicionar `queryClient.invalidateQueries` para as keys:
+- `feedbacks-list`
+- `visitas-stats`
+- `feedback-analytics`
+
+Isso faz os graficos atualizarem em tempo real quando novo feedback chega.
+
+### `Visitas.tsx` (ajustes)
+
+- Aba "Feedbacks": renderizar `<FeedbackAnalyticsDashboard />` no lugar de `<FeedbacksList />`
+- Aba "Agendamentos": adicionar `<Select>` para filtrar por status + botao de ordenacao
+- Todas as tabs: mostrar contadores em desktop tambem
+
+### `VisitCard.tsx` (ajuste)
+
+- Calcular diferenca em dias entre agora e `data_hora`
+- Exibir badge: "Hoje" (vermelho), "Amanha" (amarelo), "Em X dias" (cinza)
+
