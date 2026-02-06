@@ -153,6 +153,7 @@ export async function exportVideoScriptPdf() {
     '  - Sofia - Assistente de Inteligência Artificial',
     '  - Recursos Administrativos',
     '  - Históricos e Configurações',
+    '  - Modo Demonstração e Apresentação',
   ];
   introText.forEach(line => {
     doc.text(line, pageWidth / 2, y, { align: 'center' });
@@ -273,9 +274,10 @@ export async function exportVideoScriptPdf() {
   addScreenshot(39, 'Área de assinatura digital', pageNum);
   addScreenshot(40, 'Link de avaliação por email', pageNum);
 
-  addNarration('Acompanhe a evolução mensal de visitas no gráfico e veja o ranking dos corretores por quantidade de atendimentos.', pageNum);
+  addNarration('Acompanhe a evolução mensal de visitas no gráfico e veja o ranking dos corretores por quantidade de atendimentos. E agora, o dashboard analítico de feedbacks pode ser exportado em PDF completo com KPIs, gráficos e análises detalhadas, ou enviado diretamente por email para proprietários e gestores.', pageNum);
   addScreenshot(41, 'Gráfico de evolução mensal', pageNum);
   addScreenshot(42, 'Ranking de corretores', pageNum);
+  addScreenshot(43, 'Dashboard de feedbacks com botões Exportar PDF e Enviar por Email', pageNum);
 
   // MÓDULO 8
   addTitle('MÓDULO 8: DOCUMENTAÇÃO (13:30 - 14:30)', pageNum);
@@ -314,8 +316,14 @@ export async function exportVideoScriptPdf() {
   addScreenshot(55, 'Menu de exportação do Painel Principal', pageNum);
   addScreenshot(56, 'PDFs gerados pela plataforma', pageNum);
 
+  // MÓDULO 13 - MODO DEMONSTRAÇÃO
+  addTitle('MÓDULO 13: MODO DEMONSTRAÇÃO E APRESENTAÇÃO (17:30 - 18:15)', pageNum);
+  addNarration('A plataforma conta com um Modo Demonstração completo para apresentações comerciais. A página de Apresentação em /apresentacao oferece uma visão profissional de todos os módulos e diferenciais, com botão para explorar a demonstração interativa. No modo demo em /demo, todos os módulos funcionam com dados fictícios realistas da Barra da Tijuca, sem necessidade de login. Dashboard, avaliações, vistorias, visitas, leads e feedbacks — tudo simulado para que potenciais clientes conheçam a plataforma em toda sua profundidade.', pageNum);
+  addScreenshot(57, 'Página de Apresentação com hero e módulos', pageNum);
+  addScreenshot(58, 'Modo Demo com banner e sidebar de navegação', pageNum);
+
   // ENCERRAMENTO
-  addTitle('ENCERRAMENTO (17:30 - 18:15)', pageNum);
+  addTitle('ENCERRAMENTO (18:15 - 19:00)', pageNum);
   addNarration('O Godoy Prime Analytics é mais do que uma ferramenta - é seu parceiro estratégico no mercado imobiliário de alto padrão. Dados oficiais da Prefeitura, avaliações automatizadas com metodologia própria, estratégia de precificação inteligente, vistorias digitais completas, gestão de visitas com assinatura digital, documentação de segurança jurídica, assistente com inteligência artificial e treinamento interativo - tudo em uma única plataforma. Acesse agora e transforme dados em resultados. Godoy Prime Realty - Inteligência que valoriza seu negócio.', pageNum);
 
   addFooter(pageNum.value);

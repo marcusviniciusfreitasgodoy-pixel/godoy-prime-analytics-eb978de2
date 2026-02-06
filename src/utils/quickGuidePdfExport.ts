@@ -122,6 +122,7 @@ export async function exportQuickGuidePDF() {
     'Colete assinaturas na tela ou envie por mensagem para assinatura remota',
     'Envie formulario de opiniao para o cliente avaliar o imovel apos a visita',
     'Painel com graficos de evolucao e comparativo entre corretores',
+    'Exporte o relatorio de feedbacks analiticos em PDF ou envie por email diretamente',
   ], '>');
 
   drawSection('9. DOCUMENTACAO - Analise Juridica', [
@@ -151,7 +152,15 @@ export async function exportQuickGuidePDF() {
     'Gestao de Leads e Usuarios: acompanhe contatos e gerencie acessos',
   ], '>');
 
-  drawSection('13. SOFIA - ASSISTENTE VIRTUAL', [
+  drawSection('14. MODO DEMONSTRACAO', [
+    'Acesse /apresentacao para a pagina profissional de apresentacao da plataforma',
+    'Clique em "Explorar Demonstracao" para entrar no modo demo com dados ficticios',
+    'Todos os modulos funcionam com dados simulados da Barra da Tijuca, sem login',
+    'Ideal para apresentacoes comerciais a imobiliarias e parceiros',
+    'Compartilhe o link /apresentacao diretamente com potenciais clientes',
+  ], '>');
+
+  drawSection('15. SOFIA - ASSISTENTE VIRTUAL', [
     'Disponivel no canto inferior direito de todas as paginas',
     'Pergunte sobre precos, tendencias e comparativos entre regioes',
     'Use comandos de voz para consultar sem precisar digitar',
