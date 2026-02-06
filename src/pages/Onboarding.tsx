@@ -42,6 +42,7 @@ import { Input } from '@/components/ui/input';
 import { exportManualPDF } from '@/utils/manualPdfExport';
 import { toast } from 'sonner';
 import { useAuthContext } from '@/contexts/AuthContext';
+import { useDemo } from '@/contexts/DemoContext';
 
 type UserRole = 'admin' | 'gerente' | 'corretor';
 
@@ -82,7 +83,9 @@ const faqCategories: FAQCategory[] = [
       { pergunta: "Quem pode usar a plataforma?", resposta: "Corretores de imóveis, avaliadores, gestores imobiliários e empresas do setor imobiliário." },
       { pergunta: "A plataforma funciona no celular?", resposta: "Sim, funciona em computadores, tablets e celulares. Você pode adicionar na tela inicial do celular para acesso rápido." },
       { pergunta: "Preciso instalar algum programa?", resposta: "Não, a plataforma funciona diretamente no navegador de internet, sem necessidade de instalação." },
-      { pergunta: "De onde vêm os dados da plataforma?", resposta: "Os dados são de vendas oficiais registradas na Prefeitura do Rio de Janeiro, atualizados mensalmente." }
+      { pergunta: "De onde vêm os dados da plataforma?", resposta: "Os dados são de vendas oficiais registradas na Prefeitura do Rio de Janeiro, atualizados mensalmente." },
+      { pergunta: "O que é o modo demonstração?", resposta: "É um ambiente com dados fictícios que permite explorar todos os módulos da plataforma sem login. Acesse /apresentacao para a página profissional ou /demo para navegar diretamente." },
+      { pergunta: "Como exportar o relatório de feedbacks?", resposta: "No módulo Agenda de Visitas, acesse o painel de Feedbacks Analíticos e clique em 'Exportar PDF' ou 'Enviar por Email' para gerar o relatório com KPIs e gráficos." }
     ]
   },
   {
@@ -381,7 +384,8 @@ const allOnboardingSteps: OnboardingStep[] = [
       "Ficha de visita com código único",
       "Assinatura na tela ou por link remoto",
       "Coleta de opinião após a visita",
-      "Painel com indicadores e comparativo"
+      "Painel com indicadores e comparativo",
+      "Relatório PDF de feedbacks analíticos"
     ],
     route: "/visitas",
     color: "from-teal-500 to-teal-400",
@@ -457,6 +461,25 @@ const allOnboardingSteps: OnboardingStep[] = [
     category: 'operacional'
   },
   
+  // === MODO DEMONSTRAÇÃO ===
+  {
+    id: 21,
+    title: "Modo Demonstração",
+    description: "Apresente a plataforma a clientes e parceiros com dados fictícios realistas, sem necessidade de login.",
+    icon: <Search className="h-8 w-8" />,
+    features: [
+      "Página de apresentação profissional (/apresentacao)",
+      "Acesso completo sem login em /demo",
+      "Dados fictícios realistas da Barra da Tijuca",
+      "Todos os módulos disponíveis para explorar",
+      "Ideal para reuniões comerciais com imobiliárias"
+    ],
+    route: "/apresentacao",
+    color: "from-cyan-500 to-cyan-400",
+    roles: ['admin'],
+    category: 'admin'
+  },
+
   // === MÓDULOS DE GESTÃO (GERENTE) ===
   {
     id: 12,
@@ -651,13 +674,14 @@ const getRoleBadge = (role: UserRole) => {
 export default function Onboarding() {
   const navigate = useNavigate();
   const { role: userRole } = useAuthContext();
+  const { isDemo } = useDemo();
   const [currentStep, setCurrentStep] = useState(0);
   const [completedSteps, setCompletedSteps] = useState<number[]>([]);
   const [showFAQ, setShowFAQ] = useState(false);
   const [faqSearch, setFaqSearch] = useState('');
 
-  // Determinar o role efetivo (default para corretor)
-  const effectiveRole: UserRole = (userRole as UserRole) || 'corretor';
+  // Determinar o role efetivo (admin no demo para mostrar tudo)
+  const effectiveRole: UserRole = isDemo ? 'admin' : (userRole as UserRole) || 'corretor';
 
   // Filtrar steps baseado no role do usuário
   const onboardingSteps = useMemo(() => {
