@@ -42,7 +42,7 @@ const contactSchema = z.object({
   nome: z.string().trim().min(2, "Nome deve ter pelo menos 2 caracteres").max(100),
   email: z.string().trim().email("Email inválido").max(255),
   telefone: z.string().trim().min(10, "Telefone deve ter pelo menos 10 dígitos").max(20),
-  interesse: z.enum(["compra", "venda", "ambos"], { required_error: "Selecione um interesse" }),
+  interesse: z.enum(["imobiliaria", "corretor_autonomo"], { required_error: "Selecione um interesse" }),
   mensagem: z.string().trim().max(500).optional(),
 });
 
@@ -250,9 +250,8 @@ export default function Apresentacao() {
                           <SelectValue placeholder="Selecione..." />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="compra">Comprar Imóvel</SelectItem>
-                          <SelectItem value="venda">Vender Imóvel</SelectItem>
-                          <SelectItem value="ambos">Ambos</SelectItem>
+                          <SelectItem value="imobiliaria">Imobiliária</SelectItem>
+                          <SelectItem value="corretor_autonomo">Corretor Autônomo</SelectItem>
                         </SelectContent>
                       </Select>
                       {errors.interesse && <p className="text-xs text-destructive">{errors.interesse}</p>}
