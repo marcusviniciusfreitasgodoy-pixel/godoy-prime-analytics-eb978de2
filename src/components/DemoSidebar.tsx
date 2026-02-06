@@ -1,4 +1,4 @@
-import { Home, ClipboardCheck, ClipboardList, FileText, MapPin, Users, Search, Calculator, Settings, History, CalendarCheck, Cog, BookOpen, Rocket } from "lucide-react";
+import { Home, ClipboardCheck, ClipboardList, FileText, MapPin, Users, Search, Calculator, Settings, History, CalendarCheck, Cog } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import {
   Sidebar,
@@ -15,8 +15,6 @@ import {
 
 const items = [
   { title: "Dashboard", url: "/demo", icon: Home },
-  { title: "Onboarding", url: "/demo/onboarding", icon: Rocket },
-  { title: "Manual / Tour", url: "/demo/manual", icon: BookOpen },
   { title: "Microregiões", url: "/demo/microbairros", icon: MapPin },
   { title: "Pesquisas de Mercado", url: "/demo/pesquisas-mercado", icon: Search },
   { title: "Avaliação Imobiliária", url: "/demo/avaliacao-imobiliaria", icon: Calculator },

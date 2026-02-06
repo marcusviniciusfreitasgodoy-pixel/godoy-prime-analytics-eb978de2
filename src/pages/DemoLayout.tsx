@@ -18,7 +18,6 @@ import CalibradorVistoria from "@/pages/CalibradorVistoria";
 import Leads from "@/pages/Leads";
 import Visitas from "@/pages/Visitas";
 import Configuracoes from "@/pages/Configuracoes";
-import Onboarding from "@/pages/Onboarding";
 import NotFound from "@/pages/NotFound";
 
 export default function DemoLayout() {
@@ -46,7 +45,6 @@ export default function DemoLayout() {
                 <Route path="/leads" element={<Leads />} />
                 <Route path="/visitas" element={<Visitas />} />
                 <Route path="/configuracoes" element={<Configuracoes />} />
-                <Route path="/onboarding" element={<Onboarding />} />
                 <Route path="*" element={<NotFound />} />
               </Routes>
             </main>
