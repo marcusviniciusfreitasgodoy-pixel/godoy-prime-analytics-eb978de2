@@ -1,11 +1,26 @@
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import {
   BarChart3, Building2, ClipboardCheck, Calendar, Target, FileText,
-  TrendingUp, Brain, Shield, ArrowRight, MessageCircle, Eye,
+  TrendingUp, Brain, Shield, ArrowRight, MessageCircle, Eye, Send, Loader2, CheckCircle,
 } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
+import { z } from "zod";
+import godoySymbol from "@/assets/godoy-logo-symbol.png";
 import godoyLogo from "@/assets/godoy-logo-pdf.png";
 
 const features = [
@@ -23,29 +38,77 @@ const differentials = [
   { icon: FileText, title: "Relatórios em PDF", desc: "Laudos profissionais prontos para apresentação ao cliente, incluindo feedback analítico de visitas e branding personalizado." },
 ];
 
+const contactSchema = z.object({
+  nome: z.string().trim().min(2, "Nome deve ter pelo menos 2 caracteres").max(100),
+  email: z.string().trim().email("Email inválido").max(255),
+  telefone: z.string().trim().min(10, "Telefone deve ter pelo menos 10 dígitos").max(20),
+  interesse: z.enum(["compra", "venda", "ambos"], { required_error: "Selecione um interesse" }),
+  mensagem: z.string().trim().max(500).optional(),
+});
+
+type ContactForm = z.infer<typeof contactSchema>;
+
+const WHATSAPP_URL = "https://wa.me/5521964075124?text=Olá! Gostaria de agendar uma apresentação da plataforma Godoy Prime Analytics.";
+
 export default function Apresentacao() {
   const navigate = useNavigate();
+  const [formState, setFormState] = useState<"idle" | "sending" | "success" | "error">("idle");
+  const [form, setForm] = useState<Partial<ContactForm>>({});
+  const [errors, setErrors] = useState<Record<string, string>>({});
 
-  const whatsappUrl = "https://wa.me/5521999999999?text=Olá! Gostaria de agendar uma apresentação da plataforma Godoy Prime Analytics.";
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setErrors({});
+
+    const result = contactSchema.safeParse(form);
+    if (!result.success) {
+      const fieldErrors: Record<string, string> = {};
+      for (const [key, msgs] of Object.entries(result.error.flatten().fieldErrors)) {
+        if (msgs && msgs.length > 0) fieldErrors[key] = msgs[0];
+      }
+      setErrors(fieldErrors);
+      return;
+    }
+
+    setFormState("sending");
+    try {
+      const { error } = await supabase.functions.invoke("send-lead-notification", {
+        body: {
+          type: "initial",
+          leadName: result.data.nome,
+          leadEmail: result.data.email,
+          leadPhone: result.data.telefone,
+          interesse: result.data.interesse,
+          objetivo: result.data.mensagem || "Contato via página de apresentação",
+        },
+      });
+
+      if (error) throw error;
+      setFormState("success");
+      toast.success("Mensagem enviada! Em breve entraremos em contato.");
+    } catch {
+      setFormState("error");
+      toast.error("Erro ao enviar. Tente novamente ou entre em contato via WhatsApp.");
+    }
+  };
 
   return (
     <div className="min-h-screen bg-background">
       {/* Hero */}
       <section className="relative bg-gradient-to-br from-primary via-primary/95 to-primary/85 text-primary-foreground">
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 py-16 sm:py-24 text-center">
-          <img src={godoyLogo} alt="Godoy Prime" className="h-14 sm:h-16 mx-auto mb-8" />
-          <h1 className="text-3xl sm:text-4xl lg:text-5xl font-bold tracking-tight mb-4">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 py-12 sm:py-24 text-center">
+          <img src={godoySymbol} alt="Godoy Prime" className="h-16 sm:h-20 mx-auto mb-6 sm:mb-8" />
+          <h1 className="text-2xl sm:text-3xl lg:text-5xl font-bold tracking-tight mb-4">
             Plataforma de Inteligência Imobiliária
           </h1>
-          <p className="text-lg sm:text-xl text-primary-foreground/80 max-w-2xl mx-auto mb-8">
+          <p className="text-base sm:text-xl text-primary-foreground/80 max-w-2xl mx-auto mb-8">
             Transforme dados de mercado em decisões estratégicas. Avaliação, vistoria, 
             agendamento e análises — tudo em uma única plataforma.
           </p>
           <div className="flex flex-col sm:flex-row gap-3 justify-center">
             <Button
               size="lg"
-              variant="secondary"
-              className="gap-2 text-base font-semibold"
+              className="w-full sm:w-auto gap-2 text-base font-bold min-h-[48px] bg-[hsl(43,60%,53%)] text-[hsl(212,62%,15%)] hover:bg-[hsl(43,60%,45%)]"
               onClick={() => navigate("/demo")}
             >
               <Eye className="h-5 w-5" />
@@ -53,9 +116,8 @@ export default function Apresentacao() {
             </Button>
             <Button
               size="lg"
-              variant="outline"
-              className="gap-2 text-base border-primary-foreground/30 text-primary-foreground hover:bg-primary-foreground/10"
-              onClick={() => window.open(whatsappUrl, "_blank")}
+              className="w-full sm:w-auto gap-2 text-base font-bold min-h-[48px] bg-white text-[hsl(212,62%,15%)] hover:bg-white/90"
+              onClick={() => window.open(WHATSAPP_URL, "_blank")}
             >
               <MessageCircle className="h-5 w-5" />
               Agendar Apresentação
@@ -65,23 +127,23 @@ export default function Apresentacao() {
       </section>
 
       {/* Features */}
-      <section className="py-16 sm:py-20 px-4 sm:px-6">
+      <section className="py-12 sm:py-20 px-4 sm:px-6">
         <div className="max-w-6xl mx-auto">
-          <div className="text-center mb-12">
+          <div className="text-center mb-10 sm:mb-12">
             <Badge variant="secondary" className="mb-3">Módulos</Badge>
-            <h2 className="text-2xl sm:text-3xl font-bold">Tudo que sua imobiliária precisa</h2>
-            <p className="text-muted-foreground mt-2 max-w-xl mx-auto">
+            <h2 className="text-xl sm:text-2xl lg:text-3xl font-bold">Tudo que sua imobiliária precisa</h2>
+            <p className="text-muted-foreground mt-2 max-w-xl mx-auto text-sm sm:text-base">
               Cada módulo foi projetado para otimizar o dia a dia do corretor e gerar resultados mensuráveis.
             </p>
           </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
             {features.map((f) => (
               <Card key={f.title} className="group hover:shadow-lg transition-shadow border-border/50">
                 <CardContent className="pt-6">
                   <div className="h-10 w-10 rounded-lg bg-accent/20 flex items-center justify-center mb-4">
                     <f.icon className="h-5 w-5 text-accent" />
                   </div>
-                  <h3 className="font-semibold text-lg mb-2">{f.title}</h3>
+                  <h3 className="font-semibold text-base sm:text-lg mb-2">{f.title}</h3>
                   <p className="text-sm text-muted-foreground leading-relaxed">{f.desc}</p>
                 </CardContent>
               </Card>
@@ -91,19 +153,19 @@ export default function Apresentacao() {
       </section>
 
       {/* Differentials */}
-      <section className="py-16 sm:py-20 px-4 sm:px-6 bg-muted/30">
+      <section className="py-12 sm:py-20 px-4 sm:px-6 bg-muted/30">
         <div className="max-w-6xl mx-auto">
-          <div className="text-center mb-12">
+          <div className="text-center mb-10 sm:mb-12">
             <Badge variant="secondary" className="mb-3">Diferenciais</Badge>
-            <h2 className="text-2xl sm:text-3xl font-bold">Por que escolher a Godoy Prime?</h2>
+            <h2 className="text-xl sm:text-2xl lg:text-3xl font-bold">Por que escolher a Godoy Prime?</h2>
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 sm:gap-8">
             {differentials.map((d) => (
               <div key={d.title} className="text-center">
                 <div className="h-14 w-14 rounded-full bg-accent/15 flex items-center justify-center mx-auto mb-4">
                   <d.icon className="h-7 w-7 text-accent" />
                 </div>
-                <h3 className="font-semibold text-lg mb-2">{d.title}</h3>
+                <h3 className="font-semibold text-base sm:text-lg mb-2">{d.title}</h3>
                 <p className="text-sm text-muted-foreground">{d.desc}</p>
               </div>
             ))}
@@ -111,21 +173,144 @@ export default function Apresentacao() {
         </div>
       </section>
 
+      {/* Contact Form */}
+      <section className="py-12 sm:py-20 px-4 sm:px-6">
+        <div className="max-w-2xl mx-auto">
+          <div className="text-center mb-8 sm:mb-10">
+            <Badge variant="secondary" className="mb-3">Contato</Badge>
+            <h2 className="text-xl sm:text-2xl lg:text-3xl font-bold">Agende uma Apresentação</h2>
+            <p className="text-muted-foreground mt-2 text-sm sm:text-base">
+              Preencha o formulário e entraremos em contato para agendar uma demonstração personalizada.
+            </p>
+          </div>
+
+          {formState === "success" ? (
+            <Card className="border-accent/30">
+              <CardContent className="pt-8 pb-8 text-center space-y-4">
+                <CheckCircle className="h-12 w-12 text-accent mx-auto" />
+                <h3 className="text-lg font-semibold">Mensagem Enviada!</h3>
+                <p className="text-muted-foreground text-sm">
+                  Você receberá uma confirmação por email. Entraremos em contato em breve.
+                </p>
+                <Button
+                  variant="outline"
+                  onClick={() => { setFormState("idle"); setForm({}); }}
+                  className="mt-4"
+                >
+                  Enviar nova mensagem
+                </Button>
+              </CardContent>
+            </Card>
+          ) : (
+            <Card>
+              <CardContent className="pt-6">
+                <form onSubmit={handleSubmit} className="space-y-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="nome">Nome *</Label>
+                      <Input
+                        id="nome"
+                        placeholder="Seu nome completo"
+                        value={form.nome || ""}
+                        onChange={(e) => setForm(p => ({ ...p, nome: e.target.value }))}
+                      />
+                      {errors.nome && <p className="text-xs text-destructive">{errors.nome}</p>}
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="email">Email *</Label>
+                      <Input
+                        id="email"
+                        type="email"
+                        placeholder="seu@email.com"
+                        value={form.email || ""}
+                        onChange={(e) => setForm(p => ({ ...p, email: e.target.value }))}
+                      />
+                      {errors.email && <p className="text-xs text-destructive">{errors.email}</p>}
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="telefone">Telefone *</Label>
+                      <Input
+                        id="telefone"
+                        placeholder="(21) 99999-9999"
+                        value={form.telefone || ""}
+                        onChange={(e) => setForm(p => ({ ...p, telefone: e.target.value }))}
+                      />
+                      {errors.telefone && <p className="text-xs text-destructive">{errors.telefone}</p>}
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="interesse">Interesse *</Label>
+                      <Select
+                        value={form.interesse}
+                        onValueChange={(v) => setForm(p => ({ ...p, interesse: v as ContactForm["interesse"] }))}
+                      >
+                        <SelectTrigger id="interesse">
+                          <SelectValue placeholder="Selecione..." />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="compra">Comprar Imóvel</SelectItem>
+                          <SelectItem value="venda">Vender Imóvel</SelectItem>
+                          <SelectItem value="ambos">Ambos</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      {errors.interesse && <p className="text-xs text-destructive">{errors.interesse}</p>}
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="mensagem">Mensagem (opcional)</Label>
+                    <Textarea
+                      id="mensagem"
+                      placeholder="Conte-nos mais sobre o que procura..."
+                      rows={3}
+                      value={form.mensagem || ""}
+                      onChange={(e) => setForm(p => ({ ...p, mensagem: e.target.value }))}
+                    />
+                  </div>
+
+                  <Button
+                    type="submit"
+                    disabled={formState === "sending"}
+                    className="w-full min-h-[48px] gap-2 text-base font-bold bg-[hsl(43,60%,53%)] text-[hsl(212,62%,15%)] hover:bg-[hsl(43,60%,45%)]"
+                  >
+                    {formState === "sending" ? (
+                      <><Loader2 className="h-5 w-5 animate-spin" /> Enviando...</>
+                    ) : (
+                      <><Send className="h-5 w-5" /> Enviar Mensagem</>
+                    )}
+                  </Button>
+                </form>
+              </CardContent>
+            </Card>
+          )}
+        </div>
+      </section>
+
       {/* CTA Final */}
-      <section className="py-16 sm:py-20 px-4 sm:px-6">
+      <section className="py-12 sm:py-20 px-4 sm:px-6 bg-muted/30">
         <div className="max-w-3xl mx-auto text-center">
-          <h2 className="text-2xl sm:text-3xl font-bold mb-4">
+          <h2 className="text-xl sm:text-2xl lg:text-3xl font-bold mb-4">
             Pronto para elevar o padrão da sua imobiliária?
           </h2>
-          <p className="text-muted-foreground mb-8 max-w-xl mx-auto">
+          <p className="text-muted-foreground mb-8 max-w-xl mx-auto text-sm sm:text-base">
             Explore a demonstração interativa com dados fictícios ou agende uma apresentação personalizada.
           </p>
           <div className="flex flex-col sm:flex-row gap-3 justify-center">
-            <Button size="lg" className="gap-2" onClick={() => navigate("/demo")}>
+            <Button
+              size="lg"
+              className="w-full sm:w-auto gap-2 min-h-[48px] font-bold bg-[hsl(43,60%,53%)] text-[hsl(212,62%,15%)] hover:bg-[hsl(43,60%,45%)]"
+              onClick={() => navigate("/demo")}
+            >
               Explorar Demonstração
               <ArrowRight className="h-4 w-4" />
             </Button>
-            <Button size="lg" variant="outline" className="gap-2" onClick={() => window.open(whatsappUrl, "_blank")}>
+            <Button
+              size="lg"
+              className="w-full sm:w-auto gap-2 min-h-[48px] font-bold bg-white text-[hsl(212,62%,15%)] hover:bg-white/90 border border-border"
+              onClick={() => window.open(WHATSAPP_URL, "_blank")}
+            >
               <MessageCircle className="h-4 w-4" />
               Falar com Consultor
             </Button>
@@ -134,7 +319,7 @@ export default function Apresentacao() {
       </section>
 
       {/* Footer */}
-      <footer className="border-t py-8 px-4 sm:px-6">
+      <footer className="border-t py-6 sm:py-8 px-4 sm:px-6">
         <div className="max-w-6xl mx-auto text-center space-y-3">
           <img src={godoyLogo} alt="Godoy Prime" className="h-8 mx-auto opacity-60" />
           <p className="text-xs text-muted-foreground max-w-2xl mx-auto">
