@@ -82,7 +82,7 @@ const desktopTourSteps: Step[] = [
   },
   {
     target: '[data-tour="nav-visitas"]',
-    content: 'Gestão completa: agende, crie fichas com código único, colete assinaturas na tela, envie formulário de opinião. Painel com indicadores e comparativo entre corretores.',
+    content: 'Gestão completa: agende, crie fichas com código único, colete assinaturas na tela, envie formulário de opinião. Painel com indicadores, comparativo entre corretores e exportação de relatórios analíticos de feedbacks em PDF.',
     placement: 'right',
     title: '📅 Agenda de Visitas',
   },

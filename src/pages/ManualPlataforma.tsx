@@ -40,6 +40,7 @@ import {
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useAuthContext } from "@/contexts/AuthContext";
+import { useDemo } from "@/contexts/DemoContext";
 import { useTourNavigation } from "@/hooks/useTourNavigation";
 import { useIsMobile } from "@/hooks/use-mobile";
 
@@ -534,7 +535,9 @@ const adminSections: ManualSection[] = [
 export default function ManualPlataforma() {
   const [selectedTab, setSelectedTab] = useState("funcionalidades");
   const navigate = useNavigate();
-  const { isAdmin } = useAuthContext();
+  const { isAdmin: authIsAdmin } = useAuthContext();
+  const { isDemo } = useDemo();
+  const isAdmin = isDemo || authIsAdmin;
   const { startTour } = useTourNavigation();
   const isMobile = useIsMobile();
 
