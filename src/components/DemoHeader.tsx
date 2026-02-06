@@ -28,7 +28,7 @@ export function DemoHeader() {
   return (
     <header className="h-14 border-b border-border flex items-center px-4 gap-3 bg-card/50 backdrop-blur-sm sticky top-0 z-30">
       {/* Mobile menu */}
-      <div className="lg:hidden">
+      <div className="xl:hidden">
         <Sheet open={isMenuOpen} onOpenChange={setIsMenuOpen}>
           <SheetTrigger asChild>
             <Button variant="ghost" size="icon" className="h-9 w-9">
@@ -66,7 +66,7 @@ export function DemoHeader() {
 
       {/* Logo */}
       <div className="flex items-center gap-2">
-        <img src={logoSymbol} alt="Godoy Prime" className="h-7 w-auto hidden lg:block" />
+        <img src={logoSymbol} alt="Godoy Prime" className="h-7 w-auto hidden xl:block" />
         <Badge variant="outline" className="text-xs">DEMONSTRAÇÃO</Badge>
       </div>
 

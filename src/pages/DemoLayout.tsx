@@ -27,7 +27,7 @@ export default function DemoLayout() {
         <DemoBanner />
         <div className="min-h-[calc(100vh-40px)] flex w-full bg-background">
           <DemoSidebar />
-          <div className="flex-1 flex flex-col w-full overflow-hidden">
+          <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
             <DemoHeader />
             <main className="flex-1 overflow-auto p-3 sm:p-4 lg:p-6">
               <Routes>
