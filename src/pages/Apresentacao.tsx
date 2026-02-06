@@ -12,7 +12,7 @@ const features = [
   { icon: BarChart3, title: "Dashboard Analítico", desc: "KPIs de mercado em tempo real com evolução de preços por m² e liquidez por tipologia." },
   { icon: TrendingUp, title: "Avaliação Imobiliária", desc: "Precificação inteligente baseada em dados oficiais de transações com ajustes por características." },
   { icon: ClipboardCheck, title: "Vistoria Digital", desc: "Checklist completo com score automático, itens críticos e ajuste de valor por estado de conservação." },
-  { icon: Calendar, title: "Agendamento de Visitas", desc: "Gestão completa de visitas com fichas digitais, assinatura eletrônica e feedback automatizado." },
+  { icon: Calendar, title: "Agendamento de Visitas", desc: "Gestão completa de visitas com fichas digitais, assinatura eletrônica, feedback automatizado e relatório analítico em PDF." },
   { icon: Target, title: "Microregiões", desc: "Ranking e evolução de preços por microbairro com mapa interativo de transações." },
   { icon: Building2, title: "Gestão de Leads", desc: "Captação automática de leads via avaliação pública com acompanhamento de conversão." },
 ];
@@ -20,7 +20,7 @@ const features = [
 const differentials = [
   { icon: Shield, title: "Dados Oficiais", desc: "Base de transações imobiliárias reais, garantindo precisão nas análises de mercado." },
   { icon: Brain, title: "IA para Precificação", desc: "Algoritmo proprietário com ajustes por 30+ características do imóvel e tendências de mercado." },
-  { icon: FileText, title: "Relatórios em PDF", desc: "Laudos profissionais prontos para apresentação ao cliente, com branding personalizado." },
+  { icon: FileText, title: "Relatórios em PDF", desc: "Laudos profissionais prontos para apresentação ao cliente, incluindo feedback analítico de visitas e branding personalizado." },
 ];
 
 export default function Apresentacao() {

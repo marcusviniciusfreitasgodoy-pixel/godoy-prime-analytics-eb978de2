@@ -146,7 +146,8 @@ const manualContent = {
         "Assinaturas Digitais: Visitante e corretor assinam na tela ou via link remoto",
         "Link de Avaliação: Envio automático para avaliação pós-visita pelo cliente",
         "Gráfico de Evolução: Histórico mensal de visitas realizadas",
-        "Ranking de Corretores: Comparativo por volume de visitas e conversão"
+        "Ranking de Corretores: Comparativo por volume de visitas e conversão",
+        "Relatório PDF de Feedbacks: Exportação e envio por email do dashboard analítico com KPIs e gráficos"
       ],
       beneficios: "Profissionaliza o processo de visitas, coleta avaliação valiosa e melhora conversão."
     },
@@ -215,7 +216,19 @@ const manualContent = {
       beneficios: "Permite personalização, controle total e gestão profissional da plataforma."
     },
     {
-      titulo: "16. Avaliação Pública",
+      titulo: "16. Modo Demonstração",
+      descricao: "Ambiente completo para apresentação da plataforma a clientes e parceiros sem necessidade de autenticação.",
+      funcionalidades: [
+        "Página de Apresentação: Landing page profissional em /apresentacao com módulos, diferenciais e CTA",
+        "Demonstração Interativa: Acesso a todos os módulos em /demo com dados fictícios realistas",
+        "Dados Simulados: Dashboard, KPIs, visitas, avaliações, vistorias, leads e feedbacks com dados da Barra da Tijuca",
+        "Modo Somente Leitura: Ações de escrita desabilitadas para proteção dos dados reais",
+        "Acesso Público: Sem necessidade de login ou cadastro para explorar"
+      ],
+      beneficios: "Facilita apresentações comerciais e demonstra o valor completo da plataforma."
+    },
+    {
+      titulo: "17. Avaliação Pública",
       descricao: "Página de captação de leads através de avaliação rápida.",
       funcionalidades: [
         "Acesso Sem Login: Visitantes podem usar sem criar conta",
@@ -261,7 +274,9 @@ const manualContent = {
         { p: "Quem pode usar a plataforma?", r: "Corretores de imóveis, avaliadores, gestores imobiliários e empresas do setor imobiliário que atuam no mercado de alto padrão do Rio de Janeiro." },
         { p: "A plataforma funciona em celulares e tablets?", r: "Sim, a interface funciona em computadores, tablets e celulares. Pode ser instalada como aplicativo para acesso rápido." },
         { p: "Preciso instalar algum programa?", r: "Não, a plataforma funciona diretamente no navegador de internet, sem necessidade de instalação. Opcionalmente, pode ser instalada como aplicativo." },
-        { p: "Com que frequência a plataforma é atualizada?", r: "A plataforma recebe atualizações contínuas com melhorias de funcionalidades, novos recursos e correções." }
+        { p: "Com que frequência a plataforma é atualizada?", r: "A plataforma recebe atualizações contínuas com melhorias de funcionalidades, novos recursos e correções." },
+        { p: "O que é o modo demonstração?", r: "É um ambiente completo com dados fictícios acessível em /demo sem login. Permite explorar todos os módulos da plataforma para apresentações comerciais." },
+        { p: "Como apresentar a plataforma para clientes?", r: "Acesse /apresentacao para a landing page profissional ou /demo para a demonstração interativa com dados fictícios. Compartilhe o link diretamente." }
       ]
     },
     {
@@ -431,9 +446,9 @@ export async function exportManualPDF() {
     y += 6;
   });
   y += 5;
-  doc.text('15. Recursos Adicionais', marginLeft + 5, y);
+  doc.text('17. Recursos Adicionais', marginLeft + 5, y);
   y += 6;
-  doc.text('16. Perguntas Frequentes (FAQ)', marginLeft + 5, y);
+  doc.text('18. Perguntas Frequentes (FAQ)', marginLeft + 5, y);
 
   // Module pages
   manualContent.modulos.forEach((modulo) => {
@@ -488,7 +503,7 @@ export async function exportManualPDF() {
   doc.addPage();
   y = drawGodoyHeader(doc, 'Manual do Usuário');
   
-  y = drawSectionTitle(doc, '15. Recursos Adicionais', y, marginLeft);
+  y = drawSectionTitle(doc, '17. Recursos Adicionais', y, marginLeft);
   y += 10;
   
   manualContent.recursosAdicionais.forEach((recurso) => {
@@ -510,7 +525,7 @@ export async function exportManualPDF() {
   doc.addPage();
   y = drawGodoyHeader(doc, 'Manual do Usuário');
   
-  y = drawSectionTitle(doc, '16. Perguntas Frequentes (FAQ)', y, marginLeft);
+  y = drawSectionTitle(doc, '18. Perguntas Frequentes (FAQ)', y, marginLeft);
   y += 10;
 
   manualContent.faq.forEach((categoria) => {

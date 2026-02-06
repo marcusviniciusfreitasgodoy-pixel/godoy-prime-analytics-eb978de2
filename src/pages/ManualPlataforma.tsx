@@ -299,6 +299,40 @@ const manualSections: ManualSection[] = [
         title: "Ranking de Corretores",
         description: "Acompanhe o desempenho da equipe por número de visitas realizadas.",
       },
+      {
+        title: "Relatório PDF de Feedbacks",
+        description: "Exporte o dashboard analítico de feedbacks em PDF com KPIs, gráficos e análises detalhadas. Envie o relatório por email diretamente pela plataforma.",
+        tips: [
+          "Use o botão 'Exportar PDF' no painel de feedbacks analíticos",
+          "Envie por email usando 'Enviar por Email' com destinatário personalizado",
+        ],
+      },
+    ],
+  },
+  {
+    id: "modo-demo",
+    title: "Modo Demonstração",
+    icon: Play,
+    description: "Ambiente de demonstração com dados fictícios para apresentar a plataforma a clientes e parceiros.",
+    route: "/apresentacao",
+    features: [
+      {
+        title: "Página de Apresentação",
+        description: "Landing page profissional em /apresentacao com visão geral dos módulos, diferenciais e botão para explorar a demonstração interativa.",
+      },
+      {
+        title: "Demonstração Interativa",
+        description: "Acesso completo a todos os módulos da plataforma com dados fictícios realistas da Barra da Tijuca, sem necessidade de login.",
+        tips: [
+          "Acesse /demo para navegar por todos os módulos",
+          "Dados são 100% fictícios e não afetam o banco de dados real",
+          "Ideal para apresentações comerciais a imobiliárias",
+        ],
+      },
+      {
+        title: "Módulos Disponíveis no Demo",
+        description: "Dashboard, Microregiões, Pesquisas, Avaliação, Vistoria, Visitas, Leads, Históricos e Configurações — todos com dados simulados.",
+      },
     ],
   },
   {
@@ -827,6 +861,28 @@ export default function ManualPlataforma() {
                   <AccordionContent>
                     <p className="text-sm text-muted-foreground">
                       Os dados podem ser atualizados manualmente pelo administrador através do botão "Atualizar Dados" no header. A API da Prefeitura geralmente disponibiliza dados com 30-60 dias de atraso em relação à data da transação. Recomendamos sincronização mensal.
+                    </p>
+                  </AccordionContent>
+                </AccordionItem>
+
+                <AccordionItem value="faq-demo-1">
+                  <AccordionTrigger className="text-sm font-medium text-left">
+                    O que é o modo demonstração?
+                  </AccordionTrigger>
+                  <AccordionContent>
+                    <p className="text-sm text-muted-foreground">
+                      É um ambiente completo da plataforma com dados fictícios realistas, acessível sem login pela rota /demo. Permite explorar todos os módulos (Dashboard, Avaliação, Vistoria, Visitas, Leads, etc.) sem afetar dados reais. Ideal para apresentações comerciais.
+                    </p>
+                  </AccordionContent>
+                </AccordionItem>
+
+                <AccordionItem value="faq-demo-2">
+                  <AccordionTrigger className="text-sm font-medium text-left">
+                    Como apresentar a plataforma para clientes?
+                  </AccordionTrigger>
+                  <AccordionContent>
+                    <p className="text-sm text-muted-foreground">
+                      Acesse /apresentacao para a landing page profissional com visão geral dos módulos e diferenciais. De lá, clique em "Explorar Demonstração" para navegar pelo /demo com dados fictícios. Você também pode compartilhar o link da apresentação diretamente com o cliente.
                     </p>
                   </AccordionContent>
                 </AccordionItem>
