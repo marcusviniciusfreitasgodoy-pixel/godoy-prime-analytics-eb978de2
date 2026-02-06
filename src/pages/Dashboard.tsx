@@ -460,14 +460,14 @@ export default function Dashboard() {
       </div>
 
       {/* Desktop Header */}
-      <div className="hidden sm:flex flex-row items-center justify-between gap-4">
-        <div>
+      <div className="hidden sm:flex flex-col md:flex-row md:items-center justify-between gap-3 md:gap-4">
+        <div className="min-w-0">
           <h2 className="text-2xl sm:text-3xl font-bold text-foreground">Dashboard</h2>
           <p className="text-muted-foreground text-sm sm:text-base mt-1">
             Inteligência de Mercado Imobiliário
           </p>
         </div>
-        <div className="flex flex-row items-center gap-4">
+        <div className="flex flex-wrap items-center gap-2 sm:gap-3 md:gap-4">
           <LastSyncIndicator />
           <BairroSelector value={selectedBairro} onChange={setSelectedBairro} />
           <div className="flex gap-2">

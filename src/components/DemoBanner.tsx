@@ -6,7 +6,7 @@ export function DemoBanner() {
   const navigate = useNavigate();
 
   return (
-    <div className="bg-accent/90 text-accent-foreground px-4 py-2 flex items-center justify-between gap-2 text-sm sticky top-0 z-50">
+    <div className="bg-accent/90 text-accent-foreground px-3 sm:px-4 py-1.5 sm:py-2 flex items-center justify-between gap-2 text-sm sticky top-0 z-50 flex-shrink-0">
       <div className="flex items-center gap-2">
         <Eye className="h-4 w-4" />
         <span className="font-medium">Modo Demonstração</span>
