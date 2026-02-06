@@ -1,7 +1,7 @@
 import { supabase } from "@/integrations/supabase/client";
 import jsPDF from "jspdf";
 
-export type DocumentType = 'ficha_visita' | 'avaliacao' | 'vistoria' | 'checklist';
+export type DocumentType = 'ficha_visita' | 'avaliacao' | 'vistoria' | 'checklist' | 'feedback_analytics';
 
 interface SendPdfEmailParams {
   to: string;

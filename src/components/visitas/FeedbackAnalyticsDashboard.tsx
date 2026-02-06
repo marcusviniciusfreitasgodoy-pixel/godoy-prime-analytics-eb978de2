@@ -1,8 +1,10 @@
+import { useState } from "react";
 import { useFeedbackAnalytics } from "@/hooks/useFeedbackAnalytics";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
-import { Star, ThumbsUp, DollarSign, MessageSquare, TrendingUp, MapPin, Calendar } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Star, ThumbsUp, DollarSign, MessageSquare, TrendingUp, MapPin, Calendar, FileDown, Mail, Loader2 } from "lucide-react";
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
   PieChart, Pie, Cell, LineChart, Line, Legend,
@@ -10,6 +12,9 @@ import {
 import { StandardChartTooltip, CHART_COLORS } from "@/components/ui/chart-tooltip";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { exportFeedbackAnalyticsPdf } from "@/utils/feedbackAnalyticsPdfExport";
+import { SendPdfEmailDialog, type ReportType } from "@/components/SendPdfEmailDialog";
+import { useToast } from "@/hooks/use-toast";
 
 const PIE_COLORS = [
   "hsl(152 76% 36%)", // emerald
@@ -71,6 +76,29 @@ function CustomPieLabel({ cx, cy, midAngle, innerRadius, outerRadius, percent }:
 
 export function FeedbackAnalyticsDashboard() {
   const { data: analytics, isLoading } = useFeedbackAnalytics();
+  const [isExporting, setIsExporting] = useState(false);
+  const [emailDialogOpen, setEmailDialogOpen] = useState(false);
+  const { toast } = useToast();
+
+  const handleDownloadPdf = async () => {
+    if (!analytics) return;
+    setIsExporting(true);
+    try {
+      const doc = await exportFeedbackAnalyticsPdf(analytics);
+      doc.save('relatorio-feedbacks-analiticos.pdf');
+      toast({ title: 'PDF exportado com sucesso!' });
+    } catch (err) {
+      console.error(err);
+      toast({ title: 'Erro ao gerar PDF', variant: 'destructive' });
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
+  const handleGeneratePdfForEmail = async (_reportType: ReportType) => {
+    if (!analytics) throw new Error('Sem dados');
+    return exportFeedbackAnalyticsPdf(analytics);
+  };
 
   if (isLoading) {
     return (
@@ -97,6 +125,26 @@ export function FeedbackAnalyticsDashboard() {
 
   return (
     <div className="space-y-4">
+      {/* Export buttons */}
+      <div className="flex items-center justify-end gap-2">
+        <Button variant="outline" size="sm" onClick={handleDownloadPdf} disabled={isExporting}>
+          {isExporting ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : <FileDown className="h-4 w-4 mr-1" />}
+          Exportar PDF
+        </Button>
+        <Button variant="outline" size="sm" onClick={() => setEmailDialogOpen(true)}>
+          <Mail className="h-4 w-4 mr-1" />
+          Enviar por Email
+        </Button>
+      </div>
+
+      <SendPdfEmailDialog
+        open={emailDialogOpen}
+        onOpenChange={setEmailDialogOpen}
+        generatePdf={handleGeneratePdfForEmail}
+        documentType="feedback_analytics"
+        pdfFilename="relatorio-feedbacks-analiticos.pdf"
+        defaultSubject="Relatório Analítico de Feedbacks de Visitas"
+      />
       {/* KPIs */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         <KPICard
