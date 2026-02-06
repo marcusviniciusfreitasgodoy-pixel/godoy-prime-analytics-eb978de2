@@ -257,6 +257,48 @@ const handler = async (req: Request): Promise<Response> => {
     }
 
     console.log("Email sent successfully! ID:", emailResponse.data?.id);
+
+    // Send confirmation copy to the lead
+    try {
+      const confirmationHtml = `
+        <!DOCTYPE html>
+        <html>
+        <head><meta charset="utf-8"></head>
+        <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
+          <div style="background: #0C2340; color: white; padding: 20px; text-align: center; border-radius: 8px 8px 0 0;">
+            <h1 style="margin: 0; color: #D4AF37; font-size: 22px;">🏠 Godoy Prime Realty</h1>
+          </div>
+          <div style="background: #ffffff; padding: 20px; border: 1px solid #ddd; border-top: none; border-radius: 0 0 8px 8px;">
+            <h2 style="color: #0C2340; margin-top: 0;">Olá, ${sanitizeHtml(data.leadName)}!</h2>
+            <p>Recebemos sua mensagem e agradecemos o seu interesse.</p>
+            <p>Nossa equipe entrará em contato em breve para agendar uma apresentação personalizada da plataforma Godoy Prime Analytics.</p>
+            <div style="background: #f5f5f5; padding: 15px; border-radius: 8px; margin: 15px 0;">
+              <p style="margin: 5px 0;"><strong>Enquanto isso, você pode:</strong></p>
+              <ul style="margin: 5px 0; padding-left: 20px;">
+                <li>Explorar nossa <a href="https://godoy-prime-analytics.lovable.app/demo" style="color: #D4AF37;">demonstração interativa</a></li>
+                <li>Falar diretamente conosco pelo <a href="https://wa.me/5521964075124" style="color: #D4AF37;">WhatsApp</a></li>
+              </ul>
+            </div>
+            <p style="color: #666; font-size: 12px; margin-top: 20px;">
+              Este email foi enviado automaticamente. Por favor, não responda.<br>
+              © ${new Date().getFullYear()} Godoy Prime Realty - CRECI 11841
+            </p>
+          </div>
+        </body>
+        </html>
+      `;
+
+      await resend.emails.send({
+        from: "Godoy Prime <marcus@godoyprime.com.br>",
+        to: [data.leadEmail],
+        subject: "Recebemos seu contato - Godoy Prime Realty",
+        html: confirmationHtml,
+      });
+      console.log("Confirmation email sent to lead:", data.leadEmail);
+    } catch (confirmError: any) {
+      console.error("Failed to send confirmation to lead (non-blocking):", confirmError.message);
+    }
+
     console.log("=== send-lead-notification END (SUCCESS) ===");
 
     return new Response(
