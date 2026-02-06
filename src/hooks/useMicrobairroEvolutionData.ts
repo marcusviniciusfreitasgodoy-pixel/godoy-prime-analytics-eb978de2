@@ -1,5 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
+import { useDemo } from '@/contexts/DemoContext';
+import { DEMO_MICROBAIRRO_EVOLUTION } from '@/data/demoData';
 
 // Limites de outliers por bairro
 const OUTLIER_LIMITS: Record<string, number> = {
@@ -84,9 +86,12 @@ export const useMicrobairroEvolutionData = (
   granularity: GranularityType = 'semester',
   metric: MetricType = 'valorization'
 ) => {
+  const { isDemo } = useDemo();
+  
   return useQuery({
-    queryKey: ['microbairro-evolution-v3', bairro, granularity, metric],
+    queryKey: ['microbairro-evolution-v3', bairro, granularity, metric, isDemo],
     queryFn: async () => {
+      if (isDemo) return DEMO_MICROBAIRRO_EVOLUTION;
       const startDate = new Date('2020-01-01');
       const outlierLimit = getOutlierLimit(bairro);
       

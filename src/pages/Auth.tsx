@@ -7,7 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, ArrowLeft } from "lucide-react";
+import { Loader2, ArrowLeft, Eye } from "lucide-react";
 import godoyLogo from "@/assets/godoy-logo-pdf.png";
 export default function Auth() {
   const [isLoading, setIsLoading] = useState(false);
@@ -290,7 +290,21 @@ Plataforma de Inteligência Imobiliária </CardDescription>
                 </Button>
               </form>
             </TabsContent>
-          </Tabs>
+           </Tabs>
+          
+          <div className="mt-4 pt-4 border-t border-border/50 text-center">
+            <Button
+              variant="outline"
+              className="w-full gap-2"
+              onClick={() => navigate("/demo")}
+            >
+              <Eye className="h-4 w-4" />
+              Explorar Demonstração
+            </Button>
+            <p className="text-xs text-muted-foreground mt-2">
+              Acesse com dados fictícios, sem cadastro
+            </p>
+          </div>
           
         </CardContent>
       </Card>

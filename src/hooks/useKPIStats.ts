@@ -1,5 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
+import { useDemo } from '@/contexts/DemoContext';
+import { DEMO_KPI_STATS } from '@/data/demoData';
 
 // Limites de outliers por bairro (baseados em percentil 99 + margem de segurança)
 const OUTLIER_LIMITS: Record<string, number> = {
@@ -106,11 +108,15 @@ const agruparPorMes = (transactions: TransactionData[]) => {
 };
 
 export function useKPIStats(bairro: string = 'BARRA DA TIJUCA') {
+  const { isDemo } = useDemo();
+  
   return useQuery<KPIStatsData>({
-    queryKey: ['kpi-stats-detailed-v5', bairro],
-    staleTime: 0,
-    refetchOnMount: 'always',
+    queryKey: ['kpi-stats-detailed-v5', bairro, isDemo],
+    staleTime: isDemo ? Infinity : 0,
+    refetchOnMount: isDemo ? false : 'always',
     queryFn: async () => {
+      if (isDemo) return DEMO_KPI_STATS;
+      
       const now = new Date();
       const currentYear = now.getFullYear();
       const startOfYear = `${currentYear}-01-01`;

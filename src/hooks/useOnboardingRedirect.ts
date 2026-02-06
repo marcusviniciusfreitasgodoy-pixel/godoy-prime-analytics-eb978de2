@@ -1,17 +1,23 @@
 import { useState, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useAuthContext } from "@/contexts/AuthContext";
+import { useDemo } from "@/contexts/DemoContext";
 
 const ONBOARDING_KEY = "godoy-onboarding-completed";
 const FIRST_LOGIN_KEY = "godoy-first-login-checked";
 
 export function useOnboardingRedirect() {
   const { user, isLoading } = useAuthContext();
+  const { isDemo } = useDemo();
   const navigate = useNavigate();
   const location = useLocation();
   const [isChecking, setIsChecking] = useState(true);
 
   useEffect(() => {
+    if (isDemo) {
+      setIsChecking(false);
+      return;
+    }
     if (isLoading) return;
 
     // Se não tem usuário, não faz nada
