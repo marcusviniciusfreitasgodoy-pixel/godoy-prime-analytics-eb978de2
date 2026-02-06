@@ -35,16 +35,21 @@ const navItems = [
   { title: "Configurações", url: "/configuracoes", icon: Cog },
 ];
 
-const adminItems = [
-  { title: "Base Conhecimento Sofia", url: "/base-conhecimento", icon: Brain },
+// Items available to gerente and admin
+const gerenteItems = [
   { title: "Calibrador Avaliação", url: "/calibrador-avaliacao", icon: Settings },
   { title: "Calibrador Vistoria", url: "/calibrador-vistoria", icon: ClipboardList },
   { title: "Leads", url: "/leads", icon: Users },
+];
+
+// Items available only to admin
+const adminItems = [
+  { title: "Base Conhecimento Sofia", url: "/base-conhecimento", icon: Brain },
   { title: "Usuários", url: "/usuarios", icon: UserCog },
 ];
 
 export function Header() {
-  const { user, isAdmin, signOut } = useAuthContext();
+  const { user, isAdmin, isAdminOrGerente, signOut } = useAuthContext();
   const navigate = useNavigate();
   const { toast } = useToast();
   const [isUpdating, setIsUpdating] = useState(false);
@@ -83,7 +88,11 @@ export function Header() {
     navigate("/auth");
   };
 
-  const allNavItems = isAdmin ? [...navItems, ...adminItems] : navItems;
+  const allNavItems = [
+    ...navItems,
+    ...(isAdminOrGerente ? gerenteItems : []),
+    ...(isAdmin ? adminItems : []),
+  ];
 
   // Get user initials for avatar
   const getUserInitials = () => {

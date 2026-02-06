@@ -10,6 +10,8 @@ interface AuthContextType {
   isLoading: boolean;
   role: UserRole | null;
   isAdmin: boolean;
+  isGerente: boolean;
+  isAdminOrGerente: boolean;
   signOut: () => Promise<void>;
 }
 
