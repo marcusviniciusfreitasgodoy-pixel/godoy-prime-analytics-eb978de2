@@ -1,37 +1,45 @@
 
 
-# Plano: Separar Onboarding/Manual/Tour do Demo
+# Plano: Melhorar Apresentacao - Responsividade, Branding e Formulario de Contato
 
-## Problema
+## Resumo
 
-Atualmente, o menu do Demo (`/demo`) inclui os links "Onboarding" e "Manual / Tour". Esses itens sao ferramentas de treinamento para **novos usuarios reais apos o cadastro**, e nao fazem sentido para visitantes externos do modo demonstracao.
+Reescrever a pagina `/apresentacao` com melhorias visuais, responsividade mobile, branding alinhado ao manual da marca (logo symbol no hero, cores Navy #0C2340 e Gold #D4AF37), botoes com contraste adequado, WhatsApp correto (21964075124), e formulario de contato/agendamento com envio por email para marcus@godoyprime.com.br com copia para o cliente.
 
-O fluxo correto e:
-- **Demo** (`/demo`): Visitante externo explora a plataforma com dados ficticios. Nao precisa de onboarding nem tour.
-- **Primeiro acesso real** (`/onboarding`): Usuario autenticado recebe o onboarding, manual e tour no menu lateral para aprender a usar a plataforma.
+---
 
-## O Que Sera Feito
+## Alteracoes
 
-### 1. Remover Onboarding e Manual do DemoSidebar e DemoHeader
+### 1. `src/pages/Apresentacao.tsx` (reescrever)
 
-Remover os itens "Onboarding" e "Manual / Tour" das listas de navegacao em:
-- `src/components/DemoSidebar.tsx` (linhas 18-19)
-- `src/components/DemoHeader.tsx` (linhas 11-12)
+**Hero Section:**
+- Trocar logo: usar `godoy-logo-symbol.png` (simbolo GR) em vez de `godoy-logo-pdf.png` (logo completo com texto pequeno que fica ilegivel)
+- Manter `godoy-logo-pdf.png` no footer
+- Botoes com contraste forte: "Explorar Demonstracao" em bg Gold (#D4AF37) com texto Navy, "WhatsApp" em bg branco com texto Navy
+- WhatsApp URL corrigido: `https://wa.me/5521964075124?text=...`
 
-### 2. Remover rota `/onboarding` do DemoLayout
+**Responsividade Mobile:**
+- Hero: padding reduzido, fonte h1 menor (text-2xl em mobile), botoes full-width em mobile (w-full sm:w-auto)
+- Cards de features: grid 1 col mobile, 2 tablet, 3 desktop
+- Secao diferenciais: grid 1 col mobile, 3 desktop
+- Formulario: layout responsivo com campos em 1 col mobile, 2 colunas tablet+
 
-Em `src/pages/DemoLayout.tsx`, remover:
-- A rota `<Route path="/onboarding" ...>` (linha 49)
-- O import de `Onboarding` (linha 21)
-- Opcionalmente remover tambem a rota `/manual` se o manual tambem nao deve estar no demo (manter se quiser que visitantes vejam o manual)
+**Formulario de Contato/Agendamento (nova secao antes do CTA final):**
+- Campos: Nome, Email, Telefone, Interesse (select: Compra/Venda/Ambos), Mensagem (textarea)
+- Ao submeter: chama edge function `send-lead-notification` com type "initial" (ja existente e funcional)
+- Tambem envia email de confirmacao ao cliente usando `send-pdf-email` function adaptada ou diretamente via nova logica simples no `send-lead-notification`
+- Alternativa mais simples: criar chamada ao `send-lead-notification` que ja envia para marcus@godoyprime.com.br, e adicionar um segundo envio de confirmacao ao cliente
 
-### 3. Garantir que o menu principal (AppSidebar + Header) mantem os links
+**Contraste dos botoes:**
+- Hero: botao primario com bg-[#D4AF37] text-[#0C2340] font-bold, botao WhatsApp com bg-white text-[#0C2340]
+- CTA final: mesmo padrao
+- Todos os botoes com min-h-12 para toque facil em mobile
 
-Os arquivos `AppSidebar.tsx` e `Header.tsx` ja possuem "Onboarding" e "Manual / Tour" nos `baseItems`/`navItems`. Eles continuam disponiveis para **todos os usuarios autenticados**, incluindo no primeiro acesso.
+### 2. Edge Function `send-lead-notification/index.ts`
 
-### 4. Manter o redirect automatico no primeiro login
-
-O hook `useOnboardingRedirect.ts` ja redireciona novos usuarios para `/onboarding` no primeiro login. Nenhuma alteracao necessaria.
+**Adicionar envio de copia ao cliente:**
+- Apos enviar email para contato@godoyprime.com.br, enviar segundo email para o leadEmail com template de confirmacao ("Recebemos seu contato, em breve retornaremos")
+- Usar mesmo Resend client ja configurado
 
 ---
 
@@ -39,22 +47,29 @@ O hook `useOnboardingRedirect.ts` ja redireciona novos usuarios para `/onboardin
 
 | Arquivo | Acao |
 |---|---|
-| `src/components/DemoSidebar.tsx` | Remover "Onboarding" e "Manual / Tour" da lista `items` |
-| `src/components/DemoHeader.tsx` | Remover "Onboarding" e "Manual / Tour" da lista `navItems` |
-| `src/pages/DemoLayout.tsx` | Remover rota `/onboarding` e import de `Onboarding` |
+| `src/pages/Apresentacao.tsx` | Reescrever com responsividade, logo symbol, formulario, WhatsApp correto, botoes com contraste |
+| `supabase/functions/send-lead-notification/index.ts` | Adicionar envio de email de confirmacao ao cliente (copia) |
 
-## Arquivos que NAO mudam
+## Detalhes Tecnicos
 
-| Arquivo | Motivo |
-|---|---|
-| `src/components/AppSidebar.tsx` | Ja tem os links para usuarios reais |
-| `src/components/Header.tsx` | Ja tem os links para usuarios reais |
-| `src/hooks/useOnboardingRedirect.ts` | Ja funciona corretamente no primeiro login |
-| `src/pages/Onboarding.tsx` | Nenhuma alteracao necessaria |
+### Formulario - Validacao
+- Usar zod para validar nome (min 2, max 100), email, telefone (min 10), interesse (enum), mensagem (max 500)
+- Estados: idle, sending, success, error com feedback visual
 
----
+### Email de Confirmacao ao Cliente
+No `send-lead-notification`, apos o envio principal, adicionar:
+```
+await resend.emails.send({
+  from: "Godoy Prime <marcus@godoyprime.com.br>",
+  to: [data.leadEmail],
+  subject: "Recebemos seu contato - Godoy Prime Realty",
+  html: templateConfirmacao
+});
+```
 
-## Resultado Esperado
+### Responsividade
+- Botoes: `w-full sm:w-auto` + `min-h-[48px]` para touch targets
+- Formulario: `grid grid-cols-1 sm:grid-cols-2 gap-4`
+- Hero texto: `text-2xl sm:text-3xl lg:text-5xl`
+- Padding geral: `px-4 sm:px-6`
 
-- Visitante em `/demo`: ve apenas os modulos funcionais (Dashboard, Pesquisas, Avaliacao, etc.) sem Onboarding/Manual
-- Novo usuario apos cadastro: e redirecionado automaticamente para `/onboarding` e tem "Onboarding" e "Manual / Tour" no menu lateral
