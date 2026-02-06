@@ -29,7 +29,7 @@ const features = [
   { icon: ClipboardCheck, title: "Vistoria Digital", desc: "Checklist completo com score automático, itens críticos e ajuste de valor por estado de conservação." },
   { icon: Calendar, title: "Agendamento de Visitas", desc: "Gestão completa de visitas com fichas digitais, assinatura eletrônica, feedback automatizado e relatório analítico em PDF." },
   { icon: Target, title: "Microregiões", desc: "Ranking e evolução de preços por microbairro com mapa interativo de transações." },
-  { icon: Building2, title: "Gestão de Leads", desc: "Captação automática de leads via avaliação pública com acompanhamento de conversão." },
+  { icon: Building2, title: "Gestão de Leads & CRM", desc: "CRM integrado com captação automática de leads, notificações por email e WhatsApp, filtros avançados e acompanhamento de conversão com exportação CSV." },
 ];
 
 const differentials = [
