@@ -43,6 +43,7 @@ import AssinaturaVisita from "./pages/AssinaturaVisita";
 import AssinaturaLanding from "./pages/AssinaturaLanding";
 import Configuracoes from "./pages/Configuracoes";
 import DemoLayout from "./pages/DemoLayout";
+import Apresentacao from "./pages/Apresentacao";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -77,6 +78,7 @@ const App = () => (
                 <Route path="/visitas/feedback/:codigo" element={<FeedbackVisita />} />
                 <Route path="/visitas/assinatura" element={<AssinaturaLanding />} />
                 <Route path="/visitas/assinatura/:codigo/:tipo" element={<AssinaturaVisita />} />
+                <Route path="/apresentacao" element={<Apresentacao />} />
                 <Route path="/demo/*" element={<DemoLayout />} />
                 <Route
                   path="/*"

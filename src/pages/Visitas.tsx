@@ -8,6 +8,7 @@ import { useVisitas } from "@/hooks/useVisitas";
 import { useAgendamentos } from "@/hooks/useAgendamentos";
 import { useVisitasStats } from "@/hooks/useVisitasStats";
 import { useAuth } from "@/hooks/useAuth";
+import { useDemo } from "@/contexts/DemoContext";
 import { VisitCard } from "@/components/visitas/VisitCard";
 import { VisitasDashboardKPIs } from "@/components/visitas/VisitasDashboardKPIs";
 import { VisitasEvolutionChart } from "@/components/visitas/VisitasEvolutionChart";
@@ -26,7 +27,9 @@ export default function Visitas() {
   const { agendamentos, isLoading: loadingAgendamentos } = useAgendamentos();
   const { stats, corretorRanking, evolucaoMensal, isLoading: loadingStats } = useVisitasStats();
   const { data: feedbackAnalytics } = useFeedbackAnalytics();
+  const { isDemo } = useDemo();
   const { user } = useAuth();
+  const demoUser = isDemo ? { email: "demo@godoyprime.com.br" } : user;
   const [activeTab, setActiveTab] = useState("dashboard");
   const [runTour, setRunTour] = useState(false);
   const [statusFilter, setStatusFilter] = useState<string>("todos");
@@ -52,6 +55,10 @@ export default function Visitas() {
   }, [agendamentos, statusFilter, sortOrder]);
 
   const handleCreateFichaFromAgendamento = async (agendamento: AgendamentoVisita) => {
+    if (isDemo) {
+      toast.info("Funcionalidade desabilitada no modo demonstração");
+      return;
+    }
     try {
       const codigo = `VIS-${Date.now().toString(36).toUpperCase()}`;
       await createFicha.mutateAsync({
@@ -62,7 +69,7 @@ export default function Visitas() {
         cpf_visitante: "A preencher",
         endereco_imovel: agendamento.endereco_imovel,
         codigo_imovel: agendamento.codigo_imovel || null,
-        nome_corretor: user?.email?.split('@')[0] || "Corretor",
+        nome_corretor: demoUser?.email?.split('@')[0] || "Corretor",
         nome_proprietario: "A preencher",
         data_visita: agendamento.data_hora,
         status: "agendada",

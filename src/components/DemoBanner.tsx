@@ -1,4 +1,4 @@
-import { Eye, LogIn } from "lucide-react";
+import { Eye, LogIn, Presentation } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
 
@@ -14,15 +14,26 @@ export function DemoBanner() {
           — Dados fictícios para exploração. Funcionalidades de edição desabilitadas.
         </span>
       </div>
-      <Button
-        size="sm"
-        variant="secondary"
-        className="gap-1.5 h-7 text-xs"
-        onClick={() => navigate("/auth")}
-      >
-        <LogIn className="h-3.5 w-3.5" />
-        Criar Conta
-      </Button>
+      <div className="flex items-center gap-2">
+        <Button
+          size="sm"
+          variant="ghost"
+          className="gap-1.5 h-7 text-xs text-accent-foreground/80 hover:text-accent-foreground"
+          onClick={() => navigate("/apresentacao")}
+        >
+          <Presentation className="h-3.5 w-3.5" />
+          <span className="hidden sm:inline">Apresentação</span>
+        </Button>
+        <Button
+          size="sm"
+          variant="secondary"
+          className="gap-1.5 h-7 text-xs"
+          onClick={() => navigate("/auth")}
+        >
+          <LogIn className="h-3.5 w-3.5" />
+          Criar Conta
+        </Button>
+      </div>
     </div>
   );
 }

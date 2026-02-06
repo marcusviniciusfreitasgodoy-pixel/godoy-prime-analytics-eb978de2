@@ -63,6 +63,8 @@ import type { ValuationResult } from "@/utils/valuationCalculations";
 import { supabase } from "@/integrations/supabase/client";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useAuth } from "@/hooks/useAuth";
+import { useDemo } from "@/contexts/DemoContext";
+import { DEMO_AVALIACOES } from "@/data/demoData";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { toast } from "sonner";
@@ -203,6 +205,7 @@ function generateSyntheticHistoricalAnalysis(valuation: Valuation, trendPercenta
 }
 
 export default function HistoricoAvaliacoes() {
+  const { isDemo } = useDemo();
   const { user, isAdmin } = useAuth();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
@@ -216,6 +219,8 @@ export default function HistoricoAvaliacoes() {
   const { data: avaliacoes, isLoading } = useQuery({
     queryKey: ["avaliacoes-historico", user?.id, isAdmin],
     queryFn: async () => {
+      if (isDemo) return DEMO_AVALIACOES as Valuation[];
+
       let query = supabase
         .from("valuations")
         .select(`
@@ -236,7 +241,6 @@ export default function HistoricoAvaliacoes() {
         `)
         .order("created_at", { ascending: false });
       
-      // Se não for admin, filtrar apenas avaliações do usuário
       if (!isAdmin && user?.id) {
         query = query.eq("user_id", user.id);
       }
@@ -246,7 +250,8 @@ export default function HistoricoAvaliacoes() {
       if (error) throw error;
       return data as Valuation[];
     },
-    enabled: !!user?.id,
+    enabled: isDemo || !!user?.id,
+    staleTime: isDemo ? Infinity : 0,
   });
 
   const filteredAvaliacoes = avaliacoes?.filter(av => {

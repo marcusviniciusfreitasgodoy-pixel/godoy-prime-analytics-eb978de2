@@ -292,17 +292,24 @@ Plataforma de Inteligência Imobiliária </CardDescription>
             </TabsContent>
            </Tabs>
           
-          <div className="mt-4 pt-4 border-t border-border/50 text-center">
+          <div className="mt-4 pt-4 border-t border-border/50 text-center space-y-2">
             <Button
               variant="outline"
               className="w-full gap-2"
-              onClick={() => navigate("/demo")}
+              onClick={() => navigate("/apresentacao")}
             >
               <Eye className="h-4 w-4" />
+              Ver Apresentação
+            </Button>
+            <Button
+              variant="ghost"
+              className="w-full gap-2 text-muted-foreground"
+              onClick={() => navigate("/demo")}
+            >
               Explorar Demonstração
             </Button>
-            <p className="text-xs text-muted-foreground mt-2">
-              Acesse com dados fictícios, sem cadastro
+            <p className="text-xs text-muted-foreground">
+              Conheça a plataforma sem cadastro
             </p>
           </div>
           

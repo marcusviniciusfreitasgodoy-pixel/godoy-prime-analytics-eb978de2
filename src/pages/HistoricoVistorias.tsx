@@ -35,6 +35,8 @@ import {
 import { supabase } from "@/integrations/supabase/client";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useAuth } from "@/hooks/useAuth";
+import { useDemo } from "@/contexts/DemoContext";
+import { DEMO_VISTORIAS } from "@/data/demoData";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 
@@ -70,6 +72,7 @@ interface Vistoria {
 }
 
 export default function HistoricoVistorias() {
+  const { isDemo } = useDemo();
   const { user, isAdmin } = useAuth();
   const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState("");
@@ -78,7 +81,8 @@ export default function HistoricoVistorias() {
   const { data: vistorias, isLoading } = useQuery({
     queryKey: ["vistorias-historico", user?.id, isAdmin],
     queryFn: async () => {
-      // Buscar vistorias com dados da avaliação vinculada e estratégia de precificação
+      if (isDemo) return DEMO_VISTORIAS as (Vistoria & { valuations: any })[];
+
       let query = supabase
         .from("vistorias")
         .select(`
@@ -141,7 +145,8 @@ export default function HistoricoVistorias() {
       if (error) throw error;
       return data as (Vistoria & { valuations: any })[];
     },
-    enabled: !!user?.id,
+    enabled: isDemo || !!user?.id,
+    staleTime: isDemo ? Infinity : 0,
   });
 
   const filteredVistorias = vistorias?.filter(v => {
