@@ -1,10 +1,11 @@
 import { FichaVisita, AgendamentoVisita } from "@/types/visitas";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { VisitStatusBadge } from "./VisitStatusBadge";
-import { format } from "date-fns";
+import { format, differenceInCalendarDays, differenceInHours } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { MapPin, User, Phone, Calendar, Eye, FileText, XCircle, FilePlus, Mail } from "lucide-react";
+import { MapPin, User, Phone, Calendar, Eye, FileText, XCircle, FilePlus, Mail, Clock } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -114,12 +115,28 @@ export function VisitCard({ ficha, agendamento, type, onCreateFicha }: VisitCard
 
   if (type === "agendamento" && agendamento) {
     const isCancelled = agendamento.status === 'cancelada';
+    const now = new Date();
+    const visitDate = new Date(agendamento.data_hora);
+    const daysUntil = differenceInCalendarDays(visitDate, now);
+    const hoursUntil = differenceInHours(visitDate, now);
+    const isUrgent = hoursUntil >= 0 && hoursUntil <= 24 && !isCancelled;
+
+    const getProximityBadge = () => {
+      if (isCancelled || visitDate < now) return null;
+      if (daysUntil === 0) return <Badge variant="destructive" className="text-[10px] px-1.5 py-0"><Clock className="h-3 w-3 mr-0.5" />Hoje</Badge>;
+      if (daysUntil === 1) return <Badge className="text-[10px] px-1.5 py-0 bg-amber-500 hover:bg-amber-600"><Clock className="h-3 w-3 mr-0.5" />Amanhã</Badge>;
+      if (daysUntil <= 7) return <Badge variant="secondary" className="text-[10px] px-1.5 py-0">Em {daysUntil} dias</Badge>;
+      return null;
+    };
     
     return (
-      <Card className={`hover:shadow-md transition-shadow ${isCancelled ? 'opacity-60' : ''}`}>
+      <Card className={`hover:shadow-md transition-shadow ${isCancelled ? 'opacity-60' : ''} ${isUrgent ? 'ring-1 ring-amber-400/50' : ''}`}>
         <CardHeader className="pb-2">
           <div className="flex items-start justify-between">
-            <CardTitle className="text-lg">{agendamento.nome_visitante}</CardTitle>
+            <div className="flex items-center gap-2 flex-wrap">
+              <CardTitle className="text-lg">{agendamento.nome_visitante}</CardTitle>
+              {getProximityBadge()}
+            </div>
             <VisitStatusBadge status={agendamento.status} />
           </div>
         </CardHeader>

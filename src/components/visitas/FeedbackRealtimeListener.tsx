@@ -2,9 +2,11 @@ import { useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
+import { useQueryClient } from "@tanstack/react-query";
 
 export function FeedbackRealtimeListener() {
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
 
   useEffect(() => {
     const channel = supabase
@@ -47,6 +49,11 @@ export function FeedbackRealtimeListener() {
                 : undefined,
             }
           );
+
+          // Invalidate queries to update dashboard charts in real-time
+          queryClient.invalidateQueries({ queryKey: ["feedbacks-list"] });
+          queryClient.invalidateQueries({ queryKey: ["visitas-stats"] });
+          queryClient.invalidateQueries({ queryKey: ["feedback-analytics"] });
         }
       )
       .subscribe();
@@ -54,7 +61,7 @@ export function FeedbackRealtimeListener() {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [navigate]);
+  }, [navigate, queryClient]);
 
   return null;
 }

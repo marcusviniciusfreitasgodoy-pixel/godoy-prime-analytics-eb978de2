@@ -1,8 +1,9 @@
 import { Helmet } from "react-helmet-async";
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useVisitas } from "@/hooks/useVisitas";
 import { useAgendamentos } from "@/hooks/useAgendamentos";
 import { useVisitasStats } from "@/hooks/useVisitasStats";
@@ -11,30 +12,48 @@ import { VisitCard } from "@/components/visitas/VisitCard";
 import { VisitasDashboardKPIs } from "@/components/visitas/VisitasDashboardKPIs";
 import { VisitasEvolutionChart } from "@/components/visitas/VisitasEvolutionChart";
 import { CorretorRanking } from "@/components/visitas/CorretorRanking";
-import { FeedbacksList } from "@/components/visitas/FeedbacksList";
+import { FeedbackAnalyticsDashboard } from "@/components/visitas/FeedbackAnalyticsDashboard";
 import { PageTour, TourButton } from "@/components/PageTour";
 import { AgendamentoVisita } from "@/types/visitas";
-import { Calendar, List, Plus, Loader2, LayoutDashboard, Trophy, MessageSquare } from "lucide-react";
+import { Calendar, List, Plus, Loader2, LayoutDashboard, Trophy, MessageSquare, ArrowUpDown } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
+import { useFeedbackAnalytics } from "@/hooks/useFeedbackAnalytics";
 
 export default function Visitas() {
   const navigate = useNavigate();
   const { fichas, isLoading: loadingFichas, createFicha } = useVisitas();
   const { agendamentos, isLoading: loadingAgendamentos } = useAgendamentos();
   const { stats, corretorRanking, evolucaoMensal, isLoading: loadingStats } = useVisitasStats();
+  const { data: feedbackAnalytics } = useFeedbackAnalytics();
   const { user } = useAuth();
   const [activeTab, setActiveTab] = useState("dashboard");
   const [runTour, setRunTour] = useState(false);
+  const [statusFilter, setStatusFilter] = useState<string>("todos");
+  const [sortOrder, setSortOrder] = useState<"desc" | "asc">("desc");
 
   const isLoading = loadingFichas || loadingAgendamentos;
 
-  // Função para criar ficha de visita a partir de um agendamento
+  const feedbackCount = feedbackAnalytics?.totalFeedbacks ?? 0;
+
+  // Filter and sort agendamentos
+  const filteredAgendamentos = useMemo(() => {
+    if (!agendamentos) return [];
+    let filtered = [...agendamentos];
+    if (statusFilter !== "todos") {
+      filtered = filtered.filter((a) => a.status === statusFilter);
+    }
+    filtered.sort((a, b) => {
+      const da = new Date(a.data_hora).getTime();
+      const db = new Date(b.data_hora).getTime();
+      return sortOrder === "desc" ? db - da : da - db;
+    });
+    return filtered;
+  }, [agendamentos, statusFilter, sortOrder]);
+
   const handleCreateFichaFromAgendamento = async (agendamento: AgendamentoVisita) => {
     try {
-      // Gerar código único para a ficha
       const codigo = `VIS-${Date.now().toString(36).toUpperCase()}`;
-      
       await createFicha.mutateAsync({
         codigo,
         nome_visitante: agendamento.nome_visitante,
@@ -48,7 +67,6 @@ export default function Visitas() {
         data_visita: agendamento.data_hora,
         status: "agendada",
       });
-      
       toast.success("Ficha de visita criada com sucesso!");
       setActiveTab("fichas");
     } catch (error) {
@@ -86,7 +104,6 @@ export default function Visitas() {
           </div>
         </div>
 
-        {/* KPIs sempre visíveis */}
         <div data-tour="visitas-kpis">
           <VisitasDashboardKPIs stats={stats} isLoading={loadingStats} />
         </div>
@@ -100,15 +117,17 @@ export default function Visitas() {
             <TabsTrigger value="agendamentos" className="flex flex-col sm:flex-row items-center gap-1 sm:gap-2 py-2 px-1 sm:px-3 text-xs sm:text-sm">
               <Calendar className="h-4 w-4" />
               <span className="hidden sm:inline">Agendamentos</span>
-              <Badge variant="secondary" className="text-[10px] sm:hidden">{agendamentos?.length || 0}</Badge>
+              <Badge variant="secondary" className="text-[10px] ml-1">{agendamentos?.length || 0}</Badge>
             </TabsTrigger>
             <TabsTrigger value="fichas" className="flex flex-col sm:flex-row items-center gap-1 sm:gap-2 py-2 px-1 sm:px-3 text-xs sm:text-sm">
               <List className="h-4 w-4" />
-              <span className="hidden sm:inline">Fichas ({fichas?.length || 0})</span>
+              <span className="hidden sm:inline">Fichas</span>
+              <Badge variant="secondary" className="text-[10px] ml-1">{fichas?.length || 0}</Badge>
             </TabsTrigger>
             <TabsTrigger value="feedbacks" className="flex flex-col sm:flex-row items-center gap-1 sm:gap-2 py-2 px-1 sm:px-3 text-xs sm:text-sm">
               <MessageSquare className="h-4 w-4" />
               <span className="hidden sm:inline">Feedbacks</span>
+              <Badge variant="secondary" className="text-[10px] ml-1">{feedbackCount}</Badge>
             </TabsTrigger>
             <TabsTrigger value="ranking" className="flex flex-col sm:flex-row items-center gap-1 sm:gap-2 py-2 px-1 sm:px-3 text-xs sm:text-sm">
               <Trophy className="h-4 w-4" />
@@ -124,17 +143,42 @@ export default function Visitas() {
           </TabsContent>
 
           <TabsContent value="agendamentos" className="mt-6" data-tour="visitas-agendamentos">
+            {/* Filters */}
+            <div className="flex flex-wrap items-center gap-2 mb-4">
+              <Select value={statusFilter} onValueChange={setStatusFilter}>
+                <SelectTrigger className="w-[160px] h-9 text-sm">
+                  <SelectValue placeholder="Status" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="todos">Todos os status</SelectItem>
+                  <SelectItem value="agendada">Agendada</SelectItem>
+                  <SelectItem value="confirmada">Confirmada</SelectItem>
+                  <SelectItem value="realizada">Realizada</SelectItem>
+                  <SelectItem value="cancelada">Cancelada</SelectItem>
+                </SelectContent>
+              </Select>
+              <Button
+                variant="outline"
+                size="sm"
+                className="h-9"
+                onClick={() => setSortOrder((prev) => (prev === "desc" ? "asc" : "desc"))}
+              >
+                <ArrowUpDown className="h-4 w-4 mr-1" />
+                {sortOrder === "desc" ? "Mais recente" : "Mais antigo"}
+              </Button>
+            </div>
+
             {isLoading ? (
               <div className="flex justify-center py-12">
                 <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
               </div>
-            ) : agendamentos && agendamentos.length > 0 ? (
+            ) : filteredAgendamentos.length > 0 ? (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {agendamentos.map((agendamento) => (
-                  <VisitCard 
-                    key={agendamento.id} 
-                    agendamento={agendamento} 
-                    type="agendamento" 
+                {filteredAgendamentos.map((agendamento) => (
+                  <VisitCard
+                    key={agendamento.id}
+                    agendamento={agendamento}
+                    type="agendamento"
                     onCreateFicha={handleCreateFichaFromAgendamento}
                   />
                 ))}
@@ -143,9 +187,16 @@ export default function Visitas() {
               <div className="text-center py-12 text-muted-foreground">
                 <Calendar className="h-12 w-12 mx-auto mb-4 opacity-50" />
                 <p>Nenhum agendamento encontrado</p>
-                <Button variant="link" onClick={() => navigate("/visitas/agendar")}>
-                  Criar primeiro agendamento
-                </Button>
+                {statusFilter !== "todos" && (
+                  <Button variant="link" onClick={() => setStatusFilter("todos")}>
+                    Limpar filtro
+                  </Button>
+                )}
+                {statusFilter === "todos" && (
+                  <Button variant="link" onClick={() => navigate("/visitas/agendar")}>
+                    Criar primeiro agendamento
+                  </Button>
+                )}
               </div>
             )}
           </TabsContent>
@@ -170,7 +221,7 @@ export default function Visitas() {
           </TabsContent>
 
           <TabsContent value="feedbacks" className="mt-6" data-tour="visitas-feedbacks">
-            <FeedbacksList />
+            <FeedbackAnalyticsDashboard />
           </TabsContent>
 
           <TabsContent value="ranking" className="mt-6" data-tour="visitas-ranking">
