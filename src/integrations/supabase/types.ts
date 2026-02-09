@@ -29,6 +29,7 @@ export type Database = {
           lembrete_enviado_at: string | null
           nome_visitante: string
           notas: string | null
+          organization_id: string | null
           origem: Database["public"]["Enums"]["origem_agendamento"] | null
           status: Database["public"]["Enums"]["status_visita"]
           telefone_visitante: string
@@ -49,6 +50,7 @@ export type Database = {
           lembrete_enviado_at?: string | null
           nome_visitante: string
           notas?: string | null
+          organization_id?: string | null
           origem?: Database["public"]["Enums"]["origem_agendamento"] | null
           status?: Database["public"]["Enums"]["status_visita"]
           telefone_visitante: string
@@ -69,6 +71,7 @@ export type Database = {
           lembrete_enviado_at?: string | null
           nome_visitante?: string
           notas?: string | null
+          organization_id?: string | null
           origem?: Database["public"]["Enums"]["origem_agendamento"] | null
           status?: Database["public"]["Enums"]["status_visita"]
           telefone_visitante?: string
@@ -81,6 +84,13 @@ export type Database = {
             columns: ["lead_id"]
             isOneToOne: false
             referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "agendamentos_visita_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
             referencedColumns: ["id"]
           },
         ]
@@ -189,6 +199,7 @@ export type Database = {
           data: string
           horarios_disponiveis: string[] | null
           id: string
+          organization_id: string | null
         }
         Insert: {
           ativo?: boolean | null
@@ -197,6 +208,7 @@ export type Database = {
           data: string
           horarios_disponiveis?: string[] | null
           id?: string
+          organization_id?: string | null
         }
         Update: {
           ativo?: boolean | null
@@ -205,8 +217,17 @@ export type Database = {
           data?: string
           horarios_disponiveis?: string[] | null
           id?: string
+          organization_id?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "disponibilidade_corretor_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       feedbacks_visita: {
         Row: {
@@ -314,6 +335,7 @@ export type Database = {
           nome_proprietario: string
           nome_visitante: string
           notas: string | null
+          organization_id: string | null
           status: Database["public"]["Enums"]["status_visita"]
           telefone_visitante: string
           updated_at: string | null
@@ -335,6 +357,7 @@ export type Database = {
           nome_proprietario: string
           nome_visitante: string
           notas?: string | null
+          organization_id?: string | null
           status?: Database["public"]["Enums"]["status_visita"]
           telefone_visitante: string
           updated_at?: string | null
@@ -356,12 +379,21 @@ export type Database = {
           nome_proprietario?: string
           nome_visitante?: string
           notas?: string | null
+          organization_id?: string | null
           status?: Database["public"]["Enums"]["status_visita"]
           telefone_visitante?: string
           updated_at?: string | null
           valor_imovel?: number | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "fichas_visita_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       ia_valuation_weights: {
         Row: {
@@ -488,6 +520,7 @@ export type Database = {
           nome: string
           notas: string | null
           objetivo: string | null
+          organization_id: string | null
           origem: string | null
           preferencia_contato: string | null
           quartos: number | null
@@ -515,6 +548,7 @@ export type Database = {
           nome: string
           notas?: string | null
           objetivo?: string | null
+          organization_id?: string | null
           origem?: string | null
           preferencia_contato?: string | null
           quartos?: number | null
@@ -542,6 +576,7 @@ export type Database = {
           nome?: string
           notas?: string | null
           objetivo?: string | null
+          organization_id?: string | null
           origem?: string | null
           preferencia_contato?: string | null
           quartos?: number | null
@@ -553,7 +588,15 @@ export type Database = {
           valor_interesse?: number | null
           valor_pedido_vendedor?: number | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "leads_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       logradouros_geo: {
         Row: {
@@ -674,6 +717,7 @@ export type Database = {
           created_at: string
           id: string
           lembrete_horas_antes: number
+          organization_id: string | null
           updated_at: string
           user_id: string | null
           whatsapp_cancelamento: boolean
@@ -685,6 +729,7 @@ export type Database = {
           created_at?: string
           id?: string
           lembrete_horas_antes?: number
+          organization_id?: string | null
           updated_at?: string
           user_id?: string | null
           whatsapp_cancelamento?: boolean
@@ -696,12 +741,131 @@ export type Database = {
           created_at?: string
           id?: string
           lembrete_horas_antes?: number
+          organization_id?: string | null
           updated_at?: string
           user_id?: string | null
           whatsapp_cancelamento?: boolean
           whatsapp_confirmacao?: boolean
           whatsapp_lembrete?: boolean
           whatsapp_reagendamento?: boolean
+        }
+        Relationships: [
+          {
+            foreignKeyName: "notification_settings_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      organization_invites: {
+        Row: {
+          accepted_at: string | null
+          created_at: string
+          email: string
+          expires_at: string
+          id: string
+          invited_by: string
+          organization_id: string
+          role: Database["public"]["Enums"]["app_role"] | null
+          token: string
+        }
+        Insert: {
+          accepted_at?: string | null
+          created_at?: string
+          email: string
+          expires_at?: string
+          id?: string
+          invited_by: string
+          organization_id: string
+          role?: Database["public"]["Enums"]["app_role"] | null
+          token?: string
+        }
+        Update: {
+          accepted_at?: string | null
+          created_at?: string
+          email?: string
+          expires_at?: string
+          id?: string
+          invited_by?: string
+          organization_id?: string
+          role?: Database["public"]["Enums"]["app_role"] | null
+          token?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "organization_invites_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      organizations: {
+        Row: {
+          address: string | null
+          cnpj: string | null
+          created_at: string
+          creci: string | null
+          id: string
+          logo_url: string | null
+          max_users: number | null
+          max_valuations_month: number | null
+          name: string
+          person_type: string | null
+          phone: string | null
+          plan: string | null
+          plan_status: string | null
+          slug: string
+          stripe_customer_id: string | null
+          stripe_subscription_id: string | null
+          trial_ends_at: string | null
+          updated_at: string
+          website: string | null
+        }
+        Insert: {
+          address?: string | null
+          cnpj?: string | null
+          created_at?: string
+          creci?: string | null
+          id?: string
+          logo_url?: string | null
+          max_users?: number | null
+          max_valuations_month?: number | null
+          name: string
+          person_type?: string | null
+          phone?: string | null
+          plan?: string | null
+          plan_status?: string | null
+          slug: string
+          stripe_customer_id?: string | null
+          stripe_subscription_id?: string | null
+          trial_ends_at?: string | null
+          updated_at?: string
+          website?: string | null
+        }
+        Update: {
+          address?: string | null
+          cnpj?: string | null
+          created_at?: string
+          creci?: string | null
+          id?: string
+          logo_url?: string | null
+          max_users?: number | null
+          max_valuations_month?: number | null
+          name?: string
+          person_type?: string | null
+          phone?: string | null
+          plan?: string | null
+          plan_status?: string | null
+          slug?: string
+          stripe_customer_id?: string | null
+          stripe_subscription_id?: string | null
+          trial_ends_at?: string | null
+          updated_at?: string
+          website?: string | null
         }
         Relationships: []
       }
@@ -721,6 +885,7 @@ export type Database = {
           liquido_min_mercado: number | null
           liquido_min_premium: number | null
           liquido_premium: number | null
+          organization_id: string | null
           p_atracao: number
           p_mercado: number
           p_premium: number
@@ -764,6 +929,7 @@ export type Database = {
           liquido_min_mercado?: number | null
           liquido_min_premium?: number | null
           liquido_premium?: number | null
+          organization_id?: string | null
           p_atracao?: number
           p_mercado?: number
           p_premium?: number
@@ -807,6 +973,7 @@ export type Database = {
           liquido_min_mercado?: number | null
           liquido_min_premium?: number | null
           liquido_premium?: number | null
+          organization_id?: string | null
           p_atracao?: number
           p_mercado?: number
           p_premium?: number
@@ -837,6 +1004,13 @@ export type Database = {
         }
         Relationships: [
           {
+            foreignKeyName: "pricing_strategies_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "pricing_strategies_valuation_id_fkey"
             columns: ["valuation_id"]
             isOneToOne: false
@@ -853,6 +1027,7 @@ export type Database = {
           email: string | null
           full_name: string
           id: string
+          organization_id: string | null
           phone: string | null
           updated_at: string | null
         }
@@ -863,6 +1038,7 @@ export type Database = {
           email?: string | null
           full_name: string
           id: string
+          organization_id?: string | null
           phone?: string | null
           updated_at?: string | null
         }
@@ -873,10 +1049,19 @@ export type Database = {
           email?: string | null
           full_name?: string
           id?: string
+          organization_id?: string | null
           phone?: string | null
           updated_at?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "profiles_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       rate_limit_log: {
         Row: {
@@ -913,6 +1098,7 @@ export type Database = {
           id: string
           is_active: boolean | null
           keywords: string[] | null
+          organization_id: string | null
           source: string | null
           title: string
           updated_at: string | null
@@ -924,6 +1110,7 @@ export type Database = {
           id?: string
           is_active?: boolean | null
           keywords?: string[] | null
+          organization_id?: string | null
           source?: string | null
           title: string
           updated_at?: string | null
@@ -935,11 +1122,20 @@ export type Database = {
           id?: string
           is_active?: boolean | null
           keywords?: string[] | null
+          organization_id?: string | null
           source?: string | null
           title?: string
           updated_at?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "sofia_knowledge_base_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       user_activity_logs: {
         Row: {
@@ -947,6 +1143,7 @@ export type Database = {
           action_type: string
           created_at: string
           id: string
+          organization_id: string | null
           page_path: string | null
           user_id: string
         }
@@ -955,6 +1152,7 @@ export type Database = {
           action_type: string
           created_at?: string
           id?: string
+          organization_id?: string | null
           page_path?: string | null
           user_id: string
         }
@@ -963,10 +1161,19 @@ export type Database = {
           action_type?: string
           created_at?: string
           id?: string
+          organization_id?: string | null
           page_path?: string | null
           user_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "user_activity_logs_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       user_roles: {
         Row: {
@@ -1004,6 +1211,7 @@ export type Database = {
           display_order: number
           id: string
           is_active: boolean | null
+          organization_id: string | null
           updated_at: string | null
           weight_value: number
         }
@@ -1021,6 +1229,7 @@ export type Database = {
           display_order: number
           id?: string
           is_active?: boolean | null
+          organization_id?: string | null
           updated_at?: string | null
           weight_value: number
         }
@@ -1038,10 +1247,19 @@ export type Database = {
           display_order?: number
           id?: string
           is_active?: boolean | null
+          organization_id?: string | null
           updated_at?: string | null
           weight_value?: number
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "valuation_characteristics_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       valuation_documentation_factors: {
         Row: {
@@ -1053,6 +1271,7 @@ export type Database = {
           factor: number | null
           id: string
           is_active: boolean | null
+          organization_id: string | null
           severity: string
           status_code: string
           status_name: string
@@ -1066,6 +1285,7 @@ export type Database = {
           factor?: number | null
           id?: string
           is_active?: boolean | null
+          organization_id?: string | null
           severity: string
           status_code: string
           status_name: string
@@ -1079,11 +1299,20 @@ export type Database = {
           factor?: number | null
           id?: string
           is_active?: boolean | null
+          organization_id?: string | null
           severity?: string
           status_code?: string
           status_name?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "valuation_documentation_factors_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       valuation_responses: {
         Row: {
@@ -1163,6 +1392,7 @@ export type Database = {
           nome_condominio: string | null
           numero: string | null
           observacoes_imovel: string | null
+          organization_id: string | null
           pdf_generated: boolean | null
           property_area_m2: number
           property_type: string | null
@@ -1217,6 +1447,7 @@ export type Database = {
           nome_condominio?: string | null
           numero?: string | null
           observacoes_imovel?: string | null
+          organization_id?: string | null
           pdf_generated?: boolean | null
           property_area_m2: number
           property_type?: string | null
@@ -1271,6 +1502,7 @@ export type Database = {
           nome_condominio?: string | null
           numero?: string | null
           observacoes_imovel?: string | null
+          organization_id?: string | null
           pdf_generated?: boolean | null
           property_area_m2?: number
           property_type?: string | null
@@ -1290,7 +1522,15 @@ export type Database = {
           user_id?: string | null
           vagas?: number | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "valuations_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       vistoria_checklist_categories: {
         Row: {
@@ -1300,6 +1540,7 @@ export type Database = {
           display_order: number
           id: string
           is_active: boolean | null
+          organization_id: string | null
           title: string
           updated_at: string | null
           weight: number
@@ -1311,6 +1552,7 @@ export type Database = {
           display_order: number
           id?: string
           is_active?: boolean | null
+          organization_id?: string | null
           title: string
           updated_at?: string | null
           weight?: number
@@ -1322,11 +1564,20 @@ export type Database = {
           display_order?: number
           id?: string
           is_active?: boolean | null
+          organization_id?: string | null
           title?: string
           updated_at?: string | null
           weight?: number
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "vistoria_checklist_categories_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       vistoria_checklist_items: {
         Row: {
@@ -1337,6 +1588,7 @@ export type Database = {
           is_active: boolean | null
           item_id: string
           label: string
+          organization_id: string | null
           tooltip: string | null
           updated_at: string | null
         }
@@ -1348,6 +1600,7 @@ export type Database = {
           is_active?: boolean | null
           item_id: string
           label: string
+          organization_id?: string | null
           tooltip?: string | null
           updated_at?: string | null
         }
@@ -1359,6 +1612,7 @@ export type Database = {
           is_active?: boolean | null
           item_id?: string
           label?: string
+          organization_id?: string | null
           tooltip?: string | null
           updated_at?: string | null
         }
@@ -1368,6 +1622,13 @@ export type Database = {
             columns: ["category_id"]
             isOneToOne: false
             referencedRelation: "vistoria_checklist_categories"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "vistoria_checklist_items_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
             referencedColumns: ["id"]
           },
         ]
@@ -1389,6 +1650,7 @@ export type Database = {
           nome_condominio: string | null
           numero: string | null
           observacoes: string | null
+          organization_id: string | null
           pdf_generated: boolean | null
           progress: number | null
           proprietario: string | null
@@ -1421,6 +1683,7 @@ export type Database = {
           nome_condominio?: string | null
           numero?: string | null
           observacoes?: string | null
+          organization_id?: string | null
           pdf_generated?: boolean | null
           progress?: number | null
           proprietario?: string | null
@@ -1453,6 +1716,7 @@ export type Database = {
           nome_condominio?: string | null
           numero?: string | null
           observacoes?: string | null
+          organization_id?: string | null
           pdf_generated?: boolean | null
           progress?: number | null
           proprietario?: string | null
@@ -1470,6 +1734,13 @@ export type Database = {
           vistoriador?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "vistorias_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "vistorias_valuation_id_fkey"
             columns: ["valuation_id"]
@@ -1518,6 +1789,14 @@ export type Database = {
           exists_flag: boolean
         }[]
       }
+      check_org_limits: {
+        Args: { _org_id: string; _resource_type: string }
+        Returns: {
+          allowed: boolean
+          current_count: number
+          max_allowed: number
+        }[]
+      }
       check_rate_limit: {
         Args: {
           p_function_name: string
@@ -1558,6 +1837,7 @@ export type Database = {
           status: Database["public"]["Enums"]["status_visita"]
         }[]
       }
+      get_user_org_id: { Args: { _user_id: string }; Returns: string }
       get_vault_secret: { Args: { secret_name: string }; Returns: string }
       has_role: {
         Args: {

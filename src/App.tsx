@@ -7,6 +7,7 @@ import { HelmetProvider } from "react-helmet-async";
 import { SidebarProvider } from "@/components/ui/sidebar";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { BairroProvider } from "@/contexts/BairroContext";
+import { OrganizationProvider } from "@/contexts/OrganizationContext";
 import { AppSidebar } from "@/components/AppSidebar";
 import { Header } from "@/components/Header";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
@@ -63,6 +64,7 @@ const App = () => (
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
         <AuthProvider>
+          <OrganizationProvider>
           <BairroProvider>
             <UpdateIndicator />
             <PWAUpdateBanner onUpdate={() => (window as any).__pwaUpdate?.()} />
@@ -125,6 +127,7 @@ const App = () => (
               </Routes>
             </BrowserRouter>
           </BairroProvider>
+          </OrganizationProvider>
         </AuthProvider>
       </TooltipProvider>
     </QueryClientProvider>
