@@ -1,9 +1,16 @@
-
-
 # Plano de Migracao para Arquitetura Multi-Tenant Escalavel
 
-## Objetivo
-Transformar a aplicacao single-tenant (1 empresa, N usuarios) em uma plataforma multi-tenant (N empresas, cada uma com N usuarios), permitindo escalar a venda do produto como SaaS.
+## Progresso
+
+- [x] **Fase 1**: Fundacao Multi-Tenant (tabelas organizations, organization_invites, organization_id em 14+ tabelas, funcoes get_user_org_id e check_org_limits)
+- [x] **Fase 6**: Migracao de dados existentes (org "Godoy Prime Realty" criada, todos os registros vinculados)
+- [x] **Fase 5.1**: OrganizationContext criado e integrado no App.tsx
+- [x] **Fase 2.5**: ~30 RLS policies reescritas para isolamento por organization_id
+- [x] **Fase 2.5b**: Trigger set_organization_id() criado para auto-preencher organization_id em INSERT (14 tabelas)
+- [ ] **Fase 2**: Sistema de convites e onboarding (rota /convite/:token, adaptacao /auth e /usuarios)
+- [ ] **Fase 3**: Integracao Stripe para billing
+- [ ] **Fase 4**: Superadmin dashboard
+- [ ] **Fase 5.2-5.5**: Adaptacoes frontend (useAuth org_id, Configuracoes, calibradores, sidebar/header branding)
 
 ---
 
@@ -261,4 +268,3 @@ Fase 4 (Superadm)  ░░░░░░░░░░░░░░░░████ 
 **Novos componentes:** `OrganizationContext`, pagina de convites, painel superadmin, checkout Stripe
 **Edge functions novas:** `create-checkout-session`, `stripe-webhook`, `send-invite-email`
 **Componentes adaptados:** `useAuth`, `AuthContext`, `ProtectedRoute`, `Configuracoes`, `AppSidebar`, `Header`, calibradores
-
