@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { User, Session } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
 
-type UserRole = "admin" | "corretor" | "gerente";
+type UserRole = "admin" | "corretor" | "gerente" | "superadmin";
 
 interface AuthState {
   user: User | null;
@@ -96,9 +96,9 @@ export function useAuth() {
       setAuthState(prev => ({
         ...prev,
         role,
-        isAdmin: role === "admin",
+        isAdmin: role === "admin" || role === "superadmin",
         isGerente: role === "gerente",
-        isAdminOrGerente: role === "admin" || role === "gerente",
+        isAdminOrGerente: role === "admin" || role === "gerente" || role === "superadmin",
         isLoading: false,
       }));
     } catch (error) {

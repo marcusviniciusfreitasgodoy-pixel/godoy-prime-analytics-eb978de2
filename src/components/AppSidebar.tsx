@@ -1,4 +1,4 @@
-import { Home, ClipboardCheck, ClipboardList, FileText, MapPin, Users, UserCog, Search, Calculator, Settings, History, Brain, GraduationCap, CalendarCheck, Cog, BookOpen, Rocket } from "lucide-react";
+import { Home, ClipboardCheck, ClipboardList, FileText, MapPin, Users, UserCog, Search, Calculator, Settings, History, Brain, CalendarCheck, Cog, BookOpen, Rocket, Shield } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import {
   Sidebar,
@@ -13,6 +13,8 @@ import {
   useSidebar,
 } from "@/components/ui/sidebar";
 import { useAuthContext } from "@/contexts/AuthContext";
+import { useOrganization } from "@/contexts/OrganizationContext";
+import { Badge } from "@/components/ui/badge";
 
 const baseItems = [
   { title: "Dashboard", url: "/", icon: Home, tourId: "nav-dashboard" },
@@ -29,27 +31,32 @@ const baseItems = [
   { title: "Configurações", url: "/configuracoes", icon: Cog, tourId: "nav-configuracoes" },
 ];
 
-// Items available to gerente and admin
 const gerenteItems = [
   { title: "Calibrador Avaliação", url: "/calibrador-avaliacao", icon: Settings, tourId: "nav-calibrador" },
   { title: "Calibrador Vistoria", url: "/calibrador-vistoria", icon: ClipboardList, tourId: "nav-calibrador-vistoria" },
   { title: "Leads", url: "/leads", icon: Users, tourId: "nav-leads" },
 ];
 
-// Items available only to admin
 const adminItems = [
   { title: "Base Conhecimento Sofia", url: "/base-conhecimento", icon: Brain, tourId: "nav-base-conhecimento" },
   { title: "Usuários", url: "/usuarios", icon: UserCog, tourId: "nav-usuarios" },
 ];
 
+const superadminItems = [
+  { title: "Superadmin", url: "/admin", icon: Shield, tourId: "nav-superadmin" },
+];
+
 export function AppSidebar() {
   const { open } = useSidebar();
-  const { isAdmin, isAdminOrGerente } = useAuthContext();
-  
+  const { isAdmin, isAdminOrGerente, role } = useAuthContext();
+  const { organization } = useOrganization();
+  const isSuperadmin = role === "superadmin";
+
   const items = [
     ...baseItems,
-    ...(isAdminOrGerente ? gerenteItems : []),
-    ...(isAdmin ? adminItems : []),
+    ...(isAdminOrGerente || isSuperadmin ? gerenteItems : []),
+    ...(isAdmin || isSuperadmin ? adminItems : []),
+    ...(isSuperadmin ? superadminItems : []),
   ];
 
   return (
@@ -58,6 +65,18 @@ export function AppSidebar() {
         <div className="p-4 flex justify-end">
           <SidebarTrigger />
         </div>
+
+        {/* Organization info */}
+        {open && organization && (
+          <div className="px-4 pb-3 border-b border-sidebar-border mb-2">
+            <p className="text-sm font-semibold text-sidebar-foreground truncate">
+              {organization.name}
+            </p>
+            <Badge variant="outline" className="text-[10px] mt-1">
+              {organization.plan || "starter"}
+            </Badge>
+          </div>
+        )}
         
         <SidebarContent>
           <SidebarGroup>

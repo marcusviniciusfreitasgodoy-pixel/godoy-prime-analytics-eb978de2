@@ -2,7 +2,7 @@ import { createContext, useContext, ReactNode } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { User, Session } from "@supabase/supabase-js";
 
-type UserRole = "admin" | "corretor" | "gerente";
+type UserRole = "admin" | "corretor" | "gerente" | "superadmin";
 
 interface AuthContextType {
   user: User | null;

@@ -45,15 +45,16 @@ import AssinaturaLanding from "./pages/AssinaturaLanding";
 import Configuracoes from "./pages/Configuracoes";
 import DemoLayout from "./pages/DemoLayout";
 import Apresentacao from "./pages/Apresentacao";
+import ConviteAceitar from "./pages/ConviteAceitar";
+import AdminPanel from "./pages/AdminPanel";
 
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
-      // Force fresh data on every mount - no stale cache
       staleTime: 0,
-      gcTime: 5 * 60 * 1000, // 5 minutes garbage collection
+      gcTime: 5 * 60 * 1000,
       refetchOnMount: true,
-      refetchOnWindowFocus: false, // Disable auto-refetch on focus to avoid confusion
+      refetchOnWindowFocus: false,
       retry: 2,
     },
   },
@@ -76,6 +77,7 @@ const App = () => (
                 <Route path="/reset-password" element={<ResetPassword />} />
                 <Route path="/politica-privacidade" element={<PoliticaPrivacidade />} />
                 <Route path="/avaliacao" element={<AvaliacaoPublica />} />
+                <Route path="/convite/:token" element={<ConviteAceitar />} />
                 <Route path="/visitas/feedback" element={<FeedbackLanding />} />
                 <Route path="/visitas/feedback/:codigo" element={<FeedbackVisita />} />
                 <Route path="/visitas/assinatura" element={<AssinaturaLanding />} />
@@ -107,6 +109,7 @@ const App = () => (
                               <Route path="/calibrador-vistoria" element={<ProtectedRoute requireAdminOrGerente={true}><CalibradorVistoria /></ProtectedRoute>} />
                               <Route path="/leads" element={<ProtectedRoute requireAdminOrGerente={true}><Leads /></ProtectedRoute>} />
                               <Route path="/usuarios" element={<ProtectedRoute requireAdmin={true}><Usuarios /></ProtectedRoute>} />
+                              <Route path="/admin" element={<ProtectedRoute requireAdmin={true}><AdminPanel /></ProtectedRoute>} />
                               <Route path="/onboarding" element={<Onboarding />} />
                               <Route path="/visitas" element={<Visitas />} />
                               <Route path="/visitas/agendar" element={<AgendarVisita />} />
