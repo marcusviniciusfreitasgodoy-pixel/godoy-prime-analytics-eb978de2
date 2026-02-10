@@ -6,6 +6,11 @@ export type OrigemAgendamento = 'site' | 'indicacao' | 'whatsapp' | 'instagram' 
 export type NivelInteresseVisita = 'baixo' | 'medio' | 'alto' | 'muito_alto';
 export type PercepcaoValorVisita = 'abaixo' | 'justo' | 'acima';
 
+export interface Acompanhante {
+  nome: string;
+  cpf?: string;
+}
+
 export interface FichaVisita {
   id: string;
   codigo: string;
@@ -13,8 +18,13 @@ export interface FichaVisita {
   cpf_visitante: string;
   telefone_visitante: string;
   email_visitante: string | null;
+  rg_visitante: string | null;
+  endereco_visitante: string | null;
+  acompanhantes: Acompanhante[] | null;
   codigo_imovel: string | null;
   endereco_imovel: string;
+  condominio_edificio: string | null;
+  unidade_imovel: string | null;
   valor_imovel: number | null;
   nome_proprietario: string;
   corretor_id: string | null;
@@ -24,6 +34,7 @@ export interface FichaVisita {
   assinatura_visitante: string | null;
   assinatura_corretor: string | null;
   notas: string | null;
+  aceita_ofertas_similares: boolean;
   created_at: string;
   updated_at: string;
 }
@@ -34,8 +45,13 @@ export interface FichaVisitaInsert {
   cpf_visitante: string;
   telefone_visitante: string;
   email_visitante?: string | null;
+  rg_visitante?: string | null;
+  endereco_visitante?: string | null;
+  acompanhantes?: Acompanhante[] | null;
   codigo_imovel?: string | null;
   endereco_imovel: string;
+  condominio_edificio?: string | null;
+  unidade_imovel?: string | null;
   valor_imovel?: number | null;
   nome_proprietario: string;
   corretor_id?: string | null;
@@ -45,6 +61,7 @@ export interface FichaVisitaInsert {
   assinatura_visitante?: string | null;
   assinatura_corretor?: string | null;
   notas?: string | null;
+  aceita_ofertas_similares?: boolean;
 }
 
 export interface FeedbackVisita {
