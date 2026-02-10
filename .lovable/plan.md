@@ -1,84 +1,51 @@
 
 
-## Problema Identificado
+## Criar Ficha de Visita Diretamente (sem agendamento)
 
-A lista de corretores aparece vazia porque existe um erro de **recursao infinita** na politica de seguranca (RLS) da tabela `user_roles`. Isso impede qualquer consulta a essa tabela, incluindo a listagem de corretores no formulario de agendamento.
+Adicionar um botao "Nova Ficha" na pagina de Visitas e um formulario dedicado para criar fichas de visita diretamente, sem depender de um agendamento previo.
 
-### Causa Raiz
+### O que muda para o usuario
 
-Existem duas politicas conflitantes na tabela `user_roles`:
-
-1. **"Admin or superadmin can manage roles"** -- faz um SELECT direto na propria tabela `user_roles` dentro da politica RLS, causando recursao infinita
-2. **"Admins can manage all roles"** -- usa corretamente a funcao `has_role()` (SECURITY DEFINER), que evita recursao
-
-A politica #1 e redundante e causa o erro. Precisa ser removida.
-
-### Plano de Correcao
-
-**Passo 1: Remover a politica RLS com recursao**
-
-Executar migracao SQL para remover a politica problematica:
-
-```sql
-DROP POLICY "Admin or superadmin can manage roles" ON public.user_roles;
-```
-
-Isso deixa as duas politicas corretas ativas:
-- "Admins can manage all roles" (ALL, usa `has_role()`)
-- "Users can view their own roles" (SELECT, `auth.uid() = user_id`)
-
-**Passo 2: Verificar que a politica restante cobre o caso de leitura para corretores**
-
-A politica "Users can view their own roles" permite que cada usuario veja apenas sua propria role. Porem, o hook `useCorretores` precisa listar TODOS os user_ids. Isso significa que precisamos ajustar a abordagem:
-
-- **Opcao A**: Criar uma funcao RPC `SECURITY DEFINER` que retorna a lista de corretores (perfis com roles), sem depender de RLS
-- **Opcao B**: Alterar o hook para buscar perfis diretamente (sem passar pela tabela `user_roles`), ja que todos os perfis com `organization_id` preenchido sao potenciais corretores
-
-A **Opcao A** e mais robusta. Criaremos uma funcao `get_corretores_list()` que retorna os perfis de todos os usuarios com roles na mesma organizacao.
-
-**Passo 3: Criar funcao RPC para listar corretores**
-
-```sql
-CREATE OR REPLACE FUNCTION public.get_corretores_list()
-RETURNS TABLE(id uuid, full_name text, phone text, email text, creci text)
-LANGUAGE plpgsql
-SECURITY DEFINER
-SET search_path TO 'public'
-AS $$
-DECLARE
-  v_org_id uuid;
-BEGIN
-  v_org_id := get_user_org_id(auth.uid());
-  
-  RETURN QUERY
-  SELECT p.id, p.full_name, p.phone, p.email, p.creci
-  FROM profiles p
-  INNER JOIN user_roles ur ON ur.user_id = p.id
-  WHERE p.organization_id = v_org_id
-  ORDER BY p.full_name;
-END;
-$$;
-```
-
-**Passo 4: Atualizar o hook `useCorretores.ts`**
-
-Alterar para usar a funcao RPC em vez de duas consultas separadas:
-
-```typescript
-const { data, error } = await supabase.rpc('get_corretores_list');
-```
-
-### Resultado Esperado
-
-- O erro de recursao infinita desaparece
-- A lista de corretores (incluindo "Marcus Godoy") aparece corretamente no formulario de agendamento
-- A consulta fica mais eficiente (uma unica chamada RPC em vez de duas queries)
+- Um novo botao **"Nova Ficha"** aparece ao lado de "Nova Visita" no topo do dashboard
+- Ao clicar, abre um formulario com os campos necessarios para criar a ficha:
+  - Nome do visitante, telefone, email, CPF
+  - Endereco do imovel, codigo do imovel
+  - Nome do proprietario, valor do imovel
+  - Corretor responsavel (select com lista de corretores via RPC)
+  - Data/hora da visita
+  - Notas adicionais
+- Apos salvar, redireciona para a aba "Fichas" com a nova ficha visivel
+- O codigo da ficha (`VIS-XXXXX`) e gerado automaticamente
 
 ### Secao Tecnica
 
-**Arquivos modificados:**
-- `supabase/migrations/` -- nova migracao para remover politica e criar funcao RPC
-- `src/hooks/useCorretores.ts` -- usar RPC em vez de queries diretas
+**Arquivo novo: `src/pages/NovaFichaVisita.tsx`**
+- Formulario completo usando `react-hook-form` + `zod` para validacao
+- Usa o hook `useCorretores` para popular o select de corretores
+- Usa `useVisitas().createFicha` para salvar
+- Gera codigo automatico `VIS-{timestamp}`
+- Apos sucesso, navega para `/visitas` na aba "fichas"
 
-**Risco:** Baixo. A politica removida e redundante e causa o bug atual. A funcao RPC usa SECURITY DEFINER, evitando problemas de RLS.
+**Arquivo modificado: `src/pages/Visitas.tsx`**
+- Adicionar botao "Nova Ficha" com icone `FilePlus` ao lado dos botoes existentes
+- `onClick` navega para `/visitas/nova-ficha`
+
+**Arquivo modificado: `src/App.tsx`**
+- Adicionar rota `/visitas/nova-ficha` apontando para `NovaFichaVisita`
+
+**Campos do formulario:**
+
+| Campo | Obrigatorio | Tipo |
+|---|---|---|
+| Nome do visitante | Sim | texto |
+| Telefone | Sim | texto |
+| Email | Nao | email |
+| CPF | Sim | texto |
+| Endereco do imovel | Sim | texto |
+| Codigo do imovel | Nao | texto |
+| Nome do proprietario | Sim | texto |
+| Valor do imovel | Nao | moeda |
+| Corretor responsavel | Sim | select (lista RPC) |
+| Data/hora da visita | Sim | datetime |
+| Notas | Nao | textarea |
 
