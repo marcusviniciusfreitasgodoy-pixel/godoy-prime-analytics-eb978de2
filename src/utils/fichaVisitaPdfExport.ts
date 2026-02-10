@@ -32,13 +32,21 @@ const COLORS = {
   black: [0, 0, 0] as [number, number, number],
 };
 
+// Compact layout constants
+const M = 12; // margin
+const LH_FIELD = 4.5; // line height for fields
+const LH_LEGAL = 3; // line multiplier for legal text
+const FONT_FIELD = 7.5;
+const FONT_LEGAL = 6.5;
+const SECTION_H = 5.5; // section header height
+const SECTION_GAP = 7; // gap after section header (includes header)
+const LEGAL_GAP = 2; // gap after legal text block
+
 export async function exportFichaVisitaPdf({ ficha, feedback, customLogoBase64, companySettings, corretorInfo }: FichaVisitaPdfData): Promise<jsPDF> {
   const doc = new jsPDF();
   const pageWidth = doc.internal.pageSize.getWidth();
-  const pageHeight = doc.internal.pageSize.getHeight();
-  const margin = 15;
-  const contentWidth = pageWidth - margin * 2;
-  let y = 10;
+  const contentWidth = pageWidth - M * 2;
+  let y = 0;
 
   const company = {
     name: companySettings?.company_name || CONTACT_INFO.name || "GODOY PRIME REALTY",
@@ -49,187 +57,180 @@ export async function exportFichaVisitaPdf({ ficha, feedback, customLogoBase64, 
     creci: companySettings?.company_creci || CONTACT_INFO.creci,
   };
 
-  // ========== HEADER ==========
+  const corretorCreci = corretorInfo?.creci || "_______________";
+  const corretorContato = corretorInfo?.phone || corretorInfo?.email || "_______________";
+  const dataVisita = format(new Date(ficha.data_visita), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR });
+
+  // ========== HEADER (24mm) ==========
   doc.setFillColor(...COLORS.navy);
-  doc.rect(0, 0, pageWidth, 30, "F");
+  doc.rect(0, 0, pageWidth, 24, "F");
 
   if (customLogoBase64) {
-    try { doc.addImage(customLogoBase64, "PNG", margin, 4, 22, 22); } catch {}
+    try { doc.addImage(customLogoBase64, "PNG", M, 3, 18, 18); } catch {}
   }
 
   doc.setTextColor(...COLORS.gold);
-  doc.setFontSize(13);
+  doc.setFontSize(11);
   doc.setFont("helvetica", "bold");
-  doc.text("FICHA DE VISITA / TERMO DE APRESENTAÇÃO DE IMÓVEL", pageWidth / 2, 13, { align: "center" });
+  doc.text("FICHA DE VISITA / TERMO DE APRESENTAÇÃO DE IMÓVEL", pageWidth / 2, 10, { align: "center" });
 
   doc.setTextColor(...COLORS.white);
-  doc.setFontSize(9);
-  doc.setFont("helvetica", "normal");
-  doc.text("BARRA DA TIJUCA / RJ", pageWidth / 2, 20, { align: "center" });
-
-  // Registration & date
-  const dataVisita = format(new Date(ficha.data_visita), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR });
-  doc.setFontSize(7.5);
-  doc.text(`Nº do registro: ${ficha.codigo}  |  Data/hora: ${dataVisita}  |  Local: Rio de Janeiro/RJ`, pageWidth / 2, 27, { align: "center" });
-
-  y = 34;
-
-  // ========== INTERMEDIAÇÃO ==========
-  doc.setFillColor(...COLORS.lightGray);
-  doc.rect(margin, y, contentWidth, 14, "F");
-  doc.setTextColor(...COLORS.navy);
   doc.setFontSize(7);
-  doc.setFont("helvetica", "bold");
-  doc.text("INTERMEDIAÇÃO", margin + 3, y + 4);
   doc.setFont("helvetica", "normal");
-  doc.text(`Imobiliária: ${company.name} | CNPJ: ${company.cnpj}`, margin + 3, y + 8);
-  const corretorCreci = corretorInfo?.creci || "_______________";
-  const corretorContato = corretorInfo?.phone || corretorInfo?.email || "_______________";
-  doc.text(`Corretor(a): ${ficha.nome_corretor} | CRECI: ${corretorCreci} | Contato: ${corretorContato}`, margin + 3, y + 12);
+  doc.text(`BARRA DA TIJUCA / RJ  |  Nº ${ficha.codigo}  |  ${dataVisita}  |  Rio de Janeiro/RJ`, pageWidth / 2, 16, { align: "center" });
 
-  y += 18;
+  y = 27;
+
+  // ========== INTERMEDIAÇÃO (10mm box) ==========
+  doc.setFillColor(...COLORS.lightGray);
+  doc.rect(M, y, contentWidth, 10, "F");
+  doc.setTextColor(...COLORS.navy);
+  doc.setFontSize(6.5);
+  doc.setFont("helvetica", "bold");
+  doc.text("INTERMEDIAÇÃO", M + 2, y + 3.5);
+  doc.setFont("helvetica", "normal");
+  doc.text(`Imobiliária: ${company.name} | CNPJ: ${company.cnpj}`, M + 2, y + 6.5);
+  doc.text(`Corretor(a): ${ficha.nome_corretor} | CRECI: ${corretorCreci} | Contato: ${corretorContato}`, M + 2, y + 9.5);
+
+  y += 13;
 
   // ========== 1) IDENTIFICAÇÃO DO CLIENTE ==========
-  drawSectionHeader(doc, "1) IDENTIFICAÇÃO DO CLIENTE (VISITANTE)", margin, y, contentWidth);
-  y += 10;
+  drawSectionHeader(doc, "1) IDENTIFICAÇÃO DO CLIENTE (VISITANTE)", M, y, contentWidth);
+  y += SECTION_GAP;
 
   doc.setTextColor(...COLORS.black);
-  doc.setFontSize(8.5);
+  doc.setFontSize(FONT_FIELD);
 
-  drawFieldLine(doc, "Nome completo:", ficha.nome_visitante, margin, y, 32);
-  y += 6;
-  drawFieldLine(doc, "CPF:", ficha.cpf_visitante, margin, y, 12);
-  drawFieldLine(doc, "RG:", ficha.rg_visitante || "_______________", margin + 55, y, 10);
-  y += 6;
-  drawFieldLine(doc, "Telefone/WhatsApp:", ficha.telefone_visitante, margin, y, 38);
-  drawFieldLine(doc, "E-mail:", ficha.email_visitante || "___________________", margin + 90, y, 16);
-  y += 6;
-  drawFieldLine(doc, "Endereço:", ficha.endereco_visitante || "________________________________________________________", margin, y, 22);
-  y += 6;
+  drawField(doc, "Nome:", ficha.nome_visitante, M, y, 14);
+  y += LH_FIELD;
+  drawField(doc, "CPF:", ficha.cpf_visitante, M, y, 12);
+  drawField(doc, "RG:", ficha.rg_visitante || "_______________", M + 55, y, 10);
+  drawField(doc, "Tel:", ficha.telefone_visitante, M + 100, y, 10);
+  y += LH_FIELD;
+  drawField(doc, "E-mail:", ficha.email_visitante || "___________________", M, y, 16);
+  drawField(doc, "End.:", ficha.endereco_visitante || "________________________________", M + 80, y, 12);
+  y += LH_FIELD;
 
-  // Acompanhantes
+  // Acompanhantes (inline)
   const acompanhantes = (ficha.acompanhantes || []) as Acompanhante[];
   if (acompanhantes.length > 0) {
-    doc.setFont("helvetica", "bold");
-    doc.text("Acompanhante(s):", margin, y);
-    doc.setFont("helvetica", "normal");
-    y += 5;
-    acompanhantes.forEach((a) => {
-      doc.text(`Nome: ${a.nome}  |  CPF: ${a.cpf || "(não informado)"}`, margin + 4, y);
-      y += 5;
-    });
+    const acompStr = acompanhantes.map(a => `${a.nome} (CPF: ${a.cpf || "—"})`).join("  |  ");
+    drawField(doc, "Acomp.:", acompStr, M, y, 16);
   } else {
-    doc.text("Acompanhante(s): _________________________________  CPF: _______________", margin, y);
-    y += 5;
+    doc.setFont("helvetica", "normal");
+    doc.text("Acomp.: _________________________________  CPF: _______________", M, y);
   }
-
-  y += 4;
+  y += LH_FIELD + 1;
 
   // ========== 2) IDENTIFICAÇÃO DO IMÓVEL ==========
-  drawSectionHeader(doc, "2) IDENTIFICAÇÃO DO IMÓVEL VISITADO (REFERÊNCIA)", margin, y, contentWidth);
-  y += 10;
+  drawSectionHeader(doc, "2) IDENTIFICAÇÃO DO IMÓVEL VISITADO", M, y, contentWidth);
+  y += SECTION_GAP;
 
-  doc.setFontSize(8.5);
-  drawFieldLine(doc, "Endereço:", ficha.endereco_imovel, margin, y, 22);
-  y += 6;
-  drawFieldLine(doc, "Condomínio/Edifício:", ficha.condominio_edificio || "___________________", margin, y, 42);
-  y += 6;
-  drawFieldLine(doc, "Unidade:", ficha.unidade_imovel || "___________________", margin, y, 18);
-  drawFieldLine(doc, "Código interno:", ficha.codigo_imovel || "_______________", margin + 70, y, 32);
-  y += 10;
+  doc.setFontSize(FONT_FIELD);
+  drawField(doc, "End.:", ficha.endereco_imovel, M, y, 12);
+  y += LH_FIELD;
+  drawField(doc, "Cond./Edif.:", ficha.condominio_edificio || "___________________", M, y, 24);
+  drawField(doc, "Unid.:", ficha.unidade_imovel || "________", M + 80, y, 14);
+  drawField(doc, "Cód.:", ficha.codigo_imovel || "________", M + 120, y, 12);
+  y += LH_FIELD + 1;
 
-  // ========== 3) DECLARAÇÃO DE VISITA E CIÊNCIA ==========
-  drawSectionHeader(doc, "3) DECLARAÇÃO DE VISITA E CIÊNCIA", margin, y, contentWidth);
-  y += 10;
+  // ========== 3) DECLARAÇÃO DE VISITA ==========
+  drawSectionHeader(doc, "3) DECLARAÇÃO DE VISITA E CIÊNCIA", M, y, contentWidth);
+  y += SECTION_GAP;
 
-  doc.setFontSize(7.5);
+  doc.setFontSize(FONT_LEGAL);
   const decl3 = doc.splitTextToSize(
     `O(a) Cliente acima identificado(a) declara que, nesta data, visitou e conheceu o imóvel descrito no item 2, apresentado pela intermediação indicada neste documento, para fins de avaliação de interesse.`,
     contentWidth
   );
-  doc.text(decl3, margin, y);
-  y += decl3.length * 4 + 4;
+  doc.text(decl3, M, y);
+  y += decl3.length * LH_LEGAL + LEGAL_GAP;
 
   // ========== 4) NÃO VINCULAÇÃO ==========
-  drawSectionHeader(doc, "4) NÃO VINCULAÇÃO E ESCOPO DESTE TERMO", margin, y, contentWidth);
-  y += 10;
+  drawSectionHeader(doc, "4) NÃO VINCULAÇÃO E ESCOPO DESTE TERMO", M, y, contentWidth);
+  y += SECTION_GAP;
 
-  doc.setFontSize(7.5);
+  doc.setFontSize(FONT_LEGAL);
   const decl4 = doc.splitTextToSize(
     `Este documento: a) não constitui proposta de compra, reserva, promessa, contrato de compra e venda ou compromisso; b) não obriga o Cliente, o Vendedor ou a Intermediadora à realização de negócio; e c) tem como finalidade registrar a apresentação/visita do imóvel e a atuação de intermediação.`,
     contentWidth
   );
-  doc.text(decl4, margin, y);
-  y += decl4.length * 4 + 4;
+  doc.text(decl4, M, y);
+  y += decl4.length * LH_LEGAL + LEGAL_GAP;
 
-  // ========== 5) CIÊNCIA DE INTERMEDIAÇÃO E JANELA DE PROTEÇÃO ==========
-  if (y > pageHeight - 90) { doc.addPage(); y = 20; }
+  // ========== 5) CIÊNCIA DE INTERMEDIAÇÃO ==========
+  drawSectionHeader(doc, "5) CIÊNCIA DE INTERMEDIAÇÃO E JANELA DE PROTEÇÃO", M, y, contentWidth);
+  y += SECTION_GAP;
 
-  drawSectionHeader(doc, "5) CIÊNCIA DE INTERMEDIAÇÃO E JANELA DE PROTEÇÃO", margin, y, contentWidth);
-  y += 10;
-
-  doc.setFontSize(7.5);
+  doc.setFontSize(FONT_LEGAL);
   const clausula = doc.splitTextToSize(
     `CIÊNCIA DE INTERMEDIAÇÃO E JANELA DE PROTEÇÃO: O(a) Cliente declara ciência e reconhece que tomou conhecimento do imóvel identificado neste termo por meio da intermediação da Imobiliária/Corretor(a) acima indicado(a), razão pela qual, caso venha a iniciar, retomar ou concluir tratativas relativas a este mesmo imóvel, direta ou indiretamente, pelo prazo de 180 (cento e oitenta) dias contados da data desta visita, compromete-se a comunicar previamente a Imobiliária/Corretor(a) para fins de registro e adequada condução da negociação, permanecendo a remuneração de corretagem sujeita à disciplina dos instrumentos de intermediação aplicáveis e/ou ajuste específico entre as partes, não constituindo este termo, por si só, reserva, proposta, promessa de compra e venda ou título de cobrança.`,
     contentWidth
   );
-  doc.text(clausula, margin, y);
-  y += clausula.length * 4 + 4;
+  doc.text(clausula, M, y);
+  y += clausula.length * LH_LEGAL + LEGAL_GAP;
 
   // ========== 6) LGPD ==========
-  if (y > pageHeight - 60) { doc.addPage(); y = 20; }
+  drawSectionHeader(doc, "6) LGPD (TRATAMENTO DE DADOS)", M, y, contentWidth);
+  y += SECTION_GAP;
 
-  drawSectionHeader(doc, "6) LGPD (TRATAMENTO DE DADOS)", margin, y, contentWidth);
-  y += 10;
-
-  doc.setFontSize(7.5);
+  doc.setFontSize(FONT_LEGAL);
   const lgpd = doc.splitTextToSize(
-    `O(a) Cliente declara ciência de que seus dados pessoais fornecidos neste termo serão tratados pela Imobiliária/Corretor(a), na qualidade de controlador(a)/operador(a), exclusivamente para: (i) registro da visita/apresentação, (ii) comunicação sobre esta negociação e (iii) envio de informações relacionadas ao imóvel visitado e a imóveis similares quando autorizado. O(a) Cliente poderá solicitar acesso, correção, atualização ou exclusão de dados, quando aplicável, pelo canal: ${corretorInfo?.email || company.phone}.`,
+    `O(a) Cliente declara ciência de que seus dados pessoais serão tratados pela Imobiliária/Corretor(a) exclusivamente para: (i) registro da visita, (ii) comunicação sobre esta negociação e (iii) envio de informações relacionadas ao imóvel visitado e similares quando autorizado. Solicitações de acesso, correção ou exclusão de dados pelo canal: ${corretorInfo?.email || company.phone}.`,
     contentWidth
   );
-  doc.text(lgpd, margin, y);
-  y += lgpd.length * 4 + 4;
+  doc.text(lgpd, M, y);
+  y += lgpd.length * LH_LEGAL + 1;
 
   // Opt-in
   const optSim = ficha.aceita_ofertas_similares ? "X" : " ";
   const optNao = ficha.aceita_ofertas_similares ? " " : "X";
-  doc.setFontSize(8);
+  doc.setFontSize(7);
   doc.setFont("helvetica", "bold");
-  doc.text(`Autorização para receber ofertas de imóveis similares:  [${optSim}] SIM   [${optNao}] NÃO`, margin, y);
+  doc.text(`Ofertas similares:  [${optSim}] SIM   [${optNao}] NÃO`, M, y);
   doc.setFont("helvetica", "normal");
-  y += 8;
+  y += 5;
 
-  // ========== 7) ASSINATURAS ==========
-  if (y > pageHeight - 55) { doc.addPage(); y = 20; }
+  // ========== 7) ASSINATURAS (separator line instead of section header) ==========
+  doc.setDrawColor(...COLORS.navy);
+  doc.setLineWidth(0.4);
+  doc.line(M, y, M + contentWidth, y);
+  y += 3;
 
-  drawSectionHeader(doc, "7) ASSINATURAS", margin, y, contentWidth);
-  y += 12;
+  doc.setFontSize(7);
+  doc.setTextColor(...COLORS.navy);
+  doc.setFont("helvetica", "bold");
+  doc.text("ASSINATURAS", M, y);
+  doc.setFont("helvetica", "normal");
+  y += 2;
 
-  doc.setFontSize(8.5);
   const dataAtual = format(new Date(ficha.data_visita), "dd 'de' MMMM 'de' yyyy", { locale: ptBR });
-  doc.text(`Local e data: Rio de Janeiro/RJ, ${dataAtual}`, margin, y);
-  y += 10;
+  doc.setFontSize(7);
+  doc.setTextColor(...COLORS.black);
+  doc.text(`Rio de Janeiro/RJ, ${dataAtual}`, M, y);
+  y += 4;
 
-  const sigW = 75;
-  const sigH = 22;
+  const sigW = 70;
+  const sigH = 18;
 
   // Cliente
   doc.setDrawColor(...COLORS.navy);
   doc.setLineWidth(0.3);
-  doc.rect(margin, y, sigW, sigH);
+  doc.rect(M, y, sigW, sigH);
   if (ficha.assinatura_visitante) {
-    try { doc.addImage(ficha.assinatura_visitante, "PNG", margin + 2, y + 2, sigW - 4, sigH - 4); } catch {}
+    try { doc.addImage(ficha.assinatura_visitante, "PNG", M + 1, y + 1, sigW - 2, sigH - 2); } catch {}
   }
-  doc.setFontSize(7.5);
-  doc.text(`Cliente — ${ficha.nome_visitante}`, margin, y + sigH + 4);
+  doc.setFontSize(6.5);
+  doc.setTextColor(...COLORS.navy);
+  doc.text(`Cliente — ${ficha.nome_visitante}`, M, y + sigH + 3);
 
   // Corretor
-  const sigX2 = pageWidth / 2 + 5;
+  const sigX2 = pageWidth / 2 + 8;
   doc.rect(sigX2, y, sigW, sigH);
   if (ficha.assinatura_corretor) {
-    try { doc.addImage(ficha.assinatura_corretor, "PNG", sigX2 + 2, y + 2, sigW - 4, sigH - 4); } catch {}
+    try { doc.addImage(ficha.assinatura_corretor, "PNG", sigX2 + 1, y + 1, sigW - 2, sigH - 2); } catch {}
   }
-  doc.text(`Corretor(a) — ${ficha.nome_corretor} | CRECI: ${corretorCreci}`, sigX2, y + sigH + 4);
+  doc.text(`Corretor(a) — ${ficha.nome_corretor} | CRECI: ${corretorCreci}`, sigX2, y + sigH + 3);
 
   // ========== FOOTER ==========
   applyFootersToAllPages(doc);
@@ -254,19 +255,19 @@ export async function saveFichaVisitaPdf(data: FichaVisitaPdfData): Promise<void
   URL.revokeObjectURL(url);
 }
 
-// ========== FUNÇÕES AUXILIARES ==========
+// ========== HELPERS ==========
 
 function drawSectionHeader(doc: jsPDF, title: string, x: number, y: number, width: number): void {
   doc.setFillColor(...COLORS.gold);
-  doc.rect(x, y, width, 7, "F");
+  doc.rect(x, y, width, SECTION_H, "F");
   doc.setTextColor(...COLORS.navy);
-  doc.setFontSize(8);
+  doc.setFontSize(7);
   doc.setFont("helvetica", "bold");
-  doc.text(title, x + 3, y + 5);
+  doc.text(title, x + 2, y + 3.8);
   doc.setFont("helvetica", "normal");
 }
 
-function drawFieldLine(doc: jsPDF, label: string, value: string, x: number, y: number, labelWidth: number): void {
+function drawField(doc: jsPDF, label: string, value: string, x: number, y: number, labelWidth: number): void {
   doc.setFont("helvetica", "bold");
   doc.setTextColor(...COLORS.navy);
   doc.text(label, x, y);
