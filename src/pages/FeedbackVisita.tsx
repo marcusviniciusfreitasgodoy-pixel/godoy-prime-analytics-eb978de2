@@ -73,7 +73,7 @@ export default function FeedbackVisita() {
         <div className="min-h-screen flex items-center justify-center bg-background p-6">
           <Card className="max-w-md w-full">
             <CardContent className="pt-6 text-center space-y-4">
-              <CheckCircle className="h-16 w-16 text-green-500 mx-auto" />
+              <CheckCircle className="h-16 w-16 text-primary mx-auto" />
               <h2 className="text-2xl font-bold">Obrigado!</h2>
               <p className="text-muted-foreground">
                 Seu feedback foi registrado com sucesso. Suas opiniões são muito importantes para nós.
@@ -116,7 +116,11 @@ export default function FeedbackVisita() {
 
           {/* Formulário */}
           <FeedbackForm 
-            fichaVisitaId={ficha.id} 
+            fichaVisitaId={ficha.id}
+            preFill={{
+              ficha_visita_id: ficha.id,
+              endereco_resumido: ficha.endereco_imovel,
+            }}
             onSuccess={() => setFeedbackEnviado(true)} 
           />
         </div>
