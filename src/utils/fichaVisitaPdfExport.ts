@@ -88,24 +88,19 @@ export async function exportFichaVisitaPdf({ ficha, feedback, customLogoBase64, 
     logoToUse = await loadDefaultLogoBase64();
   }
 
-  // ========== HEADER (26mm) ==========
-  const headerH = 26;
+  // ========== HEADER (22mm) ==========
+  const headerH = 22;
   doc.setFillColor(...COLORS.navy);
   doc.rect(0, 0, pageWidth, headerH, "F");
 
   if (logoToUse) {
-    try { doc.addImage(logoToUse, "PNG", M, 4, 18, 18); } catch {}
+    try { doc.addImage(logoToUse, "PNG", M, 3, 16, 16); } catch {}
   }
 
   doc.setTextColor(...COLORS.gold);
   doc.setFontSize(11);
   doc.setFont("helvetica", "bold");
-  doc.text("FICHA DE VISITA / TERMO DE APRESENTAÇÃO DE IMÓVEL", pageWidth / 2, 11, { align: "center" });
-
-  doc.setTextColor(...COLORS.white);
-  doc.setFontSize(7);
-  doc.setFont("helvetica", "normal");
-  doc.text(`BARRA DA TIJUCA / RJ  |  Nº ${ficha.codigo}  |  ${dataVisita}  |  Rio de Janeiro/RJ`, pageWidth / 2, 18, { align: "center" });
+  doc.text("FICHA DE VISITA / TERMO DE APRESENTAÇÃO DE IMÓVEL", pageWidth / 2, headerH / 2 + 2, { align: "center" });
 
   y = headerH + 3;
 
@@ -117,7 +112,7 @@ export async function exportFichaVisitaPdf({ ficha, feedback, customLogoBase64, 
   doc.setFont("helvetica", "bold");
   doc.text("INTERMEDIAÇÃO", M + 2, y + 3.5);
   doc.setFont("helvetica", "normal");
-  doc.text(`Imobiliária: ${company.name} | CNPJ: ${company.cnpj}`, M + 2, y + 7);
+  doc.text(`Imobiliária: ${company.name} | CNPJ: ${company.cnpj} | Registro: ${ficha.codigo} | Data: ${dataVisita}`, M + 2, y + 7);
   doc.text(`Corretor(a): ${ficha.nome_corretor} | CRECI: ${corretorCreci} | Contato: ${corretorContato}`, M + 2, y + 10);
 
   y += 14;
