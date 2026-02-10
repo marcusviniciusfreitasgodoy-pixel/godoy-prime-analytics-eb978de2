@@ -1063,6 +1063,119 @@ export type Database = {
           },
         ]
       }
+      propostas_compra: {
+        Row: {
+          aceite_vendedor_assinatura: string | null
+          aceite_vendedor_cpf: string | null
+          aceite_vendedor_data: string | null
+          aceite_vendedor_nome: string | null
+          assinatura_proponente: string | null
+          cidade_uf: string | null
+          cnh_url: string | null
+          codigo: string
+          cpf_cnpj: string
+          created_at: string | null
+          data_hora: string | null
+          email: string | null
+          endereco_resumido: string
+          ficha_visita_id: string | null
+          financiamento: string | null
+          forma_aceite: string | null
+          id: string
+          matricula: string | null
+          modelo: string
+          moeda: string | null
+          nome_completo: string
+          numero_proposta: string | null
+          organization_id: string | null
+          outras_condicoes: string | null
+          parcelas: string | null
+          sinal_entrada: string | null
+          status: string | null
+          telefone: string
+          unidade: string | null
+          updated_at: string | null
+          validade_proposta: string | null
+          valor_ofertado: number | null
+        }
+        Insert: {
+          aceite_vendedor_assinatura?: string | null
+          aceite_vendedor_cpf?: string | null
+          aceite_vendedor_data?: string | null
+          aceite_vendedor_nome?: string | null
+          assinatura_proponente?: string | null
+          cidade_uf?: string | null
+          cnh_url?: string | null
+          codigo: string
+          cpf_cnpj: string
+          created_at?: string | null
+          data_hora?: string | null
+          email?: string | null
+          endereco_resumido: string
+          ficha_visita_id?: string | null
+          financiamento?: string | null
+          forma_aceite?: string | null
+          id?: string
+          matricula?: string | null
+          modelo?: string
+          moeda?: string | null
+          nome_completo: string
+          numero_proposta?: string | null
+          organization_id?: string | null
+          outras_condicoes?: string | null
+          parcelas?: string | null
+          sinal_entrada?: string | null
+          status?: string | null
+          telefone: string
+          unidade?: string | null
+          updated_at?: string | null
+          validade_proposta?: string | null
+          valor_ofertado?: number | null
+        }
+        Update: {
+          aceite_vendedor_assinatura?: string | null
+          aceite_vendedor_cpf?: string | null
+          aceite_vendedor_data?: string | null
+          aceite_vendedor_nome?: string | null
+          assinatura_proponente?: string | null
+          cidade_uf?: string | null
+          cnh_url?: string | null
+          codigo?: string
+          cpf_cnpj?: string
+          created_at?: string | null
+          data_hora?: string | null
+          email?: string | null
+          endereco_resumido?: string
+          ficha_visita_id?: string | null
+          financiamento?: string | null
+          forma_aceite?: string | null
+          id?: string
+          matricula?: string | null
+          modelo?: string
+          moeda?: string | null
+          nome_completo?: string
+          numero_proposta?: string | null
+          organization_id?: string | null
+          outras_condicoes?: string | null
+          parcelas?: string | null
+          sinal_entrada?: string | null
+          status?: string | null
+          telefone?: string
+          unidade?: string | null
+          updated_at?: string | null
+          validade_proposta?: string | null
+          valor_ofertado?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "propostas_compra_ficha_visita_id_fkey"
+            columns: ["ficha_visita_id"]
+            isOneToOne: false
+            referencedRelation: "fichas_visita"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       rate_limit_log: {
         Row: {
           created_at: string | null

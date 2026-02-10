@@ -12,7 +12,9 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage, FormDes
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { useFeedbackVisita } from "@/hooks/useFeedbackVisita";
 import { NivelInteresseVisita, PercepcaoValorVisita } from "@/types/visitas";
-import { Loader2, Star, ThumbsUp, ThumbsDown } from "lucide-react";
+import { Loader2, Star, ThumbsUp, ThumbsDown, FileText } from "lucide-react";
+import { ProposalForm } from "./ProposalForm";
+import { PropostaPreFill } from "@/types/proposta";
 
 const feedbackSchema = z.object({
   atende_necessidades: z.boolean().optional(),
@@ -38,6 +40,7 @@ type FeedbackFormData = z.infer<typeof feedbackSchema>;
 
 interface FeedbackFormProps {
   fichaVisitaId: string;
+  preFill?: PropostaPreFill;
   onSuccess?: () => void;
 }
 
@@ -54,7 +57,7 @@ const efeitoUauOptions = [
   "Segurança",
 ];
 
-export function FeedbackForm({ fichaVisitaId, onSuccess }: FeedbackFormProps) {
+export function FeedbackForm({ fichaVisitaId, preFill, onSuccess }: FeedbackFormProps) {
   const { createFeedback } = useFeedbackVisita();
   const [selectedEfeitoUau, setSelectedEfeitoUau] = useState<string[]>([]);
 
@@ -122,7 +125,7 @@ export function FeedbackForm({ fichaVisitaId, onSuccess }: FeedbackFormProps) {
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
-              <Star className="h-5 w-5 text-yellow-500" />
+              <Star className="h-5 w-5 text-primary" />
               Avaliação Geral
             </CardTitle>
           </CardHeader>
@@ -301,6 +304,28 @@ export function FeedbackForm({ fichaVisitaId, onSuccess }: FeedbackFormProps) {
           </CardContent>
         </Card>
 
+        {/* Proposta condicional */}
+        {form.watch("gostaria_fazer_proposta") && (
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <FileText className="h-5 w-5" />
+                Faça sua Proposta
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <ProposalForm
+                preFill={{
+                  ...preFill,
+                  valor_ofertado: form.watch("valor_ofertaria")
+                    ? parseFloat(form.watch("valor_ofertaria")!.replace(/\D/g, ""))
+                    : undefined,
+                }}
+              />
+            </CardContent>
+          </Card>
+        )}
+
         {/* Efeito UAU */}
         <Card>
           <CardHeader>
@@ -354,7 +379,7 @@ export function FeedbackForm({ fichaVisitaId, onSuccess }: FeedbackFormProps) {
               render={({ field }) => (
                 <FormItem>
                   <FormLabel className="flex items-center gap-2">
-                    <ThumbsUp className="h-4 w-4 text-green-500" />
+                    <ThumbsUp className="h-4 w-4 text-primary" />
                     O que você mais gostou?
                   </FormLabel>
                   <FormControl>
@@ -371,7 +396,7 @@ export function FeedbackForm({ fichaVisitaId, onSuccess }: FeedbackFormProps) {
               render={({ field }) => (
                 <FormItem>
                   <FormLabel className="flex items-center gap-2">
-                    <ThumbsDown className="h-4 w-4 text-red-500" />
+                    <ThumbsDown className="h-4 w-4 text-destructive" />
                     O que você menos gostou?
                   </FormLabel>
                   <FormControl>

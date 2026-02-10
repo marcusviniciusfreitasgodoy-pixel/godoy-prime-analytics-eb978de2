@@ -43,6 +43,7 @@ import NovaFichaVisita from "./pages/NovaFichaVisita";
 import FeedbackLanding from "./pages/FeedbackLanding";
 import AssinaturaVisita from "./pages/AssinaturaVisita";
 import AssinaturaLanding from "./pages/AssinaturaLanding";
+import PropostaPublica from "./pages/PropostaPublica";
 import Configuracoes from "./pages/Configuracoes";
 import DemoLayout from "./pages/DemoLayout";
 import Apresentacao from "./pages/Apresentacao";
@@ -83,6 +84,7 @@ const App = () => (
                 <Route path="/visitas/feedback/:codigo" element={<FeedbackVisita />} />
                 <Route path="/visitas/assinatura" element={<AssinaturaLanding />} />
                 <Route path="/visitas/assinatura/:codigo/:tipo" element={<AssinaturaVisita />} />
+                <Route path="/proposta/:codigo" element={<PropostaPublica />} />
                 <Route path="/apresentacao" element={<Apresentacao />} />
                 <Route path="/demo/*" element={<DemoLayout />} />
                 <Route
