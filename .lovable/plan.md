@@ -1,154 +1,112 @@
 
 
-## Modulo de Proposta de Compra com Assinatura Digital e Upload de CNH
+## Adequacao da Ficha de Visita ao Modelo Alto Padrao com Clausula de Protecao de 180 Dias
 
-### Visao Geral
+### Resumo das mudancas
 
-Criar um sistema completo de proposta de compra que:
-1. Aparece automaticamente no formulario de feedback quando o cliente marca "Gostaria de fazer uma proposta? Sim"
-2. Oferece dois modelos de proposta para escolha
-3. Tambem esta disponivel de forma avulsa (rota publica) para o corretor encaminhar a qualquer cliente
-4. Inclui assinatura digital (reutilizando o componente `PublicSignatureCanvas` ja existente)
-5. Inclui upload de CNH (foto do documento) usando o storage ja configurado
-6. Pre-preenche automaticamente campos ja disponiveis na ficha de visita
+A ficha de visita atual sera reformulada para atender ao modelo profissional fornecido, incluindo novos campos no banco de dados, formulario atualizado e PDF completamente reescrito. A clausula juridica de intermediacao sera atualizada para 180 dias com linguagem equilibrada e juridicamente adequada.
 
 ---
 
-### Mudancas para o usuario
+### O que muda para voce
 
-**No formulario de feedback:**
-- Quando o cliente marca "Gostaria de fazer uma proposta? Sim", aparece imediatamente um card com dois modelos de proposta para escolha
-- **Modelo 1 - Proposta Simplificada**: Campos essenciais (valor, sinal, forma de pagamento)
-- **Modelo 2 - Proposta Completa**: Todos os campos do template fornecido (incluindo parcelas, financiamento, permuta, validade, clausula de documento posterior)
-- Campos ja preenchidos na ficha de visita sao pre-populados automaticamente (nome, CPF, telefone, email, endereco do imovel, valor ofertado)
-- Area de assinatura digital obrigatoria
-- Upload de CNH obrigatorio (foto frente e verso)
+**Novos campos no formulario de criacao de ficha:**
+- RG do visitante (opcional)
+- Endereco do visitante (opcional)
+- Acompanhantes (nome e CPF opcional, ate 2 pessoas)
+- Condominio/Edificio do imovel
+- Unidade (apto/casa/bloco/andar)
+- Autorizacao LGPD para receber ofertas similares (SIM/NAO)
 
-**Rota avulsa para corretores:**
-- Nova rota publica `/proposta/:codigo` acessivel por link
-- O corretor pode gerar um link e enviar ao cliente
-- O cliente preenche, assina e envia a CNH diretamente
+**Campos preenchidos automaticamente:**
+- Dados da imobiliaria (nome, CNPJ, endereco, telefone, site) vindos das configuracoes da empresa
+- CRECI e contato profissional do corretor selecionado, vindos do cadastro de perfis
 
-**No dashboard do corretor:**
-- As propostas recebidas aparecem vinculadas a ficha de visita
-- Status da proposta visivel no card da ficha
+**PDF totalmente reescrito com 7 secoes do modelo:**
+1. Cabecalho com dados da intermediacao
+2. Identificacao do Cliente (com acompanhantes)
+3. Identificacao do Imovel (referencia minima)
+4. Declaracao de Visita e Ciencia
+5. Ciencia de Intermediacao e Janela de Protecao (180 dias)
+6. LGPD (com opt-in para ofertas similares)
+7. Assinaturas (cliente + corretor com CRECI)
+
+**Pagina de detalhes da ficha:** exibira os novos campos (acompanhantes, condominio, unidade, opt-in LGPD)
 
 ---
 
 ### Secao Tecnica
 
-**1. Nova tabela no banco de dados: `propostas_compra`**
+**1. Migracoes no banco de dados**
+
+Adicionar colunas a tabela `fichas_visita`:
 
 ```sql
-CREATE TABLE public.propostas_compra (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  ficha_visita_id UUID REFERENCES fichas_visita(id),
-  codigo TEXT NOT NULL UNIQUE,
-  modelo TEXT NOT NULL CHECK (modelo IN ('simplificado', 'completo')),
-  
-  -- Identificacao da proposta
-  numero_proposta TEXT,
-  data_hora TIMESTAMPTZ DEFAULT now(),
-  cidade_uf TEXT,
-  
-  -- Proponente
-  nome_completo TEXT NOT NULL,
-  cpf_cnpj TEXT NOT NULL,
-  telefone TEXT NOT NULL,
-  email TEXT,
-  
-  -- Imovel
-  endereco_resumido TEXT NOT NULL,
-  unidade TEXT,
-  matricula TEXT,
-  
-  -- Valor e pagamento
-  valor_ofertado NUMERIC,
-  moeda TEXT DEFAULT 'BRL',
-  sinal_entrada TEXT,
-  parcelas TEXT,
-  financiamento TEXT,
-  outras_condicoes TEXT,
-  
-  -- Validade
-  validade_proposta TIMESTAMPTZ,
-  forma_aceite TEXT DEFAULT 'assinatura',
-  
-  -- Assinatura e documentos
-  assinatura_proponente TEXT,
-  cnh_url TEXT,
-  
-  -- Aceite vendedor
-  aceite_vendedor_nome TEXT,
-  aceite_vendedor_cpf TEXT,
-  aceite_vendedor_assinatura TEXT,
-  aceite_vendedor_data TIMESTAMPTZ,
-  
-  -- Meta
-  status TEXT DEFAULT 'pendente' CHECK (status IN ('pendente', 'aceita', 'recusada', 'expirada')),
-  organization_id UUID,
-  created_at TIMESTAMPTZ DEFAULT now(),
-  updated_at TIMESTAMPTZ DEFAULT now()
-);
+ALTER TABLE public.fichas_visita
+  ADD COLUMN rg_visitante TEXT,
+  ADD COLUMN endereco_visitante TEXT,
+  ADD COLUMN acompanhantes JSONB DEFAULT '[]'::jsonb,
+  ADD COLUMN condominio_edificio TEXT,
+  ADD COLUMN unidade_imovel TEXT,
+  ADD COLUMN aceita_ofertas_similares BOOLEAN DEFAULT false;
 ```
 
-Politicas RLS:
-- INSERT publico (para clientes sem autenticacao poderem enviar)
-- SELECT para usuarios autenticados da mesma organizacao
-- UPDATE para usuarios autenticados da mesma organizacao
+Estrutura do JSONB `acompanhantes`:
+```json
+[
+  { "nome": "Fulano da Silva", "cpf": "000.000.000-00" },
+  { "nome": "Ciclana Souza", "cpf": "" }
+]
+```
 
-**2. Storage bucket para CNH**
-
-Criar bucket `documentos-proposta` (privado) para armazenar as fotos de CNH.
-
-**3. Novos arquivos**
-
-| Arquivo | Descricao |
-|---|---|
-| `src/components/visitas/ProposalForm.tsx` | Formulario principal da proposta com os dois modelos |
-| `src/components/visitas/ProposalModelSelector.tsx` | Seletor visual dos dois modelos de proposta |
-| `src/components/visitas/CNHUpload.tsx` | Componente de upload de foto da CNH |
-| `src/pages/PropostaPublica.tsx` | Pagina publica para proposta avulsa (rota `/proposta/:codigo`) |
-| `src/hooks/usePropostas.ts` | Hook para CRUD de propostas |
-| `src/types/proposta.ts` | Tipos TypeScript para o modulo |
-
-**4. Arquivos modificados**
+**2. Arquivos modificados**
 
 | Arquivo | Mudanca |
 |---|---|
-| `src/components/visitas/FeedbackForm.tsx` | Adicionar card condicional de proposta quando `gostaria_fazer_proposta === true` |
-| `src/pages/FeedbackVisita.tsx` | Passar dados da ficha para o FeedbackForm (para pre-preenchimento) |
-| `src/App.tsx` | Adicionar rota publica `/proposta/:codigo` |
-| `src/pages/Visitas.tsx` | Adicionar indicador de propostas recebidas nos cards |
+| `src/types/visitas.ts` | Adicionar campos `rg_visitante`, `endereco_visitante`, `acompanhantes`, `condominio_edificio`, `unidade_imovel`, `aceita_ofertas_similares` nos tipos `FichaVisita` e `FichaVisitaInsert` |
+| `src/pages/NovaFichaVisita.tsx` | Adicionar campos no formulario: RG, endereco, acompanhantes (dinamicos), condominio, unidade, checkbox LGPD; buscar CRECI do corretor selecionado |
+| `src/pages/FichaVisitaPage.tsx` | Exibir novos campos na visualizacao e edicao; mostrar acompanhantes, condominio, unidade, status LGPD |
+| `src/utils/fichaVisitaPdfExport.ts` | Reescrever completamente para seguir o template de 7 secoes; usar dados de `company_settings` para intermediacao; incluir clausula de 180 dias; incluir LGPD |
+| `src/hooks/useVisitas.ts` | Garantir que novos campos sejam persistidos no insert/update |
 
-**5. Fluxo de pre-preenchimento**
+**3. Clausula juridica no PDF (Secao 5)**
 
-Dados copiados automaticamente da ficha de visita para a proposta:
+Texto exato que sera impresso:
 
-| Campo da proposta | Origem |
+> CIENCIA DE INTERMEDIACAO E JANELA DE PROTECAO: O(a) Cliente declara ciencia e reconhece que tomou conhecimento do imovel identificado neste termo por meio da intermediacao da Imobiliaria/Corretor(a) acima indicado(a), razao pela qual, caso venha a iniciar, retomar ou concluir tratativas relativas a este mesmo imovel, direta ou indiretamente, pelo prazo de 180 (cento e oitenta) dias contados da data desta visita, compromete-se a comunicar previamente a Imobiliaria/Corretor(a) para fins de registro e adequada conducao da negociacao, permanecendo a remuneracao de corretagem sujeita a disciplina dos instrumentos de intermediacao aplicaveis e/ou ajuste especifico entre as partes, nao constituindo este termo, por si so, reserva, proposta, promessa de compra e venda ou titulo de cobranca.
+
+**4. Secoes do PDF reescrito**
+
+1. **Cabecalho**: Logo + "FICHA DE VISITA / TERMO DE APRESENTACAO DE IMOVEL - BARRA DA TIJUCA/RJ" + numero registro + data/hora + cidade/UF
+2. **Intermediacao**: Nome da imobiliaria, CNPJ, corretor, CRECI, contato (todos de `company_settings` e `profiles`)
+3. **Secao 1 - Identificacao do Cliente**: Nome, CPF, RG, telefone, email, endereco, acompanhantes
+4. **Secao 2 - Identificacao do Imovel**: Endereco resumido, condominio, unidade, codigo interno
+5. **Secao 3 - Declaracao de Visita e Ciencia**: Texto padrao confirmando a visita
+6. **Secao 4 - Nao Vinculacao**: Texto informando que o documento nao constitui proposta/reserva/contrato
+7. **Secao 5 - Ciencia de Intermediacao e Janela de Protecao**: Clausula de 180 dias conforme fornecida
+8. **Secao 6 - LGPD**: Texto de tratamento de dados + checkbox SIM/NAO para ofertas similares
+9. **Secao 7 - Assinaturas**: Local/data, assinatura do cliente, assinatura do corretor com CRECI
+
+**5. Pre-preenchimento do PDF**
+
+Dados dinamicos injetados no PDF:
+
+| Campo PDF | Origem |
 |---|---|
-| nome_completo | `ficha.nome_visitante` |
-| cpf_cnpj | `ficha.cpf_visitante` |
-| telefone | `ficha.telefone_visitante` |
-| email | `ficha.email_visitante` |
-| endereco_resumido | `ficha.endereco_imovel` |
-| valor_ofertado | `feedback.valor_ofertaria` (do campo "valor que ofertaria") |
+| Imobiliaria / CNPJ | `company_settings` (company_name, company_cnpj) |
+| Corretor / CRECI / Contato | `profiles` via `get_corretores_list` (full_name, creci, phone, email) |
+| Nome / CPF / RG / Tel / Email / Endereco do cliente | `fichas_visita` |
+| Acompanhantes | `fichas_visita.acompanhantes` (JSONB) |
+| Endereco / Condominio / Unidade / Codigo do imovel | `fichas_visita` |
+| Opt-in LGPD | `fichas_visita.aceita_ofertas_similares` |
+| Assinaturas | `fichas_visita.assinatura_visitante / assinatura_corretor` |
 
-**6. Dois modelos de proposta**
+**6. Sequencia de implementacao**
 
-- **Simplificado**: Nome, CPF, telefone, endereco do imovel, valor ofertado, sinal/entrada, forma de pagamento, validade, assinatura, CNH
-- **Completo**: Todos os campos do template fornecido (numero proposta, cidade/UF, unidade, matricula, parcelas detalhadas, financiamento, permuta, forma de aceite do vendedor, clausula de documento posterior)
-
-**7. Componente CNHUpload**
-
-- Aceita imagens (JPG, PNG) e PDF
-- Limite de 5MB por arquivo
-- Upload para bucket `documentos-proposta` via Supabase Storage
-- Salva apenas a URL no banco de dados (nao armazena o arquivo no banco)
-
-**8. Link avulso para corretor**
-
-- O corretor pode copiar um link no formato `/proposta/VIS-XXXXX` e enviar por WhatsApp/email
-- A pagina publica busca os dados da ficha pelo codigo e pre-preenche o que for possivel
-- Se nao houver dados disponiveis, o cliente preenche manualmente todos os campos
+1. Migracao do banco (adicionar colunas)
+2. Atualizar tipos TypeScript
+3. Atualizar formulario de criacao (`NovaFichaVisita.tsx`)
+4. Atualizar pagina de detalhes (`FichaVisitaPage.tsx`)
+5. Reescrever PDF (`fichaVisitaPdfExport.ts`)
+6. Atualizar hook `useVisitas.ts` para novos campos
 
