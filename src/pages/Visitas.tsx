@@ -16,7 +16,7 @@ import { CorretorRanking } from "@/components/visitas/CorretorRanking";
 import { FeedbackAnalyticsDashboard } from "@/components/visitas/FeedbackAnalyticsDashboard";
 import { PageTour, TourButton } from "@/components/PageTour";
 import { AgendamentoVisita } from "@/types/visitas";
-import { Calendar, List, Plus, Loader2, LayoutDashboard, Trophy, MessageSquare, ArrowUpDown } from "lucide-react";
+import { Calendar, List, Plus, Loader2, LayoutDashboard, Trophy, MessageSquare, ArrowUpDown, FilePlus } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { useFeedbackAnalytics } from "@/hooks/useFeedbackAnalytics";
@@ -102,6 +102,10 @@ export default function Visitas() {
               <Button onClick={() => navigate("/visitas/agendar")} data-tour="visitas-nova" size="sm" className="h-9">
                 <Plus className="h-4 w-4 sm:mr-2" />
                 <span className="hidden sm:inline">Nova Visita</span>
+              </Button>
+              <Button variant="secondary" onClick={() => navigate("/visitas/nova-ficha")} size="sm" className="h-9">
+                <FilePlus className="h-4 w-4 sm:mr-2" />
+                <span className="hidden sm:inline">Nova Ficha</span>
               </Button>
               <Button variant="outline" onClick={() => navigate("/visitas/disponibilidade")} data-tour="visitas-disponibilidade" size="sm" className="h-9">
                 <Calendar className="h-4 w-4 sm:mr-2" />
