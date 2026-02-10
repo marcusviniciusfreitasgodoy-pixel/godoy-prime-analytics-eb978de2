@@ -320,68 +320,86 @@ export type Database = {
       }
       fichas_visita: {
         Row: {
+          aceita_ofertas_similares: boolean | null
+          acompanhantes: Json | null
           assinatura_corretor: string | null
           assinatura_visitante: string | null
           codigo: string
           codigo_imovel: string | null
+          condominio_edificio: string | null
           corretor_id: string | null
           cpf_visitante: string
           created_at: string | null
           data_visita: string
           email_visitante: string | null
           endereco_imovel: string
+          endereco_visitante: string | null
           id: string
           nome_corretor: string
           nome_proprietario: string
           nome_visitante: string
           notas: string | null
           organization_id: string | null
+          rg_visitante: string | null
           status: Database["public"]["Enums"]["status_visita"]
           telefone_visitante: string
+          unidade_imovel: string | null
           updated_at: string | null
           valor_imovel: number | null
         }
         Insert: {
+          aceita_ofertas_similares?: boolean | null
+          acompanhantes?: Json | null
           assinatura_corretor?: string | null
           assinatura_visitante?: string | null
           codigo: string
           codigo_imovel?: string | null
+          condominio_edificio?: string | null
           corretor_id?: string | null
           cpf_visitante: string
           created_at?: string | null
           data_visita?: string
           email_visitante?: string | null
           endereco_imovel: string
+          endereco_visitante?: string | null
           id?: string
           nome_corretor: string
           nome_proprietario: string
           nome_visitante: string
           notas?: string | null
           organization_id?: string | null
+          rg_visitante?: string | null
           status?: Database["public"]["Enums"]["status_visita"]
           telefone_visitante: string
+          unidade_imovel?: string | null
           updated_at?: string | null
           valor_imovel?: number | null
         }
         Update: {
+          aceita_ofertas_similares?: boolean | null
+          acompanhantes?: Json | null
           assinatura_corretor?: string | null
           assinatura_visitante?: string | null
           codigo?: string
           codigo_imovel?: string | null
+          condominio_edificio?: string | null
           corretor_id?: string | null
           cpf_visitante?: string
           created_at?: string | null
           data_visita?: string
           email_visitante?: string | null
           endereco_imovel?: string
+          endereco_visitante?: string | null
           id?: string
           nome_corretor?: string
           nome_proprietario?: string
           nome_visitante?: string
           notas?: string | null
           organization_id?: string | null
+          rg_visitante?: string | null
           status?: Database["public"]["Enums"]["status_visita"]
           telefone_visitante?: string
+          unidade_imovel?: string | null
           updated_at?: string | null
           valor_imovel?: number | null
         }

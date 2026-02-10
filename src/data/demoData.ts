@@ -93,6 +93,7 @@ export const DEMO_FICHAS_VISITA: FichaVisita[] = [
     codigo_imovel: "LC-3150", nome_corretor: "Marcus Godoy", nome_proprietario: "Ana Maria Costa",
     data_visita: "2026-02-05T10:00:00Z", status: "realizada", corretor_id: null, notas: "Cliente muito interessado, solicitou proposta.",
     valor_imovel: 2850000, assinatura_visitante: null, assinatura_corretor: null, created_at: "2026-02-04T14:00:00Z", updated_at: "2026-02-05T11:30:00Z",
+    rg_visitante: null, endereco_visitante: null, acompanhantes: null, condominio_edificio: "Waterways", unidade_imovel: "Ap 1201", aceita_ofertas_similares: false,
   },
   {
     id: "demo-fv-2", codigo: "VIS-DEMO02", nome_visitante: "Fernanda Oliveira", telefone_visitante: "(21) 98765-4321",
@@ -100,6 +101,7 @@ export const DEMO_FICHAS_VISITA: FichaVisita[] = [
     codigo_imovel: "EV-580", nome_corretor: "Ricardo Almeida", nome_proprietario: "José Roberto Lima",
     data_visita: "2026-02-06T14:30:00Z", status: "agendada", corretor_id: null, notas: null,
     valor_imovel: 1250000, assinatura_visitante: null, assinatura_corretor: null, created_at: "2026-02-03T09:00:00Z", updated_at: "2026-02-03T09:00:00Z",
+    rg_visitante: null, endereco_visitante: null, acompanhantes: null, condominio_edificio: null, unidade_imovel: "Ap 802", aceita_ofertas_similares: true,
   },
   {
     id: "demo-fv-3", codigo: "VIS-DEMO03", nome_visitante: "Roberto Mendes", telefone_visitante: "(21) 97654-8765",
@@ -107,6 +109,7 @@ export const DEMO_FICHAS_VISITA: FichaVisita[] = [
     codigo_imovel: null, nome_corretor: "Marcus Godoy", nome_proprietario: "Claudia Souza",
     data_visita: "2026-01-28T16:00:00Z", status: "realizada", corretor_id: null, notas: "Achou o preço acima do mercado.",
     valor_imovel: 980000, assinatura_visitante: null, assinatura_corretor: null, created_at: "2026-01-27T10:00:00Z", updated_at: "2026-01-28T17:00:00Z",
+    rg_visitante: null, endereco_visitante: null, acompanhantes: null, condominio_edificio: null, unidade_imovel: "Ap 304", aceita_ofertas_similares: false,
   },
   {
     id: "demo-fv-4", codigo: "VIS-DEMO04", nome_visitante: "Juliana Barros", telefone_visitante: "(21) 99123-7890",
@@ -114,6 +117,7 @@ export const DEMO_FICHAS_VISITA: FichaVisita[] = [
     codigo_imovel: "DC-1800", nome_corretor: "Patricia Santos", nome_proprietario: "Marcos Ferreira",
     data_visita: "2026-02-01T09:00:00Z", status: "cancelada", corretor_id: null, notas: "Cliente cancelou por motivos pessoais.",
     valor_imovel: 3200000, assinatura_visitante: null, assinatura_corretor: null, created_at: "2026-01-30T08:00:00Z", updated_at: "2026-02-01T07:00:00Z",
+    rg_visitante: null, endereco_visitante: null, acompanhantes: null, condominio_edificio: null, unidade_imovel: null, aceita_ofertas_similares: false,
   },
   {
     id: "demo-fv-5", codigo: "VIS-DEMO05", nome_visitante: "André Martins", telefone_visitante: "(21) 98456-1234",
@@ -121,6 +125,7 @@ export const DEMO_FICHAS_VISITA: FichaVisita[] = [
     codigo_imovel: "MP-220", nome_corretor: "Ricardo Almeida", nome_proprietario: "Beatriz Cardoso",
     data_visita: "2026-02-07T11:00:00Z", status: "agendada", corretor_id: null, notas: null,
     valor_imovel: 1890000, assinatura_visitante: null, assinatura_corretor: null, created_at: "2026-02-04T16:00:00Z", updated_at: "2026-02-04T16:00:00Z",
+    rg_visitante: null, endereco_visitante: null, acompanhantes: null, condominio_edificio: null, unidade_imovel: "Ap 1502", aceita_ofertas_similares: false,
   },
   {
     id: "demo-fv-6", codigo: "VIS-DEMO06", nome_visitante: "Mariana Costa", telefone_visitante: "(21) 99345-6789",
@@ -128,6 +133,7 @@ export const DEMO_FICHAS_VISITA: FichaVisita[] = [
     codigo_imovel: null, nome_corretor: "Marcus Godoy", nome_proprietario: "Pedro Nascimento",
     data_visita: "2026-01-22T15:00:00Z", status: "realizada", corretor_id: null, notas: "Fez proposta de R$ 1.600.000.",
     valor_imovel: 1750000, assinatura_visitante: null, assinatura_corretor: null, created_at: "2026-01-20T11:00:00Z", updated_at: "2026-01-22T16:30:00Z",
+    rg_visitante: null, endereco_visitante: null, acompanhantes: null, condominio_edificio: null, unidade_imovel: "Ap 601", aceita_ofertas_similares: true,
   },
   {
     id: "demo-fv-7", codigo: "VIS-DEMO07", nome_visitante: "Lucas Pereira", telefone_visitante: "(21) 97890-4567",
@@ -135,6 +141,7 @@ export const DEMO_FICHAS_VISITA: FichaVisita[] = [
     codigo_imovel: "RQ-120", nome_corretor: "Patricia Santos", nome_proprietario: "Silvia Monteiro",
     data_visita: "2026-02-08T10:30:00Z", status: "agendada", corretor_id: null, notas: "Primeira visita ao imóvel.",
     valor_imovel: 1100000, assinatura_visitante: null, assinatura_corretor: null, created_at: "2026-02-05T09:00:00Z", updated_at: "2026-02-05T09:00:00Z",
+    rg_visitante: null, endereco_visitante: null, acompanhantes: null, condominio_edificio: null, unidade_imovel: "Ap 903", aceita_ofertas_similares: false,
   },
   {
     id: "demo-fv-8", codigo: "VIS-DEMO08", nome_visitante: "Tatiana Souza", telefone_visitante: "(21) 98234-5678",
@@ -142,6 +149,7 @@ export const DEMO_FICHAS_VISITA: FichaVisita[] = [
     codigo_imovel: "LC-2800", nome_corretor: "Marcus Godoy", nome_proprietario: "Ricardo Gomes",
     data_visita: "2026-01-15T14:00:00Z", status: "realizada", corretor_id: null, notas: "Adorou a vista para o mar. Muito entusiasmada.",
     valor_imovel: 4500000, assinatura_visitante: null, assinatura_corretor: null, created_at: "2026-01-13T10:00:00Z", updated_at: "2026-01-15T15:30:00Z",
+    rg_visitante: null, endereco_visitante: null, acompanhantes: null, condominio_edificio: "Grand Hyatt Residences", unidade_imovel: "Ap 2001", aceita_ofertas_similares: false,
   },
 ];
 

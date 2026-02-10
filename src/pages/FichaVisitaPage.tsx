@@ -4,6 +4,8 @@ import { useState, useEffect } from "react";
 import { useVisitas } from "@/hooks/useVisitas";
 import { useFeedbackVisita } from "@/hooks/useFeedbackVisita";
 import { useAuthContext } from "@/contexts/AuthContext";
+import { useCompanySettings, getLogoBase64ForPDF } from "@/hooks/useCompanySettings";
+import { useCorretores } from "@/hooks/useCorretores";
 import { VisitSignature } from "@/components/visitas/VisitSignature";
 import { VisitStatusBadge } from "@/components/visitas/VisitStatusBadge";
 import { PageTour, TourButton } from "@/components/PageTour";
@@ -15,7 +17,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { FichaVisita, StatusVisita } from "@/types/visitas";
+import { Badge } from "@/components/ui/badge";
+import { FichaVisita, StatusVisita, Acompanhante } from "@/types/visitas";
 import { exportFichaVisitaPdf, generateFichaVisitaPdfDoc } from "@/utils/fichaVisitaPdfExport";
 import { sendFeedbackRequestEmail } from "@/utils/visitEmailService";
 import { format } from "date-fns";
@@ -46,6 +49,8 @@ export default function FichaVisitaPage() {
   const { user } = useAuthContext();
   const { fichas, updateFicha, updateStatus, isLoading } = useVisitas();
   const { feedbacks } = useFeedbackVisita(id);
+  const { settings: companySettings } = useCompanySettings();
+  const { corretores } = useCorretores();
 
   const [ficha, setFicha] = useState<FichaVisita | null>(null);
   const [isEditing, setIsEditing] = useState(false);
@@ -112,16 +117,25 @@ export default function FichaVisitaPage() {
     }
   };
 
+  const getCorretorInfo = () => {
+    if (!ficha) return null;
+    const corretor = corretores.find(c => c.id === ficha.corretor_id);
+    return corretor ? { creci: corretor.creci, phone: corretor.phone, email: corretor.email } : null;
+  };
+
   const handleExportPdf = async () => {
     if (!ficha) return;
 
     try {
+      const logoBase64 = await getLogoBase64ForPDF(companySettings.custom_logo_url);
       const doc = await exportFichaVisitaPdf({ 
         ficha, 
-        feedback: feedbacks && feedbacks.length > 0 ? feedbacks[0] : null 
+        feedback: feedbacks && feedbacks.length > 0 ? feedbacks[0] : null,
+        customLogoBase64: logoBase64,
+        companySettings,
+        corretorInfo: getCorretorInfo(),
       });
       
-      // Force download using blob approach
       const pdfBlob = doc.output('blob');
       const url = URL.createObjectURL(pdfBlob);
       const link = document.createElement('a');
@@ -141,9 +155,13 @@ export default function FichaVisitaPage() {
 
   const handleGeneratePdfForEmail = async () => {
     if (!ficha) throw new Error("Ficha não encontrada");
+    const logoBase64 = await getLogoBase64ForPDF(companySettings.custom_logo_url);
     return await generateFichaVisitaPdfDoc({
       ficha,
-      feedback: feedbacks && feedbacks.length > 0 ? feedbacks[0] : null
+      feedback: feedbacks && feedbacks.length > 0 ? feedbacks[0] : null,
+      customLogoBase64: logoBase64,
+      companySettings,
+      corretorInfo: getCorretorInfo(),
     });
   };
 
@@ -273,6 +291,20 @@ export default function FichaVisitaPage() {
                         />
                       </div>
                       <div>
+                        <Label>Condomínio/Edifício</Label>
+                        <Input
+                          value={editedFicha.condominio_edificio || ""}
+                          onChange={(e) => setEditedFicha(prev => ({ ...prev, condominio_edificio: e.target.value }))}
+                        />
+                      </div>
+                      <div>
+                        <Label>Unidade</Label>
+                        <Input
+                          value={editedFicha.unidade_imovel || ""}
+                          onChange={(e) => setEditedFicha(prev => ({ ...prev, unidade_imovel: e.target.value }))}
+                        />
+                      </div>
+                      <div>
                         <Label>Código do Imóvel</Label>
                         <Input
                           value={editedFicha.codigo_imovel || ""}
@@ -302,6 +334,12 @@ export default function FichaVisitaPage() {
                       <MapPin className="h-5 w-5 text-muted-foreground mt-0.5" />
                       <div>
                         <p className="font-medium">{ficha.endereco_imovel}</p>
+                        {ficha.condominio_edificio && (
+                          <p className="text-sm text-muted-foreground">Condomínio: {ficha.condominio_edificio}</p>
+                        )}
+                        {ficha.unidade_imovel && (
+                          <p className="text-sm text-muted-foreground">Unidade: {ficha.unidade_imovel}</p>
+                        )}
                         {ficha.codigo_imovel && (
                           <p className="text-sm text-muted-foreground">Código: {ficha.codigo_imovel}</p>
                         )}
@@ -350,6 +388,13 @@ export default function FichaVisitaPage() {
                       />
                     </div>
                     <div>
+                      <Label>RG</Label>
+                      <Input
+                        value={editedFicha.rg_visitante || ""}
+                        onChange={(e) => setEditedFicha(prev => ({ ...prev, rg_visitante: e.target.value }))}
+                      />
+                    </div>
+                    <div>
                       <Label>Telefone</Label>
                       <Input
                         value={editedFicha.telefone_visitante || ""}
@@ -363,6 +408,13 @@ export default function FichaVisitaPage() {
                         onChange={(e) => setEditedFicha(prev => ({ ...prev, email_visitante: e.target.value }))}
                       />
                     </div>
+                    <div className="md:col-span-2">
+                      <Label>Endereço do Visitante</Label>
+                      <Input
+                        value={editedFicha.endereco_visitante || ""}
+                        onChange={(e) => setEditedFicha(prev => ({ ...prev, endereco_visitante: e.target.value }))}
+                      />
+                    </div>
                   </div>
                 ) : (
                   <div className="space-y-3">
@@ -371,6 +423,9 @@ export default function FichaVisitaPage() {
                       <div>
                         <p className="font-medium">{ficha.nome_visitante}</p>
                         <p className="text-sm text-muted-foreground">CPF: {ficha.cpf_visitante}</p>
+                        {ficha.rg_visitante && (
+                          <p className="text-sm text-muted-foreground">RG: {ficha.rg_visitante}</p>
+                        )}
                       </div>
                     </div>
                     <div className="flex items-center gap-3">
@@ -383,6 +438,29 @@ export default function FichaVisitaPage() {
                         <span>{ficha.email_visitante}</span>
                       </div>
                     )}
+                    {ficha.endereco_visitante && (
+                      <div className="flex items-center gap-3">
+                        <MapPin className="h-5 w-5 text-muted-foreground" />
+                        <span className="text-sm">{ficha.endereco_visitante}</span>
+                      </div>
+                    )}
+                    {/* Acompanhantes */}
+                    {ficha.acompanhantes && (ficha.acompanhantes as Acompanhante[]).length > 0 && (
+                      <div className="pt-2 border-t">
+                        <p className="text-sm font-medium mb-1">Acompanhante(s):</p>
+                        {(ficha.acompanhantes as Acompanhante[]).map((a, i) => (
+                          <p key={i} className="text-sm text-muted-foreground">
+                            {a.nome}{a.cpf ? ` — CPF: ${a.cpf}` : ""}
+                          </p>
+                        ))}
+                      </div>
+                    )}
+                    {/* LGPD opt-in */}
+                    <div className="pt-2 border-t">
+                      <Badge variant={ficha.aceita_ofertas_similares ? "default" : "secondary"}>
+                        {ficha.aceita_ofertas_similares ? "Aceita ofertas similares" : "Não aceita ofertas similares"}
+                      </Badge>
+                    </div>
                   </div>
                 )}
               </CardContent>
