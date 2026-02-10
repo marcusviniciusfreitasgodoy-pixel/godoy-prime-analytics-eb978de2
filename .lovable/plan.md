@@ -1,67 +1,42 @@
 
 
-## Compactar a Ficha de Visita em 1 Pagina com Melhor Formatacao
+## Corrigir Logo e Remover Texto Indesejado do Cabecalho do PDF
 
-### Objetivo
-Reescrever o PDF (`fichaVisitaPdfExport.ts`) para que todo o conteudo caiba em uma unica pagina A4, com logo ajustada no cabecalho e melhor organizacao visual.
+### O que muda
 
----
-
-### O que muda para voce
-
-- O PDF gerado tera **exatamente 1 pagina**, terminando nas assinaturas digitais
-- Logo posicionada corretamente no cabecalho (sem corte ou desalinhamento)
-- Textos juridicos mais compactos visualmente, sem perder conteudo
-- Espacamentos reduzidos entre secoes para aproveitamento maximo da pagina
-- Assinaturas sempre na parte inferior da mesma pagina
-
----
+- A linha "BARRA DA TIJUCA / RJ | No TESTE-001 | ..." sera **removida** do cabecalho
+- O cabecalho ficara apenas com: logo a esquerda + titulo "FICHA DE VISITA / TERMO DE APRESENTACAO DE IMOVEL" centralizado
+- A data da visita e numero do registro serao movidos para a caixa de intermediacao (ja existente logo abaixo)
+- O logo branco (`godoy-logo-white.png`) sera reposicionado com dimensoes corretas para nao ficar cortado
 
 ### Secao Tecnica
 
-**Arquivo modificado:** `src/utils/fichaVisitaPdfExport.ts`
+**Arquivo:** `src/utils/fichaVisitaPdfExport.ts`
 
-**Ajustes para caber em 1 pagina:**
+**Mudanca 1 — Remover linha 108** (texto "BARRA DA TIJUCA / RJ | No ...")
 
-| Elemento | Atual | Novo |
-|---|---|---|
-| Margem lateral | 15mm | 12mm (mais area util) |
-| Cabecalho (header height) | 30mm | 24mm |
-| Logo | 22x22px, posicao fixa | 18x18px, alinhada a esquerda com padding |
-| Titulo do cabecalho | 13pt | 11pt |
-| Subtitulo "BARRA DA TIJUCA" | 9pt, linha separada | 7.5pt, mesma linha do registro |
-| Section headers (barras douradas) | 7mm altura + 10mm gap | 5.5mm altura + 7mm gap |
-| Campos de dados (font) | 8.5pt | 7.5pt |
-| Espacamento entre campos | 6mm | 4.5mm |
-| Textos juridicos (secoes 3-6) | 7.5pt com 4mm line-height | 6.5pt com 3mm line-height |
-| Gap apos texto juridico | 4mm | 2mm |
-| Assinaturas (caixas) | 75x22mm | 70x18mm |
-| Remover page breaks condicionais | 3 `if (y > pageHeight)` checks | Nenhum (tudo em 1 pagina) |
+Remover completamente estas 4 linhas:
+```
+doc.setTextColor(...COLORS.white);
+doc.setFontSize(7);
+doc.setFont("helvetica", "normal");
+doc.text(`BARRA DA TIJUCA / RJ  |  Nº ${ficha.codigo}  |  ${dataVisita}  |  Rio de Janeiro/RJ`, ...);
+```
 
-**Reorganizacao do cabecalho:**
-- Barra navy mais fina (24mm)
-- Logo a esquerda (12mm x margin, 3mm y, 18x18)
-- Titulo centralizado 11pt
-- Subtitulo + Nro registro + Data numa unica linha compacta 7pt
+**Mudanca 2 — Reduzir cabecalho e centralizar titulo verticalmente**
 
-**Intermediacao:**
-- Reduzir altura da caixa de 14mm para 10mm
-- Font 6.5pt em vez de 7pt
+Com a remoção da segunda linha de texto, o cabecalho pode ser mais compacto (22mm em vez de 26mm). O titulo sera centralizado verticalmente na barra navy.
 
-**Secoes juridicas (3, 4, 5, 6):**
-- Reduzir font para 6.5pt
-- Usar line multiplier de 3mm em vez de 4mm
-- Gaps entre secoes de 2mm em vez de 4mm
+**Mudanca 3 — Ajustar logo**
 
-**Assinaturas:**
-- Caixas menores (70x18mm)
-- Texto 7pt
-- Sem `drawSectionHeader` para a secao 7 (apenas uma linha fina separadora para economizar espaco)
+Reposicionar o logo para ficar centrado verticalmente dentro do cabecalho:
+- Posicao: `x = M`, `y = 3`, largura `16`, altura `16` (proporção 1:1, centrado em 22mm de altura)
 
-**Sequencia:**
-1. Ajustar constantes de margem e espacamento
-2. Compactar cabecalho com logo menor
-3. Reduzir fontes e gaps em todas as secoes
-4. Remover todos os page-break checks
-5. Compactar assinaturas no rodape da pagina
+**Mudanca 4 — Mover No e Data para a caixa de Intermediacao**
+
+Adicionar o numero do registro e data/hora na caixa cinza de intermediacao que ja existe logo abaixo do cabecalho, junto com os dados da imobiliaria e corretor. Ficara:
+```
+Imobiliaria: GODOY PRIME | CNPJ: ... | Registro: TESTE-001 | Data: 10/02/2026 as 14:00
+Corretor(a): ... | CRECI: ... | Contato: ...
+```
 
