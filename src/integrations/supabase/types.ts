@@ -1813,6 +1813,16 @@ export type Database = {
       }
       cleanup_rate_limit_logs: { Args: never; Returns: number }
       generate_visit_code: { Args: never; Returns: string }
+      get_corretores_list: {
+        Args: never
+        Returns: {
+          creci: string
+          email: string
+          full_name: string
+          id: string
+          phone: string
+        }[]
+      }
       get_ficha_by_codigo: {
         Args: { p_codigo: string }
         Returns: {
