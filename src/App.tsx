@@ -39,6 +39,7 @@ import AgendarVisita from "./pages/AgendarVisita";
 import DisponibilidadeVisitas from "./pages/DisponibilidadeVisitas";
 import FeedbackVisita from "./pages/FeedbackVisita";
 import FichaVisitaPage from "./pages/FichaVisitaPage";
+import NovaFichaVisita from "./pages/NovaFichaVisita";
 import FeedbackLanding from "./pages/FeedbackLanding";
 import AssinaturaVisita from "./pages/AssinaturaVisita";
 import AssinaturaLanding from "./pages/AssinaturaLanding";
@@ -113,6 +114,7 @@ const App = () => (
                               <Route path="/onboarding" element={<Onboarding />} />
                               <Route path="/visitas" element={<Visitas />} />
                               <Route path="/visitas/agendar" element={<AgendarVisita />} />
+                              <Route path="/visitas/nova-ficha" element={<NovaFichaVisita />} />
                               <Route path="/visitas/disponibilidade" element={<DisponibilidadeVisitas />} />
                               <Route path="/visitas/ficha/:id" element={<FichaVisitaPage />} />
                               <Route path="/configuracoes" element={<Configuracoes />} />
