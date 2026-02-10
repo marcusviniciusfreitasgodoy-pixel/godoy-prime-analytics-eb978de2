@@ -3,6 +3,7 @@ import { FichaVisita, FeedbackVisita, Acompanhante } from "@/types/visitas";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { BRAND_COLORS, CONTACT_INFO, applyFootersToAllPages } from "./pdfTemplate";
+import godoyLogoWhite from "@/assets/godoy-logo-white.png";
 
 interface FichaVisitaPdfData {
   ficha: FichaVisita;
@@ -32,15 +33,35 @@ const COLORS = {
   black: [0, 0, 0] as [number, number, number],
 };
 
-// Compact layout constants
+// Layout constants — full A4 usage between header and footer
 const M = 12; // margin
-const LH_FIELD = 4.5; // line height for fields
-const LH_LEGAL = 3; // line multiplier for legal text
+const FOOTER_H = 10; // footer height
+const PAGE_H = 297; // A4 height
+const CONTENT_BOTTOM = PAGE_H - FOOTER_H - 4; // usable bottom limit
+
+const LH_FIELD = 5; // line height for fields
+const LH_LEGAL = 3.2; // line height for legal text
 const FONT_FIELD = 7.5;
 const FONT_LEGAL = 6.5;
-const SECTION_H = 5.5; // section header height
-const SECTION_GAP = 7; // gap after section header (includes header)
-const LEGAL_GAP = 2; // gap after legal text block
+const SECTION_H = 6; // section header height
+const SECTION_PAD = 2.5; // padding between section title and first field
+const LEGAL_GAP = 2.5; // gap after legal text block
+
+// Helper to load default logo as base64
+async function loadDefaultLogoBase64(): Promise<string | null> {
+  try {
+    const response = await fetch(godoyLogoWhite);
+    const blob = await response.blob();
+    return new Promise((resolve) => {
+      const reader = new FileReader();
+      reader.onloadend = () => resolve(reader.result as string);
+      reader.onerror = () => resolve(null);
+      reader.readAsDataURL(blob);
+    });
+  } catch {
+    return null;
+  }
+}
 
 export async function exportFichaVisitaPdf({ ficha, feedback, customLogoBase64, companySettings, corretorInfo }: FichaVisitaPdfData): Promise<jsPDF> {
   const doc = new jsPDF();
@@ -61,42 +82,48 @@ export async function exportFichaVisitaPdf({ ficha, feedback, customLogoBase64, 
   const corretorContato = corretorInfo?.phone || corretorInfo?.email || "_______________";
   const dataVisita = format(new Date(ficha.data_visita), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR });
 
-  // ========== HEADER (24mm) ==========
-  doc.setFillColor(...COLORS.navy);
-  doc.rect(0, 0, pageWidth, 24, "F");
+  // Load logo — prefer custom, fallback to default white GR symbol
+  let logoToUse = customLogoBase64;
+  if (!logoToUse) {
+    logoToUse = await loadDefaultLogoBase64();
+  }
 
-  if (customLogoBase64) {
-    try { doc.addImage(customLogoBase64, "PNG", M, 3, 18, 18); } catch {}
+  // ========== HEADER (26mm) ==========
+  const headerH = 26;
+  doc.setFillColor(...COLORS.navy);
+  doc.rect(0, 0, pageWidth, headerH, "F");
+
+  if (logoToUse) {
+    try { doc.addImage(logoToUse, "PNG", M, 4, 18, 18); } catch {}
   }
 
   doc.setTextColor(...COLORS.gold);
   doc.setFontSize(11);
   doc.setFont("helvetica", "bold");
-  doc.text("FICHA DE VISITA / TERMO DE APRESENTAÇÃO DE IMÓVEL", pageWidth / 2, 10, { align: "center" });
+  doc.text("FICHA DE VISITA / TERMO DE APRESENTAÇÃO DE IMÓVEL", pageWidth / 2, 11, { align: "center" });
 
   doc.setTextColor(...COLORS.white);
   doc.setFontSize(7);
   doc.setFont("helvetica", "normal");
-  doc.text(`BARRA DA TIJUCA / RJ  |  Nº ${ficha.codigo}  |  ${dataVisita}  |  Rio de Janeiro/RJ`, pageWidth / 2, 16, { align: "center" });
+  doc.text(`BARRA DA TIJUCA / RJ  |  Nº ${ficha.codigo}  |  ${dataVisita}  |  Rio de Janeiro/RJ`, pageWidth / 2, 18, { align: "center" });
 
-  y = 27;
+  y = headerH + 3;
 
-  // ========== INTERMEDIAÇÃO (10mm box) ==========
+  // ========== INTERMEDIAÇÃO (compact box) ==========
   doc.setFillColor(...COLORS.lightGray);
-  doc.rect(M, y, contentWidth, 10, "F");
+  doc.rect(M, y, contentWidth, 11, "F");
   doc.setTextColor(...COLORS.navy);
   doc.setFontSize(6.5);
   doc.setFont("helvetica", "bold");
   doc.text("INTERMEDIAÇÃO", M + 2, y + 3.5);
   doc.setFont("helvetica", "normal");
-  doc.text(`Imobiliária: ${company.name} | CNPJ: ${company.cnpj}`, M + 2, y + 6.5);
-  doc.text(`Corretor(a): ${ficha.nome_corretor} | CRECI: ${corretorCreci} | Contato: ${corretorContato}`, M + 2, y + 9.5);
+  doc.text(`Imobiliária: ${company.name} | CNPJ: ${company.cnpj}`, M + 2, y + 7);
+  doc.text(`Corretor(a): ${ficha.nome_corretor} | CRECI: ${corretorCreci} | Contato: ${corretorContato}`, M + 2, y + 10);
 
-  y += 13;
+  y += 14;
 
   // ========== 1) IDENTIFICAÇÃO DO CLIENTE ==========
-  drawSectionHeader(doc, "1) IDENTIFICAÇÃO DO CLIENTE (VISITANTE)", M, y, contentWidth);
-  y += SECTION_GAP;
+  y = drawSectionHeader(doc, "1) IDENTIFICAÇÃO DO CLIENTE (VISITANTE)", M, y, contentWidth);
 
   doc.setTextColor(...COLORS.black);
   doc.setFontSize(FONT_FIELD);
@@ -120,11 +147,10 @@ export async function exportFichaVisitaPdf({ ficha, feedback, customLogoBase64, 
     doc.setFont("helvetica", "normal");
     doc.text("Acomp.: _________________________________  CPF: _______________", M, y);
   }
-  y += LH_FIELD + 1;
+  y += LH_FIELD + 2;
 
   // ========== 2) IDENTIFICAÇÃO DO IMÓVEL ==========
-  drawSectionHeader(doc, "2) IDENTIFICAÇÃO DO IMÓVEL VISITADO", M, y, contentWidth);
-  y += SECTION_GAP;
+  y = drawSectionHeader(doc, "2) IDENTIFICAÇÃO DO IMÓVEL VISITADO", M, y, contentWidth);
 
   doc.setFontSize(FONT_FIELD);
   drawField(doc, "End.:", ficha.endereco_imovel, M, y, 12);
@@ -132,13 +158,13 @@ export async function exportFichaVisitaPdf({ ficha, feedback, customLogoBase64, 
   drawField(doc, "Cond./Edif.:", ficha.condominio_edificio || "___________________", M, y, 24);
   drawField(doc, "Unid.:", ficha.unidade_imovel || "________", M + 80, y, 14);
   drawField(doc, "Cód.:", ficha.codigo_imovel || "________", M + 120, y, 12);
-  y += LH_FIELD + 1;
+  y += LH_FIELD + 2;
 
   // ========== 3) DECLARAÇÃO DE VISITA ==========
-  drawSectionHeader(doc, "3) DECLARAÇÃO DE VISITA E CIÊNCIA", M, y, contentWidth);
-  y += SECTION_GAP;
+  y = drawSectionHeader(doc, "3) DECLARAÇÃO DE VISITA E CIÊNCIA", M, y, contentWidth);
 
   doc.setFontSize(FONT_LEGAL);
+  doc.setTextColor(...COLORS.black);
   const decl3 = doc.splitTextToSize(
     `O(a) Cliente acima identificado(a) declara que, nesta data, visitou e conheceu o imóvel descrito no item 2, apresentado pela intermediação indicada neste documento, para fins de avaliação de interesse.`,
     contentWidth
@@ -147,10 +173,10 @@ export async function exportFichaVisitaPdf({ ficha, feedback, customLogoBase64, 
   y += decl3.length * LH_LEGAL + LEGAL_GAP;
 
   // ========== 4) NÃO VINCULAÇÃO ==========
-  drawSectionHeader(doc, "4) NÃO VINCULAÇÃO E ESCOPO DESTE TERMO", M, y, contentWidth);
-  y += SECTION_GAP;
+  y = drawSectionHeader(doc, "4) NÃO VINCULAÇÃO E ESCOPO DESTE TERMO", M, y, contentWidth);
 
   doc.setFontSize(FONT_LEGAL);
+  doc.setTextColor(...COLORS.black);
   const decl4 = doc.splitTextToSize(
     `Este documento: a) não constitui proposta de compra, reserva, promessa, contrato de compra e venda ou compromisso; b) não obriga o Cliente, o Vendedor ou a Intermediadora à realização de negócio; e c) tem como finalidade registrar a apresentação/visita do imóvel e a atuação de intermediação.`,
     contentWidth
@@ -159,10 +185,10 @@ export async function exportFichaVisitaPdf({ ficha, feedback, customLogoBase64, 
   y += decl4.length * LH_LEGAL + LEGAL_GAP;
 
   // ========== 5) CIÊNCIA DE INTERMEDIAÇÃO ==========
-  drawSectionHeader(doc, "5) CIÊNCIA DE INTERMEDIAÇÃO E JANELA DE PROTEÇÃO", M, y, contentWidth);
-  y += SECTION_GAP;
+  y = drawSectionHeader(doc, "5) CIÊNCIA DE INTERMEDIAÇÃO E JANELA DE PROTEÇÃO", M, y, contentWidth);
 
   doc.setFontSize(FONT_LEGAL);
+  doc.setTextColor(...COLORS.black);
   const clausula = doc.splitTextToSize(
     `CIÊNCIA DE INTERMEDIAÇÃO E JANELA DE PROTEÇÃO: O(a) Cliente declara ciência e reconhece que tomou conhecimento do imóvel identificado neste termo por meio da intermediação da Imobiliária/Corretor(a) acima indicado(a), razão pela qual, caso venha a iniciar, retomar ou concluir tratativas relativas a este mesmo imóvel, direta ou indiretamente, pelo prazo de 180 (cento e oitenta) dias contados da data desta visita, compromete-se a comunicar previamente a Imobiliária/Corretor(a) para fins de registro e adequada condução da negociação, permanecendo a remuneração de corretagem sujeita à disciplina dos instrumentos de intermediação aplicáveis e/ou ajuste específico entre as partes, não constituindo este termo, por si só, reserva, proposta, promessa de compra e venda ou título de cobrança.`,
     contentWidth
@@ -171,16 +197,16 @@ export async function exportFichaVisitaPdf({ ficha, feedback, customLogoBase64, 
   y += clausula.length * LH_LEGAL + LEGAL_GAP;
 
   // ========== 6) LGPD ==========
-  drawSectionHeader(doc, "6) LGPD (TRATAMENTO DE DADOS)", M, y, contentWidth);
-  y += SECTION_GAP;
+  y = drawSectionHeader(doc, "6) LGPD (TRATAMENTO DE DADOS)", M, y, contentWidth);
 
   doc.setFontSize(FONT_LEGAL);
+  doc.setTextColor(...COLORS.black);
   const lgpd = doc.splitTextToSize(
     `O(a) Cliente declara ciência de que seus dados pessoais serão tratados pela Imobiliária/Corretor(a) exclusivamente para: (i) registro da visita, (ii) comunicação sobre esta negociação e (iii) envio de informações relacionadas ao imóvel visitado e similares quando autorizado. Solicitações de acesso, correção ou exclusão de dados pelo canal: ${corretorInfo?.email || company.phone}.`,
     contentWidth
   );
   doc.text(lgpd, M, y);
-  y += lgpd.length * LH_LEGAL + 1;
+  y += lgpd.length * LH_LEGAL + 1.5;
 
   // Opt-in
   const optSim = ficha.aceita_ofertas_similares ? "X" : " ";
@@ -191,7 +217,7 @@ export async function exportFichaVisitaPdf({ ficha, feedback, customLogoBase64, 
   doc.setFont("helvetica", "normal");
   y += 5;
 
-  // ========== 7) ASSINATURAS (separator line instead of section header) ==========
+  // ========== ASSINATURAS (separator line) ==========
   doc.setDrawColor(...COLORS.navy);
   doc.setLineWidth(0.4);
   doc.line(M, y, M + contentWidth, y);
@@ -210,8 +236,10 @@ export async function exportFichaVisitaPdf({ ficha, feedback, customLogoBase64, 
   doc.text(`Rio de Janeiro/RJ, ${dataAtual}`, M, y);
   y += 4;
 
-  const sigW = 70;
-  const sigH = 18;
+  // Dynamically size signature boxes to fill remaining space
+  const remainingSpace = CONTENT_BOTTOM - y - 5; // 5mm for label below
+  const sigH = Math.min(Math.max(remainingSpace, 14), 28); // clamp 14-28mm
+  const sigW = 72;
 
   // Cliente
   doc.setDrawColor(...COLORS.navy);
@@ -257,14 +285,15 @@ export async function saveFichaVisitaPdf(data: FichaVisitaPdfData): Promise<void
 
 // ========== HELPERS ==========
 
-function drawSectionHeader(doc: jsPDF, title: string, x: number, y: number, width: number): void {
+function drawSectionHeader(doc: jsPDF, title: string, x: number, y: number, width: number): number {
   doc.setFillColor(...COLORS.gold);
   doc.rect(x, y, width, SECTION_H, "F");
   doc.setTextColor(...COLORS.navy);
   doc.setFontSize(7);
   doc.setFont("helvetica", "bold");
-  doc.text(title, x + 2, y + 3.8);
+  doc.text(title, x + 2, y + 4);
   doc.setFont("helvetica", "normal");
+  return y + SECTION_H + SECTION_PAD; // return Y after header + padding
 }
 
 function drawField(doc: jsPDF, label: string, value: string, x: number, y: number, labelWidth: number): void {
