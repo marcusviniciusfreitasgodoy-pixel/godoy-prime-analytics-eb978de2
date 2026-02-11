@@ -9,7 +9,7 @@ import { CurrencyInput } from "@/components/ui/currency-input";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { ProposalModelSelector } from "./ProposalModelSelector";
+
 import { CNHUpload } from "./CNHUpload";
 import { PublicSignatureCanvas } from "./PublicSignatureCanvas";
 import { usePropostas } from "@/hooks/usePropostas";
@@ -45,7 +45,7 @@ interface ProposalFormProps {
 
 export function ProposalForm({ preFill, onSuccess, standalone = false }: ProposalFormProps) {
   const { createProposta, uploadCNH } = usePropostas();
-  const [modelo, setModelo] = useState<'simplificado' | 'completo' | null>(null);
+  const modelo = 'completo';
   const [assinatura, setAssinatura] = useState<string | null>(null);
   const [cnhUrl, setCnhUrl] = useState<string | null>(null);
   const [isUploadingCNH, setIsUploadingCNH] = useState(false);
@@ -129,21 +129,6 @@ export function ProposalForm({ preFill, onSuccess, standalone = false }: Proposa
     );
   }
 
-  if (!modelo) {
-    return (
-      <div className="space-y-4">
-        <Card>
-          <CardHeader>
-            <CardTitle>Escolha o Modelo de Proposta</CardTitle>
-            <CardDescription>Selecione o tipo de proposta que deseja preencher</CardDescription>
-          </CardHeader>
-        </Card>
-        <ProposalModelSelector selected={modelo} onSelect={setModelo} />
-      </div>
-    );
-  }
-
-  const isCompleto = modelo === "completo";
 
   return (
     <Form {...form}>
@@ -201,9 +186,8 @@ export function ProposalForm({ preFill, onSuccess, standalone = false }: Proposa
                 <FormMessage />
               </FormItem>
             )} />
-            {isCompleto && (
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <FormField control={form.control} name="unidade" render={({ field }) => (
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <FormField control={form.control} name="unidade" render={({ field }) => (
                   <FormItem>
                     <FormLabel>Unidade (apto/casa/lote)</FormLabel>
                     <FormControl><Input {...field} /></FormControl>
@@ -215,8 +199,7 @@ export function ProposalForm({ preFill, onSuccess, standalone = false }: Proposa
                     <FormControl><Input {...field} /></FormControl>
                   </FormItem>
                 )} />
-              </div>
-            )}
+            </div>
           </CardContent>
         </Card>
 
@@ -241,9 +224,7 @@ export function ProposalForm({ preFill, onSuccess, standalone = false }: Proposa
                 <FormControl><Input placeholder="Ex: R$ 50.000 na assinatura do compromisso" {...field} /></FormControl>
               </FormItem>
             )} />
-            {isCompleto && (
-              <>
-                <FormField control={form.control} name="parcelas" render={({ field }) => (
+            <FormField control={form.control} name="parcelas" render={({ field }) => (
                   <FormItem>
                     <FormLabel>Parcelas (quantidade, valores e vencimentos)</FormLabel>
                     <FormControl><Textarea rows={2} placeholder="Ex: 12x de R$ 10.000, vencimento dia 15" {...field} /></FormControl>
@@ -255,20 +236,16 @@ export function ProposalForm({ preFill, onSuccess, standalone = false }: Proposa
                     <FormControl><Input placeholder="Ex: Financiamento CEF sujeito a aprovação" {...field} /></FormControl>
                   </FormItem>
                 )} />
-                <FormField control={form.control} name="outras_condicoes" render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Outras condições (permuta, etc.)</FormLabel>
-                    <FormControl><Textarea rows={2} {...field} /></FormControl>
-                  </FormItem>
-                )} />
-              </>
-            )}
+            <FormField control={form.control} name="outras_condicoes" render={({ field }) => (
+              <FormItem>
+                <FormLabel>Outras condições (permuta, etc.)</FormLabel>
+                <FormControl><Textarea rows={2} {...field} /></FormControl>
+              </FormItem>
+            )} />
           </CardContent>
         </Card>
 
-        {/* Validade e Aceite (completo) */}
-        {isCompleto && (
-          <Card>
+        <Card>
             <CardHeader>
               <CardTitle className="text-lg">Validade e Aceite</CardTitle>
             </CardHeader>
@@ -309,11 +286,8 @@ export function ProposalForm({ preFill, onSuccess, standalone = false }: Proposa
                 </FormItem>
               )} />
             </CardContent>
-          </Card>
-        )}
+        </Card>
 
-        {/* Cláusula (completo) */}
-        {isCompleto && (
         <Card className="border-border bg-muted/50">
             <CardContent className="pt-6">
               <div className="flex gap-2 items-start">
@@ -331,17 +305,16 @@ export function ProposalForm({ preFill, onSuccess, standalone = false }: Proposa
               </div>
             </CardContent>
           </Card>
-        )}
 
-        {/* CNH Upload */}
-        <CNHUpload onUpload={handleCNHUpload} isUploading={isUploadingCNH} uploadedUrl={cnhUrl} />
-
-        {/* Assinatura Digital */}
-        <PublicSignatureCanvas
-          title="Assinatura do Proponente"
-          description="Desenhe sua assinatura para confirmar a proposta"
-          onSave={(sig) => setAssinatura(sig)}
-        />
+        {/* CNH e Assinatura lado a lado em desktop */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <CNHUpload onUpload={handleCNHUpload} isUploading={isUploadingCNH} uploadedUrl={cnhUrl} />
+          <PublicSignatureCanvas
+            title="Assinatura do Proponente"
+            description="Desenhe sua assinatura para confirmar a proposta"
+            onSave={(sig) => setAssinatura(sig)}
+          />
+        </div>
 
         {!assinatura && (
           <p className="text-sm text-muted-foreground text-center">

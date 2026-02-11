@@ -13,7 +13,6 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { useFeedbackVisita } from "@/hooks/useFeedbackVisita";
 import { NivelInteresseVisita, PercepcaoValorVisita } from "@/types/visitas";
 import { Loader2, Star, ThumbsUp, ThumbsDown, FileText } from "lucide-react";
-import { ProposalModelSelector } from "./ProposalModelSelector";
 import { ProposalForm } from "./ProposalForm";
 import { PropostaPreFill } from "@/types/proposta";
 
@@ -35,9 +34,6 @@ const feedbackSchema = z.object({
   sugestoes_melhoria: z.string().optional(),
   efeito_uau: z.array(z.string()).optional(),
   efeito_uau_detalhe: z.string().optional(),
-  forma_pagamento: z.enum(["a_vista", "parcelamento_direto", "financiamento_bancario"]).optional(),
-  sinal_entrada: z.string().optional(),
-  valor_financiado: z.string().optional(),
 });
 
 type FeedbackFormData = z.infer<typeof feedbackSchema>;
@@ -64,7 +60,7 @@ const efeitoUauOptions = [
 export function FeedbackForm({ fichaVisitaId, preFill, onSuccess }: FeedbackFormProps) {
   const { createFeedback } = useFeedbackVisita();
   const [selectedEfeitoUau, setSelectedEfeitoUau] = useState<string[]>([]);
-  const [modeloProposta, setModeloProposta] = useState<'simplificado' | 'completo' | null>(null);
+  
 
   const form = useForm<FeedbackFormData>({
     resolver: zodResolver(feedbackSchema),
@@ -97,9 +93,6 @@ export function FeedbackForm({ fichaVisitaId, preFill, onSuccess }: FeedbackForm
       sugestoes_melhoria: data.sugestoes_melhoria || null,
       efeito_uau: selectedEfeitoUau.length > 0 ? selectedEfeitoUau : null,
       efeito_uau_detalhe: data.efeito_uau_detalhe || null,
-      forma_pagamento: data.forma_pagamento || null,
-      sinal_entrada: data.sinal_entrada ? parseFloat(data.sinal_entrada.replace(/\D/g, "")) : null,
-      valor_financiado: data.valor_financiado ? parseFloat(data.valor_financiado.replace(/\D/g, "")) : null,
     } as any);
 
     onSuccess?.();
@@ -126,11 +119,6 @@ export function FeedbackForm({ fichaVisitaId, preFill, onSuccess }: FeedbackForm
     acima: "Acima do mercado",
   };
 
-  const formaPagamentoLabels = {
-    a_vista: "À Vista",
-    parcelamento_direto: "Parcelamento Direto",
-    financiamento_bancario: "Financiamento Bancário",
-  };
 
   return (
     <Form {...form}>
@@ -373,102 +361,16 @@ export function FeedbackForm({ fichaVisitaId, preFill, onSuccess }: FeedbackForm
               )}
             />
 
-            {/* Seletor de modelo + campos condicionais */}
             {form.watch("gostaria_fazer_proposta") && (
-              <div className="space-y-4">
-                <ProposalModelSelector selected={modeloProposta} onSelect={setModeloProposta} />
-
-                {/* Proposta Simplificada — campos inline */}
-                {modeloProposta === "simplificado" && (
-                  <div className="space-y-4 rounded-lg border p-4 bg-muted/30">
-                    <FormField
-                      control={form.control}
-                      name="valor_ofertaria"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Valor da Proposta</FormLabel>
-                          <FormControl>
-                            <CurrencyInput value={field.value || ''} onChange={field.onChange} placeholder="R$ 0" />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-
-                    <FormField
-                      control={form.control}
-                      name="sinal_entrada"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Sinal / Entrada</FormLabel>
-                          <FormControl>
-                            <CurrencyInput value={field.value || ''} onChange={field.onChange} placeholder="R$ 0" />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-
-                    <FormField
-                      control={form.control}
-                      name="forma_pagamento"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Forma de Pagamento</FormLabel>
-                          <FormControl>
-                            <RadioGroup onValueChange={field.onChange} value={field.value} className="flex flex-col space-y-2">
-                              {Object.entries(formaPagamentoLabels).map(([value, label]) => (
-                                <div key={value} className="flex items-center space-x-2">
-                                  <RadioGroupItem value={value} id={`pagamento-${value}`} />
-                                  <label htmlFor={`pagamento-${value}`} className="text-sm cursor-pointer">{label}</label>
-                                </div>
-                              ))}
-                            </RadioGroup>
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-
-                    {form.watch("forma_pagamento") === "financiamento_bancario" && (
-                      <FormField
-                        control={form.control}
-                        name="valor_financiado"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Valor Financiado</FormLabel>
-                            <FormControl>
-                              <CurrencyInput value={field.value || ''} onChange={field.onChange} placeholder="R$ 0" />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                    )}
-                  </div>
-                )}
-
-                {/* Proposta Completa — formulário dedicado */}
-                {modeloProposta === "completo" && (
-                  <Card>
-                    <CardHeader>
-                      <CardTitle className="flex items-center gap-2">
-                        <FileText className="h-5 w-5" />
-                        Proposta Completa
-                      </CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                      <ProposalForm
-                        preFill={{
-                          ...preFill,
-                          valor_ofertado: form.watch("valor_ofertaria")
-                            ? parseFloat(form.watch("valor_ofertaria")!.replace(/\D/g, ""))
-                            : undefined,
-                        }}
-                      />
-                    </CardContent>
-                  </Card>
-                )}
+              <div className="mt-4 border-t pt-4">
+                <ProposalForm
+                  preFill={{
+                    ...preFill,
+                    valor_ofertado: form.watch("valor_ofertaria")
+                      ? parseFloat(form.watch("valor_ofertaria")!.replace(/\D/g, ""))
+                      : undefined,
+                  }}
+                />
               </div>
             )}
           </CardContent>
