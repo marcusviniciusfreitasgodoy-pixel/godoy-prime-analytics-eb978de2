@@ -139,7 +139,7 @@ export function PublicSignatureCanvas({
   };
 
   return (
-    <Card>
+    <Card className="overflow-hidden">
       <CardHeader>
         <CardTitle className="text-lg">{title}</CardTitle>
         {description && <CardDescription>{description}</CardDescription>}
@@ -170,12 +170,12 @@ export function PublicSignatureCanvas({
           )}
         </div>
 
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
           <Button
             type="button"
             variant="outline"
             onClick={clearCanvas}
-            className="flex-1"
+            className="flex-1 min-w-[100px]"
             disabled={isSaving}
           >
             <Eraser className="h-4 w-4 mr-2" />
@@ -185,14 +185,14 @@ export function PublicSignatureCanvas({
             type="button"
             onClick={saveSignature}
             disabled={!hasSignature || isSaving}
-            className="flex-1"
+            className="flex-1 min-w-[100px]"
           >
             {isSaving ? (
               <Loader2 className="h-4 w-4 mr-2 animate-spin" />
             ) : (
               <Check className="h-4 w-4 mr-2" />
             )}
-            {isSaving ? "Salvando..." : "Confirmar Assinatura"}
+            {isSaving ? "Salvando..." : <>Confirmar<span className="hidden sm:inline"> Assinatura</span></>}
           </Button>
         </div>
       </CardContent>

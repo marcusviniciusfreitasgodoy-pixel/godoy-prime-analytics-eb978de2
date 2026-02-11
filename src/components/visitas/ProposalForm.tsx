@@ -132,7 +132,7 @@ export function ProposalForm({ preFill, onSuccess, standalone = false }: Proposa
 
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6 overflow-hidden">
         {/* Identificação do Proponente */}
         <Card>
           <CardHeader>

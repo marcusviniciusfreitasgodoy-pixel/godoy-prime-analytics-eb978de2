@@ -362,7 +362,7 @@ export function FeedbackForm({ fichaVisitaId, preFill, onSuccess }: FeedbackForm
             />
 
             {form.watch("gostaria_fazer_proposta") && (
-              <div className="mt-4 border-t pt-4">
+              <div className="mt-4 border-t pt-4 overflow-hidden">
                 <ProposalForm
                   preFill={{
                     ...preFill,
