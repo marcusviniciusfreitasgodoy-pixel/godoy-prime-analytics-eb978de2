@@ -94,7 +94,7 @@ export async function exportFichaVisitaPdf({ ficha, feedback, customLogoBase64, 
   doc.rect(0, 0, pageWidth, headerH, "F");
 
   if (logoToUse) {
-    try { doc.addImage(logoToUse, "PNG", M, 3, 16, 16); } catch {}
+    try { doc.addImage(logoToUse, "PNG", M, 2, 18, 18); } catch {}
   }
 
   doc.setTextColor(...COLORS.gold);
