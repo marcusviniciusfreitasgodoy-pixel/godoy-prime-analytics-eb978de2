@@ -49,6 +49,7 @@ import DemoLayout from "./pages/DemoLayout";
 import Apresentacao from "./pages/Apresentacao";
 import ConviteAceitar from "./pages/ConviteAceitar";
 import AdminPanel from "./pages/AdminPanel";
+import PipelineCRM from "./pages/PipelineCRM";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -111,6 +112,7 @@ const App = () => (
                               <Route path="/calibrador-avaliacao" element={<ProtectedRoute requireAdminOrGerente={true}><CalibradorAvaliacao /></ProtectedRoute>} />
                               <Route path="/calibrador-vistoria" element={<ProtectedRoute requireAdminOrGerente={true}><CalibradorVistoria /></ProtectedRoute>} />
                               <Route path="/leads" element={<ProtectedRoute requireAdminOrGerente={true}><Leads /></ProtectedRoute>} />
+                              <Route path="/pipeline" element={<ProtectedRoute requireAdminOrGerente={true}><PipelineCRM /></ProtectedRoute>} />
                               <Route path="/usuarios" element={<ProtectedRoute requireAdmin={true}><Usuarios /></ProtectedRoute>} />
                               <Route path="/admin" element={<ProtectedRoute requireAdmin={true}><AdminPanel /></ProtectedRoute>} />
                               <Route path="/onboarding" element={<Onboarding />} />
