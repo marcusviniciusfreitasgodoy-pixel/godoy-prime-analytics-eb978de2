@@ -95,6 +95,50 @@ export type Database = {
           },
         ]
       }
+      atividades_lead: {
+        Row: {
+          created_at: string | null
+          descricao: string | null
+          id: string
+          lead_id: string
+          metadata: Json | null
+          tipo: string
+          titulo: string | null
+          usuario_id: string | null
+          usuario_nome: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          descricao?: string | null
+          id?: string
+          lead_id: string
+          metadata?: Json | null
+          tipo: string
+          titulo?: string | null
+          usuario_id?: string | null
+          usuario_nome?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          descricao?: string | null
+          id?: string
+          lead_id?: string
+          metadata?: Json | null
+          tipo?: string
+          titulo?: string | null
+          usuario_id?: string | null
+          usuario_nome?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "atividades_lead_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       bairros_cache: {
         Row: {
           bairro: string
@@ -541,6 +585,7 @@ export type Database = {
           diferenciais_imovel: string | null
           email: string
           endereco_imovel_analise: string | null
+          estagio_pipeline: string | null
           evaluation_count: number | null
           id: string
           interesse: string | null
@@ -549,10 +594,16 @@ export type Database = {
           objetivo: string | null
           organization_id: string | null
           origem: string | null
+          prazo_compra: string | null
           preferencia_contato: string | null
           quartos: number | null
+          responsavel_id: string | null
+          responsavel_nome: string | null
+          score_qualificacao: number | null
           suites: number | null
+          tags: Json | null
           telefone: string
+          ultimo_contato: string | null
           updated_at: string
           urgencia: string | null
           vagas: number | null
@@ -569,6 +620,7 @@ export type Database = {
           diferenciais_imovel?: string | null
           email: string
           endereco_imovel_analise?: string | null
+          estagio_pipeline?: string | null
           evaluation_count?: number | null
           id?: string
           interesse?: string | null
@@ -577,10 +629,16 @@ export type Database = {
           objetivo?: string | null
           organization_id?: string | null
           origem?: string | null
+          prazo_compra?: string | null
           preferencia_contato?: string | null
           quartos?: number | null
+          responsavel_id?: string | null
+          responsavel_nome?: string | null
+          score_qualificacao?: number | null
           suites?: number | null
+          tags?: Json | null
           telefone: string
+          ultimo_contato?: string | null
           updated_at?: string
           urgencia?: string | null
           vagas?: number | null
@@ -597,6 +655,7 @@ export type Database = {
           diferenciais_imovel?: string | null
           email?: string
           endereco_imovel_analise?: string | null
+          estagio_pipeline?: string | null
           evaluation_count?: number | null
           id?: string
           interesse?: string | null
@@ -605,10 +664,16 @@ export type Database = {
           objetivo?: string | null
           organization_id?: string | null
           origem?: string | null
+          prazo_compra?: string | null
           preferencia_contato?: string | null
           quartos?: number | null
+          responsavel_id?: string | null
+          responsavel_nome?: string | null
+          score_qualificacao?: number | null
           suites?: number | null
+          tags?: Json | null
           telefone?: string
+          ultimo_contato?: string | null
           updated_at?: string
           urgencia?: string | null
           vagas?: number | null
@@ -738,6 +803,47 @@ export type Database = {
           updated_at?: string | null
         }
         Relationships: []
+      }
+      notas_lead: {
+        Row: {
+          autor_id: string | null
+          autor_nome: string | null
+          conteudo: string
+          created_at: string | null
+          id: string
+          lead_id: string
+          privada: boolean | null
+          updated_at: string | null
+        }
+        Insert: {
+          autor_id?: string | null
+          autor_nome?: string | null
+          conteudo: string
+          created_at?: string | null
+          id?: string
+          lead_id: string
+          privada?: boolean | null
+          updated_at?: string | null
+        }
+        Update: {
+          autor_id?: string | null
+          autor_nome?: string | null
+          conteudo?: string
+          created_at?: string | null
+          id?: string
+          lead_id?: string
+          privada?: boolean | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "notas_lead_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       notification_settings: {
         Row: {
@@ -1270,6 +1376,69 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "sofia_knowledge_base_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      tarefas: {
+        Row: {
+          created_at: string | null
+          data_conclusao: string | null
+          data_vencimento: string | null
+          descricao: string | null
+          id: string
+          lead_id: string | null
+          organization_id: string | null
+          prioridade: string | null
+          responsavel_id: string | null
+          responsavel_nome: string | null
+          status: string | null
+          titulo: string
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          data_conclusao?: string | null
+          data_vencimento?: string | null
+          descricao?: string | null
+          id?: string
+          lead_id?: string | null
+          organization_id?: string | null
+          prioridade?: string | null
+          responsavel_id?: string | null
+          responsavel_nome?: string | null
+          status?: string | null
+          titulo: string
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          data_conclusao?: string | null
+          data_vencimento?: string | null
+          descricao?: string | null
+          id?: string
+          lead_id?: string | null
+          organization_id?: string | null
+          prioridade?: string | null
+          responsavel_id?: string | null
+          responsavel_nome?: string | null
+          status?: string | null
+          titulo?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tarefas_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tarefas_organization_id_fkey"
             columns: ["organization_id"]
             isOneToOne: false
             referencedRelation: "organizations"
