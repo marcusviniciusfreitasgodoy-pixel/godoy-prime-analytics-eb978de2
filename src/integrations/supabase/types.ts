@@ -239,6 +239,7 @@ export type Database = {
           efeito_uau: string[] | null
           efeito_uau_detalhe: string | null
           ficha_visita_id: string
+          forma_pagamento: string | null
           gostaria_fazer_proposta: boolean | null
           id: string
           nivel_interesse:
@@ -253,7 +254,9 @@ export type Database = {
           ponto_resistencia: string | null
           pontos_negativos: string | null
           pontos_positivos: string | null
+          sinal_entrada: number | null
           sugestoes_melhoria: string | null
+          valor_financiado: number | null
           valor_ofertaria: number | null
         }
         Insert: {
@@ -265,6 +268,7 @@ export type Database = {
           efeito_uau?: string[] | null
           efeito_uau_detalhe?: string | null
           ficha_visita_id: string
+          forma_pagamento?: string | null
           gostaria_fazer_proposta?: boolean | null
           id?: string
           nivel_interesse?:
@@ -279,7 +283,9 @@ export type Database = {
           ponto_resistencia?: string | null
           pontos_negativos?: string | null
           pontos_positivos?: string | null
+          sinal_entrada?: number | null
           sugestoes_melhoria?: string | null
+          valor_financiado?: number | null
           valor_ofertaria?: number | null
         }
         Update: {
@@ -291,6 +297,7 @@ export type Database = {
           efeito_uau?: string[] | null
           efeito_uau_detalhe?: string | null
           ficha_visita_id?: string
+          forma_pagamento?: string | null
           gostaria_fazer_proposta?: boolean | null
           id?: string
           nivel_interesse?:
@@ -305,7 +312,9 @@ export type Database = {
           ponto_resistencia?: string | null
           pontos_negativos?: string | null
           pontos_positivos?: string | null
+          sinal_entrada?: number | null
           sugestoes_melhoria?: string | null
+          valor_financiado?: number | null
           valor_ofertaria?: number | null
         }
         Relationships: [

@@ -117,10 +117,6 @@ export default function FeedbackVisita() {
           {/* Formulário */}
           <FeedbackForm 
             fichaVisitaId={ficha.id}
-            preFill={{
-              ficha_visita_id: ficha.id,
-              endereco_resumido: ficha.endereco_imovel,
-            }}
             onSuccess={() => setFeedbackEnviado(true)} 
           />
         </div>
