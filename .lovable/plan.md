@@ -1,88 +1,73 @@
 
 
-## Notificacao por Email e WhatsApp ao Corretor Quando Proposta e Enviada
+## Modulo CRM Pipeline Kanban
 
-### Contexto
-A proposta de compra e enviada pelo cliente em uma pagina publica (`/visitas/feedback/:codigo`), sem autenticacao. As edge functions atuais de email e WhatsApp exigem JWT. Sera necessario criar uma nova edge function dedicada que busca os dados do corretor internamente usando `service_role`.
+### Resumo
+Adicionar um board Kanban de pipeline de leads ao projeto, permitindo arrastar leads entre estagios (Novo, Contatado, Qualificado, Visita Agendada, Proposta Enviada, Negociacao, Ganho, Perdido). Inclui modal de detalhes com abas de atividades, tarefas e notas por lead.
 
-### O que muda
-- Ao enviar uma proposta de compra com sucesso, o sistema notifica automaticamente o corretor responsavel pela visita por **email** e **WhatsApp**
-- A notificacao inclui: nome do proponente, imovel, valor ofertado, telefone de contato e link para ver a proposta
-- Funciona sem autenticacao do lado do cliente (pagina publica)
+### Adaptacoes necessarias ao projeto atual
+A documentacao original foi feita para um projeto com `construtoras` e `imobiliarias` separadas. Este projeto usa `organizations` com `get_user_org_id()` e roles (`admin`, `corretor`, `gerente`). Todas as tabelas e RLS serao adaptadas para esse modelo.
+
+A tabela `leads` ja existe no projeto com campos diferentes (sem `estagio_pipeline`, `score_qualificacao`, `tags`, `responsavel_id`, etc). Sera necessario adicionar essas colunas via migracao.
 
 ### Secao Tecnica
 
-**Arquivo 1 (novo): `supabase/functions/notify-proposta/index.ts`**
-- Edge function sem verificacao de JWT (pagina publica)
-- Recebe: `ficha_visita_id`, `nome_proponente`, `telefone_proponente`, `email_proponente`, `endereco_imovel`, `valor_ofertado`, `codigo_proposta`
-- Usa `SUPABASE_SERVICE_ROLE_KEY` para buscar na tabela `fichas_visita` o `corretor_id` e depois em `profiles` o email e telefone do corretor
-- Envia email via Resend com template HTML (estilo Godoy Prime) contendo dados da proposta
-- Envia WhatsApp via Evolution API para o telefone do corretor com mensagem formatada
-- Tambem envia copia para o email da agencia (`contato@godoyprime.com.br`)
-- Inclui rate limiting basico (verifica se nao esta sendo spammado)
+**Migracao SQL - Alterar tabela leads + criar 3 tabelas novas:**
 
-**Arquivo 2 (editar): `supabase/config.toml`**
-- Adicionar `[functions.notify-proposta]` com `verify_jwt = false`
+1. **ALTER TABLE leads** - Adicionar colunas:
+   - `estagio_pipeline VARCHAR DEFAULT 'novo'`
+   - `score_qualificacao INTEGER DEFAULT 0`
+   - `tags JSONB DEFAULT '[]'`
+   - `responsavel_id UUID`
+   - `responsavel_nome VARCHAR`
+   - `ultimo_contato TIMESTAMPTZ`
+   - `prazo_compra VARCHAR`
 
-**Arquivo 3 (editar): `src/components/visitas/ProposalForm.tsx`**
-- Apos `createProposta.mutateAsync` com sucesso (linha 112), chamar `supabase.functions.invoke("notify-proposta")` passando os dados relevantes
-- Chamar de forma "fire-and-forget" (nao bloquear o fluxo se falhar)
-- Usar os dados do form + preFill para montar o payload
+2. **CREATE TABLE atividades_lead** - Timeline de acoes por lead
+   - `id`, `lead_id` (FK leads), `tipo`, `titulo`, `descricao`, `metadata`, `usuario_id`, `usuario_nome`, `created_at`
+   - RLS: org members podem ver/criar atividades de leads da sua org
 
-**Arquivo 4 (editar): `src/pages/FeedbackVisita.tsx`**
-- Passar `nome_corretor` e `ficha.id` no preFill para que o ProposalForm tenha acesso ao ID da ficha para a notificacao
+3. **CREATE TABLE tarefas** - To-dos por lead
+   - `id`, `lead_id` (FK leads nullable), `organization_id` (FK organizations), `titulo`, `descricao`, `responsavel_id`, `responsavel_nome`, `data_vencimento`, `data_conclusao`, `prioridade`, `status`, `created_at`, `updated_at`
+   - RLS: org members podem gerenciar tarefas da sua org
 
-### Template de Email para o Corretor
-- Header: "Nova Proposta de Compra Recebida!"
-- Dados: nome do proponente, telefone, email, endereco do imovel, valor ofertado, condicoes de pagamento
-- CTA: botao para acessar o painel de propostas
-- Footer: padrao Godoy Prime
+4. **CREATE TABLE notas_lead** - Anotacoes por lead
+   - `id`, `lead_id` (FK leads), `conteudo`, `autor_id`, `autor_nome`, `privada`, `created_at`, `updated_at`
+   - RLS: org members podem ver/criar notas (privadas so visíveis pelo autor)
 
-### Template de WhatsApp para o Corretor
-```text
-📋 *Nova Proposta de Compra!*
+**Arquivos novos a criar:**
 
-Voce recebeu uma proposta para o imovel:
+| Arquivo | Descricao |
+|---|---|
+| `src/types/crm.ts` | Tipos, constantes de colunas, helpers de formatacao |
+| `src/components/crm/PipelineKanban.tsx` | Board principal com DnD, filtros, KPIs |
+| `src/components/crm/PipelineColumn.tsx` | Coluna droppable do Kanban |
+| `src/components/crm/LeadCard.tsx` | Card draggable de cada lead |
+| `src/components/crm/LeadDetailModal.tsx` | Modal com tabs (Info, Atividades, Tarefas, Notas) |
+| `src/pages/PipelineCRM.tsx` | Pagina wrapper acessivel via sidebar |
 
-📍 *Imovel:* [endereco]
-💰 *Valor Ofertado:* R$ [valor]
-👤 *Proponente:* [nome]
-📞 *Telefone:* [telefone]
+**Arquivos a editar:**
 
-Acesse o painel para mais detalhes.
+| Arquivo | Mudanca |
+|---|---|
+| `src/App.tsx` | Adicionar rota `/pipeline` dentro das rotas protegidas (requireAdminOrGerente) |
+| `src/components/AppSidebar.tsx` | Adicionar item "Pipeline CRM" no menu de gerente com icone `Kanban` |
 
-_Godoy Prime Analytics_
-```
+**Dependencias npm a instalar:**
+- `@dnd-kit/core` - Drag and drop core
+- `@dnd-kit/sortable` - Sortable containers
+- `@dnd-kit/utilities` - CSS transform helpers
 
-### Fluxo
+**Fluxo de dados:**
+- O PipelineKanban consulta `leads` com `organization_id = get_user_org_id(auth.uid())`
+- Drag-and-drop atualiza `estagio_pipeline` e registra atividade automatica em `atividades_lead`
+- O modal de detalhe carrega atividades, tarefas e notas por `lead_id`
+- Acoes rapidas (WhatsApp, email, telefone) abrem links externos
+- KPIs calculados em tempo real: total, taxa de conversao, valor em negociacao
 
-```text
-Cliente preenche feedback
-  |
-  v
-Marca "Gostaria de fazer proposta"
-  |
-  v
-Preenche ProposalForm completo
-  |
-  v
-Clica "Enviar Proposta"
-  |
-  v
-createProposta.mutateAsync() --> Salva no banco
-  |
-  v
-supabase.functions.invoke("notify-proposta") --> Fire & forget
-  |
-  +---> Busca corretor_id da ficha_visita (service_role)
-  |       |
-  |       v
-  |     Busca email + telefone do corretor em profiles
-  |       |
-  |       +---> Envia email (Resend) ao corretor + agencia
-  |       +---> Envia WhatsApp (Evolution) ao corretor
-  |
-  v
-Tela de sucesso "Proposta Enviada!"
-```
+**RLS simplificada para este projeto:**
+- Todas as novas tabelas usam `organization_id = get_user_org_id(auth.uid())` para SELECT/INSERT
+- Atividades e notas verificam via JOIN com leads que o lead pertence a org do usuario
+- Tarefas tem `organization_id` direto
+- Admins e gerentes podem ver/gerenciar; corretores veem apenas seus proprios leads (via `responsavel_id`)
 
