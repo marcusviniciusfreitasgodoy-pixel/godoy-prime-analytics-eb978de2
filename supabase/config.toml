@@ -71,3 +71,6 @@ verify_jwt = false
 
 [functions.sync-bairros-cache]
 verify_jwt = false
+
+[functions.notify-proposta]
+verify_jwt = false

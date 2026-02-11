@@ -120,6 +120,7 @@ export default function FeedbackVisita() {
             preFill={{
               ficha_visita_id: ficha.id,
               endereco_resumido: ficha.endereco_imovel,
+              organization_id: undefined,
             }}
             onSuccess={() => setFeedbackEnviado(true)} 
           />
