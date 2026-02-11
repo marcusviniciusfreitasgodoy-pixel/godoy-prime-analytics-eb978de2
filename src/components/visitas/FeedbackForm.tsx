@@ -8,13 +8,11 @@ import { Textarea } from "@/components/ui/textarea";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Slider } from "@/components/ui/slider";
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage, FormDescription } from "@/components/ui/form";
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { useFeedbackVisita } from "@/hooks/useFeedbackVisita";
 import { NivelInteresseVisita, PercepcaoValorVisita } from "@/types/visitas";
-import { Loader2, Star, ThumbsUp, ThumbsDown, FileText } from "lucide-react";
-import { ProposalForm } from "./ProposalForm";
-import { PropostaPreFill } from "@/types/proposta";
+import { Loader2, Star, ThumbsUp, ThumbsDown } from "lucide-react";
 
 const feedbackSchema = z.object({
   atende_necessidades: z.boolean().optional(),
@@ -34,13 +32,15 @@ const feedbackSchema = z.object({
   sugestoes_melhoria: z.string().optional(),
   efeito_uau: z.array(z.string()).optional(),
   efeito_uau_detalhe: z.string().optional(),
+  forma_pagamento: z.enum(["a_vista", "parcelamento_direto", "financiamento_bancario"]).optional(),
+  sinal_entrada: z.string().optional(),
+  valor_financiado: z.string().optional(),
 });
 
 type FeedbackFormData = z.infer<typeof feedbackSchema>;
 
 interface FeedbackFormProps {
   fichaVisitaId: string;
-  preFill?: PropostaPreFill;
   onSuccess?: () => void;
 }
 
@@ -57,7 +57,7 @@ const efeitoUauOptions = [
   "Segurança",
 ];
 
-export function FeedbackForm({ fichaVisitaId, preFill, onSuccess }: FeedbackFormProps) {
+export function FeedbackForm({ fichaVisitaId, onSuccess }: FeedbackFormProps) {
   const { createFeedback } = useFeedbackVisita();
   const [selectedEfeitoUau, setSelectedEfeitoUau] = useState<string[]>([]);
 
@@ -92,14 +92,17 @@ export function FeedbackForm({ fichaVisitaId, preFill, onSuccess }: FeedbackForm
       sugestoes_melhoria: data.sugestoes_melhoria || null,
       efeito_uau: selectedEfeitoUau.length > 0 ? selectedEfeitoUau : null,
       efeito_uau_detalhe: data.efeito_uau_detalhe || null,
-    });
+      forma_pagamento: data.forma_pagamento || null,
+      sinal_entrada: data.sinal_entrada ? parseFloat(data.sinal_entrada.replace(/\D/g, "")) : null,
+      valor_financiado: data.valor_financiado ? parseFloat(data.valor_financiado.replace(/\D/g, "")) : null,
+    } as any);
 
     onSuccess?.();
   };
 
   const toggleEfeitoUau = (value: string) => {
-    setSelectedEfeitoUau(prev => 
-      prev.includes(value) 
+    setSelectedEfeitoUau(prev =>
+      prev.includes(value)
         ? prev.filter(v => v !== value)
         : [...prev, value]
     );
@@ -118,10 +121,16 @@ export function FeedbackForm({ fichaVisitaId, preFill, onSuccess }: FeedbackForm
     acima: "Acima do mercado",
   };
 
+  const formaPagamentoLabels = {
+    a_vista: "À Vista",
+    parcelamento_direto: "Parcelamento Direto",
+    financiamento_bancario: "Financiamento Bancário",
+  };
+
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-        {/* Avaliação Geral */}
+        {/* 1. Avaliação Geral */}
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
@@ -138,14 +147,7 @@ export function FeedbackForm({ fichaVisitaId, preFill, onSuccess }: FeedbackForm
                   <FormLabel>Como você avalia o imóvel no geral? (1-5)</FormLabel>
                   <FormControl>
                     <div className="space-y-2">
-                      <Slider
-                        min={1}
-                        max={5}
-                        step={1}
-                        value={[field.value]}
-                        onValueChange={(value) => field.onChange(value[0])}
-                        className="w-full"
-                      />
+                      <Slider min={1} max={5} step={1} value={[field.value]} onValueChange={(v) => field.onChange(v[0])} className="w-full" />
                       <div className="flex justify-between text-sm text-muted-foreground">
                         <span>Ruim</span>
                         <span className="font-medium text-lg">{field.value}</span>
@@ -166,14 +168,7 @@ export function FeedbackForm({ fichaVisitaId, preFill, onSuccess }: FeedbackForm
                   <FormLabel>Qual foi sua conexão emocional com o imóvel? (1-5)</FormLabel>
                   <FormControl>
                     <div className="space-y-2">
-                      <Slider
-                        min={1}
-                        max={5}
-                        step={1}
-                        value={[field.value]}
-                        onValueChange={(value) => field.onChange(value[0])}
-                        className="w-full"
-                      />
+                      <Slider min={1} max={5} step={1} value={[field.value]} onValueChange={(v) => field.onChange(v[0])} className="w-full" />
                       <div className="flex justify-between text-sm text-muted-foreground">
                         <span>Nenhuma</span>
                         <span className="font-medium text-lg">{field.value}</span>
@@ -192,10 +187,7 @@ export function FeedbackForm({ fichaVisitaId, preFill, onSuccess }: FeedbackForm
               render={({ field }) => (
                 <FormItem className="flex flex-row items-start space-x-3 space-y-0">
                   <FormControl>
-                    <Checkbox
-                      checked={field.value}
-                      onCheckedChange={field.onChange}
-                    />
+                    <Checkbox checked={field.value} onCheckedChange={field.onChange} />
                   </FormControl>
                   <div className="space-y-1 leading-none">
                     <FormLabel>O imóvel atende às suas necessidades?</FormLabel>
@@ -206,127 +198,7 @@ export function FeedbackForm({ fichaVisitaId, preFill, onSuccess }: FeedbackForm
           </CardContent>
         </Card>
 
-        {/* Interesse e Proposta */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Interesse e Proposta</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-6">
-            <FormField
-              control={form.control}
-              name="nivel_interesse"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Qual seu nível de interesse no imóvel?</FormLabel>
-                  <FormControl>
-                    <RadioGroup
-                      onValueChange={field.onChange}
-                      defaultValue={field.value}
-                      className="grid grid-cols-2 gap-2"
-                    >
-                      {Object.entries(nivelInteresseLabels).map(([value, label]) => (
-                        <div key={value} className="flex items-center space-x-2">
-                          <RadioGroupItem value={value} id={`interesse-${value}`} />
-                          <label htmlFor={`interesse-${value}`} className="text-sm cursor-pointer">
-                            {label}
-                          </label>
-                        </div>
-                      ))}
-                    </RadioGroup>
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <FormField
-              control={form.control}
-              name="percepcao_valor"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Como você percebe o valor do imóvel?</FormLabel>
-                  <FormControl>
-                    <RadioGroup
-                      onValueChange={field.onChange}
-                      defaultValue={field.value}
-                      className="flex flex-col space-y-2"
-                    >
-                      {Object.entries(percepcaoValorLabels).map(([value, label]) => (
-                        <div key={value} className="flex items-center space-x-2">
-                          <RadioGroupItem value={value} id={`valor-${value}`} />
-                          <label htmlFor={`valor-${value}`} className="text-sm cursor-pointer">
-                            {label}
-                          </label>
-                        </div>
-                      ))}
-                    </RadioGroup>
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <FormField
-              control={form.control}
-              name="gostaria_fazer_proposta"
-              render={({ field }) => (
-                <FormItem className="flex flex-row items-start space-x-3 space-y-0">
-                  <FormControl>
-                    <Checkbox
-                      checked={field.value}
-                      onCheckedChange={field.onChange}
-                    />
-                  </FormControl>
-                  <div className="space-y-1 leading-none">
-                    <FormLabel>Gostaria de fazer uma proposta?</FormLabel>
-                  </div>
-                </FormItem>
-              )}
-            />
-
-            <FormField
-              control={form.control}
-              name="valor_ofertaria"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Se fosse fazer uma proposta, qual valor ofertaria?</FormLabel>
-                  <FormControl>
-                    <CurrencyInput 
-                      value={field.value || ''}
-                      onChange={field.onChange}
-                      placeholder="R$ 0"
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-          </CardContent>
-        </Card>
-
-        {/* Proposta condicional */}
-        {form.watch("gostaria_fazer_proposta") && (
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <FileText className="h-5 w-5" />
-                Faça sua Proposta
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <ProposalForm
-                preFill={{
-                  ...preFill,
-                  valor_ofertado: form.watch("valor_ofertaria")
-                    ? parseFloat(form.watch("valor_ofertaria")!.replace(/\D/g, ""))
-                    : undefined,
-                }}
-              />
-            </CardContent>
-          </Card>
-        )}
-
-        {/* Efeito UAU */}
+        {/* 2. Efeito UAU */}
         <Card>
           <CardHeader>
             <CardTitle>Efeito UAU ✨</CardTitle>
@@ -354,11 +226,7 @@ export function FeedbackForm({ fichaVisitaId, preFill, onSuccess }: FeedbackForm
                 <FormItem>
                   <FormLabel>Descreva o que mais te impressionou</FormLabel>
                   <FormControl>
-                    <Textarea 
-                      placeholder="Conte-nos o que mais chamou sua atenção..."
-                      rows={3}
-                      {...field} 
-                    />
+                    <Textarea placeholder="Conte-nos o que mais chamou sua atenção..." rows={3} {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -367,7 +235,7 @@ export function FeedbackForm({ fichaVisitaId, preFill, onSuccess }: FeedbackForm
           </CardContent>
         </Card>
 
-        {/* Pontos Positivos e Negativos */}
+        {/* 3. Pontos de Atenção */}
         <Card>
           <CardHeader>
             <CardTitle>Pontos de Atenção</CardTitle>
@@ -414,11 +282,7 @@ export function FeedbackForm({ fichaVisitaId, preFill, onSuccess }: FeedbackForm
                 <FormItem>
                   <FormLabel>Qual seu principal ponto de resistência?</FormLabel>
                   <FormControl>
-                    <Textarea 
-                      placeholder="O que poderia impedi-lo de fechar negócio?"
-                      rows={2} 
-                      {...field} 
-                    />
+                    <Textarea placeholder="O que poderia impedi-lo de fechar negócio?" rows={2} {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -432,11 +296,7 @@ export function FeedbackForm({ fichaVisitaId, preFill, onSuccess }: FeedbackForm
                 <FormItem>
                   <FormLabel>Sugestões de melhoria</FormLabel>
                   <FormControl>
-                    <Textarea 
-                      placeholder="O que você mudaria no imóvel?"
-                      rows={2} 
-                      {...field} 
-                    />
+                    <Textarea placeholder="O que você mudaria no imóvel?" rows={2} {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -445,8 +305,143 @@ export function FeedbackForm({ fichaVisitaId, preFill, onSuccess }: FeedbackForm
           </CardContent>
         </Card>
 
-        <Button 
-          type="submit" 
+        {/* 4. Interesse e Proposta (movido para o final) */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Interesse e Proposta</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-6">
+            <FormField
+              control={form.control}
+              name="nivel_interesse"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Qual seu nível de interesse no imóvel?</FormLabel>
+                  <FormControl>
+                    <RadioGroup onValueChange={field.onChange} defaultValue={field.value} className="grid grid-cols-2 gap-2">
+                      {Object.entries(nivelInteresseLabels).map(([value, label]) => (
+                        <div key={value} className="flex items-center space-x-2">
+                          <RadioGroupItem value={value} id={`interesse-${value}`} />
+                          <label htmlFor={`interesse-${value}`} className="text-sm cursor-pointer">{label}</label>
+                        </div>
+                      ))}
+                    </RadioGroup>
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="percepcao_valor"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Como você percebe o valor do imóvel?</FormLabel>
+                  <FormControl>
+                    <RadioGroup onValueChange={field.onChange} defaultValue={field.value} className="flex flex-col space-y-2">
+                      {Object.entries(percepcaoValorLabels).map(([value, label]) => (
+                        <div key={value} className="flex items-center space-x-2">
+                          <RadioGroupItem value={value} id={`valor-${value}`} />
+                          <label htmlFor={`valor-${value}`} className="text-sm cursor-pointer">{label}</label>
+                        </div>
+                      ))}
+                    </RadioGroup>
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="gostaria_fazer_proposta"
+              render={({ field }) => (
+                <FormItem className="flex flex-row items-start space-x-3 space-y-0">
+                  <FormControl>
+                    <Checkbox checked={field.value} onCheckedChange={field.onChange} />
+                  </FormControl>
+                  <div className="space-y-1 leading-none">
+                    <FormLabel>Gostaria de fazer uma proposta?</FormLabel>
+                  </div>
+                </FormItem>
+              )}
+            />
+
+            {/* Campos de proposta simplificada (condicionais) */}
+            {form.watch("gostaria_fazer_proposta") && (
+              <div className="space-y-4 rounded-lg border p-4 bg-muted/30">
+                <FormField
+                  control={form.control}
+                  name="valor_ofertaria"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Valor da Proposta</FormLabel>
+                      <FormControl>
+                        <CurrencyInput value={field.value || ''} onChange={field.onChange} placeholder="R$ 0" />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="sinal_entrada"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Sinal / Entrada</FormLabel>
+                      <FormControl>
+                        <CurrencyInput value={field.value || ''} onChange={field.onChange} placeholder="R$ 0" />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="forma_pagamento"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Forma de Pagamento</FormLabel>
+                      <FormControl>
+                        <RadioGroup onValueChange={field.onChange} value={field.value} className="flex flex-col space-y-2">
+                          {Object.entries(formaPagamentoLabels).map(([value, label]) => (
+                            <div key={value} className="flex items-center space-x-2">
+                              <RadioGroupItem value={value} id={`pagamento-${value}`} />
+                              <label htmlFor={`pagamento-${value}`} className="text-sm cursor-pointer">{label}</label>
+                            </div>
+                          ))}
+                        </RadioGroup>
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                {form.watch("forma_pagamento") === "financiamento_bancario" && (
+                  <FormField
+                    control={form.control}
+                    name="valor_financiado"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Valor Financiado</FormLabel>
+                        <FormControl>
+                          <CurrencyInput value={field.value || ''} onChange={field.onChange} placeholder="R$ 0" />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                )}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        <Button
+          type="submit"
           className="w-full"
           disabled={createFeedback.isPending}
           size="lg"
