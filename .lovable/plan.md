@@ -1,29 +1,23 @@
 
 
-## Remover Proposta Simplificada e Manter Apenas Proposta Completa
+## Corrigir Responsividade da Proposta em Mobile
 
-### O que muda
+### Problema
+No mobile, o canvas de assinatura e o botao "Confirmar Assinatura" estao sendo cortados/saindo da tela. Isso acontece porque o container do formulario de proposta nao tem restricao de largura adequada e os botoes dentro do canvas de assinatura transbordam.
 
-- Ao marcar "Gostaria de fazer uma proposta?", o formulario de **Proposta Completa** aparece diretamente, sem seletor de modelo
-- Remove o `ProposalModelSelector` e os campos inline da proposta simplificada
-- Remove o estado `modeloProposta` que nao sera mais necessario
-- Melhora a responsividade do `ProposalForm` (grids adaptativos, espacamento mobile)
+### Correcoes
 
-### Secao Tecnica
+**Arquivo 1: `src/components/visitas/ProposalForm.tsx`**
+- Adicionar `overflow-hidden` no container principal do formulario para evitar transbordamento
+- Garantir que o grid de CNH + Assinatura use `grid-cols-1` em mobile (ja usa, mas confirmar que nao ha conflito)
 
-**Arquivo 1: `src/components/visitas/FeedbackForm.tsx`**
+**Arquivo 2: `src/components/visitas/PublicSignatureCanvas.tsx`**
+- Adicionar `overflow-hidden` no Card raiz do componente
+- Nos botoes "Limpar" e "Confirmar Assinatura": trocar de `flex-1` para layout responsivo que nao transborde
+- Usar `flex-wrap` no container dos botoes para que quebrem linha se necessario em telas muito estreitas
+- Reduzir texto do botao em mobile: "Confirmar" em vez de "Confirmar Assinatura" (usando classe `hidden sm:inline` no texto extra)
+- Garantir que o canvas container tenha `max-w-full` e `overflow-hidden`
 
-- Remover imports de `ProposalModelSelector` e estado `modeloProposta`
-- Substituir todo o bloco condicional (linhas 376-473) por renderizacao direta do `ProposalForm` quando `gostaria_fazer_proposta` estiver marcado — sem seletor, sem campos simplificados
-- Remover campos do schema que eram exclusivos da simplificada (`forma_pagamento`, `sinal_entrada`, `valor_financiado`, `valor_ofertaria`) ja que esses dados serao capturados pelo ProposalForm
-- Remover labels de `formaPagamentoLabels`
+**Arquivo 3: `src/components/visitas/FeedbackForm.tsx`**
+- Adicionar `overflow-hidden` no container que envolve o ProposalForm para evitar que o formulario de proposta extrapole a largura da tela
 
-**Arquivo 2: `src/components/visitas/ProposalForm.tsx`**
-
-- Remover o seletor de modelo interno (linhas 132-143) — ir direto para o formulario completo
-- Forcar `modelo = "completo"` sempre (remover estado e condicional `isCompleto`)
-- Melhorar responsividade:
-  - Campos de identificacao: `grid-cols-1 sm:grid-cols-2` (ja esta ok)
-  - Assinatura e CNH: largura total em mobile, lado a lado em desktop
-  - Botao de envio: `w-full` em mobile
-  - Espacamento vertical adequado para telas pequenas
