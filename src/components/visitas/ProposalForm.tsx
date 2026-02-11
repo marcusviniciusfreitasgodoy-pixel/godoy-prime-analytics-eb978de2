@@ -14,6 +14,7 @@ import { CNHUpload } from "./CNHUpload";
 import { PublicSignatureCanvas } from "./PublicSignatureCanvas";
 import { usePropostas } from "@/hooks/usePropostas";
 import { PropostaPreFill } from "@/types/proposta";
+import { supabase } from "@/integrations/supabase/client";
 import { Loader2, Send, AlertTriangle } from "lucide-react";
 
 const proposalSchema = z.object({
@@ -110,6 +111,25 @@ export function ProposalForm({ preFill, onSuccess, standalone = false }: Proposa
       assinatura_proponente: assinatura,
       cnh_url: cnhUrl,
     });
+
+    // Fire-and-forget: notify corretor via email + WhatsApp
+    if (preFill?.ficha_visita_id) {
+      supabase.functions.invoke("notify-proposta", {
+        body: {
+          ficha_visita_id: preFill.ficha_visita_id,
+          nome_proponente: data.nome_completo,
+          telefone_proponente: data.telefone,
+          email_proponente: data.email || undefined,
+          endereco_imovel: data.endereco_resumido,
+          valor_ofertado: valorNum,
+          codigo_proposta: codigo,
+          sinal_entrada: data.sinal_entrada || undefined,
+          parcelas: data.parcelas || undefined,
+          financiamento: data.financiamento || undefined,
+          outras_condicoes: data.outras_condicoes || undefined,
+        },
+      }).catch((err) => console.warn("Notificação proposta (não-bloqueante):", err));
+    }
 
     setSubmitted(true);
     onSuccess?.();
