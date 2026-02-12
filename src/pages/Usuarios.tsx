@@ -11,7 +11,8 @@ import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, Search, Users, Shield, UserCog, Activity, FileText, BarChart3, UserPlus, Mail, Clock } from "lucide-react";
+import { Loader2, Search, Users, Shield, UserCog, Activity, FileText, BarChart3, UserPlus, Mail, Clock, Pencil } from "lucide-react";
+import { EditUserModal } from "@/components/usuarios/EditUserModal";
 import { format, formatDistanceToNow } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { useUserActivityStats } from "@/hooks/useUserActivityStats";
@@ -25,6 +26,7 @@ interface UserWithRole {
   email: string;
   full_name: string;
   phone: string | null;
+  creci: string | null;
   created_at: string;
   role: AppRole;
 }
@@ -46,6 +48,8 @@ export default function Usuarios() {
   const [inviteEmail, setInviteEmail] = useState("");
   const [inviteRole, setInviteRole] = useState<AppRole>("corretor");
   const [inviteOpen, setInviteOpen] = useState(false);
+  const [editingUser, setEditingUser] = useState<UserWithRole | null>(null);
+  const [editOpen, setEditOpen] = useState(false);
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const { organization, limits } = useOrganization();
@@ -56,7 +60,7 @@ export default function Usuarios() {
     queryFn: async () => {
       const { data: profiles, error: profilesError } = await supabase
         .from("profiles")
-        .select("id, full_name, phone, created_at, email")
+        .select("id, full_name, phone, creci, created_at, email")
         .order("created_at", { ascending: false });
       if (profilesError) throw profilesError;
 
@@ -70,6 +74,7 @@ export default function Usuarios() {
           email: profile.email || "",
           full_name: profile.full_name,
           phone: profile.phone,
+          creci: profile.creci,
           created_at: profile.created_at || "",
           role: (userRole?.role as AppRole) || "corretor",
         };
@@ -112,11 +117,26 @@ export default function Usuarios() {
     },
   });
 
+  const updateProfileMutation = useMutation({
+    mutationFn: async ({ id, full_name, phone, email, creci }: { id: string; full_name: string; phone: string; email: string; creci: string }) => {
+      const { error } = await supabase.from("profiles").update({ full_name, phone, email, creci }).eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["admin-users"] });
+      toast({ title: "Perfil atualizado", description: "Os dados do corretor foram salvos com sucesso." });
+      setEditOpen(false);
+      setEditingUser(null);
+    },
+    onError: () => {
+      toast({ title: "Erro ao salvar", description: "Não foi possível atualizar o perfil.", variant: "destructive" });
+    },
+  });
+
   const sendInviteMutation = useMutation({
     mutationFn: async ({ email, role }: { email: string; role: AppRole }) => {
       if (!organization || !user) throw new Error("Organização não encontrada");
 
-      // Check limits
       if (limits && !limits.users.allowed) {
         throw new Error(`Limite de ${limits.users.max} usuários atingido para o plano ${organization.plan}`);
       }
@@ -271,25 +291,31 @@ export default function Usuarios() {
               ) : filteredUsers && filteredUsers.length > 0 ? (
                 <div className="overflow-x-auto">
                   <Table>
-                    <TableHeader><TableRow><TableHead>Nome</TableHead><TableHead className="hidden sm:table-cell">Email</TableHead><TableHead className="hidden md:table-cell">Cadastro</TableHead><TableHead>Role</TableHead></TableRow></TableHeader>
-                    <TableBody>
-                      {filteredUsers.map((u) => (
-                        <TableRow key={u.id}>
-                          <TableCell><div><p className="font-medium">{u.full_name || "Sem nome"}</p><p className="text-xs text-muted-foreground sm:hidden truncate max-w-[150px]">{u.email}</p></div></TableCell>
-                          <TableCell className="hidden sm:table-cell text-sm text-muted-foreground truncate max-w-[200px]">{u.email || u.id.slice(0, 8)}</TableCell>
-                          <TableCell className="hidden md:table-cell">{u.created_at ? format(new Date(u.created_at), "dd/MM/yyyy", { locale: ptBR }) : "-"}</TableCell>
-                          <TableCell>
-                            <Select value={u.role} onValueChange={(value: AppRole) => updateRoleMutation.mutate({ userId: u.id, newRole: value })} disabled={updateRoleMutation.isPending}>
-                              <SelectTrigger className="w-[140px]"><SelectValue><Badge variant="outline" className={ROLE_COLORS[u.role]}>{ROLE_LABELS[u.role]}</Badge></SelectValue></SelectTrigger>
-                              <SelectContent>
-                                <SelectItem value="corretor"><Badge variant="outline" className={ROLE_COLORS.corretor}>Corretor</Badge></SelectItem>
-                                <SelectItem value="gerente"><Badge variant="outline" className={ROLE_COLORS.gerente}>Gerente</Badge></SelectItem>
-                                <SelectItem value="admin"><Badge variant="outline" className={ROLE_COLORS.admin}>Administrador</Badge></SelectItem>
-                              </SelectContent>
-                            </Select>
-                          </TableCell>
-                        </TableRow>
-                      ))}
+                    <TableHeader><TableRow><TableHead>Nome</TableHead><TableHead className="hidden sm:table-cell">Email</TableHead><TableHead className="hidden md:table-cell">WhatsApp</TableHead><TableHead className="hidden lg:table-cell">CRECI</TableHead><TableHead>Role</TableHead><TableHead className="w-[60px]">Ações</TableHead></TableRow></TableHeader>
+                     <TableBody>
+                       {filteredUsers.map((u) => (
+                         <TableRow key={u.id}>
+                           <TableCell><div><p className="font-medium">{u.full_name || "Sem nome"}</p><p className="text-xs text-muted-foreground sm:hidden truncate max-w-[150px]">{u.email}</p></div></TableCell>
+                           <TableCell className="hidden sm:table-cell text-sm text-muted-foreground truncate max-w-[200px]">{u.email || u.id.slice(0, 8)}</TableCell>
+                           <TableCell className="hidden md:table-cell text-sm text-muted-foreground">{u.phone || "—"}</TableCell>
+                           <TableCell className="hidden lg:table-cell text-sm text-muted-foreground">{u.creci || "—"}</TableCell>
+                           <TableCell>
+                             <Select value={u.role} onValueChange={(value: AppRole) => updateRoleMutation.mutate({ userId: u.id, newRole: value })} disabled={updateRoleMutation.isPending}>
+                               <SelectTrigger className="w-[140px]"><SelectValue><Badge variant="outline" className={ROLE_COLORS[u.role]}>{ROLE_LABELS[u.role]}</Badge></SelectValue></SelectTrigger>
+                               <SelectContent>
+                                 <SelectItem value="corretor"><Badge variant="outline" className={ROLE_COLORS.corretor}>Corretor</Badge></SelectItem>
+                                 <SelectItem value="gerente"><Badge variant="outline" className={ROLE_COLORS.gerente}>Gerente</Badge></SelectItem>
+                                 <SelectItem value="admin"><Badge variant="outline" className={ROLE_COLORS.admin}>Administrador</Badge></SelectItem>
+                               </SelectContent>
+                             </Select>
+                           </TableCell>
+                           <TableCell>
+                             <Button variant="ghost" size="icon" onClick={() => { setEditingUser(u); setEditOpen(true); }}>
+                               <Pencil className="h-4 w-4" />
+                             </Button>
+                           </TableCell>
+                         </TableRow>
+                       ))}
                     </TableBody>
                   </Table>
                 </div>
@@ -390,6 +416,14 @@ export default function Usuarios() {
           </Card>
         </TabsContent>
       </Tabs>
+
+      <EditUserModal
+        user={editingUser}
+        open={editOpen}
+        onOpenChange={(open) => { setEditOpen(open); if (!open) setEditingUser(null); }}
+        onSave={(data) => updateProfileMutation.mutate(data)}
+        isPending={updateProfileMutation.isPending}
+      />
     </div>
   );
 }
