@@ -1,50 +1,48 @@
 
 
-## Cadastro Completo de Corretores
+## Notificacoes em Tempo Real no Pipeline CRM
 
 ### Resumo
-Expandir a pagina de Usuarios para incluir gestao completa de corretores com todos os dados profissionais (Nome Completo, WhatsApp, E-mail, CRECI). O sistema ja possui a tabela `profiles` com todos os campos necessarios -- a mudanca e puramente de interface.
+Adicionar um listener Realtime na tabela `leads` para que, quando qualquer usuario mover um lead de estagio, todos os corretores/admins conectados recebam um toast de notificacao e o board atualize automaticamente -- sem precisar dar refresh.
 
 ### O que muda para o usuario
-- Na pagina **Usuarios**, a tabela passara a exibir colunas de **WhatsApp** e **CRECI** alem de Nome, Email e Role
-- Um botao **"Editar"** em cada linha abre um modal para editar os dados completos do corretor: Nome Completo, WhatsApp, E-mail, CRECI
-- O convite de novo membro continua funcionando como hoje (por email + role), e apos o corretor aceitar, o admin pode completar os dados pelo modal de edicao
-- Corretor autonomo (pessoa fisica) continua editando seu proprio perfil em Configuracoes
+- Ao mover um lead (drag-and-drop ou select no modal), todos os outros usuarios logados veem um toast tipo: "Lead **Joao Silva** movido para **Qualificado** por Marcus"
+- O board Kanban atualiza automaticamente para todos os usuarios conectados
+- O proprio usuario que fez a acao nao recebe notificacao duplicada (ja ve o toast existente)
 
 ### Secao Tecnica
 
-**Arquivo 1 (editar): `src/pages/Usuarios.tsx`**
+**Passo 1: Migracao SQL -- habilitar Realtime na tabela `leads`**
+```sql
+ALTER PUBLICATION supabase_realtime ADD TABLE public.leads;
+```
 
-1. Adicionar colunas **WhatsApp** e **CRECI** na tabela de usuarios (ja disponiveis no select de `profiles`)
-2. Adicionar coluna de acoes com botao "Editar" (icone de lapis)
-3. Adicionar estado para modal de edicao (`editingUser`, `editOpen`)
-4. Criar modal `Dialog` com formulario contendo:
-   - Nome Completo (input text)
-   - WhatsApp (input tel)
-   - E-mail (input email)
-   - CRECI (input text)
-5. Criar mutation `updateProfileMutation` que faz `supabase.from('profiles').update({...}).eq('id', userId)`
-6. Atualizar a query existente para incluir `creci` no select (ja retorna `phone` e `email`)
+**Passo 2 (novo): `src/components/crm/PipelineRealtimeListener.tsx`**
+- Componente invisivel (retorna `null`), seguindo o padrao existente de `FeedbackRealtimeListener.tsx`
+- Escuta `postgres_changes` com `event: 'UPDATE'` na tabela `leads`, filtrando mudancas no campo `estagio_pipeline`
+- Quando detecta mudanca:
+  - Busca a atividade mais recente do tipo `status_alterado` para esse lead (para obter o nome do usuario que moveu)
+  - Exibe toast com nome do lead, novo estagio e autor da mudanca
+  - Invalida a query `pipeline-leads` para atualizar o board
+  - Suprime notificacao se o `usuario_id` da atividade === `auth.uid()` (evita duplicata)
 
-**Nenhuma migracao de banco necessaria** -- a tabela `profiles` ja possui os campos `full_name`, `phone`, `email`, `creci`.
+**Passo 3 (editar): `src/components/crm/PipelineKanban.tsx`**
+- Importar e renderizar `<PipelineRealtimeListener />` dentro do componente, acima do board
 
 ### Fluxo
 
 ```text
-Admin acessa /usuarios
+Usuario A move lead para "Qualificado"
   |
   v
-Tabela exibe: Nome | Email | WhatsApp | CRECI | Role | Acoes
+UPDATE leads SET estagio_pipeline = 'qualificado' (ja existente)
   |
   v
-Clica "Editar" em um corretor
+Supabase Realtime dispara evento UPDATE para todos os subscribers
   |
   v
-Modal abre com campos preenchidos
+PipelineRealtimeListener recebe o evento
   |
-  v
-Salva -> UPDATE profiles SET full_name, phone, email, creci
-  |
-  v
-Tabela atualiza automaticamente
+  +---> Se usuario_id != meu id: exibe toast "Lead X movido para Y por Z"
+  +---> Invalida query 'pipeline-leads' -> board atualiza
 ```
