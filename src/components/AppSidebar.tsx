@@ -1,4 +1,4 @@
-import { Home, ClipboardCheck, ClipboardList, FileText, MapPin, Users, UserCog, Search, Calculator, Settings, History, Brain, CalendarCheck, Cog, BookOpen, Rocket, Shield, Kanban } from "lucide-react";
+import { Home, ClipboardCheck, ClipboardList, FileText, MapPin, Users, UserCog, Search, Calculator, Settings, History, Brain, CalendarCheck, Cog, BookOpen, Rocket, Shield, Kanban, MessageSquare } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import {
   Sidebar,
@@ -34,6 +34,7 @@ const baseItems = [
 const gerenteItems = [
   { title: "Calibrador Avaliação", url: "/calibrador-avaliacao", icon: Settings, tourId: "nav-calibrador" },
   { title: "Calibrador Vistoria", url: "/calibrador-vistoria", icon: ClipboardList, tourId: "nav-calibrador-vistoria" },
+  { title: "Calibrador Feedback", url: "/calibrador-feedback-corretor", icon: MessageSquare, tourId: "nav-calibrador-feedback" },
   { title: "Pipeline CRM", url: "/pipeline", icon: Kanban, tourId: "nav-pipeline" },
   { title: "Leads", url: "/leads", icon: Users, tourId: "nav-leads" },
 ];

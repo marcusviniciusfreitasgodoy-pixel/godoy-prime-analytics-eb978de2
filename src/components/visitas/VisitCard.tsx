@@ -1,11 +1,13 @@
+import { useState } from "react";
 import { FichaVisita, AgendamentoVisita } from "@/types/visitas";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { VisitStatusBadge } from "./VisitStatusBadge";
+import { BrokerFeedbackModal } from "./BrokerFeedbackModal";
 import { format, differenceInCalendarDays, differenceInHours } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { MapPin, User, Phone, Calendar, Eye, FileText, XCircle, FilePlus, Mail, Clock } from "lucide-react";
+import { MapPin, User, Phone, Calendar, Eye, FileText, XCircle, FilePlus, Mail, Clock, MessageSquare } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -21,6 +23,7 @@ interface VisitCardProps {
 export function VisitCard({ ficha, agendamento, type, onCreateFicha }: VisitCardProps) {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const [brokerFeedbackOpen, setBrokerFeedbackOpen] = useState(false);
 
   const handleCancelAgendamento = async (id: string, agendamentoData?: AgendamentoVisita) => {
     try {
@@ -100,6 +103,16 @@ export function VisitCard({ ficha, agendamento, type, onCreateFicha }: VisitCard
               <Eye className="h-4 w-4 mr-1" />
               Ver Detalhes
             </Button>
+            {ficha.status === 'realizada' && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setBrokerFeedbackOpen(true)}
+                title="Feedback do Corretor"
+              >
+                <MessageSquare className="h-4 w-4" />
+              </Button>
+            )}
             <Button
               variant="ghost"
               size="sm"
@@ -108,6 +121,13 @@ export function VisitCard({ ficha, agendamento, type, onCreateFicha }: VisitCard
               <FileText className="h-4 w-4" />
             </Button>
           </div>
+
+          <BrokerFeedbackModal
+            open={brokerFeedbackOpen}
+            onOpenChange={setBrokerFeedbackOpen}
+            fichaVisitaId={ficha.id}
+            fichaLabel={`${ficha.nome_visitante} — ${ficha.endereco_imovel}`}
+          />
         </CardContent>
       </Card>
     );

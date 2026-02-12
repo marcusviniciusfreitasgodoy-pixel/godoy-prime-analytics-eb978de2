@@ -273,6 +273,151 @@ export type Database = {
           },
         ]
       }
+      feedback_corretor_config_fields: {
+        Row: {
+          created_at: string
+          display_order: number
+          field_id: string
+          field_type: string
+          id: string
+          is_active: boolean
+          is_required: boolean
+          label: string
+          options: Json | null
+          organization_id: string | null
+          section_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          display_order?: number
+          field_id: string
+          field_type?: string
+          id?: string
+          is_active?: boolean
+          is_required?: boolean
+          label: string
+          options?: Json | null
+          organization_id?: string | null
+          section_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          display_order?: number
+          field_id?: string
+          field_type?: string
+          id?: string
+          is_active?: boolean
+          is_required?: boolean
+          label?: string
+          options?: Json | null
+          organization_id?: string | null
+          section_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "feedback_corretor_config_fields_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      feedback_corretor_config_sections: {
+        Row: {
+          created_at: string
+          description: string | null
+          display_order: number
+          id: string
+          is_active: boolean
+          organization_id: string | null
+          section_id: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          display_order?: number
+          id?: string
+          is_active?: boolean
+          organization_id?: string | null
+          section_id: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          display_order?: number
+          id?: string
+          is_active?: boolean
+          organization_id?: string | null
+          section_id?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "feedback_corretor_config_sections_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      feedbacks_corretor: {
+        Row: {
+          corretor_id: string
+          created_at: string
+          ficha_visita_id: string
+          id: string
+          notas_gerais: string | null
+          organization_id: string | null
+          proximos_passos: string | null
+          respostas: Json
+        }
+        Insert: {
+          corretor_id: string
+          created_at?: string
+          ficha_visita_id: string
+          id?: string
+          notas_gerais?: string | null
+          organization_id?: string | null
+          proximos_passos?: string | null
+          respostas?: Json
+        }
+        Update: {
+          corretor_id?: string
+          created_at?: string
+          ficha_visita_id?: string
+          id?: string
+          notas_gerais?: string | null
+          organization_id?: string | null
+          proximos_passos?: string | null
+          respostas?: Json
+        }
+        Relationships: [
+          {
+            foreignKeyName: "feedbacks_corretor_ficha_visita_id_fkey"
+            columns: ["ficha_visita_id"]
+            isOneToOne: false
+            referencedRelation: "fichas_visita"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "feedbacks_corretor_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       feedbacks_visita: {
         Row: {
           atende_necessidades: boolean | null
