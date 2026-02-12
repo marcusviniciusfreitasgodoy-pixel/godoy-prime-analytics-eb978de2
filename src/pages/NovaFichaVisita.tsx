@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { Helmet } from "react-helmet-async";
 import { useNavigate } from "react-router-dom";
 import { useForm, useFieldArray } from "react-hook-form";
@@ -15,6 +16,8 @@ import { useCorretores } from "@/hooks/useCorretores";
 import { ArrowLeft, Save, Loader2, Plus, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { Separator } from "@/components/ui/separator";
+import { useFormConfig } from "@/hooks/useFormConfig";
+import { DynamicFieldRenderer } from "@/components/forms/DynamicFieldRenderer";
 
 const acompanhanteSchema = z.object({
   nome: z.string().trim().min(1, "Nome é obrigatório"),
@@ -47,6 +50,10 @@ export default function NovaFichaVisita() {
   const navigate = useNavigate();
   const { createFicha } = useVisitas();
   const { corretores, isLoading: loadingCorretores } = useCorretores();
+  const [customFieldValues, setCustomFieldValues] = useState<Record<string, any>>({});
+  const { activeConfig } = useFormConfig("ficha_visita");
+
+  const customFields = activeConfig?.fields?.filter(f => !f.is_locked) || [];
 
   const form = useForm<FormData>({
     resolver: zodResolver(formSchema),
@@ -107,7 +114,8 @@ export default function NovaFichaVisita() {
         status: "agendada",
         notas: data.notas || null,
         aceita_ofertas_similares: data.aceita_ofertas_similares,
-      });
+        ...(Object.keys(customFieldValues).length > 0 ? { campos_customizados: customFieldValues } : {}),
+      } as any);
 
       navigate("/visitas", { state: { tab: "fichas" } });
     } catch (error) {
@@ -333,6 +341,24 @@ export default function NovaFichaVisita() {
                     </div>
                   </FormItem>
                 )} />
+
+                {/* Campos Customizados */}
+                {customFields.length > 0 && (
+                  <>
+                    <Separator />
+                    <h3 className="text-lg font-semibold">Campos Adicionais</h3>
+                    <div className="space-y-4">
+                      {customFields.map((field) => (
+                        <DynamicFieldRenderer
+                          key={field.id}
+                          field={field}
+                          value={customFieldValues[field.field_id]}
+                          onChange={(v) => setCustomFieldValues(prev => ({ ...prev, [field.field_id]: v }))}
+                        />
+                      ))}
+                    </div>
+                  </>
+                )}
 
                 <div className="flex justify-end gap-3 pt-4">
                   <Button type="button" variant="outline" onClick={() => navigate("/visitas")}>Cancelar</Button>

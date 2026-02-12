@@ -15,6 +15,9 @@ import { NivelInteresseVisita, PercepcaoValorVisita } from "@/types/visitas";
 import { Loader2, Star, ThumbsUp, ThumbsDown, FileText } from "lucide-react";
 import { ProposalForm } from "./ProposalForm";
 import { PropostaPreFill } from "@/types/proposta";
+import { useFormConfig } from "@/hooks/useFormConfig";
+import { DynamicFieldRenderer } from "@/components/forms/DynamicFieldRenderer";
+import { Skeleton } from "@/components/ui/skeleton";
 
 const feedbackSchema = z.object({
   atende_necessidades: z.boolean().optional(),
@@ -60,7 +63,11 @@ const efeitoUauOptions = [
 export function FeedbackForm({ fichaVisitaId, preFill, onSuccess }: FeedbackFormProps) {
   const { createFeedback } = useFeedbackVisita();
   const [selectedEfeitoUau, setSelectedEfeitoUau] = useState<string[]>([]);
-  
+  const [customFieldValues, setCustomFieldValues] = useState<Record<string, any>>({});
+  const { activeConfig, activeConfigLoading } = useFormConfig("feedback_cliente");
+
+  const customFields = activeConfig?.fields?.filter(f => !f.is_locked) || [];
+  const customSections = activeConfig?.sections || [];
 
   const form = useForm<FeedbackFormData>({
     resolver: zodResolver(feedbackSchema),
@@ -93,6 +100,7 @@ export function FeedbackForm({ fichaVisitaId, preFill, onSuccess }: FeedbackForm
       sugestoes_melhoria: data.sugestoes_melhoria || null,
       efeito_uau: selectedEfeitoUau.length > 0 ? selectedEfeitoUau : null,
       efeito_uau_detalhe: data.efeito_uau_detalhe || null,
+      ...(Object.keys(customFieldValues).length > 0 ? { campos_customizados: customFieldValues } : {}),
     } as any);
 
     onSuccess?.();
@@ -375,6 +383,25 @@ export function FeedbackForm({ fichaVisitaId, preFill, onSuccess }: FeedbackForm
             )}
           </CardContent>
         </Card>
+
+        {/* Campos Customizados */}
+        {customFields.length > 0 && (
+          <Card>
+            <CardHeader>
+              <CardTitle>Campos Adicionais</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {customFields.map((field) => (
+                <DynamicFieldRenderer
+                  key={field.id}
+                  field={field}
+                  value={customFieldValues[field.field_id]}
+                  onChange={(v) => setCustomFieldValues(prev => ({ ...prev, [field.field_id]: v }))}
+                />
+              ))}
+            </CardContent>
+          </Card>
+        )}
 
         <Button
           type="submit"
