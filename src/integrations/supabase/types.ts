@@ -422,6 +422,7 @@ export type Database = {
         Row: {
           atende_necessidades: boolean | null
           avaliacao_geral: number | null
+          campos_customizados: Json | null
           compraria_imovel: boolean | null
           conexao_imovel: number | null
           created_at: string | null
@@ -451,6 +452,7 @@ export type Database = {
         Insert: {
           atende_necessidades?: boolean | null
           avaliacao_geral?: number | null
+          campos_customizados?: Json | null
           compraria_imovel?: boolean | null
           conexao_imovel?: number | null
           created_at?: string | null
@@ -480,6 +482,7 @@ export type Database = {
         Update: {
           atende_necessidades?: boolean | null
           avaliacao_geral?: number | null
+          campos_customizados?: Json | null
           compraria_imovel?: boolean | null
           conexao_imovel?: number | null
           created_at?: string | null
@@ -522,6 +525,7 @@ export type Database = {
           acompanhantes: Json | null
           assinatura_corretor: string | null
           assinatura_visitante: string | null
+          campos_customizados: Json | null
           codigo: string
           codigo_imovel: string | null
           condominio_edificio: string | null
@@ -550,6 +554,7 @@ export type Database = {
           acompanhantes?: Json | null
           assinatura_corretor?: string | null
           assinatura_visitante?: string | null
+          campos_customizados?: Json | null
           codigo: string
           codigo_imovel?: string | null
           condominio_edificio?: string | null
@@ -578,6 +583,7 @@ export type Database = {
           acompanhantes?: Json | null
           assinatura_corretor?: string | null
           assinatura_visitante?: string | null
+          campos_customizados?: Json | null
           codigo?: string
           codigo_imovel?: string | null
           condominio_edificio?: string | null
@@ -604,6 +610,118 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "fichas_visita_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      form_config_fields: {
+        Row: {
+          created_at: string | null
+          display_order: number
+          field_id: string
+          field_type: string
+          help_text: string | null
+          id: string
+          is_active: boolean | null
+          is_locked: boolean | null
+          is_required: boolean | null
+          label: string
+          options: Json | null
+          organization_id: string | null
+          placeholder: string | null
+          section_id: string
+          tipo_formulario: string
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          display_order?: number
+          field_id: string
+          field_type: string
+          help_text?: string | null
+          id?: string
+          is_active?: boolean | null
+          is_locked?: boolean | null
+          is_required?: boolean | null
+          label: string
+          options?: Json | null
+          organization_id?: string | null
+          placeholder?: string | null
+          section_id: string
+          tipo_formulario: string
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          display_order?: number
+          field_id?: string
+          field_type?: string
+          help_text?: string | null
+          id?: string
+          is_active?: boolean | null
+          is_locked?: boolean | null
+          is_required?: boolean | null
+          label?: string
+          options?: Json | null
+          organization_id?: string | null
+          placeholder?: string | null
+          section_id?: string
+          tipo_formulario?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "form_config_fields_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      form_config_sections: {
+        Row: {
+          created_at: string | null
+          description: string | null
+          display_order: number
+          id: string
+          is_active: boolean | null
+          organization_id: string | null
+          section_id: string
+          tipo_formulario: string
+          title: string
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          description?: string | null
+          display_order?: number
+          id?: string
+          is_active?: boolean | null
+          organization_id?: string | null
+          section_id: string
+          tipo_formulario: string
+          title: string
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          description?: string | null
+          display_order?: number
+          id?: string
+          is_active?: boolean | null
+          organization_id?: string | null
+          section_id?: string
+          tipo_formulario?: string
+          title?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "form_config_sections_organization_id_fkey"
             columns: ["organization_id"]
             isOneToOne: false
             referencedRelation: "organizations"

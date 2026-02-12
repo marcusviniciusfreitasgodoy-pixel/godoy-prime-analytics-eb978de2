@@ -51,6 +51,7 @@ import ConviteAceitar from "./pages/ConviteAceitar";
 import AdminPanel from "./pages/AdminPanel";
 import PipelineCRM from "./pages/PipelineCRM";
 import CalibradorFeedbackCorretor from "./pages/CalibradorFeedbackCorretor";
+import ConfigurarFormularios from "./pages/ConfigurarFormularios";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -112,7 +113,8 @@ const App = () => (
                               <Route path="/base-conhecimento" element={<ProtectedRoute requireAdmin={true}><BaseConhecimento /></ProtectedRoute>} />
                               <Route path="/calibrador-avaliacao" element={<ProtectedRoute requireAdminOrGerente={true}><CalibradorAvaliacao /></ProtectedRoute>} />
                               <Route path="/calibrador-vistoria" element={<ProtectedRoute requireAdminOrGerente={true}><CalibradorVistoria /></ProtectedRoute>} />
-                              <Route path="/calibrador-feedback-corretor" element={<ProtectedRoute requireAdminOrGerente={true}><CalibradorFeedbackCorretor /></ProtectedRoute>} />
+                              <Route path="/calibrador-feedback-corretor" element={<Navigate to="/configurar-formularios" replace />} />
+                              <Route path="/configurar-formularios" element={<ProtectedRoute requireAdminOrGerente={true}><ConfigurarFormularios /></ProtectedRoute>} />
                               <Route path="/leads" element={<ProtectedRoute requireAdminOrGerente={true}><Leads /></ProtectedRoute>} />
                               <Route path="/pipeline" element={<ProtectedRoute requireAdminOrGerente={true}><PipelineCRM /></ProtectedRoute>} />
                               <Route path="/usuarios" element={<ProtectedRoute requireAdmin={true}><Usuarios /></ProtectedRoute>} />

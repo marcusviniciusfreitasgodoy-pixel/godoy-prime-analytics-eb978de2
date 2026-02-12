@@ -9,7 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Save, Loader2 } from "lucide-react";
-import { useActiveFeedbackCorretorConfig, FeedbackCorretorField, FeedbackCorretorSection } from "@/hooks/useFeedbackCorretorConfig";
+import { useFormConfig, FormConfigField } from "@/hooks/useFormConfig";
 import { useFeedbackCorretor } from "@/hooks/useFeedbackCorretor";
 import { useAuthContext } from "@/contexts/AuthContext";
 import { Badge } from "@/components/ui/badge";
@@ -20,7 +20,7 @@ interface BrokerFeedbackFormProps {
 }
 
 export function BrokerFeedbackForm({ fichaVisitaId, onSuccess }: BrokerFeedbackFormProps) {
-  const { data: config, isLoading: configLoading } = useActiveFeedbackCorretorConfig();
+  const { activeConfig: config, activeConfigLoading: configLoading } = useFormConfig("feedback_corretor");
   const { feedback: existingFeedback, isLoading: feedbackLoading, createFeedback } = useFeedbackCorretor(fichaVisitaId);
   const { user } = useAuthContext();
   const [respostas, setRespostas] = useState<Record<string, any>>({});
@@ -85,7 +85,7 @@ export function BrokerFeedbackForm({ fichaVisitaId, onSuccess }: BrokerFeedbackF
     return (
       <div className="text-center py-8 text-muted-foreground">
         <p>Nenhum formulário configurado.</p>
-        <p className="text-sm mt-1">O administrador precisa configurar os campos em Calibrador Feedback Corretor.</p>
+        <p className="text-sm mt-1">O administrador precisa configurar os campos em Configurar Formulários.</p>
       </div>
     );
   }
@@ -105,7 +105,7 @@ export function BrokerFeedbackForm({ fichaVisitaId, onSuccess }: BrokerFeedbackF
     }, { onSuccess });
   };
 
-  const renderField = (field: FeedbackCorretorField) => {
+  const renderField = (field: FormConfigField) => {
     const value = respostas[field.field_id];
 
     switch (field.field_type) {
