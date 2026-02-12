@@ -1,48 +1,50 @@
 
 
-## Automacoes de Pipeline: Tarefa Automatica de Follow-up
+## Cadastro Completo de Corretores
 
 ### Resumo
-Quando um lead entra no estagio "qualificado" (seja por drag-and-drop no board ou pelo select no modal de detalhes), o sistema cria automaticamente uma tarefa de follow-up com prioridade "alta" e vencimento em 24 horas.
+Expandir a pagina de Usuarios para incluir gestao completa de corretores com todos os dados profissionais (Nome Completo, WhatsApp, E-mail, CRECI). O sistema ja possui a tabela `profiles` com todos os campos necessarios -- a mudanca e puramente de interface.
+
+### O que muda para o usuario
+- Na pagina **Usuarios**, a tabela passara a exibir colunas de **WhatsApp** e **CRECI** alem de Nome, Email e Role
+- Um botao **"Editar"** em cada linha abre um modal para editar os dados completos do corretor: Nome Completo, WhatsApp, E-mail, CRECI
+- O convite de novo membro continua funcionando como hoje (por email + role), e apos o corretor aceitar, o admin pode completar os dados pelo modal de edicao
+- Corretor autonomo (pessoa fisica) continua editando seu proprio perfil em Configuracoes
 
 ### Secao Tecnica
 
-**Arquivo 1 (novo): `src/utils/pipelineAutomations.ts`**
-- Funcao `runStageAutomations(leadId, newStage, userId, userName, organizationId)` que centraliza a logica de automacao
-- Quando `newStage === 'qualificado'`: insere tarefa na tabela `tarefas` com titulo "Follow-up: Contatar lead qualificado", prioridade "alta", vencimento = now + 24h
-- Registra atividade automatica em `atividades_lead` do tipo "nota" indicando que a tarefa foi criada automaticamente
-- Extensivel: estrutura de switch/case para adicionar automacoes futuras em outros estagios (ex: `visita_agendada`, `proposta_enviada`)
-- Executa de forma "fire-and-forget" (nao bloqueia o fluxo principal)
+**Arquivo 1 (editar): `src/pages/Usuarios.tsx`**
 
-**Arquivo 2 (editar): `src/components/crm/PipelineKanban.tsx`**
-- Dentro do `mutationFn` do `updateStageMutation` (linha 53-67), apos o insert de atividade, chamar `runStageAutomations()`
-- Passar `user?.id`, `userName`, e o `organization_id` do lead
+1. Adicionar colunas **WhatsApp** e **CRECI** na tabela de usuarios (ja disponiveis no select de `profiles`)
+2. Adicionar coluna de acoes com botao "Editar" (icone de lapis)
+3. Adicionar estado para modal de edicao (`editingUser`, `editOpen`)
+4. Criar modal `Dialog` com formulario contendo:
+   - Nome Completo (input text)
+   - WhatsApp (input tel)
+   - E-mail (input email)
+   - CRECI (input text)
+5. Criar mutation `updateProfileMutation` que faz `supabase.from('profiles').update({...}).eq('id', userId)`
+6. Atualizar a query existente para incluir `creci` no select (ja retorna `phone` e `email`)
 
-**Arquivo 3 (editar): `src/components/crm/LeadDetailModal.tsx`**
-- Dentro do `mutationFn` do `updateStageMutation` (linha 149-162), apos o insert de atividade, chamar `runStageAutomations()`
-- Mesma logica
-
-### Automacoes incluidas (v1)
-
-| Estagio destino | Acao automatica |
-|---|---|
-| `qualificado` | Criar tarefa "Follow-up: Contatar lead qualificado" (prioridade alta, vence em 24h) |
-| `visita_agendada` | Criar tarefa "Preparar material para visita" (prioridade media, vence em 48h) |
-| `proposta_enviada` | Criar tarefa "Acompanhar resposta da proposta" (prioridade alta, vence em 72h) |
+**Nenhuma migracao de banco necessaria** -- a tabela `profiles` ja possui os campos `full_name`, `phone`, `email`, `creci`.
 
 ### Fluxo
 
 ```text
-Lead movido para novo estagio (drag ou select)
+Admin acessa /usuarios
   |
   v
-UPDATE leads + INSERT atividade (fluxo existente)
+Tabela exibe: Nome | Email | WhatsApp | CRECI | Role | Acoes
   |
   v
-runStageAutomations() [fire & forget]
+Clica "Editar" em um corretor
   |
-  +---> Se 'qualificado': INSERT tarefa follow-up 24h
-  +---> Se 'visita_agendada': INSERT tarefa preparacao 48h
-  +---> Se 'proposta_enviada': INSERT tarefa acompanhar 72h
-  +---> Registra atividade automatica na timeline
+  v
+Modal abre com campos preenchidos
+  |
+  v
+Salva -> UPDATE profiles SET full_name, phone, email, creci
+  |
+  v
+Tabela atualiza automaticamente
 ```
