@@ -1,48 +1,72 @@
 
 
-## Notificacoes em Tempo Real no Pipeline CRM
+## Dashboard de Metricas do Pipeline CRM
 
 ### Resumo
-Adicionar um listener Realtime na tabela `leads` para que, quando qualquer usuario mover um lead de estagio, todos os corretores/admins conectados recebam um toast de notificacao e o board atualize automaticamente -- sem precisar dar refresh.
+Criar um dashboard analitico com graficos de funil de conversao e tempo medio por estagio, acessivel por uma aba na pagina do Pipeline CRM. O dashboard usara os dados existentes das tabelas `leads` e `atividades_lead` para calcular metricas de conversao e permanencia.
 
 ### O que muda para o usuario
-- Ao mover um lead (drag-and-drop ou select no modal), todos os outros usuarios logados veem um toast tipo: "Lead **Joao Silva** movido para **Qualificado** por Marcus"
-- O board Kanban atualiza automaticamente para todos os usuarios conectados
-- O proprio usuario que fez a acao nao recebe notificacao duplicada (ja ve o toast existente)
+- A pagina Pipeline CRM ganha **duas abas**: "Kanban" (board atual) e "Metricas" (novo dashboard)
+- Na aba Metricas:
+  - **Funil de Conversao**: grafico de barras horizontais mostrando quantos leads passaram por cada estagio (Novo -> Contatado -> ... -> Ganho), com percentual de conversao entre cada etapa
+  - **Tempo Medio por Estagio**: grafico de barras verticais mostrando quantos dias em media os leads ficam em cada estagio antes de avancar
+  - **KPIs resumidos**: Taxa de conversao geral, Tempo medio total do ciclo (lead novo ate ganho), Leads ativos, Valor total em negociacao
+  - **Taxa de Perda por Estagio**: grafico mostrando em qual estagio os leads sao mais perdidos
 
 ### Secao Tecnica
 
-**Passo 1: Migracao SQL -- habilitar Realtime na tabela `leads`**
-```sql
-ALTER PUBLICATION supabase_realtime ADD TABLE public.leads;
-```
+**Arquivo 1 (novo): `src/hooks/usePipelineMetrics.ts`**
+- Hook que consome os dados de `leads` e `atividades_lead` (tipo `status_alterado`)
+- Calcula:
+  - **Funil**: conta leads que atingiram cada estagio (usando historico de atividades)
+  - **Tempo medio por estagio**: para cada lead, calcula diferenca entre timestamps de atividades consecutivas de `status_alterado`, depois agrega por estagio
+  - **Ciclo total**: tempo medio de `created_at` do lead ate atingir `ganho`
+  - **Taxa de perda**: agrupa leads perdidos pelo ultimo estagio antes de ir para `perdido`
+- Usa `useQuery` com queryKey `['pipeline-metrics']`
 
-**Passo 2 (novo): `src/components/crm/PipelineRealtimeListener.tsx`**
-- Componente invisivel (retorna `null`), seguindo o padrao existente de `FeedbackRealtimeListener.tsx`
-- Escuta `postgres_changes` com `event: 'UPDATE'` na tabela `leads`, filtrando mudancas no campo `estagio_pipeline`
-- Quando detecta mudanca:
-  - Busca a atividade mais recente do tipo `status_alterado` para esse lead (para obter o nome do usuario que moveu)
-  - Exibe toast com nome do lead, novo estagio e autor da mudanca
-  - Invalida a query `pipeline-leads` para atualizar o board
-  - Suprime notificacao se o `usuario_id` da atividade === `auth.uid()` (evita duplicata)
+**Arquivo 2 (novo): `src/components/crm/PipelineMetricsDashboard.tsx`**
+- Componente com layout em grid:
+  - Linha 1: 4 KPI cards (Taxa Conversao, Ciclo Medio, Leads Ativos, Valor Pipeline)
+  - Linha 2: Grafico de Funil (Recharts `BarChart` horizontal) + Tempo Medio por Estagio (Recharts `BarChart` vertical)
+  - Linha 3: Taxa de Perda por Estagio (Recharts `BarChart`)
+- Usa `StandardChartTooltip` e cores do `CHART_COLORS` para manter padrao visual
+- Responsive: graficos empilham verticalmente em mobile
 
-**Passo 3 (editar): `src/components/crm/PipelineKanban.tsx`**
-- Importar e renderizar `<PipelineRealtimeListener />` dentro do componente, acima do board
+**Arquivo 3 (editar): `src/pages/PipelineCRM.tsx`**
+- Adicionar `Tabs` (Radix) com duas abas: "Kanban" e "Metricas"
+- Tab "Kanban" renderiza `<PipelineKanban />`
+- Tab "Metricas" renderiza `<PipelineMetricsDashboard />`
 
-### Fluxo
+### Calculo do Funil
 
 ```text
-Usuario A move lead para "Qualificado"
-  |
-  v
-UPDATE leads SET estagio_pipeline = 'qualificado' (ja existente)
-  |
-  v
-Supabase Realtime dispara evento UPDATE para todos os subscribers
-  |
-  v
-PipelineRealtimeListener recebe o evento
-  |
-  +---> Se usuario_id != meu id: exibe toast "Lead X movido para Y por Z"
-  +---> Invalida query 'pipeline-leads' -> board atualiza
+Para cada estagio na ordem [novo, contatado, qualificado, visita_agendada, proposta_enviada, negociacao, ganho]:
+  - Contar leads cujo estagio atual == estagio OU que ja passaram por ele (via atividades_lead tipo status_alterado)
+  - % conversao = (leads no estagio N+1 / leads no estagio N) * 100
 ```
+
+### Calculo de Tempo Medio
+
+```text
+Para cada lead com historico de mudancas:
+  - Ordenar atividades tipo 'status_alterado' por created_at
+  - Calcular diff entre cada transicao consecutiva
+  - Agrupar por "estagio de origem" e calcular media em dias
+```
+
+### Estrutura Visual
+
+```text
++------------------------------------------------------------+
+|  [Kanban]  [Metricas]                                       |
++------------------------------------------------------------+
+| KPI: Conversao | KPI: Ciclo | KPI: Ativos | KPI: Valor    |
++------------------------------------------------------------+
+| Funil de Conversao          | Tempo Medio por Estagio      |
+| (barras horizontais)        | (barras verticais)           |
++------------------------------------------------------------+
+| Taxa de Perda por Estagio                                  |
+| (barras horizontais)                                        |
++------------------------------------------------------------+
+```
+
