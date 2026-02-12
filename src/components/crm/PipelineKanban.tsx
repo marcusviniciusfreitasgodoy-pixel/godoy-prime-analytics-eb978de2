@@ -17,6 +17,7 @@ import { LeadDetailModal } from './LeadDetailModal';
 import { LeadPipeline, PIPELINE_COLUMNS, EstagioPipeline, formatCurrencyShort } from '@/types/crm';
 import { runStageAutomations } from '@/utils/pipelineAutomations';
 import { Loader2 } from 'lucide-react';
+import { PipelineRealtimeListener } from './PipelineRealtimeListener';
 
 export function PipelineKanban() {
   const { user } = useAuthContext();
@@ -138,6 +139,7 @@ export function PipelineKanban() {
 
   return (
     <div className="space-y-4">
+      <PipelineRealtimeListener />
       {/* KPI Cards */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         <Card>
