@@ -7,6 +7,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuthContext } from '@/contexts/AuthContext';
 import { useOrganization } from '@/contexts/OrganizationContext';
 import { toast } from 'sonner';
+import { runStageAutomations } from '@/utils/pipelineAutomations';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
@@ -160,6 +161,8 @@ export function LeadDetailModal({ lead, open, onClose, onUpdateLead }: LeadDetai
         usuario_id: user?.id,
         usuario_nome: userName,
       } as any);
+
+      runStageAutomations(lead!.id, newStage as any, user?.id, userName, lead!.organization_id);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['pipeline-leads'] });

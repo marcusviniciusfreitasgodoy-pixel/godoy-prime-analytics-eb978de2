@@ -15,6 +15,7 @@ import { PipelineColumn } from './PipelineColumn';
 import { LeadCard } from './LeadCard';
 import { LeadDetailModal } from './LeadDetailModal';
 import { LeadPipeline, PIPELINE_COLUMNS, EstagioPipeline, formatCurrencyShort } from '@/types/crm';
+import { runStageAutomations } from '@/utils/pipelineAutomations';
 import { Loader2 } from 'lucide-react';
 
 export function PipelineKanban() {
@@ -57,14 +58,18 @@ export function PipelineKanban() {
         .eq('id', leadId);
       if (error) throw error;
 
+      const userName = user?.email?.split('@')[0] || 'Usuário';
       await supabase.from('atividades_lead').insert({
         lead_id: leadId,
         tipo: 'status_alterado',
         titulo: 'Estágio alterado',
         descricao: `De "${oldStage}" para "${newStage}"`,
         usuario_id: user?.id,
-        usuario_nome: user?.email?.split('@')[0] || 'Usuário',
+        usuario_nome: userName,
       } as any);
+
+      const lead = (await supabase.from('leads').select('organization_id').eq('id', leadId).single()).data;
+      runStageAutomations(leadId, newStage, user?.id, userName, lead?.organization_id);
     },
     onSuccess: (_, { newStage }) => {
       queryClient.invalidateQueries({ queryKey: ['pipeline-leads'] });
