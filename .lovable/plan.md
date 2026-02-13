@@ -1,58 +1,114 @@
 
-## Corrigir bug do bucket privado `documentos-proposta`
+## Aplicar `check_rate_limit()` persistente nos endpoints publicos
 
-### Problema
+### Contexto
 
-A funcao `uploadCNH` em `src/hooks/usePropostas.ts` usa `getPublicUrl()` para obter a URL do arquivo apos upload. Como o bucket `documentos-proposta` e **privado**, essa URL retorna 403 -- o arquivo e salvo com sucesso mas a URL armazenada em `cnh_url` na tabela `propostas_compra` nao funciona.
+Os tres fluxos publicos (feedback, proposta, assinatura) atualmente fazem INSERT/UPDATE direto no banco via SDK do Supabase com a anon key e politicas RLS publicas de INSERT. Nao ha rate limiting persistente nesses fluxos -- apenas o feedback tem verificacao de duplicata (`checkFeedbackExists`).
 
-### Solucao
+### Estrategia
 
-Substituir `getPublicUrl()` por `createSignedUrl()` com TTL de 60 minutos (3600 segundos). Alem disso, como a URL assinada expira, e necessario tambem criar uma funcao auxiliar para gerar novas URLs assinadas sob demanda quando alguem precisar visualizar o documento.
+Criar uma **unica Edge Function** chamada `public-submit` que centraliza os tres fluxos publicos com rate limiting persistente via `check_rate_limit()`. Os componentes front-end passam a chamar essa funcao ao inves de escrever diretamente no banco.
+
+### Limites propostos
+
+| Fluxo | Identificador | Janela | Max |
+|---|---|---|---|
+| Feedback | `ficha_visita_id` | 300s (5 min) | 2 |
+| Proposta | `ficha_visita_id` | 300s (5 min) | 3 |
+| Assinatura | `codigo + tipo` | 300s (5 min) | 3 |
 
 ### Alteracoes
 
-**Arquivo: `src/hooks/usePropostas.ts`**
+**1. Nova Edge Function: `supabase/functions/public-submit/index.ts`**
 
-1. Na funcao `uploadCNH` (linhas 58-61), substituir:
+- Recebe JSON com campo `action` (`feedback`, `proposta`, `assinatura`)
+- Valida payload com Zod
+- Chama `check_rate_limit()` via RPC com `service_role`
+- Se permitido, executa o INSERT/UPDATE correspondente usando `service_role`
+- Retorna sucesso ou erro 429
 
-```typescript
-// ANTES (bugado)
-const { data: urlData } = supabase.storage
-  .from("documentos-proposta")
-  .getPublicUrl(path);
-return urlData.publicUrl;
+Estrutura:
+
+```text
+POST /functions/v1/public-submit
+{
+  "action": "feedback",
+  "payload": { ficha_visita_id, nota_geral, ... }
+}
+
+POST /functions/v1/public-submit
+{
+  "action": "proposta",
+  "payload": { ficha_visita_id, nome_completo, valor_ofertado, ... }
+}
+
+POST /functions/v1/public-submit
+{
+  "action": "assinatura",
+  "payload": { codigo, tipo, signatureData }
+}
 ```
 
-Por:
+**2. Atualizar `supabase/config.toml`**
 
-```typescript
-// DEPOIS (corrigido)
-const { data: urlData, error: urlError } = await supabase.storage
-  .from("documentos-proposta")
-  .createSignedUrl(path, 3600); // 60 minutos
-if (urlError || !urlData?.signedUrl) throw urlError || new Error("Falha ao gerar URL assinada");
-return urlData.signedUrl;
+Adicionar:
+```toml
+[functions.public-submit]
+verify_jwt = false
 ```
 
-2. Adicionar uma funcao `getSignedCNHUrl` ao hook para permitir que outras partes do sistema regenerem URLs assinadas quando necessario (ex: admin visualizando a CNH depois de expirada):
+**3. Atualizar `src/hooks/useFeedbackVisita.ts`**
+
+Na mutation `createFeedback`, substituir o INSERT direto por chamada a edge function:
 
 ```typescript
-const getSignedCNHUrl = async (path: string): Promise<string> => {
-  const { data, error } = await supabase.storage
-    .from("documentos-proposta")
-    .createSignedUrl(path, 3600);
-  if (error || !data?.signedUrl) throw error || new Error("Falha ao gerar URL");
-  return data.signedUrl;
-};
+// ANTES
+await supabase.from("feedbacks_visita").insert(feedback);
+
+// DEPOIS
+const res = await supabase.functions.invoke("public-submit", {
+  body: { action: "feedback", payload: feedback }
+});
+if (res.error) throw res.error;
 ```
 
-3. Exportar `getSignedCNHUrl` no retorno do hook.
+**4. Atualizar `src/hooks/usePropostas.ts`**
 
-### Observacao importante
+Na mutation `createProposta`, substituir o INSERT direto por chamada a edge function:
 
-O valor salvo em `cnh_url` no banco sera uma URL assinada que expira em 60 minutos. Para visualizacoes futuras (ex: admin abrindo proposta dias depois), o front-end devera chamar `getSignedCNHUrl` com o `path` extraido da URL original, ou armazenar apenas o `path` relativo no banco ao inves da URL completa. A abordagem mais robusta e salvar o **path relativo** (`{codigo}/cnh-{timestamp}.{ext}`) no banco e gerar a URL assinada sob demanda na hora da exibicao.
+```typescript
+// ANTES
+await supabase.from("propostas_compra").insert(proposta).select().single();
 
-### Resumo das mudancas
+// DEPOIS
+const res = await supabase.functions.invoke("public-submit", {
+  body: { action: "proposta", payload: proposta }
+});
+```
 
-- `src/hooks/usePropostas.ts`: trocar `getPublicUrl` por `createSignedUrl`, salvar path relativo no banco, adicionar funcao `getSignedCNHUrl`
-- `src/components/visitas/ProposalForm.tsx`: ajustar para salvar o path relativo em `cnh_url` ao inves da URL completa
+**5. Atualizar `src/pages/AssinaturaVisita.tsx`**
+
+Na funcao `handleSaveSignature`, substituir o UPDATE direto por chamada a edge function:
+
+```typescript
+// ANTES
+await supabase.from("fichas_visita").update({ [field]: signatureData }).eq("id", ficha.id);
+
+// DEPOIS
+const res = await supabase.functions.invoke("public-submit", {
+  body: { action: "assinatura", payload: { codigo, tipo: signatureType, signatureData } }
+});
+```
+
+**6. Remover politicas RLS publicas de INSERT (opcional, recomendado)**
+
+Apos migrar os tres fluxos para a edge function (que usa `service_role`), as politicas publicas de INSERT em `feedbacks_visita` e `propostas_compra` podem ser removidas, reduzindo a superficie de ataque. A politica publica de UPDATE em `fichas_visita` para assinaturas tambem pode ser removida.
+
+### Secao tecnica
+
+A Edge Function `public-submit`:
+- Usa `Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')` para criar o client com permissoes elevadas
+- Chama `supabase.rpc('check_rate_limit', { p_identifier, p_function_name: 'public-submit-{action}', p_window_seconds, p_max_requests })` antes de cada operacao
+- Retorna HTTP 429 com `Retry-After` header quando o limite e excedido
+- Valida os payloads com Zod antes de executar qualquer operacao no banco
+- A notificacao de proposta (`notify-proposta`) continua sendo chamada separadamente apos sucesso (ou pode ser integrada na mesma funcao)
