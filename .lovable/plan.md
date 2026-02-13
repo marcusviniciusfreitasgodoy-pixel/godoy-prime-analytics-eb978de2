@@ -1,31 +1,32 @@
 
 
-## Carregar Campos Padrao nos Formularios
+## Corrigir Campos de Formulario Invisiveis
 
-### Problema
-As tabelas `form_config_sections` e `form_config_fields` estao vazias. O seed data da migracao anterior nao foi persistido. Por isso, a pagina "Configurar Formularios" mostra "0 secoes" em todas as abas.
+### Causa Raiz
+Os dados de seed foram inseridos com `organization_id = NULL`, mas as politicas de seguranca (RLS) exigem que `organization_id` corresponda a organizacao do usuario logado. Como `NULL` nao e igual a nenhum valor, todos os registros ficam invisiveis.
 
 ### Solucao
-Criar uma nova migracao SQL que insere os campos padrao (seed) para os 3 tipos de formulario, mapeando os campos que ja existem nos formularios hardcoded. Os campos do sistema serao marcados com `is_locked = true` para nao poderem ser excluidos.
+Uma migracao SQL para:
 
-### Campos que serao inseridos
+1. Atualizar todos os registros existentes em `form_config_sections` e `form_config_fields` que estao com `organization_id = NULL`, preenchendo com o `organization_id` correto da organizacao principal (`a0000000-0000-0000-0000-000000000001`).
 
-**Ficha de Visita** (baseado em `NovaFichaVisita.tsx`):
-- Secao "Identificacao do Cliente": nome_visitante, cpf_visitante, rg_visitante, telefone_visitante, email_visitante, endereco_visitante
-- Secao "Identificacao do Imovel": endereco_imovel, condominio_edificio, unidade_imovel, codigo_imovel, nome_proprietario, valor_imovel
-- Secao "Intermediacao": corretor_id (select), data_visita (date), notas (textarea)
-
-**Feedback Cliente** (baseado em `FeedbackForm.tsx`):
-- Secao "Avaliacao Geral": avaliacao_geral (rating), conexao_imovel (rating), atende_necessidades (checkbox)
-- Secao "Efeito UAU": efeito_uau (checkbox), efeito_uau_detalhe (textarea)
-- Secao "Pontos de Atencao": o_que_mais_gostou (textarea), o_que_menos_gostou (textarea), ponto_resistencia (textarea), sugestoes_melhoria (textarea)
-- Secao "Interesse e Proposta": nivel_interesse (radio), percepcao_valor (radio), gostaria_fazer_proposta (checkbox)
-
-**Feedback Corretor** (campos tipicos de avaliacao profissional):
-- Secao "Qualificacao do Lead": qualificacao_lead (select), poder_decisao (select), prazo_compra (select)
-- Secao "Percepcao de Interesse": interesse_real (rating), orcamento_adequado (select), forma_pagamento (select)
-- Secao "Observacoes": observacoes (textarea), proximos_passos (textarea)
+2. Adicionar um trigger `BEFORE INSERT` em ambas as tabelas para preencher automaticamente `organization_id` usando a funcao `set_organization_id()` que ja existe no sistema -- garantindo que futuros registros nunca fiquem com `NULL`.
 
 ### Secao Tecnica
 
-Uma unica migracao SQL com INSERTs nas tabelas `form_config_sections` e `form_config_fields`, todos com `is_locked = true` e `is_active = true`. Nenhuma alteracao de codigo e necessaria -- a pagina `ConfigurarFormularios.tsx` ja renderiza os dados dessas tabelas corretamente.
+Arquivo a criar: uma nova migracao SQL com:
+
+```sql
+-- Corrigir registros existentes
+UPDATE form_config_sections SET organization_id = 'a0000000-0000-0000-0000-000000000001' WHERE organization_id IS NULL;
+UPDATE form_config_fields SET organization_id = 'a0000000-0000-0000-0000-000000000001' WHERE organization_id IS NULL;
+
+-- Triggers para auto-preencher organization_id em novos registros
+CREATE TRIGGER set_form_config_sections_org BEFORE INSERT ON form_config_sections
+  FOR EACH ROW EXECUTE FUNCTION set_organization_id();
+CREATE TRIGGER set_form_config_fields_org BEFORE INSERT ON form_config_fields
+  FOR EACH ROW EXECUTE FUNCTION set_organization_id();
+```
+
+Nenhuma alteracao de codigo necessaria. Apos a migracao, os campos aparecerao automaticamente na pagina.
+
