@@ -19,13 +19,12 @@ export function usePropostas() {
 
   const createProposta = useMutation({
     mutationFn: async (proposta: Record<string, any>) => {
-      const { data, error } = await supabase
-        .from("propostas_compra" as any)
-        .insert(proposta as any)
-        .select()
-        .single();
+      const { data, error } = await supabase.functions.invoke("public-submit", {
+        body: { action: "proposta", payload: proposta },
+      });
       if (error) throw error;
-      return data;
+      if (data?.error) throw new Error(data.error);
+      return data?.data ?? data;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["propostas"] });
