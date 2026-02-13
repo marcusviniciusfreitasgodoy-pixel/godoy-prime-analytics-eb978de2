@@ -1,56 +1,58 @@
 
+## Corrigir bug do bucket privado `documentos-proposta`
 
-## Corrigir os 2 Erros de Seguranca
+### Problema
 
-### Erro 1: Leads com acesso publico irrestrito
+A funcao `uploadCNH` em `src/hooks/usePropostas.ts` usa `getPublicUrl()` para obter a URL do arquivo apos upload. Como o bucket `documentos-proposta` e **privado**, essa URL retorna 403 -- o arquivo e salvo com sucesso mas a URL armazenada em `cnh_url` na tabela `propostas_compra` nao funciona.
 
-**Diagnostico**: Este problema ja foi corrigido no banco de dados. As politicas permissivas antigas (`Permitir leitura publica de leads por email` e `Permitir atualizacao publica de leads`) foram removidas em migracoes anteriores. Atualmente existem apenas 3 politicas na tabela `leads`:
+### Solucao
 
-- `Qualquer pessoa pode se cadastrar como lead` (INSERT publico -- necessario para captura de leads)
-- `Org admins can manage leads` (ALL para admins autenticados)
-- `Org admins/gerentes can view leads` (SELECT para admins/gerentes autenticados)
+Substituir `getPublicUrl()` por `createSignedUrl()` com TTL de 60 minutos (3600 segundos). Alem disso, como a URL assinada expira, e necessario tambem criar uma funcao auxiliar para gerar novas URLs assinadas sob demanda quando alguem precisar visualizar o documento.
 
-**Acao**: Atualizar o finding do scanner de seguranca para refletir que o problema ja foi resolvido.
+### Alteracoes
 
----
+**Arquivo: `src/hooks/usePropostas.ts`**
 
-### Erro 2: Chave service_role exposta em arquivo de migracao
+1. Na funcao `uploadCNH` (linhas 58-61), substituir:
 
-**Diagnostico**: O arquivo `supabase/migrations/20251205033247_31ebc268-0147-493a-bc8c-7558618b5df3.sql` contem a URL e a chave service_role de um projeto externo hardcoded diretamente no SQL:
-
-```
-vault.create_secret('https://wlnwspjobfdjftyffqne.supabase.co', ...)
-vault.create_secret('eyJhbGciOiJ...', ...)
-```
-
-**Acao**: Substituir os valores reais por placeholders no arquivo de migracao. Os segredos ja estao armazenados de forma segura no Vault do banco -- a migracao ja foi executada e os valores estao la. O arquivo de migracao fica apenas como historico no codigo, mas nao deve conter credenciais.
-
-O arquivo sera editado para conter comentarios explicativos e valores placeholder, como:
-
-```sql
-SELECT vault.create_secret(
-  'REPLACE_WITH_SOURCE_URL',
-  'source_project_url',
-  '...'
-);
-
-SELECT vault.create_secret(
-  'REPLACE_WITH_SERVICE_KEY',
-  'source_project_service_key',
-  '...'
-);
+```typescript
+// ANTES (bugado)
+const { data: urlData } = supabase.storage
+  .from("documentos-proposta")
+  .getPublicUrl(path);
+return urlData.publicUrl;
 ```
 
----
+Por:
 
-### Secao Tecnica
+```typescript
+// DEPOIS (corrigido)
+const { data: urlData, error: urlError } = await supabase.storage
+  .from("documentos-proposta")
+  .createSignedUrl(path, 3600); // 60 minutos
+if (urlError || !urlData?.signedUrl) throw urlError || new Error("Falha ao gerar URL assinada");
+return urlData.signedUrl;
+```
 
-**Arquivos a modificar:**
-- `supabase/migrations/20251205033247_31ebc268-0147-493a-bc8c-7558618b5df3.sql` -- remover credenciais hardcoded
+2. Adicionar uma funcao `getSignedCNHUrl` ao hook para permitir que outras partes do sistema regenerem URLs assinadas quando necessario (ex: admin visualizando a CNH depois de expirada):
 
-**Acoes no scanner de seguranca:**
-- Deletar o finding `leads_full_access` (ja resolvido no banco)
-- Deletar o finding `rpc_bypassed_by_rls` (consequencia do anterior, tambem resolvido)
-- Deletar o finding `service_key_in_migration` apos remover a chave do arquivo
+```typescript
+const getSignedCNHUrl = async (path: string): Promise<string> => {
+  const { data, error } = await supabase.storage
+    .from("documentos-proposta")
+    .createSignedUrl(path, 3600);
+  if (error || !data?.signedUrl) throw error || new Error("Falha ao gerar URL");
+  return data.signedUrl;
+};
+```
 
-Nenhuma mudanca de codigo frontend necessaria.
+3. Exportar `getSignedCNHUrl` no retorno do hook.
+
+### Observacao importante
+
+O valor salvo em `cnh_url` no banco sera uma URL assinada que expira em 60 minutos. Para visualizacoes futuras (ex: admin abrindo proposta dias depois), o front-end devera chamar `getSignedCNHUrl` com o `path` extraido da URL original, ou armazenar apenas o `path` relativo no banco ao inves da URL completa. A abordagem mais robusta e salvar o **path relativo** (`{codigo}/cnh-{timestamp}.{ext}`) no banco e gerar a URL assinada sob demanda na hora da exibicao.
+
+### Resumo das mudancas
+
+- `src/hooks/usePropostas.ts`: trocar `getPublicUrl` por `createSignedUrl`, salvar path relativo no banco, adicionar funcao `getSignedCNHUrl`
+- `src/components/visitas/ProposalForm.tsx`: ajustar para salvar o path relativo em `cnh_url` ao inves da URL completa
