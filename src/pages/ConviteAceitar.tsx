@@ -7,6 +7,8 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2, Building2, CheckCircle, XCircle } from "lucide-react";
+import { usePasswordValidation } from "@/hooks/usePasswordValidation";
+import { PasswordStrengthIndicator } from "@/components/ui/password-strength";
 
 export default function ConviteAceitar() {
   const { token } = useParams<{ token: string }>();
@@ -22,6 +24,7 @@ export default function ConviteAceitar() {
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const { criteria, allMet, strength, score } = usePasswordValidation(password);
 
   useEffect(() => {
     if (!token) return;
@@ -200,12 +203,13 @@ export default function ConviteAceitar() {
                 type="password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                placeholder="Mínimo 6 caracteres"
-                minLength={6}
+                placeholder="Mínimo 8 caracteres"
+                minLength={8}
                 required
               />
+              <PasswordStrengthIndicator criteria={criteria} strength={strength} score={score} show={password.length > 0} />
             </div>
-            <Button type="submit" className="w-full" disabled={isSubmitting}>
+            <Button type="submit" className="w-full" disabled={isSubmitting || !allMet}>
               {isSubmitting ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />

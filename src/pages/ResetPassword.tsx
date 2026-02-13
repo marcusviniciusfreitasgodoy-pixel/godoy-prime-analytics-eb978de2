@@ -8,6 +8,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { useToast } from "@/hooks/use-toast";
 import { Loader2, ArrowLeft } from "lucide-react";
 import godoyLogo from "@/assets/godoy-logo-pdf.png";
+import { usePasswordValidation } from "@/hooks/usePasswordValidation";
+import { PasswordStrengthIndicator } from "@/components/ui/password-strength";
 
 export default function ResetPassword() {
   const [isLoading, setIsLoading] = useState(false);
@@ -15,6 +17,7 @@ export default function ResetPassword() {
   const [confirmPassword, setConfirmPassword] = useState("");
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { criteria, allMet, strength, score } = usePasswordValidation(password);
 
   const handleResetPassword = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -28,10 +31,10 @@ export default function ResetPassword() {
       return;
     }
 
-    if (password.length < 6) {
+    if (!allMet) {
       toast({
-        title: "Senha muito curta",
-        description: "A senha deve ter pelo menos 6 caracteres.",
+        title: "Senha não atende os requisitos",
+        description: "Verifique todos os critérios de segurança da senha.",
         variant: "destructive",
       });
       return;
@@ -87,12 +90,13 @@ export default function ResetPassword() {
               <Input
                 id="password"
                 type="password"
-                placeholder="Mínimo 6 caracteres"
+                placeholder="Mínimo 8 caracteres"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                minLength={6}
+                minLength={8}
                 required
               />
+              <PasswordStrengthIndicator criteria={criteria} strength={strength} score={score} show={password.length > 0} />
             </div>
             <div className="space-y-2">
               <Label htmlFor="confirm-password">Confirmar Senha</Label>
@@ -106,7 +110,7 @@ export default function ResetPassword() {
                 required
               />
             </div>
-            <Button type="submit" className="w-full" disabled={isLoading}>
+            <Button type="submit" className="w-full" disabled={isLoading || !allMet}>
               {isLoading ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
