@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useFeedbackAnalytics } from "@/hooks/useFeedbackAnalytics";
+import { ClientBrokerComparison } from "@/components/visitas/ClientBrokerComparison";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
@@ -329,6 +330,8 @@ export function FeedbackAnalyticsDashboard() {
           ))}
         </CardContent>
       </Card>
+      {/* Client vs Broker Comparison */}
+      <ClientBrokerComparison />
     </div>
   );
 }
