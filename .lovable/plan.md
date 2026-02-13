@@ -1,32 +1,56 @@
 
 
-## Corrigir Campos de Formulario Invisiveis
+## Corrigir os 2 Erros de Seguranca
 
-### Causa Raiz
-Os dados de seed foram inseridos com `organization_id = NULL`, mas as politicas de seguranca (RLS) exigem que `organization_id` corresponda a organizacao do usuario logado. Como `NULL` nao e igual a nenhum valor, todos os registros ficam invisiveis.
+### Erro 1: Leads com acesso publico irrestrito
 
-### Solucao
-Uma migracao SQL para:
+**Diagnostico**: Este problema ja foi corrigido no banco de dados. As politicas permissivas antigas (`Permitir leitura publica de leads por email` e `Permitir atualizacao publica de leads`) foram removidas em migracoes anteriores. Atualmente existem apenas 3 politicas na tabela `leads`:
 
-1. Atualizar todos os registros existentes em `form_config_sections` e `form_config_fields` que estao com `organization_id = NULL`, preenchendo com o `organization_id` correto da organizacao principal (`a0000000-0000-0000-0000-000000000001`).
+- `Qualquer pessoa pode se cadastrar como lead` (INSERT publico -- necessario para captura de leads)
+- `Org admins can manage leads` (ALL para admins autenticados)
+- `Org admins/gerentes can view leads` (SELECT para admins/gerentes autenticados)
 
-2. Adicionar um trigger `BEFORE INSERT` em ambas as tabelas para preencher automaticamente `organization_id` usando a funcao `set_organization_id()` que ja existe no sistema -- garantindo que futuros registros nunca fiquem com `NULL`.
+**Acao**: Atualizar o finding do scanner de seguranca para refletir que o problema ja foi resolvido.
+
+---
+
+### Erro 2: Chave service_role exposta em arquivo de migracao
+
+**Diagnostico**: O arquivo `supabase/migrations/20251205033247_31ebc268-0147-493a-bc8c-7558618b5df3.sql` contem a URL e a chave service_role de um projeto externo hardcoded diretamente no SQL:
+
+```
+vault.create_secret('https://wlnwspjobfdjftyffqne.supabase.co', ...)
+vault.create_secret('eyJhbGciOiJ...', ...)
+```
+
+**Acao**: Substituir os valores reais por placeholders no arquivo de migracao. Os segredos ja estao armazenados de forma segura no Vault do banco -- a migracao ja foi executada e os valores estao la. O arquivo de migracao fica apenas como historico no codigo, mas nao deve conter credenciais.
+
+O arquivo sera editado para conter comentarios explicativos e valores placeholder, como:
+
+```sql
+SELECT vault.create_secret(
+  'REPLACE_WITH_SOURCE_URL',
+  'source_project_url',
+  '...'
+);
+
+SELECT vault.create_secret(
+  'REPLACE_WITH_SERVICE_KEY',
+  'source_project_service_key',
+  '...'
+);
+```
+
+---
 
 ### Secao Tecnica
 
-Arquivo a criar: uma nova migracao SQL com:
+**Arquivos a modificar:**
+- `supabase/migrations/20251205033247_31ebc268-0147-493a-bc8c-7558618b5df3.sql` -- remover credenciais hardcoded
 
-```sql
--- Corrigir registros existentes
-UPDATE form_config_sections SET organization_id = 'a0000000-0000-0000-0000-000000000001' WHERE organization_id IS NULL;
-UPDATE form_config_fields SET organization_id = 'a0000000-0000-0000-0000-000000000001' WHERE organization_id IS NULL;
+**Acoes no scanner de seguranca:**
+- Deletar o finding `leads_full_access` (ja resolvido no banco)
+- Deletar o finding `rpc_bypassed_by_rls` (consequencia do anterior, tambem resolvido)
+- Deletar o finding `service_key_in_migration` apos remover a chave do arquivo
 
--- Triggers para auto-preencher organization_id em novos registros
-CREATE TRIGGER set_form_config_sections_org BEFORE INSERT ON form_config_sections
-  FOR EACH ROW EXECUTE FUNCTION set_organization_id();
-CREATE TRIGGER set_form_config_fields_org BEFORE INSERT ON form_config_fields
-  FOR EACH ROW EXECUTE FUNCTION set_organization_id();
-```
-
-Nenhuma alteracao de codigo necessaria. Apos a migracao, os campos aparecerao automaticamente na pagina.
-
+Nenhuma mudanca de codigo frontend necessaria.
