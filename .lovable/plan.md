@@ -1,114 +1,55 @@
 
-## Aplicar `check_rate_limit()` persistente nos endpoints publicos
 
-### Contexto
+# Reforcar Politica de Senhas
 
-Os tres fluxos publicos (feedback, proposta, assinatura) atualmente fazem INSERT/UPDATE direto no banco via SDK do Supabase com a anon key e politicas RLS publicas de INSERT. Nao ha rate limiting persistente nesses fluxos -- apenas o feedback tem verificacao de duplicata (`checkFeedbackExists`).
+## Resumo
 
-### Estrategia
+A vulnerabilidade e parcialmente valida. O sistema atual aceita senhas fracas (minimo 6 caracteres, sem requisitos de complexidade). A correcao envolve adicionar validacao no frontend nos dois pontos de criacao/alteracao de senha, e configurar o backend para exigir senhas mais fortes.
 
-Criar uma **unica Edge Function** chamada `public-submit` que centraliza os tres fluxos publicos com rate limiting persistente via `check_rate_limit()`. Os componentes front-end passam a chamar essa funcao ao inves de escrever diretamente no banco.
+## O que muda para o usuario
 
-### Limites propostos
+- Ao criar conta (via convite) ou redefinir senha, o sistema exigira:
+  - Minimo de 8 caracteres
+  - Pelo menos 1 letra maiuscula
+  - Pelo menos 1 letra minuscula
+  - Pelo menos 1 numero
+  - Pelo menos 1 caractere especial (!@#$%...)
+- Um indicador visual de forca da senha aparecera em tempo real
+- Mensagens de erro claras em portugues indicando o que falta
 
-| Fluxo | Identificador | Janela | Max |
-|---|---|---|---|
-| Feedback | `ficha_visita_id` | 300s (5 min) | 2 |
-| Proposta | `ficha_visita_id` | 300s (5 min) | 3 |
-| Assinatura | `codigo + tipo` | 300s (5 min) | 3 |
+## O que NAO muda
 
-### Alteracoes
+- Usuarios existentes nao serao afetados (suas senhas atuais continuam funcionando)
+- O fluxo de login permanece identico
+- Nenhuma funcionalidade existente sera quebrada
 
-**1. Nova Edge Function: `supabase/functions/public-submit/index.ts`**
+## Detalhes tecnicos
 
-- Recebe JSON com campo `action` (`feedback`, `proposta`, `assinatura`)
-- Valida payload com Zod
-- Chama `check_rate_limit()` via RPC com `service_role`
-- Se permitido, executa o INSERT/UPDATE correspondente usando `service_role`
-- Retorna sucesso ou erro 429
+### 1. Criar hook `usePasswordValidation`
+- Novo arquivo `src/hooks/usePasswordValidation.ts`
+- Validacao com regex para cada criterio (maiuscula, minuscula, numero, especial, tamanho)
+- Retorna lista de criterios atendidos/pendentes e score de forca (fraca/media/forte)
 
-Estrutura:
+### 2. Criar componente `PasswordStrengthIndicator`
+- Novo arquivo `src/components/ui/password-strength.tsx`
+- Barra visual com cores (vermelho/amarelo/verde)
+- Lista de checklist mostrando cada criterio atendido ou nao
 
-```text
-POST /functions/v1/public-submit
-{
-  "action": "feedback",
-  "payload": { ficha_visita_id, nota_geral, ... }
-}
+### 3. Atualizar `ResetPassword.tsx`
+- Integrar o hook e o componente de forca
+- Bloquear submit se a senha nao atender todos os criterios
+- Alterar mensagem de erro de "6 caracteres" para os novos requisitos
 
-POST /functions/v1/public-submit
-{
-  "action": "proposta",
-  "payload": { ficha_visita_id, nome_completo, valor_ofertado, ... }
-}
+### 4. Atualizar `ConviteAceitar.tsx`
+- Mesma integracao do hook e componente de forca no campo de criacao de senha
+- Bloquear submit ate senha estar forte o suficiente
 
-POST /functions/v1/public-submit
-{
-  "action": "assinatura",
-  "payload": { codigo, tipo, signatureData }
-}
-```
+### 5. Configurar backend
+- Usar a ferramenta de configuracao de autenticacao para definir `min_password_length: 8` no backend
 
-**2. Atualizar `supabase/config.toml`**
+### Arquivos afetados
+- `src/hooks/usePasswordValidation.ts` (novo)
+- `src/components/ui/password-strength.tsx` (novo)
+- `src/pages/ResetPassword.tsx` (modificado)
+- `src/pages/ConviteAceitar.tsx` (modificado)
 
-Adicionar:
-```toml
-[functions.public-submit]
-verify_jwt = false
-```
-
-**3. Atualizar `src/hooks/useFeedbackVisita.ts`**
-
-Na mutation `createFeedback`, substituir o INSERT direto por chamada a edge function:
-
-```typescript
-// ANTES
-await supabase.from("feedbacks_visita").insert(feedback);
-
-// DEPOIS
-const res = await supabase.functions.invoke("public-submit", {
-  body: { action: "feedback", payload: feedback }
-});
-if (res.error) throw res.error;
-```
-
-**4. Atualizar `src/hooks/usePropostas.ts`**
-
-Na mutation `createProposta`, substituir o INSERT direto por chamada a edge function:
-
-```typescript
-// ANTES
-await supabase.from("propostas_compra").insert(proposta).select().single();
-
-// DEPOIS
-const res = await supabase.functions.invoke("public-submit", {
-  body: { action: "proposta", payload: proposta }
-});
-```
-
-**5. Atualizar `src/pages/AssinaturaVisita.tsx`**
-
-Na funcao `handleSaveSignature`, substituir o UPDATE direto por chamada a edge function:
-
-```typescript
-// ANTES
-await supabase.from("fichas_visita").update({ [field]: signatureData }).eq("id", ficha.id);
-
-// DEPOIS
-const res = await supabase.functions.invoke("public-submit", {
-  body: { action: "assinatura", payload: { codigo, tipo: signatureType, signatureData } }
-});
-```
-
-**6. Remover politicas RLS publicas de INSERT (opcional, recomendado)**
-
-Apos migrar os tres fluxos para a edge function (que usa `service_role`), as politicas publicas de INSERT em `feedbacks_visita` e `propostas_compra` podem ser removidas, reduzindo a superficie de ataque. A politica publica de UPDATE em `fichas_visita` para assinaturas tambem pode ser removida.
-
-### Secao tecnica
-
-A Edge Function `public-submit`:
-- Usa `Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')` para criar o client com permissoes elevadas
-- Chama `supabase.rpc('check_rate_limit', { p_identifier, p_function_name: 'public-submit-{action}', p_window_seconds, p_max_requests })` antes de cada operacao
-- Retorna HTTP 429 com `Retry-After` header quando o limite e excedido
-- Valida os payloads com Zod antes de executar qualquer operacao no banco
-- A notificacao de proposta (`notify-proposta`) continua sendo chamada separadamente apos sucesso (ou pode ser integrada na mesma funcao)
