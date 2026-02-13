@@ -74,3 +74,6 @@ verify_jwt = false
 
 [functions.notify-proposta]
 verify_jwt = false
+
+[functions.public-submit]
+verify_jwt = false

@@ -29,13 +29,11 @@ export function useFeedbackVisita(fichaVisitaId?: string) {
 
   const createFeedback = useMutation({
     mutationFn: async (feedback: FeedbackVisitaInsert) => {
-      // Não usar RETURNING/SELECT aqui, pois a tabela não é publicamente legível (RLS)
-      // e o PostgREST pode falhar ao tentar retornar a linha inserida.
-      const { error } = await supabase
-        .from("feedbacks_visita" as any)
-        .insert(feedback);
-
+      const { data, error } = await supabase.functions.invoke("public-submit", {
+        body: { action: "feedback", payload: feedback },
+      });
       if (error) throw error;
+      if (data?.error) throw new Error(data.error);
       return null;
     },
     onSuccess: async (_data, variables) => {

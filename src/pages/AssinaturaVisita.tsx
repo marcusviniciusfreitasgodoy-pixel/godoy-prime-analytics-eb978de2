@@ -94,20 +94,18 @@ export default function AssinaturaVisita() {
   }, [codigo, signatureType]);
 
   const handleSaveSignature = async (signatureData: string) => {
-    if (!ficha) return;
+    if (!ficha || !codigo) return;
 
     setSaving(true);
     try {
-      const field = signatureType === "visitante" 
-        ? "assinatura_visitante" 
-        : "assinatura_corretor";
-
-      const { error } = await supabase
-        .from("fichas_visita")
-        .update({ [field]: signatureData })
-        .eq("id", ficha.id);
-
+      const { data, error } = await supabase.functions.invoke("public-submit", {
+        body: {
+          action: "assinatura",
+          payload: { codigo, tipo: signatureType, signatureData },
+        },
+      });
       if (error) throw error;
+      if (data?.error) throw new Error(data.error);
 
       setAssinado(true);
       toast.success("Assinatura salva com sucesso!");
