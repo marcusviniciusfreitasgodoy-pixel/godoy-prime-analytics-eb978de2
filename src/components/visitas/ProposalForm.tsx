@@ -70,8 +70,8 @@ export function ProposalForm({ preFill, onSuccess, standalone = false }: Proposa
   const handleCNHUpload = async (file: File) => {
     setIsUploadingCNH(true);
     try {
-      const url = await uploadCNH(file, codigo);
-      setCnhUrl(url);
+      const path = await uploadCNH(file, codigo);
+      setCnhUrl(path); // Salva o path relativo, não a URL
     } catch {
       // toast handled in hook
     } finally {

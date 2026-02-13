@@ -55,10 +55,16 @@ export function usePropostas() {
       .upload(path, file, { upsert: true });
     if (error) throw error;
     
-    const { data: urlData } = supabase.storage
+    // Retorna o path relativo para salvar no banco (não a URL completa)
+    return path;
+  };
+
+  const getSignedCNHUrl = async (path: string): Promise<string> => {
+    const { data, error } = await supabase.storage
       .from("documentos-proposta")
-      .getPublicUrl(path);
-    return urlData.publicUrl;
+      .createSignedUrl(path, 3600); // 60 minutos
+    if (error || !data?.signedUrl) throw error || new Error("Falha ao gerar URL assinada");
+    return data.signedUrl;
   };
 
   return {
@@ -67,5 +73,6 @@ export function usePropostas() {
     createProposta,
     getPropostasByFicha,
     uploadCNH,
+    getSignedCNHUrl,
   };
 }
