@@ -11,12 +11,37 @@ serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
 
-  console.log("[sync-bairros-cache] Starting sync...");
-
   try {
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-    const supabase = createClient(supabaseUrl, supabaseServiceKey);
+
+    // Auth check: require authenticated admin
+    const authHeader = req.headers.get("Authorization");
+    if (!authHeader) {
+      return new Response(JSON.stringify({ error: "Authentication required" }), {
+        status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" }
+      });
+    }
+    const supabaseAuth = createClient(supabaseUrl, Deno.env.get("SUPABASE_ANON_KEY")!, {
+      global: { headers: { Authorization: authHeader } }
+    });
+    const { data: { user }, error: authError } = await supabaseAuth.auth.getUser();
+    if (authError || !user) {
+      return new Response(JSON.stringify({ error: "Invalid authentication" }), {
+        status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" }
+      });
+    }
+    const serviceClient = createClient(supabaseUrl, supabaseServiceKey);
+    const { data: roleData } = await serviceClient
+      .from("user_roles").select("role").eq("user_id", user.id).eq("role", "admin").maybeSingle();
+    if (!roleData) {
+      return new Response(JSON.stringify({ error: "Admin access required" }), {
+        status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" }
+      });
+    }
+
+    console.log("[sync-bairros-cache] Starting sync...");
+    const supabase = serviceClient;
 
     // Aggregate bairros from itbi_transactions
     const { data: bairrosData, error: fetchError } = await supabase

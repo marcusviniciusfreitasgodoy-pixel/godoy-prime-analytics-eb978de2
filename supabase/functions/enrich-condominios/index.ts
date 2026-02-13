@@ -185,13 +185,39 @@ serve(async (req) => {
   try {
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+
+    // Auth check: require authenticated admin
+    const authHeader = req.headers.get('Authorization');
+    if (!authHeader) {
+      return new Response(JSON.stringify({ error: 'Authentication required' }), {
+        status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      });
+    }
+    const supabaseAuth = createClient(supabaseUrl, Deno.env.get('SUPABASE_ANON_KEY')!, {
+      global: { headers: { Authorization: authHeader } }
+    });
+    const { data: { user }, error: authError } = await supabaseAuth.auth.getUser();
+    if (authError || !user) {
+      return new Response(JSON.stringify({ error: 'Invalid authentication' }), {
+        status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      });
+    }
+    const serviceClient = createClient(supabaseUrl, supabaseServiceKey);
+    const { data: roleData } = await serviceClient
+      .from('user_roles').select('role').eq('user_id', user.id).eq('role', 'admin').maybeSingle();
+    if (!roleData) {
+      return new Response(JSON.stringify({ error: 'Admin access required' }), {
+        status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      });
+    }
+
     const googleApiKey = Deno.env.get('GOOGLE_MAPS_API_KEY') || Deno.env.get('GOOGLE_GEOCODING_API_KEY');
     
     if (!googleApiKey) {
       throw new Error('Google Maps API key not configured');
     }
     
-    const supabase = createClient(supabaseUrl, supabaseServiceKey);
+    const supabase = serviceClient;
     
     const body = await req.json().catch(() => ({}));
     const { 
