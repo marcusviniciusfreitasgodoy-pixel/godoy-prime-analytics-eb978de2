@@ -47,15 +47,32 @@ export function usePropostas() {
   };
 
   const uploadCNH = async (file: File, codigo: string): Promise<string> => {
-    const ext = file.name.split(".").pop();
-    const path = `${codigo}/cnh-${Date.now()}.${ext}`;
-    const { error } = await supabase.storage
-      .from("documentos-proposta")
-      .upload(path, file, { upsert: true });
+    // Convert file to base64 and upload via secure edge function
+    const base64 = await new Promise<string>((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        const result = reader.result as string;
+        // Remove data URL prefix (e.g. "data:image/jpeg;base64,")
+        resolve(result.split(",")[1]);
+      };
+      reader.onerror = reject;
+      reader.readAsDataURL(file);
+    });
+
+    const { data, error } = await supabase.functions.invoke("public-submit", {
+      body: {
+        action: "upload-cnh",
+        payload: {
+          codigo,
+          fileData: base64,
+          fileName: file.name,
+          contentType: file.type,
+        },
+      },
+    });
     if (error) throw error;
-    
-    // Retorna o path relativo para salvar no banco (não a URL completa)
-    return path;
+    if (data?.error) throw new Error(data.error);
+    return data.path;
   };
 
   const getSignedCNHUrl = async (path: string): Promise<string> => {

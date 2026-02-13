@@ -11,6 +11,7 @@ const LIMITS: Record<string, { window: number; max: number }> = {
   feedback: { window: 300, max: 2 },
   proposta: { window: 300, max: 3 },
   assinatura: { window: 300, max: 3 },
+  "upload-cnh": { window: 300, max: 5 },
 };
 
 // ── Validation helpers (lightweight, no external deps) ────────────────
@@ -190,6 +191,67 @@ async function handleAssinatura(
   });
 }
 
+// ── Upload CNH handler ────────────────────────────────────────────────
+async function handleUploadCNH(
+  supabase: ReturnType<typeof createClient>,
+  codigo: string,
+  fileData: string,
+  fileName: string,
+  contentType: string,
+) {
+  // Rate-limit
+  const { data: rl, error: rlErr } = await supabase.rpc("check_rate_limit", {
+    p_identifier: codigo,
+    p_function_name: "public-submit-upload-cnh",
+    p_window_seconds: LIMITS["upload-cnh"].window,
+    p_max_requests: LIMITS["upload-cnh"].max,
+  });
+  if (rlErr) throw rlErr;
+  if (!rl?.[0]?.allowed) {
+    return new Response(
+      JSON.stringify({ error: "Limite de uploads excedido. Tente novamente em alguns minutos." }),
+      { status: 429, headers: { ...corsHeaders, "Retry-After": "300", "Content-Type": "application/json" } },
+    );
+  }
+
+  // Validate content type
+  const allowedTypes = ["image/jpeg", "image/png", "application/pdf"];
+  if (!allowedTypes.includes(contentType)) {
+    return new Response(
+      JSON.stringify({ error: "Formato inválido. Envie JPG, PNG ou PDF." }),
+      { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+    );
+  }
+
+  // Decode base64 file
+  const binaryString = atob(fileData);
+  const bytes = new Uint8Array(binaryString.length);
+  for (let i = 0; i < binaryString.length; i++) {
+    bytes[i] = binaryString.charCodeAt(i);
+  }
+
+  // Max 5MB
+  if (bytes.length > 5 * 1024 * 1024) {
+    return new Response(
+      JSON.stringify({ error: "Arquivo muito grande. Máximo: 5MB." }),
+      { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+    );
+  }
+
+  const ext = fileName.split(".").pop() || "jpg";
+  const path = `${codigo}/cnh-${Date.now()}.${ext}`;
+
+  const { error } = await supabase.storage
+    .from("documentos-proposta")
+    .upload(path, bytes, { contentType, upsert: true });
+  if (error) throw error;
+
+  return new Response(JSON.stringify({ success: true, path }), {
+    status: 200,
+    headers: { ...corsHeaders, "Content-Type": "application/json" },
+  });
+}
+
 // ── Main handler ──────────────────────────────────────────────────────
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -197,6 +259,12 @@ Deno.serve(async (req) => {
   }
 
   try {
+    // Service-role client for privileged operations
+    const supabase = createClient(
+      Deno.env.get("SUPABASE_URL")!,
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
+    );
+
     const { action, payload } = await req.json();
 
     if (!action || !payload || typeof payload !== "object") {
@@ -213,12 +281,6 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Service-role client for privileged operations
-    const supabase = createClient(
-      Deno.env.get("SUPABASE_URL")!,
-      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
-    );
-
     switch (action) {
       case "feedback":
         return await handleFeedback(supabase, payload as Record<string, unknown>);
@@ -226,6 +288,14 @@ Deno.serve(async (req) => {
         return await handleProposta(supabase, payload as Record<string, unknown>);
       case "assinatura":
         return await handleAssinatura(supabase, payload as Record<string, unknown>);
+      case "upload-cnh":
+        return await handleUploadCNH(
+          supabase,
+          requireString(payload as Record<string, unknown>, "codigo", "codigo"),
+          requireString(payload as Record<string, unknown>, "fileData", "fileData"),
+          requireString(payload as Record<string, unknown>, "fileName", "fileName"),
+          requireString(payload as Record<string, unknown>, "contentType", "contentType"),
+        );
       default:
         return new Response(
           JSON.stringify({ error: "Ação não suportada." }),
