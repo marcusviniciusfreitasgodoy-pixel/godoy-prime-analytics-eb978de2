@@ -1,4 +1,5 @@
 import { useState, useCallback } from "react";
+import { supabase } from "@/integrations/supabase/client";
 import { Upload, FileText, Loader2, CheckCircle, AlertTriangle, XCircle, RefreshCw, Sparkles, Trash2, ChevronDown, ChevronUp } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -122,11 +123,17 @@ export function DocumentAnalyzer({ onChecklistItemSuggested }: DocumentAnalyzerP
   };
 
   const analyzeDocument = async (doc: DocumentFile): Promise<AnalysisResult> => {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session?.access_token) {
+      throw new Error('Você precisa estar autenticado para analisar documentos.');
+    }
+
     const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/analyze-document`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+        'Authorization': `Bearer ${session.access_token}`,
+        'apikey': import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
       },
       body: JSON.stringify({
         image: doc.preview,
