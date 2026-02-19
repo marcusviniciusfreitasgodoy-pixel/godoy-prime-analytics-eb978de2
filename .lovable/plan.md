@@ -1,55 +1,54 @@
 
 
-## Diagnostico de Seguranca - Itens Nivel "error"
+# Correcao: Rua Alfredo Ceschiatti nao encontrada na busca
 
-### Issue encontrada
+## Diagnostico
 
-**Segredos expostos em arquivo de migracao** (`vault_secrets_hardcoded`)
+A **Rua Alfredo Ceschiatti** existe no banco de dados com **67+ transacoes** registradas, porem esta cadastrada no bairro **JACAREPAGUA**, nao em Barra da Tijuca. Quando o cliente busca com o bairro "Barra da Tijuca" selecionado (que e o padrao), a rua nao aparece nos resultados nem nas sugestoes de autocomplete.
 
-O arquivo `supabase/migrations/20251205033247_...sql` contem hardcoded:
-- URL do projeto fonte: `https://wlnwspjobfdjftyffqne.supabase.co`
-- Chave `service_role` do projeto fonte (JWT completo)
+Dados encontrados:
+- Bairro real: JACAREPAGUA
+- Tipologia: Apartamento
+- Valor medio R$/m2: ~R$ 6.800-7.600
+- Transacoes desde 2023 ate 2025
 
-Esses valores estao no historico do Git e podem ser acessados por qualquer pessoa com acesso ao repositorio.
+## Solucao Proposta
 
----
+Implementar uma **busca cross-bairro** que, quando o logradouro digitado nao for encontrado no bairro selecionado, busque automaticamente em outros bairros e sugira ao usuario trocar de bairro.
 
-### Por que nao pode ser corrigido automaticamente
+### Mudancas
 
-Arquivos de migracao sao **imutaveis** -- nao podem ser editados ou deletados apos execucao. A chave ja esta no historico do Git.
+#### 1. Componente EmbeddedAdvancedSearch (Pesquisa Avancada)
+- Apos a busca principal retornar 0 resultados com logradouro preenchido, executar uma segunda query sem filtro de bairro
+- Se encontrar resultados em outro bairro, exibir um alerta: "Rua Alfredo Ceschiatti encontrada em JACAREPAGUA. Deseja buscar nesse bairro?"
+- Ao clicar, atualiza o bairro selecionado e refaz a busca automaticamente
 
----
+#### 2. Hook useStreetSuggestions (Autocomplete)
+- Quando a busca no bairro selecionado retornar 0 sugestoes e o termo tiver 5+ caracteres, fazer uma busca secundaria sem filtro de bairro (limitada a 5 resultados)
+- Exibir essas sugestoes com um badge indicando o bairro real (ex: "RUA ALFREDO CESCHIATTI - Jacarepagua")
+- Ao selecionar, atualizar automaticamente o campo de bairro
 
-### Plano de acao
+#### 3. Componente BairroSelector
+- Nenhuma mudanca necessaria, apenas garantir que o bairro JACAREPAGUA esteja disponivel no cache de bairros
 
-#### 1. Acao manual obrigatoria (pelo dono do projeto)
+### Detalhes Tecnicos
 
-O dono do projeto **fonte** (`wlnwspjobfdjftyffqne`) precisa:
+**EmbeddedAdvancedSearch.tsx** - Adicionar estado `crossBairroSuggestion` e logica pos-busca:
+- Novo estado: `crossBairroSuggestion: { logradouro: string; bairro: string; count: number } | null`
+- No `queryFn`, quando `results.length === 0` e `searchParams.logradouro` existe, executar query adicional sem filtro de bairro
+- Renderizar Alert com botao para trocar bairro
 
-1. Acessar o Dashboard Supabase do projeto fonte
-2. Ir em **Settings > API** e rotacionar (regenerar) a `service_role` key
-3. Atualizar o segredo `SUPABASE_SOURCE_SERVICE_KEY` no Lovable Cloud com a nova chave
+**useStreetSuggestions.ts** - Adicionar fallback cross-bairro:
+- Quando query principal retorna array vazio e `debouncedQuery.length >= 5`, executar busca em `itbi_transactions` sem filtro de bairro
+- Adicionar campo `bairro_origem?: string` na interface `StreetSuggestion`
+- Marcar sugestoes cross-bairro com o bairro de origem para exibicao diferenciada no UI
 
-Isso invalida a chave exposta, neutralizando o risco.
+**Step0Identification.tsx e Step1Location.tsx** - Mesma logica de fallback:
+- Quando sugestoes oficiais retornam vazio no bairro selecionado, buscar em outros bairros
+- Exibir badge com bairro de origem e atualizar campo bairro ao selecionar
 
-#### 2. Atualizar o finding de seguranca
-
-Apos a rotacao, marcaremos o finding como resolvido no scanner. Se a rotacao nao for possivel agora, atualizaremos o finding com instrucoes detalhadas.
-
----
-
-### Detalhes tecnicos
-
-- **Arquivo afetado:** `supabase/migrations/20251205033247_31ebc268-0147-493a-bc8c-7558618b5df3.sql`
-- **Linha 40:** JWT `service_role` hardcoded (projeto `wlnwspjobfdjftyffqne`)
-- **Risco:** Qualquer pessoa com acesso ao repo pode usar essa chave para acessar dados do projeto fonte com privilegios elevados
-- **Mitigacao atual:** A chave esta armazenada no Vault (criptografada em repouso), mas o risco vem do historico Git
-
-### Resumo
-
-| Item | Status |
-|------|--------|
-| Segredos hardcoded na migracao | Requer acao manual (rotacao de chave) |
-| Itens nivel "warn" | Ignorados conforme solicitado |
-| Total de erros encontrados | 1 |
-
+### Impacto
+- Nenhuma mudanca no banco de dados
+- Nenhuma mudanca em edge functions
+- Apenas mudancas no frontend (3-4 arquivos)
+- Retrocompativel com buscas existentes (o fallback so ativa quando 0 resultados)
