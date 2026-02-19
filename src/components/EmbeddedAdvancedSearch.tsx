@@ -387,19 +387,31 @@ export function EmbeddedAdvancedSearch({ defaultBairro = "" }: EmbeddedAdvancedS
               </div>
             </PopoverTrigger>
             {uniqueStreetSuggestions.length > 0 && (
-              <PopoverContent className="p-0 w-[300px]" align="start">
+              <PopoverContent className="p-0 w-[340px]" align="start">
                 <ScrollArea className="h-[200px]">
                   {uniqueStreetSuggestions.map((s) => (
                     <button
-                      key={`${s.logradouro}__${s.nome_condominio || ''}`}
-                      className="w-full px-3 py-2 text-left text-sm hover:bg-accent flex items-center justify-between"
+                      key={`${s.logradouro}__${s.nome_condominio || ''}__${s.bairro_origem || ''}`}
+                      className="w-full px-3 py-2 text-left text-sm hover:bg-accent flex items-center justify-between gap-2"
                       onClick={() => {
                         setLogradouro(s.logradouro);
+                        // Se é cross-bairro, atualizar o bairro também
+                        if (s.bairro_origem) {
+                          setBairro(s.bairro_origem);
+                        }
                         setLogradouroPopoverOpen(false);
                       }}
                     >
                       <span className="truncate">{s.nome_condominio || s.logradouro}</span>
-                      <Badge variant="secondary" className="text-xs ml-2">{s.total_transacoes}</Badge>
+                      <div className="flex items-center gap-1 shrink-0">
+                        {s.bairro_origem && (
+                          <Badge variant="outline" className="text-[10px] border-amber-400 text-amber-700 bg-amber-50">
+                            <MapPin className="h-3 w-3 mr-0.5" />
+                            {s.bairro_origem}
+                          </Badge>
+                        )}
+                        <Badge variant="secondary" className="text-xs">{s.total_transacoes}</Badge>
+                      </div>
                     </button>
                   ))}
                 </ScrollArea>
