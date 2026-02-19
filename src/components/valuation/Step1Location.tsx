@@ -226,12 +226,18 @@ export function Step1Location({ state, updateState, combined, onAutoValidated }:
     // Usa o logradouro normalizado para ITBI se disponível
     const logradouroParaBusca = suggestion.logradouro_itbi || suggestion.logradouro;
     
-    // Buscar dados ITBI para o logradouro selecionado - incluindo valor_transacao para média
+    // Se é cross-bairro, atualizar o bairro no state
+    const targetBairro = suggestion.bairro_origem || state.bairro;
+    if (suggestion.bairro_origem) {
+      updateState({ bairro: suggestion.bairro_origem });
+    }
+    
+    // Buscar dados ITBI para o logradouro selecionado
     try {
       const { data, error } = await supabase
         .from("itbi_transactions")
         .select("valor_m2, valor_transacao")
-        .eq("bairro", state.bairro)
+        .eq("bairro", targetBairro)
         .eq("uso", "Residencial")
         .gte("percentual_transferido", 90)
         .not("valor_m2", "is", null)
@@ -245,16 +251,13 @@ export function Step1Location({ state, updateState, combined, onAutoValidated }:
         let maxValue: number;
         let medValue: number;
         
-        // Aplica filtro baseado na configuração
         if (settings.outlier_filter_method === 'percentile') {
-          // Método Percentil P10/P90
           const { values, min, max } = filterOutliersPercentile(rawValues);
           const mid = Math.floor(values.length / 2);
           minValue = min;
           maxValue = max;
           medValue = values.length % 2 ? values[mid] : (values[mid - 1] + values[mid]) / 2;
         } else {
-          // Método IQR (padrão)
           const filteredValues = filterOutliersIQR(rawValues);
           const values = filteredValues.sort((a, b) => a - b);
           const finalValues = values.length >= 3 ? values : rawValues.sort((a, b) => a - b);
@@ -264,7 +267,6 @@ export function Step1Location({ state, updateState, combined, onAutoValidated }:
           medValue = finalValues.length % 2 ? finalValues[mid] : (finalValues[mid - 1] + finalValues[mid]) / 2;
         }
         
-        // Calcula preço médio das transações
         const avgValorTransacao = data.reduce((sum, d) => sum + (Number(d.valor_transacao) || 0), 0) / data.length;
         
         const itbiData: ITBIData = {
@@ -280,7 +282,6 @@ export function Step1Location({ state, updateState, combined, onAutoValidated }:
           itbiData,
         });
       } else {
-        // Sem dados ITBI suficientes, apenas atualiza o logradouro
         updateState({
           logradouro: suggestion.logradouro,
           itbiData: null,
@@ -446,7 +447,14 @@ export function Step1Location({ state, updateState, combined, onAutoValidated }:
                         </div>
                       </div>
                       <div className="flex flex-col items-end gap-1 shrink-0">
-                        {getFonteBadge(suggestion.fonte)}
+                        {suggestion.bairro_origem ? (
+                          <Badge variant="outline" className="text-[10px] border-amber-400 text-amber-700 bg-amber-50">
+                            <MapPin className="h-3 w-3 mr-0.5" />
+                            {suggestion.bairro_origem}
+                          </Badge>
+                        ) : (
+                          getFonteBadge(suggestion.fonte)
+                        )}
                         {suggestion.transaction_count && suggestion.transaction_count > 0 && (
                           <span className="text-[10px] text-muted-foreground">
                             {suggestion.transaction_count} transações

@@ -9,6 +9,7 @@ export interface StreetSuggestion {
   microbairro?: string;
   padrao_construtivo?: string;
   ruas_internas?: string[];
+  bairro_origem?: string;
 }
 
 /**
@@ -261,6 +262,44 @@ export function useStreetSuggestions(query: string, bairro: string = 'BARRA DA T
           });
         }
       });
+
+      // Cross-bairro fallback: se não encontrou nada e o termo tem 5+ caracteres,
+      // buscar em todos os bairros para sugerir ao usuário trocar de bairro
+      if (suggestions.length === 0 && cleanedSearch.length >= 5) {
+        const { data: crossData } = await supabase
+          .from('itbi_transactions')
+          .select('logradouro, bairro')
+          .eq('uso', 'Residencial')
+          .ilike('logradouro', `%${cleanedSearch}%`)
+          .gte('percentual_transferido', 90)
+          .not('valor_m2', 'is', null)
+          .limit(50);
+
+        if (crossData && crossData.length > 0) {
+          // Agrupar por logradouro+bairro
+          const crossGrouped = new Map<string, { logradouro: string; bairro: string; count: number }>();
+          crossData.forEach(t => {
+            const key = `${t.logradouro}__${t.bairro}`;
+            const existing = crossGrouped.get(key);
+            if (existing) {
+              existing.count++;
+            } else {
+              crossGrouped.set(key, { logradouro: t.logradouro, bairro: t.bairro || '', count: 1 });
+            }
+          });
+
+          const crossSuggestions: StreetSuggestion[] = Array.from(crossGrouped.values())
+            .sort((a, b) => b.count - a.count)
+            .slice(0, 5)
+            .map(item => ({
+              logradouro: item.logradouro,
+              total_transacoes: item.count,
+              bairro_origem: item.bairro,
+            }));
+
+          return crossSuggestions;
+        }
+      }
 
       return suggestions;
     },

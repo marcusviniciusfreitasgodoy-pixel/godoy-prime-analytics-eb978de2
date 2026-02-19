@@ -102,10 +102,15 @@ export function Step0Identification({ state, updateState, showValidation = false
     // Usa logradouro_itbi para compatibilidade com base ITBI
     const streetName = suggestion.logradouro_itbi || suggestion.logradouro;
     setSearchTerm(streetName);
-    updateState({ 
+    const updates: Partial<ValuationState> = { 
       logradouro: streetName,
       nomeCondominio: suggestion.nome_condominio || state.nomeCondominio
-    });
+    };
+    // Se é cross-bairro, atualizar o bairro automaticamente
+    if (suggestion.bairro_origem) {
+      updates.bairro = suggestion.bairro_origem;
+    }
+    updateState(updates);
     setShowSuggestions(false);
   };
 
@@ -248,7 +253,14 @@ export function Step0Identification({ state, updateState, showValidation = false
                         )}
                       </div>
                       <div className="flex flex-col items-end gap-1 shrink-0">
-                        {getFonteBadge(suggestion.fonte)}
+                        {suggestion.bairro_origem ? (
+                          <Badge variant="outline" className="text-[10px] border-amber-400 text-amber-700 bg-amber-50">
+                            <MapPin className="h-3 w-3 mr-0.5" />
+                            {suggestion.bairro_origem}
+                          </Badge>
+                        ) : (
+                          getFonteBadge(suggestion.fonte)
+                        )}
                         {suggestion.transaction_count && suggestion.transaction_count > 0 && (
                           <span className="text-[10px] text-muted-foreground">
                             {suggestion.transaction_count} transações

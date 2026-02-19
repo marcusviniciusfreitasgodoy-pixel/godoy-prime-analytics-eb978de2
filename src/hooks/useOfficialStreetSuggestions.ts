@@ -14,6 +14,7 @@ export interface OfficialStreetSuggestion {
   transaction_count?: number;
   nome_condominio?: string;
   microbairro?: string;
+  bairro_origem?: string;
 }
 
 /**
@@ -88,19 +89,23 @@ export function useOfficialStreetSuggestions(query: string, bairro: string = 'BA
         // Ordenar: primeiro combinados, depois oficial, depois só ITBI
         // Dentro de cada grupo, ordenar por transaction_count
         const results = Array.from(combinedMap.values()).sort((a, b) => {
-          // Prioridade de fonte
           const fontePriority = { combinado: 0, oficial: 1, itbi: 2 };
           const fonteDiff = fontePriority[a.fonte] - fontePriority[b.fonte];
           if (fonteDiff !== 0) return fonteDiff;
-          
-          // Depois por transaction_count
           return (b.transaction_count || 0) - (a.transaction_count || 0);
         });
 
-        return results.slice(0, 12);
+        const finalResults = results.slice(0, 12);
+
+        // Cross-bairro fallback: se 0 resultados e termo >= 5 chars, buscar em todos os bairros
+        if (finalResults.length === 0 && query.length >= 5) {
+          const crossResults = await fetchCrossBairroSuggestions(query, bairro);
+          return crossResults;
+        }
+
+        return finalResults;
       } catch (error) {
         console.error('Error fetching official suggestions:', error);
-        // Fallback: retornar apenas dados ITBI
         return fetchITBISuggestions(query, bairro);
       }
     },
@@ -168,6 +173,50 @@ async function fetchITBISuggestions(query: string, bairro: string): Promise<Offi
     })
     .sort((a, b) => (b.transaction_count || 0) - (a.transaction_count || 0))
     .slice(0, 12);
+}
+
+/**
+ * Busca sugestões cross-bairro quando não há resultados no bairro selecionado
+ */
+async function fetchCrossBairroSuggestions(query: string, currentBairro: string): Promise<OfficialStreetSuggestion[]> {
+  const normalizedTerm = normalizeStreetSearchTerm(query);
+  const normalizedNoAccents = normalizeAccents(normalizedTerm);
+
+  const { data, error } = await supabase
+    .from("itbi_transactions")
+    .select("logradouro, bairro, total_transacoes")
+    .neq("bairro", currentBairro.toUpperCase())
+    .eq("uso", "Residencial")
+    .gte("percentual_transferido", 90)
+    .not("valor_m2", "is", null)
+    .or(`logradouro.ilike.%${normalizedTerm}%,logradouro.ilike.%${normalizedNoAccents}%`)
+    .order("total_transacoes", { ascending: false })
+    .limit(50);
+
+  if (error || !data || data.length === 0) return [];
+
+  // Agrupar por logradouro+bairro
+  const grouped = new Map<string, { logradouro: string; bairro: string; count: number }>();
+  data.forEach(item => {
+    const key = `${item.logradouro}__${item.bairro}`;
+    const existing = grouped.get(key);
+    if (existing) {
+      existing.count += item.total_transacoes || 1;
+    } else {
+      grouped.set(key, { logradouro: item.logradouro, bairro: item.bairro || '', count: item.total_transacoes || 1 });
+    }
+  });
+
+  return Array.from(grouped.values())
+    .sort((a, b) => b.count - a.count)
+    .slice(0, 5)
+    .map(item => ({
+      logradouro: item.logradouro,
+      logradouro_itbi: item.logradouro,
+      fonte: 'itbi' as const,
+      transaction_count: item.count,
+      bairro_origem: item.bairro,
+    }));
 }
 
 /**
