@@ -88,7 +88,6 @@ const App = () => (
                 <Route path="/visitas/assinatura" element={<AssinaturaLanding />} />
                 <Route path="/visitas/assinatura/:codigo/:tipo" element={<AssinaturaVisita />} />
                 <Route path="/proposta/:codigo" element={<PropostaPublica />} />
-                <Route path="/apresentacao" element={<Apresentacao />} />
                 <Route path="/demo/*" element={<DemoLayout />} />
                 <Route
                   path="/*"
