@@ -1,64 +1,71 @@
-
-
-# Adicionar Secao de Metricas de Tracao ao PDF One-Pager
+# Atualizar One-Pager PDF e a apresentaçao com Mapeamento Funcionalidades x Dores x Beneficios
 
 ## Objetivo
 
-Inserir uma secao "METRICAS DE TRACAO" entre "Diferenciais" e o footer, com dados reais consultados do banco de dados no momento da geracao do PDF.
+Reescrever o PDF One-Pager para incluir o mapeamento completo de funcionalidades, dores que resolvem e beneficios entregues, conforme a analise apresentada. O PDF passara de 1 para 2 paginas para acomodar o conteudo enriquecido.
 
-## Dados reais disponíveis
+## Estrutura do PDF (2 paginas)
 
-Com base na consulta ao banco:
-- **124.389** transacoes reais ITBI (soma de `total_transacoes`)
-- **28.687** registros agregados na base
-- **144** bairros mapeados
-- **17** avaliacoes realizadas
-- **6** vistorias digitais
-- **20** usuarios cadastrados
-- **1** organizacao ativa
-- Historico de **Jan/2020 a Dez/2025** (quase 6 anos)
+### Pagina 1 (manter layout atual com ajustes)
 
-## Layout da secao
+1. **HEADER** - Sem alteracoes
+2. **O MERCADO** - Sem alteracoes
+3. **A DOR DO MERCADO** - Enriquecer com as 4 dores mapeadas:
+  - Assimetria de informacao (precificacao baseada em anuncios inflados)
+  - Custo do erro (R$ 100K-300K por transacao mal precificada)
+  - Operacao manual (fichas em papel, controle por WhatsApp)
+  - Falta de inteligencia de mercado (sem dados de tendencia por microbairro)
+4. **A SOLUCAO - MODULOS** - Atualizar os 4 cards com formato "Dor -> Beneficio":
+  - **Motor de Avaliacao**: Dor: precificacao por "achismo" | Beneficio: laudo NBR 14653-2 em 5 min com 3 cenarios
+  - **Vistoria Digital 3.1**: Dor: vistorias sem padrao, disputas juridicas | Beneficio: score 0-100 automatico, PDF profissional
+  - **CRM + Pipeline**: Dor: leads perdidos em WhatsApp, sem follow-up | Beneficio: Kanban 8 estagios, conversao rastreavel
+  - **Sofia IA**: Dor: horas pesquisando dados dispersos | Beneficio: resposta contextual instantanea com dados ITBI
+5. **DIFERENCIAIS** - Sem alteracoes
+6. **METRICAS DE TRACAO** - Sem alteracoes
 
-A secao tera um retangulo navy com 4 metricas em linha horizontal, cada uma com:
-- Numero grande em dourado (valor real)
-- Label descritivo em branco abaixo
+### Pagina 2 (nova)
 
-Metricas exibidas:
-1. **Total de transacoes ITBI** (soma real de `total_transacoes`)
-2. **Bairros mapeados** (COUNT DISTINCT bairro)
-3. **Avaliacoes realizadas** (COUNT valuations)
-4. **Usuarios ativos** (COUNT profiles)
+7. **FUNCIONALIDADES DETALHADAS** - Grid com 6 modulos adicionais em formato compacto (titulo + dor + beneficio + persona):
+  - Dashboard Analytics (4 KPIs, graficos 60 meses)
+  - Microbairros (ranking e evolucao por sub-regiao)
+  - Gestao de Visitas (agendamento, fichas digitais, assinatura)
+  - Propostas Digitais (modelos simplificado/completo, aceite eletrônico)
+  - Estrategia de Precificacao (diagnostico 9 perguntas, 3 faixas)
+  - Parecer Godoy Prime (validacao independente para compradores)
+8. **PARA QUEM** - Barra horizontal com 4 personas:
+  - Corretor de Luxo: avaliacao + visitas + CRM
+  - Gerente/Imobiliaria: dashboard + controle operacional
+  - Administrador: calibradores + gestao de usuarios
+  - Comprador Premium: parecer independente + transparencia
+9. **FOOTER** - Mesmo padrao
 
 ## Detalhes tecnicos
 
-**Arquivo: `src/utils/productOnePagerPdfExport.ts`**
+**Arquivo: `src/utils/productOnePagerPdfExport.ts**`
 
-1. Importar o cliente Supabase: `import { supabase } from '@/integrations/supabase/client'`
+1. Atualizar array `modules` (linha 169) com novo formato incluindo campo `dor` e `beneficio` ao inves de `lines` generico
+2. Atualizar array `dorLines` (linha 142) com as 4 dores principais mapeadas
+3. Apos a secao de metricas (linha 278), adicionar `doc.addPage()` para pagina 2
+4. Na pagina 2, desenhar grid 3x2 com os 6 modulos adicionais usando layout compacto (cada card ~38mm altura)
+5. Desenhar secao "PARA QUEM" com 4 colunas de personas
+6. Aplicar footer na pagina 2 com `drawGodoyFooter`
+7. Ajustar `doc.save()` para o final apos pagina 2
 
-2. Criar funcao auxiliar `fetchTractionMetrics()` que consulta o banco:
-   - `SELECT SUM(total_transacoes) FROM itbi_transactions` para transacoes reais
-   - `SELECT COUNT(DISTINCT bairro) FROM itbi_transactions` para bairros
-   - `SELECT COUNT(*) FROM valuations` para avaliacoes (filtrado pela org do usuario)
-   - `SELECT COUNT(*) FROM profiles` para usuarios (filtrado pela org)
-   - Retorna objeto com os 4 valores, com fallbacks seguros caso a query falhe
+## Formatacao dos cards de modulo (pagina 1)
 
-3. Chamar `fetchTractionMetrics()` no inicio da funcao `exportProductOnePagerPDF`, junto com `fetchCompanyInfoForPDF`
+Cada card tera:
 
-4. Desenhar a secao apos "Diferenciais" (linha 213, onde `y += 28`):
-   - Retangulo navy arredondado com largura total do conteudo
-   - Titulo "METRICAS DE TRACAO" em dourado centralizado
-   - 4 colunas equidistantes, cada uma com numero grande + label
-   - Altura estimada: ~22mm
+- Titulo em navy bold (8.5pt)
+- Linha "Dor:" em vermelho escuro (7pt) - 1 linha
+- Linha "Beneficio:" em verde escuro (7pt) - 1 linha  
+- Aumentar `cellH` de 28 para 32mm para acomodar
 
-5. Footer permanece inalterado apos a nova secao
+## Formatacao dos cards detalhados (pagina 2)
 
-## Formatacao dos numeros
+Cada card tera:
 
-- Transacoes: formato com ponto de milhar (ex: "124.389")
-- Bairros: numero simples (ex: "144")
-- Avaliacoes: numero simples (ex: "17")
-- Usuarios: numero simples (ex: "20")
-
-Os dados serao sempre atualizados em tempo real a cada geracao do PDF, garantindo credibilidade conforme a diretriz do projeto.
-
+- Titulo em navy bold (8pt)
+- "Dor:" em vermelho escuro italic (6.5pt)
+- "Entrega:" em verde escuro (6.5pt)  
+- "Para:" badge com persona em gold (6pt)
+- Fundo cinza claro com borda gold sutil
