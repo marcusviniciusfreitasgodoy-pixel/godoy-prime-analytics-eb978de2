@@ -79,7 +79,7 @@ function drawMercado(doc: jsPDF, y: number, margin: number, contentWidth: number
   const mercadoLines = [
     'Nicho: Imóveis de alto padrão — Barra da Tijuca, RJ',
     'Decisor: Corretores e imobiliárias com faturamento R$ 10-100K+/mês',
-    'Ticket médio por imóvel: R$ 3M a R$ 30M',
+    'Valor médio por imóvel: R$ 3M a R$ 30M',
     'Mercado endereçável: 5.000+ corretores ativos na região',
   ];
   const textMaxW = contentWidth - 55;
@@ -135,7 +135,7 @@ function drawDorMercado(doc: jsPDF, y: number, margin: number, contentWidth: num
   const dorLines = [
     'Assimetria de informação: corretores precificam com base em anúncios inflados, não em valores reais de transação.',
     'Custo do erro: R$ 100K–300K por transação mal precificada — imóvel encalha ou vende abaixo do justo.',
-    'Operação manual: fichas em papel, controle por WhatsApp, sem rastreabilidade de leads ou visitas.',
+    'Operação manual: fichas em papel, controle por WhatsApp, sem rastreabilidade de contatos ou visitas.',
     'Falta de inteligência de mercado: sem dados de tendência por microbairro, decisões no "achismo".',
   ];
   dorLines.forEach((line, i) => {
@@ -162,8 +162,8 @@ function drawSolucaoModulos(doc: jsPDF, y: number, margin: number, contentWidth:
   const cellH = 32;
   const modules = [
     { title: 'Motor de Avaliação', dor: 'Precificação por "achismo" sem base em dados reais', beneficio: 'Laudo NBR 14653-2 em 5 min com 3 cenários calibráveis' },
-    { title: 'Vistoria Digital 3.1', dor: 'Vistorias sem padrão geram disputas jurídicas', beneficio: 'Score 0-100 automático, checklist 55+ itens, PDF profissional' },
-    { title: 'CRM + Pipeline', dor: 'Leads perdidos em WhatsApp, sem follow-up estruturado', beneficio: 'Kanban 8 estágios, conversão rastreável, notificações automáticas' },
+    { title: 'Vistoria Digital 3.1', dor: 'Vistorias sem padrão geram disputas jurídicas', beneficio: 'Pontuação 0-100 automática, lista de verificação 55+ itens, PDF profissional' },
+    { title: 'Gestão de Clientes e Funil', dor: 'Contatos perdidos em WhatsApp, sem acompanhamento estruturado', beneficio: 'Quadro 8 estágios, conversão rastreável, notificações automáticas' },
     { title: 'Sofia IA', dor: 'Horas pesquisando dados dispersos em múltiplas fontes', beneficio: 'Resposta contextual instantânea com base em dados ITBI oficiais' },
   ];
 
@@ -218,7 +218,7 @@ function drawDiferenciais(doc: jsPDF, y: number, margin: number, contentWidth: n
     { title: 'Dados Oficiais ITBI', desc: 'Transações reais da prefeitura, não anúncios inflados' },
     { title: 'Metodologia NBR 14653-2', desc: 'Conformidade com norma técnica de avaliação imobiliária' },
     { title: 'Resultado em 5 Minutos', desc: 'Da busca ao laudo profissional em PDF pronto para apresentação' },
-    { title: 'Multi-tenant com RLS', desc: 'Isolamento total de dados por organização, segurança enterprise' },
+    { title: 'Multiorganização Segura', desc: 'Isolamento total de dados por organização, segurança corporativa' },
   ];
 
   const diffColW = (contentWidth - 6) / 2;
@@ -301,19 +301,19 @@ function drawPage2FuncionalidadesDetalhadas(doc: jsPDF, margin: number, contentW
 
   const detailedModules = [
     {
-      title: 'Dashboard Analytics',
+      title: 'Painel Analítico',
       dor: 'Sem visão consolidada do mercado, decisões às cegas',
       entrega: '4 KPIs em tempo real, gráficos de 60 meses, exportação PDF/Excel',
     },
     {
-      title: 'Microbairros',
+      title: 'Microrregiões',
       dor: 'Barra tratada como região única, ignorando variações de R$/m²',
-      entrega: 'Ranking e evolução por sub-região com dados ITBI segmentados',
+      entrega: 'Classificação e evolução por sub-região com dados ITBI segmentados',
     },
     {
       title: 'Gestão de Visitas',
       dor: 'Agendamento por WhatsApp, fichas em papel, sem controle',
-      entrega: 'Fichas digitais com assinatura eletrônica, badge de proximidade',
+      entrega: 'Fichas digitais com assinatura eletrônica, selo de proximidade',
     },
     {
       title: 'Propostas Digitais',
