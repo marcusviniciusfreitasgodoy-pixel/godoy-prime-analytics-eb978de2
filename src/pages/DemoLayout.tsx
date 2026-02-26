@@ -18,6 +18,7 @@ import CalibradorVistoria from "@/pages/CalibradorVistoria";
 import Leads from "@/pages/Leads";
 import Visitas from "@/pages/Visitas";
 import Configuracoes from "@/pages/Configuracoes";
+import Apresentacao from "@/pages/Apresentacao";
 import NotFound from "@/pages/NotFound";
 
 const BANNER_HEIGHT = "36px";
@@ -51,6 +52,7 @@ export default function DemoLayout() {
                   <Route path="/leads" element={<Leads />} />
                   <Route path="/visitas" element={<Visitas />} />
                   <Route path="/configuracoes" element={<Configuracoes />} />
+                  <Route path="/apresentacao" element={<Apresentacao />} />
                   <Route path="*" element={<NotFound />} />
                 </Routes>
               </main>
