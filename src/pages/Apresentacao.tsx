@@ -15,13 +15,14 @@ import {
 } from "@/components/ui/select";
 import {
   BarChart3, Building2, ClipboardCheck, Calendar, Target, FileText,
-  TrendingUp, Brain, Shield, ArrowRight, MessageCircle, Eye, Send, Loader2, CheckCircle,
+  TrendingUp, Brain, Shield, ArrowRight, MessageCircle, Eye, Send, Loader2, CheckCircle, FileDown,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { z } from "zod";
 import godoySymbol from "@/assets/godoy-logo-symbol.png";
 import godoyLogo from "@/assets/godoy-logo-pdf.png";
+import { exportProductOnePagerPDF } from "@/utils/productOnePagerPdfExport";
 
 const features = [
   { icon: BarChart3, title: "Dashboard Analítico", desc: "KPIs de mercado em tempo real com evolução de preços por m² e liquidez por tipologia." },
@@ -121,6 +122,15 @@ export default function Apresentacao() {
             >
               <MessageCircle className="h-5 w-5" />
               Agendar Apresentação
+            </Button>
+            <Button
+              size="lg"
+              variant="outline"
+              className="w-full sm:w-auto gap-2 text-base font-bold min-h-[48px] border-white/30 text-white hover:bg-white/10"
+              onClick={() => exportProductOnePagerPDF()}
+            >
+              <FileDown className="h-5 w-5" />
+              Baixar One-Pager PDF
             </Button>
           </div>
         </div>
