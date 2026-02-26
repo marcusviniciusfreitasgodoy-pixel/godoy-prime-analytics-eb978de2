@@ -82,8 +82,10 @@ function drawMercado(doc: jsPDF, y: number, margin: number, contentWidth: number
     'Ticket médio por imóvel: R$ 3M a R$ 30M',
     'Mercado endereçável: 5.000+ corretores ativos na região',
   ];
+  const textMaxW = contentWidth - 55;
   mercadoLines.forEach((line, i) => {
-    doc.text(`•  ${line}`, margin + 5, y + 14 + i * 5);
+    const split = doc.splitTextToSize(`•  ${line}`, textMaxW);
+    doc.text(split, margin + 5, y + 14 + i * 5);
   });
 
   const statsX = margin + contentWidth - 45;
@@ -137,7 +139,7 @@ function drawDorMercado(doc: jsPDF, y: number, margin: number, contentWidth: num
     'Falta de inteligência de mercado: sem dados de tendência por microbairro, decisões no "achismo".',
   ];
   dorLines.forEach((line, i) => {
-    const splitLine = doc.splitTextToSize(`•  ${line}`, contentWidth - 10);
+    const splitLine = doc.splitTextToSize(`•  ${line}`, contentWidth - 12);
     doc.text(splitLine, margin + 5, y + 13 + i * 5.2);
   });
 
@@ -337,7 +339,7 @@ function drawPage2FuncionalidadesDetalhadas(doc: jsPDF, margin: number, contentW
   ];
 
   const cellW = (contentWidth - 4) / 2;
-  const cellH = 38;
+  const cellH = 40;
 
   detailedModules.forEach((mod, i) => {
     const col = i % 2;
@@ -431,7 +433,7 @@ function drawParaQuem(doc: jsPDF, y: number, margin: number, contentWidth: numbe
     doc.setTextColor(...BRAND_COLORS.white);
     doc.setFontSize(6);
     doc.setFont('helvetica', 'normal');
-    const descSplit = doc.splitTextToSize(p.desc, colW - 6);
+    const descSplit = doc.splitTextToSize(p.desc, colW - 8);
     descSplit.forEach((line: string, li: number) => {
       doc.text(line, cx, y + 16 + li * 4, { align: 'center' });
     });
