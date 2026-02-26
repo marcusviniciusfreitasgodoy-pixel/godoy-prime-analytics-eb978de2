@@ -1,8 +1,40 @@
 import jsPDF from 'jspdf';
 import { BRAND_COLORS, fetchCompanyInfoForPDF, drawGodoyFooter } from './pdfTemplate';
+import { supabase } from '@/integrations/supabase/client';
+
+interface TractionMetrics {
+  totalTransacoes: number;
+  bairrosMapeados: number;
+  avaliacoes: number;
+  usuarios: number;
+}
+
+async function fetchTractionMetrics(): Promise<TractionMetrics> {
+  const defaults: TractionMetrics = { totalTransacoes: 0, bairrosMapeados: 0, avaliacoes: 0, usuarios: 0 };
+  try {
+    const [txRes, bairroRes, valRes, usersRes] = await Promise.all([
+      supabase.from('itbi_transactions').select('total_transacoes'),
+      supabase.from('bairros_cache').select('bairro'),
+      supabase.from('valuations').select('id', { count: 'exact', head: true }),
+      supabase.from('profiles').select('id', { count: 'exact', head: true }),
+    ]);
+
+    const totalTx = (txRes.data ?? []).reduce((sum, r) => sum + (r.total_transacoes ?? 0), 0);
+    return {
+      totalTransacoes: totalTx,
+      bairrosMapeados: bairroRes.data?.length ?? 0,
+      avaliacoes: valRes.count ?? 0,
+      usuarios: usersRes.count ?? 0,
+    };
+  } catch {
+    return defaults;
+  }
+}
+
+const formatNumber = (n: number) => n.toLocaleString('pt-BR');
 
 export async function exportProductOnePagerPDF(): Promise<void> {
-  const companyInfo = await fetchCompanyInfoForPDF();
+  const [companyInfo, metrics] = await Promise.all([fetchCompanyInfoForPDF(), fetchTractionMetrics()]);
   const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
   const pageWidth = doc.internal.pageSize.getWidth(); // 210
   const margin = 15;
@@ -211,6 +243,39 @@ export async function exportProductOnePagerPDF(): Promise<void> {
   });
 
   y += 28;
+
+  // ── MÉTRICAS DE TRAÇÃO ──
+  const metricasH = 22;
+  doc.setFillColor(...BRAND_COLORS.navy);
+  doc.roundedRect(margin, y, contentWidth, metricasH, 2, 2, 'F');
+
+  doc.setTextColor(...BRAND_COLORS.gold);
+  doc.setFontSize(9);
+  doc.setFont('helvetica', 'bold');
+  doc.text('MÉTRICAS DE TRAÇÃO', pageWidth / 2, y + 6, { align: 'center' });
+
+  const metricItems = [
+    { value: formatNumber(metrics.totalTransacoes), label: 'Transações ITBI' },
+    { value: formatNumber(metrics.bairrosMapeados), label: 'Bairros Mapeados' },
+    { value: formatNumber(metrics.avaliacoes), label: 'Avaliações' },
+    { value: formatNumber(metrics.usuarios), label: 'Usuários Ativos' },
+  ];
+
+  const colW = contentWidth / 4;
+  metricItems.forEach((m, i) => {
+    const cx = margin + colW * i + colW / 2;
+    doc.setTextColor(...BRAND_COLORS.gold);
+    doc.setFontSize(14);
+    doc.setFont('helvetica', 'bold');
+    doc.text(m.value, cx, y + 14, { align: 'center' });
+
+    doc.setTextColor(...BRAND_COLORS.white);
+    doc.setFontSize(6.5);
+    doc.setFont('helvetica', 'normal');
+    doc.text(m.label, cx, y + 19, { align: 'center' });
+  });
+
+  y += metricasH + 4;
 
   // ── FOOTER ──
   drawGodoyFooter(doc, undefined, undefined, companyInfo);
