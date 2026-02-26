@@ -1,93 +1,52 @@
 
-# Incluir Mapeamento Completo de Funcionalidades na Pagina de Apresentacao
+# Melhorar Responsividade Mobile da Apresentacao e One-Pager PDF
 
-## Objetivo
+## Diagnostico
 
-Adicionar uma nova secao entre "Modulos" e "Diferenciais" na pagina `/apresentacao` com o mapeamento detalhado de todas as funcionalidades, mostrando para cada uma: a dor que resolve, o beneficio entregue e a persona destinataria.
+Apos inspecao visual no viewport 390x844 (iPhone), a pagina de apresentacao ja tem uma boa base responsiva. As melhorias focam em refinamentos de espacamento, tipografia e legibilidade em telas pequenas. O PDF, por ser A4 fixo, precisa de ajustes para evitar sobreposicao de texto.
 
-## Alteracoes no arquivo `src/pages/Apresentacao.tsx`
+## Alteracoes na Apresentacao (3 arquivos)
 
-### 1. Atualizar o array `features` existente (linhas 27-34)
+### 1. `src/components/apresentacao/FunctionalityMapSection.tsx`
 
-Transformar de formato simples (`desc`) para formato enriquecido com campos `dor`, `beneficio` e `para`:
+- Reduzir padding interno dos cards em mobile (`p-4` em vez de `pt-6`)
+- Diminuir tamanho do icone em mobile (de `h-10 w-10` para `h-8 w-8` em telas `< sm`)
+- Reduzir espacamento entre secoes de dor/beneficio em mobile
+- Adicionar `text-xs` nos blocos de dor/beneficio para `< sm` e manter `text-sm` acima
 
-| Funcionalidade | Dor | Beneficio | Para |
-|---|---|---|---|
-| Dashboard Analitico | Decisoes baseadas em "achismo", sem visao consolidada do mercado | 4 KPIs em tempo real (R$/m2, Liquidez, Variacao YoY, Ranking) com historico de 60 meses | Corretor, Gerente |
-| Motor de Avaliacao | Precificacao por feeling, laudos caros e demorados | Laudo NBR 14653-2 em 5 min com 3 cenarios (pessimista/provavel/otimista) | Corretor |
-| Vistoria Digital 3.1 | Vistorias sem padrao, disputas juridicas, relatorios manuais | Score 0-100 automatico, checklist 50+ itens, PDF profissional | Corretor |
-| Gestao de Visitas | Agendamento por WhatsApp, fichas em papel, sem controle | Fichas digitais, assinatura eletronica, feedback automatizado, relatorio analitico | Corretor, Gerente |
-| Microregioes | Sem dados de tendencia por sub-regiao, analise superficial | Ranking e evolucao por microbairro com mapa interativo de transacoes | Corretor, Gerente |
-| CRM e Pipeline | Leads perdidos em WhatsApp, sem follow-up, conversao invisivel | Kanban 8 estagios, captacao automatica, notificacoes email/WhatsApp, conversao rastreavel | Corretor, Gerente |
-| Sofia IA | Horas pesquisando dados dispersos em fontes diferentes | Resposta contextual instantanea com dados ITBI, analise de documentos | Corretor |
-| Estrategia de Precificacao | Sem metodo para definir preco de lancamento vs. mercado | Diagnostico 9 perguntas, 3 faixas de preco, recomendacao estrategica | Corretor |
-| Propostas Digitais | Propostas informais, sem rastreabilidade, aceite verbal | Modelos simplificado/completo, aceite eletronico, historico completo | Corretor |
-| Parecer Godoy Prime | Comprador sem validacao independente, risco de pagar acima do mercado | Analise ITBI + vistoria presencial + projecao de valorizacao + margem de negociacao | Comprador Premium |
+### 2. `src/components/apresentacao/PersonasSection.tsx`
 
-### 2. Criar nova secao "Funcionalidades e Dores"
+- Adicionar fundo de card (`bg-card rounded-xl p-4 shadow-sm`) em mobile para melhor separacao visual entre personas
+- Reduzir gap do grid em mobile de `gap-6` para `gap-4`
 
-Inserir entre a secao "Modulos" (linha 163) e "Diferenciais" (linha 165) uma nova secao completa com:
+### 3. `src/pages/Apresentacao.tsx`
 
-- Badge "Funcionalidades x Dores"
-- Titulo: "Cada funcionalidade resolve uma dor real"
-- Subtitulo explicativo
-- Grid responsivo (1 coluna mobile, 2 colunas tablet, 3 colunas desktop)
-- Cada card mostrando:
-  - Icone + titulo (como hoje)
-  - Tag colorida vermelha: "Dor:" com texto
-  - Tag colorida verde: "Beneficio:" com texto
-  - Badge dourado: "Para:" com a persona
+- Reduzir padding vertical das secoes em mobile (`py-8` em vez de `py-12`)
+- Melhorar espacamento do hero em mobile (reduzir `mb-6` do logo para `mb-4`)
+- Reduzir tamanho dos botoes do hero em mobile para evitar que fiquem excessivamente altos
 
-### 3. Adicionar secao "Para Quem"
+## Alteracoes no PDF (1 arquivo)
 
-Nova secao horizontal apos o mapeamento com 4 personas:
+### 4. `src/utils/productOnePagerPdfExport.ts`
 
-- **Corretor de Luxo**: Avaliacao + Visitas + CRM + Sofia IA
-- **Gerente / Imobiliaria**: Dashboard + Controle operacional + Pipeline
-- **Administrador**: Calibradores + Gestao de usuarios + Configuracoes
-- **Comprador Premium**: Parecer independente + Transparencia de mercado
+#### Funcao `drawMercado` (Pagina 1)
+- Limitar largura do texto dos bullet points para `contentWidth - 50` ao inves de usar `contentWidth` inteiro, evitando sobreposicao com a caixa de estatisticas (80.000+ transacoes) posicionada a direita
 
-### 4. Novos icones necessarios
+#### Funcao `drawDorMercado` (Pagina 1)
+- Usar `splitTextToSize` com largura reduzida (`contentWidth - 12`) para garantir que as linhas longas nao ultrapassem a borda do card
 
-Adicionar ao import de lucide-react: `Users`, `Settings`, `Search`, `FileSignature`, `Lightbulb`, `UserCheck`
+#### Funcao `drawPage2FuncionalidadesDetalhadas` (Pagina 2)
+- Aumentar `cellH` de 38 para 40mm para dar mais espaco ao texto dentro dos cards detalhados
+- Usar `splitTextToSize` para o texto de "Entrega" com largura limitada a `cellW - 10` para evitar que textos longos ultrapassem a borda
 
-## Detalhes tecnicos
+#### Funcao `drawParaQuem` (Pagina 2)
+- Usar `splitTextToSize` com largura `colW - 8` (mais margem interna) para evitar que descricoes longas das personas ultrapassem as colunas vizinhas
 
-### Estrutura de dados dos cards enriquecidos
+## Resumo das alteracoes
 
-```text
-Array functionalityMap com objetos contendo:
-  - icon: LucideIcon
-  - title: string
-  - dor: string (1-2 linhas)
-  - beneficio: string (1-2 linhas)
-  - para: string (persona)
-```
-
-### Layout dos cards
-
-Cada card tera:
-- Fundo branco com borda sutil e hover shadow
-- Icone no topo com fundo accent/20
-- Titulo em bold
-- Bloco "Dor" com fundo red-50, borda-l-2 red-400, texto red-700
-- Bloco "Beneficio" com fundo green-50, borda-l-2 green-400, texto green-700
-- Badge inferior dourado com a persona
-
-### Layout das personas
-
-4 cards em grid horizontal (1 col mobile, 2 col tablet, 4 col desktop):
-- Icone circular
-- Nome da persona em bold
-- Lista de modulos associados como badges
-
-## Ordem das secoes na pagina final
-
-1. Hero (sem alteracao)
-2. Modulos - manter a secao atual simplificada como visao geral rapida
-3. **NOVA - Funcionalidades x Dores** - mapeamento completo com 10 cards
-4. **NOVA - Para Quem** - 4 personas
-5. Diferenciais (sem alteracao)
-6. Contato (sem alteracao)
-7. CTA Final (sem alteracao)
-8. Footer (sem alteracao)
+| Arquivo | Tipo | Impacto |
+|---|---|---|
+| FunctionalityMapSection.tsx | Responsividade | Cards mais compactos em mobile |
+| PersonasSection.tsx | Responsividade | Melhor separacao visual em mobile |
+| Apresentacao.tsx | Responsividade | Espacamento otimizado em mobile |
+| productOnePagerPdfExport.ts | PDF layout | Prevencao de sobreposicao de texto |
