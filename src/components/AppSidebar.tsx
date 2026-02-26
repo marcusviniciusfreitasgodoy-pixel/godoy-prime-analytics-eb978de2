@@ -1,4 +1,4 @@
-import { Home, ClipboardCheck, ClipboardList, FileText, MapPin, Users, UserCog, Search, Calculator, Settings, History, Brain, CalendarCheck, Cog, BookOpen, Rocket, Shield, Kanban, MessageSquare } from "lucide-react";
+import { Home, ClipboardCheck, ClipboardList, FileText, MapPin, Users, UserCog, Search, Calculator, Settings, History, Brain, CalendarCheck, Cog, BookOpen, Rocket, Shield, Kanban, MessageSquare, Presentation } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import {
   Sidebar,
@@ -28,6 +28,7 @@ const baseItems = [
   { title: "Histórico Vistorias", url: "/historico-vistorias", icon: ClipboardList, tourId: "nav-historico-vistorias" },
   { title: "Agendamento de Visitas", url: "/visitas", icon: CalendarCheck, tourId: "nav-visitas" },
   { title: "Documentação", url: "/documentacao", icon: FileText, tourId: "nav-documentacao" },
+  { title: "Apresentação", url: "/apresentacao", icon: Presentation, tourId: "nav-apresentacao" },
   { title: "Configurações", url: "/configuracoes", icon: Cog, tourId: "nav-configuracoes" },
 ];
 
