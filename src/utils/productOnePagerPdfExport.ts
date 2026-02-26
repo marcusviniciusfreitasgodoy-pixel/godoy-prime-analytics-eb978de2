@@ -12,19 +12,19 @@ interface TractionMetrics {
 async function fetchTractionMetrics(): Promise<TractionMetrics> {
   const defaults: TractionMetrics = { totalTransacoes: 0, bairrosMapeados: 0, avaliacoes: 0, usuarios: 0 };
   try {
-    const [txRes, bairroRes, valRes, usersRes] = await Promise.all([
-      supabase.from('itbi_transactions').select('total_transacoes'),
-      supabase.from('bairros_cache').select('bairro'),
-      supabase.from('valuations').select('id', { count: 'exact', head: true }),
-      supabase.from('profiles').select('id', { count: 'exact', head: true }),
+    const [bairroRes, valRes, usersRes] = await Promise.all([
+      supabase.from('bairros_cache').select('bairro, total_transacoes'),
+      supabase.from('valuations').select('id'),
+      supabase.from('profiles').select('id'),
     ]);
 
-    const totalTx = (txRes.data ?? []).reduce((sum, r) => sum + (r.total_transacoes ?? 0), 0);
+    const bairros = bairroRes.data ?? [];
+    const totalTx = bairros.reduce((sum, r) => sum + (r.total_transacoes ?? 0), 0);
     return {
       totalTransacoes: totalTx,
-      bairrosMapeados: bairroRes.data?.length ?? 0,
-      avaliacoes: valRes.count ?? 0,
-      usuarios: usersRes.count ?? 0,
+      bairrosMapeados: bairros.length,
+      avaliacoes: valRes.data?.length ?? 0,
+      usuarios: usersRes.data?.length ?? 0,
     };
   } catch {
     return defaults;
