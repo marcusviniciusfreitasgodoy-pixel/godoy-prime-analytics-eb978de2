@@ -212,47 +212,6 @@ export async function exportProductOnePagerPDF(): Promise<void> {
 
   y += 28;
 
-  // ── PLANOS ──
-  const planosH = 22;
-  doc.setFillColor(...BRAND_COLORS.navy);
-  doc.roundedRect(margin, y, contentWidth, planosH, 2, 2, 'F');
-
-  doc.setTextColor(...BRAND_COLORS.gold);
-  doc.setFontSize(9);
-  doc.setFont('helvetica', 'bold');
-  doc.text('PLANOS', pageWidth / 2, y + 6, { align: 'center' });
-
-  const plans = [
-    { name: 'STARTER', price: 'R$ 197/mês', desc: '1 usuário · 10 avaliações' },
-    { name: 'PROFESSIONAL', price: 'R$ 497/mês', desc: '5 usuários · 50 avaliações' },
-    { name: 'ENTERPRISE', price: 'R$ 997/mês', desc: 'Ilimitado · API · Suporte dedicado' },
-  ];
-
-  const planW = (contentWidth - 20) / 3;
-  plans.forEach((p, i) => {
-    const px = margin + 5 + i * (planW + 5);
-    const isPro = i === 1;
-
-    if (isPro) {
-      doc.setFillColor(30, 60, 100);
-      doc.roundedRect(px - 1, y + 8, planW + 2, 12, 1, 1, 'F');
-    }
-
-    doc.setTextColor(...BRAND_COLORS.white);
-    doc.setFontSize(7);
-    doc.setFont('helvetica', 'bold');
-    doc.text(p.name, px + planW / 2, y + 12, { align: 'center' });
-
-    doc.setTextColor(...BRAND_COLORS.gold);
-    doc.setFontSize(9);
-    doc.text(p.price, px + planW / 2, y + 17, { align: 'center' });
-
-    doc.setTextColor(180, 190, 210);
-    doc.setFontSize(5.5);
-    doc.setFont('helvetica', 'normal');
-    doc.text(p.desc, px + planW / 2, y + 20.5, { align: 'center' });
-  });
-
   // ── FOOTER ──
   drawGodoyFooter(doc, undefined, undefined, companyInfo);
 
