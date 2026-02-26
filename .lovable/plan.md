@@ -1,54 +1,87 @@
 
 
-# Correcao: Rua Alfredo Ceschiatti nao encontrada na busca
+# PDF One-Pager Profissional - Godoy Prime Analytics
 
-## Diagnostico
+## Objetivo
 
-A **Rua Alfredo Ceschiatti** existe no banco de dados com **67+ transacoes** registradas, porem esta cadastrada no bairro **JACAREPAGUA**, nao em Barra da Tijuca. Quando o cliente busca com o bairro "Barra da Tijuca" selecionado (que e o padrao), a rua nao aparece nos resultados nem nas sugestoes de autocomplete.
+Criar uma funcao `exportProductOnePagerPDF()` que gera um PDF de pagina unica (A4) com layout premium, contendo as 4 secoes estrategicas do produto: Mercado, Dor, Solucao e Diferenciais. Destinado a apresentacoes para investidores e clientes potenciais.
 
-Dados encontrados:
-- Bairro real: JACAREPAGUA
-- Tipologia: Apartamento
-- Valor medio R$/m2: ~R$ 6.800-7.600
-- Transacoes desde 2023 ate 2025
+---
 
-## Solucao Proposta
+## Layout do PDF (1 pagina A4 - 210x297mm)
 
-Implementar uma **busca cross-bairro** que, quando o logradouro digitado nao for encontrado no bairro selecionado, busque automaticamente em outros bairros e sugira ao usuario trocar de bairro.
+```text
++--------------------------------------------+
+|          GODOY PRIME ANALYTICS             |
+|     Inteligencia Imobiliaria Premium       |
+|          ---- linha dourada ----           |
++--------------------------------------------+
+|                                            |
+| MERCADO                     | NUMEROS     |
+| Nicho, decisor, tamanho     | 80.000+     |
+| do mercado                  | transacoes  |
+|                             | R$ 3-30M    |
+|                             | por imovel  |
++--------------------------------------------+
+| A DOR                                     |
+| Problema + custo + consequencia            |
+| (icone de alerta + texto compacto)         |
++--------------------------------------------+
+| A SOLUCAO                                  |
+| 4 modulos principais em 2x2 grid          |
+| Motor Avaliacao | Vistoria Digital         |
+| CRM + Visitas   | Sofia IA                |
++--------------------------------------------+
+| DIFERENCIAIS                               |
+| 4 bullets com icones dourados              |
+| Dados oficiais | Metodologia propria       |
+| Resultado em 5min | Multi-tenant           |
++--------------------------------------------+
+| PLANOS                                     |
+| Starter R$197 | Pro R$497 | Enterprise R$997|
++--------------------------------------------+
+|  Tel | CRECI | www.godoyprime.com.br       |
++--------------------------------------------+
+```
 
-### Mudancas
+---
 
-#### 1. Componente EmbeddedAdvancedSearch (Pesquisa Avancada)
-- Apos a busca principal retornar 0 resultados com logradouro preenchido, executar uma segunda query sem filtro de bairro
-- Se encontrar resultados em outro bairro, exibir um alerta: "Rua Alfredo Ceschiatti encontrada em JACAREPAGUA. Deseja buscar nesse bairro?"
-- Ao clicar, atualiza o bairro selecionado e refaz a busca automaticamente
+## Arquivo Novo
 
-#### 2. Hook useStreetSuggestions (Autocomplete)
-- Quando a busca no bairro selecionado retornar 0 sugestoes e o termo tiver 5+ caracteres, fazer uma busca secundaria sem filtro de bairro (limitada a 5 resultados)
-- Exibir essas sugestoes com um badge indicando o bairro real (ex: "RUA ALFREDO CESCHIATTI - Jacarepagua")
-- Ao selecionar, atualizar automaticamente o campo de bairro
+### `src/utils/productOnePagerPdfExport.ts`
 
-#### 3. Componente BairroSelector
-- Nenhuma mudanca necessaria, apenas garantir que o bairro JACAREPAGUA esteja disponivel no cache de bairros
+Funcao principal: `export async function exportProductOnePagerPDF(): Promise<void>`
 
-### Detalhes Tecnicos
+Utiliza os helpers existentes do `pdfTemplate.ts`:
+- `BRAND_COLORS` para cores navy/gold/white
+- `fetchCompanyInfoForPDF()` para dados da empresa
+- `drawGodoyFooter()` para rodape padrao
 
-**EmbeddedAdvancedSearch.tsx** - Adicionar estado `crossBairroSuggestion` e logica pos-busca:
-- Novo estado: `crossBairroSuggestion: { logradouro: string; bairro: string; count: number } | null`
-- No `queryFn`, quando `results.length === 0` e `searchParams.logradouro` existe, executar query adicional sem filtro de bairro
-- Renderizar Alert com botao para trocar bairro
+Conteudo estatico baseado nos dados reais do produto ja documentados nas memorias do projeto.
 
-**useStreetSuggestions.ts** - Adicionar fallback cross-bairro:
-- Quando query principal retorna array vazio e `debouncedQuery.length >= 5`, executar busca em `itbi_transactions` sem filtro de bairro
-- Adicionar campo `bairro_origem?: string` na interface `StreetSuggestion`
-- Marcar sugestoes cross-bairro com o bairro de origem para exibicao diferenciada no UI
+**Secoes do PDF:**
 
-**Step0Identification.tsx e Step1Location.tsx** - Mesma logica de fallback:
-- Quando sugestoes oficiais retornam vazio no bairro selecionado, buscar em outros bairros
-- Exibir badge com bairro de origem e atualizar campo bairro ao selecionar
+1. **Cabecalho** - Nome da empresa + tagline "Inteligencia Imobiliaria Premium" + linha dourada
+2. **Mercado** - Box navy com stats: 80.000+ transacoes ITBI, mercado de R$ 3-30M por imovel, nicho de alto padrao Barra da Tijuca, decisor = corretor/imobiliaria com faturamento R$ 10-100K+/mes
+3. **A Dor** - Box com fundo claro: assimetria de informacao, custo de R$ 100-300K por transacao, risco de sobrepreco baseado em anuncios inflados
+4. **A Solucao** - Grid 2x2 com os 4 pilares: Motor de Avaliacao (3 cenarios, 26 fatores), Vistoria Digital (55+ itens), CRM + Gestao de Visitas, Sofia IA (assistente contextual)
+5. **Diferenciais** - 4 bullets: dados oficiais ITBI (nao anuncios), metodologia propria NBR 14653-2, resultado em 5 minutos, arquitetura multi-tenant com RLS
+6. **Planos** - Faixa com os 3 planos (Starter/Pro/Enterprise) e precos
+7. **Rodape** - Contato + CRECI + site
 
-### Impacto
+### Integracao na UI
+
+Adicionar botao de export na pagina `/apresentacao` (`src/pages/Apresentacao.tsx`) com icone `FileDown` e texto "Baixar One-Pager PDF".
+
+---
+
+## Detalhes Tecnicos
+
+- Usa `jsPDF` (ja instalado) com orientacao portrait A4
+- Margens laterais de 15mm para maximizar espaco
+- Tipografia compacta: titulos 11pt bold, corpo 7.5-8pt
+- Boxes com `roundedRect` e cores da marca
+- Nenhuma dependencia nova necessaria
 - Nenhuma mudanca no banco de dados
-- Nenhuma mudanca em edge functions
-- Apenas mudancas no frontend (3-4 arquivos)
-- Retrocompativel com buscas existentes (o fallback so ativa quando 0 resultados)
+- 1 arquivo novo + 1 arquivo editado
+
