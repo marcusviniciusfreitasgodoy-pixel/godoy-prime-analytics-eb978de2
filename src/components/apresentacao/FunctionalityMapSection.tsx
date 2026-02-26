@@ -24,7 +24,7 @@ const functionalityMap: FunctionalityItem[] = [
     icon: TrendingUp,
     title: "Motor de Avaliação",
     dor: "Precificação por feeling, laudos caros e demorados.",
-    beneficio: "Laudo NBR 14653-2 em 5 min com 3 cenários (pessimista/provável/otimista).",
+    beneficio: "Laudo profissional em 5 min com 3 cenários (pessimista/provável/otimista).",
   },
   {
     icon: ClipboardCheck,

@@ -161,7 +161,7 @@ function drawSolucaoModulos(doc: jsPDF, y: number, margin: number, contentWidth:
   const cellW = (contentWidth - 4) / 2;
   const cellH = 32;
   const modules = [
-    { title: 'Motor de Avaliação', dor: 'Precificação por "achismo" sem base em dados reais', beneficio: 'Laudo NBR 14653-2 em 5 min com 3 cenários calibráveis' },
+    { title: 'Motor de Avaliação', dor: 'Precificação por "achismo" sem base em dados reais', beneficio: 'Laudo profissional em 5 min com 3 cenários calibráveis' },
     { title: 'Vistoria Digital 3.1', dor: 'Vistorias sem padrão geram disputas jurídicas', beneficio: 'Pontuação 0-100 automática, lista de verificação 55+ itens, PDF profissional' },
     { title: 'Gestão de Clientes e Funil', dor: 'Contatos perdidos em WhatsApp, sem acompanhamento estruturado', beneficio: 'Quadro 8 estágios, conversão rastreável, notificações automáticas' },
     { title: 'Sofia IA', dor: 'Horas pesquisando dados dispersos em múltiplas fontes', beneficio: 'Resposta contextual instantânea com base em dados ITBI oficiais' },
@@ -216,7 +216,7 @@ function drawDiferenciais(doc: jsPDF, y: number, margin: number, contentWidth: n
 
   const diffs = [
     { title: 'Dados Oficiais ITBI', desc: 'Transações reais da prefeitura, não anúncios inflados' },
-    { title: 'Metodologia NBR 14653-2', desc: 'Conformidade com norma técnica de avaliação imobiliária' },
+    { title: 'Metodologia Técnica', desc: 'Conformidade com norma técnica de avaliação imobiliária' },
     { title: 'Resultado em 5 Minutos', desc: 'Da busca ao laudo profissional em PDF pronto para apresentação' },
     { title: 'Multiorganização Segura', desc: 'Isolamento total de dados por organização, segurança corporativa' },
   ];
