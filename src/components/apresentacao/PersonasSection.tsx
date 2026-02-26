@@ -11,12 +11,12 @@ interface Persona {
 const personas: Persona[] = [
   {
     icon: Search,
-    title: "Corretor de Luxo",
+    title: "Corretor Autônomo",
     modules: ["Avaliação", "Visitas", "CRM", "Sofia IA"],
   },
   {
     icon: BarChart3,
-    title: "Gerente / Imobiliária",
+    title: "Imobiliária",
     modules: ["Dashboard", "Controle Operacional", "Pipeline"],
   },
   {

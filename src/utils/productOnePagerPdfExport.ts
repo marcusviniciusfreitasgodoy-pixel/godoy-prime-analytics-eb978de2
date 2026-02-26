@@ -304,31 +304,31 @@ function drawPage2FuncionalidadesDetalhadas(doc: jsPDF, margin: number, contentW
       title: 'Dashboard Analytics',
       dor: 'Sem visão consolidada do mercado, decisões às cegas',
       entrega: '4 KPIs em tempo real, gráficos de 60 meses, exportação PDF/Excel',
-      persona: 'Gerente / Imobiliária',
+      persona: 'Imobiliária',
     },
     {
       title: 'Microbairros',
       dor: 'Barra tratada como região única, ignorando variações de R$/m²',
       entrega: 'Ranking e evolução por sub-região com dados ITBI segmentados',
-      persona: 'Corretor de Luxo',
+      persona: 'Corretor Autônomo',
     },
     {
       title: 'Gestão de Visitas',
       dor: 'Agendamento por WhatsApp, fichas em papel, sem controle',
       entrega: 'Fichas digitais com assinatura eletrônica, badge de proximidade',
-      persona: 'Corretor de Luxo',
+      persona: 'Corretor Autônomo',
     },
     {
       title: 'Propostas Digitais',
       dor: 'Propostas informais sem validade jurídica ou rastreio',
       entrega: 'Modelos simplificado/completo com aceite eletrônico e PDF',
-      persona: 'Corretor de Luxo',
+      persona: 'Corretor Autônomo',
     },
     {
       title: 'Estratégia de Precificação',
       dor: 'Preço de anúncio definido sem metodologia, sem plano B',
       entrega: 'Diagnóstico 9 perguntas, 3 faixas (Atração/Mercado/Premium)',
-      persona: 'Gerente / Imobiliária',
+      persona: 'Imobiliária',
     },
     {
       title: 'Parecer Godoy Prime',
@@ -408,8 +408,8 @@ function drawParaQuem(doc: jsPDF, y: number, margin: number, contentWidth: numbe
   doc.roundedRect(margin, y, contentWidth, barH, 2, 2, 'F');
 
   const personas = [
-    { title: 'Corretor de Luxo', desc: 'Avaliação + Visitas + CRM + Propostas' },
-    { title: 'Gerente / Imobiliária', desc: 'Dashboard + Controle operacional' },
+    { title: 'Corretor Autônomo', desc: 'Avaliação + Visitas + CRM + Propostas' },
+    { title: 'Imobiliária', desc: 'Dashboard + Controle operacional' },
     { title: 'Administrador', desc: 'Calibradores + Gestão de usuários' },
     { title: 'Comprador Premium', desc: 'Parecer independente + Transparência' },
   ];
