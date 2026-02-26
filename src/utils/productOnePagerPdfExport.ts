@@ -33,15 +33,9 @@ async function fetchTractionMetrics(): Promise<TractionMetrics> {
 
 const formatNumber = (n: number) => n.toLocaleString('pt-BR');
 
-export async function exportProductOnePagerPDF(): Promise<void> {
-  const [companyInfo, metrics] = await Promise.all([fetchCompanyInfoForPDF(), fetchTractionMetrics()]);
-  const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
-  const pageWidth = doc.internal.pageSize.getWidth(); // 210
-  const margin = 15;
-  const contentWidth = pageWidth - margin * 2;
-  let y = 0;
+// ─── Page 1 Drawing ───
 
-  // ── HEADER ──
+function drawHeader(doc: jsPDF, pageWidth: number, companyName: string): number {
   const headerH = 28;
   doc.setFillColor(...BRAND_COLORS.navy);
   doc.rect(0, 0, pageWidth, headerH, 'F');
@@ -49,7 +43,6 @@ export async function exportProductOnePagerPDF(): Promise<void> {
   doc.setTextColor(...BRAND_COLORS.white);
   doc.setFontSize(16);
   doc.setFont('helvetica', 'bold');
-  const companyName = companyInfo?.name || 'GODOY PRIME ANALYTICS';
   doc.text(companyName, pageWidth / 2, 11, { align: 'center' });
 
   doc.setTextColor(...BRAND_COLORS.gold);
@@ -57,31 +50,29 @@ export async function exportProductOnePagerPDF(): Promise<void> {
   doc.setFont('helvetica', 'normal');
   doc.text('Inteligência Imobiliária Premium', pageWidth / 2, 18, { align: 'center' });
 
-  // Gold line
   doc.setDrawColor(...BRAND_COLORS.gold);
   doc.setLineWidth(0.8);
+  const margin = 15;
   doc.line(margin + 30, 22, pageWidth - margin - 30, 22);
 
-  // Date
   doc.setTextColor(180, 190, 210);
   doc.setFontSize(6.5);
   const dateStr = new Date().toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' });
   doc.text(dateStr.charAt(0).toUpperCase() + dateStr.slice(1), pageWidth / 2, 26, { align: 'center' });
 
-  y = headerH + 4;
+  return headerH + 4;
+}
 
-  // ── MERCADO ──
+function drawMercado(doc: jsPDF, y: number, margin: number, contentWidth: number): number {
   const mercadoH = 42;
   doc.setFillColor(18, 45, 78);
   doc.roundedRect(margin, y, contentWidth, mercadoH, 2, 2, 'F');
 
-  // Title
   doc.setTextColor(...BRAND_COLORS.gold);
   doc.setFontSize(10);
   doc.setFont('helvetica', 'bold');
   doc.text('O MERCADO', margin + 5, y + 7);
 
-  // Left text
   doc.setTextColor(...BRAND_COLORS.white);
   doc.setFontSize(7.5);
   doc.setFont('helvetica', 'normal');
@@ -95,7 +86,6 @@ export async function exportProductOnePagerPDF(): Promise<void> {
     doc.text(`•  ${line}`, margin + 5, y + 14 + i * 5);
   });
 
-  // Right stats box
   const statsX = margin + contentWidth - 45;
   doc.setFillColor(10, 28, 52);
   doc.roundedRect(statsX, y + 3, 40, mercadoH - 6, 2, 2, 'F');
@@ -121,10 +111,11 @@ export async function exportProductOnePagerPDF(): Promise<void> {
   doc.setFont('helvetica', 'normal');
   doc.text('de histórico', statsX + 20, y + 36, { align: 'center' });
 
-  y += mercadoH + 4;
+  return y + mercadoH + 4;
+}
 
-  // ── A DOR ──
-  const dorH = 30;
+function drawDorMercado(doc: jsPDF, y: number, margin: number, contentWidth: number): number {
+  const dorH = 34;
   doc.setFillColor(255, 248, 230);
   doc.roundedRect(margin, y, contentWidth, dorH, 2, 2, 'F');
   doc.setDrawColor(220, 180, 80);
@@ -137,21 +128,23 @@ export async function exportProductOnePagerPDF(): Promise<void> {
   doc.text('⚠  A DOR DO MERCADO', margin + 5, y + 7);
 
   doc.setTextColor(80, 60, 20);
-  doc.setFontSize(7.5);
+  doc.setFontSize(7);
   doc.setFont('helvetica', 'normal');
   const dorLines = [
     'Assimetria de informação: corretores precificam com base em anúncios inflados, não em valores reais de transação.',
     'Custo do erro: R$ 100K–300K por transação mal precificada — imóvel encalha ou vende abaixo do justo.',
-    'Resultado: perda de comissões, clientes insatisfeitos e reputação comprometida.',
+    'Operação manual: fichas em papel, controle por WhatsApp, sem rastreabilidade de leads ou visitas.',
+    'Falta de inteligência de mercado: sem dados de tendência por microbairro, decisões no "achismo".',
   ];
   dorLines.forEach((line, i) => {
     const splitLine = doc.splitTextToSize(`•  ${line}`, contentWidth - 10);
-    doc.text(splitLine, margin + 5, y + 13 + i * 6);
+    doc.text(splitLine, margin + 5, y + 13 + i * 5.2);
   });
 
-  y += dorH + 4;
+  return y + dorH + 4;
+}
 
-  // ── A SOLUÇÃO ──
+function drawSolucaoModulos(doc: jsPDF, y: number, margin: number, contentWidth: number): number {
   doc.setTextColor(...BRAND_COLORS.navy);
   doc.setFontSize(10);
   doc.setFont('helvetica', 'bold');
@@ -163,14 +156,13 @@ export async function exportProductOnePagerPDF(): Promise<void> {
 
   y += 10;
 
-  // 2x2 grid
   const cellW = (contentWidth - 4) / 2;
-  const cellH = 28;
+  const cellH = 32;
   const modules = [
-    { title: 'Motor de Avaliação', lines: ['3 cenários (pessimista, provável, otimista)', '26 fatores de ajuste calibráveis', 'Baseado em dados ITBI oficiais'] },
-    { title: 'Vistoria Digital', lines: ['55+ itens de checklist', 'Score automático de conservação', 'Ajuste de valor por estado do imóvel'] },
-    { title: 'CRM + Gestão de Visitas', lines: ['Pipeline Kanban com drag & drop', 'Fichas digitais com assinatura eletrônica', 'Notificações WhatsApp + Email'] },
-    { title: 'Sofia IA — Assistente', lines: ['Consultas em linguagem natural', 'Base de conhecimento proprietária', 'Análise contextual de mercado'] },
+    { title: 'Motor de Avaliação', dor: 'Precificação por "achismo" sem base em dados reais', beneficio: 'Laudo NBR 14653-2 em 5 min com 3 cenários calibráveis' },
+    { title: 'Vistoria Digital 3.1', dor: 'Vistorias sem padrão geram disputas jurídicas', beneficio: 'Score 0-100 automático, checklist 55+ itens, PDF profissional' },
+    { title: 'CRM + Pipeline', dor: 'Leads perdidos em WhatsApp, sem follow-up estruturado', beneficio: 'Kanban 8 estágios, conversão rastreável, notificações automáticas' },
+    { title: 'Sofia IA', dor: 'Horas pesquisando dados dispersos em múltiplas fontes', beneficio: 'Resposta contextual instantânea com base em dados ITBI oficiais' },
   ];
 
   modules.forEach((mod, i) => {
@@ -191,17 +183,24 @@ export async function exportProductOnePagerPDF(): Promise<void> {
     doc.setLineWidth(0.4);
     doc.line(x + 4, cy + 8, x + 4 + doc.getTextWidth(mod.title), cy + 8);
 
-    doc.setTextColor(...BRAND_COLORS.darkGray);
+    // Dor in dark red
+    doc.setTextColor(160, 30, 30);
     doc.setFontSize(7);
     doc.setFont('helvetica', 'normal');
-    mod.lines.forEach((line, li) => {
-      doc.text(`•  ${line}`, x + 4, cy + 13 + li * 4.5);
-    });
+    const dorSplit = doc.splitTextToSize(`Dor: ${mod.dor}`, cellW - 8);
+    doc.text(dorSplit, x + 4, cy + 13);
+
+    // Benefício in dark green
+    doc.setTextColor(20, 120, 50);
+    doc.setFontSize(7);
+    const benSplit = doc.splitTextToSize(`Benefício: ${mod.beneficio}`, cellW - 8);
+    doc.text(benSplit, x + 4, cy + 21);
   });
 
-  y += (cellH + 3) * 2 + 4;
+  return y + (cellH + 3) * 2 + 4;
+}
 
-  // ── DIFERENCIAIS ──
+function drawDiferenciais(doc: jsPDF, y: number, margin: number, contentWidth: number): number {
   doc.setTextColor(...BRAND_COLORS.navy);
   doc.setFontSize(10);
   doc.setFont('helvetica', 'bold');
@@ -227,7 +226,6 @@ export async function exportProductOnePagerPDF(): Promise<void> {
     const x = margin + col * (diffColW + 6);
     const dy = y + row * 12;
 
-    // Gold bullet
     doc.setFillColor(...BRAND_COLORS.gold);
     doc.circle(x + 2, dy + 1.5, 1.2, 'F');
 
@@ -242,9 +240,10 @@ export async function exportProductOnePagerPDF(): Promise<void> {
     doc.text(d.desc, x + 6, dy + 7);
   });
 
-  y += 28;
+  return y + 28;
+}
 
-  // ── MÉTRICAS DE TRAÇÃO ──
+function drawMetricasTracao(doc: jsPDF, y: number, margin: number, contentWidth: number, pageWidth: number, metrics: TractionMetrics): number {
   const metricasH = 22;
   doc.setFillColor(...BRAND_COLORS.navy);
   doc.roundedRect(margin, y, contentWidth, metricasH, 2, 2, 'F');
@@ -275,10 +274,202 @@ export async function exportProductOnePagerPDF(): Promise<void> {
     doc.text(m.label, cx, y + 19, { align: 'center' });
   });
 
-  y += metricasH + 4;
+  return y + metricasH + 4;
+}
 
-  // ── FOOTER ──
-  drawGodoyFooter(doc, undefined, undefined, companyInfo);
+// ─── Page 2 Drawing ───
+
+function drawPage2FuncionalidadesDetalhadas(doc: jsPDF, margin: number, contentWidth: number, pageWidth: number): number {
+  let y = 12;
+
+  // Page 2 header bar
+  doc.setFillColor(...BRAND_COLORS.navy);
+  doc.rect(0, 0, pageWidth, 6, 'F');
+
+  doc.setTextColor(...BRAND_COLORS.navy);
+  doc.setFontSize(11);
+  doc.setFont('helvetica', 'bold');
+  doc.text('FUNCIONALIDADES DETALHADAS', margin, y + 4);
+
+  doc.setDrawColor(...BRAND_COLORS.gold);
+  doc.setLineWidth(0.5);
+  doc.line(margin, y + 6, margin + 60, y + 6);
+
+  y += 12;
+
+  const detailedModules = [
+    {
+      title: 'Dashboard Analytics',
+      dor: 'Sem visão consolidada do mercado, decisões às cegas',
+      entrega: '4 KPIs em tempo real, gráficos de 60 meses, exportação PDF/Excel',
+      persona: 'Gerente / Imobiliária',
+    },
+    {
+      title: 'Microbairros',
+      dor: 'Barra tratada como região única, ignorando variações de R$/m²',
+      entrega: 'Ranking e evolução por sub-região com dados ITBI segmentados',
+      persona: 'Corretor de Luxo',
+    },
+    {
+      title: 'Gestão de Visitas',
+      dor: 'Agendamento por WhatsApp, fichas em papel, sem controle',
+      entrega: 'Fichas digitais com assinatura eletrônica, badge de proximidade',
+      persona: 'Corretor de Luxo',
+    },
+    {
+      title: 'Propostas Digitais',
+      dor: 'Propostas informais sem validade jurídica ou rastreio',
+      entrega: 'Modelos simplificado/completo com aceite eletrônico e PDF',
+      persona: 'Corretor de Luxo',
+    },
+    {
+      title: 'Estratégia de Precificação',
+      dor: 'Preço de anúncio definido sem metodologia, sem plano B',
+      entrega: 'Diagnóstico 9 perguntas, 3 faixas (Atração/Mercado/Premium)',
+      persona: 'Gerente / Imobiliária',
+    },
+    {
+      title: 'Parecer Godoy Prime',
+      dor: 'Comprador não tem validação independente do preço pedido',
+      entrega: 'Laudo independente baseado em ITBI, transparência total',
+      persona: 'Comprador Premium',
+    },
+  ];
+
+  const cellW = (contentWidth - 4) / 2;
+  const cellH = 38;
+
+  detailedModules.forEach((mod, i) => {
+    const col = i % 2;
+    const row = Math.floor(i / 2);
+    const x = margin + col * (cellW + 4);
+    const cy = y + row * (cellH + 3);
+
+    // Card background with gold border
+    doc.setFillColor(248, 249, 252);
+    doc.roundedRect(x, cy, cellW, cellH, 2, 2, 'F');
+    doc.setDrawColor(212, 175, 55);
+    doc.setLineWidth(0.2);
+    doc.roundedRect(x, cy, cellW, cellH, 2, 2, 'S');
+
+    // Title
+    doc.setTextColor(...BRAND_COLORS.navy);
+    doc.setFontSize(8);
+    doc.setFont('helvetica', 'bold');
+    doc.text(mod.title, x + 4, cy + 6);
+
+    doc.setDrawColor(...BRAND_COLORS.gold);
+    doc.setLineWidth(0.3);
+    doc.line(x + 4, cy + 7.5, x + 4 + doc.getTextWidth(mod.title), cy + 7.5);
+
+    // Dor in dark red italic
+    doc.setTextColor(160, 30, 30);
+    doc.setFontSize(6.5);
+    doc.setFont('helvetica', 'italic');
+    const dorSplit = doc.splitTextToSize(`Dor: ${mod.dor}`, cellW - 8);
+    doc.text(dorSplit, x + 4, cy + 12);
+
+    // Entrega in dark green
+    doc.setTextColor(20, 120, 50);
+    doc.setFontSize(6.5);
+    doc.setFont('helvetica', 'normal');
+    const entSplit = doc.splitTextToSize(`Entrega: ${mod.entrega}`, cellW - 8);
+    doc.text(entSplit, x + 4, cy + 21);
+
+    // Persona badge
+    doc.setFillColor(212, 175, 55);
+    const badgeW = doc.getTextWidth(mod.persona) * 0.85 + 6;
+    doc.roundedRect(x + 4, cy + cellH - 8, badgeW, 5, 1, 1, 'F');
+    doc.setTextColor(...BRAND_COLORS.white);
+    doc.setFontSize(6);
+    doc.setFont('helvetica', 'bold');
+    doc.text(mod.persona, x + 7, cy + cellH - 4.5);
+  });
+
+  return y + (cellH + 3) * 3 + 4;
+}
+
+function drawParaQuem(doc: jsPDF, y: number, margin: number, contentWidth: number): number {
+  doc.setTextColor(...BRAND_COLORS.navy);
+  doc.setFontSize(11);
+  doc.setFont('helvetica', 'bold');
+  doc.text('PARA QUEM', margin, y + 4);
+
+  doc.setDrawColor(...BRAND_COLORS.gold);
+  doc.setLineWidth(0.5);
+  doc.line(margin, y + 6, margin + 30, y + 6);
+
+  y += 12;
+
+  const barH = 28;
+  doc.setFillColor(18, 45, 78);
+  doc.roundedRect(margin, y, contentWidth, barH, 2, 2, 'F');
+
+  const personas = [
+    { title: 'Corretor de Luxo', desc: 'Avaliação + Visitas + CRM + Propostas' },
+    { title: 'Gerente / Imobiliária', desc: 'Dashboard + Controle operacional' },
+    { title: 'Administrador', desc: 'Calibradores + Gestão de usuários' },
+    { title: 'Comprador Premium', desc: 'Parecer independente + Transparência' },
+  ];
+
+  const colW = contentWidth / 4;
+  personas.forEach((p, i) => {
+    const cx = margin + colW * i + colW / 2;
+
+    // Separator lines
+    if (i > 0) {
+      doc.setDrawColor(60, 80, 110);
+      doc.setLineWidth(0.2);
+      doc.line(margin + colW * i, y + 4, margin + colW * i, y + barH - 4);
+    }
+
+    doc.setTextColor(...BRAND_COLORS.gold);
+    doc.setFontSize(7.5);
+    doc.setFont('helvetica', 'bold');
+    doc.text(p.title, cx, y + 10, { align: 'center' });
+
+    doc.setTextColor(...BRAND_COLORS.white);
+    doc.setFontSize(6);
+    doc.setFont('helvetica', 'normal');
+    const descSplit = doc.splitTextToSize(p.desc, colW - 6);
+    descSplit.forEach((line: string, li: number) => {
+      doc.text(line, cx, y + 16 + li * 4, { align: 'center' });
+    });
+  });
+
+  return y + barH + 4;
+}
+
+// ─── Main Export ───
+
+export async function exportProductOnePagerPDF(): Promise<void> {
+  const [companyInfo, metrics] = await Promise.all([fetchCompanyInfoForPDF(), fetchTractionMetrics()]);
+  const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+  const pageWidth = doc.internal.pageSize.getWidth();
+  const margin = 15;
+  const contentWidth = pageWidth - margin * 2;
+
+  const companyName = companyInfo?.name || 'GODOY PRIME ANALYTICS';
+
+  // ── PAGE 1 ──
+  let y = drawHeader(doc, pageWidth, companyName);
+  y = drawMercado(doc, y, margin, contentWidth);
+  y = drawDorMercado(doc, y, margin, contentWidth);
+  y = drawSolucaoModulos(doc, y, margin, contentWidth);
+  y = drawDiferenciais(doc, y, margin, contentWidth);
+  y = drawMetricasTracao(doc, y, margin, contentWidth, pageWidth, metrics);
+
+  // ── PAGE 2 ──
+  doc.addPage();
+  const page2Y = drawPage2FuncionalidadesDetalhadas(doc, margin, contentWidth, pageWidth);
+  drawParaQuem(doc, page2Y, margin, contentWidth);
+
+  // ── FOOTERS on all pages ──
+  const totalPages = doc.getNumberOfPages();
+  for (let i = 1; i <= totalPages; i++) {
+    doc.setPage(i);
+    drawGodoyFooter(doc, i, totalPages, companyInfo);
+  }
 
   doc.save('Godoy-Prime-Analytics-OnePager.pdf');
 }
