@@ -99,8 +99,8 @@ export default function Apresentacao() {
     <div className="min-h-screen bg-background">
       {/* Hero */}
       <section className="relative bg-gradient-to-br from-primary via-primary/95 to-primary/85 text-primary-foreground">
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 py-12 sm:py-24 text-center">
-          <img src={godoySymbol} alt="Godoy Prime" className="h-16 sm:h-20 mx-auto mb-6 sm:mb-8" />
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 py-10 sm:py-24 text-center">
+          <img src={godoySymbol} alt="Godoy Prime" className="h-14 sm:h-20 mx-auto mb-4 sm:mb-8" />
           <h1 className="text-2xl sm:text-3xl lg:text-5xl font-bold tracking-tight mb-4">
             Plataforma de Inteligência Imobiliária
           </h1>
@@ -139,9 +139,9 @@ export default function Apresentacao() {
       </section>
 
       {/* Features */}
-      <section className="py-12 sm:py-20 px-4 sm:px-6">
+      <section className="py-8 sm:py-20 px-4 sm:px-6">
         <div className="max-w-6xl mx-auto">
-          <div className="text-center mb-10 sm:mb-12">
+          <div className="text-center mb-8 sm:mb-12">
             <Badge variant="secondary" className="mb-3">Módulos</Badge>
             <h2 className="text-xl sm:text-2xl lg:text-3xl font-bold">Tudo que você precisa para vender mais</h2>
             <p className="text-muted-foreground mt-2 max-w-xl mx-auto text-sm sm:text-base">

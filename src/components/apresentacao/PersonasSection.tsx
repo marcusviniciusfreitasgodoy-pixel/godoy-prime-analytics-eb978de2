@@ -42,16 +42,16 @@ export default function PersonasSection() {
           </h2>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
           {personas.map((p) => (
-            <div key={p.title} className="text-center space-y-3">
-              <div className="h-14 w-14 rounded-full bg-accent/15 flex items-center justify-center mx-auto">
-                <p.icon className="h-7 w-7 text-accent" />
+            <div key={p.title} className="text-center space-y-2 sm:space-y-3 bg-card rounded-xl p-4 shadow-sm sm:bg-transparent sm:shadow-none sm:p-0 sm:rounded-none">
+              <div className="h-12 w-12 sm:h-14 sm:w-14 rounded-full bg-accent/15 flex items-center justify-center mx-auto">
+                <p.icon className="h-6 w-6 sm:h-7 sm:w-7 text-accent" />
               </div>
-              <h3 className="font-semibold text-base sm:text-lg">{p.title}</h3>
-              <div className="flex flex-wrap justify-center gap-1.5">
+              <h3 className="font-semibold text-sm sm:text-lg">{p.title}</h3>
+              <div className="flex flex-wrap justify-center gap-1 sm:gap-1.5">
                 {p.modules.map((m) => (
-                  <Badge key={m} variant="secondary" className="text-xs">
+                  <Badge key={m} variant="secondary" className="text-[10px] sm:text-xs">
                     {m}
                   </Badge>
                 ))}

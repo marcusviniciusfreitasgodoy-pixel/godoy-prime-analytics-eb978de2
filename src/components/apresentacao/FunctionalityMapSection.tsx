@@ -101,32 +101,32 @@ export default function FunctionalityMapSection() {
           </p>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-6">
           {functionalityMap.map((item) => (
             <Card key={item.title} className="group hover:shadow-lg transition-shadow border-border/50">
-              <CardContent className="pt-6 space-y-3">
-                <div className="flex items-center gap-3 mb-1">
-                  <div className="h-10 w-10 rounded-lg bg-accent/20 flex items-center justify-center shrink-0">
-                    <item.icon className="h-5 w-5 text-accent" />
+              <CardContent className="p-4 sm:pt-6 sm:px-6 space-y-2 sm:space-y-3">
+                <div className="flex items-center gap-2 sm:gap-3 mb-1">
+                  <div className="h-8 w-8 sm:h-10 sm:w-10 rounded-lg bg-accent/20 flex items-center justify-center shrink-0">
+                    <item.icon className="h-4 w-4 sm:h-5 sm:w-5 text-accent" />
                   </div>
-                  <h3 className="font-semibold text-base sm:text-lg leading-tight">{item.title}</h3>
+                  <h3 className="font-semibold text-sm sm:text-lg leading-tight">{item.title}</h3>
                 </div>
 
                 {/* Dor */}
-                <div className="bg-red-50 dark:bg-red-950/30 border-l-2 border-red-400 pl-3 py-2 rounded-r">
-                  <p className="text-xs font-semibold text-red-600 dark:text-red-400 mb-0.5">Dor:</p>
-                  <p className="text-sm text-red-700 dark:text-red-300 leading-snug">{item.dor}</p>
+                <div className="bg-red-50 dark:bg-red-950/30 border-l-2 border-red-400 pl-2 sm:pl-3 py-1.5 sm:py-2 rounded-r">
+                  <p className="text-[10px] sm:text-xs font-semibold text-red-600 dark:text-red-400 mb-0.5">Dor:</p>
+                  <p className="text-xs sm:text-sm text-red-700 dark:text-red-300 leading-snug">{item.dor}</p>
                 </div>
 
                 {/* Benefício */}
-                <div className="bg-green-50 dark:bg-green-950/30 border-l-2 border-green-400 pl-3 py-2 rounded-r">
-                  <p className="text-xs font-semibold text-green-600 dark:text-green-400 mb-0.5">Benefício:</p>
-                  <p className="text-sm text-green-700 dark:text-green-300 leading-snug">{item.beneficio}</p>
+                <div className="bg-green-50 dark:bg-green-950/30 border-l-2 border-green-400 pl-2 sm:pl-3 py-1.5 sm:py-2 rounded-r">
+                  <p className="text-[10px] sm:text-xs font-semibold text-green-600 dark:text-green-400 mb-0.5">Benefício:</p>
+                  <p className="text-xs sm:text-sm text-green-700 dark:text-green-300 leading-snug">{item.beneficio}</p>
                 </div>
 
                 {/* Persona badge */}
-                <div className="pt-1">
-                  <Badge className="bg-[hsl(43,60%,53%)] text-[hsl(212,62%,15%)] hover:bg-[hsl(43,60%,45%)] text-xs">
+                <div className="pt-0.5 sm:pt-1">
+                  <Badge className="bg-[hsl(43,60%,53%)] text-[hsl(212,62%,15%)] hover:bg-[hsl(43,60%,45%)] text-[10px] sm:text-xs">
                     Para: {item.para}
                   </Badge>
                 </div>
