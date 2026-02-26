@@ -1,29 +1,21 @@
 
 
-# Adicionar "Apresentacao" ao menu lateral
+# Excluir secao de Planos do PDF One-Pager
 
-## Problema
-A pagina `/apresentacao` existe como rota no App.tsx mas nao aparece no menu lateral (AppSidebar), impossibilitando o acesso direto pelo usuario logado.
+## O que muda
 
-## Solucao
+Remover toda a secao "PLANOS" do arquivo `src/utils/productOnePagerPdfExport.ts` — o bloco navy com os 3 planos (Starter, Professional, Enterprise).
 
-Adicionar o item "Apresentacao" na lista `baseItems` do `src/components/AppSidebar.tsx`, usando o icone `Presentation` do lucide-react.
+## Detalhe tecnico
 
-### Mudancas
+**Arquivo: `src/utils/productOnePagerPdfExport.ts`**
 
-**Arquivo: `src/components/AppSidebar.tsx`**
-- Importar o icone `Presentation` de `lucide-react`
-- Adicionar entrada no array `baseItems`:
-  ```ts
-  { title: "Apresentação", url: "/apresentacao", icon: Presentation, tourId: "nav-apresentacao" }
-  ```
-- Posicionar apos "Documentacao" e antes de "Configuracoes" para manter a ordem logica
+Remover o trecho que desenha:
+- O retangulo navy com titulo "PLANOS"
+- Os 3 cards de planos (Starter R$197, Professional R$497, Enterprise R$997)
+- Toda a logica de posicionamento dos planos
 
-**Arquivo: `src/components/DemoSidebar.tsx`** (se existir item correspondente)
-- Verificar se precisa adicionar o mesmo item no menu do modo demo
+Isso corresponde ao bloco que comeca com `// -- PLANOS --` ate o final do array `plans.forEach(...)`.
 
-### Impacto
-- 1 arquivo editado
-- Nenhuma mudanca no banco de dados
-- Nenhuma dependencia nova
+O footer continuara sendo desenhado normalmente apos a secao de Diferenciais. Nenhuma outra secao e afetada.
 
