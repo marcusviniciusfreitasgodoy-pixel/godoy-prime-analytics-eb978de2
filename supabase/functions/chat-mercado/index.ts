@@ -173,10 +173,46 @@ serve(async (req) => {
   }
 
   try {
+    // Initialize Supabase client first (needed for rate limiting)
+    const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
+    const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+    const supabase = createClient(supabaseUrl, supabaseKey);
+
+    // Rate limiting: 15 requests per minute per IP
+    const forwardedFor = req.headers.get("x-forwarded-for");
+    const realIp = req.headers.get("x-real-ip");
+    const cfIp = req.headers.get("cf-connecting-ip");
+    const clientIp = cfIp || realIp || forwardedFor?.split(",")[0]?.trim() || "unknown";
+
+    const { data: rlData, error: rlError } = await supabase.rpc('check_rate_limit', {
+      p_identifier: clientIp,
+      p_function_name: 'chat-mercado',
+      p_window_seconds: 60,
+      p_max_requests: 15,
+    });
+
+    if (!rlError && rlData && rlData.length > 0 && !rlData[0].allowed) {
+      console.log(`Rate limit exceeded for chat-mercado: ${clientIp}`);
+      return new Response(
+        JSON.stringify({ error: "Muitas requisições. Aguarde um momento antes de tentar novamente." }),
+        { status: 429, headers: { ...corsHeaders, 'Content-Type': 'application/json', 'Retry-After': '60' } }
+      );
+    }
+
     const { messages, bairro, voiceInput } = await req.json();
     
     if (!messages || !Array.isArray(messages)) {
       throw new Error('Messages array is required');
+    }
+
+    // Limit message history to prevent abuse via large payloads
+    const limitedMessages = messages.slice(-10);
+    const lastMsg = limitedMessages[limitedMessages.length - 1]?.content || '';
+    if (lastMsg.length > 2000) {
+      return new Response(
+        JSON.stringify({ error: "Mensagem muito longa. Limite de 2000 caracteres." }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
     }
 
     const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
@@ -184,12 +220,8 @@ serve(async (req) => {
       throw new Error('LOVABLE_API_KEY is not configured');
     }
 
-    const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
-    const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
-    const supabase = createClient(supabaseUrl, supabaseKey);
-
     const selectedBairro = bairro || 'BARRA DA TIJUCA';
-    const lastUserMessage = messages[messages.length - 1]?.content || '';
+    const lastUserMessage = lastMsg;
     const mentionedBairros = extractBairrosFromMessage(lastUserMessage);
     
     // RAG: Buscar conhecimento relevante na base
@@ -680,7 +712,7 @@ ${allBairros.join(', ')}
       },
       body: JSON.stringify({
         model: 'google/gemini-2.5-flash',
-        messages: [systemMessage, ...messages],
+        messages: [systemMessage, ...limitedMessages],
         stream: true,
       }),
     });
