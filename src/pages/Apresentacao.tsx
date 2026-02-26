@@ -126,7 +126,7 @@ export default function Apresentacao() {
             <Button
               size="lg"
               variant="outline"
-              className="w-full sm:w-auto gap-2 text-base font-bold min-h-[48px] border-white/30 text-white hover:bg-white/10"
+              className="w-full sm:w-auto gap-2 text-base font-bold min-h-[48px] bg-blue-600 text-white hover:bg-blue-700 border-none"
               onClick={() => exportProductOnePagerPDF()}
             >
               <FileDown className="h-5 w-5" />
