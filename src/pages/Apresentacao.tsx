@@ -24,7 +24,7 @@ import godoySymbol from "@/assets/godoy-logo-symbol.png";
 import godoyLogo from "@/assets/godoy-logo-pdf.png";
 import { exportProductOnePagerPDF } from "@/utils/productOnePagerPdfExport";
 import FunctionalityMapSection from "@/components/apresentacao/FunctionalityMapSection";
-import PersonasSection from "@/components/apresentacao/PersonasSection";
+
 
 const features = [
   { icon: BarChart3, title: "Dashboard Analítico", desc: "KPIs de mercado em tempo real com evolução de preços por m² e liquidez por tipologia." },
@@ -167,8 +167,6 @@ export default function Apresentacao() {
       {/* Funcionalidades x Dores */}
       <FunctionalityMapSection />
 
-      {/* Para Quem */}
-      <PersonasSection />
 
       {/* Differentials */}
       <section className="py-12 sm:py-20 px-4 sm:px-6 bg-muted/30">

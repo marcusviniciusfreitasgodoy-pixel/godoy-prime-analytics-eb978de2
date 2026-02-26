@@ -304,37 +304,31 @@ function drawPage2FuncionalidadesDetalhadas(doc: jsPDF, margin: number, contentW
       title: 'Dashboard Analytics',
       dor: 'Sem visão consolidada do mercado, decisões às cegas',
       entrega: '4 KPIs em tempo real, gráficos de 60 meses, exportação PDF/Excel',
-      persona: 'Imobiliária',
     },
     {
       title: 'Microbairros',
       dor: 'Barra tratada como região única, ignorando variações de R$/m²',
       entrega: 'Ranking e evolução por sub-região com dados ITBI segmentados',
-      persona: 'Corretor Autônomo',
     },
     {
       title: 'Gestão de Visitas',
       dor: 'Agendamento por WhatsApp, fichas em papel, sem controle',
       entrega: 'Fichas digitais com assinatura eletrônica, badge de proximidade',
-      persona: 'Corretor Autônomo',
     },
     {
       title: 'Propostas Digitais',
       dor: 'Propostas informais sem validade jurídica ou rastreio',
       entrega: 'Modelos simplificado/completo com aceite eletrônico e PDF',
-      persona: 'Corretor Autônomo',
     },
     {
       title: 'Estratégia de Precificação',
       dor: 'Preço de anúncio definido sem metodologia, sem plano B',
       entrega: 'Diagnóstico 9 perguntas, 3 faixas (Atração/Mercado/Premium)',
-      persona: 'Imobiliária',
     },
     {
       title: 'Parecer Godoy Prime',
       dor: 'Comprador não tem validação independente do preço pedido',
       entrega: 'Laudo independente baseado em ITBI, transparência total',
-      persona: 'Comprador Premium',
     },
   ];
 
@@ -378,69 +372,11 @@ function drawPage2FuncionalidadesDetalhadas(doc: jsPDF, margin: number, contentW
     const entSplit = doc.splitTextToSize(`Entrega: ${mod.entrega}`, cellW - 8);
     doc.text(entSplit, x + 4, cy + 21);
 
-    // Persona badge
-    doc.setFillColor(212, 175, 55);
-    const badgeW = doc.getTextWidth(mod.persona) * 0.85 + 6;
-    doc.roundedRect(x + 4, cy + cellH - 8, badgeW, 5, 1, 1, 'F');
-    doc.setTextColor(...BRAND_COLORS.white);
-    doc.setFontSize(6);
-    doc.setFont('helvetica', 'bold');
-    doc.text(mod.persona, x + 7, cy + cellH - 4.5);
   });
 
   return y + (cellH + 3) * 3 + 4;
 }
 
-function drawParaQuem(doc: jsPDF, y: number, margin: number, contentWidth: number): number {
-  doc.setTextColor(...BRAND_COLORS.navy);
-  doc.setFontSize(11);
-  doc.setFont('helvetica', 'bold');
-  doc.text('PARA QUEM', margin, y + 4);
-
-  doc.setDrawColor(...BRAND_COLORS.gold);
-  doc.setLineWidth(0.5);
-  doc.line(margin, y + 6, margin + 30, y + 6);
-
-  y += 12;
-
-  const barH = 28;
-  doc.setFillColor(18, 45, 78);
-  doc.roundedRect(margin, y, contentWidth, barH, 2, 2, 'F');
-
-  const personas = [
-    { title: 'Corretor Autônomo', desc: 'Avaliação + Visitas + CRM + Propostas' },
-    { title: 'Imobiliária', desc: 'Dashboard + Controle operacional' },
-    { title: 'Administrador', desc: 'Calibradores + Gestão de usuários' },
-    { title: 'Comprador Premium', desc: 'Parecer independente + Transparência' },
-  ];
-
-  const colW = contentWidth / 4;
-  personas.forEach((p, i) => {
-    const cx = margin + colW * i + colW / 2;
-
-    // Separator lines
-    if (i > 0) {
-      doc.setDrawColor(60, 80, 110);
-      doc.setLineWidth(0.2);
-      doc.line(margin + colW * i, y + 4, margin + colW * i, y + barH - 4);
-    }
-
-    doc.setTextColor(...BRAND_COLORS.gold);
-    doc.setFontSize(7.5);
-    doc.setFont('helvetica', 'bold');
-    doc.text(p.title, cx, y + 10, { align: 'center' });
-
-    doc.setTextColor(...BRAND_COLORS.white);
-    doc.setFontSize(6);
-    doc.setFont('helvetica', 'normal');
-    const descSplit = doc.splitTextToSize(p.desc, colW - 8);
-    descSplit.forEach((line: string, li: number) => {
-      doc.text(line, cx, y + 16 + li * 4, { align: 'center' });
-    });
-  });
-
-  return y + barH + 4;
-}
 
 // ─── Main Export ───
 
@@ -463,8 +399,7 @@ export async function exportProductOnePagerPDF(): Promise<void> {
 
   // ── PAGE 2 ──
   doc.addPage();
-  const page2Y = drawPage2FuncionalidadesDetalhadas(doc, margin, contentWidth, pageWidth);
-  drawParaQuem(doc, page2Y, margin, contentWidth);
+  drawPage2FuncionalidadesDetalhadas(doc, margin, contentWidth, pageWidth);
 
   // ── FOOTERS on all pages ──
   const totalPages = doc.getNumberOfPages();
