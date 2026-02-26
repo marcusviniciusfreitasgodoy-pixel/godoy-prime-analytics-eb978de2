@@ -16,9 +16,9 @@ interface FunctionalityItem {
 const functionalityMap: FunctionalityItem[] = [
   {
     icon: BarChart3,
-    title: "Dashboard Analítico",
+    title: "Painel Analítico",
     dor: "Decisões baseadas em \"achismo\", sem visão consolidada do mercado.",
-    beneficio: "4 KPIs em tempo real (R$/m², Liquidez, Variação YoY, Ranking) com histórico de 60 meses.",
+    beneficio: "4 indicadores em tempo real (R$/m², Liquidez, Variação YoY, Classificação) com histórico de 60 meses.",
   },
   {
     icon: TrendingUp,
@@ -30,25 +30,25 @@ const functionalityMap: FunctionalityItem[] = [
     icon: ClipboardCheck,
     title: "Vistoria Digital 3.1",
     dor: "Vistorias sem padrão, disputas jurídicas, relatórios manuais.",
-    beneficio: "Score 0-100 automático, checklist 50+ itens, PDF profissional.",
+    beneficio: "Pontuação 0-100 automática, lista de verificação 50+ itens, PDF profissional.",
   },
   {
     icon: Calendar,
     title: "Gestão de Visitas",
     dor: "Agendamento por WhatsApp, fichas em papel, sem controle.",
-    beneficio: "Fichas digitais, assinatura eletrônica, feedback automatizado, relatório analítico.",
+    beneficio: "Fichas digitais, assinatura eletrônica, retorno automatizado, relatório analítico.",
   },
   {
     icon: Target,
     title: "Microrregiões",
     dor: "Sem dados de tendência por sub-região, análise superficial.",
-    beneficio: "Ranking e evolução por microbairro com mapa interativo de transações.",
+    beneficio: "Classificação e evolução por microbairro com mapa interativo de transações.",
   },
   {
     icon: Building2,
-    title: "CRM e Pipeline",
-    dor: "Leads perdidos em WhatsApp, sem follow-up, conversão invisível.",
-    beneficio: "Kanban 8 estágios, captação automática, notificações email/WhatsApp, conversão rastreável.",
+    title: "Gestão de Clientes e Funil",
+    dor: "Contatos perdidos em WhatsApp, sem acompanhamento, conversão invisível.",
+    beneficio: "Quadro 8 estágios, captação automática, notificações email/WhatsApp, conversão rastreável.",
   },
   {
     icon: Brain,

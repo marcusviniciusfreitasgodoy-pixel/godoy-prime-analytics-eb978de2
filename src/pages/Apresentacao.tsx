@@ -27,12 +27,12 @@ import FunctionalityMapSection from "@/components/apresentacao/FunctionalityMapS
 
 
 const features = [
-  { icon: BarChart3, title: "Dashboard Analítico", desc: "KPIs de mercado em tempo real com evolução de preços por m² e liquidez por tipologia." },
+  { icon: BarChart3, title: "Painel Analítico", desc: "Indicadores de mercado em tempo real com evolução de preços por m² e liquidez por tipologia." },
   { icon: TrendingUp, title: "Avaliação Imobiliária", desc: "Precificação inteligente baseada em dados oficiais de transações com ajustes por características." },
   { icon: ClipboardCheck, title: "Vistoria Digital", desc: "Checklist completo com score automático, itens críticos e ajuste de valor por estado de conservação." },
-  { icon: Calendar, title: "Agendamento de Visitas", desc: "Gestão completa de visitas com fichas digitais, assinatura eletrônica, feedback automatizado e relatório analítico em PDF." },
-  { icon: Target, title: "Microregiões", desc: "Ranking e evolução de preços por microbairro com mapa interativo de transações." },
-  { icon: Building2, title: "Gestão de Leads & CRM", desc: "CRM integrado com captação automática de leads, notificações por email e WhatsApp, filtros avançados e acompanhamento de conversão com exportação CSV." },
+  { icon: Calendar, title: "Agendamento de Visitas", desc: "Gestão completa de visitas com fichas digitais, assinatura eletrônica, retorno automatizado e relatório analítico em PDF." },
+  { icon: Target, title: "Microrregiões", desc: "Classificação e evolução de preços por microbairro com mapa interativo de transações." },
+  { icon: Building2, title: "Gestão de Contatos", desc: "Gestão integrada com captação automática de contatos, notificações por email e WhatsApp, filtros avançados e acompanhamento de conversão com exportação CSV." },
 ];
 
 const differentials = [
@@ -132,7 +132,7 @@ export default function Apresentacao() {
               onClick={() => exportProductOnePagerPDF()}
             >
               <FileDown className="h-5 w-5" />
-              Baixar One-Pager PDF
+              Baixar Resumo Executivo
             </Button>
           </div>
         </div>
