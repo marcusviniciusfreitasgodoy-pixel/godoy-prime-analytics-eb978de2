@@ -110,7 +110,7 @@ export default function OnePagerPreview() {
               <div className="flex-1 text-white">
                 <p className="text-[#D4AF37] font-bold text-xs mb-1.5">O MERCADO</p>
                 <ul className="space-y-0.5 text-[10px]">
-                  <li>{"• Nicho: Imóveis de alto padrão — Barra da Tijuca, RJ"}</li>
+                  <li>{"• Mercado Imobiliário da cidade do Rio de Janeiro."}</li>
                   <li>{"• Decisor: Corretores e imobiliárias com faturamento R$ 10-100K+/mês"}</li>
                   <li>{"• Valor médio por imóvel: > R$ 1M"}</li>
                   <li>{"• Mercado endereçável: 5.000+ corretores ativos na região"}</li>
