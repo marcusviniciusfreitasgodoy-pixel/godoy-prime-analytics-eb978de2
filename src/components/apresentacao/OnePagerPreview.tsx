@@ -130,7 +130,7 @@ export default function OnePagerPreview() {
                 <li>• Dificuldades na obtenção de informações para preenchimento de ferramentas de CRM.</li>
                 <li>• Falta de inteligência de mercado: sem dados de tendência de valor de m2 por microbairro e pesquisas de mercado por região e tipologia</li>
                 <li>• Falta de critérios e padronização para a realização de avaliações imobiliárias e vistorias de imóveis.</li>
-                <li>• Dificuldades com a definição e escolha da documentação necessária para realizar uma captação de imóvel e depois uma venda.</li>
+                <li>• Dificuldades com a definição e análise da documentação necessária para realizar uma captação de imóvel e depois uma venda.</li>
                 <li>• Percepção negativa do mercado sobre o trabalho das imobiliárias e corretores.</li>
                 <li>• Dificuldades de captação de imóveis com gestão exclusiva (Exclusividade)</li>
               </ul>
