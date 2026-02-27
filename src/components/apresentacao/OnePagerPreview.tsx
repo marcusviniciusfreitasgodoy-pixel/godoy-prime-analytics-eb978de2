@@ -22,18 +22,18 @@ export default function OnePagerPreview() {
     async function load() {
       try {
         const [bairroRes, valRes, usersRes, settingsRes] = await Promise.all([
-          supabase.from("bairros_cache").select("bairro, total_transacoes"),
-          supabase.from("valuations").select("id"),
-          supabase.from("profiles").select("id"),
-          supabase.from("company_settings").select("setting_key, setting_value"),
-        ]);
+        supabase.from("bairros_cache").select("bairro, total_transacoes"),
+        supabase.from("valuations").select("id"),
+        supabase.from("profiles").select("id"),
+        supabase.from("company_settings").select("setting_key, setting_value")]
+        );
         const bairros = bairroRes.data ?? [];
         const totalTx = bairros.reduce((s, r) => s + (r.total_transacoes ?? 0), 0);
         setMetrics({
           totalTransacoes: totalTx,
           bairrosMapeados: bairros.length,
           avaliacoes: valRes.data?.length ?? 0,
-          usuarios: usersRes.data?.length ?? 0,
+          usuarios: usersRes.data?.length ?? 0
         });
         const nameRow = settingsRes.data?.find((r) => r.setting_key === "company_name");
         if (nameRow?.setting_value) setCompanyName(nameRow.setting_value);
@@ -57,27 +57,27 @@ export default function OnePagerPreview() {
   const dateFormatted = dateStr.charAt(0).toUpperCase() + dateStr.slice(1);
 
   const modules = [
-    { title: "Motor de Avaliação", dor: "Precificação por \"achismo\" sem base em dados reais", beneficio: "Laudo profissional em 5 min com 3 cenários calibráveis" },
-    { title: "Vistoria Digital 3.1", dor: "Vistorias sem padrão geram disputas jurídicas", beneficio: "Pontuação 0-100 automática, lista de verificação 55+ itens, PDF profissional" },
-    { title: "Gestão de Clientes e Funil", dor: "Contatos perdidos em WhatsApp, sem acompanhamento estruturado", beneficio: "Quadro 8 estágios, conversão rastreável, notificações automáticas" },
-    { title: "Sofia IA", dor: "Horas pesquisando dados dispersos em múltiplas fontes", beneficio: "Resposta contextual instantânea com base em dados ITBI oficiais" },
-  ];
+  { title: "Motor de Avaliação", dor: "Precificação por \"achismo\" sem base em dados reais", beneficio: "Laudo profissional em 5 min com 3 cenários calibráveis" },
+  { title: "Vistoria Digital 3.1", dor: "Vistorias sem padrão geram disputas jurídicas", beneficio: "Pontuação 0-100 automática, lista de verificação 55+ itens, PDF profissional" },
+  { title: "Gestão de Clientes e Funil", dor: "Contatos perdidos em WhatsApp, sem acompanhamento estruturado", beneficio: "Quadro 8 estágios, conversão rastreável, notificações automáticas" },
+  { title: "Sofia IA", dor: "Horas pesquisando dados dispersos em múltiplas fontes", beneficio: "Resposta contextual instantânea com base em dados ITBI oficiais" }];
+
 
   const diferenciais = [
-    { title: "Dados Oficiais ITBI", desc: "Transações reais da prefeitura, não anúncios inflados" },
-    { title: "Metodologia Técnica", desc: "Conformidade com norma técnica de avaliação imobiliária" },
-    { title: "Resultado em 5 Minutos", desc: "Da busca ao laudo profissional em PDF pronto para apresentação" },
-    { title: "Multiorganização Segura", desc: "Isolamento total de dados por organização, segurança corporativa" },
-  ];
+  { title: "Dados Oficiais ITBI", desc: "Transações reais da prefeitura, não anúncios inflados" },
+  { title: "Metodologia Técnica", desc: "Conformidade com norma técnica de avaliação imobiliária" },
+  { title: "Resultado em 5 Minutos", desc: "Da busca ao laudo profissional em PDF pronto para apresentação" },
+  { title: "Multiorganização Segura", desc: "Isolamento total de dados por organização, segurança corporativa" }];
+
 
   const detailedModules = [
-    { title: "Painel Analítico", dor: "Sem visão consolidada do mercado, decisões às cegas", entrega: "4 KPIs em tempo real, gráficos de 60 meses, exportação PDF/Excel" },
-    { title: "Microrregiões", dor: "Barra tratada como região única, ignorando variações de R$/m²", entrega: "Classificação e evolução por sub-região com dados ITBI segmentados" },
-    { title: "Gestão de Visitas", dor: "Agendamento por WhatsApp, fichas em papel, sem controle", entrega: "Fichas digitais com assinatura eletrônica, selo de proximidade" },
-    { title: "Propostas Digitais", dor: "Propostas informais sem validade jurídica ou rastreio", entrega: "Modelos simplificado/completo com aceite eletrônico e PDF" },
-    { title: "Estratégia de Precificação", dor: "Preço de anúncio definido sem metodologia, sem plano B", entrega: "Diagnóstico 9 perguntas, 3 faixas (Atração/Mercado/Premium)" },
-    { title: "Parecer Godoy Prime", dor: "Comprador não tem validação independente do preço pedido", entrega: "Laudo independente baseado em ITBI, transparência total" },
-  ];
+  { title: "Painel Analítico", dor: "Sem visão consolidada do mercado, decisões às cegas", entrega: "4 KPIs em tempo real, gráficos de 60 meses, exportação PDF/Excel" },
+  { title: "Microrregiões", dor: "Barra tratada como região única, ignorando variações de R$/m²", entrega: "Classificação e evolução por sub-região com dados ITBI segmentados" },
+  { title: "Gestão de Visitas", dor: "Agendamento por WhatsApp, fichas em papel, sem controle", entrega: "Fichas digitais com assinatura eletrônica, selo de proximidade" },
+  { title: "Propostas Digitais", dor: "Propostas informais sem validade jurídica ou rastreio", entrega: "Modelos simplificado/completo com aceite eletrônico e PDF" },
+  { title: "Estratégia de Precificação", dor: "Preço de anúncio definido sem metodologia, sem plano B", entrega: "Diagnóstico 9 perguntas, 3 faixas (Atração/Mercado/Premium)" },
+  { title: "Parecer Godoy Prime", dor: "Comprador não tem validação independente do preço pedido", entrega: "Laudo independente baseado em ITBI, transparência total" }];
+
 
   return (
     <div className="max-w-4xl mx-auto space-y-6">
@@ -86,8 +86,8 @@ export default function OnePagerPreview() {
         <Button
           onClick={handleDownload}
           disabled={downloading}
-          className="gap-2 bg-[hsl(212,62%,15%)] text-white hover:bg-[hsl(212,62%,22%)]"
-        >
+          className="gap-2 bg-[hsl(212,62%,15%)] text-white hover:bg-[hsl(212,62%,22%)]">
+
           {downloading ? <Loader2 className="h-4 w-4 animate-spin" /> : <FileDown className="h-4 w-4" />}
           Baixar PDF
         </Button>
@@ -112,7 +112,7 @@ export default function OnePagerPreview() {
                 <ul className="space-y-0.5 text-[10px]">
                   <li>• Nicho: Imóveis de alto padrão — Barra da Tijuca, RJ</li>
                   <li>• Decisor: Corretores e imobiliárias com faturamento R$ 10-100K+/mês</li>
-                  <li>• Valor médio por imóvel: R$ 3M a R$ 30M</li>
+                  <li>• Valor médio por imóvel: > R$ 1M </li>
                   <li>• Mercado endereçável: 5.000+ corretores ativos na região</li>
                 </ul>
               </div>
@@ -126,12 +126,14 @@ export default function OnePagerPreview() {
 
             {/* Dor do Mercado */}
             <div className="bg-[#FFF8E6] border border-[#DCB450] rounded-md p-3">
-              <p className="text-[#966400] font-bold text-xs mb-1">⚠ A DOR DO MERCADO</p>
+              <p className="text-[#966400] font-bold text-xs mb-1">⚠ AS DORES DO MERCADO</p>
               <ul className="text-[10px] text-[#503C14] space-y-0.5">
-                <li>• Assimetria de informação: corretores precificam com base em anúncios inflados, não em valores reais.</li>
+                <li>• Assimetria de informação: corretores precificam com base em anúncios inflados e experiências pessoais e pontuais, não em valores reais.</li>
                 <li>• Custo do erro: R$ 100K–300K por transação mal precificada.</li>
-                <li>• Operação manual: fichas em papel, controle por WhatsApp, sem rastreabilidade.</li>
-                <li>• Falta de inteligência de mercado: sem dados de tendência por microbairro.</li>
+                <li>• Operação manual: fichas de visita em papel, controle por WhatsApp, sem rastreabilidade.</li>
+                <li>• Falta de inteligência de mercado: sem dados de tendência por microbairro.
+Falta de critérios e padronização para a realização de avaliações imobiliárias e vistorias de imóveis.
+. Dificuldades com a definição e escolha da documentação necessária para realizar uma captação de imóvel e depois uma venda.</li>
               </ul>
             </div>
 
@@ -140,14 +142,12 @@ export default function OnePagerPreview() {
               <p className="text-[#0C2340] font-bold text-xs mb-0.5">A SOLUÇÃO</p>
               <div className="w-8 border-t-2 border-[#D4AF37] mb-2" />
               <div className="grid grid-cols-2 gap-2">
-                {modules.map((m) => (
-                  <div key={m.title} className="bg-[#F5F7FA] rounded-md p-2">
+                {modules.map((m) => <div key={m.title} className="bg-[#F5F7FA] rounded-md p-2">
                     <p className="text-[#0C2340] font-bold text-[10px]">{m.title}</p>
                     <div className="w-full border-t border-[#D4AF37] my-0.5" />
                     <p className="text-red-700 text-[9px]">Dor: {m.dor}</p>
                     <p className="text-green-700 text-[9px] mt-0.5">Benefício: {m.beneficio}</p>
-                  </div>
-                ))}
+                  </div>)}
               </div>
             </div>
 
@@ -156,15 +156,15 @@ export default function OnePagerPreview() {
               <p className="text-[#0C2340] font-bold text-xs mb-0.5">DIFERENCIAIS COMPETITIVOS</p>
               <div className="w-14 border-t-2 border-[#D4AF37] mb-2" />
               <div className="grid grid-cols-2 gap-x-4 gap-y-1.5">
-                {diferenciais.map((d) => (
-                  <div key={d.title} className="flex items-start gap-1.5">
+                {diferenciais.map((d) =>
+                <div key={d.title} className="flex items-start gap-1.5">
                     <span className="inline-block w-2 h-2 rounded-full bg-[#D4AF37] mt-0.5 shrink-0" />
                     <div>
                       <p className="text-[#0C2340] font-bold text-[10px]">{d.title}</p>
                       <p className="text-gray-500 text-[9px]">{d.desc}</p>
                     </div>
                   </div>
-                ))}
+                )}
               </div>
             </div>
 
@@ -173,16 +173,16 @@ export default function OnePagerPreview() {
               <p className="text-[#D4AF37] font-bold text-xs mb-2">MÉTRICAS DE TRAÇÃO</p>
               <div className="grid grid-cols-4 gap-2">
                 {[
-                  { value: metrics ? formatNumber(metrics.totalTransacoes) : "—", label: "Transações ITBI" },
-                  { value: metrics ? formatNumber(metrics.bairrosMapeados) : "—", label: "Bairros Mapeados" },
-                  { value: metrics ? formatNumber(metrics.avaliacoes) : "—", label: "Avaliações" },
-                  { value: metrics ? formatNumber(metrics.usuarios) : "—", label: "Usuários Ativos" },
-                ].map((m) => (
-                  <div key={m.label}>
+                { value: metrics ? formatNumber(metrics.totalTransacoes) : "—", label: "Transações ITBI" },
+                { value: metrics ? formatNumber(metrics.bairrosMapeados) : "—", label: "Bairros Mapeados" },
+                { value: metrics ? formatNumber(metrics.avaliacoes) : "—", label: "Avaliações" },
+                { value: metrics ? formatNumber(metrics.usuarios) : "—", label: "Usuários Ativos" }].
+                map((m) =>
+                <div key={m.label}>
                     <p className="text-[#D4AF37] text-lg font-bold">{m.value}</p>
                     <p className="text-white text-[9px]">{m.label}</p>
                   </div>
-                ))}
+                )}
               </div>
             </div>
           </div>
@@ -202,18 +202,18 @@ export default function OnePagerPreview() {
             </div>
 
             <div className="grid grid-cols-2 gap-3">
-              {detailedModules.map((m) => (
-                <div key={m.title} className="bg-[#F8F9FC] rounded-md p-3 border border-[#D4AF37]/30">
+              {detailedModules.map((m) =>
+              <div key={m.title} className="bg-[#F8F9FC] rounded-md p-3 border border-[#D4AF37]/30">
                   <p className="text-[#0C2340] font-bold text-[11px]">{m.title}</p>
                   <div className="w-full border-t border-[#D4AF37] my-1" />
                   <p className="text-red-700 italic text-[9px]">Dor: {m.dor}</p>
                   <p className="text-green-700 text-[9px] mt-1">Entrega: {m.entrega}</p>
                 </div>
-              ))}
+              )}
             </div>
           </div>
         </div>
       </div>
-    </div>
-  );
+    </div>);
+
 }
