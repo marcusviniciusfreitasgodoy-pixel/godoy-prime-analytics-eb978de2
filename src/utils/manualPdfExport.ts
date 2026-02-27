@@ -70,7 +70,7 @@ const manualContent = {
         "Etapa 0 - Identificação: Dados do proprietário, objetivo (venda/captação) e tipo de imóvel",
         "Etapa 1 - Localização: Endereço com sugestões automáticas e busca de dados oficiais",
         "Etapa 2 - Dados Básicos: Área, quartos, suítes, banheiros, vagas e escolha da base de preço",
-        "Etapa 3 - Questionário: 26 características em 5 categorias (Posição, Conservação, Conforto, Segurança, Funcionalidade)",
+        "Etapa 3 - Questionário: Mais de 30 características em 5 categorias (Posição, Conservação, Conforto, Segurança, Funcionalidade)",
         "Etapa 4 - Resultados: Valores pessimista, provável e otimista com faixa e nível de confiança",
         "Etapa 5 - Recomendação: Estratégia de precificação personalizada com próximos passos",
         "Análise Histórica: Gráfico de evolução e projeção futura baseada em tendências",
@@ -193,7 +193,7 @@ const manualContent = {
         "Conversa em Tempo Real: Respostas instantâneas sobre mercado e plataforma",
         "Consultas por Voz: Interação sem usar as mãos com reconhecimento de fala",
         "Análise de Documentos: Envio e interpretação automática de certidões",
-        "Base de Conhecimento: Informações especializadas do mercado da Barra da Tijuca",
+        "Base de Conhecimento: Informações especializadas do mercado imobiliário do Rio de Janeiro",
         "Sugestões Inteligentes: Recomendações baseadas na página atual",
         "Leitura de Respostas: Respostas podem ser ouvidas em áudio"
       ],
@@ -240,6 +240,34 @@ const manualContent = {
       beneficios: "Gera leads qualificados através de ferramenta de valor para visitantes."
     }
   ],
+  // Novos módulos
+  crm: {
+    titulo: "18. CRM / Pipeline",
+    descricao: "Pipeline visual Kanban para gestão de leads com 8 estágios de conversão.",
+    funcionalidades: [
+      "Quadro Kanban: Arraste e solte leads entre estágios com visualização clara do funil",
+      "8 Estágios: Novo Lead, Qualificação, Apresentação, Visita, Proposta, Negociação, Fechamento e Pós-Venda",
+      "Métricas do Funil: Total de leads, taxa de conversão, tempo médio por estágio e valor do pipeline",
+      "Detalhes do Lead: Informações completas, notas, atividades e histórico de interações",
+      "Qualificação: Score automático baseado em interações e perfil do lead",
+      "Notificações: Alertas de leads parados ou com prazo vencido"
+    ],
+    beneficios: "Organiza o processo de vendas e aumenta a taxa de conversão com visibilidade total do funil."
+  },
+  propostas: {
+    titulo: "19. Propostas Digitais",
+    descricao: "Criação e gestão de propostas de compra com modelos profissionais e aceite eletrônico.",
+    funcionalidades: [
+      "Modelo Simplificado: Proposta rápida com dados essenciais do proponente e valor",
+      "Modelo Completo: Proposta detalhada com financiamento, entrada, parcelas e condições especiais",
+      "Assinatura Digital: Proponente assina digitalmente com Canvas na tela",
+      "Upload de CNH: Documentação do proponente anexada à proposta",
+      "Aceite do Vendedor: Link de aceite eletrônico com assinatura e CPF",
+      "Vinculação: Propostas vinculadas a fichas de visita para rastreabilidade completa",
+      "Histórico: Todas as propostas salvas com status (pendente, aceita, recusada)"
+    ],
+    beneficios: "Profissionaliza propostas de compra e reduz tempo entre interesse e fechamento."
+  },
   recursosAdicionais: [
     {
       titulo: "Tutoriais Guiados",
@@ -301,7 +329,7 @@ const manualContent = {
     {
       categoria: "Avaliação Imobiliária",
       perguntas: [
-        { p: "Quantas características são avaliadas?", r: "São 26 características divididas em 5 categorias: Posição/Vista, Conservação, Conforto, Segurança e Funcionalidade." },
+        { p: "Quantas características são avaliadas?", r: "São mais de 30 características divididas em 5 categorias: Posição/Vista, Conservação, Conforto, Segurança e Funcionalidade. O número exato varia conforme o tipo de imóvel." },
         { p: "O que são os cenários pessimista, provável e otimista?", r: "São três estimativas de valor que consideram diferentes condições de mercado e negociação, oferecendo uma faixa de valores realista." },
         { p: "Como é calculado o nível de confiança?", r: "Baseado na quantidade de transações disponíveis para a rua e na consistência das características avaliadas." },
         { p: "Posso gerar um laudo em PDF?", r: "Sim, ao final da avaliação você pode gerar um laudo profissional completo com metodologia, gráficos e dados de mercado." },
@@ -380,7 +408,7 @@ const manualContent = {
       categoria: "Dicas de Uso",
       perguntas: [
         { p: "Qual a melhor forma de começar a usar a plataforma?", r: "Complete o treinamento, explore o painel principal, faça uma avaliação teste e uma vistoria para conhecer todos os fluxos." },
-        { p: "Como obter avaliações mais precisas?", r: "Preencha todas as 26 características com atenção, use dados de mercado atualizados e inclua informações de anúncios quando disponíveis." },
+        { p: "Como obter avaliações mais precisas?", r: "Preencha todas as características com atenção, use dados de mercado atualizados e inclua informações de anúncios quando disponíveis." },
         { p: "Posso usar a plataforma sem internet?", r: "Não, é necessária conexão com internet para acessar dados em tempo real e funcionalidades da inteligência artificial." },
         { p: "Devo atualizar minhas avaliações periodicamente?", r: "Sim, recomendamos revisar avaliações a cada 3-6 meses ou quando houver mudanças significativas no mercado." },
         { p: "Como melhorar minha produtividade?", r: "Use atalhos, fluxos integrados (vistoria → avaliação → precificação), exporte em lote e configure sua disponibilidade." }
@@ -448,7 +476,11 @@ export async function exportManualPDF() {
   y += 5;
   doc.text('17. Recursos Adicionais', marginLeft + 5, y);
   y += 6;
-  doc.text('18. Perguntas Frequentes (FAQ)', marginLeft + 5, y);
+  doc.text(manualContent.crm.titulo, marginLeft + 5, y);
+  y += 6;
+  doc.text(manualContent.propostas.titulo, marginLeft + 5, y);
+  y += 6;
+  doc.text('20. Perguntas Frequentes (FAQ)', marginLeft + 5, y);
 
   // Module pages
   manualContent.modulos.forEach((modulo) => {
@@ -493,6 +525,44 @@ export async function exportManualPDF() {
     doc.setTextColor(BRAND_COLORS.navy[0], BRAND_COLORS.navy[1], BRAND_COLORS.navy[2]);
     doc.text('Benefício:', marginLeft + 5, y + 8);
     
+    doc.setFont('helvetica', 'normal');
+    doc.setTextColor(BRAND_COLORS.darkGray[0], BRAND_COLORS.darkGray[1], BRAND_COLORS.darkGray[2]);
+    const benefitLines = doc.splitTextToSize(modulo.beneficios, contentWidth - 15);
+    doc.text(benefitLines, marginLeft + 5, y + 16);
+  });
+
+  // CRM / Pipeline page
+  const extraModules = [manualContent.crm, manualContent.propostas];
+  extraModules.forEach((modulo) => {
+    doc.addPage();
+    y = drawGodoyHeader(doc, 'Manual do Usuário');
+    y = drawSectionTitle(doc, modulo.titulo, y, marginLeft);
+    y += 5;
+    doc.setFontSize(11);
+    doc.setTextColor(BRAND_COLORS.darkGray[0], BRAND_COLORS.darkGray[1], BRAND_COLORS.darkGray[2]);
+    const descLines = doc.splitTextToSize(modulo.descricao, contentWidth);
+    doc.text(descLines, marginLeft, y);
+    y += descLines.length * 6 + 10;
+    doc.setFontSize(10);
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(BRAND_COLORS.navy[0], BRAND_COLORS.navy[1], BRAND_COLORS.navy[2]);
+    doc.text('Funcionalidades:', marginLeft, y);
+    y += 8;
+    doc.setFont('helvetica', 'normal');
+    doc.setTextColor(BRAND_COLORS.darkGray[0], BRAND_COLORS.darkGray[1], BRAND_COLORS.darkGray[2]);
+    modulo.funcionalidades.forEach((func: string) => {
+      doc.setFillColor(BRAND_COLORS.gold[0], BRAND_COLORS.gold[1], BRAND_COLORS.gold[2]);
+      doc.circle(marginLeft + 3, y - 1.5, 1.5, 'F');
+      const funcLines = doc.splitTextToSize(func, contentWidth - 10);
+      doc.text(funcLines, marginLeft + 8, y);
+      y += funcLines.length * 5 + 3;
+    });
+    y += 10;
+    doc.setFillColor(240, 240, 240);
+    doc.roundedRect(marginLeft, y, contentWidth, 25, 3, 3, 'F');
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(BRAND_COLORS.navy[0], BRAND_COLORS.navy[1], BRAND_COLORS.navy[2]);
+    doc.text('Benefício:', marginLeft + 5, y + 8);
     doc.setFont('helvetica', 'normal');
     doc.setTextColor(BRAND_COLORS.darkGray[0], BRAND_COLORS.darkGray[1], BRAND_COLORS.darkGray[2]);
     const benefitLines = doc.splitTextToSize(modulo.beneficios, contentWidth - 15);

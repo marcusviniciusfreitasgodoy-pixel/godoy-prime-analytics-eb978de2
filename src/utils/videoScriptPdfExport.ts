@@ -221,7 +221,7 @@ export async function exportVideoScriptPdf() {
 
   // MÓDULO 3
   addTitle('MÓDULO 3: AVALIAÇÃO IMOBILIÁRIA (5:30 - 8:30)', pageNum);
-  addNarration('O Motor de Avaliação Godoy Prime é um sistema completo de precificação em 6 etapas: identificação do imóvel e proprietário, localização com busca automática de dados oficiais, dados básicos como área e cômodos, questionário com 26 características em 5 categorias, resultados em três cenários (pessimista, provável e otimista), e recomendação automática com próximos passos.', pageNum);
+  addNarration('O Motor de Avaliação Godoy Prime é um sistema completo de precificação em 6 etapas: identificação do imóvel e proprietário, localização com busca automática de dados oficiais, dados básicos como área e cômodos, questionário com mais de 30 características em 5 categorias, resultados em três cenários (pessimista, provável e otimista), e recomendação automática com próximos passos.', pageNum);
   addScreenshot(16, 'Etapa 0 - Identificação do imóvel e proprietário', pageNum);
   addScreenshot(17, 'Etapa 1 - Localização com dados oficiais carregados', pageNum);
   addScreenshot(18, 'Etapa 2 - Dados básicos e escolha da base de preço', pageNum);
@@ -367,7 +367,7 @@ export async function exportVideoScriptPdf() {
 
   // CATEGORIA 4: AVALIAÇÃO
   addTitle('AVALIAÇÃO IMOBILIÁRIA', pageNum);
-  addFaqItem(13, 'Quantas características são avaliadas?', 'São 26 características divididas em 5 categorias: Posição/Vista, Conservação, Conforto, Segurança e Funcionalidade.', pageNum);
+  addFaqItem(13, 'Quantas características são avaliadas?', 'São mais de 30 características divididas em 5 categorias: Posição/Vista, Conservação, Conforto, Segurança e Funcionalidade.', pageNum);
   addFaqItem(14, 'O que são os cenários pessimista, provável e otimista?', 'São três estimativas de valor que consideram diferentes condições de mercado e negociação, oferecendo uma faixa realista.', pageNum);
   addFaqItem(15, 'Como é calculado o nível de confiança?', 'Baseado na quantidade de transações disponíveis para a rua e na consistência das características avaliadas.', pageNum);
   addFaqItem(16, 'Posso gerar um laudo em PDF?', 'Sim, ao final da avaliação você pode gerar um laudo profissional completo com metodologia, gráficos e dados de mercado.', pageNum);
@@ -425,7 +425,7 @@ export async function exportVideoScriptPdf() {
   // CATEGORIA 12: DICAS
   addTitle('DICAS DE USO', pageNum);
   addFaqItem(46, 'Qual a melhor forma de começar a usar a plataforma?', 'Complete o treinamento, explore o painel principal, faça uma avaliação teste e uma vistoria para conhecer os fluxos.', pageNum);
-  addFaqItem(47, 'Como obter avaliações mais precisas?', 'Preencha todas as 26 características com atenção e inclua dados de anúncios quando disponíveis.', pageNum);
+  addFaqItem(47, 'Como obter avaliações mais precisas?', 'Preencha todas as características com atenção e inclua dados de anúncios quando disponíveis.', pageNum);
   addFaqItem(48, 'Posso usar a plataforma sem internet?', 'Não, é necessária conexão com internet para acessar dados em tempo real e funcionalidades da inteligência artificial.', pageNum);
   addFaqItem(49, 'Devo atualizar minhas avaliações periodicamente?', 'Sim, recomendamos revisar a cada 3-6 meses ou quando houver mudanças significativas no mercado.', pageNum);
   addFaqItem(50, 'Como melhorar minha produtividade?', 'Use fluxos integrados (Vistoria → Avaliação → Precificação), exporte em lote e configure sua disponibilidade.', pageNum);

@@ -2,7 +2,7 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import {
   BarChart3, TrendingUp, ClipboardCheck, Calendar, Target, Building2,
-  Brain, FileSignature, FileText, Search,
+  Brain, FileSignature, Search, MapPin, CalendarPlus, FileSearch, FolderCheck, Users,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 
@@ -28,7 +28,7 @@ const functionalityMap: FunctionalityItem[] = [
   },
   {
     icon: ClipboardCheck,
-    title: "Vistoria Digital 3.1",
+    title: "Vistoria Digital",
     dor: "Vistorias sem padrão, disputas jurídicas, relatórios manuais.",
     beneficio: "Pontuação 0-100 automática, lista de verificação 50+ itens, PDF profissional.",
   },
@@ -69,10 +69,34 @@ const functionalityMap: FunctionalityItem[] = [
     beneficio: "Modelos simplificado/completo, aceite eletrônico, histórico completo.",
   },
   {
-    icon: FileText,
-    title: "Parecer Godoy Prime",
-    dor: "Comprador sem validação independente, risco de pagar acima do mercado.",
-    beneficio: "Análise ITBI + vistoria presencial + projeção de valorização + margem de negociação.",
+    icon: MapPin,
+    title: "Pesquisa de Mercado",
+    dor: "Comparativos baseados em anúncios inflados, sem dados reais.",
+    beneficio: "Busca por localização ou faixa de valor com dados oficiais ITBI, exportação em planilha.",
+  },
+  {
+    icon: CalendarPlus,
+    title: "Agendamento de Visitas",
+    dor: "Cliente agenda por telefone, sem controle de disponibilidade.",
+    beneficio: "Agendamento automático pelo cliente com gestão de disponibilidade do corretor.",
+  },
+  {
+    icon: FileSearch,
+    title: "Análise de Documentação IA",
+    dor: "Análise manual de certidões e documentos, lenta e sujeita a erros.",
+    beneficio: "IA identifica tipo de documento e extrai informações relevantes automaticamente.",
+  },
+  {
+    icon: FolderCheck,
+    title: "Documentação Comprador e Vendedor",
+    dor: "Documentação incompleta gera atrasos e riscos jurídicos.",
+    beneficio: "Checklist dinâmico separado por parte, perfis especiais e exportação PDF.",
+  },
+  {
+    icon: Users,
+    title: "Gestão de Leads e CRM",
+    dor: "Leads capturados sem acompanhamento, oportunidades perdidas.",
+    beneficio: "Pipeline Kanban 8 estágios, qualificação automática, histórico de interações.",
   },
 ];
 

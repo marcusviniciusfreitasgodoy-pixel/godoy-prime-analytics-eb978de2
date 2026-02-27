@@ -37,6 +37,8 @@ import {
   Cog,
   ExternalLink,
   Play,
+  Building2,
+  FileSignature,
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useAuthContext } from "@/contexts/AuthContext";
@@ -153,7 +155,7 @@ const manualSections: ManualSection[] = [
     id: "avaliacao",
     title: "Avaliação Imobiliária",
     icon: Calculator,
-    description: "Motor de Avaliação Godoy Prime: calcule o valor de mercado usando dados oficiais + anúncios com 26 características.",
+    description: "Motor de Avaliação Godoy Prime: calcule o valor de mercado usando dados oficiais + anúncios com mais de 30 características.",
     route: "/avaliacao-imobiliaria",
     features: [
       {
@@ -178,7 +180,7 @@ const manualSections: ManualSection[] = [
       },
       {
         title: "Etapa 4: Questionário de Características",
-        description: "26 características em 5 categorias: Posição/Vista, Conservação, Conforto, Segurança e Funcionalidade. Cada resposta ajusta o valor final em percentual.",
+        description: "Mais de 30 características em 5 categorias: Posição/Vista, Conservação, Conforto, Segurança e Funcionalidade. Cada resposta ajusta o valor final em percentual.",
         tips: [
           "Marque apenas características que realmente se aplicam ao imóvel",
           "O ajuste total tem limites (cap) por categoria para evitar distorções",
@@ -431,6 +433,48 @@ const manualSections: ManualSection[] = [
       {
         title: "Filtros Automáticos",
         description: "O sistema aplica: percentual transferido ≥90%, classificação Residencial/Comercial e cálculo de valor/m².",
+      },
+    ],
+  },
+  {
+    id: "crm-pipeline",
+    title: "CRM / Pipeline",
+    icon: Building2,
+    description: "Gerencie seus leads em um pipeline visual estilo Kanban com 8 estágios de conversão.",
+    route: "/pipeline-crm",
+    features: [
+      {
+        title: "Quadro Kanban",
+        description: "Arraste e solte leads entre 8 estágios: Novo Lead, Qualificação, Apresentação, Visita, Proposta, Negociação, Fechamento e Pós-Venda.",
+      },
+      {
+        title: "Métricas do Funil",
+        description: "Acompanhe total de leads, taxa de conversão, tempo médio por estágio e valor total do pipeline.",
+      },
+      {
+        title: "Detalhes do Lead",
+        description: "Veja informações completas, notas, atividades e histórico de interações de cada lead.",
+      },
+    ],
+  },
+  {
+    id: "propostas-digitais",
+    title: "Propostas Digitais",
+    icon: FileText,
+    description: "Crie e gerencie propostas de compra com modelos simplificado e completo, aceite eletrônico e rastreabilidade.",
+    route: "/proposta-publica",
+    features: [
+      {
+        title: "Modelos de Proposta",
+        description: "Escolha entre modelo simplificado (rápido) ou completo (com detalhamento financeiro, CNH e assinatura).",
+      },
+      {
+        title: "Aceite Eletrônico",
+        description: "Vendedor pode aceitar a proposta digitalmente com assinatura e CPF.",
+      },
+      {
+        title: "Histórico de Propostas",
+        description: "Acompanhe todas as propostas enviadas, seus status e vinculação com fichas de visita.",
       },
     ],
   },
