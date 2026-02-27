@@ -71,9 +71,9 @@ export default function OnePagerPreview() {
   const detailedModules = [
   { title: "Painel Analítico", dor: "Sem visão consolidada do mercado, decisões às cegas", entrega: "4 KPIs em tempo real, gráficos de 60 meses, exportação PDF/Excel" },
   { title: "Microrregiões", dor: "Barra tratada como região única, ignorando variações de R$/m²", entrega: "Classificação e evolução por sub-região com dados ITBI segmentados" },
-  { title: "Gestão de Visitas", dor: "Agendamento por WhatsApp, fichas em papel, sem controle", entrega: "Fichas digitais com assinatura eletrônica, selo de proximidade" },
+  { title: "Gestão de Visitas", dor: "Agendamento por WhatsApp, fichas em papel, sem controle", entrega: "Fichas digitais com assinatura eletrônica, selo de proximidade\nFeedback instantâneo" },
   { title: "Propostas Digitais", dor: "Propostas informais sem validade jurídica ou rastreio", entrega: "Modelos simplificado/completo com aceite eletrônico e PDF" },
-  { title: "Estratégia de Precificação", dor: "Preço de anúncio definido sem metodologia, sem plano B", entrega: "Diagnóstico 9 perguntas, 3 faixas (Atração/Mercado/Premium)" },
+  { title: "Estratégia de Precificação", dor: "Preço de anúncio definido sem metodologia, sem plano B", entrega: "Diagnóstico 9 perguntas, 3 faixas (Atração/Mercado/Premium)\nLaudo de Avaliação e Vistoria" },
   { title: "Parecer Godoy Prime", dor: "Comprador não tem validação independente do preço pedido", entrega: "Laudo independente baseado em ITBI, transparência total" }];
 
   return (
