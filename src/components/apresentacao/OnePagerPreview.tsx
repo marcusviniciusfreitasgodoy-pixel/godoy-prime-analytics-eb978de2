@@ -58,7 +58,7 @@ export default function OnePagerPreview() {
 
   const modules = [
   { title: "Motor de Avaliação", dor: "Precificação por \"achismo\" sem base em dados reais", beneficio: "Laudo profissional em 5 min com 3 cenários calibráveis" },
-  { title: "Vistoria Digital 3.1", dor: "Vistorias sem padrão geram disputas jurídicas", beneficio: "Pontuação 0-100 automática, lista de verificação 55+ itens, PDF profissional" },
+  { title: "Vistoria Digital", dor: "Vistorias sem padrão geram disputas jurídicas", beneficio: "Pontuação 0-100 automática, lista de verificação 55+ itens, PDF profissional" },
   { title: "Gestão de Clientes e Funil", dor: "Contatos perdidos em WhatsApp, sem acompanhamento estruturado", beneficio: "Quadro 8 estágios, conversão rastreável, notificações automáticas" },
   { title: "Sofia IA", dor: "Horas pesquisando dados dispersos em múltiplas fontes", beneficio: "Resposta contextual instantânea com base em dados ITBI oficiais" }];
 
