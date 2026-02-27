@@ -1,49 +1,35 @@
 
-# Substituir Termos em Ingles por Portugues na Apresentacao e no PDF
 
-## Mapeamento de Substituicoes
+## Ajustes no Resumo Executivo (Preview HTML + PDF)
 
-### 1. `src/components/apresentacao/FunctionalityMapSection.tsx`
+Duas alterações principais em dois arquivos: o preview HTML (`OnePagerPreview.tsx`) e a exportação PDF (`productOnePagerPdfExport.ts`).
 
-| Termo atual (ingles) | Substituicao (portugues) |
-|---|---|
-| `Dashboard Analitico` | `Painel Analitico` |
-| `Score 0-100` | `Pontuacao 0-100` |
-| `checklist 50+ itens` | `lista de verificacao 50+ itens` |
-| `feedback automatizado` | `retorno automatizado` |
-| `Ranking e evolucao` | `Classificacao e evolucao` |
-| `CRM e Pipeline` | `Gestao de Clientes e Funil` |
-| `Leads perdidos` | `Contatos perdidos` |
-| `follow-up` | `acompanhamento` |
-| `Kanban 8 estagios` | `Quadro 8 estagios` |
+---
 
-### 2. `src/pages/Apresentacao.tsx`
+### 1. Remover "Parecer Godoy Prime" das Funcionalidades Detalhadas
 
-| Termo atual (ingles) | Substituicao (portugues) |
-|---|---|
-| `Dashboard Analitico` | `Painel Analitico` |
-| `Baixar One-Pager PDF` | `Baixar Resumo Executivo` |
-| `Gestao de Leads & CRM` | `Gestao de Contatos` |
-| `CRM integrado com captacao automatica de leads` | `Gestao integrada com captacao automatica de contatos` |
+Será removido de ambos os arquivos (preview e PDF).
 
-### 3. `src/utils/productOnePagerPdfExport.ts`
+### 2. Adicionar 5 novas Funcionalidades Detalhadas
 
-| Termo atual (ingles) | Substituicao (portugues) |
-|---|---|
-| `Dashboard Analytics` | `Painel Analitico` |
-| `Score 0-100` | `Pontuacao 0-100` |
-| `checklist 55+ itens` | `lista de verificacao 55+ itens` |
-| `CRM + Pipeline` | `Gestao de Clientes e Funil` |
-| `Leads perdidos` | `Contatos perdidos` |
-| `follow-up estruturado` | `acompanhamento estruturado` |
-| `Kanban 8 estagios` | `Quadro 8 estagios` |
-| `Multi-tenant com RLS` | `Multiorganizacao Segura` |
-| `seguranca enterprise` | `seguranca corporativa` |
-| `Ticket medio por imovel` | `Valor medio por imovel` |
-| `Ranking e evolucao` | `Classificacao e evolucao` |
-| `badge de proximidade` | `selo de proximidade` |
-| `rastreabilidade de leads` | `rastreabilidade de contatos` |
+Serão adicionadas ao array `detailedModules` em ambos os arquivos, no padrão Dor/Entrega:
 
-## Resumo
+| Funcionalidade | Dor | Entrega |
+|---|---|---|
+| **Pesquisa de Mercado** | Sem acesso a dados reais de transações por localização e tipologia | Pesquisa por logradouro, bairro e microbairro com dados ITBI oficiais e filtros por tipologia |
+| **Agendamento de Visitas** | Cliente depende do corretor para agendar, processo lento por WhatsApp | Agendamento automático pelo cliente com disponibilidade online e confirmação instantânea |
+| **Análise de Documentação IA** | Revisão manual de documentos consome horas e gera erros | Upload de imagem/PDF com análise automática por IA, extração de campos e alertas |
+| **Documentação Comprador e Vendedor** | Sem controle dos documentos necessários, esquecimentos geram atrasos | Lista de verificação completa para comprador e vendedor com progresso rastreável |
+| **Gestão de Contatos e CRM** | Contatos dispersos em WhatsApp, sem funil estruturado | Quadro de 8 estágios, captura de contatos, acompanhamento e notificações automáticas |
 
-Alteracoes puramente textuais em 3 arquivos, sem mudanca de logica ou layout. Todos os termos em ingles serao substituidos por equivalentes em portugues que facilitem a compreensao do publico-alvo (corretores e imobiliarias).
+### 3. Arquivos alterados
+
+- **`src/components/apresentacao/OnePagerPreview.tsx`** -- atualizar array `detailedModules` (remover Parecer, adicionar 5 novos). Total passará de 6 para 10 cards, o grid 2 colunas se ajusta automaticamente.
+- **`src/utils/productOnePagerPdfExport.ts`** -- mesma alteração no array `detailedModules` da Page 2 do PDF, com ajuste no `cellH` para acomodar 10 itens (5 linhas x 2 colunas).
+
+### Detalhes Técnicos
+
+- O grid `grid-cols-2` do preview HTML acomoda automaticamente os 10 cards.
+- No PDF, o `cellH` será reduzido de 40 para ~32mm para que 5 linhas caibam na página A4.
+- O conteúdo das dores do mercado (Página 1) permanece inalterado, pois já foi atualizado nas iterações anteriores.
+
