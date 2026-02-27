@@ -62,13 +62,11 @@ export default function OnePagerPreview() {
   { title: "Gestão de Clientes e Funil", dor: "Contatos perdidos em WhatsApp, sem acompanhamento estruturado", beneficio: "Quadro 8 estágios, conversão rastreável, notificações automáticas" },
   { title: "Sofia IA", dor: "Horas pesquisando dados dispersos em múltiplas fontes", beneficio: "Resposta contextual instantânea com base em dados ITBI oficiais" }];
 
-
   const diferenciais = [
   { title: "Dados Oficiais ITBI", desc: "Transações reais da prefeitura, não anúncios inflados" },
   { title: "Metodologia Técnica", desc: "Conformidade com norma técnica de avaliação imobiliária" },
   { title: "Resultado em 5 Minutos", desc: "Da busca ao laudo profissional em PDF pronto para apresentação" },
   { title: "Multiorganização Segura", desc: "Isolamento total de dados por organização, segurança corporativa" }];
-
 
   const detailedModules = [
   { title: "Painel Analítico", dor: "Sem visão consolidada do mercado, decisões às cegas", entrega: "4 KPIs em tempo real, gráficos de 60 meses, exportação PDF/Excel" },
@@ -78,7 +76,6 @@ export default function OnePagerPreview() {
   { title: "Estratégia de Precificação", dor: "Preço de anúncio definido sem metodologia, sem plano B", entrega: "Diagnóstico 9 perguntas, 3 faixas (Atração/Mercado/Premium)" },
   { title: "Parecer Godoy Prime", dor: "Comprador não tem validação independente do preço pedido", entrega: "Laudo independente baseado em ITBI, transparência total" }];
 
-
   return (
     <div className="max-w-4xl mx-auto space-y-6">
       {/* Download button */}
@@ -87,7 +84,6 @@ export default function OnePagerPreview() {
           onClick={handleDownload}
           disabled={downloading}
           className="gap-2 bg-[hsl(212,62%,15%)] text-white hover:bg-[hsl(212,62%,22%)]">
-
           {downloading ? <Loader2 className="h-4 w-4 animate-spin" /> : <FileDown className="h-4 w-4" />}
           Baixar PDF
         </Button>
@@ -112,7 +108,7 @@ export default function OnePagerPreview() {
                 <ul className="space-y-0.5 text-[10px]">
                   <li>• Nicho: Imóveis de alto padrão — Barra da Tijuca, RJ</li>
                   <li>• Decisor: Corretores e imobiliárias com faturamento R$ 10-100K+/mês</li>
-                  <li>• Valor médio por imóvel: > R$ 1M </li>
+                  <li>{'• Valor médio por imóvel: > R$ 1M'}</li>
                   <li>• Mercado endereçável: 5.000+ corretores ativos na região</li>
                 </ul>
               </div>
@@ -128,12 +124,15 @@ export default function OnePagerPreview() {
             <div className="bg-[#FFF8E6] border border-[#DCB450] rounded-md p-3">
               <p className="text-[#966400] font-bold text-xs mb-1">⚠ AS DORES DO MERCADO</p>
               <ul className="text-[10px] text-[#503C14] space-y-0.5">
-                <li>• Assimetria de informação: corretores precificam com base em anúncios inflados e experiências pessoais e pontuais, não em valores reais.</li>
-                <li>• Custo do erro: R$ 100K–300K por transação mal precificada.</li>
+                <li>• Assimetria de informação: Imobiliárias e corretores precificam com base em anúncios inflados e experiências pessoais e pontuais, não em valores reais.</li>
+                <li>• Custo do erro: R$ 100K–300K por transação mal precificada e demora na venda.</li>
                 <li>• Operação manual: fichas de visita em papel, controle por WhatsApp, sem rastreabilidade.</li>
-                <li>• Falta de inteligência de mercado: sem dados de tendência por microbairro.
-Falta de critérios e padronização para a realização de avaliações imobiliárias e vistorias de imóveis.
-. Dificuldades com a definição e escolha da documentação necessária para realizar uma captação de imóvel e depois uma venda.</li>
+                <li>. Dificuldades na obtenção de informações para preenchimento de ferramentas de CRM.</li>
+                <li>• Falta de inteligência de mercado: sem dados de tendência por microbairro.</li>
+                <li>. Falta de critérios e padronização para a realização de avaliações imobiliárias e vistorias de imóveis.</li>
+                <li>. Dificuldades com a definição e escolha da documentação necessária para realizar uma captação de imóvel e depois uma venda.</li>
+                <li>. Percepção negativa do mercado sobre o trabalho das imobiliárias e corretores.</li>
+                <li>. Dificuldades de captação de imóveis com gestão exclusiva (Exclusividade)</li>
               </ul>
             </div>
 
@@ -215,5 +214,4 @@ Falta de critérios e padronização para a realização de avaliações imobili
         </div>
       </div>
     </div>);
-
 }
