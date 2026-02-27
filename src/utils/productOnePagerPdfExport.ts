@@ -77,9 +77,9 @@ function drawMercado(doc: jsPDF, y: number, margin: number, contentWidth: number
   doc.setFontSize(7.5);
   doc.setFont('helvetica', 'normal');
   const mercadoLines = [
-    'Nicho: Imóveis de alto padrão — Barra da Tijuca, RJ',
+    'Mercado Imobiliário da cidade do Rio de Janeiro na primeira fase.',
     'Decisor: Corretores e imobiliárias com faturamento R$ 10-100K+/mês',
-    'Valor médio por imóvel: R$ 3M a R$ 30M',
+    'Valor médio por imóvel: > R$ 1M',
     'Mercado endereçável: 5.000+ corretores ativos na região',
   ];
   const textMaxW = contentWidth - 55;
@@ -117,7 +117,7 @@ function drawMercado(doc: jsPDF, y: number, margin: number, contentWidth: number
 }
 
 function drawDorMercado(doc: jsPDF, y: number, margin: number, contentWidth: number): number {
-  const dorH = 34;
+  const dorH = 58;
   doc.setFillColor(255, 248, 230);
   doc.roundedRect(margin, y, contentWidth, dorH, 2, 2, 'F');
   doc.setDrawColor(220, 180, 80);
@@ -127,20 +127,25 @@ function drawDorMercado(doc: jsPDF, y: number, margin: number, contentWidth: num
   doc.setTextColor(150, 100, 0);
   doc.setFontSize(10);
   doc.setFont('helvetica', 'bold');
-  doc.text('⚠  A DOR DO MERCADO', margin + 5, y + 7);
+  doc.text('⚠  AS DORES DO MERCADO', margin + 5, y + 7);
 
   doc.setTextColor(80, 60, 20);
   doc.setFontSize(7);
   doc.setFont('helvetica', 'normal');
   const dorLines = [
-    'Assimetria de informação: corretores precificam com base em anúncios inflados, não em valores reais de transação.',
-    'Custo do erro: R$ 100K–300K por transação mal precificada — imóvel encalha ou vende abaixo do justo.',
-    'Operação manual: fichas em papel, controle por WhatsApp, sem rastreabilidade de contatos ou visitas.',
-    'Falta de inteligência de mercado: sem dados de tendência por microbairro, decisões no "achismo".',
+    'Assimetria de informação: Imobiliárias e corretores precificam com base em anúncios inflados e experiências pessoais, não em valores reais.',
+    'Custo do erro: R$ 100K–300K por transação mal precificada e demora na venda.',
+    'Operação manual: fichas de visita em papel, controle por WhatsApp, sem rastreabilidade.',
+    'Dificuldades na obtenção de informações para preenchimento de ferramentas de CRM.',
+    'Falta de inteligência de mercado: sem dados de tendência de valor de m² por microbairro e pesquisas por região e tipologia.',
+    'Falta de critérios e padronização para a realização de avaliações imobiliárias e vistorias de imóveis.',
+    'Dificuldades com a definição e análise da documentação necessária para captação e venda.',
+    'Percepção negativa do mercado sobre o trabalho das imobiliárias e corretores.',
+    'Dificuldades de captação de imóveis com gestão exclusiva (Exclusividade).',
   ];
   dorLines.forEach((line, i) => {
     const splitLine = doc.splitTextToSize(`•  ${line}`, contentWidth - 12);
-    doc.text(splitLine, margin + 5, y + 13 + i * 5.2);
+    doc.text(splitLine, margin + 5, y + 13 + i * 4.8);
   });
 
   return y + dorH + 4;
@@ -162,7 +167,7 @@ function drawSolucaoModulos(doc: jsPDF, y: number, margin: number, contentWidth:
   const cellH = 32;
   const modules = [
     { title: 'Motor de Avaliação', dor: 'Precificação por "achismo" sem base em dados reais', beneficio: 'Laudo profissional em 5 min com 3 cenários calibráveis' },
-    { title: 'Vistoria Digital 3.1', dor: 'Vistorias sem padrão geram disputas jurídicas', beneficio: 'Pontuação 0-100 automática, lista de verificação 55+ itens, PDF profissional' },
+    { title: 'Vistoria Digital', dor: 'Vistorias sem padrão geram disputas jurídicas', beneficio: 'Pontuação 0-100 automática, lista de verificação 55+ itens, PDF profissional' },
     { title: 'Gestão de Clientes e Funil', dor: 'Contatos perdidos em WhatsApp, sem acompanhamento estruturado', beneficio: 'Quadro 8 estágios, conversão rastreável, notificações automáticas' },
     { title: 'Sofia IA', dor: 'Horas pesquisando dados dispersos em múltiplas fontes', beneficio: 'Resposta contextual instantânea com base em dados ITBI oficiais' },
   ];
