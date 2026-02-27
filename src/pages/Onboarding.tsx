@@ -132,7 +132,7 @@ const faqCategories: FAQCategory[] = [
     icon: <Calculator className="h-4 w-4" />,
     roles: ['corretor', 'gerente', 'admin'],
     perguntas: [
-      { pergunta: "Quantas características são avaliadas?", resposta: "São 35 características divididas em 5 categorias: Posição e Vista, Conservação, Conforto, Segurança e Funcionalidade." },
+      { pergunta: "Quantas características são avaliadas?", resposta: "São mais de 30 características divididas em 5 categorias: Posição e Vista, Conservação, Conforto, Segurança e Funcionalidade. O número exato varia conforme o tipo de imóvel (Casa ou Apartamento)." },
       { pergunta: "O que são os 3 cenários de valor?", resposta: "São três estimativas: Conservador (valor mínimo), Provável (valor mais esperado) e Otimista (valor máximo)." },
       { pergunta: "Como é calculado o nível de confiança?", resposta: "Baseado na quantidade de vendas disponíveis na região e na consistência das características avaliadas. Verde (alto), Amarelo (médio), Vermelho (baixo)." },
       { pergunta: "Posso gerar um relatório para impressão?", resposta: "Sim, ao final da avaliação você pode gerar um relatório profissional de 5 a 7 páginas com gráficos e análises." },
@@ -261,7 +261,7 @@ const faqCategories: FAQCategory[] = [
     roles: ['corretor', 'gerente', 'admin'],
     perguntas: [
       { pergunta: "Qual a melhor forma de começar a usar a plataforma?", resposta: "Complete o tutorial, explore o painel principal, faça uma pesquisa de mercado e depois uma avaliação teste." },
-      { pergunta: "Como obter avaliações mais precisas?", resposta: "Preencha todas as 26 características com atenção, use base combinada e verifique as vendas da região." },
+      { pergunta: "Como obter avaliações mais precisas?", resposta: "Preencha todas as características com atenção, use base combinada e verifique as vendas da região." },
       { pergunta: "Posso usar a plataforma sem internet?", resposta: "Não, é necessária conexão com internet para acessar dados atualizados e funcionalidades da assistente." },
       { pergunta: "Devo atualizar minhas avaliações periodicamente?", resposta: "Sim, recomendamos revisar avaliações a cada 3 a 6 meses ou quando houver mudanças no mercado." },
       { pergunta: "Qual o fluxo ideal para captação?", resposta: "Vistoria, depois Avaliação, depois Estratégia de Preço e Ficha de Visita para maior eficiência." }
@@ -326,12 +326,12 @@ const allOnboardingSteps: OnboardingStep[] = [
   {
     id: 4,
     title: "Avaliação de Imóveis",
-    description: "Sistema de avaliação em 6 etapas com 35 características e geração de relatório profissional.",
+    description: "Sistema de avaliação em 6 etapas com mais de 30 características e geração de relatório profissional.",
     icon: <Calculator className="h-8 w-8" />,
     features: [
       "Etapa 0: Identificação do imóvel e proprietário",
       "Etapa 1-2: Localização e dados básicos",
-      "Etapa 3: 35 características em 5 categorias",
+      "Etapa 3: Mais de 30 características em 5 categorias",
       "Etapa 4: Valores conservador, provável e otimista",
       "Etapa 5: Recomendação e relatório para impressão"
     ],
@@ -457,6 +457,40 @@ const allOnboardingSteps: OnboardingStep[] = [
     ],
     route: "/avaliacao-publica",
     color: "from-cyan-500 to-cyan-400",
+    roles: ['corretor', 'gerente', 'admin'],
+    category: 'operacional'
+  },
+  {
+    id: 22,
+    title: "CRM / Pipeline",
+    description: "Pipeline visual Kanban com 8 estágios para gerenciar leads, acompanhar conversões e otimizar o funil de vendas.",
+    icon: <Briefcase className="h-8 w-8" />,
+    features: [
+      "Quadro Kanban com arrastar e soltar",
+      "8 estágios de conversão configuráveis",
+      "Métricas de funil e conversão",
+      "Histórico de atividades por lead",
+      "Notas e acompanhamento de interações"
+    ],
+    route: "/pipeline-crm",
+    color: "from-violet-500 to-violet-400",
+    roles: ['corretor', 'gerente', 'admin'],
+    category: 'operacional'
+  },
+  {
+    id: 23,
+    title: "Propostas Digitais",
+    description: "Crie propostas de compra com modelos simplificado e completo, aceite eletrônico e histórico completo.",
+    icon: <FileSearch className="h-8 w-8" />,
+    features: [
+      "Modelo simplificado e completo",
+      "Assinatura digital do proponente",
+      "Aceite eletrônico do vendedor",
+      "Vinculação com ficha de visita",
+      "Histórico de propostas por imóvel"
+    ],
+    route: "/proposta-publica",
+    color: "from-emerald-600 to-emerald-400",
     roles: ['corretor', 'gerente', 'admin'],
     category: 'operacional'
   },

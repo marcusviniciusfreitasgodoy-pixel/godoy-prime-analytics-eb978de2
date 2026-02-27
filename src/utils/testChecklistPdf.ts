@@ -111,7 +111,7 @@ const checklistSections: ChecklistSection[] = [
       "[ ] Etapa 1: Seleção de logradouro com dados oficiais",
       "[ ] Etapa 1: Entrada manual de preço anúncios",
       "[ ] Etapa 2: Área e seleção de base de preço",
-      "[ ] Etapa 3: 26 características em 5 abas",
+      "[ ] Etapa 3: Mais de 30 características em 5 abas",
       "[ ] Etapa 3: Preview em tempo real",
       "[ ] Etapa 4: 3 cenários (pessimista/provável/otimista)",
       "[ ] Etapa 4: Spread % e nível de confiança",

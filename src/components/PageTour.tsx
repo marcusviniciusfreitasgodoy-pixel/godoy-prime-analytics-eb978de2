@@ -85,7 +85,7 @@ export const tourConfigs: Record<string, Step[]> = {
   avaliacao: [
     {
       target: '[data-tour="avaliacao-progress"]',
-      content: 'A avaliação segue 6 etapas sequenciais: Identificação, Localização, Dados Básicos, 26 Características, Resultados e Recomendação.',
+      content: 'A avaliação segue 6 etapas sequenciais: Identificação, Localização, Dados Básicos, Características, Resultados e Recomendação.',
       disableBeacon: true,
       placement: 'bottom',
       title: '📊 Progresso da Avaliação',
@@ -110,7 +110,7 @@ export const tourConfigs: Record<string, Step[]> = {
     },
     {
       target: '[data-tour="avaliacao-step3"]',
-      content: '26 características em 5 categorias: Posição/Vista, Conservação, Conforto, Segurança e Funcionalidade. Cada resposta ajusta o valor.',
+      content: 'Mais de 30 características em 5 categorias: Posição/Vista, Conservação, Conforto, Segurança e Funcionalidade. Cada resposta ajusta o valor.',
       placement: 'top',
       title: '✅ Etapa 3: Características',
     },
@@ -486,6 +486,23 @@ export const tourConfigs: Record<string, Step[]> = {
       content: 'Adicione novos artigos para treinar a Sofia com conhecimento específico da sua empresa.',
       placement: 'left',
       title: '➕ Adicionar Artigo',
+    },
+  ],
+
+  // Pipeline CRM
+  pipelineCRM: [
+    {
+      target: '[data-tour="crm-kanban"]',
+      content: 'Quadro Kanban com 8 estágios: Novo Lead, Qualificação, Apresentação, Visita, Proposta, Negociação, Fechamento e Pós-Venda.',
+      disableBeacon: true,
+      placement: 'bottom',
+      title: '📋 Pipeline Kanban',
+    },
+    {
+      target: '[data-tour="crm-metricas"]',
+      content: 'Métricas do funil: total de leads, taxa de conversão, tempo médio por estágio e valor do pipeline.',
+      placement: 'bottom',
+      title: '📊 Métricas',
     },
   ],
 

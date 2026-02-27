@@ -58,7 +58,7 @@ const desktopTourSteps: Step[] = [
   },
   {
     target: '[data-tour="nav-avaliacao"]',
-    content: 'Motor de Avaliação: 6 etapas, 26 características, 3 cenários de valor. Base combinada de dados oficiais e anúncios. Gera relatório profissional para impressão.',
+    content: 'Motor de Avaliação: 6 etapas, mais de 30 características, 3 cenários de valor. Base combinada de dados oficiais e anúncios. Gera relatório profissional para impressão.',
     placement: 'right',
     title: '🧮 Avaliação de Imóveis',
   },
@@ -91,6 +91,12 @@ const desktopTourSteps: Step[] = [
     content: 'Lista de Documentos separada Vendedor e Comprador. Perfis especiais (Empresa, União Estável). Analise documentos com a assistente virtual.',
     placement: 'right',
     title: '📚 Documentação',
+  },
+  {
+    target: '[data-tour="nav-crm"]',
+    content: 'Pipeline CRM com quadro Kanban de 8 estágios. Gerencie leads, acompanhe conversões e receba notificações automáticas.',
+    placement: 'right',
+    title: '📋 CRM / Pipeline',
   },
   {
     target: '[data-tour="nav-configuracoes"]',
