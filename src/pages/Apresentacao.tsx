@@ -24,6 +24,7 @@ import godoySymbol from "@/assets/godoy-logo-symbol.png";
 import godoyLogo from "@/assets/godoy-logo-pdf.png";
 import { exportProductOnePagerPDF } from "@/utils/productOnePagerPdfExport";
 import FunctionalityMapSection from "@/components/apresentacao/FunctionalityMapSection";
+import OnePagerPreview from "@/components/apresentacao/OnePagerPreview";
 
 
 const features = [
@@ -58,6 +59,7 @@ export default function Apresentacao() {
   const [formState, setFormState] = useState<"idle" | "sending" | "success" | "error">("idle");
   const [form, setForm] = useState<Partial<ContactForm>>({});
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [showPreview, setShowPreview] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -129,13 +131,19 @@ export default function Apresentacao() {
               size="lg"
               variant="outline"
               className="w-full sm:w-auto gap-2 text-base font-bold min-h-[48px] bg-blue-600 text-white hover:bg-blue-700 border-none"
-              onClick={() => exportProductOnePagerPDF()}
+              onClick={() => setShowPreview((p) => !p)}
             >
               <FileDown className="h-5 w-5" />
-              Baixar Resumo Executivo
+              {showPreview ? "Fechar Resumo Executivo" : "Ver Resumo Executivo"}
             </Button>
           </div>
         </div>
+
+        {showPreview && (
+          <div className="max-w-4xl mx-auto px-4 sm:px-6 pb-10">
+            <OnePagerPreview />
+          </div>
+        )}
       </section>
 
       {/* Features */}
