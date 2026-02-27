@@ -1,35 +1,41 @@
 
 
-## Ajustes no Resumo Executivo (Preview HTML + PDF)
+## Sincronizar PDF com Preview HTML
 
-Duas alterações principais em dois arquivos: o preview HTML (`OnePagerPreview.tsx`) e a exportação PDF (`productOnePagerPdfExport.ts`).
+O arquivo `src/utils/productOnePagerPdfExport.ts` precisa ser atualizado em 3 pontos para ficar compativel com o preview HTML.
 
 ---
 
-### 1. Remover "Parecer Godoy Prime" das Funcionalidades Detalhadas
+### 1. Atualizar seção "O Mercado" (linhas 79-84)
 
-Será removido de ambos os arquivos (preview e PDF).
+Alterar os bullet points do mercado:
+- "Nicho: Imoveis de alto padrao -- Barra da Tijuca, RJ" para "Mercado Imobiliario da cidade do Rio de Janeiro na primeira fase."
+- "Valor medio por imovel: R$ 3M a R$ 30M" para "Valor medio por imovel: > R$ 1M"
 
-### 2. Adicionar 5 novas Funcionalidades Detalhadas
+### 2. Atualizar seção "Dores do Mercado" (linhas 119-147)
 
-Serão adicionadas ao array `detailedModules` em ambos os arquivos, no padrão Dor/Entrega:
+Substituir as 4 dores antigas pelas 9 dores atuais:
+1. Assimetria de informacao (texto expandido)
+2. Custo do erro e demora na venda
+3. Operacao manual
+4. Dificuldades com CRM
+5. Falta de inteligencia de mercado (texto expandido)
+6. Falta de criterios/padronizacao para avaliacoes e vistorias
+7. Dificuldades com documentacao de captacao/venda
+8. Percepcao negativa do mercado
+9. Dificuldades de captacao com exclusividade
 
-| Funcionalidade | Dor | Entrega |
-|---|---|---|
-| **Pesquisa de Mercado** | Sem acesso a dados reais de transações por localização e tipologia | Pesquisa por logradouro, bairro e microbairro com dados ITBI oficiais e filtros por tipologia |
-| **Agendamento de Visitas** | Cliente depende do corretor para agendar, processo lento por WhatsApp | Agendamento automático pelo cliente com disponibilidade online e confirmação instantânea |
-| **Análise de Documentação IA** | Revisão manual de documentos consome horas e gera erros | Upload de imagem/PDF com análise automática por IA, extração de campos e alertas |
-| **Documentação Comprador e Vendedor** | Sem controle dos documentos necessários, esquecimentos geram atrasos | Lista de verificação completa para comprador e vendedor com progresso rastreável |
-| **Gestão de Contatos e CRM** | Contatos dispersos em WhatsApp, sem funil estruturado | Quadro de 8 estágios, captura de contatos, acompanhamento e notificações automáticas |
+Sera necessario aumentar `dorH` de 34 para ~58mm e ajustar o espacamento entre linhas para acomodar 9 itens.
 
-### 3. Arquivos alterados
+### 3. Corrigir "Vistoria Digital 3.1" para "Vistoria Digital" (linha 165)
 
-- **`src/components/apresentacao/OnePagerPreview.tsx`** -- atualizar array `detailedModules` (remover Parecer, adicionar 5 novos). Total passará de 6 para 10 cards, o grid 2 colunas se ajusta automaticamente.
-- **`src/utils/productOnePagerPdfExport.ts`** -- mesma alteração no array `detailedModules` da Page 2 do PDF, com ajuste no `cellH` para acomodar 10 itens (5 linhas x 2 colunas).
+Remover o "3.1" do titulo do modulo na secao "A Solucao".
 
-### Detalhes Técnicos
+### Arquivo alterado
 
-- O grid `grid-cols-2` do preview HTML acomoda automaticamente os 10 cards.
-- No PDF, o `cellH` será reduzido de 40 para ~32mm para que 5 linhas caibam na página A4.
-- O conteúdo das dores do mercado (Página 1) permanece inalterado, pois já foi atualizado nas iterações anteriores.
+- **`src/utils/productOnePagerPdfExport.ts`** -- 3 pontos de edicao
+
+### Impacto no layout
+
+Com 9 dores ao inves de 4, a Pagina 1 do PDF ficara mais apertada. O `dorH` sera ajustado e o espacamento entre linhas reduzido de 5.2mm para ~4.5mm, mantendo legibilidade dentro da pagina A4.
 
