@@ -300,40 +300,20 @@ function drawPage2FuncionalidadesDetalhadas(doc: jsPDF, margin: number, contentW
   y += 12;
 
   const detailedModules = [
-    {
-      title: 'Painel Analítico',
-      dor: 'Sem visão consolidada do mercado, decisões às cegas',
-      entrega: '4 KPIs em tempo real, gráficos de 60 meses, exportação PDF/Excel',
-    },
-    {
-      title: 'Microrregiões',
-      dor: 'Barra tratada como região única, ignorando variações de R$/m²',
-      entrega: 'Classificação e evolução por sub-região com dados ITBI segmentados',
-    },
-    {
-      title: 'Gestão de Visitas',
-      dor: 'Agendamento por WhatsApp, fichas em papel, sem controle',
-      entrega: 'Fichas digitais com assinatura eletrônica, selo de proximidade',
-    },
-    {
-      title: 'Propostas Digitais',
-      dor: 'Propostas informais sem validade jurídica ou rastreio',
-      entrega: 'Modelos simplificado/completo com aceite eletrônico e PDF',
-    },
-    {
-      title: 'Estratégia de Precificação',
-      dor: 'Preço de anúncio definido sem metodologia, sem plano B',
-      entrega: 'Diagnóstico 9 perguntas, 3 faixas (Atração/Mercado/Premium)',
-    },
-    {
-      title: 'Parecer Godoy Prime',
-      dor: 'Comprador não tem validação independente do preço pedido',
-      entrega: 'Laudo independente baseado em ITBI, transparência total',
-    },
+    { title: 'Painel Analítico', dor: 'Sem visão consolidada do mercado, decisões às cegas', entrega: '4 KPIs em tempo real, gráficos de 60 meses, exportação PDF/Excel' },
+    { title: 'Microrregiões', dor: 'Barra tratada como região única, ignorando variações de R$/m²', entrega: 'Classificação e evolução por sub-região com dados ITBI segmentados' },
+    { title: 'Gestão de Visitas', dor: 'Agendamento por WhatsApp, fichas em papel, sem controle', entrega: 'Fichas digitais com assinatura eletrônica, selo de proximidade\nFeedback instantâneo' },
+    { title: 'Propostas Digitais', dor: 'Propostas informais sem validade jurídica ou rastreio', entrega: 'Modelos simplificado/completo com aceite eletrônico e PDF' },
+    { title: 'Estratégia de Precificação', dor: 'Preço de anúncio definido sem metodologia, sem plano B', entrega: 'Diagnóstico 9 perguntas, 3 faixas (Atração/Mercado/Premium)\nLaudo de Avaliação e Vistoria' },
+    { title: 'Pesquisa de Mercado', dor: 'Sem acesso a dados reais de transações por localização e tipologia', entrega: 'Pesquisa por logradouro, bairro e microbairro com dados ITBI oficiais e filtros por tipologia' },
+    { title: 'Agendamento de Visitas', dor: 'Cliente depende do corretor para agendar, processo lento por WhatsApp', entrega: 'Agendamento automático pelo cliente com disponibilidade online e confirmação instantânea' },
+    { title: 'Análise de Documentação IA', dor: 'Revisão manual de documentos consome horas e gera erros', entrega: 'Upload de imagem/PDF com análise automática por IA, extração de campos e alertas' },
+    { title: 'Documentação Comprador e Vendedor', dor: 'Sem controle dos documentos necessários, esquecimentos geram atrasos', entrega: 'Lista de verificação completa para comprador e vendedor com progresso rastreável' },
+    { title: 'Gestão de Leads e CRM', dor: 'Contatos dispersos em WhatsApp, sem funil estruturado', entrega: 'Quadro de 8 estágios, captura de contatos, acompanhamento e notificações automáticas' },
   ];
 
   const cellW = (contentWidth - 4) / 2;
-  const cellH = 40;
+  const cellH = 32;
 
   detailedModules.forEach((mod, i) => {
     const col = i % 2;
@@ -374,7 +354,7 @@ function drawPage2FuncionalidadesDetalhadas(doc: jsPDF, margin: number, contentW
 
   });
 
-  return y + (cellH + 3) * 3 + 4;
+  return y + (cellH + 3) * 5 + 4;
 }
 
 
