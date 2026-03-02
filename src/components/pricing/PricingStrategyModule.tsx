@@ -197,11 +197,13 @@ export function PricingStrategyModule({
 
   // Volta para seleção (permite trocar estratégia)
   const handleChangeStrategy = () => {
-    setState(prev => ({
-      ...prev,
+    const updatedState: PricingStrategyState = {
+      ...state,
       estrategia_selecionada: null,
       status: 'analisado'
-    }));
+    };
+    setState(updatedState);
+    saveToDatabase(updatedState);
   };
 
   // Salva no Supabase
@@ -450,10 +452,9 @@ export function PricingStrategyModule({
             <Button 
               variant="outline" 
               onClick={handleChangeStrategy}
-              disabled={state.status === 'confirmado'}
             >
               <ArrowLeft className="h-4 w-4 mr-2" />
-              Trocar Estratégia
+              {state.status === 'confirmado' ? 'Alterar Estratégia' : 'Trocar Estratégia'}
             </Button>
             
             {state.status !== 'confirmado' && (
