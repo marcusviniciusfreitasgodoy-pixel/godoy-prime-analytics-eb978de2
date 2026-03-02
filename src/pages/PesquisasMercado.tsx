@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Search, DollarSign, Loader2, FileDown, RotateCcw, Trash2, FileSpreadsheet, FileText, HelpCircle, BarChart3, List, Map } from "lucide-react";
+import { Search, DollarSign, Loader2, FileDown, RotateCcw, Trash2, FileSpreadsheet, FileText, HelpCircle, BarChart3, List, Map, Info, Layers } from "lucide-react";
 import { BarChart, Bar, XAxis, YAxis, Tooltip as RechartsTooltip, ResponsiveContainer, Cell } from "recharts";
 import { Label } from "@/components/ui/label";
 import {
@@ -28,7 +28,8 @@ import { useActivityTracking } from "@/hooks/useActivityTracking";
 import { PageTour } from "@/components/PageTour";
 import { useFirstVisitTour } from "@/hooks/useFirstVisitTour";
 import { TransactionMap } from "@/components/maps/TransactionMap";
-
+import { Switch } from "@/components/ui/switch";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 
 const PERIODO_OPTIONS = [
   { value: '6', label: 'Últimos 6 meses' },
@@ -78,6 +79,7 @@ export default function PesquisasMercado() {
   const [visibleCount, setVisibleCount] = useState(10);
   const [viewMode, setViewMode] = useState<'list' | 'chart' | 'map'>('list');
   const [chartMetric, setChartMetric] = useState<'transacoes' | 'preco'>('transacoes');
+  const [apenasIndividuais, setApenasIndividuais] = useState(false);
 
   // Map data query
   const { data: mapData, isLoading: mapLoading } = useTransactionMapData(
@@ -103,6 +105,7 @@ export default function PesquisasMercado() {
       periodoMeses: parseInt(transacaoPeriodo),
       areaMin: transacaoAreaMin ? parseFloat(transacaoAreaMin) : undefined,
       areaMax: transacaoAreaMax ? parseFloat(transacaoAreaMax) : undefined,
+      apenasIndividuais,
     },
     searchTransactions
   );
@@ -125,6 +128,7 @@ export default function PesquisasMercado() {
     setTransacaoPeriodo("12");
     setTransacaoAreaMin("");
     setTransacaoAreaMax("");
+    setApenasIndividuais(false);
     setSearchTransactions(false);
     setVisibleCount(10);
     queryClient.removeQueries({ queryKey: ['transaction-search'] });
@@ -256,6 +260,14 @@ export default function PesquisasMercado() {
 
             {/* Aba Transações */}
             <TabsContent value="transacoes" className="space-y-4 mt-4" data-tour="pesquisas-transacoes">
+              <Alert className="border-blue-500/30 bg-blue-500/5">
+                <Info className="h-4 w-4 text-blue-500" />
+                <AlertDescription className="text-xs text-muted-foreground">
+                  Os valores exibidos representam <strong>médias mensais agregadas</strong> pela Prefeitura do Rio de Janeiro, não transações individuais. 
+                  Valores de área e preço podem estar diluídos quando múltiplas transações são agrupadas. 
+                  Use o filtro "Apenas transações individuais" para ver apenas registros não agregados.
+                </AlertDescription>
+              </Alert>
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4" data-tour="pesquisas-filtros">
                 <div className="space-y-2">
                   <Label htmlFor="trans-bairro">Bairro</Label>
@@ -405,6 +417,31 @@ export default function PesquisasMercado() {
                     }}
                   />
                 </div>
+              </div>
+
+              <div className="flex items-center gap-3 p-3 bg-muted/30 rounded-lg border border-border/50">
+                <Switch 
+                  id="apenas-individuais"
+                  checked={apenasIndividuais}
+                  onCheckedChange={(checked) => {
+                    setApenasIndividuais(checked);
+                    setSearchTransactions(false);
+                  }}
+                />
+                <Label htmlFor="apenas-individuais" className="text-sm cursor-pointer flex items-center gap-2">
+                  <Layers className="h-4 w-4 text-muted-foreground" />
+                  Apenas transações individuais
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Info className="h-3.5 w-3.5 text-muted-foreground" />
+                      </TooltipTrigger>
+                      <TooltipContent className="max-w-xs">
+                        Filtra apenas registros com uma única transação (não agregados), mostrando dados mais precisos de imóveis individuais.
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
+                </Label>
               </div>
               
               <div className="flex flex-wrap gap-2">
@@ -650,9 +687,16 @@ export default function PesquisasMercado() {
                               <span className="font-bold text-accent w-6 text-center">{index + 1}º</span>
                               <div>
                                 <p className="font-medium text-foreground text-sm">{item.microbairro}</p>
-                                <p className="text-xs text-muted-foreground">
-                                  {item.total_transacoes} transações
-                                </p>
+                                <div className="flex items-center gap-1.5">
+                                  <p className="text-xs text-muted-foreground">
+                                    {item.total_transacoes} transações
+                                  </p>
+                                  {item.total_transacoes > 1 && (
+                                    <Badge variant="outline" className="text-[10px] px-1.5 py-0 h-4 bg-amber-500/10 text-amber-600 border-amber-500/30">
+                                      média agregada
+                                    </Badge>
+                                  )}
+                                </div>
                               </div>
                             </div>
                             <div className="text-right">
