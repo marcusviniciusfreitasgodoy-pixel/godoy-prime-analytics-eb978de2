@@ -35,6 +35,8 @@ const PERIODO_OPTIONS = [
   { value: '6', label: 'Últimos 6 meses' },
   { value: '12', label: 'Últimos 12 meses' },
   { value: '24', label: 'Últimos 24 meses' },
+  { value: '36', label: 'Últimos 3 anos' },
+  { value: '60', label: 'Últimos 5 anos' },
 ];
 
 const VALOR_OPTIONS = [
@@ -80,6 +82,8 @@ export default function PesquisasMercado() {
   const [viewMode, setViewMode] = useState<'list' | 'chart' | 'map'>('list');
   const [chartMetric, setChartMetric] = useState<'transacoes' | 'preco'>('transacoes');
   const [apenasIndividuais, setApenasIndividuais] = useState(false);
+  const [valorM2Min, setValorM2Min] = useState<string>("");
+  const [valorM2Max, setValorM2Max] = useState<string>("");
 
   // Map data query
   const { data: mapData, isLoading: mapLoading } = useTransactionMapData(
@@ -106,6 +110,8 @@ export default function PesquisasMercado() {
       areaMin: transacaoAreaMin ? parseFloat(transacaoAreaMin) : undefined,
       areaMax: transacaoAreaMax ? parseFloat(transacaoAreaMax) : undefined,
       apenasIndividuais,
+      valorM2Min: valorM2Min ? parseFloat(valorM2Min) : undefined,
+      valorM2Max: valorM2Max ? parseFloat(valorM2Max) : undefined,
     },
     searchTransactions
   );
@@ -129,6 +135,8 @@ export default function PesquisasMercado() {
     setTransacaoAreaMin("");
     setTransacaoAreaMax("");
     setApenasIndividuais(false);
+    setValorM2Min("");
+    setValorM2Max("");
     setSearchTransactions(false);
     setVisibleCount(10);
     queryClient.removeQueries({ queryKey: ['transaction-search'] });
@@ -413,6 +421,35 @@ export default function PesquisasMercado() {
                     value={transacaoAreaMax}
                     onChange={(e) => {
                       setTransacaoAreaMax(e.target.value);
+                      setSearchTransactions(false);
+                    }}
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3 sm:gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="trans-m2-min">Valor/m² Mínimo (R$)</Label>
+                  <Input 
+                    id="trans-m2-min" 
+                    type="number" 
+                    placeholder="Ex: 19000" 
+                    value={valorM2Min}
+                    onChange={(e) => {
+                      setValorM2Min(e.target.value);
+                      setSearchTransactions(false);
+                    }}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="trans-m2-max">Valor/m² Máximo (R$)</Label>
+                  <Input 
+                    id="trans-m2-max" 
+                    type="number" 
+                    placeholder="Ex: 40000" 
+                    value={valorM2Max}
+                    onChange={(e) => {
+                      setValorM2Max(e.target.value);
                       setSearchTransactions(false);
                     }}
                   />
