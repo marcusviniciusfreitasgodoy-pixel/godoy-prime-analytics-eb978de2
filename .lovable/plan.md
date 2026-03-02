@@ -1,34 +1,49 @@
 
-## Permitir Alterar Estratégia de Precificação Após Confirmação
+## Melhorias de Transparencia nos Dados de Transacoes (Pesquisas de Mercado)
 
-### Problema
-Quando a estratégia é confirmada (status = `'confirmado'`), o botão "Trocar Estratégia" fica `disabled` e não existe nenhum mecanismo para reabrir a seleção. O usuário fica travado.
+### Contexto
+Os dados ITBI da Prefeitura sao agregados por logradouro/mes, nao representam transacoes individuais. Isso confunde o usuario quando busca imoveis especificos (ex: apartamentos >500m2 na Av. Lucio Costa). Tres melhorias serao implementadas:
 
-### Solução
-Adicionar um botão "Alterar Estratégia" visível quando o status é `'confirmado'`, permitindo ao usuário voltar para a tela de seleção de estratégias.
+---
 
-### Alterações no arquivo `src/components/pricing/PricingStrategyModule.tsx`
+### Melhoria 1: Filtro "Apenas transacoes individuais"
+Adicionar um toggle/switch na area de filtros da aba Transacoes que, quando ativado, filtra apenas registros com `total_transacoes = 1` (transacoes nao agregadas).
 
-1. **Remover o `disabled` do botão "Trocar Estratégia"** ou, alternativamente, **adicionar um botão "Alterar Estratégia"** que aparece quando o status é `'confirmado'`, executando a mesma lógica do `handleChangeStrategy` (reseta `estrategia_selecionada` para `null` e status para `'analisado'`).
+**Arquivo:** `src/hooks/useTransactionSearch.ts`
+- Adicionar campo `apenasIndividuais?: boolean` na interface `TransactionSearchParams`
+- Quando ativado, adicionar `.eq('total_transacoes', 1)` na query Supabase
 
-2. **Atualizar o bloco de renderização** (linhas ~449-465): quando `status === 'confirmado'`, mostrar um botão claro de "Alterar Estratégia" em vez de esconder tudo. Exemplo:
+**Arquivo:** `src/pages/PesquisasMercado.tsx`
+- Adicionar estado `apenasIndividuais` (boolean, default false)
+- Adicionar um Switch com label "Apenas transacoes individuais" abaixo dos filtros de area
+- Passar o parametro para `useTransactionSearch`
 
-```text
-+---------------------------------------------+
-| [Alterar Estratégia]                        |
-| (aparece quando status = confirmado)        |
-+---------------------------------------------+
-```
+---
 
-3. **Salvar no banco** ao reabrir: chamar `saveToDatabase` com o status `'analisado'` para persistir a reabertura.
+### Melhoria 2: Coluna "Qtd. Agregada" nos resultados
+Mostrar no card de cada resultado quantas transacoes foram agregadas naquele registro, para o usuario distinguir dados individuais de medias.
 
-### Detalhes técnicos
+**Arquivo:** `src/pages/PesquisasMercado.tsx`
+- Na lista de resultados (linha ~652-656), adicionar indicador visual quando `total_transacoes > 1` mostrando que o valor e uma media agregada
+- Adicionar um pequeno badge "media de X transacoes" ou icone de agregacao
 
-No bloco de renderização do status `'selecionado'` / `'confirmado'` (linhas 430-468):
-- Remover `disabled={state.status === 'confirmado'}` da linha 453
-- OU manter o disabled e adicionar um botão separado visível apenas quando confirmado, com um ícone de edição e texto "Alterar Estratégia"
-- Ao clicar, chamar `handleChangeStrategy` que já existe e faz exatamente o necessário (reseta seleção e status)
-- Adicionar `saveToDatabase` dentro de `handleChangeStrategy` para persistir a mudança
+---
 
-### Arquivo alterado
-- `src/components/pricing/PricingStrategyModule.tsx` -- 2 pontos de edição (handleChangeStrategy + bloco de renderização)
+### Melhoria 3: Aviso de dados agregados
+Adicionar um banner/alerta informativo permanente na aba de Transacoes explicando a natureza dos dados.
+
+**Arquivo:** `src/pages/PesquisasMercado.tsx`
+- Adicionar um `Alert` (componente ja existente) no topo da aba Transacoes com icone de informacao
+- Texto: "Os valores exibidos representam medias mensais agregadas pela Prefeitura do Rio de Janeiro, nao transacoes individuais. Valores de area e preco podem estar diluidos quando multiplas transacoes sao agrupadas."
+- Incluir dica sobre o filtro de transacoes individuais
+
+---
+
+### Arquivos alterados
+1. `src/hooks/useTransactionSearch.ts` -- adicionar parametro `apenasIndividuais` na interface e query
+2. `src/pages/PesquisasMercado.tsx` -- adicionar switch, aviso Alert, e indicador de agregacao nos resultados
+
+### Detalhes tecnicos
+- O Switch usara o componente `@radix-ui/react-switch` ja instalado (`src/components/ui/switch.tsx`)
+- O Alert usara `src/components/ui/alert.tsx` ja existente
+- Exportacoes CSV/XLSX tambem incluirao a coluna de agregacao
