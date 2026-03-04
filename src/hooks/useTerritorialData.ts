@@ -162,10 +162,29 @@ export function useLogradouroSuggestions(search: string) {
   return useQuery({
     queryKey: ["logradouro-suggestions", search],
     queryFn: async () => {
+      const term = search.trim();
+      if (term.length < 2) return [];
+
+      // Prioriza ruas já mapeadas no módulo territorial (evita sugestão sem resultado)
+      const { data: condoData, error: condoError } = await supabase
+        .from("condominios_mapeamento")
+        .select("logradouro_padrao")
+        .ilike("logradouro_padrao", `%${term}%`)
+        .limit(10);
+
+      if (condoError) throw condoError;
+
+      const condoSuggestions = Array.from(
+        new Set((condoData || []).map((d) => d.logradouro_padrao).filter(Boolean))
+      );
+
+      if (condoSuggestions.length > 0) return condoSuggestions;
+
+      // Fallback para logradouros gerais (IPTU) quando não houver match territorial
       const { data, error } = await supabase
         .from("iptu_logradouro_resumo")
         .select("logradouro")
-        .ilike("logradouro", `%${search}%`)
+        .ilike("logradouro", `%${term}%`)
         .limit(10);
       if (error) throw error;
       return data?.map((d) => d.logradouro) || [];
