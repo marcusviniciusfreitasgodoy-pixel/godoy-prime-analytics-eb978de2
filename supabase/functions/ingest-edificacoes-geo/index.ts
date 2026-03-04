@@ -2,18 +2,11 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.86.0";
 
 /**
- * ingest-edificacoes-geo — Importa edificações do CadLog/Edificacoes_2019
+ * ingest-edificacoes-geo — Streaming architecture
  * 
- * URL correta: CadLog/Edificacoes_2019/MapServer/0/query
- * Campos reais: objectid, altura, cod_lote, tipo, base, topo
- * 
- * area_footprint: NÃO vem como campo direto.
- * Calculado após inserção via PostGIS: ST_Area(ST_Transform(geom, 31983))
- * 
- * andares_estimados: GREATEST(1, ROUND(altura / 3))
- * 
- * Centroid calculado no JS para lat/lng, geom salvo via RPC.
- * Após inserção, RPC calculate_footprint_areas() atualiza area_footprint e centroids faltantes.
+ * Fetch page → transform → upsert → next page
+ * Accepts offset_inicial to resume partial ingestion
+ * 75s safety timeout (Edge Functions have 90s limit)
  */
 
 const corsHeaders = {
@@ -22,28 +15,62 @@ const corsHeaders = {
 };
 
 const ARCGIS_URL = 'https://pgeo3.rio.rj.gov.br/arcgis/rest/services/CadLog/Edificacoes_2019/MapServer/0/query';
-const PAGE_SIZE = 1000;
-const MAX_PAGES = 100;
-const DELAY_MS = 300;
-const DEFAULT_BBOX = [-43.365, -23.015, -43.270, -22.960]; // Barra da Tijuca
+const BATCH_SIZE = 500;
+const INSERT_CHUNK = 500;
+const MAX_SECONDS = 75;
+const DELAY_MS = 200;
+const DEFAULT_BBOX = [-43.365, -23.015, -43.270, -22.960];
 
-function delay(ms: number) {
+function sleep(ms: number) {
   return new Promise(resolve => setTimeout(resolve, ms));
 }
 
-function computeCentroid(rings: number[][][]): { lat: number; lng: number } | null {
-  if (!rings?.[0]?.length) return null;
-  const ring = rings[0];
-  let sumX = 0, sumY = 0;
-  for (const [x, y] of ring) {
-    sumX += x;
-    sumY += y;
-  }
-  return { lng: sumX / ring.length, lat: sumY / ring.length };
+function ringToWKT(ring: number[][]): string {
+  return ring.map(p => `${p[0]} ${p[1]}`).join(',');
 }
 
-function ringsToGeoJSON(rings: number[][][]): string {
-  return JSON.stringify({ type: 'Polygon', coordinates: rings });
+function geometryToWKT(geometry: { rings: number[][][] }): string {
+  if (geometry.rings.length === 1) {
+    return `POLYGON((${ringToWKT(geometry.rings[0])}))`;
+  }
+  const parts = geometry.rings.map(r => `(${ringToWKT(r)})`).join(',');
+  return `MULTIPOLYGON((${parts}))`;
+}
+
+function calcCentroidLat(rings: number[][][]): number {
+  const pts = rings[0];
+  let sum = 0;
+  for (const p of pts) sum += p[1];
+  return sum / pts.length;
+}
+
+function calcCentroidLng(rings: number[][][]): number {
+  const pts = rings[0];
+  let sum = 0;
+  for (const p of pts) sum += p[0];
+  return sum / pts.length;
+}
+
+function buildUrl(bbox: number[], offset: number, count: number): string {
+  const bboxJson = JSON.stringify({
+    xmin: bbox[0], ymin: bbox[1], xmax: bbox[2], ymax: bbox[3],
+    spatialReference: { wkid: 4326 }
+  });
+
+  const params = new URLSearchParams({
+    where: '1=1',
+    geometry: bboxJson,
+    geometryType: 'esriGeometryEnvelope',
+    spatialRel: 'esriSpatialRelIntersects',
+    outFields: 'objectid,altura,cod_lote,tipo,base,topo',
+    f: 'json',
+    returnGeometry: 'true',
+    outSR: '4326',
+    resultRecordCount: String(count),
+    resultOffset: String(offset),
+  });
+
+  return `${ARCGIS_URL}?${params}`;
 }
 
 serve(async (req) => {
@@ -83,57 +110,57 @@ serve(async (req) => {
       });
     }
 
-    // Parse optional custom bbox
+    // Parse body
     let bbox = DEFAULT_BBOX;
+    let offsetInicial = 0;
     try {
       const body = await req.json();
-      if (Array.isArray(body.bbox) && body.bbox.length === 4) {
-        bbox = body.bbox;
-      }
+      if (Array.isArray(body.bbox) && body.bbox.length === 4) bbox = body.bbox;
+      if (typeof body.offset_inicial === 'number') offsetInicial = body.offset_inicial;
     } catch {
-      // Use defaults
+      // defaults
     }
 
-    console.log(`[ingest-edificacoes] Starting with bbox: [${bbox.join(', ')}]`);
+    console.log(`[ingest-edif] Start bbox=[${bbox.join(',')}] offset_inicial=${offsetInicial}`);
 
-    // Create etl_log
+    // etl_log entry
     const { data: logEntry } = await supabase
       .from('etl_log')
-      .insert({ fonte: 'edificacoes_geo_2019', bairro: 'BBOX', status: 'running' })
+      .insert({ fonte: 'edificacoes_geo', bairro: 'BBOX', status: 'running', detalhes: { offset_inicial: offsetInicial } })
       .select('id')
       .single();
     const logId = logEntry?.id;
 
-    // Spatial query envelope
-    const bboxJson = JSON.stringify({
-      xmin: bbox[0], ymin: bbox[1], xmax: bbox[2], ymax: bbox[3],
-      spatialReference: { wkid: 4326 }
-    });
+    const startTime = Date.now();
+    let offset = offsetInicial;
+    let totalInserido = 0;
+    let totalErro = 0;
+    let hasMore = true;
+    let totalApi = 0;
 
-    interface ArcGISFeature {
-      attributes: Record<string, unknown>;
-      geometry?: { rings: number[][][] };
-    }
+    while (hasMore) {
+      // Check time before fetching next page
+      const elapsed = (Date.now() - startTime) / 1000;
+      if (elapsed > MAX_SECONDS) {
+        console.log(`[ingest-edif] Timeout safety at ${elapsed.toFixed(1)}s, offset=${offset}`);
+        if (logId) {
+          await supabase.from('etl_log').update({
+            status: 'partial',
+            registros_importados: totalInserido,
+            registros_com_erro: totalErro,
+            finalizado_em: new Date().toISOString(),
+            detalhes: { proximo_offset: offset, total_api: totalApi, bbox, motivo: 'timeout_safety' },
+          }).eq('id', logId);
+        }
+        return new Response(JSON.stringify({
+          parcial: true, proximo_offset: offset, inserido: totalInserido, erros: totalErro, total_api: totalApi
+        }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+      }
 
-    let allFeatures: ArcGISFeature[] = [];
-    let offset = 0;
-
-    for (let page = 0; page < MAX_PAGES; page++) {
-      const params = new URLSearchParams({
-        where: '1=1',
-        geometry: bboxJson,
-        geometryType: 'esriGeometryEnvelope',
-        spatialRel: 'esriSpatialRelIntersects',
-        outFields: 'objectid,altura,cod_lote,tipo,base,topo',
-        f: 'json',
-        returnGeometry: 'true',
-        outSR: '4326',
-        resultRecordCount: String(PAGE_SIZE),
-        resultOffset: String(offset),
-      });
-
-      console.log(`[ingest-edificacoes] Page ${page + 1}, offset ${offset}`);
-      const response = await fetch(`${ARCGIS_URL}?${params}`);
+      // Fetch page
+      const url = buildUrl(bbox, offset, BATCH_SIZE);
+      console.log(`[ingest-edif] Fetching offset=${offset}`);
+      const response = await fetch(url);
       if (!response.ok) {
         console.error(`HTTP ${response.status}`);
         break;
@@ -145,105 +172,100 @@ serve(async (req) => {
         break;
       }
 
-      const features: ArcGISFeature[] = data.features || [];
+      const features = data.features || [];
       if (features.length === 0) break;
+      totalApi += features.length;
 
-      allFeatures = allFeatures.concat(features);
-      console.log(`[ingest-edificacoes] Got ${features.length} features (total: ${allFeatures.length})`);
+      // Transform
+      const registros = features.map((f: { attributes: Record<string, unknown>; geometry?: { rings: number[][][] } }) => {
+        const a = f.attributes;
+        const objectid = typeof a['objectid'] === 'number' ? a['objectid'] : null;
+        if (!objectid) return null;
 
-      if (!data.exceededTransferLimit) break;
-      offset += PAGE_SIZE;
+        let geomWkt: string | null = null;
+        let lat: number | null = null;
+        let lng: number | null = null;
 
-      if (page < MAX_PAGES - 1) await delay(DELAY_MS);
-    }
+        if (f.geometry?.rings) {
+          try {
+            geomWkt = `SRID=4326;${geometryToWKT(f.geometry)}`;
+            lat = calcCentroidLat(f.geometry.rings);
+            lng = calcCentroidLng(f.geometry.rings);
+          } catch {
+            // skip geometry
+          }
+        }
 
-    console.log(`[ingest-edificacoes] Total features: ${allFeatures.length}`);
+        if (!geomWkt) return null;
 
-    // Upsert via RPC
-    let totalUpserted = 0;
-    let errors = 0;
+        const altura = typeof a['altura'] === 'number' ? a['altura'] : null;
 
-    for (const f of allFeatures) {
-      const a = f.attributes;
-      const objectid = typeof a['objectid'] === 'number' ? a['objectid'] : null;
-      if (!objectid) continue;
+        return {
+          objectid_origem: objectid,
+          altura_max: altura,
+          cod_lote: a['cod_lote'] ? String(a['cod_lote']).trim() : null,
+          tipo_edificacao: a['tipo'] ? String(a['tipo']).trim() : null,
+          cota_base: typeof a['base'] === 'number' ? a['base'] : null,
+          cota_topo: typeof a['topo'] === 'number' ? a['topo'] : null,
+          andares_estimados: altura ? Math.max(1, Math.round(altura / 3.0)) : null,
+          geom: geomWkt,
+          lat,
+          lng,
+        };
+      }).filter(Boolean);
 
-      const altura = typeof a['altura'] === 'number' ? a['altura'] : null;
-      const codLote = a['cod_lote'] ? String(a['cod_lote']).trim() : null;
-      const tipoEdificacao = a['tipo'] ? String(a['tipo']).trim() : null;
-      const cotaBase = typeof a['base'] === 'number' ? a['base'] : null;
-      const cotaTopo = typeof a['topo'] === 'number' ? a['topo'] : null;
+      // Insert in chunks
+      for (let i = 0; i < registros.length; i += INSERT_CHUNK) {
+        const chunk = registros.slice(i, i + INSERT_CHUNK);
+        const { error } = await supabase
+          .from('edificacoes_geo')
+          .upsert(chunk, { onConflict: 'objectid_origem', ignoreDuplicates: false });
 
-      // Calculate andares_estimados
-      const andares = altura && altura > 0
-        ? Math.max(1, Math.round(altura / 3.0))
-        : null;
-
-      let geojson: string | null = null;
-      let centroid: { lat: number; lng: number } | null = null;
-
-      if (f.geometry?.rings) {
-        try {
-          geojson = ringsToGeoJSON(f.geometry.rings);
-          centroid = computeCentroid(f.geometry.rings);
-        } catch {
-          console.error(`Invalid geometry for objectid ${objectid}`);
+        if (error) {
+          totalErro += chunk.length;
+          if (totalErro <= 5) console.error(`Upsert error:`, error.message);
+        } else {
+          totalInserido += chunk.length;
         }
       }
 
-      const { error: rpcError } = await supabase.rpc('upsert_edificacao_geo', {
-        p_objectid: objectid,
-        p_altura_max: altura,
-        p_andares: andares,
-        p_lat: centroid?.lat ?? null,
-        p_lng: centroid?.lng ?? null,
-        p_geojson: geojson,
-        p_cod_lote: codLote,
-        p_tipo_edificacao: tipoEdificacao,
-        p_cota_base: cotaBase,
-        p_cota_topo: cotaTopo,
-      });
-
-      if (rpcError) {
-        errors++;
-        if (errors <= 5) console.error(`RPC error for ${objectid}:`, rpcError.message);
-      } else {
-        totalUpserted++;
+      // Calculate pending areas
+      try {
+        await supabase.rpc('calcular_area_edificacoes_pendentes');
+      } catch (e) {
+        console.error('Area calc error:', e);
       }
+
+      hasMore = data.exceededTransferLimit === true;
+      offset += features.length;
+
+      if (hasMore) await sleep(DELAY_MS);
     }
 
-    // Calculate footprint areas and centroids via PostGIS
-    if (totalUpserted > 0) {
-      console.log('[ingest-edificacoes] Calculating footprint areas via PostGIS...');
-      const { data: areasUpdated } = await supabase.rpc('calculate_footprint_areas');
-      console.log(`[ingest-edificacoes] Footprint areas calculated: ${areasUpdated}`);
-    }
-
-    // Update etl_log
+    // Final log
+    const finalStatus = totalErro > 0 ? 'partial' : 'success';
     if (logId) {
       await supabase.from('etl_log').update({
-        status: errors > 0 ? 'partial' : 'success',
-        registros_importados: totalUpserted,
-        registros_com_erro: errors,
+        status: finalStatus,
+        registros_importados: totalInserido,
+        registros_com_erro: totalErro,
         finalizado_em: new Date().toISOString(),
-        detalhes: { total_api: allFeatures.length, bbox },
+        detalhes: { total_api: totalApi, bbox, offset_final: offset },
       }).eq('id', logId);
     }
 
-    const result = { success: true, total: totalUpserted, erros: errors, total_api: allFeatures.length };
-    console.log('[ingest-edificacoes] Done:', JSON.stringify(result));
+    const result = { completo: true, inserido: totalInserido, erros: totalErro, total_api: totalApi };
+    console.log('[ingest-edif] Done:', JSON.stringify(result));
 
     return new Response(JSON.stringify(result), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' }
     });
 
   } catch (error) {
-    console.error('[ingest-edificacoes] Fatal error:', error);
+    console.error('[ingest-edif] Fatal:', error);
     return new Response(JSON.stringify({
       success: false,
       error: error instanceof Error ? error.message : 'Unknown error'
-    }), {
-      status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-    });
+    }), { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
   }
 });
