@@ -6,7 +6,7 @@ import { Label } from "./ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "./ui/table";
 import { Badge } from "./ui/badge";
-import { Loader2, FileDown, Search, FileText, X, FileSpreadsheet, MapPin, Building, RotateCcw, Info, Eye, Calendar, TrendingUp } from "lucide-react";
+import { Loader2, FileDown, Search, FileText, X, FileSpreadsheet, MapPin, Building, RotateCcw, Info, Eye, Calendar, TrendingUp, DollarSign, BarChart3, ArrowUpRight, ArrowDownRight } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { exportToCSV, exportToXLSX } from "@/utils/exportUtils";
@@ -41,6 +41,14 @@ interface SearchResultsWithMeta {
     original: string;
     corrected: string;
   };
+  // Aggregates calculated from ALL data (not just displayed results)
+  avgValueM2All: number;
+  totalValueAll: number;
+  currentValueM2: number | null; // Last 3 months weighted avg, null if no recent data
+  cagrAnual: number | null; // null if < 2 years of data
+  valorizacaoTotal: number | null; // null if < 2 years of data
+  anosComDados: number;
+  confiancaCAGR: 'alta' | 'media' | 'baixa' | null;
 }
 
 const TIPOLOGIA_OPTIONS = [
@@ -152,7 +160,7 @@ export function EmbeddedAdvancedSearch({ defaultBairro = "" }: EmbeddedAdvancedS
     queryKey: ['embedded-advanced-search', searchParams],
     enabled: !!searchParams,
     queryFn: async () => {
-      if (!searchParams) return { results: [], totalRegistros: 0, totalTransacoes: 0 };
+      if (!searchParams) return { results: [], totalRegistros: 0, totalTransacoes: 0, avgValueM2All: 0, totalValueAll: 0, currentValueM2: null, cagrAnual: null, valorizacaoTotal: null, anosComDados: 0, confiancaCAGR: null };
       
       // Build base filter for both queries
       const buildBaseQuery = () => {
@@ -212,6 +220,71 @@ export function EmbeddedAdvancedSearch({ defaultBairro = "" }: EmbeddedAdvancedS
       const totalRegistros = allData?.length || 0;
       const totalTransacoes = allData?.reduce((sum, r) => sum + (r.total_transacoes || 1), 0) || 0;
 
+      // === AGGREGATE CALCULATIONS FROM ALL DATA ===
+      const records = allData || [];
+      
+      // 1. Weighted average R$/m² (all data)
+      const sumWeightedM2 = records.reduce((sum, r) => sum + ((r.valor_m2 || 0) * (r.total_transacoes || 1)), 0);
+      const avgValueM2All = totalTransacoes > 0 ? sumWeightedM2 / totalTransacoes : 0;
+
+      // 2. Total financial volume (all data)
+      const totalValueAll = records.reduce((sum, r) => sum + (r.valor_transacao * (r.total_transacoes || 1)), 0);
+
+      // 3. Current R$/m² (last 3 months of dataset)
+      let currentValueM2: number | null = null;
+      if (records.length > 0) {
+        const sortedDates = records.map(r => r.data_transacao).sort();
+        const maxDate = new Date(sortedDates[sortedDates.length - 1]);
+        const threeMonthsBack = new Date(maxDate);
+        threeMonthsBack.setMonth(threeMonthsBack.getMonth() - 3);
+        const threeMonthsBackStr = threeMonthsBack.toISOString().split('T')[0];
+        
+        const recentRecords = records.filter(r => r.data_transacao >= threeMonthsBackStr);
+        if (recentRecords.length > 0) {
+          const recentWeighted = recentRecords.reduce((sum, r) => sum + ((r.valor_m2 || 0) * (r.total_transacoes || 1)), 0);
+          const recentTotal = recentRecords.reduce((sum, r) => sum + (r.total_transacoes || 1), 0);
+          currentValueM2 = recentTotal > 0 ? recentWeighted / recentTotal : null;
+        }
+      }
+
+      // 4. CAGR and Total Appreciation - group by year
+      let cagrAnual: number | null = null;
+      let valorizacaoTotal: number | null = null;
+      let anosComDados = 0;
+      let confiancaCAGR: 'alta' | 'media' | 'baixa' | null = null;
+
+      if (records.length > 0) {
+        const yearGroups: Record<number, { sumWeighted: number; totalTrans: number }> = {};
+        records.forEach(r => {
+          const year = new Date(r.data_transacao).getFullYear();
+          if (!yearGroups[year]) yearGroups[year] = { sumWeighted: 0, totalTrans: 0 };
+          yearGroups[year].sumWeighted += (r.valor_m2 || 0) * (r.total_transacoes || 1);
+          yearGroups[year].totalTrans += (r.total_transacoes || 1);
+        });
+
+        const years = Object.keys(yearGroups).map(Number).sort();
+        anosComDados = years.length;
+
+        if (years.length >= 2) {
+          const firstYear = years[0];
+          const lastYear = years[years.length - 1];
+          const avgFirst = yearGroups[firstYear].sumWeighted / yearGroups[firstYear].totalTrans;
+          const avgLast = yearGroups[lastYear].sumWeighted / yearGroups[lastYear].totalTrans;
+          const nYears = lastYear - firstYear;
+
+          if (avgFirst > 0 && nYears > 0) {
+            cagrAnual = (Math.pow(avgLast / avgFirst, 1 / nYears) - 1) * 100;
+            valorizacaoTotal = ((avgLast - avgFirst) / avgFirst) * 100;
+          }
+
+          // Confidence based on minimum transactions per year
+          const minTransPerYear = Math.min(...years.map(y => yearGroups[y].totalTrans));
+          if (minTransPerYear >= 10) confiancaCAGR = 'alta';
+          else if (minTransPerYear >= 3) confiancaCAGR = 'media';
+          else confiancaCAGR = 'baixa';
+        }
+      }
+
       // Query 2: Get limited results for display (ordered by value)
       let displayQuery = buildBaseQuery();
       if (orConditions) displayQuery = displayQuery.or(orConditions);
@@ -225,6 +298,13 @@ export function EmbeddedAdvancedSearch({ defaultBairro = "" }: EmbeddedAdvancedS
         totalRegistros,
         totalTransacoes,
         fuzzyCorrection: (data && data.length > 0) ? fuzzyCorrection : undefined,
+        avgValueM2All,
+        totalValueAll,
+        currentValueM2,
+        cagrAnual,
+        valorizacaoTotal,
+        anosComDados,
+        confiancaCAGR,
       };
     },
   });
@@ -314,16 +394,17 @@ export function EmbeddedAdvancedSearch({ defaultBairro = "" }: EmbeddedAdvancedS
     }).format(value);
   };
 
-  // Volume financeiro real: valor_transacao × total_transacoes para cada registro
-  const totalValue = results?.reduce((sum, r) => sum + (r.valor_transacao * (r.total_transacoes || 1)), 0) || 0;
-  // Use the real total from the query (calculated from all records, not just displayed ones)
+  // Use aggregates from allData (calculated in queryFn)
+  const totalValue = searchData?.totalValueAll || 0;
   const displayedTransacoes = results?.reduce((sum, r) => sum + (r.total_transacoes || 1), 0) || 0;
   const realTotalTransacoes = searchData?.totalTransacoes || 0;
   const realTotalRegistros = searchData?.totalRegistros || 0;
-  // Média ponderada de R$/m² pelo número de transações
-  const avgValueM2 = realTotalTransacoes > 0
-    ? results?.reduce((sum, r) => sum + ((r.valor_m2 || 0) * (r.total_transacoes || 1)), 0) / realTotalTransacoes
-    : 0;
+  const avgValueM2 = searchData?.avgValueM2All || 0;
+  const currentValueM2 = searchData?.currentValueM2;
+  const cagrAnual = searchData?.cagrAnual;
+  const valorizacaoTotal = searchData?.valorizacaoTotal;
+  const anosComDados = searchData?.anosComDados || 0;
+  const confiancaCAGR = searchData?.confiancaCAGR;
 
   const handleOpenDetails = (transaction: AdvancedSearchResult) => {
     setSelectedTransaction(transaction);
@@ -399,6 +480,42 @@ export function EmbeddedAdvancedSearch({ defaultBairro = "" }: EmbeddedAdvancedS
     <div className="space-y-4">
       {/* Filters */}
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
+        {/* Bairro FIRST */}
+        <div className="space-y-1">
+          <Label className="text-xs">Bairro</Label>
+          <Select 
+            value={bairro} 
+            onValueChange={(value) => setBairro(value === "todos" ? "" : value)}
+          >
+            <SelectTrigger className="h-9 text-sm">
+              <SelectValue placeholder="Todos os bairros" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="todos">Todos os bairros</SelectItem>
+              <SelectItem value="BARRA DA TIJUCA">Barra da Tijuca</SelectItem>
+              <SelectItem value="RECREIO DOS BANDEIRANTES">Recreio dos Bandeirantes</SelectItem>
+              <SelectItem value="JACAREPAGUA">Jacarepaguá</SelectItem>
+              <SelectItem value="COPACABANA">Copacabana</SelectItem>
+              <SelectItem value="IPANEMA">Ipanema</SelectItem>
+              <SelectItem value="LEBLON">Leblon</SelectItem>
+              <SelectItem value="BOTAFOGO">Botafogo</SelectItem>
+              <SelectItem value="TIJUCA">Tijuca</SelectItem>
+              <SelectItem value="FLAMENGO">Flamengo</SelectItem>
+              <SelectItem value="LARANJEIRAS">Laranjeiras</SelectItem>
+              <SelectItem value="GAVEA">Gávea</SelectItem>
+              <SelectItem value="JARDIM BOTANICO">Jardim Botânico</SelectItem>
+              <SelectItem value="LAGOA">Lagoa</SelectItem>
+              <SelectItem value="SAO CONRADO">São Conrado</SelectItem>
+              <SelectItem value="HUMAITA">Humaitá</SelectItem>
+              <SelectItem value="URCA">Urca</SelectItem>
+              <SelectItem value="CENTRO">Centro</SelectItem>
+              <SelectItem value="VILA ISABEL">Vila Isabel</SelectItem>
+              <SelectItem value="MEIER">Méier</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+
+        {/* Logradouro SECOND */}
         <div className="space-y-1 col-span-2 sm:col-span-1">
           <Label className="text-xs">Logradouro</Label>
           <Popover open={logradouroPopoverOpen} onOpenChange={setLogradouroPopoverOpen}>
@@ -436,7 +553,6 @@ export function EmbeddedAdvancedSearch({ defaultBairro = "" }: EmbeddedAdvancedS
                       className="w-full px-3 py-2 text-left text-sm hover:bg-accent flex items-center justify-between gap-2"
                       onClick={() => {
                         setLogradouro(s.logradouro);
-                        // Se é cross-bairro, atualizar o bairro também
                         if (s.bairro_origem) {
                           setBairro(s.bairro_origem);
                         }
@@ -459,40 +575,6 @@ export function EmbeddedAdvancedSearch({ defaultBairro = "" }: EmbeddedAdvancedS
               </PopoverContent>
             )}
           </Popover>
-        </div>
-
-        <div className="space-y-1">
-          <Label className="text-xs">Bairro</Label>
-          <Select 
-            value={bairro} 
-            onValueChange={(value) => setBairro(value === "todos" ? "" : value)}
-          >
-            <SelectTrigger className="h-9 text-sm">
-              <SelectValue placeholder="Todos os bairros" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="todos">Todos os bairros</SelectItem>
-              <SelectItem value="BARRA DA TIJUCA">Barra da Tijuca</SelectItem>
-              <SelectItem value="RECREIO DOS BANDEIRANTES">Recreio dos Bandeirantes</SelectItem>
-              <SelectItem value="JACAREPAGUA">Jacarepaguá</SelectItem>
-              <SelectItem value="COPACABANA">Copacabana</SelectItem>
-              <SelectItem value="IPANEMA">Ipanema</SelectItem>
-              <SelectItem value="LEBLON">Leblon</SelectItem>
-              <SelectItem value="BOTAFOGO">Botafogo</SelectItem>
-              <SelectItem value="TIJUCA">Tijuca</SelectItem>
-              <SelectItem value="FLAMENGO">Flamengo</SelectItem>
-              <SelectItem value="LARANJEIRAS">Laranjeiras</SelectItem>
-              <SelectItem value="GAVEA">Gávea</SelectItem>
-              <SelectItem value="JARDIM BOTANICO">Jardim Botânico</SelectItem>
-              <SelectItem value="LAGOA">Lagoa</SelectItem>
-              <SelectItem value="SAO CONRADO">São Conrado</SelectItem>
-              <SelectItem value="HUMAITA">Humaitá</SelectItem>
-              <SelectItem value="URCA">Urca</SelectItem>
-              <SelectItem value="CENTRO">Centro</SelectItem>
-              <SelectItem value="VILA ISABEL">Vila Isabel</SelectItem>
-              <SelectItem value="MEIER">Méier</SelectItem>
-            </SelectContent>
-          </Select>
         </div>
 
         <div className="space-y-1">
@@ -641,55 +723,136 @@ export function EmbeddedAdvancedSearch({ defaultBairro = "" }: EmbeddedAdvancedS
               </span>
             </div>
           )}
-          {/* Summary */}
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 p-3 bg-muted/30 rounded-lg">
-            <div className="text-center">
-              <div className="text-xs text-muted-foreground">Registros</div>
-              <div className="font-semibold">
-                {results.length < realTotalRegistros ? (
-                  <span title={`Exibindo ${results.length} de ${realTotalRegistros}`}>
-                    {results.length} <span className="text-muted-foreground">/ {realTotalRegistros}</span>
+          {/* Analysis Cards */}
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            {/* Card 1: Métricas de Valor/m² */}
+            <div className="p-3 rounded-lg border bg-card">
+              <div className="flex items-center gap-2 mb-2">
+                <DollarSign className="h-4 w-4 text-primary" />
+                <span className="text-xs font-medium text-muted-foreground">Métricas de Valor/m²</span>
+              </div>
+              <div className="space-y-1.5">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs text-muted-foreground">Média do Período</span>
+                  <span className="font-semibold text-sm">{formatCurrency(avgValueM2)}</span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <span className="text-xs text-muted-foreground cursor-help flex items-center gap-1">
+                          R$/m² Atual <Info className="h-3 w-3" />
+                        </span>
+                      </TooltipTrigger>
+                      <TooltipContent className="max-w-xs">
+                        <p className="text-xs">Média ponderada dos últimos 3 meses do dataset.</p>
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
+                  <span className="font-semibold text-sm text-primary">
+                    {currentValueM2 != null ? formatCurrency(currentValueM2) : (
+                      <span className="text-muted-foreground text-xs font-normal">Sem dados recentes</span>
+                    )}
                   </span>
-                ) : (
-                  realTotalRegistros
+                </div>
+                {currentValueM2 != null && avgValueM2 > 0 && (
+                  <div className="flex items-center justify-end gap-1">
+                    {currentValueM2 >= avgValueM2 ? (
+                      <ArrowUpRight className="h-3 w-3 text-emerald-600" />
+                    ) : (
+                      <ArrowDownRight className="h-3 w-3 text-red-500" />
+                    )}
+                    <span className={`text-xs font-medium ${currentValueM2 >= avgValueM2 ? 'text-emerald-600' : 'text-red-500'}`}>
+                      {(((currentValueM2 - avgValueM2) / avgValueM2) * 100).toFixed(1)}% vs média
+                    </span>
+                  </div>
                 )}
               </div>
             </div>
-            <div className="text-center">
-              <div className="text-xs text-muted-foreground">Transações</div>
-              <div className="font-semibold">
-                {displayedTransacoes < realTotalTransacoes ? (
-                  <span title={`Exibindo ${displayedTransacoes} de ${realTotalTransacoes}`}>
-                    {displayedTransacoes.toLocaleString('pt-BR')} <span className="text-muted-foreground">/ {realTotalTransacoes.toLocaleString('pt-BR')}</span>
-                  </span>
-                ) : (
-                  realTotalTransacoes.toLocaleString('pt-BR')
-                )}
+
+            {/* Card 2: Transações no Período */}
+            <div className="p-3 rounded-lg border bg-card">
+              <div className="flex items-center gap-2 mb-2">
+                <BarChart3 className="h-4 w-4 text-primary" />
+                <span className="text-xs font-medium text-muted-foreground">Transações no Período</span>
+              </div>
+              <div className="space-y-1.5">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs text-muted-foreground">Total Transações</span>
+                  <span className="font-semibold text-sm">{realTotalTransacoes.toLocaleString('pt-BR')}</span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-xs text-muted-foreground">Registros Agregados</span>
+                  <span className="text-sm text-muted-foreground">{realTotalRegistros.toLocaleString('pt-BR')}</span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <span className="text-xs text-muted-foreground cursor-help flex items-center gap-1">
+                          Volume Estimado <Info className="h-3 w-3" />
+                        </span>
+                      </TooltipTrigger>
+                      <TooltipContent className="max-w-xs">
+                        <p className="text-xs">Soma de (valor médio × qtd transações) de cada registro agregado.</p>
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
+                  <span className="font-semibold text-sm">{formatCurrency(totalValue)}</span>
+                </div>
               </div>
             </div>
-            <div className="text-center">
-              <TooltipProvider>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <div className="cursor-help">
-                      <div className="text-xs text-muted-foreground flex items-center justify-center gap-1">
-                        Valor Total
-                        <Info className="h-3 w-3" />
-                      </div>
-                      <div className="font-semibold text-sm">{formatCurrency(totalValue)}</div>
+
+            {/* Card 3: Análise de Valorização */}
+            <div className="p-3 rounded-lg border bg-card">
+              <div className="flex items-center gap-2 mb-2">
+                <TrendingUp className="h-4 w-4 text-primary" />
+                <span className="text-xs font-medium text-muted-foreground">Análise de Valorização</span>
+              </div>
+              {cagrAnual != null && valorizacaoTotal != null ? (
+                <div className="space-y-1.5">
+                  <div className="flex items-center justify-between">
+                    <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <span className="text-xs text-muted-foreground cursor-help flex items-center gap-1">
+                            CAGR <Info className="h-3 w-3" />
+                          </span>
+                        </TooltipTrigger>
+                        <TooltipContent className="max-w-xs">
+                          <p className="text-xs">Taxa de crescimento anual composta — compara média ponderada do primeiro vs último ano ({anosComDados} anos de dados).</p>
+                        </TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
+                    <span className="flex items-center gap-1">
+                      {cagrAnual >= 0 ? (
+                        <ArrowUpRight className="h-3 w-3 text-emerald-600" />
+                      ) : (
+                        <ArrowDownRight className="h-3 w-3 text-red-500" />
+                      )}
+                      <span className={`font-semibold text-sm ${cagrAnual >= 0 ? 'text-emerald-600' : 'text-red-500'}`}>
+                        {cagrAnual.toFixed(1)}% a.a.
+                      </span>
+                    </span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs text-muted-foreground">Valorização Total</span>
+                    <span className={`font-semibold text-sm ${valorizacaoTotal >= 0 ? 'text-emerald-600' : 'text-red-500'}`}>
+                      {valorizacaoTotal >= 0 ? '+' : ''}{valorizacaoTotal.toFixed(1)}%
+                    </span>
+                  </div>
+                  {confiancaCAGR === 'baixa' && (
+                    <div className="text-[10px] text-amber-600 flex items-center gap-1 mt-1">
+                      <Info className="h-3 w-3" />
+                      Baixa confiança: algum ano com &lt;3 transações
                     </div>
-                  </TooltipTrigger>
-                  <TooltipContent className="max-w-xs">
-                    <p className="text-xs">
-                      Volume financeiro estimado: soma de (valor médio × quantidade de transações) de cada registro agregado no período.
-                    </p>
-                  </TooltipContent>
-                </Tooltip>
-              </TooltipProvider>
-            </div>
-            <div className="text-center">
-              <div className="text-xs text-muted-foreground">Média R$/m²</div>
-              <div className="font-semibold">{formatCurrency(avgValueM2)}</div>
+                  )}
+                </div>
+              ) : (
+                <div className="text-xs text-muted-foreground py-2">
+                  Dados insuficientes — são necessários pelo menos 2 anos com transações para calcular valorização.
+                </div>
+              )}
             </div>
           </div>
 
