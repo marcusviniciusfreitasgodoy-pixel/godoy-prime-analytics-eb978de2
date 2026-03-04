@@ -76,6 +76,7 @@ export function TerritorialFilters({
   isLoading,
 }: TerritorialFiltersProps) {
   const [searchTerm, setSearchTerm] = useState("");
+  const [showSuggestions, setShowSuggestions] = useState(false);
   const [unidadesRange, setUnidadesRange] = useState([0, 500]);
   const [somenteComItbi, setSomenteComItbi] = useState(false);
   const [fontes, setFontes] = useState<Record<string, boolean>>({
@@ -97,10 +98,43 @@ export function TerritorialFilters({
     return () => ro.disconnect();
   }, []);
 
+  const normalizeText = (value: string) =>
+    value
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .toLowerCase()
+      .replace(/[^a-z0-9\s]/g, " ")
+      .replace(/\s+/g, " ")
+      .trim();
+
+  const looseMatch = (searchValue: string, targetValue: string) => {
+    const s = normalizeText(searchValue);
+    const t = normalizeText(targetValue);
+    if (!s || !t) return false;
+    if (t.includes(s)) return true;
+
+    const searchTokens = s.split(" ").filter((token) => token.length >= 3);
+    const targetTokens = t.split(" ");
+
+    if (searchTokens.length === 0) return false;
+
+    return searchTokens.every((token) =>
+      targetTokens.some(
+        (targetToken) =>
+          targetToken.includes(token) ||
+          token.includes(targetToken) ||
+          (token.length >= 5 && targetToken.startsWith(token.slice(0, 5)))
+      )
+    );
+  };
+
   const filtered = useMemo(() => {
     return condominios.filter((c) => {
-      if (searchTerm && !c.logradouro_padrao?.toLowerCase().includes(searchTerm.toLowerCase()) &&
-          !c.nome_condominio?.toLowerCase().includes(searchTerm.toLowerCase())) return false;
+      if (
+        searchTerm &&
+        !looseMatch(searchTerm, c.logradouro_padrao || "") &&
+        !looseMatch(searchTerm, c.nome_condominio || "")
+      ) return false;
       if (somenteComItbi && (!c.preco_medio_m2 || c.preco_medio_m2 <= 0)) return false;
       const units = c.unidades_estimadas ?? 0;
       if (units < unidadesRange[0] || (unidadesRange[1] < 500 && units > unidadesRange[1])) return false;
@@ -148,16 +182,24 @@ export function TerritorialFilters({
           <Input
             placeholder="Buscar logradouro..."
             value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
+            onFocus={() => setShowSuggestions(true)}
+            onBlur={() => setTimeout(() => setShowSuggestions(false), 120)}
+            onChange={(e) => {
+              setSearchTerm(e.target.value);
+              setShowSuggestions(true);
+            }}
             className="pl-9 h-9 text-sm"
           />
-          {suggestions && suggestions.length > 0 && searchTerm.length >= 2 && (
+          {showSuggestions && suggestions && suggestions.length > 0 && searchTerm.length >= 2 && (
             <div className="absolute z-50 w-full mt-1 bg-popover border border-border rounded-md shadow-lg max-h-40 overflow-auto">
               {suggestions.map((s) => (
                 <button
                   key={s}
                   className="w-full text-left px-3 py-1.5 text-sm hover:bg-muted truncate"
-                  onClick={() => setSearchTerm(s)}
+                  onClick={() => {
+                    setSearchTerm(s);
+                    setShowSuggestions(false);
+                  }}
                 >
                   {s}
                 </button>
