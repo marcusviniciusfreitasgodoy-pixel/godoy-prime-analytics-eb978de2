@@ -358,15 +358,15 @@ export function TerritorialMap({
         </div>
       </div>
 
-      <div className="absolute bottom-4 left-4 z-[1000] bg-background/90 backdrop-blur rounded-lg p-3 shadow-md border border-border space-y-2">
-        <div className="flex items-center gap-2">
-          <Layers className="h-4 w-4 text-muted-foreground" />
-          <Label htmlFor="heatmap-toggle" className="text-xs font-medium">Heatmap</Label>
+      <div className="absolute bottom-4 left-12 md:left-4 z-[1000] bg-background/90 backdrop-blur rounded-lg p-2 md:p-3 shadow-md border border-border space-y-1.5 md:space-y-2">
+        <div className="flex items-center gap-1.5 md:gap-2">
+          <Layers className="h-3.5 w-3.5 md:h-4 md:w-4 text-muted-foreground" />
+          <Label htmlFor="heatmap-toggle" className="text-[10px] md:text-xs font-medium">Heatmap</Label>
           <Switch id="heatmap-toggle" checked={showHeatmap} onCheckedChange={onToggleHeatmap} />
         </div>
-        <div className="flex items-center gap-2">
-          <Grid3X3 className="h-4 w-4 text-muted-foreground" />
-          <Label htmlFor="lotes-toggle" className="text-xs font-medium">Lotes PAL</Label>
+        <div className="flex items-center gap-1.5 md:gap-2">
+          <Grid3X3 className="h-3.5 w-3.5 md:h-4 md:w-4 text-muted-foreground" />
+          <Label htmlFor="lotes-toggle" className="text-[10px] md:text-xs font-medium">Lotes</Label>
           <Switch id="lotes-toggle" checked={showLotes} onCheckedChange={onToggleLotes} />
           {showLotes && currentZoom < 15 && (
             <span className="text-[10px] text-muted-foreground ml-1">zoom 15+</span>
