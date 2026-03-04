@@ -2932,6 +2932,7 @@ export type Database = {
             Returns: string
           }
       calcular_area_edificacoes_pendentes: { Args: never; Returns: number }
+      calcular_centroids_edificacoes_pendentes: { Args: never; Returns: number }
       calculate_footprint_areas: { Args: never; Returns: number }
       calculate_lote_areas: { Args: never; Returns: number }
       check_lead_exists: {
