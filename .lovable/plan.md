@@ -1,41 +1,23 @@
 
 
-## Analise: Filtro de Outliers no Modulo de Pesquisa por Localizacao
+## Inteligencia Territorial — Schema criado ✅
 
-### Problema Identificado
+### Tabelas criadas/expandidas
 
-O componente `EmbeddedAdvancedSearch.tsx` **NAO aplica filtro de outliers** no `valor_m2`. A funcao `buildBaseQuery()` (linhas 125-149) filtra apenas:
-- `percentual_transferido >= 90`
-- `valor_m2 not null`
-- filtros do usuario (valor, area, tipologia, bairro, periodo)
+1. **condominios_mapeamento** — 15 colunas novas (geom, torres, IPTU, ITBI aggregates) + índice GIST
+2. **iptu_imoveis** — Registros brutos IPTU prefeitura + 4 índices + RLS (SELECT público)
+3. **edificacoes_geo** — Footprints edificações GeoCarioca + GIST + RLS
+4. **lotes_pal** — Lotes PAL + GIST + RLS
+5. **torres_condominios** — Torres vinculadas a condominios + edificacoes (FKs) + RLS
+6. **iptu_logradouro_resumo** — Resumo agregado por logradouro + RLS
+7. **etl_log** — Log de ingestões ETL (admin-only via has_role)
+8. **proprietarios_multiplos** — Fase 2: multi-proprietários (admin-only via has_role)
 
-**Mas NAO tem** `.lte('valor_m2', outlierLimit)` — que e o filtro presente em TODOS os outros hooks do sistema:
-- `useTransactionSearch.ts` — aplica `outlierLimit` por bairro
-- `useITBITransactions.ts` — aplica `outlierLimit` por bairro
-- `useKPIStats.ts` — aplica `outlierLimit` por bairro
-- `useHistoricalTransactionAnalysis.ts` — aplica `outlierLimit` por bairro
-- `useTransactionMapData.ts` — aplica `outlierLimit` por bairro
-- `useStreetComparison.ts` — aplica `outlierLimit` por bairro
-- `useMicrobairroEvolutionData.ts` — aplica `outlierLimit` por bairro
+### Correções aplicadas
+- RLS de etl_log e proprietarios_multiplos usa `has_role(auth.uid(), 'admin'::app_role)` em vez de profiles.role
+- PostGIS habilitado via `CREATE EXTENSION IF NOT EXISTS postgis`
+- `spatial_ref_sys` sem RLS é esperado (tabela de sistema PostGIS)
 
-### Impacto
-
-Sem esse filtro, transacoes com `valor_m2` absurdamente altos (ex: R$ 200.000/m2) entram nos calculos, distorcendo:
-- A media R$/m2 (ja calculada errada, como identificado antes)
-- O volume financeiro estimado
-- E distorcera os novos cards de valorizacao (CAGR e valorização total)
-
-### Plano de Correcao
-
-**Arquivo:** `src/components/EmbeddedAdvancedSearch.tsx`
-
-1. Importar/replicar o mapa `OUTLIER_LIMITS` e a funcao `getOutlierLimit(bairro)` (mesmo padrao dos outros hooks)
-2. Na funcao `buildBaseQuery()`, adicionar `.lte('valor_m2', outlierLimit)` usando o bairro selecionado (ou o DEFAULT de 60000 se nenhum bairro for informado)
-3. Aplicar o mesmo filtro na query de historico do dialog (`transactionHistory`)
-
-Isso garante consistencia com todos os outros modulos antes de implementar os cards de analise.
-
-### Ordem de implementacao
-
-Corrigir o filtro de outliers **primeiro**, e so depois implementar as melhorias (reordenar bairro + cards de analise), garantindo que os calculos de valorizacao e CAGR sejam feitos sobre dados limpos.
-
+### Próximos passos
+- Criar Edge Functions ETL para importação de dados IPTU/GeoCarioca
+- Criar páginas e componentes do módulo de Inteligência Territorial
