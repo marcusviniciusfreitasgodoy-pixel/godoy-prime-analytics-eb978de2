@@ -3166,6 +3166,18 @@ export type Database = {
           phone: string
         }[]
       }
+      get_coverage_stats: {
+        Args: never
+        Returns: {
+          condominios_com_itbi: number
+          condominios_com_logradouro: number
+          condominios_total: number
+          edificacoes_com_area: number
+          edificacoes_total: number
+          iptu_logradouros: number
+          lotes_total: number
+        }[]
+      }
       get_ficha_by_codigo: {
         Args: { p_codigo: string }
         Returns: {
@@ -3188,6 +3200,28 @@ export type Database = {
           id: string
           nome_corretor: string
           status: Database["public"]["Enums"]["status_visita"]
+        }[]
+      }
+      get_logradouros_sem_geo: {
+        Args: { p_limite?: number }
+        Returns: {
+          logradouro: string
+          logradouro_norm: string
+        }[]
+      }
+      get_lotes_pal_bbox: {
+        Args: {
+          p_east: number
+          p_limit?: number
+          p_north: number
+          p_south: number
+          p_west: number
+        }
+        Returns: {
+          area_lote: number
+          geom_geojson: Json
+          id: string
+          logradouro: string
         }[]
       }
       get_territorial_kpis: {

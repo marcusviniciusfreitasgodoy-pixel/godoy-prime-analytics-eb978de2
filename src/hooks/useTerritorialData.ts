@@ -206,3 +206,55 @@ export function useCondominiosRanking() {
     staleTime: 5 * 60 * 1000,
   });
 }
+
+// P2.1 — Lotes PAL by bounding box
+export interface LotePAL {
+  id: string;
+  geom_geojson: any;
+  logradouro: string | null;
+  area_lote: number | null;
+}
+
+export function useLotesPALBbox(bounds: MapBounds | null, enabled: boolean) {
+  return useQuery({
+    queryKey: ["lotes-pal-bbox", bounds],
+    queryFn: async () => {
+      if (!bounds) return [];
+      const { data, error } = await supabase.rpc("get_lotes_pal_bbox" as any, {
+        p_west: bounds.west,
+        p_south: bounds.south,
+        p_east: bounds.east,
+        p_north: bounds.north,
+        p_limit: 200,
+      });
+      if (error) throw error;
+      return (data || []) as LotePAL[];
+    },
+    enabled: enabled && !!bounds,
+    staleTime: 30 * 1000,
+  });
+}
+
+// P2.4 — Coverage stats for admin
+export interface CoverageStats {
+  edificacoes_total: number;
+  edificacoes_com_area: number;
+  lotes_total: number;
+  iptu_logradouros: number;
+  condominios_total: number;
+  condominios_com_itbi: number;
+  condominios_com_logradouro: number;
+}
+
+export function useCoverageStats() {
+  return useQuery({
+    queryKey: ["coverage-stats"],
+    queryFn: async () => {
+      const { data, error } = await supabase.rpc("get_coverage_stats" as any);
+      if (error) throw error;
+      const result = Array.isArray(data) ? data[0] : data;
+      return result as CoverageStats;
+    },
+    staleTime: 5 * 60 * 1000,
+  });
+}

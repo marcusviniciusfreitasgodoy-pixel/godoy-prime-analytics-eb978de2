@@ -98,3 +98,6 @@ verify_jwt = false
 
 [functions.geocodificar-itbi-transactions]
 verify_jwt = false
+
+[functions.enrich-logradouros-geo]
+verify_jwt = false
