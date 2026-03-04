@@ -95,3 +95,6 @@ verify_jwt = false
 
 [functions.process-condominios-algorithm]
 verify_jwt = false
+
+[functions.geocodificar-itbi-transactions]
+verify_jwt = false
