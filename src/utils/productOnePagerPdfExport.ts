@@ -78,7 +78,7 @@ function drawMercado(doc: jsPDF, y: number, margin: number, contentWidth: number
   doc.setFont('helvetica', 'normal');
   const mercadoLines = [
     'Mercado Imobiliário da cidade do Rio de Janeiro na primeira fase.',
-    'Decisor: Corretores e imobiliárias com faturamento R$ 10-100K+/mês',
+    '1.567 condomínios mapeados com dados geoespaciais completos',
     'Valor médio por imóvel: > R$ 1M',
     'Mercado endereçável: 5.000+ corretores ativos na região',
   ];
@@ -166,8 +166,8 @@ function drawSolucaoModulos(doc: jsPDF, y: number, margin: number, contentWidth:
   const cellW = (contentWidth - 4) / 2;
   const cellH = 32;
   const modules = [
-    { title: 'Motor de Avaliação', dor: 'Precificação por "achismo" sem base em dados reais', beneficio: 'Laudo profissional em 5 min com 3 cenários calibráveis' },
-    { title: 'Vistoria Digital', dor: 'Vistorias sem padrão geram disputas jurídicas', beneficio: 'Pontuação 0-100 automática, lista de verificação 55+ itens, PDF profissional' },
+    { title: 'Motor de Avaliação', dor: 'Precificação por "achismo" sem base em dados reais', beneficio: 'Laudo em 5 min com 3 cenários + dados IPTU (imóveis, preço real, venal vs real)' },
+    { title: 'Inteligência Territorial', dor: 'Sem visão geoespacial, prospecção por experiência pessoal', beneficio: 'Mapa 1.567 condomínios, ficha com torres/histórico ITBI, ranking por logradouro' },
     { title: 'Gestão de Clientes e Funil', dor: 'Contatos perdidos em WhatsApp, sem acompanhamento estruturado', beneficio: 'Quadro 8 estágios, conversão rastreável, notificações automáticas' },
     { title: 'Sofia IA', dor: 'Horas pesquisando dados dispersos em múltiplas fontes', beneficio: 'Resposta contextual instantânea com base em dados ITBI oficiais' },
   ];
@@ -221,7 +221,7 @@ function drawDiferenciais(doc: jsPDF, y: number, margin: number, contentWidth: n
 
   const diffs = [
     { title: 'Dados Oficiais ITBI', desc: 'Transações reais da prefeitura, não anúncios inflados' },
-    { title: 'Metodologia Técnica', desc: 'Conformidade com norma técnica de avaliação imobiliária' },
+    { title: 'Mapeamento Geoespacial', desc: '1.567 condomínios, 52.761 edificações e 485 logradouros IPTU' },
     { title: 'Resultado em 5 Minutos', desc: 'Da busca ao laudo profissional em PDF pronto para apresentação' },
     { title: 'Multiorganização Segura', desc: 'Isolamento total de dados por organização, segurança corporativa' },
   ];
@@ -310,7 +310,8 @@ function drawPage2FuncionalidadesDetalhadas(doc: jsPDF, margin: number, contentW
     { title: 'Gestão de Visitas', dor: 'Agendamento por WhatsApp, fichas em papel, sem controle', entrega: 'Fichas digitais com assinatura eletrônica, selo de proximidade\nFeedback instantâneo' },
     { title: 'Propostas Digitais', dor: 'Propostas informais sem validade jurídica ou rastreio', entrega: 'Modelos simplificado/completo com aceite eletrônico e PDF' },
     { title: 'Estratégia de Precificação', dor: 'Preço de anúncio definido sem metodologia, sem plano B', entrega: 'Diagnóstico 9 perguntas, 3 faixas (Atração/Mercado/Premium)\nLaudo de Avaliação e Vistoria' },
-    { title: 'Pesquisa de Mercado', dor: 'Sem acesso a dados reais de transações por localização e tipologia', entrega: 'Pesquisa por logradouro, bairro e microbairro com dados ITBI oficiais e filtros por tipologia' },
+    { title: 'Pesquisa de Mercado', dor: 'Sem acesso a dados reais de transações por localização e tipologia', entrega: 'Dados ITBI + unidades IPTU, valor venal vs preço real pago, variação geocodificada' },
+    { title: 'Inteligência Territorial', dor: 'Sem visão geoespacial dos condomínios para prospecção', entrega: 'Mapa 1.567 condomínios, ficha com torres/histórico ITBI, ranking por logradouro, painel admin' },
     { title: 'Agendamento de Visitas', dor: 'Cliente depende do corretor para agendar, processo lento por WhatsApp', entrega: 'Agendamento automático pelo cliente com disponibilidade online e confirmação instantânea' },
     { title: 'Análise de Documentação IA', dor: 'Revisão manual de documentos consome horas e gera erros', entrega: 'Upload de imagem/PDF com análise automática por IA, extração de campos e alertas' },
     { title: 'Documentação Comprador e Vendedor', dor: 'Sem controle dos documentos necessários, esquecimentos geram atrasos', entrega: 'Lista de verificação completa para comprador e vendedor com progresso rastreável' },

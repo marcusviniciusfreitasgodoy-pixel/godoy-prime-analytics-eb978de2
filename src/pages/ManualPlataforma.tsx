@@ -39,6 +39,7 @@ import {
   Play,
   Building2,
   FileSignature,
+  Map,
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useAuthContext } from "@/contexts/AuthContext";
@@ -142,6 +143,10 @@ const manualSections: ManualSection[] = [
         description: "Encontre logradouros por faixa de preço (R$ 100 mil a R$ 100 milhões). Ideal para identificar regiões dentro do orçamento do cliente.",
       },
       {
+        title: "Dados IPTU Enriquecidos",
+        description: "Ao buscar por logradouro, veja também: total de unidades IPTU, valor venal médio vs preço real pago e desconto real do mercado.",
+      },
+      {
         title: "Filtros Avançados",
         description: "Refine por: bairro, tipologia, período (6 a 24 meses) e faixa de área em m².",
       },
@@ -155,7 +160,7 @@ const manualSections: ManualSection[] = [
     id: "avaliacao",
     title: "Avaliação Imobiliária",
     icon: Calculator,
-    description: "Motor de Avaliação Godoy Prime: calcule o valor de mercado usando dados oficiais + anúncios com mais de 30 características.",
+    description: "Motor de Avaliação Godoy Prime: calcule o valor de mercado usando dados oficiais + anúncios com mais de 30 características. Agora com sugestão automática de dados IPTU do logradouro.",
     route: "/avaliacao-imobiliaria",
     features: [
       {
@@ -168,7 +173,7 @@ const manualSections: ManualSection[] = [
       },
       {
         title: "Etapa 2: Localização",
-        description: "Busque a rua para ver estatísticas oficiais da região. Opcionalmente, insira dados de anúncios para combinação 70% dados oficiais + 30% mercado.",
+        description: "Busque a rua para ver estatísticas oficiais da região. O sistema exibe automaticamente total de imóveis IPTU, preço médio real e comparativo venal vs real. Opcionalmente, insira dados de anúncios para combinação 70% dados oficiais + 30% mercado.",
         tips: [
           "Compare os valores oficiais com anúncios atuais do mercado",
           "Se não houver transações na rua, o sistema usa dados do microbairro",
@@ -475,6 +480,44 @@ const manualSections: ManualSection[] = [
       {
         title: "Histórico de Propostas",
         description: "Acompanhe todas as propostas enviadas, seus status e vinculação com fichas de visita.",
+      },
+    ],
+  },
+  {
+    id: "inteligencia-territorial",
+    title: "Inteligência Territorial",
+    icon: Map,
+    description: "Mapeamento geoespacial completo com 1.567 condomínios, fichas detalhadas, ranking e análise por logradouro.",
+    route: "/inteligencia-territorial",
+    features: [
+      {
+        title: "Mapa de Condomínios",
+        description: "1.567 condomínios plotados com marcadores coloridos por faixa de unidades, clustering automático, heatmap de densidade e camada de lotes PAL.",
+        tips: [
+          "Mova o mapa para carregar condomínios da área visível (bounding box dinâmico)",
+          "Ative o heatmap para ver concentração de unidades",
+          "Camada de lotes PAL visível com zoom ≥ 15",
+        ],
+      },
+      {
+        title: "Ficha de Condomínio",
+        description: "Torres, unidades estimadas, área do lote, área construída, valor venal IPTU, histórico trimestral de preços ITBI (últimos 5 anos) e transações no raio de 150m.",
+        tips: [
+          "354 condomínios com gráfico de evolução de preço real",
+          "Botão direto para abrir avaliação com endereço pré-preenchido",
+        ],
+      },
+      {
+        title: "Ranking de Condomínios",
+        description: "Tabela de todos os condomínios ordenável por: unidades, torres, preço m², transações ITBI, última venda. Exportação CSV completa.",
+      },
+      {
+        title: "Análise por Logradouro",
+        description: "Top 20 logradouros por densidade de unidades. Tabela comparativa com imóveis IPTU, condomínios, preço real m², valor venal m² e desconto percentual.",
+      },
+      {
+        title: "Painel Administrativo",
+        description: "Log de ingestões com status e duração, cards de cobertura dinâmicos, botões para disparar ETLs (IPTU, Lotes PAL, Edificações, Algoritmo de condomínios, Geocodificação).",
       },
     ],
   },
