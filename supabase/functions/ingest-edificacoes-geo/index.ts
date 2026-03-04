@@ -170,14 +170,10 @@ serve(async (req) => {
         if (!objectid) return null;
 
         let geomWkt: string | null = null;
-        let lat: number | null = null;
-        let lng: number | null = null;
 
         if (f.geometry?.rings) {
           try {
             geomWkt = `SRID=4326;${geometryToWKT(f.geometry)}`;
-            lat = calcCentroidLat(f.geometry.rings);
-            lng = calcCentroidLng(f.geometry.rings);
           } catch {
             // skip geometry
           }
@@ -196,8 +192,8 @@ serve(async (req) => {
           cota_topo: typeof a['topo'] === 'number' ? a['topo'] : null,
           andares_estimados: altura ? Math.max(1, Math.round(altura / 3.0)) : null,
           geom: geomWkt,
-          lat,
-          lng,
+          lat: null,
+          lng: null,
         };
       }).filter(Boolean);
 
