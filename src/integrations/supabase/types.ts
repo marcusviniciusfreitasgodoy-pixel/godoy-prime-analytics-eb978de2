@@ -3016,7 +3016,10 @@ export type Database = {
         | { Args: { schema_name: string; table_name: string }; Returns: string }
         | { Args: { table_name: string }; Returns: string }
       enablelongtransactions: { Args: never; Returns: string }
-      enriquecer_condominios_com_itbi: { Args: never; Returns: Json }
+      enriquecer_condominios_com_itbi: {
+        Args: { p_limite?: number }
+        Returns: Json
+      }
       equals: { Args: { geom1: unknown; geom2: unknown }; Returns: boolean }
       generate_visit_code: { Args: never; Returns: string }
       geocodificacao_status: { Args: { p_bairro?: string }; Returns: Json }
@@ -3120,7 +3123,11 @@ export type Database = {
       geomfromewkt: { Args: { "": string }; Returns: unknown }
       get_condo_itbi_history: {
         Args: { p_lat: number; p_lng: number; p_raio?: number }
-        Returns: Json
+        Returns: {
+          periodo: string
+          preco_medio_m2: number
+          transacoes: number
+        }[]
       }
       get_condominios_bbox: {
         Args: {
@@ -3130,7 +3137,24 @@ export type Database = {
           p_south: number
           p_west: number
         }
-        Returns: Json
+        Returns: {
+          area_lote: number
+          area_total_construida: number
+          confianca_identificacao: number
+          fonte_identificacao: string
+          id: string
+          latitude: number
+          logradouro_padrao: string
+          longitude: number
+          nome_condominio: string
+          numero_torres: number
+          padrao_construtivo: string
+          preco_medio_m2: number
+          total_transacoes_itbi: number
+          ultima_transacao_itbi: string
+          unidades_estimadas: number
+          valor_venal_estimado: number
+        }[]
       }
       get_corretores_list: {
         Args: never
@@ -3166,7 +3190,15 @@ export type Database = {
           status: Database["public"]["Enums"]["status_visita"]
         }[]
       }
-      get_territorial_kpis: { Args: never; Returns: Json }
+      get_territorial_kpis: {
+        Args: never
+        Returns: {
+          com_historico_precos: number
+          preco_medio_m2_barra: number
+          total_condominios: number
+          unidades_mapeadas: number
+        }[]
+      }
       get_user_org_id: { Args: { _user_id: string }; Returns: string }
       get_vault_secret: { Args: { secret_name: string }; Returns: string }
       gettransactionid: { Args: never; Returns: unknown }
@@ -3225,6 +3257,7 @@ export type Database = {
       }
       postgis_version: { Args: never; Returns: string }
       postgis_wagyu_version: { Args: never; Returns: string }
+      recalcular_unidades_estimadas: { Args: never; Returns: Json }
       search_bairros_fuzzy: {
         Args: { result_limit?: number; search_term: string }
         Returns: {

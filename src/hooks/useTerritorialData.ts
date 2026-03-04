@@ -81,7 +81,8 @@ export function useTerritorialKPIs() {
     queryFn: async () => {
       const { data, error } = await supabase.rpc("get_territorial_kpis" as any);
       if (error) throw error;
-      return data as TerritorialKPIs;
+      const result = Array.isArray(data) ? data[0] : data;
+      return result as TerritorialKPIs;
     },
     staleTime: 5 * 60 * 1000,
   });
