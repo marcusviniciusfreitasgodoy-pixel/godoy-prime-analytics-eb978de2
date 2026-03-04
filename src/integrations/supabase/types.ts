@@ -1036,7 +1036,11 @@ export type Database = {
           complemento: string | null
           created_at: string | null
           data_transacao: string
+          geocodificado_via: string | null
+          geom: unknown
           id: string
+          lat: number | null
+          lng: number | null
           logradouro: string
           logradouro_norm: string | null
           microbairro: string | null
@@ -1055,7 +1059,11 @@ export type Database = {
           complemento?: string | null
           created_at?: string | null
           data_transacao: string
+          geocodificado_via?: string | null
+          geom?: unknown
           id?: string
+          lat?: number | null
+          lng?: number | null
           logradouro: string
           logradouro_norm?: string | null
           microbairro?: string | null
@@ -1074,7 +1082,11 @@ export type Database = {
           complemento?: string | null
           created_at?: string | null
           data_transacao?: string
+          geocodificado_via?: string | null
+          geom?: unknown
           id?: string
+          lat?: number | null
+          lng?: number | null
           logradouro?: string
           logradouro_norm?: string | null
           microbairro?: string | null
@@ -3007,6 +3019,7 @@ export type Database = {
       enriquecer_condominios_com_itbi: { Args: never; Returns: Json }
       equals: { Args: { geom1: unknown; geom2: unknown }; Returns: boolean }
       generate_visit_code: { Args: never; Returns: string }
+      geocodificacao_status: { Args: { p_bairro?: string }; Returns: Json }
       geometry: { Args: { "": string }; Returns: unknown }
       geometry_above: {
         Args: { geom1: unknown; geom2: unknown }
@@ -3790,6 +3803,10 @@ export type Database = {
       }
       unlockrows: { Args: { "": string }; Returns: number }
       update_iptu_geom: {
+        Args: { p_id: string; p_lat: number; p_lng: number }
+        Returns: undefined
+      }
+      update_itbi_geom: {
         Args: { p_id: string; p_lat: number; p_lng: number }
         Returns: undefined
       }
