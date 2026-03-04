@@ -1,49 +1,41 @@
 
-## Melhorias de Transparencia nos Dados de Transacoes (Pesquisas de Mercado)
 
-### Contexto
-Os dados ITBI da Prefeitura sao agregados por logradouro/mes, nao representam transacoes individuais. Isso confunde o usuario quando busca imoveis especificos (ex: apartamentos >500m2 na Av. Lucio Costa). Tres melhorias serao implementadas:
+## Analise: Filtro de Outliers no Modulo de Pesquisa por Localizacao
 
----
+### Problema Identificado
 
-### Melhoria 1: Filtro "Apenas transacoes individuais"
-Adicionar um toggle/switch na area de filtros da aba Transacoes que, quando ativado, filtra apenas registros com `total_transacoes = 1` (transacoes nao agregadas).
+O componente `EmbeddedAdvancedSearch.tsx` **NAO aplica filtro de outliers** no `valor_m2`. A funcao `buildBaseQuery()` (linhas 125-149) filtra apenas:
+- `percentual_transferido >= 90`
+- `valor_m2 not null`
+- filtros do usuario (valor, area, tipologia, bairro, periodo)
 
-**Arquivo:** `src/hooks/useTransactionSearch.ts`
-- Adicionar campo `apenasIndividuais?: boolean` na interface `TransactionSearchParams`
-- Quando ativado, adicionar `.eq('total_transacoes', 1)` na query Supabase
+**Mas NAO tem** `.lte('valor_m2', outlierLimit)` — que e o filtro presente em TODOS os outros hooks do sistema:
+- `useTransactionSearch.ts` — aplica `outlierLimit` por bairro
+- `useITBITransactions.ts` — aplica `outlierLimit` por bairro
+- `useKPIStats.ts` — aplica `outlierLimit` por bairro
+- `useHistoricalTransactionAnalysis.ts` — aplica `outlierLimit` por bairro
+- `useTransactionMapData.ts` — aplica `outlierLimit` por bairro
+- `useStreetComparison.ts` — aplica `outlierLimit` por bairro
+- `useMicrobairroEvolutionData.ts` — aplica `outlierLimit` por bairro
 
-**Arquivo:** `src/pages/PesquisasMercado.tsx`
-- Adicionar estado `apenasIndividuais` (boolean, default false)
-- Adicionar um Switch com label "Apenas transacoes individuais" abaixo dos filtros de area
-- Passar o parametro para `useTransactionSearch`
+### Impacto
 
----
+Sem esse filtro, transacoes com `valor_m2` absurdamente altos (ex: R$ 200.000/m2) entram nos calculos, distorcendo:
+- A media R$/m2 (ja calculada errada, como identificado antes)
+- O volume financeiro estimado
+- E distorcera os novos cards de valorizacao (CAGR e valorização total)
 
-### Melhoria 2: Coluna "Qtd. Agregada" nos resultados
-Mostrar no card de cada resultado quantas transacoes foram agregadas naquele registro, para o usuario distinguir dados individuais de medias.
+### Plano de Correcao
 
-**Arquivo:** `src/pages/PesquisasMercado.tsx`
-- Na lista de resultados (linha ~652-656), adicionar indicador visual quando `total_transacoes > 1` mostrando que o valor e uma media agregada
-- Adicionar um pequeno badge "media de X transacoes" ou icone de agregacao
+**Arquivo:** `src/components/EmbeddedAdvancedSearch.tsx`
 
----
+1. Importar/replicar o mapa `OUTLIER_LIMITS` e a funcao `getOutlierLimit(bairro)` (mesmo padrao dos outros hooks)
+2. Na funcao `buildBaseQuery()`, adicionar `.lte('valor_m2', outlierLimit)` usando o bairro selecionado (ou o DEFAULT de 60000 se nenhum bairro for informado)
+3. Aplicar o mesmo filtro na query de historico do dialog (`transactionHistory`)
 
-### Melhoria 3: Aviso de dados agregados
-Adicionar um banner/alerta informativo permanente na aba de Transacoes explicando a natureza dos dados.
+Isso garante consistencia com todos os outros modulos antes de implementar os cards de analise.
 
-**Arquivo:** `src/pages/PesquisasMercado.tsx`
-- Adicionar um `Alert` (componente ja existente) no topo da aba Transacoes com icone de informacao
-- Texto: "Os valores exibidos representam medias mensais agregadas pela Prefeitura do Rio de Janeiro, nao transacoes individuais. Valores de area e preco podem estar diluidos quando multiplas transacoes sao agrupadas."
-- Incluir dica sobre o filtro de transacoes individuais
+### Ordem de implementacao
 
----
+Corrigir o filtro de outliers **primeiro**, e so depois implementar as melhorias (reordenar bairro + cards de analise), garantindo que os calculos de valorizacao e CAGR sejam feitos sobre dados limpos.
 
-### Arquivos alterados
-1. `src/hooks/useTransactionSearch.ts` -- adicionar parametro `apenasIndividuais` na interface e query
-2. `src/pages/PesquisasMercado.tsx` -- adicionar switch, aviso Alert, e indicador de agregacao nos resultados
-
-### Detalhes tecnicos
-- O Switch usara o componente `@radix-ui/react-switch` ja instalado (`src/components/ui/switch.tsx`)
-- O Alert usara `src/components/ui/alert.tsx` ja existente
-- Exportacoes CSV/XLSX tambem incluirao a coluna de agregacao
