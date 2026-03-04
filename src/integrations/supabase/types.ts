@@ -3747,6 +3747,10 @@ export type Database = {
         Returns: unknown
       }
       unlockrows: { Args: { "": string }; Returns: number }
+      update_iptu_geom: {
+        Args: { p_id: string; p_lat: number; p_lng: number }
+        Returns: undefined
+      }
       update_lead_by_email: {
         Args: {
           p_aceita_marketing?: boolean
@@ -3779,6 +3783,47 @@ export type Database = {
           table_name: string
         }
         Returns: string
+      }
+      upsert_edificacao_geo: {
+        Args: {
+          p_altura_max: number
+          p_andares: number
+          p_area: number
+          p_geojson: string
+          p_lat: number
+          p_lng: number
+          p_objectid: number
+        }
+        Returns: undefined
+      }
+      upsert_iptu_imovel: {
+        Args: {
+          p_area_construida: number
+          p_area_terreno: number
+          p_bairro: string
+          p_cod_logradouro: string
+          p_complemento: string
+          p_fonte?: string
+          p_inscricao: string
+          p_lat: number
+          p_lng: number
+          p_logradouro: string
+          p_numero: string
+          p_tipologia: string
+          p_valor_venal: number
+        }
+        Returns: undefined
+      }
+      upsert_lote_pal: {
+        Args: {
+          p_area_lote: number
+          p_bairro: string
+          p_geojson: string
+          p_logradouro: string
+          p_num_contribuinte: string
+          p_numero: string
+        }
+        Returns: undefined
       }
     }
     Enums: {
