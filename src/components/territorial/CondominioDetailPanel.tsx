@@ -21,10 +21,11 @@ export function CondominioDetailPanel({ condominio: c, onClose }: CondominioDeta
 
   const chartData = useMemo(() => {
     if (!history) return [];
-    return history.map((h) => ({
+    return history.map((h: any) => ({
       name: h.periodo,
       preco: h.preco_medio_m2,
       transacoes: h.transacoes,
+      agrupamento: h.agrupamento ?? "trimestral",
     }));
   }, [history]);
 
@@ -120,46 +121,64 @@ export function CondominioDetailPanel({ condominio: c, onClose }: CondominioDeta
               {/* Chart */}
               {historyLoading ? (
                 <div className="h-40 flex items-center justify-center text-muted-foreground text-xs">Carregando...</div>
-              ) : chartData.length >= 3 ? (
-                <div className="h-44">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <LineChart data={chartData}>
-                      <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-                      <XAxis
-                        dataKey="name"
-                        tick={{ fontSize: 10, fill: "hsl(var(--muted-foreground))" }}
-                        interval="preserveStartEnd"
-                      />
-                      <YAxis
-                        tick={{ fontSize: 10, fill: "hsl(var(--muted-foreground))" }}
-                        tickFormatter={(v) => `${(v / 1000).toFixed(0)}k`}
-                      />
-                      <Tooltip
-                        contentStyle={{
-                          backgroundColor: "hsl(var(--card))",
-                          border: "1px solid hsl(var(--border))",
-                          borderRadius: "8px",
-                          fontSize: "12px",
-                        }}
-                        formatter={(value: number, name: string) => {
-                          if (name === "preco") return [`R$ ${value.toLocaleString("pt-BR")}/m²`, "Preço"];
-                          return [value, "Transações"];
-                        }}
-                      />
-                      <Line
-                        type="monotone"
-                        dataKey="preco"
-                        stroke="hsl(var(--accent))"
-                        strokeWidth={2}
-                        dot={{ r: 3, fill: "hsl(var(--accent))" }}
-                      />
-                    </LineChart>
-                  </ResponsiveContainer>
+              ) : chartData.length >= 2 ? (
+                <div>
+                  {chartData[0]?.agrupamento === "anual" && (
+                    <p className="text-[10px] text-muted-foreground mb-1 flex items-center gap-1">
+                      <AlertCircle className="h-3 w-3" />
+                      Agrupamento anual — poucos dados trimestrais disponíveis
+                    </p>
+                  )}
+                  <div className="h-44">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <LineChart data={chartData}>
+                        <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+                        <XAxis
+                          dataKey="name"
+                          tick={{ fontSize: 10, fill: "hsl(var(--muted-foreground))" }}
+                          interval="preserveStartEnd"
+                        />
+                        <YAxis
+                          tick={{ fontSize: 10, fill: "hsl(var(--muted-foreground))" }}
+                          tickFormatter={(v) => `${(v / 1000).toFixed(0)}k`}
+                        />
+                        <Tooltip
+                          contentStyle={{
+                            backgroundColor: "hsl(var(--card))",
+                            border: "1px solid hsl(var(--border))",
+                            borderRadius: "8px",
+                            fontSize: "12px",
+                          }}
+                          formatter={(value: number, name: string) => {
+                            if (name === "preco") return [`R$ ${value.toLocaleString("pt-BR")}/m²`, "Preço"];
+                            return [value, "Transações"];
+                          }}
+                        />
+                        <Line
+                          type="monotone"
+                          dataKey="preco"
+                          stroke="hsl(var(--accent))"
+                          strokeWidth={2}
+                          dot={{ r: 3, fill: "hsl(var(--accent))" }}
+                        />
+                      </LineChart>
+                    </ResponsiveContainer>
+                  </div>
+                </div>
+              ) : chartData.length === 1 ? (
+                <div className="border border-border rounded-md p-3">
+                  <p className="text-[10px] text-muted-foreground mb-1">Preço registrado</p>
+                  <p className="text-lg font-bold text-accent">
+                    R$ {Number(chartData[0].preco).toLocaleString("pt-BR")}/m²
+                  </p>
+                  <p className="text-[10px] text-muted-foreground">
+                    {chartData[0].transacoes} transação(ões)
+                  </p>
                 </div>
               ) : (
                 <div className="h-20 flex items-center justify-center text-muted-foreground text-xs border border-dashed border-border rounded-md">
                   <AlertCircle className="h-3.5 w-3.5 mr-1.5" />
-                  Dados insuficientes — {chartData.length} ponto(s) no período
+                  Sem transações ITBI neste endereço nos últimos 5 anos
                 </div>
               )}
             </section>

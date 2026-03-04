@@ -199,12 +199,15 @@ export function TerritorialMap({
             }
       );
 
-      marker.on("click", () => onSelect(c));
-
       if (!showHeatmap) {
         if (isCluster) {
-          marker.bindPopup(`<div style="font-size:13px;font-weight:600;text-align:center;">${clusterCount} condomínios<br/><span style="font-weight:400;font-size:11px;">Dê zoom para ver detalhes</span></div>`);
-          // Add cluster count label
+          marker.on("click", () => {
+            map.flyTo([c.latitude, c.longitude], currentZoom + 2, { duration: 0.8 });
+          });
+          marker.bindTooltip(
+            `<div style="font-size:12px;font-weight:600;text-align:center;">${clusterCount} condomínios<br/><span style="font-weight:400;font-size:11px;">Clique para zoom</span></div>`,
+            { sticky: true, direction: "top" }
+          );
           const icon = L.divIcon({
             className: '',
             html: `<div style="background:hsl(var(--accent));color:white;border-radius:50%;width:28px;height:28px;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;border:2px solid white;box-shadow:0 1px 4px rgba(0,0,0,.3);">${clusterCount}</div>`,
@@ -215,14 +218,23 @@ export function TerritorialMap({
             map.flyTo([c.latitude, c.longitude], currentZoom + 2, { duration: 0.8 });
           });
         } else {
-          marker.bindPopup(`
-            <div style="min-width:200px;font-size:12px;line-height:1.4;">
-              <div style="font-weight:600;margin-bottom:4px;">${c.nome_condominio || c.logradouro_padrao}</div>
-              <div>Torres: ${c.numero_torres ?? "—"} | Unidades: ${c.unidades_estimadas ?? "—"}</div>
-              <div>Preço m²: ${c.preco_medio_m2 ? `R$ ${c.preco_medio_m2.toLocaleString("pt-BR")}` : "Sem dados ITBI"}</div>
-            </div>
-          `);
+          // Click opens detail panel directly
+          marker.on("click", () => onSelect(c));
+          // Tooltip on hover shows summary
+          const priceText = hasPrice
+            ? `<div style="color:hsl(var(--accent));font-weight:700;">R$ ${Number(c.preco_medio_m2).toLocaleString("pt-BR")}/m²</div>`
+            : "";
+          marker.bindTooltip(
+            `<div style="min-width:160px;font-size:12px;line-height:1.5;">
+              <div style="font-weight:600;margin-bottom:2px;">${c.nome_condominio || c.logradouro_padrao}</div>
+              <div style="font-size:11px;color:#6b7280;">${c.numero_torres ?? "?"} torre(s) · ${c.unidades_estimadas ?? "?"} unidades</div>
+              ${priceText}
+            </div>`,
+            { sticky: true, direction: "top" }
+          );
         }
+      } else {
+        marker.on("click", () => onSelect(c));
       }
 
       marker.addTo(layer);
