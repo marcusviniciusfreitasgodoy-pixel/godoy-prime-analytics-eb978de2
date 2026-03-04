@@ -1,41 +1,30 @@
 
 
-## Analise: Filtro de Outliers no Modulo de Pesquisa por Localizacao
+## Plano: Criar tabelas de Inteligencia Territorial no banco
 
-### Problema Identificado
+### Analise
 
-O componente `EmbeddedAdvancedSearch.tsx` **NAO aplica filtro de outliers** no `valor_m2`. A funcao `buildBaseQuery()` (linhas 125-149) filtra apenas:
-- `percentual_transferido >= 90`
-- `valor_m2 not null`
-- filtros do usuario (valor, area, tipologia, bairro, periodo)
+O SQL fornecido esta quase pronto, mas tem **2 problemas** que preciso corrigir antes de executar:
 
-**Mas NAO tem** `.lte('valor_m2', outlierLimit)` — que e o filtro presente em TODOS os outros hooks do sistema:
-- `useTransactionSearch.ts` — aplica `outlierLimit` por bairro
-- `useITBITransactions.ts` — aplica `outlierLimit` por bairro
-- `useKPIStats.ts` — aplica `outlierLimit` por bairro
-- `useHistoricalTransactionAnalysis.ts` — aplica `outlierLimit` por bairro
-- `useTransactionMapData.ts` — aplica `outlierLimit` por bairro
-- `useStreetComparison.ts` — aplica `outlierLimit` por bairro
-- `useMicrobairroEvolutionData.ts` — aplica `outlierLimit` por bairro
+1. **RLS de `etl_log` e `proprietarios_multiplos`**: referenciam `profiles.role`, que nao existe. O sistema usa a tabela `user_roles` e a funcao `has_role()`. Vou substituir por `has_role(auth.uid(), 'admin'::app_role)`.
 
-### Impacto
+2. **Extensao PostGIS**: os campos `geometry(Point, 4326)` etc. requerem a extensao `postgis`. Preciso garantir que esta habilitada com `CREATE EXTENSION IF NOT EXISTS postgis`.
 
-Sem esse filtro, transacoes com `valor_m2` absurdamente altos (ex: R$ 200.000/m2) entram nos calculos, distorcendo:
-- A media R$/m2 (ja calculada errada, como identificado antes)
-- O volume financeiro estimado
-- E distorcera os novos cards de valorizacao (CAGR e valorização total)
+### Execucao
 
-### Plano de Correcao
+Uma unica migracao SQL com:
 
-**Arquivo:** `src/components/EmbeddedAdvancedSearch.tsx`
+- `CREATE EXTENSION IF NOT EXISTS postgis`
+- ALTER TABLE `condominios_mapeamento` (14 colunas novas + indice GIST)
+- CREATE TABLE `iptu_imoveis` + indices + RLS (SELECT publico)
+- CREATE TABLE `edificacoes_geo` + indice GIST + RLS
+- CREATE TABLE `lotes_pal` + indice GIST + RLS
+- CREATE TABLE `torres_condominios` (FKs para condominios_mapeamento e edificacoes_geo) + RLS
+- CREATE TABLE `iptu_logradouro_resumo` + RLS
+- CREATE TABLE `etl_log` + RLS (**corrigido**: `has_role(auth.uid(), 'admin'::app_role)`)
+- CREATE TABLE `proprietarios_multiplos` + RLS (**corrigido**: idem)
 
-1. Importar/replicar o mapa `OUTLIER_LIMITS` e a funcao `getOutlierLimit(bairro)` (mesmo padrao dos outros hooks)
-2. Na funcao `buildBaseQuery()`, adicionar `.lte('valor_m2', outlierLimit)` usando o bairro selecionado (ou o DEFAULT de 60000 se nenhum bairro for informado)
-3. Aplicar o mesmo filtro na query de historico do dialog (`transactionHistory`)
+Todas as tabelas novas tem RLS habilitado. Tabelas de dados publicos (iptu, edificacoes, lotes, torres, resumo) permitem SELECT para qualquer usuario autenticado. Tabelas administrativas (etl_log, proprietarios) restritas a admins via `has_role()`.
 
-Isso garante consistencia com todos os outros modulos antes de implementar os cards de analise.
-
-### Ordem de implementacao
-
-Corrigir o filtro de outliers **primeiro**, e so depois implementar as melhorias (reordenar bairro + cards de analise), garantindo que os calculos de valorizacao e CAGR sejam feitos sobre dados limpos.
+Nenhuma pagina ou componente sera criado.
 
