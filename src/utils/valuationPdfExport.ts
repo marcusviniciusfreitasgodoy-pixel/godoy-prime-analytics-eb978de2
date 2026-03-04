@@ -580,7 +580,10 @@ function createValuationPDF(
     }
     
     yPos += 4;
-    yPos = drawSectionTitle(doc, 'Análise Histórica (5 Anos)', yPos, marginLeft);
+    const historicalTitle = state.historicalAnalysis.dataSource === 'bairro' 
+      ? `Análise Histórica (5 Anos) — Dados do Bairro: ${state.historicalAnalysis.bairroUsado || state.bairro}`
+      : 'Análise Histórica (5 Anos)';
+    yPos = drawSectionTitle(doc, historicalTitle, yPos, marginLeft);
     
     const historical = state.historicalAnalysis;
     

@@ -80,6 +80,9 @@ export interface HistoricalAnalysis {
   diagnostico: string;
   alertas: string[];
   futureProjection?: FutureProjection;
+  dataSource?: 'logradouro' | 'bairro';
+  logradouroUsado?: string;
+  bairroUsado?: string;
 }
 
 export interface ValuationState {
