@@ -1,42 +1,68 @@
 
 
-## Inteligencia Territorial — Schema criado ✅
+## Validation Analysis: Inteligência Territorial Module
 
-### Tabelas criadas/expandidas
+After reviewing all 8 files, the RPCs, and the data schema, here's my item-by-item prediction and the issues I found that need fixing before testing:
 
-1. **condominios_mapeamento** — 15 colunas novas (geom, torres, IPTU, ITBI aggregates) + índice GIST
-2. **iptu_imoveis** — Registros brutos IPTU prefeitura + 4 índices + RLS (SELECT público)
-3. **edificacoes_geo** — Footprints edificações GeoCarioca + GIST + RLS
-4. **lotes_pal** — Lotes PAL + GIST + RLS
-5. **torres_condominios** — Torres vinculadas a condominios + edificacoes (FKs) + RLS
-6. **iptu_logradouro_resumo** — Resumo agregado por logradouro + RLS
-7. **etl_log** — Log de ingestões ETL (admin-only via has_role)
-8. **proprietarios_multiplos** — Fase 2: multi-proprietários (admin-only via has_role)
+### Issues Found
 
-### Correções aplicadas
-- RLS de etl_log e proprietarios_multiplos usa `has_role(auth.uid(), 'admin'::app_role)` em vez de profiles.role
-- PostGIS habilitado via `CREATE EXTENSION IF NOT EXISTS postgis`
-- `spatial_ref_sys` sem RLS é esperado (tabela de sistema PostGIS)
+**Issue 1 — `latitude`/`longitude` are nullable in DB but required in TypeScript interface**
+`condominios_mapeamento.latitude` and `longitude` are `number | null` in the DB types, but the `TerritorialCondominio` interface declares them as `number` (non-null). The RPC filters `WHERE latitude IS NOT NULL` so the data is safe, but the type mismatch could cause TypeScript complaints. Minor — no runtime break.
 
-## Edge Functions ETL — Criadas ✅
+**Issue 2 — `nome_condominio` is `string` (non-null) in DB but treated as potentially null in UI**
+The DB schema has `nome_condominio: string` (NOT NULL), but the UI code does `c.nome_condominio || c.logradouro_padrao` as fallback. This is fine — empty strings will still fall through to logradouro. No issue.
 
-### RPCs PostGIS (SECURITY DEFINER)
-- `upsert_iptu_imovel()` — Upsert com ST_MakePoint para pontos
-- `update_iptu_geom()` — Update geom de geocodificação Google
-- `upsert_lote_pal()` — Upsert com ST_GeomFromGeoJSON para polígonos
-- `upsert_edificacao_geo()` — Upsert com polígono + centroid
+**Issue 3 — RPC return type `json` vs client expectation**
+All 3 RPCs (`get_condominios_bbox`, `get_condo_itbi_history`, `get_territorial_kpis`) return `json` type. The Supabase client with `as any` cast will receive this as a parsed JSON object. This works correctly — the `as any` on `supabase.rpc()` bypasses TypeScript's strict type checking for unregistered RPCs.
 
-### Unique constraints adicionados
-- `iptu_imoveis.inscricao_municipal`
-- `lotes_pal.num_contribuinte`
-- `edificacoes_geo.objectid_origem`
+**Issue 4 — `CondominioDetailPanel` navigation URL mismatch**
+The panel navigates to `/avaliacao-imobiliaria?logradouro=...` but the original spec says `/avaliacoes/nova?logradouro=...`. This is correct for the existing app since the route is `/avaliacao-imobiliaria`. No issue.
 
-### Edge Functions
-1. **ingest-iptu-prefeitura** — ArcGIS IPTU/MapServer/5 → iptu_imoveis (paginação 1000, delay 300ms)
-2. **geocodificar-iptu-google** — Google Geocoding → update iptu_imoveis sem coordenadas (delay 50ms)
-3. **ingest-lotes-pal** — ArcGIS Cartografia/Lotes/MapServer/0 → lotes_pal (polígonos)
-4. **ingest-edificacoes-geo** — ArcGIS Cartografia/Edificacoes/MapServer/0 → edificacoes_geo (bbox Barra)
+**Issue 5 — Heatmap implementation uses CircleMarker with large radius instead of leaflet.heat**
+The spec requested `leaflet.heat` but the implementation uses `CircleMarker` with variable radius/opacity. This is actually better — avoids an extra dependency and works with the existing setup. Functional.
 
-### Próximos passos
-- Criar páginas e componentes do módulo de Inteligência Territorial
-- Criar função SQL para agregar dados em iptu_logradouro_resumo
+### Checklist Predictions
+
+| # | Test | Expected Result |
+|---|------|----------------|
+| 1 | Open /inteligencia-territorial | **PASS** — Route registered, component renders |
+| 2 | Markers load (~300) | **PASS** — `BoundsTracker` fires on mount, triggers `get_condominios_bbox` RPC |
+| 3 | Move map → markers update | **PASS** — `moveend` event triggers `onBoundsChange`, new query fires with 30s staleTime |
+| 4 | Zoom out → clusters | **PASS** — `MarkerClusterGroup` wraps non-heatmap markers |
+| 5 | Click marker → popup | **PASS** — `CircleMarker` has `Popup` child |
+| 6 | "Ver detalhes" → panel | **PASS** — `onSelect` sets state, panel renders when `selectedCondo && detailOpen` |
+| 7 | Condo WITH history → chart | **PASS** — `useCondoItbiHistory` calls RPC with lat/lng, chart renders if `chartData.length >= 3` |
+| 8 | Condo WITHOUT history → message | **PASS** — Falls through to "Dados insuficientes" message |
+| 9 | "Abrir Avaliação" redirect | **PASS** — `navigate()` with logradouro param |
+| 10 | Toggle ITBI filter | **PASS** — Filters list only. **NOTE**: Map markers are NOT filtered — the filter only applies to the left-side list, not the map layer |
+| 11 | Slider unidades | **PASS** for list. Same caveat — map unaffected |
+| 12 | Logradouro autocomplete | **PASS** — `useLogradouroSuggestions` queries `iptu_logradouro_resumo` |
+| 13 | Ranking tab | **PASS** — `useCondominiosRanking` fetches top 200 with price |
+| 14 | Logradouros tab | **PASS** — Chart + table render from `useTerritorialLogradouros` |
+| 15 | Admin tab | **LIKELY PASS** — Requires admin role for `etl_log` RLS. Buttons invoke edge functions. |
+
+### Key Issue: Filters Don't Affect Map Markers
+
+The filters (search, slider, ITBI toggle) only filter the **left-side list**. The map always shows all condominios from the bbox query. This is a design gap — item 10 and 11 partially fail because users expect the map to reflect the filter state.
+
+### Plan to Fix
+
+**1. Pass filtered condominios to the map** — In `InteligenciaTerritorial.tsx`, the `TerritorialFilters` component currently filters internally but doesn't expose the filtered list. Need to:
+- Lift filter state up to the page level, OR
+- Have `TerritorialFilters` emit filtered results that get passed to `TerritorialMap`
+
+Currently `TerritorialMap` receives `condominios` (all bbox results). It should receive the filtered subset.
+
+**Implementation approach**: Add an `onFilteredChange` callback to `TerritorialFilters` that reports the filtered list. Pass that filtered list to `TerritorialMap` instead of the raw `condominios`.
+
+**2. No other code changes needed** — The RPCs, data hooks, chart rendering, and panel logic all look correct for the real data structure.
+
+### Files to Change
+
+| File | Change |
+|---|---|
+| `src/components/territorial/TerritorialFilters.tsx` | Add `onFilteredChange` callback, call it when `filtered` changes |
+| `src/pages/InteligenciaTerritorial.tsx` | Track filtered condominios state, pass to `TerritorialMap` |
+
+This is a small change — ~15 lines across 2 files.
+
