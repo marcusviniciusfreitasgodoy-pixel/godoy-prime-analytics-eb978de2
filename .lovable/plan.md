@@ -1,42 +1,65 @@
 
 
-## Inteligencia Territorial — Schema criado ✅
+## Plan: Create `process-condominios-algorithm` Edge Function + 3 RPCs
 
-### Tabelas criadas/expandidas
+### Summary
 
-1. **condominios_mapeamento** — 15 colunas novas (geom, torres, IPTU, ITBI aggregates) + índice GIST
-2. **iptu_imoveis** — Registros brutos IPTU prefeitura + 4 índices + RLS (SELECT público)
-3. **edificacoes_geo** — Footprints edificações GeoCarioca + GIST + RLS
-4. **lotes_pal** — Lotes PAL + GIST + RLS
-5. **torres_condominios** — Torres vinculadas a condominios + edificacoes (FKs) + RLS
-6. **iptu_logradouro_resumo** — Resumo agregado por logradouro + RLS
-7. **etl_log** — Log de ingestões ETL (admin-only via has_role)
-8. **proprietarios_multiplos** — Fase 2: multi-proprietários (admin-only via has_role)
+Create one new Edge Function that orchestrates 3 PostgreSQL RPC functions. All heavy spatial logic runs server-side in PostGIS to avoid Edge Function timeouts.
 
-### Correções aplicadas
-- RLS de etl_log e proprietarios_multiplos usa `has_role(auth.uid(), 'admin'::app_role)` em vez de profiles.role
-- PostGIS habilitado via `CREATE EXTENSION IF NOT EXISTS postgis`
-- `spatial_ref_sys` sem RLS é esperado (tabela de sistema PostGIS)
+### Database Migration — 3 RPC Functions
 
-## Edge Functions ETL — Criadas ✅
+**Important corrections** to the user-provided SQL (adapting to actual schema):
 
-### RPCs PostGIS (SECURITY DEFINER)
-- `upsert_iptu_imovel()` — Upsert com ST_MakePoint para pontos
-- `update_iptu_geom()` — Update geom de geocodificação Google
-- `upsert_lote_pal()` — Upsert com ST_GeomFromGeoJSON para polígonos
-- `upsert_edificacao_geo()` — Upsert com polígono + centroid
+1. **`itbi_transactions` has no `geom` column** — Step 2 must match by `logradouro` text instead of `ST_DWithin`. Columns are `area_m2` and `valor_transacao` (not `area`/`valor`), and `data_transacao` is the date field.
 
-### Unique constraints adicionados
-- `iptu_imoveis.inscricao_municipal`
-- `lotes_pal.num_contribuinte`
-- `edificacoes_geo.objectid_origem`
+2. **`condominios_mapeamento` requires `nome_condominio TEXT NOT NULL`** — Step 1 INSERT must generate a name (e.g. `'Condomínio ' || lote.logradouro || ' #' || lote.numero`).
 
-### Edge Functions
-1. **ingest-iptu-prefeitura** — ArcGIS IPTU/MapServer/5 → iptu_imoveis (paginação 1000, delay 300ms)
-2. **geocodificar-iptu-google** — Google Geocoding → update iptu_imoveis sem coordenadas (delay 50ms)
-3. **ingest-lotes-pal** — ArcGIS Cartografia/Lotes/MapServer/0 → lotes_pal (polígonos)
-4. **ingest-edificacoes-geo** — ArcGIS Cartografia/Edificacoes/MapServer/0 → edificacoes_geo (bbox Barra)
+3. **`logradouro_padrao` is also NOT NULL** — must be populated from lote or nearest IPTU logradouro.
 
-### Próximos passos
-- Criar páginas e componentes do módulo de Inteligência Territorial
-- Criar função SQL para agregar dados em iptu_logradouro_resumo
+4. **Step 1 IPTU proximity query has a bug** — it compares a point to itself via `ST_DWithin`. Will fix to compare lote centroid against `iptu_logradouro_resumo.geom` (LineString geometry).
+
+5. **`geom_lote` type is `geometry(Geometry, 4326)`** not strict Polygon — no issue, MultiPolygon from lotes_pal will work.
+
+#### RPC 1: `identificar_condominios_pal()`
+- Loops through `lotes_pal`
+- Counts `edificacoes_geo` within each lote via `ST_Within`
+- Fetches nearest `iptu_logradouro_resumo` data via `ST_DWithin` on the resumo's `geom`
+- Filters out single-building small lots
+- Either enriches existing manual condominios (within ~30m) or inserts new ones with `fonte_identificacao = 'algoritmo_pal'`
+- Inserts towers into `torres_condominios` linking edificacoes to condominios
+
+#### RPC 2: `enriquecer_condominios_com_itbi()`
+- Joins `condominios_mapeamento` to `itbi_transactions` by matching `logradouro_padrao` to `logradouro` (text match, since ITBI has no geometry)
+- Updates `total_transacoes_itbi`, `preco_medio_m2`, `ultima_transacao_itbi`
+
+#### RPC 3: `atualizar_resumo_logradouros()`
+- Cross-references `iptu_logradouro_resumo` with `itbi_transactions` by logradouro name
+- Updates `preco_real_medio_itbi`, `total_transacoes_itbi`, `desconto_venal_percentual`
+
+### Edge Function: `supabase/functions/process-condominios-algorithm/index.ts`
+
+- Auth: admin-only (same pattern as other ETL functions)
+- Accepts `{ bairro, modo, limpar_algoritmo }`
+- If `limpar_algoritmo = true`: deletes from `condominios_mapeamento` WHERE `fonte_identificacao IN ('algoritmo_pal', 'algoritmo_dbscan')` and truncates `torres_condominios` for those condominios
+- Calls RPCs sequentially: `identificar_condominios_pal` → `enriquecer_condominios_com_itbi` → `atualizar_resumo_logradouros`
+- Logs to `etl_log`
+- Returns combined results
+
+### Config
+
+Add to `supabase/config.toml`:
+```toml
+[functions.process-condominios-algorithm]
+verify_jwt = false
+```
+
+### Files Changed
+
+| File | Action |
+|---|---|
+| `supabase/functions/process-condominios-algorithm/index.ts` | **Create** — orchestrator |
+| Migration SQL | **Create** — 3 RPC functions |
+| `supabase/config.toml` | **Update** — add function entry |
+
+No other files or tables modified.
+
