@@ -1,53 +1,42 @@
 
 
-## Plan: Fix Torres Duplicates + ITBI Logradouro Matching
+## Inteligencia Territorial — Schema criado ✅
 
-### Correction 1: Torres Duplicates
+### Tabelas criadas/expandidas
 
-**Current state:** 431,135 torres for ~1,060 condominios (massive duplication from repeated runs).
+1. **condominios_mapeamento** — 15 colunas novas (geom, torres, IPTU, ITBI aggregates) + índice GIST
+2. **iptu_imoveis** — Registros brutos IPTU prefeitura + 4 índices + RLS (SELECT público)
+3. **edificacoes_geo** — Footprints edificações GeoCarioca + GIST + RLS
+4. **lotes_pal** — Lotes PAL + GIST + RLS
+5. **torres_condominios** — Torres vinculadas a condominios + edificacoes (FKs) + RLS
+6. **iptu_logradouro_resumo** — Resumo agregado por logradouro + RLS
+7. **etl_log** — Log de ingestões ETL (admin-only via has_role)
+8. **proprietarios_multiplos** — Fase 2: multi-proprietários (admin-only via has_role)
 
-**Migration 1a** — Delete duplicates, keeping oldest per `(condominio_id, edificacao_id)`:
-```sql
-DELETE FROM torres_condominios
-WHERE id NOT IN (
-  SELECT DISTINCT ON (condominio_id, edificacao_id) id
-  FROM torres_condominios
-  ORDER BY condominio_id, edificacao_id, criado_em ASC
-);
-```
+### Correções aplicadas
+- RLS de etl_log e proprietarios_multiplos usa `has_role(auth.uid(), 'admin'::app_role)` em vez de profiles.role
+- PostGIS habilitado via `CREATE EXTENSION IF NOT EXISTS postgis`
+- `spatial_ref_sys` sem RLS é esperado (tabela de sistema PostGIS)
 
-**Migration 1b** — Add UNIQUE constraint:
-```sql
-ALTER TABLE torres_condominios
-  ADD CONSTRAINT uq_torre_condominio_edificacao
-  UNIQUE (condominio_id, edificacao_id);
-```
+## Edge Functions ETL — Criadas ✅
 
-**Migration 1c** — Update `identificar_condominios_pal()` RPC: change `ON CONFLICT DO NOTHING` to `ON CONFLICT ON CONSTRAINT uq_torre_condominio_edificacao DO UPDATE SET ...` (upsert on re-run).
+### RPCs PostGIS (SECURITY DEFINER)
+- `upsert_iptu_imovel()` — Upsert com ST_MakePoint para pontos
+- `update_iptu_geom()` — Update geom de geocodificação Google
+- `upsert_lote_pal()` — Upsert com ST_GeomFromGeoJSON para polígonos
+- `upsert_edificacao_geo()` — Upsert com polígono + centroid
 
-### Correction 2: ITBI Logradouro Matching
+### Unique constraints adicionados
+- `iptu_imoveis.inscricao_municipal`
+- `lotes_pal.num_contribuinte`
+- `edificacoes_geo.objectid_origem`
 
-**Root cause confirmed:** ITBI uses `AVN DAS AMERICAS`, IPTU uses `Avenida Lucio Costa` — completely different formats.
+### Edge Functions
+1. **ingest-iptu-prefeitura** — ArcGIS IPTU/MapServer/5 → iptu_imoveis (paginação 1000, delay 300ms)
+2. **geocodificar-iptu-google** — Google Geocoding → update iptu_imoveis sem coordenadas (delay 50ms)
+3. **ingest-lotes-pal** — ArcGIS Cartografia/Lotes/MapServer/0 → lotes_pal (polígonos)
+4. **ingest-edificacoes-geo** — ArcGIS Cartografia/Edificacoes/MapServer/0 → edificacoes_geo (bbox Barra)
 
-**Migration 2a** — Create `normalizar_logradouro()` function. Must also handle `AVN` → `AV` (present in ITBI data, not in user's original list).
-
-**Migration 2b** — Add generated `logradouro_norm` columns + indexes on both `iptu_logradouro_resumo` and `itbi_transactions`.
-
-**Migration 2c** — Rewrite `atualizar_resumo_logradouros()` to JOIN on `logradouro_norm`. Column names: `valor_transacao` and `area_m2` (not `valor`/`area`).
-
-**Migration 2d** — Rewrite `enriquecer_condominios_com_itbi()` to also use normalized logradouro matching (since `itbi_transactions` has NO `geom` column — spatial join is impossible). Will match `normalizar_logradouro(c.logradouro_padrao) = t.logradouro_norm`.
-
-### Important Schema Corrections vs User Request
-1. `itbi_transactions` has **no `geom` column** — the user's spatial `ST_DWithin` approach for `enriquecer_condominios_com_itbi` cannot work. Will use normalized logradouro text matching instead.
-2. ITBI column names are `valor_transacao` and `area_m2` (not `valor`/`area`).
-3. ITBI uses `AVN` abbreviation (not just `AV.`) — normalization function must handle this.
-
-### Files Changed
-
-| File | Action |
-|---|---|
-| New migration SQL (single file with all steps) | **Create** — cleanup + constraint + RPCs + normalization |
-
-### Post-Migration
-Re-run `process-condominios-algorithm` to verify corrected numbers.
-
+### Próximos passos
+- Criar páginas e componentes do módulo de Inteligência Territorial
+- Criar função SQL para agregar dados em iptu_logradouro_resumo

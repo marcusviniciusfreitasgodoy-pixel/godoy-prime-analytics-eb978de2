@@ -984,6 +984,7 @@ export type Database = {
           geom: unknown
           id: string
           logradouro: string
+          logradouro_norm: string | null
           preco_real_medio_itbi: number | null
           tipologia: string | null
           total_area_construida: number | null
@@ -1000,6 +1001,7 @@ export type Database = {
           geom?: unknown
           id?: string
           logradouro: string
+          logradouro_norm?: string | null
           preco_real_medio_itbi?: number | null
           tipologia?: string | null
           total_area_construida?: number | null
@@ -1016,6 +1018,7 @@ export type Database = {
           geom?: unknown
           id?: string
           logradouro?: string
+          logradouro_norm?: string | null
           preco_real_medio_itbi?: number | null
           tipologia?: string | null
           total_area_construida?: number | null
@@ -1035,6 +1038,7 @@ export type Database = {
           data_transacao: string
           id: string
           logradouro: string
+          logradouro_norm: string | null
           microbairro: string | null
           numero: string | null
           percentual_transferido: number | null
@@ -1053,6 +1057,7 @@ export type Database = {
           data_transacao: string
           id?: string
           logradouro: string
+          logradouro_norm?: string | null
           microbairro?: string | null
           numero?: string | null
           percentual_transferido?: number | null
@@ -1071,6 +1076,7 @@ export type Database = {
           data_transacao?: string
           id?: string
           logradouro?: string
+          logradouro_norm?: string | null
           microbairro?: string | null
           numero?: string | null
           percentual_transferido?: number | null
@@ -3150,6 +3156,7 @@ export type Database = {
       }
       limpar_torres_algoritmo: { Args: never; Returns: undefined }
       longtransactionsenabled: { Args: never; Returns: boolean }
+      normalizar_logradouro: { Args: { texto: string }; Returns: string }
       populate_geometry_columns:
         | { Args: { tbl_oid: unknown; use_typmod?: boolean }; Returns: number }
         | { Args: { use_typmod?: boolean }; Returns: string }
