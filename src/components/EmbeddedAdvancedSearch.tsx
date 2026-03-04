@@ -66,6 +66,39 @@ const ANO_OPTIONS = [
   { value: '2020', label: '2020' },
 ];
 
+// Limites de outliers por bairro (consistente com useTransactionSearch, useITBITransactions, etc.)
+const OUTLIER_LIMITS: Record<string, number> = {
+  'BARRA DA TIJUCA': 40000,
+  'RECREIO DOS BANDEIRANTES': 35000,
+  'LEBLON': 80000,
+  'IPANEMA': 70000,
+  'LAGOA': 50000,
+  'JARDIM BOTANICO': 50000,
+  'GAVEA': 50000,
+  'COPACABANA': 40000,
+  'BOTAFOGO': 40000,
+  'FLAMENGO': 35000,
+  'LARANJEIRAS': 35000,
+  'HUMAITA': 40000,
+  'TIJUCA': 30000,
+  'VILA ISABEL': 25000,
+  'GRAJAU': 20000,
+  'GRAJAÚ': 20000,
+  'MEIER': 20000,
+  'MÉIER': 20000,
+  'JACAREPAGUA': 25000,
+  'JACAREPAGUÁ': 25000,
+  'FREGUESIA (JACAREPAGUÁ)': 25000,
+  'TAQUARA': 20000,
+  'PECHINCHA': 20000,
+  'DEFAULT': 60000,
+};
+
+const getOutlierLimit = (bairro: string): number => {
+  const normalizedBairro = bairro.toUpperCase();
+  return OUTLIER_LIMITS[normalizedBairro] || OUTLIER_LIMITS['DEFAULT'];
+};
+
 interface EmbeddedAdvancedSearchProps {
   defaultBairro?: string;
 }
@@ -128,6 +161,10 @@ export function EmbeddedAdvancedSearch({ defaultBairro = "" }: EmbeddedAdvancedS
           .select('id, logradouro, numero, complemento, bairro, data_transacao, valor_transacao, area_m2, valor_m2, tipologia, total_transacoes, uso')
           .gte('percentual_transferido', 90)
           .not('valor_m2', 'is', null);
+
+        // Filtro de outliers por bairro (consistente com todos os outros módulos)
+        const outlierLimit = searchParams.bairro ? getOutlierLimit(searchParams.bairro) : OUTLIER_LIMITS['DEFAULT'];
+        q = q.lte('valor_m2', outlierLimit);
 
         // Apply uso filter - defaults to Residencial if not specified
         if (searchParams.uso && searchParams.uso !== 'all') {
@@ -209,6 +246,10 @@ export function EmbeddedAdvancedSearch({ defaultBairro = "" }: EmbeddedAdvancedS
         .ilike('bairro', selectedTransaction.bairro || '')
         .gte('percentual_transferido', 90)
         .not('valor_m2', 'is', null);
+
+      // Filtro de outliers por bairro (consistente com todos os outros módulos)
+      const historyOutlierLimit = selectedTransaction.bairro ? getOutlierLimit(selectedTransaction.bairro) : OUTLIER_LIMITS['DEFAULT'];
+      query = query.lte('valor_m2', historyOutlierLimit);
       
       // Filtrar pelo período de anos selecionado
       if (searchParams?.anoInicio) {
