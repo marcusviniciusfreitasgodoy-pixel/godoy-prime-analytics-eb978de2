@@ -111,7 +111,7 @@ export const useDocumentationFactors = () => {
 
 // Group characteristics by category
 export const groupCharacteristicsByCategory = (characteristics: ValuationCharacteristic[]) => {
-  return characteristics.reduce((acc, char) => {
+  const grouped = characteristics.reduce((acc, char) => {
     if (!acc[char.category]) {
       acc[char.category] = {
         name: char.category_name,
@@ -123,4 +123,11 @@ export const groupCharacteristicsByCategory = (characteristics: ValuationCharact
     acc[char.category].items.push(char);
     return acc;
   }, {} as Record<string, { name: string; cap_max: number; cap_min: number; items: ValuationCharacteristic[] }>);
+
+  // Ordenar itens de cada categoria em ordem alfabética
+  for (const key of Object.keys(grouped)) {
+    grouped[key].items.sort((a, b) => a.char_name.localeCompare(b.char_name, 'pt-BR'));
+  }
+
+  return grouped;
 };
