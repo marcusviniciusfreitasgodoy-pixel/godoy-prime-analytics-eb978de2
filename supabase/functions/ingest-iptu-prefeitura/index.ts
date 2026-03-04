@@ -1,19 +1,88 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.86.0";
 
+/**
+ * ingest-iptu-prefeitura — Busca dados AGREGADOS de IPTU por logradouro
+ * 
+ * Layers utilizados (Fazenda/IPTU/MapServer):
+ *   Layer 5 — Residencial por logradouro
+ *   Layer 4 — Não residencial por logradouro
+ *   Layer 6 — Territorial por logradouro
+ * 
+ * IMPORTANTE: A tabela iptu_imoveis NÃO é populada por esta função.
+ * iptu_imoveis aguarda fonte de dados individuais (CSV manual ou parceria futura).
+ * Esta função popula iptu_logradouro_resumo com dados agregados.
+ */
+
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version',
 };
 
-const ARCGIS_URL = 'https://pgeo3.rio.rj.gov.br/arcgis/rest/services/Fazenda/IPTU/MapServer/5/query';
+const BASE_URL = 'https://pgeo3.rio.rj.gov.br/arcgis/rest/services/Fazenda/IPTU/MapServer';
 const PAGE_SIZE = 1000;
-const MAX_PAGES = 50;
+const MAX_PAGES = 100;
 const DELAY_MS = 300;
-const BATCH_SIZE = 500;
+
+const LAYERS = [
+  { id: 5, label: 'residencial' },
+  { id: 4, label: 'nao_residencial' },
+  { id: 6, label: 'territorial' },
+];
 
 function delay(ms: number) {
   return new Promise(resolve => setTimeout(resolve, ms));
+}
+
+interface ArcGISFeature {
+  attributes: Record<string, unknown>;
+}
+
+interface LayerResult {
+  label: string;
+  features: ArcGISFeature[];
+}
+
+async function fetchLayer(layerId: number, bairro: string): Promise<ArcGISFeature[]> {
+  const allFeatures: ArcGISFeature[] = [];
+  let offset = 0;
+
+  for (let page = 0; page < MAX_PAGES; page++) {
+    const params = new URLSearchParams({
+      where: `nome LIKE '%${bairro}%'`,
+      outFields: 'cl,nome_completo,nome,tipologia,tot_imoveis,areaconst_res,exercicio',
+      f: 'json',
+      returnGeometry: 'false',
+      resultRecordCount: String(PAGE_SIZE),
+      resultOffset: String(offset),
+    });
+
+    console.log(`[ingest-iptu] Layer ${layerId}, page ${page + 1}, offset ${offset}`);
+    const response = await fetch(`${BASE_URL}/${layerId}/query?${params}`);
+    if (!response.ok) {
+      console.error(`HTTP ${response.status} on layer ${layerId}`);
+      break;
+    }
+
+    const data = await response.json();
+    if (data.error) {
+      console.error(`ArcGIS error layer ${layerId}:`, data.error);
+      break;
+    }
+
+    const features: ArcGISFeature[] = data.features || [];
+    if (features.length === 0) break;
+
+    allFeatures.push(...features);
+    console.log(`[ingest-iptu] Layer ${layerId}: got ${features.length} (total: ${allFeatures.length})`);
+
+    if (!data.exceededTransferLimit) break;
+    offset += PAGE_SIZE;
+
+    if (page < MAX_PAGES - 1) await delay(DELAY_MS);
+  }
+
+  return allFeatures;
 }
 
 serve(async (req) => {
@@ -53,7 +122,6 @@ serve(async (req) => {
       });
     }
 
-    // Parse body
     const { bairro } = await req.json();
     if (!bairro) {
       return new Response(JSON.stringify({ error: 'bairro is required' }), {
@@ -64,128 +132,82 @@ serve(async (req) => {
     console.log(`[ingest-iptu] Starting for bairro: ${bairro}`);
 
     // Create etl_log entry
-    const { data: logEntry, error: logError } = await supabase
+    const { data: logEntry } = await supabase
       .from('etl_log')
-      .insert({ fonte: 'iptu_prefeitura', bairro, status: 'running' })
+      .insert({ fonte: 'iptu_prefeitura_agregado', bairro, status: 'running' })
       .select('id')
       .single();
-
-    if (logError) {
-      console.error('Failed to create etl_log:', logError.message);
-    }
     const logId = logEntry?.id;
 
-    // Paginated fetch from ArcGIS
-    const outFields = 'INSCRICAO,LOGRADOURO,NUMERO,COMPLEMENTO,BAIRRO,TIPOLOGIA,COD_LOG,VALOR_VENAL,AREA_TERRENO,AREA_CONSTRUIDA';
-    const whereClause = `BAIRRO='${bairro}'`;
-
-    interface ArcGISFeature {
-      attributes: Record<string, unknown>;
-      geometry?: { x: number; y: number };
+    // Fetch all 3 layers
+    const layerResults: LayerResult[] = [];
+    for (const layer of LAYERS) {
+      const features = await fetchLayer(layer.id, bairro);
+      layerResults.push({ label: layer.label, features });
     }
 
-    let allFeatures: ArcGISFeature[] = [];
-    let offset = 0;
-
-    for (let page = 0; page < MAX_PAGES; page++) {
-      const params = new URLSearchParams({
-        where: whereClause,
-        outFields,
-        f: 'json',
-        returnGeometry: 'true',
-        outSR: '4326',
-        resultRecordCount: String(PAGE_SIZE),
-        resultOffset: String(offset),
-      });
-
-      console.log(`[ingest-iptu] Page ${page + 1}, offset ${offset}`);
-      const response = await fetch(`${ARCGIS_URL}?${params}`);
-      if (!response.ok) {
-        console.error(`HTTP ${response.status}`);
-        break;
-      }
-
-      const data = await response.json();
-      if (data.error) {
-        console.error('ArcGIS error:', data.error);
-        break;
-      }
-
-      const features: ArcGISFeature[] = data.features || [];
-      if (features.length === 0) break;
-
-      allFeatures = allFeatures.concat(features);
-      console.log(`[ingest-iptu] Got ${features.length} features (total: ${allFeatures.length})`);
-
-      if (!data.exceededTransferLimit) break;
-      offset += PAGE_SIZE;
-
-      if (page < MAX_PAGES - 1) await delay(DELAY_MS);
-    }
-
-    console.log(`[ingest-iptu] Total features fetched: ${allFeatures.length}`);
-
-    // Upsert via RPC in batches
+    // Upsert all features via RPC
     let totalUpserted = 0;
-    let semCoordenadas = 0;
-    let errors: string[] = [];
+    let errors = 0;
+    const counters: Record<string, number> = {};
 
-    for (let i = 0; i < allFeatures.length; i += BATCH_SIZE) {
-      const batch = allFeatures.slice(i, i + BATCH_SIZE);
+    for (const lr of layerResults) {
+      let layerCount = 0;
 
-      for (const f of batch) {
+      for (const f of lr.features) {
         const a = f.attributes;
-        const lat = f.geometry?.y ?? null;
-        const lng = f.geometry?.x ?? null;
+        const logradouro = a['nome_completo'] ? String(a['nome_completo']).trim() : null;
+        const bairroVal = a['nome'] ? String(a['nome']).trim() : null;
+        if (!logradouro || !bairroVal) continue;
 
-        if (!lat || !lng) semCoordenadas++;
+        const tipologia = a['tipologia'] ? String(a['tipologia']).trim() : lr.label;
+        const totalImoveis = typeof a['tot_imoveis'] === 'number' ? a['tot_imoveis'] : null;
+        const areaConst = typeof a['areaconst_res'] === 'number' ? a['areaconst_res'] : null;
+        const codLog = a['cl'] ? String(a['cl']).trim() : null;
 
-        const inscricao = String(a['INSCRICAO'] || '').trim();
-        if (!inscricao) continue;
-
-        const { error: rpcError } = await supabase.rpc('upsert_iptu_imovel', {
-          p_inscricao: inscricao,
-          p_logradouro: String(a['LOGRADOURO'] || '').trim() || null,
-          p_numero: a['NUMERO'] ? String(a['NUMERO']).trim() : null,
-          p_complemento: a['COMPLEMENTO'] ? String(a['COMPLEMENTO']).trim() : null,
-          p_bairro: String(a['BAIRRO'] || bairro).trim(),
-          p_tipologia: a['TIPOLOGIA'] ? String(a['TIPOLOGIA']).trim() : null,
-          p_cod_logradouro: a['COD_LOG'] ? String(a['COD_LOG']).trim() : null,
-          p_valor_venal: typeof a['VALOR_VENAL'] === 'number' ? a['VALOR_VENAL'] : null,
-          p_area_terreno: typeof a['AREA_TERRENO'] === 'number' ? a['AREA_TERRENO'] : null,
-          p_area_construida: typeof a['AREA_CONSTRUIDA'] === 'number' ? a['AREA_CONSTRUIDA'] : null,
-          p_lat: lat,
-          p_lng: lng,
-          p_fonte: 'prefeitura_arcgis',
+        const { error: rpcError } = await supabase.rpc('upsert_iptu_logradouro_resumo', {
+          p_logradouro: logradouro,
+          p_bairro: bairroVal,
+          p_tipologia: tipologia,
+          p_total_imoveis: totalImoveis,
+          p_total_area_construida: areaConst,
+          p_cod_logradouro: codLog,
         });
 
         if (rpcError) {
-          errors.push(`${inscricao}: ${rpcError.message}`);
+          errors++;
+          if (errors <= 5) console.error(`RPC error: ${rpcError.message}`);
         } else {
           totalUpserted++;
+          layerCount++;
         }
       }
 
-      console.log(`[ingest-iptu] Upserted ${totalUpserted}/${allFeatures.length}`);
+      counters[lr.label] = layerCount;
     }
 
     // Update etl_log
     if (logId) {
       await supabase.from('etl_log').update({
-        status: errors.length > 0 ? 'partial' : 'success',
+        status: errors > 0 ? 'partial' : 'success',
         registros_importados: totalUpserted,
-        registros_com_erro: errors.length,
+        registros_com_erro: errors,
         finalizado_em: new Date().toISOString(),
-        detalhes: { sem_coordenadas: semCoordenadas, total_api: allFeatures.length },
+        detalhes: {
+          layer5: counters['residencial'] || 0,
+          layer4: counters['nao_residencial'] || 0,
+          layer6: counters['territorial'] || 0,
+        },
       }).eq('id', logId);
     }
 
     const result = {
       success: true,
+      layer5: counters['residencial'] || 0,
+      layer4: counters['nao_residencial'] || 0,
+      layer6: counters['territorial'] || 0,
       total: totalUpserted,
-      sem_coordenadas: semCoordenadas,
-      erros: errors.length,
-      total_api: allFeatures.length,
+      erros: errors,
     };
 
     console.log('[ingest-iptu] Done:', JSON.stringify(result));

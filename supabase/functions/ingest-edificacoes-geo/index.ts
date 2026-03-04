@@ -1,18 +1,31 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.86.0";
 
+/**
+ * ingest-edificacoes-geo — Importa edificações do CadLog/Edificacoes_2019
+ * 
+ * URL correta: CadLog/Edificacoes_2019/MapServer/0/query
+ * Campos reais: objectid, altura, cod_lote, tipo, base, topo
+ * 
+ * area_footprint: NÃO vem como campo direto.
+ * Calculado após inserção via PostGIS: ST_Area(ST_Transform(geom, 31983))
+ * 
+ * andares_estimados: GREATEST(1, ROUND(altura / 3))
+ * 
+ * Centroid calculado no JS para lat/lng, geom salvo via RPC.
+ * Após inserção, RPC calculate_footprint_areas() atualiza area_footprint e centroids faltantes.
+ */
+
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version',
 };
 
-const ARCGIS_URL = 'https://pgeo3.rio.rj.gov.br/arcgis/rest/services/Cartografia/Edificacoes/MapServer/0/query';
+const ARCGIS_URL = 'https://pgeo3.rio.rj.gov.br/arcgis/rest/services/CadLog/Edificacoes_2019/MapServer/0/query';
 const PAGE_SIZE = 1000;
-const MAX_PAGES = 50;
+const MAX_PAGES = 100;
 const DELAY_MS = 300;
-
-// Default bounding box: Barra da Tijuca
-const DEFAULT_BBOX = { xmin: -43.365, ymin: -23.015, xmax: -43.270, ymax: -22.960 };
+const DEFAULT_BBOX = [-43.365, -23.015, -43.270, -22.960]; // Barra da Tijuca
 
 function delay(ms: number) {
   return new Promise(resolve => setTimeout(resolve, ms));
@@ -74,24 +87,26 @@ serve(async (req) => {
     let bbox = DEFAULT_BBOX;
     try {
       const body = await req.json();
-      if (body.bbox) bbox = { ...DEFAULT_BBOX, ...body.bbox };
+      if (Array.isArray(body.bbox) && body.bbox.length === 4) {
+        bbox = body.bbox;
+      }
     } catch {
       // Use defaults
     }
 
-    console.log(`[ingest-edificacoes] Starting with bbox:`, JSON.stringify(bbox));
+    console.log(`[ingest-edificacoes] Starting with bbox: [${bbox.join(', ')}]`);
 
     // Create etl_log
     const { data: logEntry } = await supabase
       .from('etl_log')
-      .insert({ fonte: 'edificacoes_geo', bairro: 'BARRA DA TIJUCA', status: 'running' })
+      .insert({ fonte: 'edificacoes_geo_2019', bairro: 'BBOX', status: 'running' })
       .select('id')
       .single();
     const logId = logEntry?.id;
 
-    // Paginated fetch with spatial query
+    // Spatial query envelope
     const bboxJson = JSON.stringify({
-      xmin: bbox.xmin, ymin: bbox.ymin, xmax: bbox.xmax, ymax: bbox.ymax,
+      xmin: bbox[0], ymin: bbox[1], xmax: bbox[2], ymax: bbox[3],
       spatialReference: { wkid: 4326 }
     });
 
@@ -109,7 +124,7 @@ serve(async (req) => {
         geometry: bboxJson,
         geometryType: 'esriGeometryEnvelope',
         spatialRel: 'esriSpatialRelIntersects',
-        outFields: 'OBJECTID,AREA,ALTURA_MAX',
+        outFields: 'objectid,altura,cod_lote,tipo,base,topo',
         f: 'json',
         returnGeometry: 'true',
         outSR: '4326',
@@ -119,7 +134,10 @@ serve(async (req) => {
 
       console.log(`[ingest-edificacoes] Page ${page + 1}, offset ${offset}`);
       const response = await fetch(`${ARCGIS_URL}?${params}`);
-      if (!response.ok) break;
+      if (!response.ok) {
+        console.error(`HTTP ${response.status}`);
+        break;
+      }
 
       const data = await response.json();
       if (data.error) {
@@ -147,12 +165,19 @@ serve(async (req) => {
 
     for (const f of allFeatures) {
       const a = f.attributes;
-      const objectid = typeof a['OBJECTID'] === 'number' ? a['OBJECTID'] : null;
+      const objectid = typeof a['objectid'] === 'number' ? a['objectid'] : null;
       if (!objectid) continue;
 
-      const alturaMax = typeof a['ALTURA_MAX'] === 'number' ? a['ALTURA_MAX'] : null;
-      const area = typeof a['AREA'] === 'number' ? a['AREA'] : null;
-      const andares = alturaMax ? Math.floor(alturaMax / 3) : null;
+      const altura = typeof a['altura'] === 'number' ? a['altura'] : null;
+      const codLote = a['cod_lote'] ? String(a['cod_lote']).trim() : null;
+      const tipoEdificacao = a['tipo'] ? String(a['tipo']).trim() : null;
+      const cotaBase = typeof a['base'] === 'number' ? a['base'] : null;
+      const cotaTopo = typeof a['topo'] === 'number' ? a['topo'] : null;
+
+      // Calculate andares_estimados
+      const andares = altura && altura > 0
+        ? Math.max(1, Math.round(altura / 3.0))
+        : null;
 
       let geojson: string | null = null;
       let centroid: { lat: number; lng: number } | null = null;
@@ -162,18 +187,21 @@ serve(async (req) => {
           geojson = ringsToGeoJSON(f.geometry.rings);
           centroid = computeCentroid(f.geometry.rings);
         } catch {
-          console.error(`Invalid geometry for OBJECTID ${objectid}`);
+          console.error(`Invalid geometry for objectid ${objectid}`);
         }
       }
 
       const { error: rpcError } = await supabase.rpc('upsert_edificacao_geo', {
         p_objectid: objectid,
-        p_area: area,
-        p_altura_max: alturaMax,
+        p_altura_max: altura,
         p_andares: andares,
         p_lat: centroid?.lat ?? null,
         p_lng: centroid?.lng ?? null,
         p_geojson: geojson,
+        p_cod_lote: codLote,
+        p_tipo_edificacao: tipoEdificacao,
+        p_cota_base: cotaBase,
+        p_cota_topo: cotaTopo,
       });
 
       if (rpcError) {
@@ -182,6 +210,13 @@ serve(async (req) => {
       } else {
         totalUpserted++;
       }
+    }
+
+    // Calculate footprint areas and centroids via PostGIS
+    if (totalUpserted > 0) {
+      console.log('[ingest-edificacoes] Calculating footprint areas via PostGIS...');
+      const { data: areasUpdated } = await supabase.rpc('calculate_footprint_areas');
+      console.log(`[ingest-edificacoes] Footprint areas calculated: ${areasUpdated}`);
     }
 
     // Update etl_log

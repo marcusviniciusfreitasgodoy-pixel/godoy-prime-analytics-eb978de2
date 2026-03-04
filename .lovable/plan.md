@@ -1,57 +1,42 @@
 
 
-## Plan: Corrigir 3 Edge Functions + Migration SQL
+## Inteligencia Territorial — Schema criado ✅
 
-### Resumo
+### Tabelas criadas/expandidas
 
-Reescrever 3 Edge Functions com URLs e campos corretos da API ArcGIS, e criar uma migration para adicionar colunas faltantes nas tabelas e novas RPCs.
+1. **condominios_mapeamento** — 15 colunas novas (geom, torres, IPTU, ITBI aggregates) + índice GIST
+2. **iptu_imoveis** — Registros brutos IPTU prefeitura + 4 índices + RLS (SELECT público)
+3. **edificacoes_geo** — Footprints edificações GeoCarioca + GIST + RLS
+4. **lotes_pal** — Lotes PAL + GIST + RLS
+5. **torres_condominios** — Torres vinculadas a condominios + edificacoes (FKs) + RLS
+6. **iptu_logradouro_resumo** — Resumo agregado por logradouro + RLS
+7. **etl_log** — Log de ingestões ETL (admin-only via has_role)
+8. **proprietarios_multiplos** — Fase 2: multi-proprietários (admin-only via has_role)
 
-### Migration SQL (1 arquivo)
+### Correções aplicadas
+- RLS de etl_log e proprietarios_multiplos usa `has_role(auth.uid(), 'admin'::app_role)` em vez de profiles.role
+- PostGIS habilitado via `CREATE EXTENSION IF NOT EXISTS postgis`
+- `spatial_ref_sys` sem RLS é esperado (tabela de sistema PostGIS)
 
-Adiciona colunas e RPCs necessarias:
+## Edge Functions ETL — Criadas ✅
 
-1. **`iptu_logradouro_resumo`**: adicionar `cod_logradouro text`
-2. **`lotes_pal`**: adicionar `objectid_origem integer UNIQUE`, `paa text`, `tipo_parcelamento text`, `situacao text`
-3. **`edificacoes_geo`**: adicionar `cod_lote text`, `tipo_edificacao text`, `cota_base numeric`, `cota_topo numeric`
-4. Criar RPC `upsert_iptu_logradouro_resumo` (SECURITY DEFINER) para upsert com ON CONFLICT (logradouro, bairro, tipologia)
-5. Atualizar RPC `upsert_lote_pal` para aceitar novos campos (`p_objectid_origem`, `p_paa`, `p_tipo_parcelamento`, `p_situacao`) e fazer ON CONFLICT por `objectid_origem`
-6. Atualizar RPC `upsert_edificacao_geo` para aceitar novos campos (`p_cod_lote`, `p_tipo_edificacao`, `p_cota_base`, `p_cota_topo`)
+### RPCs PostGIS (SECURITY DEFINER)
+- `upsert_iptu_imovel()` — Upsert com ST_MakePoint para pontos
+- `update_iptu_geom()` — Update geom de geocodificação Google
+- `upsert_lote_pal()` — Upsert com ST_GeomFromGeoJSON para polígonos
+- `upsert_edificacao_geo()` — Upsert com polígono + centroid
 
-### Edge Function 1: `ingest-iptu-prefeitura` (reescrita total)
+### Unique constraints adicionados
+- `iptu_imoveis.inscricao_municipal`
+- `lotes_pal.num_contribuinte`
+- `edificacoes_geo.objectid_origem`
 
-- Busca 3 layers (4, 5, 6) com paginacao
-- Campos reais: `cl`, `nome_completo`, `nome`, `tipologia`, `tot_imoveis`, `areaconst_res`
-- Filtro: `nome LIKE '%${bairro}%'`
-- `returnGeometry: false`
-- Upsert em `iptu_logradouro_resumo` via nova RPC
-- `etl_log.fonte = 'iptu_prefeitura_agregado'`
-- Retorna contadores por layer
+### Edge Functions
+1. **ingest-iptu-prefeitura** — ArcGIS IPTU/MapServer/5 → iptu_imoveis (paginação 1000, delay 300ms)
+2. **geocodificar-iptu-google** — Google Geocoding → update iptu_imoveis sem coordenadas (delay 50ms)
+3. **ingest-lotes-pal** — ArcGIS Cartografia/Lotes/MapServer/0 → lotes_pal (polígonos)
+4. **ingest-edificacoes-geo** — ArcGIS Cartografia/Edificacoes/MapServer/0 → edificacoes_geo (bbox Barra)
 
-### Edge Function 2: `ingest-lotes-pal` (reescrita total)
-
-- URL: `CadParcel/GeoPAL/MapServer/1/query`
-- Body aceita `bbox` array (default Barra)
-- Spatial query com bounding box (sem filtro por bairro)
-- Campos: `objectid`, `num_projeto`, `paa`, `tipo_parcelamento`, `situacao`
-- Upsert por `objectid_origem` via RPC atualizada
-- Polygon geometry convertida via PostGIS
-
-### Edge Function 3: `ingest-edificacoes-geo` (reescrita total)
-
-- URL: `CadLog/Edificacoes_2019/MapServer/0/query`
-- Campos: `objectid`, `altura`, `cod_lote`, `tipo`, `base`, `topo`
-- `andares_estimados = GREATEST(1, ROUND(altura / 3))`
-- Centroid calculado no JS, geom salva via RPC
-- `etl_log.fonte = 'edificacoes_geo_2019'`
-
-### Arquivos
-
-| Arquivo | Acao |
-|---------|------|
-| `supabase/functions/ingest-iptu-prefeitura/index.ts` | Reescrever |
-| `supabase/functions/ingest-lotes-pal/index.ts` | Reescrever |
-| `supabase/functions/ingest-edificacoes-geo/index.ts` | Reescrever |
-| Nova migration SQL | Colunas + RPCs atualizadas |
-
-Nenhuma tabela sera criada ou dropada. Apenas ADD COLUMN IF NOT EXISTS e CREATE OR REPLACE FUNCTION.
-
+### Próximos passos
+- Criar páginas e componentes do módulo de Inteligência Territorial
+- Criar função SQL para agregar dados em iptu_logradouro_resumo

@@ -323,34 +323,46 @@ export type Database = {
           altura_max: number | null
           andares_estimados: number | null
           area_footprint: number | null
+          cod_lote: string | null
+          cota_base: number | null
+          cota_topo: number | null
           geom: unknown
           id: string
           importado_em: string | null
           lat: number | null
           lng: number | null
           objectid_origem: number | null
+          tipo_edificacao: string | null
         }
         Insert: {
           altura_max?: number | null
           andares_estimados?: number | null
           area_footprint?: number | null
+          cod_lote?: string | null
+          cota_base?: number | null
+          cota_topo?: number | null
           geom?: unknown
           id?: string
           importado_em?: string | null
           lat?: number | null
           lng?: number | null
           objectid_origem?: number | null
+          tipo_edificacao?: string | null
         }
         Update: {
           altura_max?: number | null
           andares_estimados?: number | null
           area_footprint?: number | null
+          cod_lote?: string | null
+          cota_base?: number | null
+          cota_topo?: number | null
           geom?: unknown
           id?: string
           importado_em?: string | null
           lat?: number | null
           lng?: number | null
           objectid_origem?: number | null
+          tipo_edificacao?: string | null
         }
         Relationships: []
       }
@@ -967,6 +979,7 @@ export type Database = {
         Row: {
           atualizado_em: string | null
           bairro: string
+          cod_logradouro: string | null
           desconto_venal_percentual: number | null
           geom: unknown
           id: string
@@ -982,6 +995,7 @@ export type Database = {
         Insert: {
           atualizado_em?: string | null
           bairro: string
+          cod_logradouro?: string | null
           desconto_venal_percentual?: number | null
           geom?: unknown
           id?: string
@@ -997,6 +1011,7 @@ export type Database = {
         Update: {
           atualizado_em?: string | null
           bairro?: string
+          cod_logradouro?: string | null
           desconto_venal_percentual?: number | null
           geom?: unknown
           id?: string
@@ -1263,6 +1278,10 @@ export type Database = {
           logradouro: string | null
           num_contribuinte: string | null
           numero: string | null
+          objectid_origem: number | null
+          paa: string | null
+          situacao: string | null
+          tipo_parcelamento: string | null
         }
         Insert: {
           area_lote?: number | null
@@ -1273,6 +1292,10 @@ export type Database = {
           logradouro?: string | null
           num_contribuinte?: string | null
           numero?: string | null
+          objectid_origem?: number | null
+          paa?: string | null
+          situacao?: string | null
+          tipo_parcelamento?: string | null
         }
         Update: {
           area_lote?: number | null
@@ -1283,6 +1306,10 @@ export type Database = {
           logradouro?: string | null
           num_contribuinte?: string | null
           numero?: string | null
+          objectid_origem?: number | null
+          paa?: string | null
+          situacao?: string | null
+          tipo_parcelamento?: string | null
         }
         Relationships: []
       }
@@ -2904,6 +2931,8 @@ export type Database = {
             }
             Returns: string
           }
+      calculate_footprint_areas: { Args: never; Returns: number }
+      calculate_lote_areas: { Args: never; Returns: number }
       check_lead_exists: {
         Args: { lead_email: string }
         Returns: {
@@ -3784,18 +3813,35 @@ export type Database = {
         }
         Returns: string
       }
-      upsert_edificacao_geo: {
-        Args: {
-          p_altura_max: number
-          p_andares: number
-          p_area: number
-          p_geojson: string
-          p_lat: number
-          p_lng: number
-          p_objectid: number
-        }
-        Returns: undefined
-      }
+      upsert_edificacao_geo:
+        | {
+            Args: {
+              p_altura_max?: number
+              p_andares?: number
+              p_area?: number
+              p_cod_lote?: string
+              p_cota_base?: number
+              p_cota_topo?: number
+              p_geojson?: string
+              p_lat?: number
+              p_lng?: number
+              p_objectid: number
+              p_tipo_edificacao?: string
+            }
+            Returns: undefined
+          }
+        | {
+            Args: {
+              p_altura_max: number
+              p_andares: number
+              p_area: number
+              p_geojson: string
+              p_lat: number
+              p_lng: number
+              p_objectid: number
+            }
+            Returns: undefined
+          }
       upsert_iptu_imovel: {
         Args: {
           p_area_construida: number
@@ -3814,17 +3860,44 @@ export type Database = {
         }
         Returns: undefined
       }
-      upsert_lote_pal: {
+      upsert_iptu_logradouro_resumo: {
         Args: {
-          p_area_lote: number
           p_bairro: string
-          p_geojson: string
+          p_cod_logradouro?: string
           p_logradouro: string
-          p_num_contribuinte: string
-          p_numero: string
+          p_tipologia: string
+          p_total_area_construida: number
+          p_total_imoveis: number
         }
         Returns: undefined
       }
+      upsert_lote_pal:
+        | {
+            Args: {
+              p_area_lote: number
+              p_bairro: string
+              p_geojson: string
+              p_logradouro: string
+              p_num_contribuinte: string
+              p_numero: string
+            }
+            Returns: undefined
+          }
+        | {
+            Args: {
+              p_area_lote?: number
+              p_bairro?: string
+              p_geojson?: string
+              p_logradouro?: string
+              p_num_contribuinte?: string
+              p_numero?: string
+              p_objectid_origem: number
+              p_paa?: string
+              p_situacao?: string
+              p_tipo_parcelamento?: string
+            }
+            Returns: undefined
+          }
     }
     Enums: {
       app_role: "admin" | "corretor" | "gerente" | "superadmin"
