@@ -37,19 +37,6 @@ function geometryToWKT(geometry: { rings: number[][][] }): string {
   return `MULTIPOLYGON((${parts}))`;
 }
 
-function calcCentroidLat(rings: number[][][]): number {
-  const pts = rings[0];
-  let sum = 0;
-  for (const p of pts) sum += p[1];
-  return sum / pts.length;
-}
-
-function calcCentroidLng(rings: number[][][]): number {
-  const pts = rings[0];
-  let sum = 0;
-  for (const p of pts) sum += p[0];
-  return sum / pts.length;
-}
 
 function buildUrl(bbox: number[], offset: number, count: number): string {
   const bboxJson = JSON.stringify({
