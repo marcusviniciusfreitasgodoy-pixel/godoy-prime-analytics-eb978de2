@@ -37,19 +37,6 @@ function geometryToWKT(geometry: { rings: number[][][] }): string {
   return `MULTIPOLYGON((${parts}))`;
 }
 
-function calcCentroidLat(rings: number[][][]): number {
-  const pts = rings[0];
-  let sum = 0;
-  for (const p of pts) sum += p[1];
-  return sum / pts.length;
-}
-
-function calcCentroidLng(rings: number[][][]): number {
-  const pts = rings[0];
-  let sum = 0;
-  for (const p of pts) sum += p[0];
-  return sum / pts.length;
-}
 
 function buildUrl(bbox: number[], offset: number, count: number): string {
   const bboxJson = JSON.stringify({
@@ -183,14 +170,10 @@ serve(async (req) => {
         if (!objectid) return null;
 
         let geomWkt: string | null = null;
-        let lat: number | null = null;
-        let lng: number | null = null;
 
         if (f.geometry?.rings) {
           try {
             geomWkt = `SRID=4326;${geometryToWKT(f.geometry)}`;
-            lat = calcCentroidLat(f.geometry.rings);
-            lng = calcCentroidLng(f.geometry.rings);
           } catch {
             // skip geometry
           }
@@ -209,8 +192,8 @@ serve(async (req) => {
           cota_topo: typeof a['topo'] === 'number' ? a['topo'] : null,
           andares_estimados: altura ? Math.max(1, Math.round(altura / 3.0)) : null,
           geom: geomWkt,
-          lat,
-          lng,
+          lat: null,
+          lng: null,
         };
       }).filter(Boolean);
 
@@ -229,11 +212,12 @@ serve(async (req) => {
         }
       }
 
-      // Calculate pending areas
+      // Calculate pending areas and centroids via PostGIS
       try {
         await supabase.rpc('calcular_area_edificacoes_pendentes');
+        await supabase.rpc('calcular_centroids_edificacoes_pendentes');
       } catch (e) {
-        console.error('Area calc error:', e);
+        console.error('PostGIS calc error:', e);
       }
 
       hasMore = data.exceededTransferLimit === true;

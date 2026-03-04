@@ -1,78 +1,42 @@
 
 
-## Plan: Fix geometry type mismatch + update centroid calculation
+## Inteligencia Territorial — Schema criado ✅
 
-### Problem confirmed
-- `lotes_pal.geom` = `POLYGON` (rejects MultiPolygon)
-- `edificacoes_geo.geom` = `POLYGON` (rejects MultiPolygon)
-- `condominios_mapeamento.geom` = `POINT` (no change needed — it's a centroid)
-- `condominios_mapeamento.geom_lote` = `POLYGON` (needs fix)
-- `torres_condominios.geom` = `POINT` (no change needed — it's a centroid)
-- GIST indexes already exist on all three polygon tables
+### Tabelas criadas/expandidas
 
-### Migration SQL (single migration)
+1. **condominios_mapeamento** — 15 colunas novas (geom, torres, IPTU, ITBI aggregates) + índice GIST
+2. **iptu_imoveis** — Registros brutos IPTU prefeitura + 4 índices + RLS (SELECT público)
+3. **edificacoes_geo** — Footprints edificações GeoCarioca + GIST + RLS
+4. **lotes_pal** — Lotes PAL + GIST + RLS
+5. **torres_condominios** — Torres vinculadas a condominios + edificacoes (FKs) + RLS
+6. **iptu_logradouro_resumo** — Resumo agregado por logradouro + RLS
+7. **etl_log** — Log de ingestões ETL (admin-only via has_role)
+8. **proprietarios_multiplos** — Fase 2: multi-proprietários (admin-only via has_role)
 
-**Part 1 — Widen geometry types to accept any geometry:**
-```sql
-ALTER TABLE lotes_pal
-  ALTER COLUMN geom TYPE geometry(Geometry, 4326)
-  USING geom::geometry(Geometry, 4326);
+### Correções aplicadas
+- RLS de etl_log e proprietarios_multiplos usa `has_role(auth.uid(), 'admin'::app_role)` em vez de profiles.role
+- PostGIS habilitado via `CREATE EXTENSION IF NOT EXISTS postgis`
+- `spatial_ref_sys` sem RLS é esperado (tabela de sistema PostGIS)
 
-ALTER TABLE edificacoes_geo
-  ALTER COLUMN geom TYPE geometry(Geometry, 4326)
-  USING geom::geometry(Geometry, 4326);
+## Edge Functions ETL — Criadas ✅
 
-ALTER TABLE condominios_mapeamento
-  ALTER COLUMN geom_lote TYPE geometry(Geometry, 4326)
-  USING geom_lote::geometry(Geometry, 4326);
-```
+### RPCs PostGIS (SECURITY DEFINER)
+- `upsert_iptu_imovel()` — Upsert com ST_MakePoint para pontos
+- `update_iptu_geom()` — Update geom de geocodificação Google
+- `upsert_lote_pal()` — Upsert com ST_GeomFromGeoJSON para polígonos
+- `upsert_edificacao_geo()` — Upsert com polígono + centroid
 
-Note: `torres_condominios.geom` and `condominios_mapeamento.geom` are POINT columns — they don't receive polygon data, so no change needed.
+### Unique constraints adicionados
+- `iptu_imoveis.inscricao_municipal`
+- `lotes_pal.num_contribuinte`
+- `edificacoes_geo.objectid_origem`
 
-**Part 2 — Recreate GIST indexes:**
-```sql
-DROP INDEX IF EXISTS idx_lotes_geom;
-CREATE INDEX idx_lotes_geom ON lotes_pal USING GIST(geom);
+### Edge Functions
+1. **ingest-iptu-prefeitura** — ArcGIS IPTU/MapServer/5 → iptu_imoveis (paginação 1000, delay 300ms)
+2. **geocodificar-iptu-google** — Google Geocoding → update iptu_imoveis sem coordenadas (delay 50ms)
+3. **ingest-lotes-pal** — ArcGIS Cartografia/Lotes/MapServer/0 → lotes_pal (polígonos)
+4. **ingest-edificacoes-geo** — ArcGIS Cartografia/Edificacoes/MapServer/0 → edificacoes_geo (bbox Barra)
 
-DROP INDEX IF EXISTS idx_edif_geom;
-CREATE INDEX idx_edif_geom ON edificacoes_geo USING GIST(geom);
-
-DROP INDEX IF EXISTS idx_cond_geom;
-CREATE INDEX idx_cond_geom ON condominios_mapeamento USING GIST(geom);
-```
-
-**Part 3 — Create RPC for PostGIS centroid calculation:**
-```sql
-CREATE OR REPLACE FUNCTION calcular_centroids_edificacoes_pendentes()
-RETURNS integer
-LANGUAGE plpgsql AS $$
-DECLARE affected integer;
-BEGIN
-  UPDATE edificacoes_geo
-  SET lat = ST_Y(ST_Centroid(geom)),
-      lng = ST_X(ST_Centroid(geom))
-  WHERE (lat IS NULL OR lng IS NULL)
-    AND geom IS NOT NULL;
-  GET DIAGNOSTICS affected = ROW_COUNT;
-  RETURN affected;
-END;
-$$;
-```
-
-### Edge Function changes
-
-**`ingest-edificacoes-geo/index.ts`:**
-- Remove `calcCentroidLat` and `calcCentroidLng` functions
-- Remove inline lat/lng calculation from the transform step (set lat/lng to null)
-- After `calcular_area_edificacoes_pendentes` RPC call, also call `calcular_centroids_edificacoes_pendentes`
-
-**`ingest-lotes-pal/index.ts`:**
-- No changes needed (doesn't calculate centroids)
-
-### Files to modify
-
-| File | Change |
-|------|--------|
-| New migration SQL | ALTER column types, recreate indexes, create centroid RPC |
-| `supabase/functions/ingest-edificacoes-geo/index.ts` | Remove JS centroid calc, use PostGIS RPC instead |
-
+### Próximos passos
+- Criar páginas e componentes do módulo de Inteligência Territorial
+- Criar função SQL para agregar dados em iptu_logradouro_resumo
