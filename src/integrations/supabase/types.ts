@@ -3148,6 +3148,7 @@ export type Database = {
         Args: { lead_email: string }
         Returns: undefined
       }
+      limpar_torres_algoritmo: { Args: never; Returns: undefined }
       longtransactionsenabled: { Args: never; Returns: boolean }
       populate_geometry_columns:
         | { Args: { tbl_oid: unknown; use_typmod?: boolean }; Returns: number }
