@@ -230,6 +230,11 @@ export function TerritorialFilters({
       {/* Results list — virtualized */}
       <div className="flex-1 min-h-0 flex flex-col">
         <p className="text-xs text-muted-foreground mb-2">{filtered.length} condomínios</p>
+        {searchTerm.trim().length >= 2 && filtered.length === 0 && (
+          <p className="text-xs text-muted-foreground mb-2">
+            Nenhum condomínio mapeado encontrado para este logradouro.
+          </p>
+        )}
         <div className="flex-1 min-h-0" ref={listContainerRef}>
           <VirtualList
             style={{ height: listHeight }}
