@@ -5,6 +5,11 @@ import { Label } from "@/components/ui/label";
 import { MapPin, Layers } from "lucide-react";
 import type { TerritorialCondominio, MapBounds } from "@/hooks/useTerritorialData";
 
+interface FocusCoord {
+  lat: number;
+  lng: number;
+}
+
 interface TerritorialMapProps {
   condominios: TerritorialCondominio[];
   selectedId: string | null;
@@ -12,6 +17,7 @@ interface TerritorialMapProps {
   onBoundsChange: (bounds: MapBounds) => void;
   showHeatmap: boolean;
   onToggleHeatmap: (v: boolean) => void;
+  focusCoord: FocusCoord | null;
 }
 
 declare global {
@@ -74,6 +80,7 @@ export function TerritorialMap({
   onBoundsChange,
   showHeatmap,
   onToggleHeatmap,
+  focusCoord,
 }: TerritorialMapProps) {
   const mapElementRef = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<any>(null);
@@ -127,6 +134,13 @@ export function TerritorialMap({
     };
   }, [onBoundsChange]);
 
+  // P1.3: flyTo when focusCoord changes
+  useEffect(() => {
+    if (focusCoord && mapRef.current) {
+      mapRef.current.flyTo([focusCoord.lat, focusCoord.lng], 16, { duration: 1.5 });
+    }
+  }, [focusCoord]);
+
   useEffect(() => {
     const map = mapRef.current;
     const layer = markersLayerRef.current;
@@ -135,12 +149,36 @@ export function TerritorialMap({
 
     layer.clearLayers();
 
-    condominios.forEach((c) => {
-      if (c.latitude == null || c.longitude == null) return;
+    // P1.2: Simple grid-based clustering when zoomed out
+    const currentZoom = map.getZoom();
+    const shouldCluster = currentZoom < 14;
+
+    type ClusterItem = TerritorialCondominio & { _clusterCount?: number };
+    let markersToRender: ClusterItem[];
+
+    if (shouldCluster) {
+      const grid: Record<string, TerritorialCondominio[]> = {};
+      condominios.forEach(c => {
+        if (c.latitude == null || c.longitude == null) return;
+        const key = `${Math.round(c.latitude * 100)}_${Math.round(c.longitude * 100)}`;
+        if (!grid[key]) grid[key] = [];
+        grid[key].push(c);
+      });
+      markersToRender = Object.values(grid).map(group => ({
+        ...group[0],
+        _clusterCount: group.length,
+      }));
+    } else {
+      markersToRender = condominios.filter(c => c.latitude != null && c.longitude != null);
+    }
+
+    markersToRender.forEach((c) => {
 
       const hasPrice = c.preco_medio_m2 != null && c.preco_medio_m2 > 0;
       const color = getMarkerColor(c.unidades_estimadas);
       const isSelected = c.id === selectedId;
+      const clusterCount = (c as ClusterItem)._clusterCount ?? 1;
+      const isCluster = clusterCount > 1;
 
       const marker = L.circleMarker([c.latitude, c.longitude],
         showHeatmap
@@ -164,13 +202,27 @@ export function TerritorialMap({
       marker.on("click", () => onSelect(c));
 
       if (!showHeatmap) {
-        marker.bindPopup(`
-          <div style="min-width:200px;font-size:12px;line-height:1.4;">
-            <div style="font-weight:600;margin-bottom:4px;">${c.nome_condominio || c.logradouro_padrao}</div>
-            <div>Torres: ${c.numero_torres ?? "—"} | Unidades: ${c.unidades_estimadas ?? "—"}</div>
-            <div>Preço m²: ${c.preco_medio_m2 ? `R$ ${c.preco_medio_m2.toLocaleString("pt-BR")}` : "Sem dados ITBI"}</div>
-          </div>
-        `);
+        if (isCluster) {
+          marker.bindPopup(`<div style="font-size:13px;font-weight:600;text-align:center;">${clusterCount} condomínios<br/><span style="font-weight:400;font-size:11px;">Dê zoom para ver detalhes</span></div>`);
+          // Add cluster count label
+          const icon = L.divIcon({
+            className: '',
+            html: `<div style="background:hsl(var(--accent));color:white;border-radius:50%;width:28px;height:28px;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;border:2px solid white;box-shadow:0 1px 4px rgba(0,0,0,.3);">${clusterCount}</div>`,
+            iconSize: [28, 28],
+            iconAnchor: [14, 14],
+          });
+          L.marker([c.latitude, c.longitude], { icon }).addTo(layer).on("click", () => {
+            map.flyTo([c.latitude, c.longitude], currentZoom + 2, { duration: 0.8 });
+          });
+        } else {
+          marker.bindPopup(`
+            <div style="min-width:200px;font-size:12px;line-height:1.4;">
+              <div style="font-weight:600;margin-bottom:4px;">${c.nome_condominio || c.logradouro_padrao}</div>
+              <div>Torres: ${c.numero_torres ?? "—"} | Unidades: ${c.unidades_estimadas ?? "—"}</div>
+              <div>Preço m²: ${c.preco_medio_m2 ? `R$ ${c.preco_medio_m2.toLocaleString("pt-BR")}` : "Sem dados ITBI"}</div>
+            </div>
+          `);
+        }
       }
 
       marker.addTo(layer);

@@ -6,10 +6,57 @@ import { Label } from "@/components/ui/label";
 import { Slider } from "@/components/ui/slider";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import { Checkbox } from "@/components/ui/checkbox";
+import { List as VirtualList, type RowComponentProps } from "react-window";
 import { useLogradouroSuggestions, type TerritorialCondominio, type TerritorialKPIs } from "@/hooks/useTerritorialData";
 import { cn } from "@/lib/utils";
+
+interface CondoRowProps {
+  filtered: TerritorialCondominio[];
+  selectedId: string | null;
+  onSelect: (condo: TerritorialCondominio) => void;
+}
+
+function CondoRow({ index, style, filtered, selectedId, onSelect }: { index: number; style: React.CSSProperties } & CondoRowProps) {
+  const c = filtered[index];
+  if (!c) return null;
+  const conf = c.confianca_identificacao ?? 0;
+  const confColor = conf >= 0.8 ? "bg-green-500" : conf >= 0.5 ? "bg-yellow-500" : "bg-muted-foreground/30";
+
+  return (
+    <div style={style} className="pr-2 pb-1.5">
+      <button
+        onClick={() => onSelect(c)}
+        className={cn(
+          "w-full text-left p-2.5 rounded-md border transition-colors",
+          selectedId === c.id
+            ? "border-accent bg-accent/10"
+            : "border-border hover:border-accent/50 hover:bg-muted/50"
+        )}
+      >
+        <p className="text-sm font-medium text-foreground truncate">
+          {c.nome_condominio || c.logradouro_padrao}
+        </p>
+        <div className="flex items-center gap-2 mt-1">
+          {c.numero_torres ? (
+            <span className="text-[10px] text-muted-foreground">{c.numero_torres} torres</span>
+          ) : null}
+          {c.unidades_estimadas ? (
+            <span className="text-[10px] text-muted-foreground">{c.unidades_estimadas} un.</span>
+          ) : null}
+          <span className={cn("h-1.5 w-1.5 rounded-full ml-auto", confColor)} />
+        </div>
+        <p className="text-xs mt-0.5">
+          {c.preco_medio_m2 ? (
+            <span className="text-accent font-semibold">R$ {c.preco_medio_m2.toLocaleString("pt-BR")}/m²</span>
+          ) : (
+            <span className="text-muted-foreground">Sem histórico</span>
+          )}
+        </p>
+      </button>
+    </div>
+  );
+}
 
 interface TerritorialFiltersProps {
   kpis: TerritorialKPIs | null;
@@ -39,6 +86,17 @@ export function TerritorialFilters({
 
   const { data: suggestions } = useLogradouroSuggestions(searchTerm);
 
+  // P1.4: measure list container height for virtualization
+  const listContainerRef = useRef<HTMLDivElement>(null);
+  const [listHeight, setListHeight] = useState(300);
+  useEffect(() => {
+    const el = listContainerRef.current;
+    if (!el) return;
+    const ro = new ResizeObserver(([entry]) => setListHeight(entry.contentRect.height));
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
+
   const filtered = useMemo(() => {
     return condominios.filter((c) => {
       if (searchTerm && !c.logradouro_padrao?.toLowerCase().includes(searchTerm.toLowerCase()) &&
@@ -46,9 +104,14 @@ export function TerritorialFilters({
       if (somenteComItbi && (!c.preco_medio_m2 || c.preco_medio_m2 <= 0)) return false;
       const units = c.unidades_estimadas ?? 0;
       if (units < unidadesRange[0] || (unidadesRange[1] < 500 && units > unidadesRange[1])) return false;
+      // P1.1: Apply fonte filter
+      const activeFontes = Object.entries(fontes).filter(([, v]) => v).map(([k]) => k);
+      if (activeFontes.length > 0 && activeFontes.length < Object.keys(fontes).length) {
+        if (c.fonte_identificacao && !activeFontes.includes(c.fonte_identificacao)) return false;
+      }
       return true;
     });
-  }, [condominios, searchTerm, somenteComItbi, unidadesRange]);
+  }, [condominios, searchTerm, somenteComItbi, unidadesRange, fontes]);
 
   useEffect(() => {
     onFilteredChange(filtered);
@@ -122,50 +185,19 @@ export function TerritorialFilters({
         </div>
       </div>
 
-      {/* Results list */}
-      <div className="flex-1 min-h-0">
+      {/* Results list — virtualized */}
+      <div className="flex-1 min-h-0 flex flex-col">
         <p className="text-xs text-muted-foreground mb-2">{filtered.length} condomínios</p>
-        <ScrollArea className="h-[calc(100%-1.5rem)]">
-          <div className="space-y-1.5 pr-2">
-            {filtered.map((c) => {
-              const conf = c.confianca_identificacao ?? 0;
-              const confColor = conf >= 0.8 ? "bg-green-500" : conf >= 0.5 ? "bg-yellow-500" : "bg-muted-foreground/30";
-
-              return (
-                <button
-                  key={c.id}
-                  onClick={() => onSelect(c)}
-                  className={cn(
-                    "w-full text-left p-2.5 rounded-md border transition-colors",
-                    selectedId === c.id
-                      ? "border-accent bg-accent/10"
-                      : "border-border hover:border-accent/50 hover:bg-muted/50"
-                  )}
-                >
-                  <p className="text-sm font-medium text-foreground truncate">
-                    {c.nome_condominio || c.logradouro_padrao}
-                  </p>
-                  <div className="flex items-center gap-2 mt-1">
-                    {c.numero_torres && (
-                      <span className="text-[10px] text-muted-foreground">{c.numero_torres} torres</span>
-                    )}
-                    {c.unidades_estimadas && (
-                      <span className="text-[10px] text-muted-foreground">{c.unidades_estimadas} un.</span>
-                    )}
-                    <span className={cn("h-1.5 w-1.5 rounded-full ml-auto", confColor)} />
-                  </div>
-                  <p className="text-xs mt-0.5">
-                    {c.preco_medio_m2 ? (
-                      <span className="text-accent font-semibold">R$ {c.preco_medio_m2.toLocaleString("pt-BR")}/m²</span>
-                    ) : (
-                      <span className="text-muted-foreground">Sem histórico</span>
-                    )}
-                  </p>
-                </button>
-              );
-            })}
-          </div>
-        </ScrollArea>
+        <div className="flex-1 min-h-0" ref={listContainerRef}>
+          <VirtualList
+            style={{ height: listHeight }}
+            rowCount={filtered.length}
+            rowHeight={82}
+            overscanCount={5}
+            rowComponent={CondoRow as any}
+            rowProps={{ filtered, selectedId, onSelect }}
+          />
+        </div>
       </div>
     </div>
   );
