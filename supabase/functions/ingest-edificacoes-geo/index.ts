@@ -212,14 +212,6 @@ serve(async (req) => {
         }
       }
 
-      // Calculate pending areas and centroids via PostGIS
-      try {
-        await supabase.rpc('calcular_area_edificacoes_pendentes');
-        await supabase.rpc('calcular_centroids_edificacoes_pendentes');
-      } catch (e) {
-        console.error('PostGIS calc error:', e);
-      }
-
       hasMore = data.exceededTransferLimit === true;
       offset += features.length;
 
