@@ -52,6 +52,7 @@ import AdminPanel from "./pages/AdminPanel";
 import PipelineCRM from "./pages/PipelineCRM";
 import CalibradorFeedbackCorretor from "./pages/CalibradorFeedbackCorretor";
 import ConfigurarFormularios from "./pages/ConfigurarFormularios";
+import InteligenciaTerritorial from "./pages/InteligenciaTerritorial";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -102,6 +103,7 @@ const App = () => (
                               <Routes>
                               <Route path="/" element={<Dashboard />} />
                               <Route path="/microbairros" element={<Microbairros />} />
+                              <Route path="/inteligencia-territorial" element={<InteligenciaTerritorial />} />
                               <Route path="/pesquisas-mercado" element={<PesquisasMercado />} />
                               <Route path="/avaliacao-imobiliaria" element={<AvaliacaoImobiliaria />} />
                               <Route path="/historico-avaliacoes" element={<HistoricoAvaliacoes />} />

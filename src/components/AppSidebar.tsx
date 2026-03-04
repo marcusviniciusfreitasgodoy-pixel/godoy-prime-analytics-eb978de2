@@ -1,4 +1,4 @@
-import { Home, ClipboardCheck, ClipboardList, FileText, MapPin, Users, UserCog, Search, Calculator, Settings, History, Brain, CalendarCheck, Cog, BookOpen, Rocket, Shield, Kanban, MessageSquare, Presentation } from "lucide-react";
+import { Home, ClipboardCheck, ClipboardList, FileText, MapPin, Users, UserCog, Search, Calculator, Settings, History, Brain, CalendarCheck, Cog, BookOpen, Rocket, Shield, Kanban, MessageSquare, Presentation, Map } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import {
   Sidebar,
@@ -21,6 +21,7 @@ const baseItems = [
   { title: "Onboarding", url: "/onboarding", icon: Rocket, tourId: "nav-onboarding-page" },
   { title: "Manual / Tour", url: "/manual", icon: BookOpen, tourId: "nav-onboarding" },
   { title: "Microregiões", url: "/microbairros", icon: MapPin, tourId: "nav-microregioes" },
+  { title: "Inteligência Territorial", url: "/inteligencia-territorial", icon: Map, tourId: "nav-territorial" },
   { title: "Pesquisas de Mercado", url: "/pesquisas-mercado", icon: Search, tourId: "nav-pesquisas" },
   { title: "Avaliação Imobiliária", url: "/avaliacao-imobiliaria", icon: Calculator, tourId: "nav-avaliacao" },
   { title: "Histórico Avaliações", url: "/historico-avaliacoes", icon: History, tourId: "nav-historico" },
