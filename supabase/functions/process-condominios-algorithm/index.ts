@@ -85,27 +85,31 @@ Deno.serve(async (req) => {
     }
     console.log("[Step 1] Result:", JSON.stringify(r1));
 
-    // Step 2: Enrich with ITBI data
-    console.log("[Step 2] Running enriquecer_condominios_com_itbi...");
-    const { data: r2, error: e2 } = await supabase.rpc("enriquecer_condominios_com_itbi");
-    if (e2) {
-      console.error("Step 2 error:", e2);
-      if (logId) {
-        await supabase
-          .from("etl_log")
-          .update({
-            status: "error",
-            erro_mensagem: `Step 2: ${e2.message}`,
-            finalizado_em: new Date().toISOString(),
-            detalhes: { step1: r1 },
-          })
-          .eq("id", logId);
-      }
-      return new Response(
-        JSON.stringify({ success: false, step: 2, error: e2.message, step1: r1 }),
-        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+    // Step 2: Enrich with ITBI data (in batches to avoid timeout)
+    console.log("[Step 2] Running enriquecer_condominios_com_itbi in batches...");
+    let totalAtualizados = 0;
+    let step2Errors = 0;
+    const batchSize = 100;
+    const totalLotes = 20; // ~1567 condominios / 100 = 16, use 20 for safety
+
+    for (let lote = 0; lote < totalLotes; lote++) {
+      const { data: loteResult, error: loteError } = await supabase.rpc(
+        "enriquecer_condominios_com_itbi",
+        { p_offset: lote * batchSize, p_limite: batchSize }
       );
+
+      if (loteError) {
+        console.error(`[Step 2] Batch ${lote} error:`, loteError.message);
+        step2Errors++;
+        continue;
+      }
+
+      const batchCount = loteResult?.condominios_com_itbi || 0;
+      totalAtualizados += batchCount;
+      console.log(`[Step 2] Batch ${lote}: ${batchCount} updated`);
     }
+
+    const r2 = { condominios_com_itbi: totalAtualizados, batches_with_errors: step2Errors };
     console.log("[Step 2] Result:", JSON.stringify(r2));
 
     // Step 3: Update logradouro summaries

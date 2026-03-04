@@ -3016,10 +3016,9 @@ export type Database = {
         | { Args: { schema_name: string; table_name: string }; Returns: string }
         | { Args: { table_name: string }; Returns: string }
       enablelongtransactions: { Args: never; Returns: string }
-      enriquecer_condominios_com_itbi: {
-        Args: { p_limite?: number }
-        Returns: Json
-      }
+      enriquecer_condominios_com_itbi:
+        | { Args: { p_limite?: number }; Returns: Json }
+        | { Args: { p_limite?: number; p_offset?: number }; Returns: Json }
       equals: { Args: { geom1: unknown; geom2: unknown }; Returns: boolean }
       generate_visit_code: { Args: never; Returns: string }
       geocodificacao_status: { Args: { p_bairro?: string }; Returns: Json }
@@ -3124,6 +3123,7 @@ export type Database = {
       get_condo_itbi_history: {
         Args: { p_lat: number; p_lng: number; p_raio?: number }
         Returns: {
+          agrupamento: string
           periodo: string
           preco_medio_m2: number
           transacoes: number
