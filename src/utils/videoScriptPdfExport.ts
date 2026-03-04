@@ -137,7 +137,7 @@ export async function exportVideoScriptPdf() {
     '• Lista de mais de 55 imagens necessárias',
     '• Perguntas Frequentes com mais de 50 perguntas em 12 categorias',
     '',
-    'Duração estimada do vídeo: 18-20 minutos',
+    'Duração estimada do vídeo: 20-22 minutos',
     'Formato recomendado: 1920x1080 (Alta Definição)',
     '',
     'Módulos apresentados:',
@@ -151,6 +151,7 @@ export async function exportVideoScriptPdf() {
     '  - Agendamento de Visitas',
     '  - Documentação e Segurança Jurídica',
     '  - Sofia - Assistente de Inteligência Artificial',
+    '  - Inteligência Territorial',
     '  - Recursos Administrativos',
     '  - Históricos e Configurações',
     '  - Modo Demonstração e Apresentação',
@@ -210,7 +211,7 @@ export async function exportVideoScriptPdf() {
   // MÓDULO 2
   addTitle('MÓDULO 2: PESQUISAS DE MERCADO (3:30 - 5:30)', pageNum);
   addSubtitle('Aba Localização', pageNum);
-  addNarration('Na aba Localização, você pesquisa transações por endereço específico. Digite o nome da rua com sugestões automáticas, selecione tipo de imóvel, período (6 a 24 meses), faixa de área e veja os resultados com todas as transações oficiais.', pageNum);
+  addNarration('Na aba Localização, você pesquisa transações por endereço específico. Digite o nome da rua com sugestões automáticas, selecione tipo de imóvel, período (6 a 24 meses), faixa de área e veja os resultados com todas as transações oficiais. Agora, ao buscar por logradouro, o sistema também exibe dados IPTU enriquecidos: total de unidades, valor venal médio vs preço real pago e variação geocodificada.', pageNum);
   addScreenshot(12, 'Aba Localização com filtros preenchidos', pageNum);
   addScreenshot(13, 'Resultados de busca com estatísticas', pageNum);
 
@@ -221,7 +222,7 @@ export async function exportVideoScriptPdf() {
 
   // MÓDULO 3
   addTitle('MÓDULO 3: AVALIAÇÃO IMOBILIÁRIA (5:30 - 8:30)', pageNum);
-  addNarration('O Motor de Avaliação Godoy Prime é um sistema completo de precificação em 6 etapas: identificação do imóvel e proprietário, localização com busca automática de dados oficiais, dados básicos como área e cômodos, questionário com mais de 30 características em 5 categorias, resultados em três cenários (pessimista, provável e otimista), e recomendação automática com próximos passos.', pageNum);
+  addNarration('O Motor de Avaliação Godoy Prime é um sistema completo de precificação em 6 etapas: identificação do imóvel e proprietário, localização com busca automática de dados oficiais e enriquecimento IPTU (total de imóveis, preço médio real, comparativo venal vs real), dados básicos como área e cômodos, questionário com mais de 30 características em 5 categorias, resultados em três cenários (pessimista, provável e otimista), e recomendação automática com próximos passos.', pageNum);
   addScreenshot(16, 'Etapa 0 - Identificação do imóvel e proprietário', pageNum);
   addScreenshot(17, 'Etapa 1 - Localização com dados oficiais carregados', pageNum);
   addScreenshot(18, 'Etapa 2 - Dados básicos e escolha da base de preço', pageNum);
@@ -293,38 +294,50 @@ export async function exportVideoScriptPdf() {
   addScreenshot(47, 'Conversa aberta com pergunta e resposta', pageNum);
   addScreenshot(48, 'Análise de documento pela Sofia', pageNum);
 
-  // MÓDULO 10
-  addTitle('MÓDULO 10: RECURSOS ADMINISTRATIVOS (15:15 - 16:45)', pageNum);
-  addNarration('Administradores têm acesso a recursos avançados: Base de Conhecimento para gerenciar conteúdo da Inteligência Artificial, Calibrador de Avaliação para ajustar pesos das características, Calibrador de Vistoria para gerenciar categorias e itens do checklist de inspeção, Gestão de Contatos com filtros e exportação, Gerenciamento de Usuários com papéis e permissões, Rastreamento de Atividades para acompanhamento completo, e Sincronização de dados da Prefeitura.', pageNum);
-  addScreenshot(49, 'Página de Gestão de Contatos', pageNum);
-  addScreenshot(50, 'Gerenciamento de Usuários com atividades', pageNum);
-  addScreenshot(51, 'Calibrador de Avaliação', pageNum);
+  // MÓDULO 9.5 - INTELIGÊNCIA TERRITORIAL
+  addTitle('MÓDULO 9.5: INTELIGÊNCIA TERRITORIAL (14:30 - 16:00)', pageNum);
+  addNarration('O módulo de Inteligência Territorial é a grande novidade da plataforma. Um mapa interativo com 1.567 condomínios da Barra da Tijuca plotados com marcadores coloridos por faixa de unidades. Ative o heatmap para visualizar a densidade de unidades residenciais, ou a camada de lotes PAL para ver os polígonos de terrenos. Ao clicar em um condomínio, a ficha lateral exibe torres, unidades estimadas, área do lote, valor venal IPTU e o histórico trimestral de preços ITBI dos últimos 5 anos.', pageNum);
+  addScreenshot(49, 'Mapa de condomínios com marcadores coloridos e clustering', pageNum);
+  addScreenshot(50, 'Heatmap de densidade ativado', pageNum);
+  addScreenshot(51, 'Ficha lateral de condomínio com gráfico de evolução ITBI', pageNum);
 
-  addNarration('O Calibrador de Vistoria permite personalizar completamente os itens do checklist de inspeção. Você pode adicionar novas categorias, editar itens existentes, ajustar pesos e configurar separadamente para casas e apartamentos. Isso garante que a vistoria seja adaptada às necessidades específicas da sua imobiliária.', pageNum);
-  addScreenshot(52, 'Calibrador de Vistoria com lista de categorias e itens', pageNum);
+  addNarration('Na aba Ranking, ordene os condomínios por unidades, torres, preço por metro quadrado ou transações ITBI. Exporte a tabela completa em CSV. Na aba Por Logradouro, veja os top 20 logradouros por densidade de unidades e o comparativo entre preço real pago nas transações ITBI e o valor venal registrado no IPTU. O painel administrativo mostra o log de todas as ingestões de dados com cards de cobertura em tempo real.', pageNum);
+  addScreenshot(52, 'Ranking de condomínios com ordenação', pageNum);
+  addScreenshot(53, 'Análise por logradouro com comparativo venal vs real', pageNum);
+  addScreenshot(54, 'Painel admin com log de ETLs e cobertura', pageNum);
+
+  // MÓDULO 10
+  addTitle('MÓDULO 10: RECURSOS ADMINISTRATIVOS (16:00 - 17:15)', pageNum);
+  addNarration('Administradores têm acesso a recursos avançados: Base de Conhecimento para gerenciar conteúdo da Inteligência Artificial, Calibrador de Avaliação para ajustar pesos das características, Calibrador de Vistoria para gerenciar categorias e itens do checklist de inspeção, Gestão de Contatos com filtros e exportação, Gerenciamento de Usuários com papéis e permissões, Rastreamento de Atividades para acompanhamento completo, e Sincronização de dados da Prefeitura.', pageNum);
+  addScreenshot(55, 'Página de Gestão de Contatos', pageNum);
+  addScreenshot(56, 'Gerenciamento de Usuários com atividades', pageNum);
+  addScreenshot(57, 'Calibrador de Avaliação', pageNum);
+
+  addNarration('O Calibrador de Vistoria permite personalizar completamente os itens do checklist de inspeção. Você pode adicionar novas categorias, editar itens existentes, ajustar pesos e configurar separadamente para casas e apartamentos.', pageNum);
+  addScreenshot(58, 'Calibrador de Vistoria com lista de categorias e itens', pageNum);
 
   // MÓDULO 11
-  addTitle('MÓDULO 11: HISTÓRICOS E CONFIGURAÇÕES (16:15 - 17:00)', pageNum);
+  addTitle('MÓDULO 11: HISTÓRICOS E CONFIGURAÇÕES (17:15 - 18:00)', pageNum);
   addNarration('Todas as avaliações e vistorias ficam salvas no Histórico, onde você pode consultar, filtrar, editar e regenerar PDFs. Na página de Configurações, envie a logomarca da sua empresa para personalizar todos os relatórios gerados pela plataforma com sua identidade visual.', pageNum);
-  addScreenshot(52, 'Histórico de Avaliações com filtros', pageNum);
-  addScreenshot(53, 'Histórico de Vistorias com notas', pageNum);
-  addScreenshot(54, 'Página de Configurações com upload de logo', pageNum);
+  addScreenshot(59, 'Histórico de Avaliações com filtros', pageNum);
+  addScreenshot(60, 'Histórico de Vistorias com notas', pageNum);
+  addScreenshot(61, 'Página de Configurações com upload de logo', pageNum);
 
   // MÓDULO 12
-  addTitle('MÓDULO 12: EXPORTAÇÕES E MATERIAIS (17:00 - 17:30)', pageNum);
+  addTitle('MÓDULO 12: EXPORTAÇÕES E MATERIAIS (18:00 - 18:30)', pageNum);
   addNarration('Todas as análises podem ser exportadas. No Painel Principal, exporte indicadores em Excel ou faça Cópia de Segurança Completa. Avaliações, Vistorias, Fichas de Visita e Documentação geram PDFs profissionais. Na página de Treinamento, baixe o Manual Completo, o Guia Rápido e o Roteiro de Vídeo.', pageNum);
-  addScreenshot(55, 'Menu de exportação do Painel Principal', pageNum);
-  addScreenshot(56, 'PDFs gerados pela plataforma', pageNum);
+  addScreenshot(62, 'Menu de exportação do Painel Principal', pageNum);
+  addScreenshot(63, 'PDFs gerados pela plataforma', pageNum);
 
   // MÓDULO 13 - MODO DEMONSTRAÇÃO
-  addTitle('MÓDULO 13: MODO DEMONSTRAÇÃO E APRESENTAÇÃO (17:30 - 18:15)', pageNum);
-  addNarration('A plataforma conta com um Modo Demonstração completo para apresentações comerciais. A página de Apresentação em /apresentacao oferece uma visão profissional de todos os módulos e diferenciais, com botão para explorar a demonstração interativa. No modo demo em /demo, todos os módulos funcionam com dados fictícios realistas da Barra da Tijuca, sem necessidade de login. Dashboard, avaliações, vistorias, visitas, leads e feedbacks — tudo simulado para que potenciais clientes conheçam a plataforma em toda sua profundidade.', pageNum);
-  addScreenshot(57, 'Página de Apresentação com hero e módulos', pageNum);
-  addScreenshot(58, 'Modo Demo com banner e sidebar de navegação', pageNum);
+  addTitle('MÓDULO 13: MODO DEMONSTRAÇÃO E APRESENTAÇÃO (18:30 - 19:15)', pageNum);
+  addNarration('A plataforma conta com um Modo Demonstração completo para apresentações comerciais. A página de Apresentação em /apresentacao oferece uma visão profissional de todos os módulos e diferenciais, com botão para explorar a demonstração interativa. No modo demo em /demo, todos os módulos funcionam com dados fictícios realistas da Barra da Tijuca, sem necessidade de login.', pageNum);
+  addScreenshot(64, 'Página de Apresentação com hero e módulos', pageNum);
+  addScreenshot(65, 'Modo Demo com banner e sidebar de navegação', pageNum);
 
   // ENCERRAMENTO
-  addTitle('ENCERRAMENTO (18:15 - 19:00)', pageNum);
-  addNarration('O Godoy Prime Analytics é mais do que uma ferramenta - é seu parceiro estratégico no mercado imobiliário de alto padrão. Dados oficiais da Prefeitura, avaliações automatizadas com metodologia própria, estratégia de precificação inteligente, vistorias digitais completas, gestão de visitas com assinatura digital, documentação de segurança jurídica, assistente com inteligência artificial e treinamento interativo - tudo em uma única plataforma. Acesse agora e transforme dados em resultados. Godoy Prime Realty - Inteligência que valoriza seu negócio.', pageNum);
+  addTitle('ENCERRAMENTO (19:15 - 20:00)', pageNum);
+  addNarration('O Godoy Prime Analytics é mais do que uma ferramenta - é seu parceiro estratégico no mercado imobiliário de alto padrão. Dados oficiais da Prefeitura, mapeamento geoespacial com 1.567 condomínios, avaliações automatizadas com metodologia própria, estratégia de precificação inteligente, vistorias digitais completas, gestão de visitas com assinatura digital, documentação de segurança jurídica, assistente com inteligência artificial e treinamento interativo - tudo em uma única plataforma. Acesse agora e transforme dados em resultados. Godoy Prime Realty - Inteligência que valoriza seu negócio.', pageNum);
 
   addFooter(pageNum.value);
 
@@ -341,7 +354,7 @@ export async function exportVideoScriptPdf() {
   y += 5;
   doc.setFontSize(10);
   doc.setFont('helvetica', 'normal');
-  doc.text('Mais de 50 perguntas organizadas em 12 categorias', pageWidth / 2, y, { align: 'center' });
+  doc.text('Mais de 50 perguntas organizadas em 13 categorias', pageWidth / 2, y, { align: 'center' });
   y += 12;
 
   // CATEGORIA 1: GERAL

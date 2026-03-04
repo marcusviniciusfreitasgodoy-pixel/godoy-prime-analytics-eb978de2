@@ -4,7 +4,7 @@ import { drawGodoyHeader, drawSectionTitle, BRAND_COLORS, applyFootersToAllPages
 const manualContent = {
   introducao: {
     titulo: "Introdução",
-    texto: "O Godoy Prime Analytics é a plataforma de inteligência imobiliária mais completa do Rio de Janeiro. Feita para corretores, avaliadores e gestores do mercado de alto padrão, oferece análise de dados oficiais de transações da Prefeitura (ITBI), avaliações automatizadas com metodologia própria, vistorias digitais, gestão de visitas com assinatura digital, documentação jurídica, estratégias de precificação e assistência por inteligência artificial. Versão 2.0 - Janeiro 2026."
+    texto: "O Godoy Prime Analytics é a plataforma de inteligência imobiliária mais completa do Rio de Janeiro. Feita para corretores, avaliadores e gestores do mercado de alto padrão, oferece análise de dados oficiais de transações da Prefeitura (ITBI), mapeamento geoespacial com 1.567 condomínios e 52.761 edificações, avaliações automatizadas com metodologia própria, vistorias digitais, gestão de visitas com assinatura digital, documentação jurídica, estratégias de precificação e assistência por inteligência artificial. Versão 3.0 - Março 2026."
   },
   modulos: [
     {
@@ -50,10 +50,11 @@ const manualContent = {
     },
     {
       titulo: "4. Pesquisas de Mercado",
-      descricao: "Ferramenta avançada de busca de transações oficiais com diversos filtros.",
+      descricao: "Ferramenta avançada de busca de transações oficiais com diversos filtros. Agora exibe dados IPTU enriquecidos por logradouro.",
       funcionalidades: [
         "Aba Localização: Busca por rua, número ou condomínio específico",
         "Aba Transações: Encontre ruas por faixa de valor (R$ 100 mil a R$ 100 milhões)",
+        "Dados IPTU: Total de unidades por logradouro, valor venal vs preço real pago",
         "Filtros por Período: Intervalo de 6 a 24 meses desde 2020",
         "Filtros por Área: Metragem mínima e máxima em m²",
         "Filtros por Tipo: Apartamentos, Casas ou ambos",
@@ -61,14 +62,14 @@ const manualContent = {
         "Histórico de Pesquisas: Consultas salvas automaticamente",
         "Exportação: Arquivos CSV e Excel com dados completos"
       ],
-      beneficios: "Fundamenta avaliações com comparativos de mercado confiáveis e oficiais."
+      beneficios: "Fundamenta avaliações com comparativos de mercado confiáveis, oficiais e enriquecidos com dados IPTU."
     },
     {
       titulo: "5. Avaliação Imobiliária",
-      descricao: "Sistema de avaliação automatizado em 6 etapas com metodologia Godoy Prime e geração de parecer técnico.",
+      descricao: "Sistema de avaliação automatizado em 6 etapas com metodologia Godoy Prime. Agora sugere automaticamente dados IPTU do logradouro.",
       funcionalidades: [
         "Etapa 0 - Identificação: Dados do proprietário, objetivo (venda/captação) e tipo de imóvel",
-        "Etapa 1 - Localização: Endereço com sugestões automáticas e busca de dados oficiais",
+        "Etapa 1 - Localização: Endereço com sugestões automáticas e busca de dados oficiais + dados IPTU (total de imóveis, preço médio real, venal vs real)",
         "Etapa 2 - Dados Básicos: Área, quartos, suítes, banheiros, vagas e escolha da base de preço",
         "Etapa 3 - Questionário: Mais de 30 características em 5 categorias (Posição, Conservação, Conforto, Segurança, Funcionalidade)",
         "Etapa 4 - Resultados: Valores pessimista, provável e otimista com faixa e nível de confiança",
@@ -76,7 +77,7 @@ const manualContent = {
         "Análise Histórica: Gráfico de evolução e projeção futura baseada em tendências",
         "PDF Profissional: Laudo completo com metodologia, dados de mercado e gráficos"
       ],
-      beneficios: "Produz avaliações profissionais com metodologia consistente e dados oficiais."
+      beneficios: "Produz avaliações profissionais com metodologia consistente, dados oficiais e enriquecimento IPTU."
     },
     {
       titulo: "6. Histórico de Avaliações",
@@ -268,6 +269,22 @@ const manualContent = {
     ],
     beneficios: "Profissionaliza propostas de compra e reduz tempo entre interesse e fechamento."
   },
+  // Novo módulo: Inteligência Territorial
+  inteligenciaTerritorial: {
+    titulo: "20. Inteligência Territorial",
+    descricao: "Mapeamento geoespacial completo com 1.567 condomínios, fichas detalhadas, ranking e análise por logradouro.",
+    funcionalidades: [
+      "Mapa Interativo: 1.567 condomínios plotados com marcadores coloridos por faixa de unidades e clustering automático",
+      "Heatmap de Densidade: Camada de calor por concentração de unidades residenciais",
+      "Camada de Lotes PAL: 1.515 polígonos de terrenos visíveis com zoom ≥ 15",
+      "Ficha de Condomínio: Torres, unidades, área do lote, área construída, valor venal IPTU e histórico trimestral ITBI",
+      "Ranking de Condomínios: Tabela ordenável por unidades, torres, preço m², transações ITBI com exportação CSV",
+      "Análise por Logradouro: Top 20 logradouros com comparativo preço real ITBI vs valor venal IPTU",
+      "Painel Administrativo: Log de ingestões, cards de cobertura dinâmicos e botões para disparar ETLs",
+      "Bounding Box Dinâmico: Carregamento inteligente de condomínios da área visível do mapa"
+    ],
+    beneficios: "Oferece visão geoespacial completa para prospecção baseada em dados estruturados, não em experiência pessoal."
+  },
   recursosAdicionais: [
     {
       titulo: "Tutoriais Guiados",
@@ -298,7 +315,7 @@ const manualContent = {
     {
       categoria: "Geral",
       perguntas: [
-        { p: "O que é o Godoy Prime Analytics?", r: "É a plataforma de inteligência imobiliária mais completa do Rio de Janeiro, oferecendo análise de dados oficiais da Prefeitura, avaliações automatizadas, vistorias digitais, gestão de visitas e assistência por inteligência artificial." },
+        { p: "O que é o Godoy Prime Analytics?", r: "É a plataforma de inteligência imobiliária mais completa do Rio de Janeiro, oferecendo análise de dados oficiais da Prefeitura, mapeamento geoespacial com 1.567 condomínios, avaliações automatizadas, vistorias digitais, gestão de visitas e assistência por inteligência artificial." },
         { p: "Quem pode usar a plataforma?", r: "Corretores de imóveis, avaliadores, gestores imobiliários e empresas do setor imobiliário que atuam no mercado de alto padrão do Rio de Janeiro." },
         { p: "A plataforma funciona em celulares e tablets?", r: "Sim, a interface funciona em computadores, tablets e celulares. Pode ser instalada como aplicativo para acesso rápido." },
         { p: "Preciso instalar algum programa?", r: "Não, a plataforma funciona diretamente no navegador de internet, sem necessidade de instalação. Opcionalmente, pode ser instalada como aplicativo." },
@@ -396,6 +413,15 @@ const manualContent = {
       ]
     },
     {
+      categoria: "Inteligência Territorial",
+      perguntas: [
+        { p: "O que é a Inteligência Territorial?", r: "É o módulo de mapeamento geoespacial com 1.567 condomínios da Barra da Tijuca plotados no mapa, com fichas detalhadas, ranking e análise por logradouro." },
+        { p: "O que posso ver na ficha de um condomínio?", r: "Torres, unidades estimadas, área do lote, área construída, valor venal IPTU, histórico trimestral de preços ITBI e transações no raio de 150 metros." },
+        { p: "Como funciona o heatmap?", r: "O heatmap mostra a densidade de unidades residenciais na área visível do mapa, usando cores quentes para maior concentração." },
+        { p: "O que é a análise por logradouro?", r: "Mostra os top 20 logradouros por densidade de unidades, com comparativo entre preço real pago (ITBI) e valor venal (IPTU)." }
+      ]
+    },
+    {
       categoria: "Suporte e Ajuda",
       perguntas: [
         { p: "Como entrar em contato com o suporte?", r: "Envie email para contato@godoyprime.com.br, use o chat da Sofia ou ligue para (21) 4040-0067." },
@@ -480,7 +506,9 @@ export async function exportManualPDF() {
   y += 6;
   doc.text(manualContent.propostas.titulo, marginLeft + 5, y);
   y += 6;
-  doc.text('20. Perguntas Frequentes (FAQ)', marginLeft + 5, y);
+  doc.text(manualContent.inteligenciaTerritorial.titulo, marginLeft + 5, y);
+  y += 6;
+  doc.text('21. Perguntas Frequentes (FAQ)', marginLeft + 5, y);
 
   // Module pages
   manualContent.modulos.forEach((modulo) => {
@@ -532,7 +560,7 @@ export async function exportManualPDF() {
   });
 
   // CRM / Pipeline page
-  const extraModules = [manualContent.crm, manualContent.propostas];
+  const extraModules = [manualContent.crm, manualContent.propostas, manualContent.inteligenciaTerritorial];
   extraModules.forEach((modulo) => {
     doc.addPage();
     y = drawGodoyHeader(doc, 'Manual do Usuário');

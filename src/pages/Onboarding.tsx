@@ -79,7 +79,7 @@ const faqCategories: FAQCategory[] = [
     icon: <HelpCircle className="h-4 w-4" />,
     roles: ['corretor', 'gerente', 'admin'],
     perguntas: [
-      { pergunta: "O que é o Godoy Prime Analytics?", resposta: "É uma plataforma de inteligência para o mercado imobiliário que oferece análise de dados de vendas, avaliações automatizadas, vistorias digitais, estratégias de preço e assistente virtual para profissionais do mercado da Barra da Tijuca." },
+      { pergunta: "O que é o Godoy Prime Analytics?", resposta: "É uma plataforma de inteligência para o mercado imobiliário que oferece análise de dados de vendas, avaliações automatizadas, vistorias digitais, estratégias de preço, mapeamento geoespacial com 1.567 condomínios e assistente virtual para profissionais do mercado imobiliário do Rio de Janeiro." },
       { pergunta: "Quem pode usar a plataforma?", resposta: "Corretores de imóveis, avaliadores, gestores imobiliários e empresas do setor imobiliário." },
       { pergunta: "A plataforma funciona no celular?", resposta: "Sim, funciona em computadores, tablets e celulares. Você pode adicionar na tela inicial do celular para acesso rápido." },
       { pergunta: "Preciso instalar algum programa?", resposta: "Não, a plataforma funciona diretamente no navegador de internet, sem necessidade de instalação." },
@@ -243,6 +243,19 @@ const faqCategories: FAQCategory[] = [
     ]
   },
   {
+    id: "inteligencia-territorial",
+    titulo: "Inteligência Territorial",
+    icon: <Map className="h-4 w-4" />,
+    roles: ['corretor', 'gerente', 'admin'],
+    perguntas: [
+      { pergunta: "O que é a Inteligência Territorial?", resposta: "É o módulo de mapeamento geoespacial com 1.567 condomínios da Barra da Tijuca plotados no mapa, com fichas detalhadas, ranking e análise por logradouro." },
+      { pergunta: "O que posso ver na ficha de um condomínio?", resposta: "Torres, unidades estimadas, área do lote, área construída, valor venal IPTU, histórico trimestral de preços ITBI e transações no raio de 150 metros." },
+      { pergunta: "Como funciona o heatmap?", resposta: "O heatmap mostra a densidade de unidades residenciais na área visível do mapa, usando cores quentes para maior concentração." },
+      { pergunta: "O que é a análise por logradouro?", resposta: "Mostra os top 20 logradouros por densidade de unidades, com comparativo entre preço real pago (ITBI) e valor venal (IPTU)." },
+      { pergunta: "Quem pode acessar o painel administrativo territorial?", resposta: "Apenas administradores podem acessar o painel com log de ingestões, cards de cobertura e botões para disparar ETLs." }
+    ]
+  },
+  {
     id: "suporte",
     titulo: "Suporte e Ajuda",
     icon: <HelpCircle className="h-4 w-4" />,
@@ -314,8 +327,8 @@ const allOnboardingSteps: OnboardingStep[] = [
     features: [
       "Aba Localização: busca por rua ou condomínio",
       "Aba por Valor: busca por faixa de preço",
+      "Dados IPTU: unidades, valor venal vs preço real pago",
       "Filtros por período (6 a 24 meses) e tipo",
-      "Filtros por faixa de tamanho em metros quadrados",
       "Baixar em planilha"
     ],
     route: "/pesquisas-mercado",
@@ -330,7 +343,7 @@ const allOnboardingSteps: OnboardingStep[] = [
     icon: <Calculator className="h-8 w-8" />,
     features: [
       "Etapa 0: Identificação do imóvel e proprietário",
-      "Etapa 1-2: Localização e dados básicos",
+      "Etapa 1-2: Localização com dados IPTU e dados básicos",
       "Etapa 3: Mais de 30 características em 5 categorias",
       "Etapa 4: Valores conservador, provável e otimista",
       "Etapa 5: Recomendação e relatório para impressão"
@@ -491,6 +504,23 @@ const allOnboardingSteps: OnboardingStep[] = [
     ],
     route: "/proposta-publica",
     color: "from-emerald-600 to-emerald-400",
+    roles: ['corretor', 'gerente', 'admin'],
+    category: 'operacional'
+  },
+  {
+    id: 24,
+    title: "Inteligência Territorial",
+    description: "Mapeamento geoespacial com 1.567 condomínios, fichas detalhadas, ranking e análise por logradouro com dados IPTU e ITBI.",
+    icon: <Map className="h-8 w-8" />,
+    features: [
+      "Mapa com 1.567 condomínios com cores por faixa",
+      "Heatmap de densidade e camada de lotes PAL",
+      "Ficha com torres, unidades, histórico ITBI trimestral",
+      "Ranking ordenável e análise por logradouro",
+      "Painel admin com ETLs e cobertura dinâmica"
+    ],
+    route: "/inteligencia-territorial",
+    color: "from-sky-500 to-sky-400",
     roles: ['corretor', 'gerente', 'admin'],
     category: 'operacional'
   },

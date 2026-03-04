@@ -2,7 +2,7 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import {
   BarChart3, TrendingUp, ClipboardCheck, Calendar, Target, Building2,
-  Brain, FileSignature, Search, MapPin, CalendarPlus, FileSearch, FolderCheck, Users,
+  Brain, FileSignature, Search, MapPin, CalendarPlus, FileSearch, FolderCheck, Users, Map,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 
@@ -24,7 +24,7 @@ const functionalityMap: FunctionalityItem[] = [
     icon: TrendingUp,
     title: "Motor de Avaliação",
     dor: "Precificação por feeling, laudos caros e demorados.",
-    beneficio: "Laudo profissional em 5 min com 3 cenários (pessimista/provável/otimista).",
+    beneficio: "Laudo em 5 min com 3 cenários + dados IPTU do logradouro (total de imóveis, preço médio real, venal vs real).",
   },
   {
     icon: ClipboardCheck,
@@ -72,7 +72,13 @@ const functionalityMap: FunctionalityItem[] = [
     icon: MapPin,
     title: "Pesquisa de Mercado",
     dor: "Comparativos baseados em anúncios inflados, sem dados reais.",
-    beneficio: "Busca por localização ou faixa de valor com dados oficiais ITBI, exportação em planilha.",
+    beneficio: "Dados ITBI oficiais + unidades IPTU, valor venal vs preço real pago e variação geocodificada.",
+  },
+  {
+    icon: Map,
+    title: "Inteligência Territorial",
+    dor: "Sem visão geoespacial dos condomínios, prospecção baseada em experiência pessoal.",
+    beneficio: "Mapa com 1.567 condomínios, ficha com torres/unidades/histórico ITBI, ranking por logradouro e painel admin.",
   },
   {
     icon: CalendarPlus,

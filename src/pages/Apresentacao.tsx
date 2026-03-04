@@ -15,7 +15,7 @@ import {
 } from "@/components/ui/select";
 import {
   BarChart3, Building2, ClipboardCheck, Calendar, Target, FileText,
-  TrendingUp, Brain, Shield, ArrowRight, MessageCircle, Eye, Send, Loader2, CheckCircle, FileDown,
+  TrendingUp, Brain, Shield, ArrowRight, MessageCircle, Eye, Send, Loader2, CheckCircle, FileDown, Map,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -29,16 +29,18 @@ import OnePagerPreview from "@/components/apresentacao/OnePagerPreview";
 
 const features = [
   { icon: BarChart3, title: "Painel Analítico", desc: "Indicadores de mercado em tempo real com evolução de preços por m² e liquidez por tipologia." },
-  { icon: TrendingUp, title: "Avaliação Imobiliária", desc: "Precificação inteligente baseada em dados oficiais de transações com ajustes por características." },
+  { icon: TrendingUp, title: "Avaliação Imobiliária", desc: "Precificação inteligente com dados oficiais ITBI e enriquecimento IPTU — total de imóveis, preço médio real e comparativo venal vs real por logradouro." },
   { icon: ClipboardCheck, title: "Vistoria Digital", desc: "Checklist completo com score automático, itens críticos e ajuste de valor por estado de conservação." },
   { icon: Calendar, title: "Agendamento de Visitas", desc: "Gestão completa de visitas com fichas digitais, assinatura eletrônica, retorno automatizado e relatório analítico em PDF." },
   { icon: Target, title: "Microrregiões", desc: "Classificação e evolução de preços por microbairro com mapa interativo de transações." },
+  { icon: Map, title: "Inteligência Territorial", desc: "Mapa interativo com 1.567 condomínios, ficha completa com torres, unidades, histórico ITBI e dados IPTU. Ranking e análise por logradouro." },
   { icon: Building2, title: "Gestão de Contatos", desc: "Gestão integrada com captação automática de contatos, notificações por email e WhatsApp, filtros avançados e acompanhamento de conversão com exportação CSV." },
 ];
 
 const differentials = [
   { icon: Shield, title: "Dados Oficiais", desc: "Base de transações imobiliárias reais, garantindo precisão nas análises de mercado." },
   { icon: Brain, title: "IA para Precificação", desc: "Algoritmo proprietário com ajustes por 30+ características do imóvel e tendências de mercado." },
+  { icon: Map, title: "Mapeamento Geoespacial", desc: "1.567 condomínios, 52.761 edificações e 485 logradouros IPTU mapeados com cruzamento de dados reais de cartório." },
   { icon: FileText, title: "Relatórios em PDF", desc: "Laudos profissionais prontos para apresentação ao cliente, incluindo feedback analítico de visitas e branding personalizado." },
 ];
 
@@ -108,7 +110,7 @@ export default function Apresentacao() {
           </h1>
           <p className="text-base sm:text-xl text-primary-foreground/80 max-w-2xl mx-auto mb-8">
             Transforme dados de mercado em decisões estratégicas. Avaliação, vistoria, 
-            agendamento e análises — tudo em uma única plataforma.
+            mapeamento geoespacial completo e análises — tudo em uma única plataforma.
           </p>
           <div className="flex flex-col sm:flex-row gap-3 justify-center">
             <Button

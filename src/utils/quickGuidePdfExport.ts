@@ -86,12 +86,13 @@ export async function exportQuickGuidePDF() {
     'Aba Localizacao: busque por rua, numero ou nome do condominio',
     'Aba Transacoes: encontre ruas por faixa de preco (de R$ 100 mil ate R$ 100 milhoes)',
     'Filtros: periodo (6 a 24 meses), tipo de imovel e tamanho em metros quadrados',
+    'Dados enriquecidos: unidades IPTU por logradouro, valor venal vs preco real pago',
     'Baixe os resultados em planilha Excel ou arquivo de dados',
   ], '>');
 
   drawSection('5. AVALIACAO DE IMOVEIS - Precificacao', [
     'Etapa 0: Identifique o proprietario, objetivo (venda ou captacao) e tipo de imovel',
-    'Etapa 1: Selecione a rua - o sistema busca os dados oficiais automaticamente',
+    'Etapa 1: Selecione a rua - o sistema busca dados oficiais e exibe total de imoveis IPTU, preco medio real e comparativo venal vs real',
     'Etapa 2: Informe metragem, quartos, suites, banheiros, vagas e base de preco',
     'Etapa 3: Responda 26 perguntas sobre caracteristicas em 5 categorias',
     'Etapa 4: Receba 3 valores: conservador, provavel e otimista com nivel de confianca',
@@ -125,34 +126,43 @@ export async function exportQuickGuidePDF() {
     'Exporte o relatorio de feedbacks analiticos em PDF ou envie por email diretamente',
   ], '>');
 
-  drawSection('9. DOCUMENTACAO - Analise Juridica', [
+  drawSection('10. INTELIGENCIA TERRITORIAL', [
+    'Mapa interativo com 1.567 condominios plotados com cores por faixa de unidades',
+    'Heatmap de densidade e camada de lotes PAL (visivel com zoom alto)',
+    'Clique em um condominio para ver ficha completa: torres, unidades, area, valor venal e historico trimestral ITBI',
+    'Ranking ordenavel por preco, transacoes, unidades e torres com exportacao CSV',
+    'Analise por logradouro com comparativo venal vs preco real pago',
+    'Painel administrativo com ETLs, cards de cobertura e log de ingestoes',
+  ], '>');
+
+  drawSection('11. DOCUMENTACAO - Analise Juridica', [
     'Lista completa de documentos separada para Vendedor e Comprador',
     'Perfis especiais: Empresa, Uniao Estavel, Comunhao de Bens',
     'Use a assistente virtual para analisar documentos enviados',
     'Baixe o relatorio por parte (Vendedor ou Comprador) ou completo',
   ], '>');
 
-  drawSection('10. HISTORICOS', [
+  drawSection('12. HISTORICOS', [
     'Historico de Avaliacoes: consulte, edite e exporte avaliacoes salvas',
     'Historico de Vistorias: acompanhe todas as inspecoes realizadas',
     'Filtros por data, endereco, valor e tipo de imovel',
     'Regenere arquivos PDF a qualquer momento',
   ], '>');
 
-  drawSection('11. CONFIGURACOES', [
+  drawSection('13. CONFIGURACOES', [
     'Envie a logomarca da empresa para personalizar todos os relatorios',
     'Configure dados da empresa: nome, CNPJ, CRECI, telefone e endereco',
     'Veja como ficara o cabecalho e rodape dos relatorios',
   ], '>');
 
-  drawSection('12. RECURSOS ADMINISTRATIVOS (Admins)', [
+  drawSection('14. RECURSOS ADMINISTRATIVOS (Admins)', [
     'Calibrador de Avaliacao: ajuste pesos e fatores do sistema de avaliacao',
     'Calibrador de Vistoria: gerencie categorias e itens do checklist de inspecao',
     'Base de Conhecimento Sofia: adicione artigos para treinar a assistente',
     'Gestao de Leads e Usuarios: acompanhe contatos e gerencie acessos',
   ], '>');
 
-  drawSection('14. MODO DEMONSTRACAO', [
+  drawSection('15. MODO DEMONSTRACAO', [
     'Acesse /apresentacao para a pagina profissional de apresentacao da plataforma',
     'Clique em "Explorar Demonstracao" para entrar no modo demo com dados ficticios',
     'Todos os modulos funcionam com dados simulados da Barra da Tijuca, sem login',
@@ -160,7 +170,7 @@ export async function exportQuickGuidePDF() {
     'Compartilhe o link /apresentacao diretamente com potenciais clientes',
   ], '>');
 
-  drawSection('15. SOFIA - ASSISTENTE VIRTUAL', [
+  drawSection('16. SOFIA - ASSISTENTE VIRTUAL', [
     'Disponivel no canto inferior direito de todas as paginas',
     'Pergunte sobre precos, tendencias e comparativos entre regioes',
     'Use comandos de voz para consultar sem precisar digitar',
