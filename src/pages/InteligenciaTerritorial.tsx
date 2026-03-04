@@ -27,6 +27,7 @@ export default function InteligenciaTerritorial() {
   const [filteredCondos, setFilteredCondos] = useState<TerritorialCondominio[]>([]);
   const [showHeatmap, setShowHeatmap] = useState(false);
   const [detailOpen, setDetailOpen] = useState(true);
+  const [focusCoord, setFocusCoord] = useState<{ lat: number; lng: number } | null>(null);
 
   const { data: kpis } = useTerritorialKPIs();
   const { data: condominios = [], isLoading } = useCondominiosBbox(bounds);
@@ -38,6 +39,9 @@ export default function InteligenciaTerritorial() {
   const handleSelectCondo = useCallback((condo: TerritorialCondominio) => {
     setSelectedCondo(condo);
     setDetailOpen(true);
+    if (condo.latitude != null && condo.longitude != null) {
+      setFocusCoord({ lat: condo.latitude, lng: condo.longitude });
+    }
   }, []);
 
   const handleFilteredChange = useCallback((filtered: TerritorialCondominio[]) => {
@@ -97,6 +101,7 @@ export default function InteligenciaTerritorial() {
                   onBoundsChange={handleBoundsChange}
                   showHeatmap={showHeatmap}
                   onToggleHeatmap={setShowHeatmap}
+                  focusCoord={focusCoord}
                 />
               </div>
 
