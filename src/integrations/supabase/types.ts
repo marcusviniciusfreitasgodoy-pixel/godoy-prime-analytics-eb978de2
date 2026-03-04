@@ -3118,6 +3118,20 @@ export type Database = {
         Returns: boolean
       }
       geomfromewkt: { Args: { "": string }; Returns: unknown }
+      get_condo_itbi_history: {
+        Args: { p_lat: number; p_lng: number; p_raio?: number }
+        Returns: Json
+      }
+      get_condominios_bbox: {
+        Args: {
+          p_east: number
+          p_limit?: number
+          p_north: number
+          p_south: number
+          p_west: number
+        }
+        Returns: Json
+      }
       get_corretores_list: {
         Args: never
         Returns: {
@@ -3152,6 +3166,7 @@ export type Database = {
           status: Database["public"]["Enums"]["status_visita"]
         }[]
       }
+      get_territorial_kpis: { Args: never; Returns: Json }
       get_user_org_id: { Args: { _user_id: string }; Returns: string }
       get_vault_secret: { Args: { secret_name: string }; Returns: string }
       gettransactionid: { Args: never; Returns: unknown }
