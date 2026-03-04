@@ -77,3 +77,15 @@ verify_jwt = false
 
 [functions.public-submit]
 verify_jwt = false
+
+[functions.ingest-iptu-prefeitura]
+verify_jwt = false
+
+[functions.geocodificar-iptu-google]
+verify_jwt = false
+
+[functions.ingest-lotes-pal]
+verify_jwt = false
+
+[functions.ingest-edificacoes-geo]
+verify_jwt = false
