@@ -149,7 +149,7 @@ export function useHistoricalTransactionAnalysis(logradouro: string, bairro: str
           .from('itbi_transactions')
           .select('data_transacao, valor_m2, total_transacoes')
           .ilike('logradouro', `%${candidate}%`)
-          .eq('bairro', normalizedBairro)
+          .ilike('bairro', normalizedBairro)
           .eq('uso', 'Residencial')
           .gte('data_transacao', startDate)
           .lte('data_transacao', endDate)
@@ -183,7 +183,7 @@ export function useHistoricalTransactionAnalysis(logradouro: string, bairro: str
         const { data: bairroTransactions, error: bairroError } = await supabase
           .from('itbi_transactions')
           .select('data_transacao, valor_m2, total_transacoes')
-          .eq('bairro', normalizedBairro)
+          .ilike('bairro', normalizedBairro)
           .eq('uso', 'Residencial')
           .gte('data_transacao', startDate)
           .lte('data_transacao', endDate)
