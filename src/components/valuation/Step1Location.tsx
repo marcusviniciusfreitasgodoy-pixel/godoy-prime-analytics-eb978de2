@@ -79,15 +79,17 @@ export function Step1Location({ state, updateState, combined, onAutoValidated }:
 
       setAutoFetchLoading(true);
       try {
-        const { data, error } = await supabase
+         const { data, error } = await supabase
           .from("itbi_transactions")
           .select("valor_m2, valor_transacao")
-          .eq("bairro", state.bairro)
+          .ilike("bairro", state.bairro)
           .eq("uso", "Residencial")
           .gte("percentual_transferido", 90)
           .not("valor_m2", "is", null)
           .lte("valor_m2", 40000)
           .ilike("logradouro", `%${state.logradouro}%`);
+
+      console.log("[Step1] Auto-fetch ITBI para:", state.logradouro, "bairro:", state.bairro, "resultados:", data?.length, "erro:", error);
 
       if (!error && data && data.length >= 1) {
         const rawValues = data.map(d => Number(d.valor_m2));
@@ -241,15 +243,17 @@ export function Step1Location({ state, updateState, combined, onAutoValidated }:
     
     // Buscar dados ITBI para o logradouro selecionado
     try {
-      const { data, error } = await supabase
+       const { data, error } = await supabase
         .from("itbi_transactions")
         .select("valor_m2, valor_transacao")
-        .eq("bairro", targetBairro)
+        .ilike("bairro", targetBairro)
         .eq("uso", "Residencial")
         .gte("percentual_transferido", 90)
         .not("valor_m2", "is", null)
         .lte("valor_m2", 40000)
         .ilike("logradouro", `%${logradouroParaBusca}%`);
+
+      console.log("[Step1] handleSelectStreet ITBI para:", logradouroParaBusca, "bairro:", targetBairro, "resultados:", data?.length, "erro:", error);
 
       if (!error && data && data.length >= 1) {
         const rawValues = data.map(d => Number(d.valor_m2));
