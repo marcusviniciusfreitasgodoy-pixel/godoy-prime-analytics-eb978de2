@@ -16,6 +16,7 @@ interface TerritorialFiltersProps {
   condominios: TerritorialCondominio[];
   selectedId: string | null;
   onSelect: (condo: TerritorialCondominio) => void;
+  onFilteredChange: (filtered: TerritorialCondominio[]) => void;
   isLoading: boolean;
 }
 
@@ -24,6 +25,7 @@ export function TerritorialFilters({
   condominios,
   selectedId,
   onSelect,
+  onFilteredChange,
   isLoading,
 }: TerritorialFiltersProps) {
   const [searchTerm, setSearchTerm] = useState("");
@@ -38,7 +40,7 @@ export function TerritorialFilters({
   const { data: suggestions } = useLogradouroSuggestions(searchTerm);
 
   const filtered = useMemo(() => {
-    return condominios.filter((c) => {
+    const result = condominios.filter((c) => {
       if (searchTerm && !c.logradouro_padrao?.toLowerCase().includes(searchTerm.toLowerCase()) &&
           !c.nome_condominio?.toLowerCase().includes(searchTerm.toLowerCase())) return false;
       if (somenteComItbi && (!c.preco_medio_m2 || c.preco_medio_m2 <= 0)) return false;
@@ -46,7 +48,9 @@ export function TerritorialFilters({
       if (units < unidadesRange[0] || (unidadesRange[1] < 500 && units > unidadesRange[1])) return false;
       return true;
     });
-  }, [condominios, searchTerm, somenteComItbi, unidadesRange]);
+    onFilteredChange(result);
+    return result;
+  }, [condominios, searchTerm, somenteComItbi, unidadesRange, onFilteredChange]);
 
   const kpiCards = [
     { label: "Condomínios", value: kpis?.total_condominios ?? "—", icon: Building2 },

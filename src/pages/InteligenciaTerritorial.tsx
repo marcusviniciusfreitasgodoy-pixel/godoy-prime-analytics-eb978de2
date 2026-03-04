@@ -24,6 +24,7 @@ export default function InteligenciaTerritorial() {
 
   const [bounds, setBounds] = useState<MapBounds | null>(null);
   const [selectedCondo, setSelectedCondo] = useState<TerritorialCondominio | null>(null);
+  const [filteredCondos, setFilteredCondos] = useState<TerritorialCondominio[]>([]);
   const [showHeatmap, setShowHeatmap] = useState(false);
   const [detailOpen, setDetailOpen] = useState(true);
 
@@ -37,6 +38,10 @@ export default function InteligenciaTerritorial() {
   const handleSelectCondo = useCallback((condo: TerritorialCondominio) => {
     setSelectedCondo(condo);
     setDetailOpen(true);
+  }, []);
+
+  const handleFilteredChange = useCallback((filtered: TerritorialCondominio[]) => {
+    setFilteredCondos(filtered);
   }, []);
 
   return (
@@ -78,6 +83,7 @@ export default function InteligenciaTerritorial() {
                   condominios={condominios}
                   selectedId={selectedCondo?.id ?? null}
                   onSelect={handleSelectCondo}
+                  onFilteredChange={handleFilteredChange}
                   isLoading={isLoading}
                 />
               </div>
@@ -85,7 +91,7 @@ export default function InteligenciaTerritorial() {
               {/* Center: Map */}
               <div className="flex-1 min-w-0">
                 <TerritorialMap
-                  condominios={condominios}
+                  condominios={filteredCondos.length > 0 || condominios.length === 0 ? filteredCondos : condominios}
                   selectedId={selectedCondo?.id ?? null}
                   onSelect={handleSelectCondo}
                   onBoundsChange={handleBoundsChange}
