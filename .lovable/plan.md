@@ -1,49 +1,42 @@
 
 
-## Plan: Corrigir 3 Edge Functions + Criar territorial-status + Migration
+## Inteligencia Territorial — Schema criado ✅
 
-### Arquivos a modificar/criar
+### Tabelas criadas/expandidas
 
-| Arquivo | Acao |
-|---------|------|
-| `supabase/functions/ingest-edificacoes-geo/index.ts` | Reescrever — streaming com insert por pagina, offset_inicial, timeout safety |
-| `supabase/functions/ingest-lotes-pal/index.ts` | Reescrever — streaming por pagina |
-| `supabase/functions/ingest-iptu-prefeitura/index.ts` | Reescrever — descoberta de campo bairro por layer, fallback bbox |
-| `supabase/functions/territorial-status/index.ts` | Criar — endpoint de diagnostico |
-| `supabase/config.toml` | Adicionar `[functions.territorial-status]` |
-| Nova migration SQL | DROP constraint `lotes_pal_num_contribuinte_unique`, criar RPC `calcular_area_edificacoes_pendentes`, recalcular areas existentes |
+1. **condominios_mapeamento** — 15 colunas novas (geom, torres, IPTU, ITBI aggregates) + índice GIST
+2. **iptu_imoveis** — Registros brutos IPTU prefeitura + 4 índices + RLS (SELECT público)
+3. **edificacoes_geo** — Footprints edificações GeoCarioca + GIST + RLS
+4. **lotes_pal** — Lotes PAL + GIST + RLS
+5. **torres_condominios** — Torres vinculadas a condominios + edificacoes (FKs) + RLS
+6. **iptu_logradouro_resumo** — Resumo agregado por logradouro + RLS
+7. **etl_log** — Log de ingestões ETL (admin-only via has_role)
+8. **proprietarios_multiplos** — Fase 2: multi-proprietários (admin-only via has_role)
 
-### Migration SQL
+### Correções aplicadas
+- RLS de etl_log e proprietarios_multiplos usa `has_role(auth.uid(), 'admin'::app_role)` em vez de profiles.role
+- PostGIS habilitado via `CREATE EXTENSION IF NOT EXISTS postgis`
+- `spatial_ref_sys` sem RLS é esperado (tabela de sistema PostGIS)
 
-1. `DROP INDEX IF EXISTS lotes_pal_num_contribuinte_unique` (ou constraint, conforme existir)
-2. Criar `calcular_area_edificacoes_pendentes()` — UPDATE edificacoes_geo SET area_footprint = ST_Area(ST_Transform(geom::geometry, 31983)) WHERE area_footprint IS NULL AND geom IS NOT NULL, retorna ROW_COUNT
-3. Recalcular `lotes_pal.area_lote` para registros com geom mas sem area
+## Edge Functions ETL — Criadas ✅
 
-### Correção 1: ingest-edificacoes-geo
+### RPCs PostGIS (SECURITY DEFINER)
+- `upsert_iptu_imovel()` — Upsert com ST_MakePoint para pontos
+- `update_iptu_geom()` — Update geom de geocodificação Google
+- `upsert_lote_pal()` — Upsert com ST_GeomFromGeoJSON para polígonos
+- `upsert_edificacao_geo()` — Upsert com polígono + centroid
 
-- Aceitar `offset_inicial` no body para retomar ingestao parcial
-- Streaming: fetch page -> transform -> upsert via `.from('edificacoes_geo').upsert(chunk, { onConflict: 'objectid_origem' })` -> next page
-- Timer de 75s: se excedido, salvar etl_log com status='partial' e `proximo_offset` no campo detalhes
-- Chamar RPC `calcular_area_edificacoes_pendentes` apos cada pagina
-- Retornar `{ parcial, proximo_offset, inserido }` ou `{ completo, inserido, erros }`
+### Unique constraints adicionados
+- `iptu_imoveis.inscricao_municipal`
+- `lotes_pal.num_contribuinte`
+- `edificacoes_geo.objectid_origem`
 
-### Correção 2: ingest-lotes-pal
+### Edge Functions
+1. **ingest-iptu-prefeitura** — ArcGIS IPTU/MapServer/5 → iptu_imoveis (paginação 1000, delay 300ms)
+2. **geocodificar-iptu-google** — Google Geocoding → update iptu_imoveis sem coordenadas (delay 50ms)
+3. **ingest-lotes-pal** — ArcGIS Cartografia/Lotes/MapServer/0 → lotes_pal (polígonos)
+4. **ingest-edificacoes-geo** — ArcGIS Cartografia/Edificacoes/MapServer/0 → edificacoes_geo (bbox Barra)
 
-- Mesmo padrao de streaming (insert por pagina, nao acumular)
-- Upsert direto via `.from('lotes_pal').upsert()` com onConflict `objectid_origem`
-- Chamar `calculate_lote_areas` no final
-
-### Correção 3: ingest-iptu-prefeitura
-
-- Funcao `descobrirCampoBairro(layerUrl)` que faz GET no endpoint `?f=json` do layer e procura campo de bairro entre candidatos
-- Se campo encontrado: usar `WHERE ${campo} LIKE '%${bairro}%'`
-- Se nao encontrado: usar bbox espacial da Barra como fallback
-- Retorno enriquecido com info de qual campo foi usado por layer
-- etl_log.detalhes inclui campo_bairro por layer
-
-### Correção 4: territorial-status (nova Edge Function)
-
-- GET que retorna contagens de iptu_logradouro_resumo, lotes_pal, edificacoes_geo, torres_condominios e ultimos 10 etl_log
-- Auth: admin only
-- Queries simples com COUNT e GROUP BY
-
+### Próximos passos
+- Criar páginas e componentes do módulo de Inteligência Territorial
+- Criar função SQL para agregar dados em iptu_logradouro_resumo

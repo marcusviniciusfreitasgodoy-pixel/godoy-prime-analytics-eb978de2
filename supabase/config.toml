@@ -89,3 +89,6 @@ verify_jwt = false
 
 [functions.ingest-edificacoes-geo]
 verify_jwt = false
+
+[functions.territorial-status]
+verify_jwt = false
