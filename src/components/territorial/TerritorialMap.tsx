@@ -1,6 +1,5 @@
 import { useEffect, useMemo } from "react";
 import { MapContainer, TileLayer, CircleMarker, Popup, useMapEvents, useMap } from "react-leaflet";
-import MarkerClusterGroup from "react-leaflet-cluster";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
@@ -172,13 +171,7 @@ export function TerritorialMap({
         />
         <BoundsTracker onBoundsChange={onBoundsChange} />
         <CenterButton />
-        {showHeatmap ? (
-          markers
-        ) : (
-          <MarkerClusterGroup chunkedLoading maxClusterRadius={50}>
-            {markers}
-          </MarkerClusterGroup>
-        )}
+        {markers}
       </MapContainer>
 
       {/* Map controls overlay */}
