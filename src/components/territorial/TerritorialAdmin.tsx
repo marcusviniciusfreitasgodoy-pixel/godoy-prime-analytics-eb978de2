@@ -1,10 +1,11 @@
 import { useState } from "react";
-import { Loader2, Play, Database, Building2, Map, Cpu, MapPin } from "lucide-react";
+import { Loader2, Play, Database, Building2, Map, Cpu, MapPin, Route } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { useEtlLogs, useTerritorialKPIs } from "@/hooks/useTerritorialData";
+import { useEtlLogs } from "@/hooks/useTerritorialData";
+import { useCoverageStats } from "@/hooks/useTerritorialData";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 
@@ -21,20 +22,24 @@ const ACTIONS = [
   { label: "Ingestão Edificações", fn: "ingest-edificacoes-geo", icon: Building2 },
   { label: "Rodar Algoritmo", fn: "process-condominios-algorithm", icon: Cpu },
   { label: "Geocodificar ITBI", fn: "geocodificar-itbi-transactions", icon: MapPin },
+  { label: "Enriquecer Logradouros", fn: "enrich-logradouros-geo", icon: Route },
 ];
 
 export function TerritorialAdmin() {
   const { data: logs, isLoading } = useEtlLogs();
-  const { data: kpis } = useTerritorialKPIs();
+  const { data: coverage } = useCoverageStats();
   const { toast } = useToast();
   const [running, setRunning] = useState<string | null>(null);
 
   const invokeAction = async (fnName: string) => {
     setRunning(fnName);
     try {
-      const { error } = await supabase.functions.invoke(fnName, {
-        body: fnName === "ingest-edificacoes-geo" ? { offset_inicial: 0 } : {},
-      });
+      const body = fnName === "ingest-edificacoes-geo"
+        ? { offset_inicial: 0 }
+        : fnName === "enrich-logradouros-geo"
+        ? { limite: 100 }
+        : {};
+      const { error } = await supabase.functions.invoke(fnName, { body });
       if (error) throw error;
       toast({ title: "Processo iniciado", description: `${fnName} executado com sucesso.` });
     } catch (err: any) {
@@ -44,12 +49,16 @@ export function TerritorialAdmin() {
     }
   };
 
+  const fmt = (n: number | undefined | null) =>
+    n != null ? n.toLocaleString("pt-BR") : "—";
+
   const coverageCards = [
-    { label: "Edificações", value: "52.761" },
-    { label: "Lotes PAL", value: "1.515" },
-    { label: "IPTU Logradouros", value: "485" },
-    { label: "Condomínios", value: kpis?.total_condominios?.toLocaleString("pt-BR") ?? "—" },
-    { label: "Com ITBI", value: kpis?.com_historico_precos?.toLocaleString("pt-BR") ?? "—" },
+    { label: "Edificações", value: fmt(coverage?.edificacoes_total) },
+    { label: "Lotes PAL", value: fmt(coverage?.lotes_total) },
+    { label: "IPTU Logradouros", value: fmt(coverage?.iptu_logradouros) },
+    { label: "Condomínios", value: fmt(coverage?.condominios_total) },
+    { label: "Com ITBI", value: fmt(coverage?.condominios_com_itbi) },
+    { label: "Com Logradouro", value: fmt(coverage?.condominios_com_logradouro) },
   ];
 
   return (
@@ -57,7 +66,7 @@ export function TerritorialAdmin() {
       <h3 className="text-lg font-bold text-foreground">Administração Territorial</h3>
 
       {/* Coverage */}
-      <div className="grid grid-cols-5 gap-3">
+      <div className="grid grid-cols-3 md:grid-cols-6 gap-3">
         {coverageCards.map((c) => (
           <Card key={c.label}>
             <CardContent className="p-3 text-center">

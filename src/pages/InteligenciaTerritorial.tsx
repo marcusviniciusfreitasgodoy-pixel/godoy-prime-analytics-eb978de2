@@ -1,7 +1,8 @@
 import { useState, useCallback } from "react";
 import { Helmet } from "react-helmet-async";
-import { Map, BarChart3, Building2, Settings } from "lucide-react";
+import { Map, BarChart3, Building2, Settings, ChevronLeft, ChevronRight, X } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Button } from "@/components/ui/button";
 import { TerritorialMap } from "@/components/territorial/TerritorialMap";
 import { TerritorialFilters } from "@/components/territorial/TerritorialFilters";
 import { CondominioDetailPanel } from "@/components/territorial/CondominioDetailPanel";
@@ -11,6 +12,7 @@ import { TerritorialAdmin } from "@/components/territorial/TerritorialAdmin";
 import {
   useTerritorialKPIs,
   useCondominiosBbox,
+  useLotesPALBbox,
   type TerritorialCondominio,
   type MapBounds,
 } from "@/hooks/useTerritorialData";
@@ -27,18 +29,27 @@ export default function InteligenciaTerritorial() {
   const [filteredCondos, setFilteredCondos] = useState<TerritorialCondominio[]>([]);
   const [showHeatmap, setShowHeatmap] = useState(false);
   const [detailOpen, setDetailOpen] = useState(true);
+  const [isCollapsed, setIsCollapsed] = useState(false);
   const [focusCoord, setFocusCoord] = useState<{ lat: number; lng: number } | null>(null);
+  const [showLotes, setShowLotes] = useState(false);
+  const [currentZoom, setCurrentZoom] = useState(13);
 
   const { data: kpis } = useTerritorialKPIs();
   const { data: condominios = [], isLoading } = useCondominiosBbox(bounds);
+  const { data: lotes = [] } = useLotesPALBbox(bounds, showLotes && currentZoom >= 15);
 
   const handleBoundsChange = useCallback((b: MapBounds) => {
     setBounds(b);
   }, []);
 
+  const handleZoomChange = useCallback((zoom: number) => {
+    setCurrentZoom(zoom);
+  }, []);
+
   const handleSelectCondo = useCallback((condo: TerritorialCondominio) => {
     setSelectedCondo(condo);
     setDetailOpen(true);
+    setIsCollapsed(false);
     if (condo.latitude != null && condo.longitude != null) {
       setFocusCoord({ lat: condo.latitude, lng: condo.longitude });
     }
@@ -46,6 +57,16 @@ export default function InteligenciaTerritorial() {
 
   const handleFilteredChange = useCallback((filtered: TerritorialCondominio[]) => {
     setFilteredCondos(filtered);
+  }, []);
+
+  const handleClosePanel = useCallback(() => {
+    setDetailOpen(false);
+    setSelectedCondo(null);
+    setIsCollapsed(false);
+  }, []);
+
+  const handleToggleCollapse = useCallback(() => {
+    setIsCollapsed(prev => !prev);
   }, []);
 
   return (
@@ -102,17 +123,64 @@ export default function InteligenciaTerritorial() {
                   showHeatmap={showHeatmap}
                   onToggleHeatmap={setShowHeatmap}
                   focusCoord={focusCoord}
+                  lotes={lotes}
+                  showLotes={showLotes}
+                  onToggleLotes={setShowLotes}
+                  currentZoom={currentZoom}
+                  onZoomChange={handleZoomChange}
                 />
               </div>
 
-              {/* Right: Detail panel */}
+              {/* Right: Detail panel - P2.3 collapsible */}
               {selectedCondo && detailOpen && (
-                <div className="w-[360px] shrink-0">
-                  <CondominioDetailPanel
-                    condominio={selectedCondo}
-                    onClose={() => { setDetailOpen(false); setSelectedCondo(null); }}
-                  />
-                </div>
+                isCollapsed ? (
+                  <div className="w-[40px] shrink-0 border-l border-border bg-card flex flex-col items-center py-2 gap-2">
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-7 w-7"
+                      onClick={handleToggleCollapse}
+                      title="Expandir painel"
+                    >
+                      <ChevronLeft className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-7 w-7"
+                      onClick={handleClosePanel}
+                      title="Fechar painel"
+                    >
+                      <X className="h-3.5 w-3.5" />
+                    </Button>
+                    <div className="flex-1 flex items-center justify-center">
+                      <span
+                        className="text-[10px] text-muted-foreground font-medium whitespace-nowrap"
+                        style={{ writingMode: "vertical-rl", textOrientation: "mixed" }}
+                      >
+                        {(selectedCondo.nome_condominio || selectedCondo.logradouro_padrao).slice(0, 30)}
+                      </span>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="w-[360px] shrink-0 relative">
+                    <div className="absolute top-2 left-2 z-10 flex gap-1">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-7 w-7"
+                        onClick={handleToggleCollapse}
+                        title="Colapsar painel"
+                      >
+                        <ChevronRight className="h-4 w-4" />
+                      </Button>
+                    </div>
+                    <CondominioDetailPanel
+                      condominio={selectedCondo}
+                      onClose={handleClosePanel}
+                    />
+                  </div>
+                )
               )}
             </div>
           </TabsContent>
