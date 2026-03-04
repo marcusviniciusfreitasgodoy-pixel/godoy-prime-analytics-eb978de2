@@ -2931,6 +2931,7 @@ export type Database = {
             }
             Returns: string
           }
+      atualizar_resumo_logradouros: { Args: never; Returns: Json }
       calcular_area_edificacoes_pendentes: { Args: never; Returns: number }
       calcular_centroids_edificacoes_pendentes: { Args: never; Returns: number }
       calculate_footprint_areas: { Args: never; Returns: number }
@@ -2997,6 +2998,7 @@ export type Database = {
         | { Args: { schema_name: string; table_name: string }; Returns: string }
         | { Args: { table_name: string }; Returns: string }
       enablelongtransactions: { Args: never; Returns: string }
+      enriquecer_condominios_com_itbi: { Args: never; Returns: Json }
       equals: { Args: { geom1: unknown; geom2: unknown }; Returns: boolean }
       generate_visit_code: { Args: never; Returns: string }
       geometry: { Args: { "": string }; Returns: unknown }
@@ -3141,10 +3143,12 @@ export type Database = {
         }
         Returns: boolean
       }
+      identificar_condominios_pal: { Args: never; Returns: Json }
       increment_lead_evaluation: {
         Args: { lead_email: string }
         Returns: undefined
       }
+      limpar_torres_algoritmo: { Args: never; Returns: undefined }
       longtransactionsenabled: { Args: never; Returns: boolean }
       populate_geometry_columns:
         | { Args: { tbl_oid: unknown; use_typmod?: boolean }; Returns: number }

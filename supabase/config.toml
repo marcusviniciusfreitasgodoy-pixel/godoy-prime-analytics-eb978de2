@@ -92,3 +92,6 @@ verify_jwt = false
 
 [functions.territorial-status]
 verify_jwt = false
+
+[functions.process-condominios-algorithm]
+verify_jwt = false
