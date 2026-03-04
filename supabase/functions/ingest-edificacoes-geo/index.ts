@@ -218,6 +218,14 @@ serve(async (req) => {
       if (hasMore) await sleep(DELAY_MS);
     }
 
+    // PostGIS calculations — only after full ingestion
+    try {
+      await supabase.rpc('calcular_area_edificacoes_pendentes');
+      await supabase.rpc('calcular_centroids_edificacoes_pendentes');
+    } catch (e) {
+      console.error('PostGIS calc error:', e);
+    }
+
     // Final log
     const finalStatus = totalErro > 0 ? 'partial' : 'success';
     if (logId) {
