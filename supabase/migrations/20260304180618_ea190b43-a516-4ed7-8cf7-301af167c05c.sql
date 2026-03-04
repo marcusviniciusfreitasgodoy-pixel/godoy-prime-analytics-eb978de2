@@ -1,0 +1,1 @@
+DROP FUNCTION IF EXISTS get_condo_itbi_history(double precision, double precision, integer)
