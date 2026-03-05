@@ -95,7 +95,7 @@ export default function InteligenciaTerritorial() {
         <meta name="description" content="Análise geoespacial de condomínios, preços e transações ITBI na Barra da Tijuca." />
       </Helmet>
 
-      <div className="h-[calc(100vh-8rem)] md:h-[calc(100vh-8rem)]">
+      <div className="h-[calc(100vh-4rem)] md:h-[calc(100vh-8rem)]">
         <Tabs defaultValue="mapa" className="h-full flex flex-col">
           <div className="flex items-center justify-between mb-2 md:mb-3 gap-2">
             <h1 className="text-lg md:text-xl font-bold text-foreground truncate">Inteligência Territorial</h1>
@@ -137,7 +137,7 @@ export default function InteligenciaTerritorial() {
                   <SheetTrigger asChild>
                     <Button
                       size="icon"
-                      className="absolute top-2 left-2 z-[1001] h-10 w-10 rounded-full shadow-lg bg-background border border-border"
+                      className="absolute top-14 left-2 z-[1001] h-10 w-10 rounded-full shadow-lg bg-background border border-border"
                       variant="outline"
                     >
                       <SlidersHorizontal className="h-4 w-4" />
