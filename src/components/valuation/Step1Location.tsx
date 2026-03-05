@@ -49,6 +49,9 @@ export function Step1Location({ state, updateState, combined, onAutoValidated }:
     state.bairro
   );
   
+  // Hook para dados de inteligência do logradouro (IPTU 2025 + ITBI)
+  const { data: logradouroInfo, loading: logradouroInfoLoading } = useLogradouroInteligencia(state.logradouro);
+  
   // Estado para anúncios de referência - inicializa com dados existentes ou vazio
   const [anuncios, setAnuncios] = useState<AnuncioEntry[]>(() => {
     // Se já temos fontes salvas no state, restaura elas
