@@ -209,18 +209,36 @@ export function useEtlLogs() {
   });
 }
 
-export function useCondominiosRanking() {
+export function useCondominiosRanking(showAll = false) {
   return useQuery({
-    queryKey: ["condominios-ranking"],
+    queryKey: ["condominios-ranking", showAll],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("condominios_mapeamento")
-        .select("id, nome_condominio, logradouro_padrao, numero_torres, unidades_estimadas, preco_medio_m2, total_transacoes_itbi, ultima_transacao_itbi")
-        .not("preco_medio_m2", "is", null)
-        .order("preco_medio_m2", { ascending: false })
-        .limit(200);
-      if (error) throw error;
-      return data;
+      // Supabase has a 1000 row limit per query, so we paginate
+      const allData: any[] = [];
+      const pageSize = 1000;
+      let from = 0;
+      let hasMore = true;
+
+      while (hasMore) {
+        let query = supabase
+          .from("condominios_mapeamento")
+          .select("id, nome_condominio, logradouro_padrao, numero_torres, unidades_estimadas, preco_medio_m2, total_transacoes_itbi, ultima_transacao_itbi, padrao_construtivo, microbairro");
+
+        if (!showAll) {
+          query = query.not("preco_medio_m2", "is", null);
+        }
+
+        const { data, error } = await query
+          .order("nome_condominio", { ascending: true })
+          .range(from, from + pageSize - 1);
+
+        if (error) throw error;
+        allData.push(...(data || []));
+        hasMore = (data?.length ?? 0) === pageSize;
+        from += pageSize;
+      }
+
+      return allData;
     },
     staleTime: 5 * 60 * 1000,
   });
