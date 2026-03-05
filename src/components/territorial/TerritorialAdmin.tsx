@@ -157,6 +157,45 @@ export function TerritorialAdmin() {
         <IPTU2025Upload />
       </div>
 
+      {/* Reverse Geocoding */}
+      <div className="border border-border rounded-lg p-4 space-y-3">
+        <h4 className="text-sm font-semibold text-foreground flex items-center gap-2">
+          <Search className="h-4 w-4" />
+          Resolver Endereços Pendentes
+        </h4>
+        <p className="text-xs text-muted-foreground">
+          {pendingSemEndereco != null
+            ? `${pendingSemEndereco} condomínios sem endereço (com coordenadas)`
+            : "Verificando..."}
+        </p>
+        {reverseProgress && (
+          <div className="space-y-1">
+            <Progress
+              value={reverseProgress.total > 0
+                ? (reverseProgress.resolvidos / reverseProgress.total) * 100
+                : 0}
+            />
+            <p className="text-xs text-muted-foreground">
+              Resolvendo {reverseProgress.resolvidos}/{reverseProgress.total}...
+            </p>
+          </div>
+        )}
+        <Button
+          variant="outline"
+          size="sm"
+          disabled={isReversing || (pendingSemEndereco ?? 0) === 0}
+          onClick={runReverseGeocode}
+          className="gap-2"
+        >
+          {isReversing ? (
+            <Loader2 className="h-4 w-4 animate-spin" />
+          ) : (
+            <Search className="h-4 w-4" />
+          )}
+          {isReversing ? "Processando..." : "Resolver Endereços Pendentes"}
+        </Button>
+      </div>
+
       {/* ETL Logs */}
       <div className="border border-border rounded-lg overflow-hidden">
         <Table>
