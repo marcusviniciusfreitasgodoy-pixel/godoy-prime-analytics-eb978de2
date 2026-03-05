@@ -185,6 +185,7 @@ export type Database = {
         Row: {
           andares_predominantes: number | null
           area_lote: number | null
+          area_media_unidade_logradouro: number | null
           area_total_construida: number | null
           atualizado_em: string | null
           confianca_identificacao: number | null
@@ -217,6 +218,7 @@ export type Database = {
         Insert: {
           andares_predominantes?: number | null
           area_lote?: number | null
+          area_media_unidade_logradouro?: number | null
           area_total_construida?: number | null
           atualizado_em?: string | null
           confianca_identificacao?: number | null
@@ -249,6 +251,7 @@ export type Database = {
         Update: {
           andares_predominantes?: number | null
           area_lote?: number | null
+          area_media_unidade_logradouro?: number | null
           area_total_construida?: number | null
           atualizado_em?: string | null
           confianca_identificacao?: number | null
@@ -915,6 +918,69 @@ export type Database = {
         }
         Relationships: []
       }
+      iptu_2025_logradouro: {
+        Row: {
+          area_media_unidade: number | null
+          area_plane: string | null
+          areaconst_res: number | null
+          cb_imovel: string | null
+          cl: string | null
+          cod_rp: string | null
+          codra: string | null
+          exercicio: number | null
+          id: string
+          importado_em: string | null
+          nome: string | null
+          nome_completo: string | null
+          objectid: number | null
+          regiao_adm: string | null
+          rp: string | null
+          tipologia: string | null
+          tot_imoveis: number | null
+          tributacao: string | null
+        }
+        Insert: {
+          area_media_unidade?: number | null
+          area_plane?: string | null
+          areaconst_res?: number | null
+          cb_imovel?: string | null
+          cl?: string | null
+          cod_rp?: string | null
+          codra?: string | null
+          exercicio?: number | null
+          id?: string
+          importado_em?: string | null
+          nome?: string | null
+          nome_completo?: string | null
+          objectid?: number | null
+          regiao_adm?: string | null
+          rp?: string | null
+          tipologia?: string | null
+          tot_imoveis?: number | null
+          tributacao?: string | null
+        }
+        Update: {
+          area_media_unidade?: number | null
+          area_plane?: string | null
+          areaconst_res?: number | null
+          cb_imovel?: string | null
+          cl?: string | null
+          cod_rp?: string | null
+          codra?: string | null
+          exercicio?: number | null
+          id?: string
+          importado_em?: string | null
+          nome?: string | null
+          nome_completo?: string | null
+          objectid?: number | null
+          regiao_adm?: string | null
+          rp?: string | null
+          tipologia?: string | null
+          tot_imoveis?: number | null
+          tributacao?: string | null
+        }
+        Relationships: []
+      }
       iptu_imoveis: {
         Row: {
           area_construida: number | null
@@ -977,6 +1043,8 @@ export type Database = {
       }
       iptu_logradouro_resumo: {
         Row: {
+          area_media_unidade: number | null
+          areaconst_res_oficial: number | null
           atualizado_em: string | null
           bairro: string
           cod_logradouro: string | null
@@ -985,8 +1053,10 @@ export type Database = {
           id: string
           logradouro: string
           logradouro_norm: string | null
+          nome_completo_oficial: string | null
           preco_real_medio_itbi: number | null
           tipologia: string | null
+          tot_imoveis_oficial: number | null
           total_area_construida: number | null
           total_imoveis: number | null
           total_transacoes_itbi: number | null
@@ -994,6 +1064,8 @@ export type Database = {
           valor_venal_total: number | null
         }
         Insert: {
+          area_media_unidade?: number | null
+          areaconst_res_oficial?: number | null
           atualizado_em?: string | null
           bairro: string
           cod_logradouro?: string | null
@@ -1002,8 +1074,10 @@ export type Database = {
           id?: string
           logradouro: string
           logradouro_norm?: string | null
+          nome_completo_oficial?: string | null
           preco_real_medio_itbi?: number | null
           tipologia?: string | null
+          tot_imoveis_oficial?: number | null
           total_area_construida?: number | null
           total_imoveis?: number | null
           total_transacoes_itbi?: number | null
@@ -1011,6 +1085,8 @@ export type Database = {
           valor_venal_total?: number | null
         }
         Update: {
+          area_media_unidade?: number | null
+          areaconst_res_oficial?: number | null
           atualizado_em?: string | null
           bairro?: string
           cod_logradouro?: string | null
@@ -1019,8 +1095,10 @@ export type Database = {
           id?: string
           logradouro?: string
           logradouro_norm?: string | null
+          nome_completo_oficial?: string | null
           preco_real_medio_itbi?: number | null
           tipologia?: string | null
+          tot_imoveis_oficial?: number | null
           total_area_construida?: number | null
           total_imoveis?: number | null
           total_transacoes_itbi?: number | null
@@ -3291,6 +3369,7 @@ export type Database = {
       }
       postgis_version: { Args: never; Returns: string }
       postgis_wagyu_version: { Args: never; Returns: string }
+      processar_iptu_2025: { Args: never; Returns: Json }
       recalcular_unidades_estimadas: { Args: never; Returns: Json }
       search_bairros_fuzzy: {
         Args: { result_limit?: number; search_term: string }

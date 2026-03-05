@@ -6,7 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { MapPin, TrendingUp, TrendingDown, Minus, Search, Building2, Plus, X, Calculator, CheckCircle2, Database, Loader2, AlertTriangle, Info, ExternalLink, HelpCircle } from "lucide-react";
+import { MapPin, TrendingUp, TrendingDown, Minus, Search, Building2, Plus, X, Calculator, CheckCircle2, Database, Loader2, AlertTriangle, Info, ExternalLink, HelpCircle, BarChart3 } from "lucide-react";
 import {
   Tooltip,
   TooltipContent,
@@ -15,6 +15,7 @@ import {
 } from "@/components/ui/tooltip";
 import { useOfficialStreetSuggestions, type OfficialStreetSuggestion } from "@/hooks/useOfficialStreetSuggestions";
 import { useCompanySettings } from "@/hooks/useCompanySettings";
+import { useLogradouroInteligencia } from "@/hooks/useLogradouroInteligencia";
 import type { ValuationState } from "@/types/valuation";
 import type { CombinedPrices, ITBIData, AnuncioData } from "@/utils/valuationCalculations";
 import { supabase } from "@/integrations/supabase/client";
@@ -47,6 +48,9 @@ export function Step1Location({ state, updateState, combined, onAutoValidated }:
     useCustomSearch ? searchTerm : "",
     state.bairro
   );
+  
+  // Hook para dados de inteligência do logradouro (IPTU 2025 + ITBI)
+  const { data: logradouroInfo, loading: logradouroInfoLoading } = useLogradouroInteligencia(state.logradouro);
   
   // Estado para anúncios de referência - inicializa com dados existentes ou vazio
   const [anuncios, setAnuncios] = useState<AnuncioEntry[]>(() => {
@@ -502,6 +506,45 @@ export function Step1Location({ state, updateState, combined, onAutoValidated }:
           </TooltipProvider>
         </p>
       </div>
+
+      {/* Card informativo de inteligência do logradouro */}
+      {logradouroInfo && (
+        <Card className="border-primary/30 bg-primary/5">
+          <CardContent className="p-3 sm:p-4 space-y-2">
+            <div className="flex items-center gap-2">
+              <BarChart3 className="h-4 w-4 text-primary" />
+              <span className="text-xs sm:text-sm font-semibold text-foreground">
+                {logradouroInfo.nome_completo_oficial || logradouroInfo.logradouro}
+              </span>
+            </div>
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-x-4 gap-y-1 text-xs text-muted-foreground">
+              {logradouroInfo.tot_imoveis_oficial != null && (
+                <span>{logradouroInfo.tot_imoveis_oficial.toLocaleString("pt-BR")} unidades</span>
+              )}
+              {logradouroInfo.area_media_unidade != null && (
+                <span>Área média: {logradouroInfo.area_media_unidade}m²</span>
+              )}
+              {logradouroInfo.preco_real_medio_itbi != null && (
+                <span>
+                  Preço real médio: {new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL", maximumFractionDigits: 0 }).format(logradouroInfo.preco_real_medio_itbi)}/m²
+                </span>
+              )}
+              {logradouroInfo.valor_venal_medio != null && (
+                <span>
+                  Venal médio: {new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL", maximumFractionDigits: 0 }).format(logradouroInfo.valor_venal_medio)}/m²
+                </span>
+              )}
+              {logradouroInfo.desconto_venal_percentual != null && (
+                <span>{Math.abs(logradouroInfo.desconto_venal_percentual).toFixed(0)}% acima do venal</span>
+              )}
+              {logradouroInfo.total_transacoes_itbi != null && (
+                <span>{logradouroInfo.total_transacoes_itbi} transações (5 anos)</span>
+              )}
+            </div>
+            <p className="text-[10px] text-muted-foreground/60">Fonte: IPTU 2025 + ITBI geocodificado</p>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Detalhes de preços por m² */}
       {state.itbiData && (

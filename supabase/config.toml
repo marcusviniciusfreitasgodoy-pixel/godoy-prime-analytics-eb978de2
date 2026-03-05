@@ -101,3 +101,6 @@ verify_jwt = false
 
 [functions.enrich-logradouros-geo]
 verify_jwt = false
+
+[functions.get-logradouro-inteligencia]
+verify_jwt = false

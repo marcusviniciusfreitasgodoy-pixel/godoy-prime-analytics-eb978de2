@@ -8,6 +8,7 @@ import { useEtlLogs } from "@/hooks/useTerritorialData";
 import { useCoverageStats } from "@/hooks/useTerritorialData";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { IPTU2025Upload } from "./IPTU2025Upload";
 
 const STATUS_COLORS: Record<string, string> = {
   success: "bg-green-500",
@@ -96,6 +97,11 @@ export function TerritorialAdmin() {
             {action.label}
           </Button>
         ))}
+      </div>
+
+      {/* IPTU 2025 */}
+      <div className="border border-border rounded-lg p-4">
+        <IPTU2025Upload />
       </div>
 
       {/* ETL Logs */}
