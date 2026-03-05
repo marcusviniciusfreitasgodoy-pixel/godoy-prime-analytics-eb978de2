@@ -1,9 +1,10 @@
-import { useState } from "react";
-import { Loader2, Play, Database, Building2, Map, Cpu, MapPin, Route } from "lucide-react";
+import { useState, useEffect } from "react";
+import { Loader2, Play, Database, Building2, Map, Cpu, MapPin, Route, Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Progress } from "@/components/ui/progress";
 import { useEtlLogs } from "@/hooks/useTerritorialData";
 import { useCoverageStats } from "@/hooks/useTerritorialData";
 import { supabase } from "@/integrations/supabase/client";
