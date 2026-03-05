@@ -32,6 +32,58 @@ export function TerritorialAdmin() {
   const { data: coverage } = useCoverageStats();
   const { toast } = useToast();
   const [running, setRunning] = useState<string | null>(null);
+  const [reverseProgress, setReverseProgress] = useState<{ resolvidos: number; total: number } | null>(null);
+  const [isReversing, setIsReversing] = useState(false);
+  const [pendingSemEndereco, setPendingSemEndereco] = useState<number | null>(null);
+
+  // Count condominios without address on mount
+  useEffect(() => {
+    const countPending = async () => {
+      const { count } = await supabase
+        .from("condominios_mapeamento")
+        .select("id", { count: "exact", head: true })
+        .like("logradouro_padrao", "%não cadastrado%")
+        .not("latitude", "is", null)
+        .not("longitude", "is", null);
+      setPendingSemEndereco(count ?? 0);
+    };
+    countPending();
+  }, [isReversing]);
+
+  const runReverseGeocode = async () => {
+    setIsReversing(true);
+    let totalResolvidos = 0;
+    let continuar = true;
+
+    try {
+      while (continuar) {
+        const { data, error } = await supabase.functions.invoke("reverse-geocode-condominios", {});
+        if (error) throw error;
+
+        totalResolvidos += data.resolvidos;
+        setReverseProgress({
+          resolvidos: totalResolvidos,
+          total: totalResolvidos + data.pendentes,
+        });
+
+        continuar = data.proxima_chamada_necessaria;
+
+        if (continuar) {
+          await new Promise((r) => setTimeout(r, 2000));
+        }
+      }
+
+      toast({
+        title: "Endereços resolvidos",
+        description: `${totalResolvidos} endereços identificados via geocodificação reversa.`,
+      });
+    } catch (err: any) {
+      toast({ title: "Erro", description: err.message, variant: "destructive" });
+    } finally {
+      setIsReversing(false);
+      setReverseProgress(null);
+    }
+  };
 
   const invokeAction = async (fnName: string) => {
     setRunning(fnName);
