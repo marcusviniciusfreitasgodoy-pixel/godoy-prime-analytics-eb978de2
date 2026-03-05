@@ -6,7 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { MapPin, TrendingUp, TrendingDown, Minus, Search, Building2, Plus, X, Calculator, CheckCircle2, Database, Loader2, AlertTriangle, Info, ExternalLink, HelpCircle } from "lucide-react";
+import { MapPin, TrendingUp, TrendingDown, Minus, Search, Building2, Plus, X, Calculator, CheckCircle2, Database, Loader2, AlertTriangle, Info, ExternalLink, HelpCircle, BarChart3 } from "lucide-react";
 import {
   Tooltip,
   TooltipContent,
