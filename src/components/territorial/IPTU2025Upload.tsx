@@ -36,9 +36,9 @@ export function IPTU2025Upload() {
   const [lastImport, setLastImport] = useState<string | null>(null);
 
   // Fetch table stats on mount
-  useState(() => {
+  useEffect(() => {
     fetchTableStats();
-  });
+  }, []);
 
   async function fetchTableStats() {
     const { count } = await supabase
