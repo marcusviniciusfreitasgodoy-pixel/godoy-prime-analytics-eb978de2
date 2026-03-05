@@ -99,6 +99,11 @@ export function TerritorialAdmin() {
         ))}
       </div>
 
+      {/* IPTU 2025 */}
+      <div className="border border-border rounded-lg p-4">
+        <IPTU2025Upload />
+      </div>
+
       {/* ETL Logs */}
       <div className="border border-border rounded-lg overflow-hidden">
         <Table>
