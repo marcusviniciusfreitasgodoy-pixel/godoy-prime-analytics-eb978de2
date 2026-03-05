@@ -1,9 +1,10 @@
-import { useState } from "react";
-import { Loader2, Play, Database, Building2, Map, Cpu, MapPin, Route } from "lucide-react";
+import { useState, useEffect } from "react";
+import { Loader2, Play, Database, Building2, Map, Cpu, MapPin, Route, Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Progress } from "@/components/ui/progress";
 import { useEtlLogs } from "@/hooks/useTerritorialData";
 import { useCoverageStats } from "@/hooks/useTerritorialData";
 import { supabase } from "@/integrations/supabase/client";
@@ -31,6 +32,58 @@ export function TerritorialAdmin() {
   const { data: coverage } = useCoverageStats();
   const { toast } = useToast();
   const [running, setRunning] = useState<string | null>(null);
+  const [reverseProgress, setReverseProgress] = useState<{ resolvidos: number; total: number } | null>(null);
+  const [isReversing, setIsReversing] = useState(false);
+  const [pendingSemEndereco, setPendingSemEndereco] = useState<number | null>(null);
+
+  // Count condominios without address on mount
+  useEffect(() => {
+    const countPending = async () => {
+      const { count } = await supabase
+        .from("condominios_mapeamento")
+        .select("id", { count: "exact", head: true })
+        .like("logradouro_padrao", "%não cadastrado%")
+        .not("latitude", "is", null)
+        .not("longitude", "is", null);
+      setPendingSemEndereco(count ?? 0);
+    };
+    countPending();
+  }, [isReversing]);
+
+  const runReverseGeocode = async () => {
+    setIsReversing(true);
+    let totalResolvidos = 0;
+    let continuar = true;
+
+    try {
+      while (continuar) {
+        const { data, error } = await supabase.functions.invoke("reverse-geocode-condominios", {});
+        if (error) throw error;
+
+        totalResolvidos += data.resolvidos;
+        setReverseProgress({
+          resolvidos: totalResolvidos,
+          total: totalResolvidos + data.pendentes,
+        });
+
+        continuar = data.proxima_chamada_necessaria;
+
+        if (continuar) {
+          await new Promise((r) => setTimeout(r, 2000));
+        }
+      }
+
+      toast({
+        title: "Endereços resolvidos",
+        description: `${totalResolvidos} endereços identificados via geocodificação reversa.`,
+      });
+    } catch (err: any) {
+      toast({ title: "Erro", description: err.message, variant: "destructive" });
+    } finally {
+      setIsReversing(false);
+      setReverseProgress(null);
+    }
+  };
 
   const invokeAction = async (fnName: string) => {
     setRunning(fnName);
@@ -102,6 +155,45 @@ export function TerritorialAdmin() {
       {/* IPTU 2025 */}
       <div className="border border-border rounded-lg p-4">
         <IPTU2025Upload />
+      </div>
+
+      {/* Reverse Geocoding */}
+      <div className="border border-border rounded-lg p-4 space-y-3">
+        <h4 className="text-sm font-semibold text-foreground flex items-center gap-2">
+          <Search className="h-4 w-4" />
+          Resolver Endereços Pendentes
+        </h4>
+        <p className="text-xs text-muted-foreground">
+          {pendingSemEndereco != null
+            ? `${pendingSemEndereco} condomínios sem endereço (com coordenadas)`
+            : "Verificando..."}
+        </p>
+        {reverseProgress && (
+          <div className="space-y-1">
+            <Progress
+              value={reverseProgress.total > 0
+                ? (reverseProgress.resolvidos / reverseProgress.total) * 100
+                : 0}
+            />
+            <p className="text-xs text-muted-foreground">
+              Resolvendo {reverseProgress.resolvidos}/{reverseProgress.total}...
+            </p>
+          </div>
+        )}
+        <Button
+          variant="outline"
+          size="sm"
+          disabled={isReversing || (pendingSemEndereco ?? 0) === 0}
+          onClick={runReverseGeocode}
+          className="gap-2"
+        >
+          {isReversing ? (
+            <Loader2 className="h-4 w-4 animate-spin" />
+          ) : (
+            <Search className="h-4 w-4" />
+          )}
+          {isReversing ? "Processando..." : "Resolver Endereços Pendentes"}
+        </Button>
       </div>
 
       {/* ETL Logs */}

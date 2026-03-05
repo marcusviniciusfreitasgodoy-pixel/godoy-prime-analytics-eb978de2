@@ -104,3 +104,6 @@ verify_jwt = false
 
 [functions.get-logradouro-inteligencia]
 verify_jwt = false
+
+[functions.reverse-geocode-condominios]
+verify_jwt = false
