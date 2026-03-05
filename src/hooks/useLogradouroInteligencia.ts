@@ -1,5 +1,4 @@
 import { useState, useEffect } from "react";
-import { supabase } from "@/integrations/supabase/client";
 
 export interface LogradouroInteligencia {
   cod_logradouro: string;
@@ -28,21 +27,10 @@ export function useLogradouroInteligencia(logradouro: string | undefined) {
     const timer = setTimeout(async () => {
       setLoading(true);
       try {
-        const { data: result, error } = await supabase.functions.invoke(
-          "get-logradouro-inteligencia",
-          {
-            method: "GET",
-            headers: { "Content-Type": "application/json" },
-            body: undefined,
-          }
-        );
-
-        // Edge function uses GET params, but invoke uses POST body
-        // So we use fetch directly
         const projectId = import.meta.env.VITE_SUPABASE_PROJECT_ID;
         const anonKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
         const url = `https://${projectId}.supabase.co/functions/v1/get-logradouro-inteligencia?logradouro=${encodeURIComponent(logradouro)}`;
-        
+
         const res = await fetch(url, {
           headers: {
             apikey: anonKey,
