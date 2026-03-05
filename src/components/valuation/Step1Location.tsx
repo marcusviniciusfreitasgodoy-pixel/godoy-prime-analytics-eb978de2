@@ -507,6 +507,45 @@ export function Step1Location({ state, updateState, combined, onAutoValidated }:
         </p>
       </div>
 
+      {/* Card informativo de inteligência do logradouro */}
+      {logradouroInfo && (
+        <Card className="border-primary/30 bg-primary/5">
+          <CardContent className="p-3 sm:p-4 space-y-2">
+            <div className="flex items-center gap-2">
+              <BarChart3 className="h-4 w-4 text-primary" />
+              <span className="text-xs sm:text-sm font-semibold text-foreground">
+                {logradouroInfo.nome_completo_oficial || logradouroInfo.logradouro}
+              </span>
+            </div>
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-x-4 gap-y-1 text-xs text-muted-foreground">
+              {logradouroInfo.tot_imoveis_oficial != null && (
+                <span>{logradouroInfo.tot_imoveis_oficial.toLocaleString("pt-BR")} unidades</span>
+              )}
+              {logradouroInfo.area_media_unidade != null && (
+                <span>Área média: {logradouroInfo.area_media_unidade}m²</span>
+              )}
+              {logradouroInfo.preco_real_medio_itbi != null && (
+                <span>
+                  Preço real médio: {new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL", maximumFractionDigits: 0 }).format(logradouroInfo.preco_real_medio_itbi)}/m²
+                </span>
+              )}
+              {logradouroInfo.valor_venal_medio != null && (
+                <span>
+                  Venal médio: {new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL", maximumFractionDigits: 0 }).format(logradouroInfo.valor_venal_medio)}/m²
+                </span>
+              )}
+              {logradouroInfo.desconto_venal_percentual != null && (
+                <span>{Math.abs(logradouroInfo.desconto_venal_percentual).toFixed(0)}% acima do venal</span>
+              )}
+              {logradouroInfo.total_transacoes_itbi != null && (
+                <span>{logradouroInfo.total_transacoes_itbi} transações (5 anos)</span>
+              )}
+            </div>
+            <p className="text-[10px] text-muted-foreground/60">Fonte: IPTU 2025 + ITBI geocodificado</p>
+          </CardContent>
+        </Card>
+      )}
+
       {/* Detalhes de preços por m² */}
       {state.itbiData && (
         <Card className="bg-muted/30">
