@@ -15,6 +15,7 @@ import {
 } from "@/components/ui/tooltip";
 import { useOfficialStreetSuggestions, type OfficialStreetSuggestion } from "@/hooks/useOfficialStreetSuggestions";
 import { useCompanySettings } from "@/hooks/useCompanySettings";
+import { useLogradouroInteligencia } from "@/hooks/useLogradouroInteligencia";
 import type { ValuationState } from "@/types/valuation";
 import type { CombinedPrices, ITBIData, AnuncioData } from "@/utils/valuationCalculations";
 import { supabase } from "@/integrations/supabase/client";
