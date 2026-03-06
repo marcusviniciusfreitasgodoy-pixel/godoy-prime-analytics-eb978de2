@@ -141,8 +141,14 @@ export function useHistoricalTransactionAnalysis(logradouro: string, bairro: str
       let error: unknown = null;
 
       // Se temos ruas internas do condomínio, buscar em todas elas
+      // IMPORTANTE: Normalizar acentos das ruas internas para match com banco (ex: "Nélson" → "Nelson")
       if (ruasInternas && ruasInternas.length > 0) {
-        const orFilter = ruasInternas.map(rua => `logradouro.ilike.%${rua}%`).join(',');
+        const normalizedRuas = ruasInternas.map(rua => 
+          rua.normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+        );
+        const orFilter = normalizedRuas.map(rua => `logradouro.ilike.%${rua}%`).join(',');
+        // Para condomínios, incluir ano corrente na busca (dados parciais são valiosos)
+        const condoEndDate = `${currentYear}-12-31`;
         const { data, error: e } = await supabase
           .from('itbi_transactions')
           .select('data_transacao, valor_m2, total_transacoes')
@@ -150,7 +156,7 @@ export function useHistoricalTransactionAnalysis(logradouro: string, bairro: str
           .ilike('bairro', normalizedBairro)
           .eq('uso', 'Residencial')
           .gte('data_transacao', startDate)
-          .lte('data_transacao', endDate)
+          .lte('data_transacao', condoEndDate)
           .order('data_transacao', { ascending: true });
 
         if (e) throw e;
@@ -208,9 +214,10 @@ export function useHistoricalTransactionAnalysis(logradouro: string, bairro: str
       let dataSource: 'logradouro' | 'bairro' = 'logradouro';
       const logradouroTransactionCount = transactions?.length || 0;
 
-      // Se poucos dados do logradouro (< 15 transações em 5 anos = média < 3/ano), buscar do bairro todo
-      // Anteriormente era 20, mas isso excluía logradouros com volume razoável como Lúcio Costa (35 trans)
-      if (!transactions || transactions.length < 15) {
+      // Se poucos dados do logradouro, buscar do bairro todo
+      // Para condomínios com ruas internas, threshold menor (3) pois dados são mais específicos
+      const fallbackThreshold = (ruasInternas && ruasInternas.length > 0) ? 3 : 15;
+      if (!transactions || transactions.length < fallbackThreshold) {
         const { data: bairroTransactions, error: bairroError } = await supabase
           .from('itbi_transactions')
           .select('data_transacao, valor_m2, total_transacoes')
@@ -227,11 +234,11 @@ export function useHistoricalTransactionAnalysis(logradouro: string, bairro: str
 
       if (!transactions || transactions.length === 0) return null;
 
-      // Agrupar por ano (de startYear até endYear)
-      // CORREÇÃO: usar total_transacoes para contagem correta ao invés de count++
+      // Agrupar por ano (de startYear até endYear, incluindo ano corrente se condomínio)
+      const effectiveEndYear = (ruasInternas && ruasInternas.length > 0) ? currentYear : endYear;
       const yearlyMap: Record<number, { valores: number[]; totalTransacoes: number }> = {};
 
-      for (let year = startYear; year <= endYear; year++) {
+      for (let year = startYear; year <= effectiveEndYear; year++) {
         yearlyMap[year] = { valores: [], totalTransacoes: 0 };
       }
 
@@ -279,7 +286,7 @@ export function useHistoricalTransactionAnalysis(logradouro: string, bairro: str
             valorMaxM2: Math.round(valorMaxM2),
           };
         })
-        .filter((y) => y.ano <= endYear)
+        .filter((y) => y.ano <= effectiveEndYear)
         .sort((a, b) => a.ano - b.ano);
 
       // Calcular variações ano a ano
@@ -423,7 +430,7 @@ export function useHistoricalTransactionAnalysis(logradouro: string, bairro: str
       let currentYearCount = 0;
       let currentYearAvgM2 = 0;
 
-      if (dataSource === 'bairro' && logradouroTransactionCount < 15) {
+      if (dataSource === 'bairro' && logradouroTransactionCount < fallbackThreshold) {
         const currentYearStart = `${currentYear}-01-01`;
         const currentYearEnd = `${currentYear}-12-31`;
 
