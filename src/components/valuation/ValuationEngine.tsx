@@ -266,7 +266,9 @@ export function ValuationEngine({ bairro = "BARRA DA TIJUCA", vistoriaData, edit
           prev.docFactor,
           prev.bonus_terreno,
           prev.tipoImovel,
-          historicalAnalysis?.liquidityScore
+          historicalAnalysis?.liquidityScore,
+          prev.baseSelected,
+          prev.customBaseM2
         );
 
         return { ...prev, responses: normalizedResponses, result, historicalAnalysis };
