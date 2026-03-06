@@ -86,6 +86,8 @@ export default function PesquisasMercado() {
   const [apenasIndividuais, setApenasIndividuais] = useState(false);
   const [valorM2Min, setValorM2Min] = useState<string>("");
   const [valorM2Max, setValorM2Max] = useState<string>("");
+  const [nomeCondominio, setNomeCondominio] = useState("");
+  const [condominioSelecionado, setCondominioSelecionado] = useState<CondominioSelecionado | null>(null);
 
   // Map data query
   const { data: mapData, isLoading: mapLoading } = useTransactionMapData(
