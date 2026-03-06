@@ -137,6 +137,9 @@ export function useHistoricalTransactionAnalysis(logradouro: string, bairro: str
       // IMPORTANTE (contagem): NÃO filtrar por valor_m2 aqui, pois muitos registros
       // podem não ter valor_m2 calculado. A filtragem por outliers é aplicada apenas
       // para estatísticas de preço.
+      let transactions: { data_transacao: string; valor_m2: number | null; total_transacoes: number | null }[] | null = null;
+      let error: unknown = null;
+
       // Se temos ruas internas do condomínio, buscar em todas elas
       if (ruasInternas && ruasInternas.length > 0) {
         const orFilter = ruasInternas.map(rua => `logradouro.ilike.%${rua}%`).join(',');
