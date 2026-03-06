@@ -67,7 +67,18 @@ export function useTransactionSearch(params: TransactionSearchParams, enabled: b
         .gte('percentual_transferido', 90)
         .gte('data_transacao', startDate);
 
-      if (params.bairro) {
+      // When logradouros array is provided (condominium search), filter by internal streets
+      if (params.logradouros && params.logradouros.length > 0) {
+        const normalizeAccent = (s: string) => s.normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+        const orConditions = params.logradouros
+          .map(rua => `logradouro.ilike.%${normalizeAccent(rua)}%`)
+          .join(',');
+        query = query.or(orConditions);
+        // Still filter by bairro if provided
+        if (params.bairro) {
+          query = query.ilike('bairro', params.bairro);
+        }
+      } else if (params.bairro) {
         query = query.ilike('bairro', params.bairro);
       }
 
