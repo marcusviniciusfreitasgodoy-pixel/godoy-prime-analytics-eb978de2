@@ -478,7 +478,7 @@ export function useHistoricalTransactionAnalysis(logradouro: string, bairro: str
       };
       
       // CACHE: Salvar resultado no cache persistente
-      setCachedAnalysis(normalizedBairro, normalizedLogradouro, result);
+      setCachedAnalysis(normalizedBairro, normalizedLogradouro, result, ruasInternas);
 
       return result;
     },
