@@ -192,7 +192,38 @@ export function Step0Identification({ state, updateState, showValidation = false
               )}
             </div>
 
-            {/* Logradouro with autocomplete - SEGUNDO CAMPO */}
+            {/* TIPO DE IMÓVEL - SEGUNDO CAMPO (movido das Características Físicas) */}
+            <div>
+              <Label htmlFor="tipoImovel" className={`text-xs sm:text-sm ${shouldShowError('tipoImovel') ? 'text-destructive' : ''}`}>
+                Tipo de Imóvel *
+              </Label>
+              <Select
+                value={state.tipoImovel}
+                onValueChange={(value) => {
+                  updateState({ tipoImovel: value });
+                  setTouched(prev => ({ ...prev, tipoImovel: true }));
+                }}
+              >
+                <SelectTrigger className={`h-10 sm:h-9 ${shouldShowError('tipoImovel') ? 'border-destructive focus:ring-destructive/20' : ''}`}>
+                  <SelectValue placeholder="Selecione o tipo..." />
+                </SelectTrigger>
+                <SelectContent>
+                  {TIPOS_IMOVEL.map((tipo) => (
+                    <SelectItem key={tipo} value={tipo}>
+                      {tipo}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              {shouldShowError('tipoImovel') && (
+                <p className="text-[10px] text-destructive mt-1 flex items-center gap-1">
+                  <AlertCircle className="h-3 w-3" />
+                  Selecione o tipo de imóvel
+                </p>
+              )}
+            </div>
+
+            {/* Logradouro with autocomplete - TERCEIRO CAMPO */}
             <div className="relative">
               <Label htmlFor="logradouro" className={`text-xs sm:text-sm ${shouldShowError('logradouro') ? 'text-destructive' : ''}`}>
                 Logradouro *
