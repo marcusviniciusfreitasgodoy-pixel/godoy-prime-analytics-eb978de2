@@ -48,11 +48,11 @@ export function CondominioSelector({ value, condominioSelecionado, bairro, onCha
     queryFn: async () => {
       if (!searchTerm || searchTerm.length < 2) return [];
       // Normaliza termo removendo acentos para busca no backend
-      const normalizedTerm = removeAccents(searchTerm);
+      const wildcardTerm = toAccentWildcard(removeAccents(searchTerm));
       const { data, error } = await supabase
         .from('condominios_mapeamento')
         .select('id, nome_condominio, logradouro_padrao, ruas_internas, total_transacoes_itbi')
-        .or(`nome_condominio.ilike.%${normalizedTerm}%,logradouro_padrao.ilike.%${normalizedTerm}%`)
+        .or(`nome_condominio.ilike.%${wildcardTerm}%,logradouro_padrao.ilike.%${wildcardTerm}%`)
         .limit(20);
       if (error) throw error;
       return (data || []) as CondominioResult[];
