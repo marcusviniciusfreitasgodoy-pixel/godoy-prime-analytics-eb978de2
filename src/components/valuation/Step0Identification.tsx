@@ -192,7 +192,38 @@ export function Step0Identification({ state, updateState, showValidation = false
               )}
             </div>
 
-            {/* Logradouro with autocomplete - SEGUNDO CAMPO */}
+            {/* TIPO DE IMÓVEL - SEGUNDO CAMPO (movido das Características Físicas) */}
+            <div>
+              <Label htmlFor="tipoImovel" className={`text-xs sm:text-sm ${shouldShowError('tipoImovel') ? 'text-destructive' : ''}`}>
+                Tipo de Imóvel *
+              </Label>
+              <Select
+                value={state.tipoImovel}
+                onValueChange={(value) => {
+                  updateState({ tipoImovel: value });
+                  setTouched(prev => ({ ...prev, tipoImovel: true }));
+                }}
+              >
+                <SelectTrigger className={`h-10 sm:h-9 ${shouldShowError('tipoImovel') ? 'border-destructive focus:ring-destructive/20' : ''}`}>
+                  <SelectValue placeholder="Selecione o tipo..." />
+                </SelectTrigger>
+                <SelectContent>
+                  {TIPOS_IMOVEL.map((tipo) => (
+                    <SelectItem key={tipo} value={tipo}>
+                      {tipo}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              {shouldShowError('tipoImovel') && (
+                <p className="text-[10px] text-destructive mt-1 flex items-center gap-1">
+                  <AlertCircle className="h-3 w-3" />
+                  Selecione o tipo de imóvel
+                </p>
+              )}
+            </div>
+
+            {/* Logradouro with autocomplete - TERCEIRO CAMPO */}
             <div className="relative">
               <Label htmlFor="logradouro" className={`text-xs sm:text-sm ${shouldShowError('logradouro') ? 'text-destructive' : ''}`}>
                 Logradouro *
@@ -297,36 +328,23 @@ export function Step0Identification({ state, updateState, showValidation = false
               </div>
             </div>
             
-            {/* Nome do Condomínio - autocomplete para Casa em Condomínio */}
-            {state.tipoImovel === "Casa em Condomínio" ? (
-              <div>
-                <Label className="text-xs sm:text-sm">Nome do Condomínio</Label>
-                <div className="mt-1">
-                  <CondominioSelector
-                    value={state.nomeCondominio}
-                    condominioSelecionado={state.condominioSelecionado}
-                    bairro={state.bairro}
-                    onChange={(nome, condominio) => {
-                      updateState({ 
-                        nomeCondominio: nome,
-                        condominioSelecionado: condominio,
-                      });
-                    }}
-                  />
-                </div>
-              </div>
-            ) : (
-              <div>
-                <Label htmlFor="nomeCondominio" className="text-xs sm:text-sm">Nome do Condomínio (opcional)</Label>
-                <Input
-                  id="nomeCondominio"
+            {/* Nome do Condomínio - sempre com autocomplete inteligente */}
+            <div>
+              <Label className="text-xs sm:text-sm">Nome do Condomínio (opcional)</Label>
+              <div className="mt-1">
+                <CondominioSelector
                   value={state.nomeCondominio}
-                  onChange={(e) => updateState({ nomeCondominio: e.target.value })}
-                  placeholder="Ex: Riserva Golf"
-                  className="h-10 sm:h-9"
+                  condominioSelecionado={state.condominioSelecionado}
+                  bairro={state.bairro}
+                  onChange={(nome, condominio) => {
+                    updateState({ 
+                      nomeCondominio: nome,
+                      condominioSelecionado: condominio,
+                    });
+                  }}
                 />
               </div>
-            )}
+            </div>
           </div>
         </CardContent>
       </Card>
@@ -340,36 +358,6 @@ export function Step0Identification({ state, updateState, showValidation = false
           </h4>
           
           <div className="grid grid-cols-2 gap-2 sm:gap-4">
-            <div className="col-span-2">
-              <Label htmlFor="tipoImovel" className={`text-xs sm:text-sm ${shouldShowError('tipoImovel') ? 'text-destructive' : ''}`}>
-                Tipo de Imóvel *
-              </Label>
-              <Select
-                value={state.tipoImovel}
-                onValueChange={(value) => {
-                  updateState({ tipoImovel: value });
-                  setTouched(prev => ({ ...prev, tipoImovel: true }));
-                }}
-              >
-                <SelectTrigger className={`h-10 sm:h-9 ${shouldShowError('tipoImovel') ? 'border-destructive focus:ring-destructive/20' : ''}`}>
-                  <SelectValue placeholder="Selecione..." />
-                </SelectTrigger>
-                <SelectContent>
-                  {TIPOS_IMOVEL.map((tipo) => (
-                    <SelectItem key={tipo} value={tipo}>
-                      {tipo}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              {shouldShowError('tipoImovel') && (
-                <p className="text-[10px] text-destructive mt-1 flex items-center gap-1">
-                  <AlertCircle className="h-3 w-3" />
-                  Selecione o tipo de imóvel
-                </p>
-              )}
-            </div>
-            
             <div>
               <Label htmlFor="area_m2" className={`text-xs sm:text-sm ${shouldShowError('area_m2') ? 'text-destructive' : ''}`}>
                 {showTerrainField ? "Área Construída (m²) *" : "Área (m²) *"}
