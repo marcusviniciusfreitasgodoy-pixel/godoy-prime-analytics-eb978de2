@@ -141,8 +141,14 @@ export function useHistoricalTransactionAnalysis(logradouro: string, bairro: str
       let error: unknown = null;
 
       // Se temos ruas internas do condomínio, buscar em todas elas
+      // IMPORTANTE: Normalizar acentos das ruas internas para match com banco (ex: "Nélson" → "Nelson")
       if (ruasInternas && ruasInternas.length > 0) {
-        const orFilter = ruasInternas.map(rua => `logradouro.ilike.%${rua}%`).join(',');
+        const normalizedRuas = ruasInternas.map(rua => 
+          rua.normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+        );
+        const orFilter = normalizedRuas.map(rua => `logradouro.ilike.%${rua}%`).join(',');
+        // Para condomínios, incluir ano corrente na busca (dados parciais são valiosos)
+        const condoEndDate = `${currentYear}-12-31`;
         const { data, error: e } = await supabase
           .from('itbi_transactions')
           .select('data_transacao, valor_m2, total_transacoes')
@@ -150,7 +156,7 @@ export function useHistoricalTransactionAnalysis(logradouro: string, bairro: str
           .ilike('bairro', normalizedBairro)
           .eq('uso', 'Residencial')
           .gte('data_transacao', startDate)
-          .lte('data_transacao', endDate)
+          .lte('data_transacao', condoEndDate)
           .order('data_transacao', { ascending: true });
 
         if (e) throw e;
