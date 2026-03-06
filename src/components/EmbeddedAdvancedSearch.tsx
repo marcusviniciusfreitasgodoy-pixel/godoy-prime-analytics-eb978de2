@@ -153,6 +153,7 @@ export function EmbeddedAdvancedSearch({ defaultBairro = "" }: EmbeddedAdvancedS
     anoFim?: string;
     bairro?: string;
     logradouro?: string;
+    logradouros?: string[];
   } | null>(null);
 
   // State for transaction details modal
