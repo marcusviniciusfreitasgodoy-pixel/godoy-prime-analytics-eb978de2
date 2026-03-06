@@ -150,6 +150,7 @@ export const initialValuationState: ValuationState = {
   numero: "",
   complemento: "",
   nomeCondominio: "",
+  condominioSelecionado: null,
   tipoImovel: "",
   quartos: 0,
   suites: 0,
