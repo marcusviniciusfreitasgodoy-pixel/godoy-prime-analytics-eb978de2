@@ -66,6 +66,10 @@ export interface HistoricalAnalysis {
   dataSource: 'logradouro' | 'bairro'; // Indica se usou logradouro específico ou bairro todo
   logradouroUsado: string; // Logradouro usado na busca
   bairroUsado: string; // Bairro usado na busca
+  // Dados do ano corrente (fora da janela histórica)
+  hasCurrentYearData?: boolean;
+  currentYearCount?: number;
+  currentYearAvgM2?: number;
 }
 
 // Limites MÍNIMOS de outliers por bairro (valores muito abaixo são suspeitos)
