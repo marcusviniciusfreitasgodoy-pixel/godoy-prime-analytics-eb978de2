@@ -234,11 +234,11 @@ export function useHistoricalTransactionAnalysis(logradouro: string, bairro: str
 
       if (!transactions || transactions.length === 0) return null;
 
-      // Agrupar por ano (de startYear até endYear)
-      // CORREÇÃO: usar total_transacoes para contagem correta ao invés de count++
+      // Agrupar por ano (de startYear até endYear, incluindo ano corrente se condomínio)
+      const effectiveEndYear = (ruasInternas && ruasInternas.length > 0) ? currentYear : endYear;
       const yearlyMap: Record<number, { valores: number[]; totalTransacoes: number }> = {};
 
-      for (let year = startYear; year <= endYear; year++) {
+      for (let year = startYear; year <= effectiveEndYear; year++) {
         yearlyMap[year] = { valores: [], totalTransacoes: 0 };
       }
 
