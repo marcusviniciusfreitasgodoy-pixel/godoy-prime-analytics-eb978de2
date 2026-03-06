@@ -158,7 +158,7 @@ export function Step1Location({ state, updateState, combined, onAutoValidated }:
     };
 
     autoFetchITBI();
-  }, [state.logradouro, state.bairro, state.itbiData, settings.outlier_filter_method, updateState, onAutoValidated]);
+  }, [state.logradouro, state.bairro, state.itbiData, state.condominioSelecionado, settings.outlier_filter_method, updateState, onAutoValidated]);
 
   // Restaura anúncios quando state.anuncioData mudar (edição de avaliação)
   useEffect(() => {
