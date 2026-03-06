@@ -95,7 +95,7 @@ const getOutlierMinLimit = (bairro: string): number => {
   return OUTLIER_MIN_LIMITS[normalizedBairro] || OUTLIER_MIN_LIMITS['DEFAULT'];
 };
 
-export function useHistoricalTransactionAnalysis(logradouro: string, bairro: string, enabled: boolean = true) {
+export function useHistoricalTransactionAnalysis(logradouro: string, bairro: string, enabled: boolean = true, ruasInternas?: string[]) {
   const normalizedBairro = (bairro || '').toUpperCase().trim();
   const normalizedLogradouro = (logradouro || '').trim();
 
