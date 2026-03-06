@@ -5,11 +5,12 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Building2, User, Calendar, MapPin, Home, TrendingUp, TrendingDown, Minus, Search, Loader2, CheckCircle2, Database, AlertCircle } from "lucide-react";
-import type { ValuationState } from "@/types/valuation";
+import type { ValuationState, CondominioSelecionado } from "@/types/valuation";
 import { isCasaType, calculateTerrainBonus } from "@/hooks/useValuationCharacteristics";
 import { useEffect, useState, useRef } from "react";
 import { useOfficialStreetSuggestions, type OfficialStreetSuggestion } from "@/hooks/useOfficialStreetSuggestions";
 import { BairroSelector } from "@/components/BairroSelector";
+import { CondominioSelector } from "@/components/valuation/CondominioSelector";
 
 interface Props {
   state: ValuationState;
