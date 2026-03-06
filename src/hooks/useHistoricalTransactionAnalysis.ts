@@ -286,7 +286,7 @@ export function useHistoricalTransactionAnalysis(logradouro: string, bairro: str
             valorMaxM2: Math.round(valorMaxM2),
           };
         })
-        .filter((y) => y.ano <= endYear)
+        .filter((y) => y.ano <= effectiveEndYear)
         .sort((a, b) => a.ano - b.ano);
 
       // Calcular variações ano a ano
