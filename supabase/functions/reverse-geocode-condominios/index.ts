@@ -58,7 +58,7 @@ Deno.serve(async (req) => {
       const { count } = await supabaseAdmin
         .from("condominios_mapeamento")
         .select("id", { count: "exact", head: true })
-        .like("logradouro_padrao", "%não cadastrado%");
+        .or("logradouro_padrao.like.%não cadastrado%,logradouro_padrao.eq.Endereço não localizado via coordenadas");
 
       return new Response(
         JSON.stringify({
