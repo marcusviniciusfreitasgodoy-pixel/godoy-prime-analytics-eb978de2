@@ -544,7 +544,7 @@ export function ValuationEngine({ bairro = "BARRA DA TIJUCA", vistoriaData, edit
               <Step1Location
                 state={state}
                 updateState={updateState}
-                combined={combined}
+                combined={rawCombined}
                 onAutoValidated={() => {
                   if (autoAdvanceAfterLocation) {
                     setAutoAdvanceAfterLocation(false);
