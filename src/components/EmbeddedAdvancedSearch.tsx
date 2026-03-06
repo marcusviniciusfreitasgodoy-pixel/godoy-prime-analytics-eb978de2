@@ -223,7 +223,7 @@ export function EmbeddedAdvancedSearch({ defaultBairro = "" }: EmbeddedAdvancedS
       let totalQuery = buildBaseQuery();
       if (orConditions) totalQuery = totalQuery.or(orConditions);
       
-      const { data: allData, error: totalError } = await totalQuery;
+      const { data: allData, error: totalError } = await totalQuery.limit(5000);
       if (totalError) throw totalError;
 
       // Calculate real totals from ALL matching records

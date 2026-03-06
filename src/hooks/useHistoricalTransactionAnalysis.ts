@@ -445,7 +445,8 @@ export function useHistoricalTransactionAnalysis(logradouro: string, bairro: str
             .ilike('bairro', normalizedBairro)
             .eq('uso', 'Residencial')
             .gte('data_transacao', currentYearStart)
-            .lte('data_transacao', currentYearEnd);
+            .lte('data_transacao', currentYearEnd)
+            .limit(2000);
 
           if (cyData && cyData.length > 0) {
             hasCurrentYearData = true;

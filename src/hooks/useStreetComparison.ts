@@ -68,7 +68,8 @@ export function useStreetComparison(logradouros: string[], periodoMeses: number 
           .gte('percentual_transferido', 90)
           .gte('data_transacao', startDateStr)
           .not('valor_m2', 'is', null)
-          .lte('valor_m2', outlierLimit);
+          .lte('valor_m2', outlierLimit)
+          .limit(2000);
 
         if (currentError) {
           console.error('Erro ao buscar dados:', currentError);
@@ -103,7 +104,8 @@ export function useStreetComparison(logradouros: string[], periodoMeses: number 
           .gte('data_transacao', previousStartDate.toISOString().split('T')[0])
           .lt('data_transacao', previousEndDate.toISOString().split('T')[0])
           .not('valor_m2', 'is', null)
-          .lte('valor_m2', outlierLimit);
+          .lte('valor_m2', outlierLimit)
+          .limit(2000);
 
         let variacao_periodo: number | null = null;
         if (previousData && previousData.length > 0) {
