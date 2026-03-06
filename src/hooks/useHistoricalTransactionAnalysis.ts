@@ -137,6 +137,55 @@ export function useHistoricalTransactionAnalysis(logradouro: string, bairro: str
       // IMPORTANTE (contagem): NÃO filtrar por valor_m2 aqui, pois muitos registros
       // podem não ter valor_m2 calculado. A filtragem por outliers é aplicada apenas
       // para estatísticas de preço.
+      // Se temos ruas internas do condomínio, buscar em todas elas
+      if (ruasInternas && ruasInternas.length > 0) {
+        const orFilter = ruasInternas.map(rua => `logradouro.ilike.%${rua}%`).join(',');
+        const { data, error: e } = await supabase
+          .from('itbi_transactions')
+          .select('data_transacao, valor_m2, total_transacoes')
+          .or(orFilter)
+          .ilike('bairro', normalizedBairro)
+          .eq('uso', 'Residencial')
+          .gte('data_transacao', startDate)
+          .lte('data_transacao', endDate)
+          .order('data_transacao', { ascending: true });
+
+        if (e) throw e;
+        transactions = data || [];
+      } else {
+        // Busca padrão por logradouro com fallback de normalização
+        const searchCandidates = Array.from(
+          new Set([
+            normalizedLogradouro,
+            normalizeForSearch(normalizedLogradouro),
+            normalizedLogradouro.replace(/^\s*(Avenida|Av\.?|AVN\.?|Rua|Estrada)\s+/i, ''),
+          ])
+        ).filter(Boolean);
+
+        for (const candidate of searchCandidates) {
+          const { data, error: e } = await supabase
+            .from('itbi_transactions')
+            .select('data_transacao, valor_m2, total_transacoes')
+            .ilike('logradouro', `%${candidate}%`)
+            .ilike('bairro', normalizedBairro)
+            .eq('uso', 'Residencial')
+            .gte('data_transacao', startDate)
+            .lte('data_transacao', endDate)
+            .order('data_transacao', { ascending: true });
+
+          if (e) {
+            error = e;
+            break;
+          }
+
+          if (data && data.length > 0) {
+            transactions = data;
+            break;
+          }
+        }
+      }
+
+      // Build searchCandidates for current-year check (used later)
       const searchCandidates = Array.from(
         new Set([
           normalizedLogradouro,
@@ -144,31 +193,6 @@ export function useHistoricalTransactionAnalysis(logradouro: string, bairro: str
           normalizedLogradouro.replace(/^\s*(Avenida|Av\.?|AVN\.?|Rua|Estrada)\s+/i, ''),
         ])
       ).filter(Boolean);
-
-      let transactions: { data_transacao: string; valor_m2: number | null; total_transacoes: number | null }[] | null = null;
-      let error: unknown = null;
-
-      for (const candidate of searchCandidates) {
-        const { data, error: e } = await supabase
-          .from('itbi_transactions')
-          .select('data_transacao, valor_m2, total_transacoes')
-          .ilike('logradouro', `%${candidate}%`)
-          .ilike('bairro', normalizedBairro)
-          .eq('uso', 'Residencial')
-          .gte('data_transacao', startDate)
-          .lte('data_transacao', endDate)
-          .order('data_transacao', { ascending: true });
-
-        if (e) {
-          error = e;
-          break;
-        }
-
-        if (data && data.length > 0) {
-          transactions = data;
-          break;
-        }
-      }
 
       if (error) throw error;
 
