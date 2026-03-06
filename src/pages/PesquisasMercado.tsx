@@ -30,6 +30,8 @@ import { useFirstVisitTour } from "@/hooks/useFirstVisitTour";
 import { TransactionMap } from "@/components/maps/TransactionMap";
 import { Switch } from "@/components/ui/switch";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { CondominioSelector } from "@/components/valuation/CondominioSelector";
+import type { CondominioSelecionado } from "@/types/valuation";
 
 const PERIODO_OPTIONS = [
   { value: '6', label: 'Últimos 6 meses' },
@@ -84,6 +86,8 @@ export default function PesquisasMercado() {
   const [apenasIndividuais, setApenasIndividuais] = useState(false);
   const [valorM2Min, setValorM2Min] = useState<string>("");
   const [valorM2Max, setValorM2Max] = useState<string>("");
+  const [nomeCondominio, setNomeCondominio] = useState("");
+  const [condominioSelecionado, setCondominioSelecionado] = useState<CondominioSelecionado | null>(null);
 
   // Map data query
   const { data: mapData, isLoading: mapLoading } = useTransactionMapData(
@@ -100,6 +104,8 @@ export default function PesquisasMercado() {
   );
 
   // Queries
+  const condominioLogradouros = condominioSelecionado?.ruas_internas;
+
   const { data: transactionResult, isLoading: transactionLoading } = useTransactionSearch(
     {
       valorMin: valorMin && valorMin !== 'none' ? parseFloat(valorMin) : undefined,
@@ -112,6 +118,7 @@ export default function PesquisasMercado() {
       apenasIndividuais,
       valorM2Min: valorM2Min ? parseFloat(valorM2Min) : undefined,
       valorM2Max: valorM2Max ? parseFloat(valorM2Max) : undefined,
+      logradouros: condominioLogradouros,
     },
     searchTransactions
   );
@@ -137,6 +144,8 @@ export default function PesquisasMercado() {
     setApenasIndividuais(false);
     setValorM2Min("");
     setValorM2Max("");
+    setNomeCondominio("");
+    setCondominioSelecionado(null);
     setSearchTransactions(false);
     setVisibleCount(10);
     queryClient.removeQueries({ queryKey: ['transaction-search'] });
@@ -351,6 +360,21 @@ export default function PesquisasMercado() {
                     </SelectContent>
                   </Select>
                 </div>
+               </div>
+
+              {/* Condomínio selector */}
+              <div className="space-y-2">
+                <Label>Condomínio (opcional)</Label>
+                <CondominioSelector
+                  value={nomeCondominio}
+                  condominioSelecionado={condominioSelecionado}
+                  bairro={transacaoBairro}
+                  onChange={(nome, cond) => {
+                    setNomeCondominio(nome);
+                    setCondominioSelecionado(cond);
+                    setSearchTransactions(false);
+                  }}
+                />
               </div>
               
               <div className="grid grid-cols-2 gap-3 sm:gap-4">

@@ -1,5 +1,7 @@
 import { useState } from "react";
 import { Input } from "./ui/input";
+import { CondominioSelector } from "./valuation/CondominioSelector";
+import type { CondominioSelecionado } from "@/types/valuation";
 import { CurrencyInput } from "./ui/currency-input";
 import { Button } from "./ui/button";
 import { Label } from "./ui/label";
@@ -125,7 +127,8 @@ export function EmbeddedAdvancedSearch({ defaultBairro = "" }: EmbeddedAdvancedS
   const [anoFim, setAnoFim] = useState("");
   const [bairro, setBairro] = useState(defaultBairro);
   const [logradouro, setLogradouro] = useState("");
-  
+  const [nomeCondominio, setNomeCondominio] = useState("");
+  const [condominioSelecionado, setCondominioSelecionado] = useState<CondominioSelecionado | null>(null);
   // Autocomplete popover state for logradouro only
   const [logradouroPopoverOpen, setLogradouroPopoverOpen] = useState(false);
   
@@ -150,6 +153,7 @@ export function EmbeddedAdvancedSearch({ defaultBairro = "" }: EmbeddedAdvancedS
     anoFim?: string;
     bairro?: string;
     logradouro?: string;
+    logradouros?: string[];
   } | null>(null);
 
   // State for transaction details modal
@@ -196,7 +200,13 @@ export function EmbeddedAdvancedSearch({ defaultBairro = "" }: EmbeddedAdvancedS
       let fuzzyCorrection: { original: string; corrected: string } | undefined;
       let orConditions = '';
       
-      if (searchParams.logradouro) {
+      // When condominium logradouros are provided, use them as OR filter
+      if (searchParams.logradouros && searchParams.logradouros.length > 0) {
+        const normalizeAccent = (s: string) => s.normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+        orConditions = searchParams.logradouros
+          .map(rua => `logradouro.ilike.%${normalizeAccent(rua)}%`)
+          .join(',');
+      } else if (searchParams.logradouro) {
         const variations = generateFuzzyVariations(searchParams.logradouro);
         orConditions = variations.map(v => `logradouro.ilike.%${v}%`).join(',');
         
@@ -367,7 +377,8 @@ export function EmbeddedAdvancedSearch({ defaultBairro = "" }: EmbeddedAdvancedS
       anoInicio: anoInicio || undefined,
       anoFim: anoFim || undefined,
       bairro: bairro || undefined,
-      logradouro: logradouro || undefined,
+      logradouro: condominioSelecionado ? undefined : (logradouro || undefined),
+      logradouros: condominioSelecionado?.ruas_internas,
     });
   };
 
@@ -382,6 +393,8 @@ export function EmbeddedAdvancedSearch({ defaultBairro = "" }: EmbeddedAdvancedS
     setAnoFim("");
     setBairro("");
     setLogradouro("");
+    setNomeCondominio("");
+    setCondominioSelecionado(null);
     setSearchParams(null);
   };
 
@@ -670,6 +683,24 @@ export function EmbeddedAdvancedSearch({ defaultBairro = "" }: EmbeddedAdvancedS
             </Select>
           </div>
         </div>
+      </div>
+
+      {/* Condomínio selector */}
+      <div className="space-y-1">
+        <Label className="text-xs">Condomínio (opcional)</Label>
+        <CondominioSelector
+          value={nomeCondominio}
+          condominioSelecionado={condominioSelecionado}
+          bairro={bairro}
+          onChange={(nome, cond) => {
+            setNomeCondominio(nome);
+            setCondominioSelecionado(cond);
+            if (cond) {
+              // Clear manual logradouro when condominium is selected
+              setLogradouro("");
+            }
+          }}
+        />
       </div>
 
       {/* Actions */}

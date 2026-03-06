@@ -35,6 +35,7 @@ export interface TransactionSearchParams {
   apenasIndividuais?: boolean;
   valorM2Min?: number;
   valorM2Max?: number;
+  logradouros?: string[];
 }
 
 export interface MicrobairroLiquidez {
@@ -45,7 +46,7 @@ export interface MicrobairroLiquidez {
 
 export function useTransactionSearch(params: TransactionSearchParams, enabled: boolean = false) {
   return useQuery<MicrobairroLiquidez[]>({
-    queryKey: ['transaction-search-v4', params.valorMin, params.valorMax, params.bairro, params.tipologia, params.periodoMeses, params.areaMin, params.areaMax, params.apenasIndividuais, params.valorM2Min, params.valorM2Max],
+    queryKey: ['transaction-search-v4', params.valorMin, params.valorMax, params.bairro, params.tipologia, params.periodoMeses, params.areaMin, params.areaMax, params.apenasIndividuais, params.valorM2Min, params.valorM2Max, params.logradouros],
     queryFn: async () => {
       const meses = params.periodoMeses || 12;
       const startDateCalc = new Date();
@@ -66,7 +67,18 @@ export function useTransactionSearch(params: TransactionSearchParams, enabled: b
         .gte('percentual_transferido', 90)
         .gte('data_transacao', startDate);
 
-      if (params.bairro) {
+      // When logradouros array is provided (condominium search), filter by internal streets
+      if (params.logradouros && params.logradouros.length > 0) {
+        const normalizeAccent = (s: string) => s.normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+        const orConditions = params.logradouros
+          .map(rua => `logradouro.ilike.%${normalizeAccent(rua)}%`)
+          .join(',');
+        query = query.or(orConditions);
+        // Still filter by bairro if provided
+        if (params.bairro) {
+          query = query.ilike('bairro', params.bairro);
+        }
+      } else if (params.bairro) {
         query = query.ilike('bairro', params.bairro);
       }
 
