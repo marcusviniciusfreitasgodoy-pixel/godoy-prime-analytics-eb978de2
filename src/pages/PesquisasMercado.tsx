@@ -30,6 +30,8 @@ import { useFirstVisitTour } from "@/hooks/useFirstVisitTour";
 import { TransactionMap } from "@/components/maps/TransactionMap";
 import { Switch } from "@/components/ui/switch";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { CondominioSelector } from "@/components/valuation/CondominioSelector";
+import type { CondominioSelecionado } from "@/types/valuation";
 
 const PERIODO_OPTIONS = [
   { value: '6', label: 'Últimos 6 meses' },
