@@ -83,6 +83,9 @@ export interface HistoricalAnalysis {
   dataSource?: 'logradouro' | 'bairro';
   logradouroUsado?: string;
   bairroUsado?: string;
+  hasCurrentYearData?: boolean;
+  currentYearCount?: number;
+  currentYearAvgM2?: number;
 }
 
 export interface ValuationState {
