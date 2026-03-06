@@ -144,6 +144,8 @@ export default function PesquisasMercado() {
     setApenasIndividuais(false);
     setValorM2Min("");
     setValorM2Max("");
+    setNomeCondominio("");
+    setCondominioSelecionado(null);
     setSearchTransactions(false);
     setVisibleCount(10);
     queryClient.removeQueries({ queryKey: ['transaction-search'] });
