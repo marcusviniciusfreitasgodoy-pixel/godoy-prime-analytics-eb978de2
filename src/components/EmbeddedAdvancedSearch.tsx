@@ -1,5 +1,7 @@
 import { useState } from "react";
 import { Input } from "./ui/input";
+import { CondominioSelector } from "./valuation/CondominioSelector";
+import type { CondominioSelecionado } from "@/types/valuation";
 import { CurrencyInput } from "./ui/currency-input";
 import { Button } from "./ui/button";
 import { Label } from "./ui/label";
