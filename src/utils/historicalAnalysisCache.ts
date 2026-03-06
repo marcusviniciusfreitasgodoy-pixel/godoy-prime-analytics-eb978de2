@@ -88,10 +88,11 @@ export function getCachedAnalysis(bairro: string, logradouro: string, ruasIntern
 export function setCachedAnalysis(
   bairro: string, 
   logradouro: string, 
-  data: HistoricalAnalysis
+  data: HistoricalAnalysis,
+  ruasInternas?: string[]
 ): void {
   try {
-    const key = generateCacheKey(bairro, logradouro);
+    const key = generateCacheKey(bairro, logradouro, ruasInternas);
     
     const entry: CacheEntry = {
       version: CACHE_VERSION,
