@@ -24,11 +24,12 @@ export function Step4Results({ result, state, combined }: Props) {
     ? calculateTerrainBonus(state.area_m2, state.area_terreno_m2)
     : null;
 
-  // Buscar análise histórica de 5 anos
+  // Buscar análise histórica de 5 anos (com ruas internas do condomínio quando disponível)
   const { data: historicalAnalysis, isLoading: loadingHistorical } = useHistoricalTransactionAnalysis(
     state.logradouro,
     state.bairro,
-    !!state.logradouro && !!state.bairro
+    !!state.logradouro && !!state.bairro,
+    state.condominioSelecionado?.ruas_internas
   );
 
   const formatCurrency = (value: number) => {
