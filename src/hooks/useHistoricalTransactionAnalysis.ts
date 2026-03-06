@@ -259,7 +259,7 @@ export function useHistoricalTransactionAnalysis(logradouro: string, bairro: str
 
         // Preço: só entra nas estatísticas se houver valor_m2 e estiver dentro dos limites
         const v = t.valor_m2;
-        if (typeof v === 'number' && v >= outlierMinLimit && v <= outlierLimit) {
+        if (typeof v === 'number' && v >= effectiveMinLimit && v <= outlierLimit) {
           yearlyMap[year].valores.push(v);
         }
       });
