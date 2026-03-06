@@ -1,7 +1,7 @@
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useMemo } from "react";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Search, Loader2, Building2, MapPin } from "lucide-react";
+import { Search, Loader2, Building2, MapPin, SearchX } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
 import type { CondominioSelecionado } from "@/types/valuation";
@@ -21,6 +21,11 @@ interface CondominioResult {
   total_transacoes_itbi: number | null;
 }
 
+/** Remove acentos para comparação accent-insensitive */
+function removeAccents(s: string): string {
+  return s.normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+}
+
 export function CondominioSelector({ value, condominioSelecionado, bairro, onChange }: Props) {
   const [searchTerm, setSearchTerm] = useState(value || "");
   const [showSuggestions, setShowSuggestions] = useState(false);
@@ -32,21 +37,52 @@ export function CondominioSelector({ value, condominioSelecionado, bairro, onCha
     setSearchTerm(value || "");
   }, [value]);
 
-  const { data: condominios, isLoading } = useQuery({
+  // Query: busca ampla no backend (sem acento), filtra no cliente
+  const { data: rawCondominios, isLoading } = useQuery({
     queryKey: ['condominios-search', searchTerm, bairro],
     queryFn: async () => {
       if (!searchTerm || searchTerm.length < 2) return [];
+      // Normaliza termo removendo acentos para busca no backend
+      const normalizedTerm = removeAccents(searchTerm);
       const { data, error } = await supabase
         .from('condominios_mapeamento')
         .select('id, nome_condominio, logradouro_padrao, ruas_internas, total_transacoes_itbi')
-        .ilike('nome_condominio', `%${searchTerm}%`)
-        .limit(10);
+        .or(`nome_condominio.ilike.%${normalizedTerm}%,logradouro_padrao.ilike.%${normalizedTerm}%`)
+        .limit(20);
       if (error) throw error;
       return (data || []) as CondominioResult[];
     },
     enabled: searchTerm.length >= 2 && showSuggestions,
     staleTime: 60_000,
   });
+
+  // Filtragem e ordenação client-side com accent-insensitive
+  const condominios = useMemo(() => {
+    if (!rawCondominios || rawCondominios.length === 0) return [];
+    const normalizedSearch = removeAccents(searchTerm).toUpperCase();
+
+    // Filtrar: match em nome, logradouro ou ruas internas (sem acento)
+    const filtered = rawCondominios.filter(c => {
+      const nome = removeAccents(c.nome_condominio).toUpperCase();
+      const logr = removeAccents(c.logradouro_padrao).toUpperCase();
+      if (nome.includes(normalizedSearch) || logr.includes(normalizedSearch)) return true;
+      // Verificar ruas internas
+      if (c.ruas_internas) {
+        return c.ruas_internas.some(rua => removeAccents(rua).toUpperCase().includes(normalizedSearch));
+      }
+      return false;
+    });
+
+    // Ordenar: match no início do nome > contém > mais transações
+    return filtered.sort((a, b) => {
+      const nameA = removeAccents(a.nome_condominio).toUpperCase();
+      const nameB = removeAccents(b.nome_condominio).toUpperCase();
+      const startsA = nameA.startsWith(normalizedSearch) ? 1 : 0;
+      const startsB = nameB.startsWith(normalizedSearch) ? 1 : 0;
+      if (startsA !== startsB) return startsB - startsA;
+      return (b.total_transacoes_itbi || 0) - (a.total_transacoes_itbi || 0);
+    }).slice(0, 10);
+  }, [rawCondominios, searchTerm]);
 
   // Close on click outside
   useEffect(() => {
@@ -71,6 +107,8 @@ export function CondominioSelector({ value, condominioSelecionado, bairro, onCha
       logradouro_padrao: cond.logradouro_padrao,
     });
   };
+
+  const showEmptyState = showSuggestions && searchTerm.length >= 2 && !isLoading && condominios.length === 0;
 
   return (
     <div className="relative">
@@ -105,6 +143,22 @@ export function CondominioSelector({ value, condominioSelecionado, bairro, onCha
             {condominioSelecionado.ruas_internas.length} rua(s) interna(s): {condominioSelecionado.ruas_internas.slice(0, 3).join(", ")}
             {condominioSelecionado.ruas_internas.length > 3 && ` +${condominioSelecionado.ruas_internas.length - 3}`}
           </div>
+        </div>
+      )}
+
+      {/* Empty state */}
+      {showEmptyState && (
+        <div
+          ref={suggestionsRef}
+          className="absolute z-50 w-full mt-1 bg-background border rounded-lg shadow-lg p-4 text-center"
+        >
+          <SearchX className="h-5 w-5 text-muted-foreground mx-auto mb-1" />
+          <p className="text-xs text-muted-foreground">
+            Nenhum condomínio encontrado para "<strong>{searchTerm}</strong>"
+          </p>
+          <p className="text-[10px] text-muted-foreground mt-1">
+            Tente outro nome ou deixe em branco
+          </p>
         </div>
       )}
 

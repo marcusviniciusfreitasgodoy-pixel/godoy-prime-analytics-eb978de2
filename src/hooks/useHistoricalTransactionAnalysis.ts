@@ -116,7 +116,7 @@ export function useHistoricalTransactionAnalysis(logradouro: string, bairro: str
       if (!normalizedLogradouro || !normalizedBairro) return null;
 
       // CACHE: Verificar se há dados em cache válidos
-      const cachedData = getCachedAnalysis(normalizedBairro, normalizedLogradouro);
+      const cachedData = getCachedAnalysis(normalizedBairro, normalizedLogradouro, ruasInternas);
       if (cachedData) {
         return cachedData;
       }
@@ -478,7 +478,7 @@ export function useHistoricalTransactionAnalysis(logradouro: string, bairro: str
       };
       
       // CACHE: Salvar resultado no cache persistente
-      setCachedAnalysis(normalizedBairro, normalizedLogradouro, result);
+      setCachedAnalysis(normalizedBairro, normalizedLogradouro, result, ruasInternas);
 
       return result;
     },

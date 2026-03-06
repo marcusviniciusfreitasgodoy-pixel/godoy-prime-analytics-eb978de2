@@ -336,10 +336,12 @@ export function Step0Identification({ state, updateState, showValidation = false
                   value={state.nomeCondominio}
                   condominioSelecionado={state.condominioSelecionado}
                   bairro={state.bairro}
-                  onChange={(nome, condominio) => {
+                onChange={(nome, condominio) => {
+                    // Limpar itbiData ao mudar condomínio para forçar recálculo no Passo 1
                     updateState({ 
                       nomeCondominio: nome,
                       condominioSelecionado: condominio,
+                      itbiData: condominio !== state.condominioSelecionado ? null : state.itbiData,
                     });
                   }}
                 />

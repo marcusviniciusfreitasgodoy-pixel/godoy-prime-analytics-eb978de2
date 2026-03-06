@@ -19,24 +19,27 @@ interface CacheEntry {
 }
 
 /**
- * Gera chave única para cache baseada em bairro e logradouro
+ * Gera chave única para cache baseada em bairro, logradouro e ruas internas
  */
-function generateCacheKey(bairro: string, logradouro: string): string {
+function generateCacheKey(bairro: string, logradouro: string, ruasInternas?: string[]): string {
   const normalizedBairro = bairro.toUpperCase().trim();
   const normalizedLogradouro = logradouro.toUpperCase().trim();
-  // Usar hash simples para evitar chaves muito longas
-  const hash = `${normalizedBairro}_${normalizedLogradouro}`.replace(/\s+/g, '_').substring(0, 50);
+  // Incluir ruas internas na chave para distinguir busca simples de busca por condomínio
+  const ruasHash = ruasInternas && ruasInternas.length > 0
+    ? '_RI' + ruasInternas.length
+    : '';
+  const hash = `${normalizedBairro}_${normalizedLogradouro}${ruasHash}`.replace(/\s+/g, '_').substring(0, 60);
   return `${CACHE_KEY_PREFIX}${hash}`;
 }
 
 /**
  * Recupera análise do cache se válida
  */
-export function getCachedAnalysis(bairro: string, logradouro: string): HistoricalAnalysis | null {
+export function getCachedAnalysis(bairro: string, logradouro: string, ruasInternas?: string[]): HistoricalAnalysis | null {
   try {
     const normalizedBairro = bairro.toUpperCase().trim();
     const normalizedLogradouro = logradouro.toUpperCase().trim();
-    const key = generateCacheKey(bairro, logradouro);
+    const key = generateCacheKey(bairro, logradouro, ruasInternas);
     const cached = localStorage.getItem(key);
     
     if (!cached) return null;
@@ -85,10 +88,11 @@ export function getCachedAnalysis(bairro: string, logradouro: string): Historica
 export function setCachedAnalysis(
   bairro: string, 
   logradouro: string, 
-  data: HistoricalAnalysis
+  data: HistoricalAnalysis,
+  ruasInternas?: string[]
 ): void {
   try {
-    const key = generateCacheKey(bairro, logradouro);
+    const key = generateCacheKey(bairro, logradouro, ruasInternas);
     
     const entry: CacheEntry = {
       version: CACHE_VERSION,
