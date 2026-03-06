@@ -127,7 +127,8 @@ export function ValuationEngine({ bairro = "BARRA DA TIJUCA", vistoriaData, edit
   const { data: historicalAnalysis } = useHistoricalTransactionAnalysis(
     state.logradouro,
     state.bairro,
-    !!state.logradouro && !!state.bairro && state.itbiData !== null
+    !!state.logradouro && !!state.bairro && state.itbiData !== null,
+    state.condominioSelecionado?.ruas_internas
   );
 
   // Check for editar data from props (priority over vistoria)

@@ -83,15 +83,26 @@ export function Step1Location({ state, updateState, combined, onAutoValidated }:
 
       setAutoFetchLoading(true);
       try {
-         const { data, error } = await supabase
+        // Se tem condomínio com ruas internas, buscar em todas as ruas
+        const ruasInternas = state.condominioSelecionado?.ruas_internas;
+        let query = supabase
           .from("itbi_transactions")
           .select("valor_m2, valor_transacao")
           .ilike("bairro", state.bairro)
           .eq("uso", "Residencial")
           .gte("percentual_transferido", 90)
           .not("valor_m2", "is", null)
-          .lte("valor_m2", 40000)
-          .ilike("logradouro", `%${state.logradouro}%`);
+          .lte("valor_m2", 40000);
+
+        if (ruasInternas && ruasInternas.length > 0) {
+          const orFilter = ruasInternas.map(rua => `logradouro.ilike.%${rua}%`).join(',');
+          query = query.or(orFilter);
+          console.log("[Step1] Auto-fetch ITBI para condomínio:", state.condominioSelecionado?.nome, "ruas:", ruasInternas.length);
+        } else {
+          query = query.ilike("logradouro", `%${state.logradouro}%`);
+        }
+
+        const { data, error } = await query;
 
       console.log("[Step1] Auto-fetch ITBI para:", state.logradouro, "bairro:", state.bairro, "resultados:", data?.length, "erro:", error);
 
