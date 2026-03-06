@@ -83,7 +83,7 @@ export function useTransactionMapData(params: UseTransactionMapDataParams, enabl
         query = query.eq('tipologia', tipologia);
       }
 
-      const { data: transactions, error } = await query;
+      const { data: transactions, error } = await query.limit(5000);
 
       if (error) {
         console.error('[useTransactionMapData] Erro ao buscar transações:', error);

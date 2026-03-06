@@ -100,7 +100,8 @@ export const SyncITBIButton = () => {
           .from('itbi_transactions')
           .select('data_transacao, total_transacoes')
           .gte('data_transacao', `${selectedYear}-01-01`)
-          .lte('data_transacao', `${selectedYear}-12-31`);
+          .lte('data_transacao', `${selectedYear}-12-31`)
+          .limit(5000);
 
         if (error) throw error;
 
