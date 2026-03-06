@@ -227,9 +227,16 @@ export function Step1Location({ state, updateState, combined, onAutoValidated }:
     // IQR = Q3 - Q1
     const iqr = q3 - q1;
     
-    // Limites: Q1 - 1.5*IQR e Q3 + 1.5*IQR
-    const lowerBound = q1 - 1.5 * iqr;
-    const upperBound = q3 + 1.5 * iqr;
+    const median = sorted[Math.floor(n / 2)];
+    
+    // Banda mínima de segurança: se IQR < 15% da mediana, usar ±20% da mediana
+    // Evita descartar valores legítimos em datasets pequenos com baixa variância
+    const minBand = median * 0.20;
+    const effectiveIQR = Math.max(iqr, minBand);
+    
+    // Limites: Q1 - 1.5*effectiveIQR e Q3 + 1.5*effectiveIQR
+    const lowerBound = q1 - 1.5 * effectiveIQR;
+    const upperBound = q3 + 1.5 * effectiveIQR;
     
     // Filtra valores dentro do intervalo
     return sorted.filter(v => v >= lowerBound && v <= upperBound);
