@@ -39,13 +39,19 @@ export function TerritorialAdmin() {
   // Count condominios without address on mount
   useEffect(() => {
     const countPending = async () => {
-      const { count } = await supabase
+      const { count: countNaoCadastrado } = await supabase
         .from("condominios_mapeamento")
         .select("id", { count: "exact", head: true })
         .like("logradouro_padrao", "%não cadastrado%")
         .not("latitude", "is", null)
         .not("longitude", "is", null);
-      setPendingSemEndereco(count ?? 0);
+      const { count: countNaoLocalizado } = await supabase
+        .from("condominios_mapeamento")
+        .select("id", { count: "exact", head: true })
+        .eq("logradouro_padrao", "Endereço não localizado via coordenadas")
+        .not("latitude", "is", null)
+        .not("longitude", "is", null);
+      setPendingSemEndereco((countNaoCadastrado ?? 0) + (countNaoLocalizado ?? 0));
     };
     countPending();
   }, [isReversing]);
