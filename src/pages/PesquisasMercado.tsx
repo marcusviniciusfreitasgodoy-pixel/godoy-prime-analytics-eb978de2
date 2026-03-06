@@ -104,6 +104,8 @@ export default function PesquisasMercado() {
   );
 
   // Queries
+  const condominioLogradouros = condominioSelecionado?.ruas_internas;
+
   const { data: transactionResult, isLoading: transactionLoading } = useTransactionSearch(
     {
       valorMin: valorMin && valorMin !== 'none' ? parseFloat(valorMin) : undefined,
@@ -116,6 +118,7 @@ export default function PesquisasMercado() {
       apenasIndividuais,
       valorM2Min: valorM2Min ? parseFloat(valorM2Min) : undefined,
       valorM2Max: valorM2Max ? parseFloat(valorM2Max) : undefined,
+      logradouros: condominioLogradouros,
     },
     searchTransactions
   );
