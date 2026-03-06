@@ -685,6 +685,24 @@ export function EmbeddedAdvancedSearch({ defaultBairro = "" }: EmbeddedAdvancedS
         </div>
       </div>
 
+      {/* Condomínio selector */}
+      <div className="space-y-1">
+        <Label className="text-xs">Condomínio (opcional)</Label>
+        <CondominioSelector
+          value={nomeCondominio}
+          condominioSelecionado={condominioSelecionado}
+          bairro={bairro}
+          onChange={(nome, cond) => {
+            setNomeCondominio(nome);
+            setCondominioSelecionado(cond);
+            if (cond) {
+              // Clear manual logradouro when condominium is selected
+              setLogradouro("");
+            }
+          }}
+        />
+      </div>
+
       {/* Actions */}
       <div className="flex flex-wrap gap-2">
         <Button onClick={handleSearch} disabled={isLoading || isFetching} className="flex-1">
