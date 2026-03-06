@@ -46,7 +46,10 @@ export function HistoricalAnalysisChart({ analysis }: Props) {
     alertas,
     dataSource,
     logradouroUsado,
-    bairroUsado
+    bairroUsado,
+    hasCurrentYearData,
+    currentYearCount,
+    currentYearAvgM2
   } = analysis;
 
   const formatCurrency = (value: number) => {
