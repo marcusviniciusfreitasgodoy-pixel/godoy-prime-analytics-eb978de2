@@ -26,6 +26,11 @@ function removeAccents(s: string): string {
   return s.normalize('NFD').replace(/[\u0300-\u036f]/g, '');
 }
 
+/** Substitui vogais por _ (wildcard ILIKE) para busca accent-agnostic no PostgreSQL */
+function toAccentWildcard(s: string): string {
+  return s.replace(/[aeiouáàâãéèêíìóòôõúùü]/gi, '_');
+}
+
 export function CondominioSelector({ value, condominioSelecionado, bairro, onChange }: Props) {
   const [searchTerm, setSearchTerm] = useState(value || "");
   const [showSuggestions, setShowSuggestions] = useState(false);
@@ -43,11 +48,11 @@ export function CondominioSelector({ value, condominioSelecionado, bairro, onCha
     queryFn: async () => {
       if (!searchTerm || searchTerm.length < 2) return [];
       // Normaliza termo removendo acentos para busca no backend
-      const normalizedTerm = removeAccents(searchTerm);
+      const wildcardTerm = toAccentWildcard(removeAccents(searchTerm));
       const { data, error } = await supabase
         .from('condominios_mapeamento')
         .select('id, nome_condominio, logradouro_padrao, ruas_internas, total_transacoes_itbi')
-        .or(`nome_condominio.ilike.%${normalizedTerm}%,logradouro_padrao.ilike.%${normalizedTerm}%`)
+        .or(`nome_condominio.ilike.%${wildcardTerm}%,logradouro_padrao.ilike.%${wildcardTerm}%`)
         .limit(20);
       if (error) throw error;
       return (data || []) as CondominioResult[];
