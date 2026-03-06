@@ -504,6 +504,40 @@ export const generateRecommendation = (
   };
 };
 
+// Aplica seleção de base (min/max/custom) sobre os preços combinados
+export const applyBaseSelection = (
+  combined: CombinedPrices,
+  baseSelected: "min" | "med" | "max" | "custom",
+  customBaseM2: number | null
+): CombinedPrices => {
+  if (baseSelected === "med") return combined;
+
+  const original_med = combined.med_m2;
+  if (!original_med || original_med === 0) return combined;
+
+  let newMed: number;
+
+  if (baseSelected === "min") {
+    newMed = combined.min_m2;
+  } else if (baseSelected === "max") {
+    newMed = combined.max_m2;
+  } else if (baseSelected === "custom" && customBaseM2 && customBaseM2 > 0) {
+    newMed = customBaseM2;
+  } else {
+    return combined;
+  }
+
+  // Mantém proporção relativa do spread original
+  const ratio = newMed / original_med;
+
+  return {
+    ...combined,
+    min_m2: Math.round(combined.min_m2 * ratio * 100) / 100,
+    med_m2: Math.round(newMed * 100) / 100,
+    max_m2: Math.round(combined.max_m2 * ratio * 100) / 100,
+  };
+};
+
 // Função principal que calcula tudo
 export const calculateValuation = (
   area_m2: number,
@@ -515,10 +549,13 @@ export const calculateValuation = (
   doc_factor: number,
   bonusTerreno: number = 0,
   tipoImovel: string = "Apartamento",
-  liquidityScore?: number // Score de liquidez histórico (0-100)
+  liquidityScore?: number,
+  baseSelected: "min" | "med" | "max" | "custom" = "med",
+  customBaseM2: number | null = null
 ): ValuationResult => {
-  // 1. Combina preços
-  const combined = calculateCombinedPrices(itbi, anuncio);
+  // 1. Combina preços e aplica seleção de base
+  const rawCombined = calculateCombinedPrices(itbi, anuncio);
+  const combined = applyBaseSelection(rawCombined, baseSelected, customBaseM2);
 
   // 2. Calcula ajuste total (com caps diferenciados por tipo de imóvel)
   const { total: adjustment, auto_capped } = calculateTotalAdjustment(
