@@ -35,6 +35,7 @@ export interface TransactionSearchParams {
   apenasIndividuais?: boolean;
   valorM2Min?: number;
   valorM2Max?: number;
+  logradouros?: string[];
 }
 
 export interface MicrobairroLiquidez {
