@@ -15,7 +15,7 @@ import { Step3Questionnaire } from "./Step3Questionnaire";
 import { Step4Results } from "./Step4Results";
 import { Step5Recommendation } from "./Step5Recommendation";
 import { AutoSaveIndicator } from "./AutoSaveIndicator";
-import { calculateValuation, calculateCombinedPrices } from "@/utils/valuationCalculations";
+import { calculateValuation, calculateCombinedPrices, applyBaseSelection } from "@/utils/valuationCalculations";
 import { ValuationState, initialValuationState } from "@/types/valuation";
 import { useHistoricalTransactionAnalysis } from "@/hooks/useHistoricalTransactionAnalysis";
 import { useAutoSaveValuation } from "@/hooks/useAutoSaveValuation";
