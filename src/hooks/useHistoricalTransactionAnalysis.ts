@@ -157,7 +157,8 @@ export function useHistoricalTransactionAnalysis(logradouro: string, bairro: str
           .eq('uso', 'Residencial')
           .gte('data_transacao', startDate)
           .lte('data_transacao', condoEndDate)
-          .order('data_transacao', { ascending: true });
+           .order('data_transacao', { ascending: true })
+           .limit(5000);
 
         if (e) throw e;
         transactions = data || [];
