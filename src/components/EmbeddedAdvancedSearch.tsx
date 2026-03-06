@@ -127,7 +127,8 @@ export function EmbeddedAdvancedSearch({ defaultBairro = "" }: EmbeddedAdvancedS
   const [anoFim, setAnoFim] = useState("");
   const [bairro, setBairro] = useState(defaultBairro);
   const [logradouro, setLogradouro] = useState("");
-  
+  const [nomeCondominio, setNomeCondominio] = useState("");
+  const [condominioSelecionado, setCondominioSelecionado] = useState<CondominioSelecionado | null>(null);
   // Autocomplete popover state for logradouro only
   const [logradouroPopoverOpen, setLogradouroPopoverOpen] = useState(false);
   
