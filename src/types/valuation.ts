@@ -88,11 +88,18 @@ export interface HistoricalAnalysis {
   currentYearAvgM2?: number;
 }
 
+export interface CondominioSelecionado {
+  nome: string;
+  ruas_internas: string[];
+  logradouro_padrao: string;
+}
+
 export interface ValuationState {
   // Step 0: Identificação do Imóvel
   numero: string;
   complemento: string;
   nomeCondominio: string;
+  condominioSelecionado: CondominioSelecionado | null;
   tipoImovel: string;
   quartos: number;
   suites: number;
@@ -143,6 +150,7 @@ export const initialValuationState: ValuationState = {
   numero: "",
   complemento: "",
   nomeCondominio: "",
+  condominioSelecionado: null,
   tipoImovel: "",
   quartos: 0,
   suites: 0,

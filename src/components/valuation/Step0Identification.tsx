@@ -5,11 +5,12 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Building2, User, Calendar, MapPin, Home, TrendingUp, TrendingDown, Minus, Search, Loader2, CheckCircle2, Database, AlertCircle } from "lucide-react";
-import type { ValuationState } from "@/types/valuation";
+import type { ValuationState, CondominioSelecionado } from "@/types/valuation";
 import { isCasaType, calculateTerrainBonus } from "@/hooks/useValuationCharacteristics";
 import { useEffect, useState, useRef } from "react";
 import { useOfficialStreetSuggestions, type OfficialStreetSuggestion } from "@/hooks/useOfficialStreetSuggestions";
 import { BairroSelector } from "@/components/BairroSelector";
+import { CondominioSelector } from "@/components/valuation/CondominioSelector";
 
 interface Props {
   state: ValuationState;
@@ -296,16 +297,36 @@ export function Step0Identification({ state, updateState, showValidation = false
               </div>
             </div>
             
-            <div>
-              <Label htmlFor="nomeCondominio" className="text-xs sm:text-sm">Nome do Condomínio (opcional)</Label>
-              <Input
-                id="nomeCondominio"
-                value={state.nomeCondominio}
-                onChange={(e) => updateState({ nomeCondominio: e.target.value })}
-                placeholder="Ex: Riserva Golf"
-                className="h-10 sm:h-9"
-              />
-            </div>
+            {/* Nome do Condomínio - autocomplete para Casa em Condomínio */}
+            {state.tipoImovel === "Casa em Condomínio" ? (
+              <div>
+                <Label className="text-xs sm:text-sm">Nome do Condomínio</Label>
+                <div className="mt-1">
+                  <CondominioSelector
+                    value={state.nomeCondominio}
+                    condominioSelecionado={state.condominioSelecionado}
+                    bairro={state.bairro}
+                    onChange={(nome, condominio) => {
+                      updateState({ 
+                        nomeCondominio: nome,
+                        condominioSelecionado: condominio,
+                      });
+                    }}
+                  />
+                </div>
+              </div>
+            ) : (
+              <div>
+                <Label htmlFor="nomeCondominio" className="text-xs sm:text-sm">Nome do Condomínio (opcional)</Label>
+                <Input
+                  id="nomeCondominio"
+                  value={state.nomeCondominio}
+                  onChange={(e) => updateState({ nomeCondominio: e.target.value })}
+                  placeholder="Ex: Riserva Golf"
+                  className="h-10 sm:h-9"
+                />
+              </div>
+            )}
           </div>
         </CardContent>
       </Card>
