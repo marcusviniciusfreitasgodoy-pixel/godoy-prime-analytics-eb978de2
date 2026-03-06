@@ -95,7 +95,11 @@ export function Step1Location({ state, updateState, combined, onAutoValidated }:
           .lte("valor_m2", 40000);
 
         if (ruasInternas && ruasInternas.length > 0) {
-          const orFilter = ruasInternas.map(rua => `logradouro.ilike.%${rua}%`).join(',');
+          // Normalizar acentos das ruas internas para match com banco (ex: "Nélson" → "Nelson")
+          const normalizedRuas = ruasInternas.map(rua => 
+            rua.normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+          );
+          const orFilter = normalizedRuas.map(rua => `logradouro.ilike.%${rua}%`).join(',');
           query = query.or(orFilter);
           console.log("[Step1] Auto-fetch ITBI para condomínio:", state.condominioSelecionado?.nome, "ruas:", ruasInternas.length);
         } else {

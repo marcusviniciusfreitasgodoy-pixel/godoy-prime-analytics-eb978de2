@@ -430,7 +430,7 @@ export function useHistoricalTransactionAnalysis(logradouro: string, bairro: str
       let currentYearCount = 0;
       let currentYearAvgM2 = 0;
 
-      if (dataSource === 'bairro' && logradouroTransactionCount < 15) {
+      if (dataSource === 'bairro' && logradouroTransactionCount < fallbackThreshold) {
         const currentYearStart = `${currentYear}-01-01`;
         const currentYearEnd = `${currentYear}-12-31`;
 
