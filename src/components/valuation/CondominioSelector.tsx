@@ -89,18 +89,23 @@ export function CondominioSelector({ value, condominioSelecionado, bairro, onCha
     }).slice(0, 10);
   }, [rawCondominios, searchTerm]);
 
-  // Close on click outside
+  // Close on click/touch outside
   useEffect(() => {
-    const handleClickOutside = (e: MouseEvent) => {
+    const handleClickOutside = (e: MouseEvent | TouchEvent) => {
+      const target = e.target as Node;
       if (
-        suggestionsRef.current && !suggestionsRef.current.contains(e.target as Node) &&
-        inputRef.current && !inputRef.current.contains(e.target as Node)
+        suggestionsRef.current && !suggestionsRef.current.contains(target) &&
+        inputRef.current && !inputRef.current.contains(target)
       ) {
         setShowSuggestions(false);
       }
     };
     document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
+    document.addEventListener("touchstart", handleClickOutside);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+      document.removeEventListener("touchstart", handleClickOutside);
+    };
   }, []);
 
   const handleSelect = (cond: CondominioResult) => {

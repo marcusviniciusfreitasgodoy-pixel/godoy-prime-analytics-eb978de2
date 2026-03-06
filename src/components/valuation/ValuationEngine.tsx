@@ -15,7 +15,7 @@ import { Step3Questionnaire } from "./Step3Questionnaire";
 import { Step4Results } from "./Step4Results";
 import { Step5Recommendation } from "./Step5Recommendation";
 import { AutoSaveIndicator } from "./AutoSaveIndicator";
-import { calculateValuation, calculateCombinedPrices } from "@/utils/valuationCalculations";
+import { calculateValuation, calculateCombinedPrices, applyBaseSelection } from "@/utils/valuationCalculations";
 import { ValuationState, initialValuationState } from "@/types/valuation";
 import { useHistoricalTransactionAnalysis } from "@/hooks/useHistoricalTransactionAnalysis";
 import { useAutoSaveValuation } from "@/hooks/useAutoSaveValuation";
@@ -321,8 +321,11 @@ export function ValuationEngine({ bairro = "BARRA DA TIJUCA", vistoriaData, edit
   };
 
   const progress = ((currentStep + 1) / 6) * 100;
-  const combined = state.itbiData 
+  const rawCombined = state.itbiData 
     ? calculateCombinedPrices(state.itbiData, state.anuncioData || undefined)
+    : null;
+  const combined = rawCombined 
+    ? applyBaseSelection(rawCombined, state.baseSelected, state.customBaseM2)
     : null;
 
   // Hooks de auto-save DEVEM ser chamados sempre (nunca após returns condicionais)
@@ -541,7 +544,7 @@ export function ValuationEngine({ bairro = "BARRA DA TIJUCA", vistoriaData, edit
               <Step1Location
                 state={state}
                 updateState={updateState}
-                combined={combined}
+                combined={rawCombined}
                 onAutoValidated={() => {
                   if (autoAdvanceAfterLocation) {
                     setAutoAdvanceAfterLocation(false);
@@ -557,7 +560,7 @@ export function ValuationEngine({ bairro = "BARRA DA TIJUCA", vistoriaData, edit
               <Step2BasicData
                 state={state}
                 updateState={updateState}
-                combined={combined}
+                combined={rawCombined}
               />
             </div>
           )}
