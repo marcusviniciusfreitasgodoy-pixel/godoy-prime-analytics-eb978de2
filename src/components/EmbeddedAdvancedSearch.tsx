@@ -200,7 +200,13 @@ export function EmbeddedAdvancedSearch({ defaultBairro = "" }: EmbeddedAdvancedS
       let fuzzyCorrection: { original: string; corrected: string } | undefined;
       let orConditions = '';
       
-      if (searchParams.logradouro) {
+      // When condominium logradouros are provided, use them as OR filter
+      if (searchParams.logradouros && searchParams.logradouros.length > 0) {
+        const normalizeAccent = (s: string) => s.normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+        orConditions = searchParams.logradouros
+          .map(rua => `logradouro.ilike.%${normalizeAccent(rua)}%`)
+          .join(',');
+      } else if (searchParams.logradouro) {
         const variations = generateFuzzyVariations(searchParams.logradouro);
         orConditions = variations.map(v => `logradouro.ilike.%${v}%`).join(',');
         
