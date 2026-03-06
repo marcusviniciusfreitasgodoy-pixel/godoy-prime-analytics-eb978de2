@@ -377,7 +377,8 @@ export function EmbeddedAdvancedSearch({ defaultBairro = "" }: EmbeddedAdvancedS
       anoInicio: anoInicio || undefined,
       anoFim: anoFim || undefined,
       bairro: bairro || undefined,
-      logradouro: logradouro || undefined,
+      logradouro: condominioSelecionado ? undefined : (logradouro || undefined),
+      logradouros: condominioSelecionado?.ruas_internas,
     });
   };
 
