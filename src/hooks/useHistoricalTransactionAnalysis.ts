@@ -66,6 +66,10 @@ export interface HistoricalAnalysis {
   dataSource: 'logradouro' | 'bairro'; // Indica se usou logradouro específico ou bairro todo
   logradouroUsado: string; // Logradouro usado na busca
   bairroUsado: string; // Bairro usado na busca
+  // Dados do ano corrente (fora da janela histórica)
+  hasCurrentYearData?: boolean;
+  currentYearCount?: number;
+  currentYearAvgM2?: number;
 }
 
 // Limites MÍNIMOS de outliers por bairro (valores muito abaixo são suspeitos)
@@ -387,6 +391,39 @@ export function useHistoricalTransactionAnalysis(logradouro: string, bairro: str
         yearsWithData.length
       );
       
+      // Consulta leve: verificar se há transações do logradouro no ano corrente
+      let hasCurrentYearData = false;
+      let currentYearCount = 0;
+      let currentYearAvgM2 = 0;
+
+      if (dataSource === 'bairro' && logradouroTransactionCount < 15) {
+        const currentYearStart = `${currentYear}-01-01`;
+        const currentYearEnd = `${currentYear}-12-31`;
+
+        for (const candidate of searchCandidates) {
+          const { data: cyData } = await supabase
+            .from('itbi_transactions')
+            .select('valor_m2, total_transacoes')
+            .ilike('logradouro', `%${candidate}%`)
+            .ilike('bairro', normalizedBairro)
+            .eq('uso', 'Residencial')
+            .gte('data_transacao', currentYearStart)
+            .lte('data_transacao', currentYearEnd);
+
+          if (cyData && cyData.length > 0) {
+            hasCurrentYearData = true;
+            currentYearCount = cyData.reduce((sum, r) => sum + (r.total_transacoes || 1), 0);
+            const validValues = cyData
+              .filter(r => typeof r.valor_m2 === 'number' && r.valor_m2 >= outlierMinLimit && r.valor_m2 <= outlierLimit)
+              .map(r => r.valor_m2 as number);
+            if (validValues.length > 0) {
+              currentYearAvgM2 = Math.round(validValues.reduce((a, b) => a + b, 0) / validValues.length);
+            }
+            break;
+          }
+        }
+      }
+
       const result: HistoricalAnalysis = {
         yearlyData,
         transactionTrend,
@@ -401,6 +438,9 @@ export function useHistoricalTransactionAnalysis(logradouro: string, bairro: str
         dataSource,
         logradouroUsado: normalizedLogradouro,
         bairroUsado: normalizedBairro,
+        hasCurrentYearData,
+        currentYearCount,
+        currentYearAvgM2,
       };
       
       // CACHE: Salvar resultado no cache persistente

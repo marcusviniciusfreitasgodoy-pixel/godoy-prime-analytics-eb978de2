@@ -46,7 +46,10 @@ export function HistoricalAnalysisChart({ analysis }: Props) {
     alertas,
     dataSource,
     logradouroUsado,
-    bairroUsado
+    bairroUsado,
+    hasCurrentYearData,
+    currentYearCount,
+    currentYearAvgM2
   } = analysis;
 
   const formatCurrency = (value: number) => {
@@ -186,6 +189,21 @@ export function HistoricalAnalysisChart({ analysis }: Props) {
               </p>
             </div>
           </div>
+
+          {/* Alerta de dados do ano corrente */}
+          {dataSource === 'bairro' && hasCurrentYearData && (
+            <div className="bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 rounded-lg p-3">
+              <div className="flex items-start gap-2">
+                <Info className="h-4 w-4 text-amber-600 mt-0.5 shrink-0" />
+                <p className="text-xs text-amber-800 dark:text-amber-200">
+                  Este logradouro possui <strong>{currentYearCount} transação(ões) em {new Date().getFullYear()}</strong>
+                  {currentYearAvgM2 > 0 && <> (R$ {currentYearAvgM2.toLocaleString('pt-BR')}/m²)</>}, 
+                  porém não há volume suficiente no período histórico ({new Date().getFullYear() - 5}–{new Date().getFullYear() - 1}) para análise individual. 
+                  Os dados do bairro <strong>{bairroUsado}</strong> são exibidos como referência.
+                </p>
+              </div>
+            </div>
+          )}
 
           {/* Alertas */}
           {alertas.length > 0 && (
