@@ -360,6 +360,21 @@ export default function PesquisasMercado() {
                     </SelectContent>
                   </Select>
                 </div>
+               </div>
+
+              {/* Condomínio selector */}
+              <div className="space-y-2">
+                <Label>Condomínio (opcional)</Label>
+                <CondominioSelector
+                  value={nomeCondominio}
+                  condominioSelecionado={condominioSelecionado}
+                  bairro={transacaoBairro}
+                  onChange={(nome, cond) => {
+                    setNomeCondominio(nome);
+                    setCondominioSelecionado(cond);
+                    setSearchTransactions(false);
+                  }}
+                />
               </div>
               
               <div className="grid grid-cols-2 gap-3 sm:gap-4">
