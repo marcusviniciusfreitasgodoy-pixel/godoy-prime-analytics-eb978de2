@@ -457,6 +457,7 @@ export default function HistoricoAvaliacoes() {
       numero: selectedValuation.numero || "",
       complemento: selectedValuation.complemento || "",
       nomeCondominio: selectedValuation.nome_condominio || "",
+      condominioSelecionado: null,
       tipoImovel: selectedValuation.property_type || "",
       quartos: selectedValuation.quartos || 0,
       suites: selectedValuation.suites || 0,
