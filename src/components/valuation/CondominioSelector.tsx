@@ -26,6 +26,11 @@ function removeAccents(s: string): string {
   return s.normalize('NFD').replace(/[\u0300-\u036f]/g, '');
 }
 
+/** Substitui vogais por _ (wildcard ILIKE) para busca accent-agnostic no PostgreSQL */
+function toAccentWildcard(s: string): string {
+  return s.replace(/[aeiouáàâãéèêíìóòôõúùü]/gi, '_');
+}
+
 export function CondominioSelector({ value, condominioSelecionado, bairro, onChange }: Props) {
   const [searchTerm, setSearchTerm] = useState(value || "");
   const [showSuggestions, setShowSuggestions] = useState(false);
