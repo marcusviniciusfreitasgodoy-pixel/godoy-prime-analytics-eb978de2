@@ -113,6 +113,15 @@ Deno.serve(async (req) => {
           }
         } else {
           console.warn(`Geocoding failed for ${condo.id}: ${data.status}`);
+          if (data.status === "ZERO_RESULTS") {
+            await supabaseAdmin
+              .from("condominios_mapeamento")
+              .update({
+                logradouro_padrao: "Endereço não localizado via coordenadas",
+                atualizado_em: new Date().toISOString(),
+              })
+              .eq("id", condo.id);
+          }
           erros++;
         }
       } catch (err) {
