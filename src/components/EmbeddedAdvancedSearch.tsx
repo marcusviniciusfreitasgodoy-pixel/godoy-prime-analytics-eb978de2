@@ -393,6 +393,8 @@ export function EmbeddedAdvancedSearch({ defaultBairro = "" }: EmbeddedAdvancedS
     setAnoFim("");
     setBairro("");
     setLogradouro("");
+    setNomeCondominio("");
+    setCondominioSelecionado(null);
     setSearchParams(null);
   };
 
