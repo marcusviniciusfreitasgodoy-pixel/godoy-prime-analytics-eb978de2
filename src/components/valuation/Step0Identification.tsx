@@ -328,36 +328,23 @@ export function Step0Identification({ state, updateState, showValidation = false
               </div>
             </div>
             
-            {/* Nome do Condomínio - autocomplete para Casa em Condomínio */}
-            {state.tipoImovel === "Casa em Condomínio" ? (
-              <div>
-                <Label className="text-xs sm:text-sm">Nome do Condomínio</Label>
-                <div className="mt-1">
-                  <CondominioSelector
-                    value={state.nomeCondominio}
-                    condominioSelecionado={state.condominioSelecionado}
-                    bairro={state.bairro}
-                    onChange={(nome, condominio) => {
-                      updateState({ 
-                        nomeCondominio: nome,
-                        condominioSelecionado: condominio,
-                      });
-                    }}
-                  />
-                </div>
-              </div>
-            ) : (
-              <div>
-                <Label htmlFor="nomeCondominio" className="text-xs sm:text-sm">Nome do Condomínio (opcional)</Label>
-                <Input
-                  id="nomeCondominio"
+            {/* Nome do Condomínio - sempre com autocomplete inteligente */}
+            <div>
+              <Label className="text-xs sm:text-sm">Nome do Condomínio (opcional)</Label>
+              <div className="mt-1">
+                <CondominioSelector
                   value={state.nomeCondominio}
-                  onChange={(e) => updateState({ nomeCondominio: e.target.value })}
-                  placeholder="Ex: Riserva Golf"
-                  className="h-10 sm:h-9"
+                  condominioSelecionado={state.condominioSelecionado}
+                  bairro={state.bairro}
+                  onChange={(nome, condominio) => {
+                    updateState({ 
+                      nomeCondominio: nome,
+                      condominioSelecionado: condominio,
+                    });
+                  }}
                 />
               </div>
-            )}
+            </div>
           </div>
         </CardContent>
       </Card>
