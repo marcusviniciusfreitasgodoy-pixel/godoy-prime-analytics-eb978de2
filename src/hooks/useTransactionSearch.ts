@@ -46,7 +46,7 @@ export interface MicrobairroLiquidez {
 
 export function useTransactionSearch(params: TransactionSearchParams, enabled: boolean = false) {
   return useQuery<MicrobairroLiquidez[]>({
-    queryKey: ['transaction-search-v4', params.valorMin, params.valorMax, params.bairro, params.tipologia, params.periodoMeses, params.areaMin, params.areaMax, params.apenasIndividuais, params.valorM2Min, params.valorM2Max],
+    queryKey: ['transaction-search-v4', params.valorMin, params.valorMax, params.bairro, params.tipologia, params.periodoMeses, params.areaMin, params.areaMax, params.apenasIndividuais, params.valorM2Min, params.valorM2Max, params.logradouros],
     queryFn: async () => {
       const meses = params.periodoMeses || 12;
       const startDateCalc = new Date();
