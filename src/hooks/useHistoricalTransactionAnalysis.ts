@@ -123,6 +123,11 @@ export function useHistoricalTransactionAnalysis(logradouro: string, bairro: str
 
       const outlierLimit = getOutlierLimit(normalizedBairro);
       const outlierMinLimit = getOutlierMinLimit(normalizedBairro);
+      
+      // Para condomínios (ruas internas), aceitar valores mais baixos — dados já filtrados por ruas específicas
+      const effectiveMinLimit = (ruasInternas && ruasInternas.length > 0) 
+        ? Math.min(outlierMinLimit * 0.5, 3000)
+        : outlierMinLimit;
 
       // Buscar transações dos últimos 5 anos FECHADOS (ex.: 2021-2025)
       // Evita “ano corrente” parcial (ex.: janeiro) distorcer tendência/projeção.
@@ -254,7 +259,7 @@ export function useHistoricalTransactionAnalysis(logradouro: string, bairro: str
 
         // Preço: só entra nas estatísticas se houver valor_m2 e estiver dentro dos limites
         const v = t.valor_m2;
-        if (typeof v === 'number' && v >= outlierMinLimit && v <= outlierLimit) {
+        if (typeof v === 'number' && v >= effectiveMinLimit && v <= outlierLimit) {
           yearlyMap[year].valores.push(v);
         }
       });
