@@ -560,7 +560,7 @@ export function ValuationEngine({ bairro = "BARRA DA TIJUCA", vistoriaData, edit
               <Step2BasicData
                 state={state}
                 updateState={updateState}
-                combined={combined}
+                combined={rawCombined}
               />
             </div>
           )}
