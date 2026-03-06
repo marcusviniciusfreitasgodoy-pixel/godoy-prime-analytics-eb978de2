@@ -35,11 +35,11 @@ function generateCacheKey(bairro: string, logradouro: string, ruasInternas?: str
 /**
  * Recupera análise do cache se válida
  */
-export function getCachedAnalysis(bairro: string, logradouro: string): HistoricalAnalysis | null {
+export function getCachedAnalysis(bairro: string, logradouro: string, ruasInternas?: string[]): HistoricalAnalysis | null {
   try {
     const normalizedBairro = bairro.toUpperCase().trim();
     const normalizedLogradouro = logradouro.toUpperCase().trim();
-    const key = generateCacheKey(bairro, logradouro);
+    const key = generateCacheKey(bairro, logradouro, ruasInternas);
     const cached = localStorage.getItem(key);
     
     if (!cached) return null;
