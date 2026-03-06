@@ -45,8 +45,8 @@ Deno.serve(async (req) => {
     // Fetch condominios without street
     const { data: pendentes, error: fetchErr } = await supabaseAdmin
       .from("condominios_mapeamento")
-      .select("id, latitude, longitude")
-      .like("logradouro_padrao", "%não cadastrado%")
+      .select("id, latitude, longitude, logradouro_padrao")
+      .or("logradouro_padrao.like.%não cadastrado%,logradouro_padrao.eq.Endereço não localizado via coordenadas")
       .not("latitude", "is", null)
       .not("longitude", "is", null)
       .limit(50);
@@ -58,7 +58,7 @@ Deno.serve(async (req) => {
       const { count } = await supabaseAdmin
         .from("condominios_mapeamento")
         .select("id", { count: "exact", head: true })
-        .like("logradouro_padrao", "%não cadastrado%");
+        .or("logradouro_padrao.like.%não cadastrado%,logradouro_padrao.eq.Endereço não localizado via coordenadas");
 
       return new Response(
         JSON.stringify({
@@ -134,7 +134,7 @@ Deno.serve(async (req) => {
     const { count: remaining } = await supabaseAdmin
       .from("condominios_mapeamento")
       .select("id", { count: "exact", head: true })
-      .like("logradouro_padrao", "%não cadastrado%")
+      .or("logradouro_padrao.like.%não cadastrado%,logradouro_padrao.eq.Endereço não localizado via coordenadas")
       .not("latitude", "is", null)
       .not("longitude", "is", null);
 
