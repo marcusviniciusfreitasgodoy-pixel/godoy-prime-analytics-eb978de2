@@ -303,6 +303,23 @@ function createValuationPDF(
     doc.setFont('helvetica', 'normal');
     doc.setTextColor(...BRAND_COLORS.darkGray);
 
+    // Indicar base personalizada se selecionada
+    const baseLabel = state.baseSelected === 'custom' && state.customBaseM2
+      ? `Preço Base Personalizado: R$ ${state.customBaseM2.toLocaleString('pt-BR', { maximumFractionDigits: 0 })}/m²`
+      : state.baseSelected === 'min'
+      ? 'Base selecionada: Preço Mínimo'
+      : state.baseSelected === 'max'
+      ? 'Base selecionada: Preço Máximo'
+      : null;
+
+    if (baseLabel) {
+      doc.setFontSize(9);
+      doc.setFont('helvetica', 'bold');
+      doc.setTextColor(...BRAND_COLORS.gold);
+      doc.text(baseLabel, marginLeft + 5, yPos);
+      yPos += 7;
+    }
+
     const marketData = [
       ['Preço Mínimo/m²:', `R$ ${combined.min_m2.toLocaleString('pt-BR', { maximumFractionDigits: 0 })}`],
       ['Preço Médio/m²:', `R$ ${combined.med_m2.toLocaleString('pt-BR', { maximumFractionDigits: 0 })}`],
