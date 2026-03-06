@@ -214,9 +214,10 @@ export function useHistoricalTransactionAnalysis(logradouro: string, bairro: str
       let dataSource: 'logradouro' | 'bairro' = 'logradouro';
       const logradouroTransactionCount = transactions?.length || 0;
 
-      // Se poucos dados do logradouro (< 15 transações em 5 anos = média < 3/ano), buscar do bairro todo
-      // Anteriormente era 20, mas isso excluía logradouros com volume razoável como Lúcio Costa (35 trans)
-      if (!transactions || transactions.length < 15) {
+      // Se poucos dados do logradouro, buscar do bairro todo
+      // Para condomínios com ruas internas, threshold menor (3) pois dados são mais específicos
+      const fallbackThreshold = (ruasInternas && ruasInternas.length > 0) ? 3 : 15;
+      if (!transactions || transactions.length < fallbackThreshold) {
         const { data: bairroTransactions, error: bairroError } = await supabase
           .from('itbi_transactions')
           .select('data_transacao, valor_m2, total_transacoes')
