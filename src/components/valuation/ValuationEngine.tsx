@@ -321,8 +321,11 @@ export function ValuationEngine({ bairro = "BARRA DA TIJUCA", vistoriaData, edit
   };
 
   const progress = ((currentStep + 1) / 6) * 100;
-  const combined = state.itbiData 
+  const rawCombined = state.itbiData 
     ? calculateCombinedPrices(state.itbiData, state.anuncioData || undefined)
+    : null;
+  const combined = rawCombined 
+    ? applyBaseSelection(rawCombined, state.baseSelected, state.customBaseM2)
     : null;
 
   // Hooks de auto-save DEVEM ser chamados sempre (nunca após returns condicionais)
