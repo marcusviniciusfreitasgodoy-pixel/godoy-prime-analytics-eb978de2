@@ -225,7 +225,7 @@ serve(async (req) => {
       bairro = 'BARRA DA TIJUCA',
       microbairro,
       forceRefresh = false,
-      limit = 50 // Limite menor para evitar timeout (edge functions têm 60s)
+      limit = 20 // Limite menor para evitar timeout (edge functions têm 60s)
     } = body;
     
     console.log('Starting condominium enrichment', { condominioId, bairro, microbairro, forceRefresh, limit });
@@ -234,7 +234,9 @@ serve(async (req) => {
     let query = supabase
       .from('condominios_mapeamento')
       .select('*')
-      .order('nome_condominio');
+      .order('nome_condominio')
+      .not('nome_condominio', 'ilike', '%Logradouro não identificado%')
+      .not('nome_condominio', 'ilike', '%não identificado%');
     
     if (condominioId) {
       query = query.eq('id', condominioId);
