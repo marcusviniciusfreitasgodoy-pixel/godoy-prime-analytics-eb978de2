@@ -250,6 +250,18 @@ export function Step3Questionnaire({
           </Button>
 
           <TabsList className="grid grid-cols-6 w-full h-auto p-1 sm:p-2 gap-0.5 sm:gap-1">
+            <TabsTrigger
+              value="doc"
+              className="flex flex-col items-center gap-0 sm:gap-0.5 py-1.5 sm:py-2 px-1 sm:px-3 text-xs"
+            >
+              <FileText className="h-4 w-4 sm:h-5 sm:w-5 text-amber-600" />
+              <span className="text-[9px] sm:text-xs font-medium">Doc</span>
+              {isAdmin && state.docFactor < 1 && (
+                <Badge variant="destructive" className="text-[7px] sm:text-[10px] px-0.5 sm:px-1 py-0 h-3 sm:h-4 hidden sm:flex">
+                  {formatPercent(state.docFactor - 1)}
+                </Badge>
+              )}
+            </TabsTrigger>
             {Object.entries(groupedChars).map(([key]) => {
               const Icon = CATEGORY_ICONS[key] || Eye;
               const adjustment = getCategoryAdjustment(key);
