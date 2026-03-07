@@ -234,7 +234,9 @@ serve(async (req) => {
     let query = supabase
       .from('condominios_mapeamento')
       .select('*')
-      .order('nome_condominio');
+      .order('nome_condominio')
+      .not('nome_condominio', 'ilike', '%Logradouro não identificado%')
+      .not('nome_condominio', 'ilike', '%não identificado%');
     
     if (condominioId) {
       query = query.eq('id', condominioId);
