@@ -47,7 +47,7 @@ export function Step3Questionnaire({
   preview 
 }: Props) {
   const { isAdmin } = useAuth();
-  const [activeTab, setActiveTab] = useState("A");
+  const [activeTab, setActiveTab] = useState("doc");
   
   const groupedChars = useMemo(() => 
     groupCharacteristicsByCategory(characteristics),
