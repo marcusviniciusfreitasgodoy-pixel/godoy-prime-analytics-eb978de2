@@ -939,6 +939,14 @@ export function EmbeddedAdvancedSearch({ defaultBairro = "" }: EmbeddedAdvancedS
               </TableBody>
             </Table>
           </ScrollArea>
+
+          {/* Legenda explicativa */}
+          <div className="flex items-start gap-2 mt-3 p-3 rounded-md bg-muted/50">
+            <Info className="h-4 w-4 text-muted-foreground mt-0.5 flex-shrink-0" />
+            <p className="text-xs text-muted-foreground leading-relaxed">
+              <strong>Como interpretar os resultados:</strong> Cada linha representa um registro mensal agregado da Prefeitura, não uma transação individual. O mesmo logradouro pode aparecer múltiplas vezes quando há registros em meses distintos ou com tipologias/áreas diferentes. A coluna "Trans." indica quantas escrituras reais compõem cada registro.
+            </p>
+          </div>
         </div>
       ) : searchParams ? (
         <div className="p-6 border rounded-lg bg-muted/30 text-center text-sm text-muted-foreground">
