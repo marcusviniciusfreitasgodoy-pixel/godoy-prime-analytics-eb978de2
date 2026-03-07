@@ -209,7 +209,7 @@ function createValuationPDF(
     doc.setFontSize(9);
     doc.setFont('helvetica', 'normal');
     doc.setTextColor(...BRAND_COLORS.darkGray);
-    const textoExplicativo = 'Para fundamentar esta avaliação, foram identificadas transações de imóveis com características semelhantes, localizados na mesma região do imóvel avaliado, realizadas nos últimos 12 meses e registradas nos órgãos oficiais.';
+    const textoExplicativo = 'Para fundamentar esta avaliação, foram identificadas transações de imóveis com características semelhantes, localizados na mesma região do imóvel avaliado, realizadas no período selecionado e registradas nos órgãos oficiais.';
     const splitTexto = doc.splitTextToSize(textoExplicativo, contentWidth);
     doc.text(splitTexto, marginLeft, yPos);
     yPos += splitTexto.length * 4 + 6;
