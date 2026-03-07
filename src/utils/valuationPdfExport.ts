@@ -81,7 +81,7 @@ function createValuationPDF(
     
     const disclaimerText = [
       'Este relatório apresenta uma estimativa baseada em dados oficiais de transações',
-      'reais (últimos 12 meses), características declaradas e análise estatística.',
+      'reais no período selecionado, características declaradas e análise estatística.',
       '',
       'RECOMENDAÇÃO: Complemente com a Vistoria Digital para ajuste de até ±15%',
       'com base nas condições reais verificadas in loco.',
