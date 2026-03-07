@@ -225,7 +225,7 @@ serve(async (req) => {
       bairro = 'BARRA DA TIJUCA',
       microbairro,
       forceRefresh = false,
-      limit = 50 // Limite menor para evitar timeout (edge functions têm 60s)
+      limit = 20 // Limite menor para evitar timeout (edge functions têm 60s)
     } = body;
     
     console.log('Starting condominium enrichment', { condominioId, bairro, microbairro, forceRefresh, limit });
