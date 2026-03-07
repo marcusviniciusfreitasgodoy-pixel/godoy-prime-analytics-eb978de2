@@ -129,5 +129,12 @@ export const groupCharacteristicsByCategory = (characteristics: ValuationCharact
     grouped[key].items.sort((a, b) => a.char_name.localeCompare(b.char_name, 'pt-BR'));
   }
 
-  return grouped;
+  // Ordenar chaves das categorias alfabeticamente (A → B → C → D → E)
+  const sortedKeys = Object.keys(grouped).sort((a, b) => a.localeCompare(b));
+  const sortedGrouped: typeof grouped = {};
+  for (const key of sortedKeys) {
+    sortedGrouped[key] = grouped[key];
+  }
+
+  return sortedGrouped;
 };

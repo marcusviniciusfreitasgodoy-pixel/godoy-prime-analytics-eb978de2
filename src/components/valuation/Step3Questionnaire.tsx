@@ -47,7 +47,7 @@ export function Step3Questionnaire({
   preview 
 }: Props) {
   const { isAdmin } = useAuth();
-  const [activeTab, setActiveTab] = useState("A");
+  const [activeTab, setActiveTab] = useState("doc");
   
   const groupedChars = useMemo(() => 
     groupCharacteristicsByCategory(characteristics),
@@ -236,12 +236,12 @@ export function Step3Questionnaire({
             size="icon"
             className="h-auto min-h-[44px] sm:min-h-[48px] w-10"
             onClick={() => {
-              const keys = [...Object.keys(groupedChars), "doc"];
+              const keys = ["doc", ...Object.keys(groupedChars)];
               const idx = keys.indexOf(activeTab);
               if (idx > 0) setActiveTab(keys[idx - 1]);
             }}
             disabled={(() => {
-              const keys = [...Object.keys(groupedChars), "doc"];
+              const keys = ["doc", ...Object.keys(groupedChars)];
               return keys.indexOf(activeTab) <= 0;
             })()}
             aria-label="Categoria anterior"
@@ -250,6 +250,18 @@ export function Step3Questionnaire({
           </Button>
 
           <TabsList className="grid grid-cols-6 w-full h-auto p-1 sm:p-2 gap-0.5 sm:gap-1">
+            <TabsTrigger
+              value="doc"
+              className="flex flex-col items-center gap-0 sm:gap-0.5 py-1.5 sm:py-2 px-1 sm:px-3 text-xs"
+            >
+              <FileText className="h-4 w-4 sm:h-5 sm:w-5 text-amber-600" />
+              <span className="text-[9px] sm:text-xs font-medium">Doc</span>
+              {isAdmin && state.docFactor < 1 && (
+                <Badge variant="destructive" className="text-[7px] sm:text-[10px] px-0.5 sm:px-1 py-0 h-3 sm:h-4 hidden sm:flex">
+                  {formatPercent(state.docFactor - 1)}
+                </Badge>
+              )}
+            </TabsTrigger>
             {Object.entries(groupedChars).map(([key]) => {
               const Icon = CATEGORY_ICONS[key] || Eye;
               const adjustment = getCategoryAdjustment(key);
@@ -277,18 +289,6 @@ export function Step3Questionnaire({
                 </TabsTrigger>
               );
             })}
-            <TabsTrigger
-              value="doc"
-              className="flex flex-col items-center gap-0 sm:gap-0.5 py-1.5 sm:py-2 px-1 sm:px-3 text-xs"
-            >
-              <FileText className="h-4 w-4 sm:h-5 sm:w-5 text-amber-600" />
-              <span className="text-[9px] sm:text-xs font-medium">Doc</span>
-              {isAdmin && state.docFactor < 1 && (
-                <Badge variant="destructive" className="text-[7px] sm:text-[10px] px-0.5 sm:px-1 py-0 h-3 sm:h-4 hidden sm:flex">
-                  {formatPercent(state.docFactor - 1)}
-                </Badge>
-              )}
-            </TabsTrigger>
           </TabsList>
 
           <Button
@@ -297,12 +297,12 @@ export function Step3Questionnaire({
             size="icon"
             className="h-auto min-h-[44px] sm:min-h-[48px] w-10"
             onClick={() => {
-              const keys = [...Object.keys(groupedChars), "doc"];
+              const keys = ["doc", ...Object.keys(groupedChars)];
               const idx = keys.indexOf(activeTab);
               if (idx >= 0 && idx < keys.length - 1) setActiveTab(keys[idx + 1]);
             }}
             disabled={(() => {
-              const keys = [...Object.keys(groupedChars), "doc"];
+              const keys = ["doc", ...Object.keys(groupedChars)];
               const idx = keys.indexOf(activeTab);
               return idx < 0 || idx >= keys.length - 1;
             })()}
