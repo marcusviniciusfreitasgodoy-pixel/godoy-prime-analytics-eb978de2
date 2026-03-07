@@ -236,12 +236,12 @@ export function Step3Questionnaire({
             size="icon"
             className="h-auto min-h-[44px] sm:min-h-[48px] w-10"
             onClick={() => {
-              const keys = [...Object.keys(groupedChars), "doc"];
+              const keys = ["doc", ...Object.keys(groupedChars)];
               const idx = keys.indexOf(activeTab);
               if (idx > 0) setActiveTab(keys[idx - 1]);
             }}
             disabled={(() => {
-              const keys = [...Object.keys(groupedChars), "doc"];
+              const keys = ["doc", ...Object.keys(groupedChars)];
               return keys.indexOf(activeTab) <= 0;
             })()}
             aria-label="Categoria anterior"
