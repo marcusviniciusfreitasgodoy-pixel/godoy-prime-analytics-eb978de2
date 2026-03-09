@@ -222,7 +222,8 @@ export function useCondominiosRanking(showAll = false) {
       while (hasMore) {
         let query = supabase
           .from("condominios_mapeamento")
-          .select("id, nome_condominio, logradouro_padrao, numero_torres, unidades_estimadas, preco_medio_m2, total_transacoes_itbi, ultima_transacao_itbi, padrao_construtivo, microbairro");
+          .select("id, nome_condominio, logradouro_padrao, numero_torres, unidades_estimadas, preco_medio_m2, total_transacoes_itbi, ultima_transacao_itbi, padrao_construtivo, microbairro")
+          .eq("ativo", true);
 
         if (!showAll) {
           query = query.not("preco_medio_m2", "is", null);
