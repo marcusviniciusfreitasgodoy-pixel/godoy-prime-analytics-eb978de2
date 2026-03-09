@@ -1,37 +1,95 @@
 
 
-## Plano: Edge Function + Componente de Enriquecimento IA
+## Atualizar Materiais de Consulta e Orientação — Inteligência Territorial
 
-### Observações importantes
+O módulo Inteligência Territorial (novo) e os enriquecimentos dos módulos existentes (Motor de Avaliação com sugestão de logradouro IPTU, Pesquisa de Mercado com dados IPTU/venal) precisam ser refletidos em **8 arquivos** de documentação e orientação.
 
-1. **ANTHROPIC_API_KEY não existe** nos secrets do projeto. Preciso solicitar que você a adicione antes de a Edge Function funcionar.
+---
 
-2. **Import named vs default**: A página `InteligenciaTerritorial.tsx` importa `{ EnriquecerCondominios }` (named export), mas seu código usa `export default`. Vou ajustar para `export function EnriquecerCondominios` (named export) para manter compatibilidade.
+### Resumo das Alterações
 
-3. **Seu código JSX está sem as tags HTML** (provavelmente o chat comeu os `<div>`, `<p>`, etc). Vou reconstruir o JSX baseado na lógica e estrutura que você descreveu.
+O conteúdo novo a adicionar em todos os materiais:
 
-4. **Lovable AI vs Anthropic**: O projeto já tem `LOVABLE_API_KEY` configurada, que dá acesso a modelos como `google/gemini-2.5-pro` sem custo extra de API key. Porém, como você pediu explicitamente Anthropic/Claude, vou seguir com isso — mas preciso que você forneça a chave.
+1. **Módulo Inteligência Territorial** (4 sub-áreas: Mapa de Condomínios, Ficha de Condomínio, Ranking/Logradouro, Painel Admin)
+2. **Motor de Avaliação enriquecido** — agora sugere dados IPTU do logradouro (total de imóveis, preço médio real, comparativo venal vs real)
+3. **Pesquisa de Mercado enriquecida** — exibe unidades IPTU, valor venal vs real, variação geocodificada
+4. **Infraestrutura de dados** — 1.567 condomínios, 52.761 edificações, 1.515 lotes, 485 logradouros IPTU, 450+ logradouros geocodificados
 
-### Arquivos a criar/editar
+---
 
-| Arquivo | Ação |
-|---|---|
-| `supabase/functions/enrich-condominios-ai/index.ts` | Criar — Edge Function com Anthropic |
-| `supabase/config.toml` | Adicionar `[functions.enrich-condominios-ai]` com `verify_jwt = false` |
-| `src/components/territorial/EnriquecerCondominios.tsx` | Reescrever — componente completo com upload CSV, processamento em lotes, preview de resultados e geração de SQL |
+### Arquivo 1: `src/pages/Apresentacao.tsx`
 
-### Passo 1: Solicitar ANTHROPIC_API_KEY
-Antes de qualquer implementação, vou pedir para você adicionar a secret via ferramenta segura.
+- Adicionar **Inteligência Territorial** ao array `features` (com ícone `Map` ou `Building2`)
+- Atualizar descrições de "Avaliação Imobiliária" e "Pesquisas de Mercado" para mencionar dados IPTU
+- Atualizar `differentials` para incluir "Mapeamento Geoespacial" (1.567 condomínios, 52.761 edificações)
+- Atualizar texto do Hero para mencionar "mapeamento geoespacial completo"
 
-### Passo 2: Edge Function
-Código exatamente como você enviou, com CORS headers e chamada à API da Anthropic.
+### Arquivo 2: `src/components/apresentacao/FunctionalityMapSection.tsx`
 
-### Passo 3: Componente
-Seu componente com as correções:
-- `export function` (named) em vez de `export default`
-- JSX reconstruído com as tags que o chat omitiu
-- Fluxo: upload CSV → preview → processamento em lotes via `supabase.functions.invoke("enrich-condominios-ai")` → tabela de resultados + SQL copiável/downloadável
+- Adicionar card **Inteligência Territorial** ao array `functionalityMap` com dor/benefício
+- Atualizar dor/benefício do "Motor de Avaliação" para incluir dados IPTU
+- Atualizar dor/benefício da "Pesquisa de Mercado" para incluir venal vs real
 
-### Passo 4: config.toml
-Adicionar entrada para a nova function.
+### Arquivo 3: `src/components/apresentacao/OnePagerPreview.tsx`
+
+- Adicionar "Inteligência Territorial" ao array `detailedModules` na Página 2
+- Atualizar texto do `modules` (Página 1) para refletir o Motor de Avaliação enriquecido
+- Atualizar métricas no bloco "O MERCADO" para mencionar 1.567 condomínios mapeados
+- Adicionar diferencial "Mapeamento Geoespacial" ao array `diferenciais`
+
+### Arquivo 4: `src/utils/productOnePagerPdfExport.ts`
+
+- Espelhar as mesmas alterações do OnePagerPreview no PDF:
+  - `drawSolucaoModulos`: atualizar módulos destaques
+  - `drawDiferenciais`: adicionar mapeamento geoespacial
+  - `drawPage2FuncionalidadesDetalhadas`: adicionar Inteligência Territorial ao `detailedModules`
+  - `drawMercado`: atualizar com 1.567 condomínios
+
+### Arquivo 5: `src/pages/ManualPlataforma.tsx`
+
+- Adicionar seção **Inteligência Territorial** ao array `manualSections` com 4+ features (Mapa, Ficha, Ranking, Logradouros, Admin)
+- Atualizar descrição da seção "Pesquisas de Mercado" e "Avaliação Imobiliária" com dados IPTU
+- Adicionar FAQ sobre Inteligência Territorial na seção FAQ (no arquivo `Onboarding.tsx`)
+
+### Arquivo 6: `src/pages/Onboarding.tsx`
+
+- Adicionar step **Inteligência Territorial** ao `allOnboardingSteps` com features descritivas e rota `/inteligencia-territorial`
+- Atualizar features do step "Pesquisas de Mercado" (id 3) e "Avaliação de Imóveis" (id 4)
+- Adicionar FAQ category "Inteligência Territorial" ao `faqCategories`
+- Atualizar FAQ "Geral" com menção ao mapeamento geoespacial
+
+### Arquivo 7: `src/utils/manualPdfExport.ts`
+
+- Adicionar módulo "Inteligência Territorial" ao array `manualContent.modulos` (entre módulo 3 e 4, renumerando)
+- Atualizar módulo "Pesquisas de Mercado" e "Avaliação Imobiliária" com funcionalidades IPTU
+- Adicionar FAQ category "Inteligência Territorial" ao `manualContent.faq`
+- Atualizar texto da introdução para mencionar mapeamento geoespacial
+
+### Arquivo 8: `src/utils/quickGuidePdfExport.ts`
+
+- Adicionar seção "INTELIGENCIA TERRITORIAL" com items sobre mapa, fichas de condomínio, ranking e logradouros
+- Atualizar seções existentes de Avaliação e Pesquisa com menção a dados IPTU
+
+### Arquivo 9: `src/utils/videoScriptPdfExport.ts`
+
+- Adicionar módulo de Inteligência Territorial ao roteiro (novo bloco com narração + screenshots)
+- Atualizar módulos de Avaliação e Pesquisa com menções a IPTU
+- Atualizar lista de módulos na capa
+- Atualizar duração estimada
+
+---
+
+### Conteúdo-chave para Inteligência Territorial (usado em todos)
+
+**Dor:** Sem visão geoespacial dos condomínios, decisões de prospecção baseadas em experiência pessoal sem dados estruturados.
+
+**Benefício/Entrega:** Mapa interativo com 1.567 condomínios, ficha completa com torres, unidades, histórico de preços ITBI e dados IPTU. Ranking e análise por logradouro.
+
+**Features (para manual/onboarding):**
+- Mapa com 1.567 condomínios plotados com cores por faixa de unidades
+- Heatmap de densidade e camada de lotes PAL
+- Ficha de condomínio com torres, unidades, área, valor venal e histórico trimestral
+- Ranking ordenável por preço, transações, unidades e torres
+- Análise por logradouro com comparativo venal vs real
+- Painel administrativo com ETLs e cards de cobertura dinâmicos
 
