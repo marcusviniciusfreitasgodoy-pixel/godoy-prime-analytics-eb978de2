@@ -1,6 +1,6 @@
 import { useState, useCallback } from "react";
 import { Helmet } from "react-helmet-async";
-import { Map, BarChart3, Building2, Settings, ChevronLeft, ChevronRight, X, SlidersHorizontal } from "lucide-react";
+import { Map, BarChart3, Building2, Settings, ChevronLeft, ChevronRight, X, SlidersHorizontal, Sparkles } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
@@ -10,6 +10,7 @@ import { CondominioDetailPanel } from "@/components/territorial/CondominioDetail
 import { TerritorialRanking } from "@/components/territorial/TerritorialRanking";
 import { TerritorialLogradouros } from "@/components/territorial/TerritorialLogradouros";
 import { TerritorialAdmin } from "@/components/territorial/TerritorialAdmin";
+import { EnriquecerCondominios } from "@/components/territorial/EnriquecerCondominios";
 import {
   useTerritorialKPIs,
   useCondominiosBbox,
@@ -113,10 +114,16 @@ export default function InteligenciaTerritorial() {
                 <span className="hidden sm:inline">Ruas</span>
               </TabsTrigger>
               {showAdmin && (
-                <TabsTrigger value="admin" className="gap-1 text-[10px] md:text-xs px-2 md:px-3">
-                  <Settings className="h-3 w-3 md:h-3.5 md:w-3.5" />
-                  <span className="hidden sm:inline">Admin</span>
-                </TabsTrigger>
+                <>
+                  <TabsTrigger value="enriquecimento" className="gap-1 text-[10px] md:text-xs px-2 md:px-3">
+                    <Sparkles className="h-3 w-3 md:h-3.5 md:w-3.5" />
+                    <span className="hidden sm:inline">Enriquecimento IA</span>
+                  </TabsTrigger>
+                  <TabsTrigger value="admin" className="gap-1 text-[10px] md:text-xs px-2 md:px-3">
+                    <Settings className="h-3 w-3 md:h-3.5 md:w-3.5" />
+                    <span className="hidden sm:inline">Admin</span>
+                  </TabsTrigger>
+                </>
               )}
             </TabsList>
           </div>
@@ -225,9 +232,14 @@ export default function InteligenciaTerritorial() {
 
           {/* Tab: Admin */}
           {showAdmin && (
-            <TabsContent value="admin" className="flex-1 min-h-0 mt-0 overflow-auto">
-              <TerritorialAdmin />
-            </TabsContent>
+            <>
+              <TabsContent value="enriquecimento" className="flex-1 min-h-0 mt-0 overflow-auto">
+                <EnriquecerCondominios />
+              </TabsContent>
+              <TabsContent value="admin" className="flex-1 min-h-0 mt-0 overflow-auto">
+                <TerritorialAdmin />
+              </TabsContent>
+            </>
           )}
         </Tabs>
       </div>
