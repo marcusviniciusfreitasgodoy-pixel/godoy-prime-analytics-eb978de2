@@ -232,9 +232,14 @@ export default function InteligenciaTerritorial() {
 
           {/* Tab: Admin */}
           {showAdmin && (
-            <TabsContent value="admin" className="flex-1 min-h-0 mt-0 overflow-auto">
-              <TerritorialAdmin />
-            </TabsContent>
+            <>
+              <TabsContent value="enriquecimento" className="flex-1 min-h-0 mt-0 overflow-auto">
+                <EnriquecerCondominios />
+              </TabsContent>
+              <TabsContent value="admin" className="flex-1 min-h-0 mt-0 overflow-auto">
+                <TerritorialAdmin />
+              </TabsContent>
+            </>
           )}
         </Tabs>
       </div>
