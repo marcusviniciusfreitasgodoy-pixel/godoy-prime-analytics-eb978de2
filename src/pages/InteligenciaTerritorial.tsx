@@ -10,6 +10,7 @@ import { CondominioDetailPanel } from "@/components/territorial/CondominioDetail
 import { TerritorialRanking } from "@/components/territorial/TerritorialRanking";
 import { TerritorialLogradouros } from "@/components/territorial/TerritorialLogradouros";
 import { TerritorialAdmin } from "@/components/territorial/TerritorialAdmin";
+import { EnriquecerCondominios } from "@/components/territorial/EnriquecerCondominios";
 import {
   useTerritorialKPIs,
   useCondominiosBbox,
