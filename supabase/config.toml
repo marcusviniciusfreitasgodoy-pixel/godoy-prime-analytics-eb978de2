@@ -107,3 +107,6 @@ verify_jwt = false
 
 [functions.reverse-geocode-condominios]
 verify_jwt = false
+
+[functions.enrich-condominios-ai]
+verify_jwt = false
