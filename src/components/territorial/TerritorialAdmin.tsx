@@ -99,6 +99,7 @@ export function TerritorialAdmin() {
       const { count: countNaoLocalizado } = await supabase
         .from("condominios_mapeamento")
         .select("id", { count: "exact", head: true })
+        .eq("ativo", true)
         .eq("logradouro_padrao", "Endereço não localizado via coordenadas")
         .not("latitude", "is", null)
         .not("longitude", "is", null);
