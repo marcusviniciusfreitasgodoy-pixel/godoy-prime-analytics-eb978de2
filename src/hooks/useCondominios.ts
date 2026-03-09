@@ -53,6 +53,7 @@ export const useCondominioByLogradouro = (logradouro: string, numero?: number) =
       let query = supabase
         .from("condominios_mapeamento")
         .select("*")
+        .eq("ativo", true)
         .eq("logradouro_padrao", logradouro);
 
       if (numero) {

@@ -141,6 +141,7 @@ export function EnrichCondominiosButton({ onComplete }: EnrichCondominiosButtonP
       const { count } = await supabase
         .from("condominios_mapeamento")
         .select("id", { count: "exact", head: true })
+        .eq("ativo", true)
         .or("latitude.is.null,google_place_id.is.null");
       setPendingCount(count || 0);
     } catch (error) {

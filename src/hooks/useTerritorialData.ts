@@ -169,6 +169,7 @@ export function useLogradouroSuggestions(search: string) {
       const { data: condoData, error: condoError } = await supabase
         .from("condominios_mapeamento")
         .select("logradouro_padrao")
+        .eq("ativo", true)
         .ilike("logradouro_padrao", `%${term}%`)
         .limit(10);
 
