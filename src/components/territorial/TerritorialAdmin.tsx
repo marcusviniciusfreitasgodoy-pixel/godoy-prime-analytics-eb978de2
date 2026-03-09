@@ -92,6 +92,7 @@ export function TerritorialAdmin() {
       const { count: countNaoCadastrado } = await supabase
         .from("condominios_mapeamento")
         .select("id", { count: "exact", head: true })
+        .eq("ativo", true)
         .like("logradouro_padrao", "%não cadastrado%")
         .not("latitude", "is", null)
         .not("longitude", "is", null);
