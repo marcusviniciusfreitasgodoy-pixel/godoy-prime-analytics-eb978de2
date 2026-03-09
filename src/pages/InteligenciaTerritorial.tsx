@@ -1,6 +1,6 @@
 import { useState, useCallback } from "react";
 import { Helmet } from "react-helmet-async";
-import { Map, BarChart3, Building2, Settings, ChevronLeft, ChevronRight, X, SlidersHorizontal } from "lucide-react";
+import { Map, BarChart3, Building2, Settings, ChevronLeft, ChevronRight, X, SlidersHorizontal, Sparkles } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
