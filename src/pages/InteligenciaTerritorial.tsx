@@ -114,10 +114,16 @@ export default function InteligenciaTerritorial() {
                 <span className="hidden sm:inline">Ruas</span>
               </TabsTrigger>
               {showAdmin && (
-                <TabsTrigger value="admin" className="gap-1 text-[10px] md:text-xs px-2 md:px-3">
-                  <Settings className="h-3 w-3 md:h-3.5 md:w-3.5" />
-                  <span className="hidden sm:inline">Admin</span>
-                </TabsTrigger>
+                <>
+                  <TabsTrigger value="enriquecimento" className="gap-1 text-[10px] md:text-xs px-2 md:px-3">
+                    <Sparkles className="h-3 w-3 md:h-3.5 md:w-3.5" />
+                    <span className="hidden sm:inline">Enriquecimento IA</span>
+                  </TabsTrigger>
+                  <TabsTrigger value="admin" className="gap-1 text-[10px] md:text-xs px-2 md:px-3">
+                    <Settings className="h-3 w-3 md:h-3.5 md:w-3.5" />
+                    <span className="hidden sm:inline">Admin</span>
+                  </TabsTrigger>
+                </>
               )}
             </TabsList>
           </div>
