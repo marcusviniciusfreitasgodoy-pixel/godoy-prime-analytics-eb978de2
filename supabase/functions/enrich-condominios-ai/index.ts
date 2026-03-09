@@ -48,33 +48,41 @@ Critérios adicionais:
 - Paralela → Médio-Alto Padrão
 - confianca "alta" = certeza pelo nome/localização, "media" = estimativa razoável, "baixa" = inferência pelo microbairro`;
 
-    const anthropicKey = Deno.env.get("ANTHROPIC_API_KEY");
-    if (!anthropicKey) throw new Error("ANTHROPIC_API_KEY não configurada");
+    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
+    if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY não configurada");
 
-    const response = await fetch("https://api.anthropic.com/v1/messages", {
+    const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
       headers: {
+        Authorization: `Bearer ${LOVABLE_API_KEY}`,
         "Content-Type": "application/json",
-        "x-api-key": anthropicKey,
-        "anthropic-version": "2023-06-01",
       },
       body: JSON.stringify({
-        model: "claude-sonnet-4-20250514",
-        max_tokens: 1000,
+        model: "google/gemini-2.5-flash",
         messages: [{ role: "user", content: prompt }],
       }),
     });
 
     if (!response.ok) {
-      const err = await response.json();
-      throw new Error(err.error?.message || `Anthropic HTTP ${response.status}`);
+      if (response.status === 429) {
+        return new Response(JSON.stringify({ error: "Rate limit excedido. Tente novamente em alguns segundos." }), {
+          status: 429,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+      if (response.status === 402) {
+        return new Response(JSON.stringify({ error: "Créditos insuficientes. Adicione créditos em Settings → Workspace → Usage." }), {
+          status: 402,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+      const t = await response.text();
+      console.error("AI gateway error:", response.status, t);
+      throw new Error(`AI gateway HTTP ${response.status}`);
     }
 
     const data = await response.json();
-    const text = (data.content || [])
-      .filter((b: any) => b.type === "text")
-      .map((b: any) => b.text)
-      .join("");
+    const text = data.choices?.[0]?.message?.content || "";
 
     const clean = text.replace(/```json|```/g, "").trim();
     const match = clean.match(/\[[\s\S]*\]/);
