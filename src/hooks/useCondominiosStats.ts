@@ -31,7 +31,8 @@ export function useCondominiosStats() {
       // Buscar todos os condomínios para calcular estatísticas
       const { data, error } = await supabase
         .from("condominios_mapeamento")
-        .select("id, latitude, longitude, microbairro, numero_inicio");
+        .select("id, latitude, longitude, microbairro, numero_inicio")
+        .eq("ativo", true);
 
       if (error) {
         console.error("Erro ao buscar estatísticas:", error);

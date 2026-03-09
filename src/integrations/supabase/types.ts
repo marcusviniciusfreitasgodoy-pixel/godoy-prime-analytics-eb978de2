@@ -187,6 +187,7 @@ export type Database = {
           area_lote: number | null
           area_media_unidade_logradouro: number | null
           area_total_construida: number | null
+          ativo: boolean
           atualizado_em: string | null
           confianca_identificacao: number | null
           created_at: string | null
@@ -220,6 +221,7 @@ export type Database = {
           area_lote?: number | null
           area_media_unidade_logradouro?: number | null
           area_total_construida?: number | null
+          ativo?: boolean
           atualizado_em?: string | null
           confianca_identificacao?: number | null
           created_at?: string | null
@@ -253,6 +255,7 @@ export type Database = {
           area_lote?: number | null
           area_media_unidade_logradouro?: number | null
           area_total_construida?: number | null
+          ativo?: boolean
           atualizado_em?: string | null
           confianca_identificacao?: number | null
           created_at?: string | null

@@ -19,6 +19,7 @@ export const useCondominios = () => {
       const { data, error } = await supabase
         .from("condominios_mapeamento")
         .select("*")
+        .eq("ativo", true)
         .order("nome_condominio");
 
       if (error) throw error;
@@ -34,6 +35,7 @@ export const useCondominiosByMicrobairro = (microbairro: string) => {
       const { data, error } = await supabase
         .from("condominios_mapeamento")
         .select("*")
+        .eq("ativo", true)
         .eq("microbairro", microbairro)
         .order("nome_condominio");
 
@@ -51,6 +53,7 @@ export const useCondominioByLogradouro = (logradouro: string, numero?: number) =
       let query = supabase
         .from("condominios_mapeamento")
         .select("*")
+        .eq("ativo", true)
         .eq("logradouro_padrao", logradouro);
 
       if (numero) {

@@ -48,6 +48,7 @@ export function TerritorialAdmin() {
         const { data, error } = await supabase
           .from("condominios_mapeamento")
           .select("nome_condominio, logradouro_padrao, microbairro, padrao_construtivo, latitude, longitude, unidades_estimadas, numero_torres, preco_medio_m2, total_transacoes_itbi, ultima_transacao_itbi, fonte_identificacao, google_place_id, endereco_completo")
+          .eq("ativo", true)
           .order("nome_condominio")
           .range(from, from + pageSize - 1);
         if (error) throw error;
@@ -91,12 +92,14 @@ export function TerritorialAdmin() {
       const { count: countNaoCadastrado } = await supabase
         .from("condominios_mapeamento")
         .select("id", { count: "exact", head: true })
+        .eq("ativo", true)
         .like("logradouro_padrao", "%não cadastrado%")
         .not("latitude", "is", null)
         .not("longitude", "is", null);
       const { count: countNaoLocalizado } = await supabase
         .from("condominios_mapeamento")
         .select("id", { count: "exact", head: true })
+        .eq("ativo", true)
         .eq("logradouro_padrao", "Endereço não localizado via coordenadas")
         .not("latitude", "is", null)
         .not("longitude", "is", null);

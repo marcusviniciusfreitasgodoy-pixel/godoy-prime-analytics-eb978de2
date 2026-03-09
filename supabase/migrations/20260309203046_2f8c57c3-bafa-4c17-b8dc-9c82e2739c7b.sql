@@ -1,0 +1,1 @@
+ALTER TABLE condominios_mapeamento ADD COLUMN ativo boolean NOT NULL DEFAULT true;
