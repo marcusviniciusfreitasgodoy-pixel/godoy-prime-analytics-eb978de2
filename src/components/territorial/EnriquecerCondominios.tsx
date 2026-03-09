@@ -1,23 +1,10 @@
-import { useState, useRef, useCallback } from "react";
-import { Upload, Sparkles, Download, Copy, Check, StopCircle } from "lucide-react";
+import { useState, useEffect, useRef, useCallback } from "react";
+import { Sparkles, Download, Copy, Check, StopCircle, Loader2, RefreshCw, AlertCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
+import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from "@/components/ui/table";
 import { supabase } from "@/integrations/supabase/client";
-
-// ── CSV parser ────────────────────────────────────────────────────────────────
-function parseCSV(text: string) {
-  const lines = text.trim().split("\n");
-  if (lines.length < 2) return [];
-  const sep = lines[0].includes(";") ? ";" : ",";
-  const headers = lines[0].split(sep).map(h => h.replace(/^"|"$/g, "").trim());
-  return lines.slice(1)
-    .map(line => {
-      const vals = line.split(sep).map(v => v.replace(/^"|"$/g, "").trim());
-      return Object.fromEntries(headers.map((h, i) => [h, vals[i] || ""]));
-    })
-    .filter((r: any) => r.nome_condominio);
-}
 
 // ── SQL generator ─────────────────────────────────────────────────────────────
 function generateSQL(results: any[]) {
@@ -33,7 +20,7 @@ WHERE id = '${r.id}';`);
 
   return `-- Enriquecimento gerado em ${new Date().toLocaleDateString("pt-BR")}
 -- ${results.length} condomínios · via Claude AI
--- ⚠️ Revise antes de executar no Supabase
+-- ⚠️ Revise antes de executar
 
 ${stmts.join("\n\n")}
 
@@ -63,7 +50,7 @@ const BATCH_SIZE = 6;
 
 // ── COMPONENT ─────────────────────────────────────────────────────────────────
 export function EnriquecerCondominios() {
-  const [step, setStep] = useState<"upload" | "ready" | "processing" | "done">("upload");
+  const [step, setStep] = useState<"loading" | "ready" | "processing" | "done">("loading");
   const [condominios, setCondominios] = useState<any[]>([]);
   const [results, setResults] = useState<any[]>([]);
   const [progress, setProgress] = useState(0);
@@ -71,19 +58,34 @@ export function EnriquecerCondominios() {
   const [errors, setErrors] = useState<string[]>([]);
   const [sql, setSql] = useState("");
   const [copied, setCopied] = useState(false);
-  const [dragOver, setDragOver] = useState(false);
+  const [loadError, setLoadError] = useState("");
   const abortRef = useRef(false);
-  const fileRef = useRef<HTMLInputElement>(null);
 
-  const handleFile = useCallback((file: File) => {
-    const reader = new FileReader();
-    reader.onload = e => {
-      const rows = parseCSV(e.target?.result as string);
-      setCondominios(rows);
-      setStep("ready");
-    };
-    reader.readAsText(file, "utf-8");
+  const loadCondominios = useCallback(async () => {
+    setStep("loading");
+    setLoadError("");
+    setCondominios([]);
+    setResults([]);
+    setSql("");
+
+    const { data, error } = await supabase
+      .from("condominios_mapeamento")
+      .select("id, nome_condominio, microbairro, logradouro_padrao, endereco_completo")
+      .eq("ativo", true)
+      .order("microbairro");
+
+    if (error) {
+      setLoadError(error.message);
+      return;
+    }
+
+    setCondominios(data || []);
+    setStep("ready");
   }, []);
+
+  useEffect(() => { loadCondominios(); }, [loadCondominios]);
+
+  const microbairros = [...new Set(condominios.map(c => c.microbairro).filter(Boolean))];
 
   async function start() {
     setStep("processing");
@@ -161,83 +163,70 @@ export function EnriquecerCondominios() {
         </p>
       </div>
 
-      {/* Instruções */}
-      <div className="rounded-lg border border-border bg-muted/30 p-4 text-sm space-y-2">
-        <p className="font-semibold text-foreground">Como usar:</p>
-        <ol className="list-decimal list-inside space-y-1 text-muted-foreground">
-          <li>
-            Execute no Supabase SQL Editor:{" "}
-            <code className="text-xs bg-muted px-1 rounded break-all">
-              SELECT id, nome_condominio, microbairro, logradouro_padrao, endereco_completo
-              FROM condominios_mapeamento WHERE ativo = true ORDER BY microbairro
-            </code>
-          </li>
-          <li>Exporte como CSV e importe abaixo</li>
-          <li>Clique em Enriquecer — o SQL gerado será aplicado no Supabase</li>
-        </ol>
-      </div>
+      {/* LOADING */}
+      {step === "loading" && !loadError && (
+        <div className="flex items-center justify-center py-16 gap-3 text-muted-foreground">
+          <Loader2 className="h-5 w-5 animate-spin" />
+          <span>Carregando condomínios ativos…</span>
+        </div>
+      )}
 
-      {/* UPLOAD / READY */}
-      {(step === "upload" || step === "ready") && (
+      {/* LOAD ERROR */}
+      {loadError && (
+        <div className="flex flex-col items-center justify-center py-16 gap-4">
+          <div className="flex items-center gap-2 text-destructive">
+            <AlertCircle className="h-5 w-5" />
+            <span className="text-sm">{loadError}</span>
+          </div>
+          <Button variant="outline" size="sm" onClick={loadCondominios}>
+            <RefreshCw className="h-3.5 w-3.5 mr-1" /> Tentar novamente
+          </Button>
+        </div>
+      )}
+
+      {/* READY */}
+      {step === "ready" && (
         <div className="space-y-4">
-          <div
-            onDragOver={e => { e.preventDefault(); setDragOver(true); }}
-            onDragLeave={() => setDragOver(false)}
-            onDrop={e => {
-              e.preventDefault();
-              setDragOver(false);
-              if (e.dataTransfer.files[0]) handleFile(e.dataTransfer.files[0]);
-            }}
-            onClick={() => fileRef.current?.click()}
-            className={`border-2 border-dashed rounded-xl p-12 text-center cursor-pointer transition-colors
-              ${dragOver ? "border-primary bg-primary/5" : "border-border hover:border-primary/40"}`}
-          >
-            <input
-              ref={fileRef}
-              type="file"
-              accept=".csv"
-              className="hidden"
-              onChange={e => e.target.files?.[0] && handleFile(e.target.files[0])}
-            />
-            <Upload className="h-8 w-8 mx-auto mb-3 text-muted-foreground" />
-            {step === "ready" ? (
-              <>
-                <p className="font-medium text-foreground">✅ {condominios.length} condomínios carregados</p>
-                <p className="text-xs text-muted-foreground mt-1">
-                  {Math.ceil(condominios.length / BATCH_SIZE)} lotes · clique para trocar o arquivo
-                </p>
-              </>
-            ) : (
-              <>
-                <p className="font-medium text-foreground">Arraste o CSV ou clique para selecionar</p>
-                <p className="text-xs text-muted-foreground mt-1">Exportado do Supabase SQL Editor</p>
-              </>
+          {/* Badges de resumo */}
+          <div className="flex flex-wrap gap-2">
+            <Badge variant="secondary">{condominios.length} condomínios</Badge>
+            <Badge variant="outline">{microbairros.length} microbairros</Badge>
+            <Badge variant="outline">{Math.ceil(condominios.length / BATCH_SIZE)} lotes</Badge>
+          </div>
+
+          {/* Tabela preview */}
+          <div className="rounded-lg border border-border overflow-hidden">
+            <div className="max-h-80 overflow-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead className="text-xs">Condomínio</TableHead>
+                    <TableHead className="text-xs">Microbairro</TableHead>
+                    <TableHead className="text-xs">Logradouro</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {condominios.slice(0, 50).map((c: any) => (
+                    <TableRow key={c.id}>
+                      <TableCell className="text-xs font-medium py-2">{c.nome_condominio}</TableCell>
+                      <TableCell className="text-xs text-muted-foreground py-2">{c.microbairro || "—"}</TableCell>
+                      <TableCell className="text-xs text-muted-foreground py-2">{c.logradouro_padrao}</TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+            {condominios.length > 50 && (
+              <div className="text-xs text-muted-foreground text-center py-2 border-t border-border bg-muted/30">
+                Mostrando 50 de {condominios.length} condomínios
+              </div>
             )}
           </div>
 
-          {step === "ready" && (
-            <>
-              {/* Preview */}
-              <div className="flex flex-wrap gap-1.5">
-                {condominios.slice(0, 15).map((c: any, i: number) => (
-                  <div key={i} className="text-xs bg-muted rounded px-2 py-1">
-                    <span className="font-medium text-foreground">{c.nome_condominio}</span>
-                    <span className="text-muted-foreground ml-1">{c.microbairro}</span>
-                  </div>
-                ))}
-                {condominios.length > 15 && (
-                  <div className="text-xs bg-muted rounded px-2 py-1 text-muted-foreground">
-                    + {condominios.length - 15} outros
-                  </div>
-                )}
-              </div>
-
-              <Button onClick={start} className="w-full" size="lg">
-                <Sparkles className="h-4 w-4 mr-2" />
-                Enriquecer {condominios.length} condomínios com IA
-              </Button>
-            </>
-          )}
+          <Button onClick={start} className="w-full" size="lg">
+            <Sparkles className="h-4 w-4 mr-2" />
+            Enriquecer {condominios.length} condomínios com IA
+          </Button>
         </div>
       )}
 
@@ -304,9 +293,7 @@ export function EnriquecerCondominios() {
           {/* Distribuição */}
           {Object.keys(padraoDist).length > 0 && (
             <div className="rounded-lg border border-border p-4">
-              <p className="text-sm font-semibold text-foreground mb-3">
-                Distribuição por Padrão
-              </p>
+              <p className="text-sm font-semibold text-foreground mb-3">Distribuição por Padrão</p>
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                 {Object.entries(padraoDist)
                   .sort((a: any, b: any) => b[1] - a[1])
@@ -356,12 +343,9 @@ export function EnriquecerCondominios() {
             ))}
           </div>
 
-          <Button
-            variant="outline"
-            className="w-full"
-            onClick={() => { setStep("upload"); setCondominios([]); setResults([]); setSql(""); }}
-          >
-            Processar novo arquivo
+          <Button variant="outline" className="w-full" onClick={loadCondominios}>
+            <RefreshCw className="h-4 w-4 mr-2" />
+            Processar novamente
           </Button>
         </div>
       )}
