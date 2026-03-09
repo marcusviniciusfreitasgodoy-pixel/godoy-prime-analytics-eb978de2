@@ -19,6 +19,7 @@ export const useCondominios = () => {
       const { data, error } = await supabase
         .from("condominios_mapeamento")
         .select("*")
+        .eq("ativo", true)
         .order("nome_condominio");
 
       if (error) throw error;
