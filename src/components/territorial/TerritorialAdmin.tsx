@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Loader2, Play, Database, Building2, Map, Cpu, MapPin, Route, Search } from "lucide-react";
+import { Loader2, Play, Database, Building2, Map, Cpu, MapPin, Route, Search, Download } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
@@ -35,6 +35,55 @@ export function TerritorialAdmin() {
   const [reverseProgress, setReverseProgress] = useState<{ resolvidos: number; total: number } | null>(null);
   const [isReversing, setIsReversing] = useState(false);
   const [pendingSemEndereco, setPendingSemEndereco] = useState<number | null>(null);
+  const [isExporting, setIsExporting] = useState(false);
+
+  const exportCondominiosCSV = async () => {
+    setIsExporting(true);
+    try {
+      const allData: any[] = [];
+      const pageSize = 1000;
+      let from = 0;
+      let hasMore = true;
+      while (hasMore) {
+        const { data, error } = await supabase
+          .from("condominios_mapeamento")
+          .select("nome_condominio, logradouro_padrao, microbairro, padrao_construtivo, latitude, longitude, unidades_estimadas, numero_torres, preco_medio_m2, total_transacoes_itbi, ultima_transacao_itbi, fonte_identificacao, google_place_id, endereco_completo")
+          .order("nome_condominio")
+          .range(from, from + pageSize - 1);
+        if (error) throw error;
+        allData.push(...(data || []));
+        hasMore = (data?.length ?? 0) === pageSize;
+        from += pageSize;
+      }
+
+      const headers = ["nome_condominio","logradouro_padrao","microbairro","padrao_construtivo","latitude","longitude","unidades_estimadas","numero_torres","preco_medio_m2","total_transacoes_itbi","ultima_transacao_itbi","fonte_identificacao","google_place_id","endereco_completo"];
+      const csvRows = [headers.join(";")];
+      for (const row of allData) {
+        csvRows.push(headers.map(h => {
+          const val = row[h];
+          if (val == null) return "";
+          const str = String(val);
+          return str.includes(";") || str.includes('"') || str.includes("\n")
+            ? `"${str.replace(/"/g, '""')}"`
+            : str;
+        }).join(";"));
+      }
+
+      const blob = new Blob(["\uFEFF" + csvRows.join("\n")], { type: "text/csv;charset=utf-8;" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `condominios_mapeamento_${new Date().toISOString().slice(0,10)}.csv`;
+      a.click();
+      URL.revokeObjectURL(url);
+
+      toast({ title: "Exportado", description: `${allData.length} condomínios exportados com sucesso.` });
+    } catch (err: any) {
+      toast({ title: "Erro na exportação", description: err.message, variant: "destructive" });
+    } finally {
+      setIsExporting(false);
+    }
+  };
 
   // Count condominios without address on mount
   useEffect(() => {
@@ -156,6 +205,20 @@ export function TerritorialAdmin() {
             {action.label}
           </Button>
         ))}
+        <Button
+          variant="outline"
+          size="sm"
+          disabled={isExporting}
+          onClick={exportCondominiosCSV}
+          className="gap-2"
+        >
+          {isExporting ? (
+            <Loader2 className="h-4 w-4 animate-spin" />
+          ) : (
+            <Download className="h-4 w-4" />
+          )}
+          Exportar CSV
+        </Button>
       </div>
 
       {/* IPTU 2025 */}
