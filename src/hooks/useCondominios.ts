@@ -35,6 +35,7 @@ export const useCondominiosByMicrobairro = (microbairro: string) => {
       const { data, error } = await supabase
         .from("condominios_mapeamento")
         .select("*")
+        .eq("ativo", true)
         .eq("microbairro", microbairro)
         .order("nome_condominio");
 
