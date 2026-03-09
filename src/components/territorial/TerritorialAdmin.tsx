@@ -205,6 +205,20 @@ export function TerritorialAdmin() {
             {action.label}
           </Button>
         ))}
+        <Button
+          variant="outline"
+          size="sm"
+          disabled={isExporting}
+          onClick={exportCondominiosCSV}
+          className="gap-2"
+        >
+          {isExporting ? (
+            <Loader2 className="h-4 w-4 animate-spin" />
+          ) : (
+            <Download className="h-4 w-4" />
+          )}
+          Exportar CSV
+        </Button>
       </div>
 
       {/* IPTU 2025 */}
