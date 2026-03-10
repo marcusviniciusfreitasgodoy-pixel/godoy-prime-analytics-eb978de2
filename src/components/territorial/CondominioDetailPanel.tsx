@@ -38,7 +38,7 @@ export function CondominioDetailPanel({ condominio: c, onClose }: CondominioDeta
       <div className="flex items-start justify-between p-4 border-b border-border">
         <div className="flex-1 min-w-0">
           <h3 className="font-bold text-foreground truncate text-base">
-            {c.nome_condominio || c.logradouro_padrao}
+            {getCondoDisplayName(c)}
           </h3>
           <p className="text-xs text-muted-foreground truncate mt-0.5">{c.logradouro_padrao}</p>
           <div className="flex items-center gap-2 mt-2">
