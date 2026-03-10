@@ -12,6 +12,7 @@ import { TerritorialLogradouros } from "@/components/territorial/TerritorialLogr
 import { TerritorialAdmin } from "@/components/territorial/TerritorialAdmin";
 import { EnriquecerCondominios } from "@/components/territorial/EnriquecerCondominios";
 import { AtualizarLogradouros } from "@/components/territorial/AtualizarLogradouros";
+import { ImportarCondominios } from "@/components/territorial/ImportarCondominios";
 import {
   useTerritorialKPIs,
   useCondominiosBbox,
