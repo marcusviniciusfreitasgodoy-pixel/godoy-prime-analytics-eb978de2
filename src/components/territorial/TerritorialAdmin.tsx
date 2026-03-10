@@ -156,6 +156,8 @@ export function TerritorialAdmin() {
         ? { offset_inicial: 0 }
         : fnName === "enrich-logradouros-geo"
         ? { limite: 100 }
+        : fnName === "geocodificar-itbi-transactions"
+        ? { bairro: "BARRA DA TIJUCA", limite: 500 }
         : {};
       const { error } = await supabase.functions.invoke(fnName, { body });
       if (error) throw error;
