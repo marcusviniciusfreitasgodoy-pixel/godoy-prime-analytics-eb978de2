@@ -13,17 +13,29 @@ serve(async (req) => {
     const { batch } = await req.json();
     if (!batch?.length) throw new Error("batch vazio");
 
-    const prompt = `Você é especialista em mercado imobiliário do Rio de Janeiro, Barra da Tijuca e Recreio dos Bandeirantes.
+    const prompt = `Você é um especialista em mercado imobiliário do Rio de Janeiro, especificamente da Barra da Tijuca e Recreio dos Bandeirantes. Classifique cada condomínio com base no nome, microbairro e endereço.
 
-Para cada condomínio abaixo, pesquise e classifique com precisão.
+Campos a preencher:
+- padrao_construtivo: "Ultra Luxo" | "Alto Padrão" | "Médio-Alto Padrão" | "Médio Padrão"
+- tipologia_predominante: "Casas" | "Apartamentos" | "Comercial" | "Misto"
+- unidades_estimadas: número inteiro estimado de unidades
+- numero_torres: número inteiro estimado de torres (1 para casas/comercial)
+- confianca: "alta" | "média" | "baixa"
 
-padrao_construtivo — use EXATAMENTE um destes valores:
-- "Ultra Luxo" → condomínios premium, imóveis acima de R$2M, lazer completo, segurança 24h
-- "Alto Padrão" → R$800k–R$2M, boa infraestrutura, acabamento acima da média
-- "Médio-Alto Padrão" → R$300k–R$800k, classe média alta
-- "Médio Padrão" → abaixo de R$300k, padrão popular melhorado
+Critérios por microbairro:
+- Península, Alambique → tende a Ultra Luxo / Alto Padrão
+- Eixo Lúcio Costa → tende a Alto Padrão / Ultra Luxo
+- Barra Central → varia entre Ultra Luxo (casas como Alphaville, Malibu, Del Lago) e Alto/Médio-Alto (apartamentos)
+- Eixo Américas → Médio-Alto Padrão / Alto Padrão
+- Paralela → Médio-Alto Padrão
+- Recreio → Médio-Alto Padrão / Alto Padrão
 
-Retorne SOMENTE JSON válido, sem markdown, sem texto extra:
+Condomínios para classificar:
+${batch.map((c: any, i: number) =>
+  `${i + 1}. ID: ${c.id} | Nome: ${c.nome_condominio} | Microbairro: ${c.microbairro} | Logradouro: ${c.logradouro_padrao} | Endereço: ${c.endereco_completo}`
+).join("\n")}
+
+Retorne APENAS um JSON válido com o array, sem nenhum texto adicional:
 [
   {
     "id": "uuid exato do registro",
@@ -31,22 +43,10 @@ Retorne SOMENTE JSON válido, sem markdown, sem texto extra:
     "padrao_construtivo": "Ultra Luxo|Alto Padrão|Médio-Alto Padrão|Médio Padrão",
     "unidades_estimadas": 0,
     "numero_torres": 0,
-    "tipologia_predominante": "Apartamentos|Casas|Misto",
-    "confianca": "alta|media|baixa"
+    "tipologia_predominante": "Casas|Apartamentos|Comercial|Misto",
+    "confianca": "alta|média|baixa"
   }
-]
-
-Condomínios para classificar:
-${batch.map((c: any, i: number) =>
-  `${i + 1}. ID: ${c.id} | Nome: ${c.nome_condominio} | Microbairro: ${c.microbairro} | Logradouro: ${c.logradouro_padrao} | Endereço: ${c.endereco_completo}`
-).join("\n")}
-
-Critérios adicionais:
-- Alambique, Península → geralmente Ultra Luxo ou Alto Padrão
-- Eixo Lúcio Costa (frente-mar) → Alto Padrão a Ultra Luxo
-- Recreio → Médio-Alto a Alto Padrão
-- Paralela → Médio-Alto Padrão
-- confianca "alta" = certeza pelo nome/localização, "media" = estimativa razoável, "baixa" = inferência pelo microbairro`;
+]`;
 
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY não configurada");
