@@ -42,6 +42,7 @@ const PADRAO_VARIANT: Record<string, "default" | "secondary" | "outline" | "dest
 const CONF_LABEL: Record<string, string> = {
   alta: "●●●",
   media: "●●○",
+  "média": "●●○",
   baixa: "●○○",
 };
 
