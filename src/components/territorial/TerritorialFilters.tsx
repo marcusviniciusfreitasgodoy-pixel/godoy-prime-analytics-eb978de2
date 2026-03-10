@@ -11,6 +11,22 @@ import { List as VirtualList, type RowComponentProps } from "react-window";
 import { useLogradouroSuggestions, type TerritorialCondominio, type TerritorialKPIs } from "@/hooks/useTerritorialData";
 import { cn } from "@/lib/utils";
 
+const PLACEHOLDER_PATTERNS = /não identificad|não cadastrad|não localizad|falhou/i;
+
+function getCondoDisplayName(c: TerritorialCondominio): string {
+  if (c.nome_condominio && !PLACEHOLDER_PATTERNS.test(c.nome_condominio)) {
+    return c.nome_condominio;
+  }
+  if (c.logradouro_padrao && !PLACEHOLDER_PATTERNS.test(c.logradouro_padrao)) {
+    const num = (c as any).numero_inicio;
+    return num ? `${c.logradouro_padrao}, ${num}` : c.logradouro_padrao;
+  }
+  if (c.latitude && c.longitude) {
+    return `📍 ${c.latitude.toFixed(4)}, ${c.longitude.toFixed(4)}`;
+  }
+  return "Condomínio sem identificação";
+}
+
 interface CondoRowProps {
   filtered: TerritorialCondominio[];
   selectedId: string | null;
