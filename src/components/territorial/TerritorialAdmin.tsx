@@ -5,6 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Progress } from "@/components/ui/progress";
+import { Tooltip, TooltipTrigger, TooltipContent, TooltipProvider } from "@/components/ui/tooltip";
 import { useEtlLogs } from "@/hooks/useTerritorialData";
 import { useCoverageStats } from "@/hooks/useTerritorialData";
 import { supabase } from "@/integrations/supabase/client";
@@ -19,13 +20,13 @@ const STATUS_COLORS: Record<string, string> = {
 };
 
 const ACTIONS = [
-  { label: "Ingestão IPTU", fn: "ingest-iptu-prefeitura", icon: Database },
-  { label: "Ingestão Lotes", fn: "ingest-lotes-pal", icon: Map },
-  { label: "Ingestão Edificações", fn: "ingest-edificacoes-geo", icon: Building2 },
-  { label: "Rodar Algoritmo", fn: "process-condominios-algorithm", icon: Cpu },
-  { label: "Geocodificar ITBI", fn: "geocodificar-itbi-transactions", icon: MapPin },
-  { label: "Enriquecer Logradouros", fn: "enrich-logradouros-geo", icon: Route },
-  { label: "Enriquecer Condomínios (Google Places)", fn: "enrich-condominios", icon: Search },
+  { label: "Ingestão IPTU", fn: "ingest-iptu-prefeitura", icon: Database, tooltip: "Importa dados de IPTU da prefeitura para a base territorial" },
+  { label: "Ingestão Lotes", fn: "ingest-lotes-pal", icon: Map, tooltip: "Carrega polígonos de lotes do PAL (Plano de Alinhamento)" },
+  { label: "Ingestão Edificações", fn: "ingest-edificacoes-geo", icon: Building2, tooltip: "Importa dados de edificações georreferenciadas" },
+  { label: "Rodar Algoritmo", fn: "process-condominios-algorithm", icon: Cpu, tooltip: "Cruza dados de ITBI, IPTU e edificações para calcular KPIs dos condomínios" },
+  { label: "Geocodificar ITBI", fn: "geocodificar-itbi-transactions", icon: MapPin, tooltip: "Adiciona coordenadas geográficas às transações ITBI" },
+  { label: "Enriquecer Logradouros", fn: "enrich-logradouros-geo", icon: Route, tooltip: "Busca dados geográficos e complementares para logradouros" },
+  { label: "Enriquecer Condomínios (Google Places)", fn: "enrich-condominios", icon: Search, tooltip: "Busca coordenadas, endereço e Google Place ID via Google Places API" },
 ];
 
 export function TerritorialAdmin() {
@@ -195,39 +196,54 @@ export function TerritorialAdmin() {
       </div>
 
       {/* Actions */}
-      <div className="flex flex-wrap gap-2">
-        {ACTIONS.map((action) => (
-          <Button
-            key={action.fn}
-            variant="outline"
-            size="sm"
-            disabled={running !== null}
-            onClick={() => invokeAction(action.fn)}
-            className="gap-2"
-          >
-            {running === action.fn ? (
-              <Loader2 className="h-4 w-4 animate-spin" />
-            ) : (
-              <action.icon className="h-4 w-4" />
-            )}
-            {action.label}
-          </Button>
-        ))}
-        <Button
-          variant="outline"
-          size="sm"
-          disabled={isExporting}
-          onClick={exportCondominiosCSV}
-          className="gap-2"
-        >
-          {isExporting ? (
-            <Loader2 className="h-4 w-4 animate-spin" />
-          ) : (
-            <Download className="h-4 w-4" />
-          )}
-          Exportar CSV
-        </Button>
-      </div>
+      <TooltipProvider delayDuration={300}>
+        <div className="flex flex-wrap gap-2">
+          {ACTIONS.map((action) => (
+            <Tooltip key={action.fn}>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  disabled={running !== null}
+                  onClick={() => invokeAction(action.fn)}
+                  className="gap-2"
+                >
+                  {running === action.fn ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <action.icon className="h-4 w-4" />
+                  )}
+                  {action.label}
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>{action.tooltip}</p>
+              </TooltipContent>
+            </Tooltip>
+          ))}
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                variant="outline"
+                size="sm"
+                disabled={isExporting}
+                onClick={exportCondominiosCSV}
+                className="gap-2"
+              >
+                {isExporting ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <Download className="h-4 w-4" />
+                )}
+                Exportar CSV
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>
+              <p>Exporta todos os condomínios ativos para um arquivo CSV</p>
+            </TooltipContent>
+          </Tooltip>
+        </div>
+      </TooltipProvider>
 
       {/* IPTU 2025 */}
       <div className="border border-border rounded-lg p-4">
@@ -257,20 +273,29 @@ export function TerritorialAdmin() {
             </p>
           </div>
         )}
-        <Button
-          variant="outline"
-          size="sm"
-          disabled={isReversing || (pendingSemEndereco ?? 0) === 0}
-          onClick={runReverseGeocode}
-          className="gap-2"
-        >
-          {isReversing ? (
-            <Loader2 className="h-4 w-4 animate-spin" />
-          ) : (
-            <Search className="h-4 w-4" />
-          )}
-          {isReversing ? "Processando..." : "Resolver Endereços Pendentes"}
-        </Button>
+        <TooltipProvider delayDuration={300}>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                variant="outline"
+                size="sm"
+                disabled={isReversing || (pendingSemEndereco ?? 0) === 0}
+                onClick={runReverseGeocode}
+                className="gap-2"
+              >
+                {isReversing ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <Search className="h-4 w-4" />
+                )}
+                {isReversing ? "Processando..." : "Resolver Endereços Pendentes"}
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>
+              <p>Usa geocodificação reversa para identificar endereços de condomínios com coordenadas</p>
+            </TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
       </div>
 
       {/* ETL Logs */}
