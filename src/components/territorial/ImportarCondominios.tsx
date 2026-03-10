@@ -50,6 +50,7 @@ type ParsedEntry = {
   nome: string;
   logradouro: string;
   bairro: string;
+  csvMicrobairro?: string; // when CSV provides microbairro directly
 };
 
 type AnalysisRow = {
