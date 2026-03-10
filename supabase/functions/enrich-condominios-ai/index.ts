@@ -10,7 +10,20 @@ serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   try {
-    const { batch } = await req.json();
+    let body: any;
+    try {
+      const text = await req.text();
+      if (!text || text.trim() === "") throw new Error("body vazio");
+      body = JSON.parse(text);
+    } catch (e: any) {
+      console.error("Failed to parse request body:", e.message);
+      return new Response(JSON.stringify({ error: "Body inválido: " + e.message }), {
+        status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    const { batch } = body;
     if (!batch?.length) throw new Error("batch vazio");
 
     const prompt = `Você é um especialista em mercado imobiliário do Rio de Janeiro, especificamente da Barra da Tijuca e Recreio dos Bandeirantes. Classifique cada condomínio com base no nome, microbairro e endereço.
