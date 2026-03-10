@@ -155,11 +155,13 @@ export function TerritorialFilters({
     onFilteredChange(filtered);
   }, [filtered, onFilteredChange]);
 
+  const precoM2 = kpis?.preco_medio_m2_barra != null ? Number(kpis.preco_medio_m2_barra) : null;
+
   const kpiCards = [
     { label: "Condomínios", value: kpis?.total_condominios ?? "—", icon: Building2 },
     { label: "Com histórico", value: kpis?.com_historico_precos ?? "—", icon: TrendingUp },
-    { label: "Unidades", value: kpis?.unidades_mapeadas?.toLocaleString("pt-BR") ?? "—", icon: Home },
-    { label: "R$/m² médio", value: kpis?.preco_medio_m2_barra ? `R$ ${kpis.preco_medio_m2_barra.toLocaleString("pt-BR")}` : "—", icon: DollarSign },
+    { label: "Unidades", value: kpis?.unidades_mapeadas ? Number(kpis.unidades_mapeadas).toLocaleString("pt-BR") : "—", icon: Home },
+    { label: "R$/m² médio", value: precoM2 ? `R$ ${precoM2.toLocaleString("pt-BR")}` : "—", icon: DollarSign },
   ];
 
   return (
