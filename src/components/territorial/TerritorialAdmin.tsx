@@ -113,9 +113,12 @@ export function TerritorialAdmin() {
     setIsReversing(true);
     let totalResolvidos = 0;
     let continuar = true;
+    let iteracoes = 0;
+    const MAX_ITERACOES = 20;
 
     try {
-      while (continuar) {
+      while (continuar && iteracoes < MAX_ITERACOES) {
+        iteracoes++;
         const { data, error } = await supabase.functions.invoke("reverse-geocode-condominios", {});
         if (error) throw error;
 
@@ -132,10 +135,11 @@ export function TerritorialAdmin() {
         }
       }
 
-      toast({
-        title: "Endereços resolvidos",
-        description: `${totalResolvidos} endereços identificados via geocodificação reversa.`,
-      });
+      const msg = iteracoes >= MAX_ITERACOES && continuar
+        ? `${totalResolvidos} endereços resolvidos. Limite de iterações atingido — execute novamente para continuar.`
+        : `${totalResolvidos} endereços identificados via geocodificação reversa.`;
+
+      toast({ title: "Endereços resolvidos", description: msg });
     } catch (err: any) {
       toast({ title: "Erro", description: err.message, variant: "destructive" });
     } finally {
