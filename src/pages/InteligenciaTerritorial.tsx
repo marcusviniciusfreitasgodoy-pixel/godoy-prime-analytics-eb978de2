@@ -260,7 +260,6 @@ export default function InteligenciaTerritorial() {
                   <TabsContent value="importar" className="mt-0">
                     <ImportarCondominios />
                   </TabsContent>
-                  </TabsContent>
                 </Tabs>
               </TabsContent>
               <TabsContent value="admin" className="flex-1 min-h-0 mt-0 overflow-auto">
