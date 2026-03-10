@@ -1,21 +1,45 @@
 
 
-## Plano: Corrigir ruas internas do Malibu e criar Americas Park / Mundo Novo
+## Plano: Remover vias públicas do campo `ruas_internas`
 
-### Operações de dados (via insert tool)
+### Problema
+Três vias públicas estão cadastradas indevidamente como ruas internas de condomínios:
+- **AVENIDA DAS AMERICAS** (ou variantes AVN DAS AMERICAS)
+- **AVN AFONSO ARINOS DE MELO FRANCO** (ou variantes)
+- **AVN GENERAL FELICISSIMO CARDOSO** (ou variantes)
 
-1. **Atualizar Malibu** — remover AVN MALIBU, PRC TELE SANTANA e PRC ANTONIO CALLADO do array `ruas_internas`, mantendo apenas RUA MARGARIDA VALLADAO e RUA DARIO COELHO.
+### Operações
 
-2. **Criar "Americas Park"** — novo registro em `condominios_mapeamento` com:
-   - `logradouro_padrao`: mesmo do Malibu (Rua Engenheiro Mario Fernandes Guedes) ou a ser definido
-   - `microbairro`: Barra Central
-   - `ruas_internas`: ['AVN MALIBU', 'PRC TELE SANTANA', 'PRC ANTONIO CALLADO']
-   - `ativo`: true
-   - Coordenadas próximas ao Malibu (~-23.001, -43.392)
+1. **Identificar** todos os condomínios afetados via query diagnóstica (unnest + filtro por nome da rua)
+2. **Atualizar** cada registro removendo apenas a via pública do array, preservando as demais ruas internas — usando `array_remove()` em 3 UPDATEs sequenciais
 
-3. **Criar "Mundo Novo"** — novo registro sem ruas internas por enquanto, mesma região.
+### SQL planejado
 
-### Nenhuma mudança de código
+```sql
+-- Remover AVENIDA DAS AMERICAS e variantes
+UPDATE condominios_mapeamento
+SET ruas_internas = array_remove(ruas_internas, rua_publica)
+FROM unnest(ARRAY['AVN DAS AMERICAS', 'AVENIDA DAS AMERICAS', 'AVN AMERICAS']) AS rua_publica
+WHERE ativo = true AND rua_publica = ANY(ruas_internas);
 
-O frontend já lê `condominios_mapeamento` com `ativo = true`. Nenhum componente precisa ser alterado.
+-- Remover AFONSO ARINOS DE MELO FRANCO
+UPDATE condominios_mapeamento
+SET ruas_internas = array_remove(ruas_internas, rua_publica)
+FROM unnest(ARRAY['AVN AFONSO ARINOS DE MELO FRANCO', 'AVENIDA AFONSO ARINOS DE MELO FRANCO']) AS rua_publica
+WHERE ativo = true AND rua_publica = ANY(ruas_internas);
+
+-- Remover GENERAL FELICISSIMO CARDOSO
+UPDATE condominios_mapeamento
+SET ruas_internas = array_remove(ruas_internas, rua_publica)
+FROM unnest(ARRAY['AVN GENERAL FELICISSIMO CARDOSO', 'AVENIDA GENERAL FELICISSIMO CARDOSO']) AS rua_publica
+WHERE ativo = true AND rua_publica = ANY(ruas_internas);
+```
+
+### Segurança
+- Apenas o campo `ruas_internas` será modificado — nenhum registro será deletado
+- Apenas registros ativos (`ativo = true`) serão afetados
+- Nenhuma alteração de código necessária
+
+### Etapa de verificação
+Após a limpeza, uma query de conferência listará os condomínios afetados para confirmar que as vias foram removidas corretamente.
 
