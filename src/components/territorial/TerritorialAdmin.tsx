@@ -196,39 +196,54 @@ export function TerritorialAdmin() {
       </div>
 
       {/* Actions */}
-      <div className="flex flex-wrap gap-2">
-        {ACTIONS.map((action) => (
-          <Button
-            key={action.fn}
-            variant="outline"
-            size="sm"
-            disabled={running !== null}
-            onClick={() => invokeAction(action.fn)}
-            className="gap-2"
-          >
-            {running === action.fn ? (
-              <Loader2 className="h-4 w-4 animate-spin" />
-            ) : (
-              <action.icon className="h-4 w-4" />
-            )}
-            {action.label}
-          </Button>
-        ))}
-        <Button
-          variant="outline"
-          size="sm"
-          disabled={isExporting}
-          onClick={exportCondominiosCSV}
-          className="gap-2"
-        >
-          {isExporting ? (
-            <Loader2 className="h-4 w-4 animate-spin" />
-          ) : (
-            <Download className="h-4 w-4" />
-          )}
-          Exportar CSV
-        </Button>
-      </div>
+      <TooltipProvider delayDuration={300}>
+        <div className="flex flex-wrap gap-2">
+          {ACTIONS.map((action) => (
+            <Tooltip key={action.fn}>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  disabled={running !== null}
+                  onClick={() => invokeAction(action.fn)}
+                  className="gap-2"
+                >
+                  {running === action.fn ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <action.icon className="h-4 w-4" />
+                  )}
+                  {action.label}
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>{action.tooltip}</p>
+              </TooltipContent>
+            </Tooltip>
+          ))}
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                variant="outline"
+                size="sm"
+                disabled={isExporting}
+                onClick={exportCondominiosCSV}
+                className="gap-2"
+              >
+                {isExporting ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <Download className="h-4 w-4" />
+                )}
+                Exportar CSV
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>
+              <p>Exporta todos os condomínios ativos para um arquivo CSV</p>
+            </TooltipContent>
+          </Tooltip>
+        </div>
+      </TooltipProvider>
 
       {/* IPTU 2025 */}
       <div className="border border-border rounded-lg p-4">
