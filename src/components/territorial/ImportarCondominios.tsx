@@ -91,31 +91,46 @@ export function ImportarCondominios() {
     // Detect format: CSV uses commas without pipes
     const isCSV = lines.length > 0 && !lines[0].includes("|") && lines[0].split(",").length >= 3;
 
+    // Known microbairro values that map to allowed bairros
+    const MICROBAIRROS_BARRA = [
+      "eixo lucio costa", "peninsula", "centro metropolitano", "ayrton senna",
+      "jardim oceanico", "abm", "parque das rosas", "eixo americas", "barra central", "alambique",
+    ];
+    const MICROBAIRROS_RECREIO = ["recreio"];
+
     const parsed: ParsedEntry[] = lines
       .map(line => {
-        let parts: string[];
         if (isCSV) {
-          parts = line.split(",").map(p => p.trim());
-          // CSV format: nome_condominio, logradouro_padrao, microbairro, ativo
-          // or: nome_condominio, logradouro_padrao, bairro
-          return { nome: parts[0] || "", logradouro: parts[1] || "", bairro: parts[2] || "" };
+          const parts = line.split(",").map(p => p.trim());
+          // CSV: nome_condominio, logradouro_padrao, microbairro[, ativo]
+          return {
+            nome: parts[0] || "",
+            logradouro: parts[1] || "",
+            bairro: "", // CSV doesn't have explicit bairro
+            csvMicrobairro: parts[2] || "",
+          };
         } else {
-          parts = line.split("|").map(p => p.trim());
+          const parts = line.split("|").map(p => p.trim());
           return { nome: parts[0] || "", logradouro: parts[1] || "", bairro: parts[2] || "" };
         }
       })
       .filter(p => p.nome && p.logradouro);
 
-    // Filter by allowed bairros
+    // Filter by allowed bairros / microbairros
     let filtered = 0;
     const allowed = parsed.filter(p => {
+      if (isCSV && p.csvMicrobairro) {
+        // For CSV, check if microbairro is a known value
+        const mbNorm = normalize(p.csvMicrobairro);
+        const isKnown = MICROBAIRROS_BARRA.includes(mbNorm) || MICROBAIRROS_RECREIO.includes(mbNorm);
+        if (!isKnown) { filtered++; return false; }
+        return true;
+      }
+      // Pipe format: filter by bairro
       const bNorm = normalize(p.bairro);
       const isAllowed = BAIRROS_PERMITIDOS.some(b => bNorm.includes(b));
       const isIgnored = BAIRROS_IGNORADOS.some(b => bNorm.includes(b));
-      if (!isAllowed || isIgnored) {
-        filtered++;
-        return false;
-      }
+      if (!isAllowed || isIgnored) { filtered++; return false; }
       return true;
     });
     setFilteredOutCount(filtered);
