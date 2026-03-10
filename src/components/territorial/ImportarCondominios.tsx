@@ -238,7 +238,9 @@ export function ImportarCondominios() {
           <h3 className="text-lg font-bold text-foreground">Importar Condomínios</h3>
         </div>
         <p className="text-sm text-muted-foreground">
-          Cole uma lista no formato <code className="text-xs bg-muted px-1 rounded">Nome | Logradouro | Bairro</code>.
+          Cole uma lista no formato <code className="text-xs bg-muted px-1 rounded">Nome | Logradouro | Bairro</code> ou CSV <code className="text-xs bg-muted px-1 rounded">nome,logradouro,bairro</code>.
+          Apenas Barra da Tijuca e Recreio dos Bandeirantes serão importados.
+        </p>
           Apenas Barra da Tijuca e Recreio dos Bandeirantes serão importados.
         </p>
       </div>
