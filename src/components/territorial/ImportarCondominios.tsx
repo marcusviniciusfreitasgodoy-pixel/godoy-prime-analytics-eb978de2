@@ -1,10 +1,10 @@
-import { useState, useCallback, useMemo } from "react";
-import { Upload, Check, Loader2, AlertCircle, Sparkles } from "lucide-react";
+import { useState, useCallback, useMemo, useRef } from "react";
+import { Upload, Check, Loader2, Sparkles, FileUp } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from "@/components/ui/table";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -20,44 +20,73 @@ function normalize(str: string): string {
 }
 
 const BAIRROS_PERMITIDOS = ["barra da tijuca", "recreio dos bandeirantes"];
-const BAIRROS_IGNORADOS = [
-  "jacarepagua", "leblon", "costa verde", "itaipava",
-  "barra olimpica", "gavea", "itanhanga", "copacabana",
-  "ipanema", "tijuca", "botafogo", "centro",
+
+const MICROBAIRRO_OPTIONS = [
+  "Alambique",
+  "Barra Central",
+  "Eixo Américas",
+  "Eixo Lúcio Costa",
+  "Paralela",
+  "Península",
+  "Recreio",
 ];
 
 function inferirMicrobairro(logradouro: string, bairro: string): string {
   const log = normalize(logradouro);
-  const bairroNorm = normalize(bairro);
+  const bNorm = normalize(bairro);
 
-  if (log.includes("lucio costa") || log.includes("sernambetiba")) return "Eixo Lúcio Costa";
-  if (log.includes("flamboyants") || log.includes("acacias") || log.includes("jacarandas")) return "Península";
-  if (log.includes("rachel de queiroz") || log.includes("rosauro estelita") || log.includes("celia ribeiro")) return "Alambique";
-  if (log.includes("das americas") || log.includes("americas")) {
-    if (bairroNorm.includes("recreio")) return "Recreio";
-    return "Eixo Américas";
+  // Península
+  if (
+    log.includes("flamboyants") ||
+    log.includes("acacias da peninsula") ||
+    log.includes("jacarandas da peninsula") ||
+    log.includes("bromelias da peninsula") ||
+    log.includes("bauhineas da peninsula")
+  )
+    return "Península";
+
+  // Alambique
+  if (log.includes("rachel de queiroz") || log.includes("rosauro estelita") || log.includes("celia ribeiro"))
+    return "Alambique";
+
+  // Lúcio Costa — depends on bairro
+  if (log.includes("lucio costa")) {
+    if (bNorm.includes("recreio")) return "Recreio";
+    return "Eixo Lúcio Costa";
   }
-  if (log.includes("abelardo bueno") || log.includes("embaixador")) return "Centro Metropolitano";
-  if (log.includes("ayrton senna")) return "Ayrton Senna";
-  if (log.includes("olegario maciel") || log.includes("erico verissimo")) return "Jardim Oceânico";
-  if (log.includes("dulcidio cardoso")) return "ABM";
-  if (log.includes("mario covas") || log.includes("cesar lattes") || log.includes("henrique cordeiro")) return "Parque das Rosas";
-  if (bairroNorm.includes("recreio")) return "Recreio";
+
+  // Recreio keywords
+  if (
+    log.includes("tim maia") ||
+    log.includes("vereador alceu") ||
+    log.includes("benvindo de novaes") ||
+    log.includes("pontal") ||
+    log.includes("henfil")
+  )
+    return "Recreio";
+
+  // Recreio by bairro
+  if (bNorm.includes("recreio")) return "Recreio";
+
+  // Eixo Américas
+  if (log.includes("das americas")) return "Eixo Américas";
+
+  // Paralela
+  if (
+    log.includes("abelardo bueno") ||
+    log.includes("ayrton senna") ||
+    log.includes("joao cabral") ||
+    log.includes("tim lopes")
+  )
+    return "Paralela";
+
   return "Barra Central";
 }
-
-type ParsedEntry = {
-  nome: string;
-  logradouro: string;
-  bairro: string;
-  csvMicrobairro?: string; // when CSV provides microbairro directly
-};
 
 type AnalysisRow = {
   key: string;
   nome: string;
   logradouro: string;
-  bairro: string;
   microbairro: string;
   exists: boolean;
   selected: boolean;
@@ -71,71 +100,53 @@ export function ImportarCondominios() {
   const [analyzing, setAnalyzing] = useState(false);
   const [importing, setImporting] = useState(false);
   const [importedCount, setImportedCount] = useState(0);
-  const [filteredOutCount, setFilteredOutCount] = useState(0);
+  const fileRef = useRef<HTMLInputElement>(null);
 
-  async function analisar() {
-    if (!pastedText.trim()) {
-      toast.error("Cole a lista de condomínios na área de texto.");
+  // ── Parse & analyze ──────────────────────────────────────────────────────
+  const processData = useCallback(async (text: string) => {
+    if (!text.trim()) {
+      toast.error("Nenhum dado para analisar.");
       return;
     }
 
     setAnalyzing(true);
 
-    // Parse lines — detect CSV (comma-separated) vs pipe-separated
-    const rawLines = pastedText.split("\n").map(l => l.trim()).filter(Boolean);
-
-    // Skip CSV header if present
+    const rawLines = text.split("\n").map(l => l.trim()).filter(Boolean);
     const hasHeader = rawLines.length > 0 && normalize(rawLines[0]).includes("nome_condominio");
     const lines = hasHeader ? rawLines.slice(1) : rawLines;
 
-    // Detect format: CSV uses commas without pipes
-    const isCSV = lines.length > 0 && !lines[0].includes("|") && lines[0].split(",").length >= 3;
+    const isCSV = lines.length > 0 && !lines[0].includes("|") && lines[0].split(",").length >= 2;
 
-    // Known microbairro values that map to allowed bairros
-    const MICROBAIRROS_BARRA = [
-      "eixo lucio costa", "peninsula", "centro metropolitano", "ayrton senna",
-      "jardim oceanico", "abm", "parque das rosas", "eixo americas", "barra central", "alambique",
-    ];
-    const MICROBAIRROS_RECREIO = ["recreio"];
+    type Parsed = { nome: string; logradouro: string; bairro: string; csvMicrobairro?: string };
 
-    const parsed: ParsedEntry[] = lines
+    const KNOWN_MICROBAIRROS = MICROBAIRRO_OPTIONS.map(m => normalize(m));
+
+    const parsed: Parsed[] = lines
       .map(line => {
         if (isCSV) {
           const parts = line.split(",").map(p => p.trim());
-          // CSV: nome_condominio, logradouro_padrao, microbairro[, ativo]
           return {
             nome: parts[0] || "",
             logradouro: parts[1] || "",
-            bairro: "", // CSV doesn't have explicit bairro
+            bairro: "",
             csvMicrobairro: parts[2] || "",
           };
-        } else {
-          const parts = line.split("|").map(p => p.trim());
-          return { nome: parts[0] || "", logradouro: parts[1] || "", bairro: parts[2] || "" };
         }
+        const parts = line.split("|").map(p => p.trim());
+        return { nome: parts[0] || "", logradouro: parts[1] || "", bairro: parts[2] || "" };
       })
       .filter(p => p.nome && p.logradouro);
 
-    // Filter by allowed bairros / microbairros
-    let filtered = 0;
+    // Filter by allowed bairros / known microbairros
     const allowed = parsed.filter(p => {
       if (isCSV && p.csvMicrobairro) {
-        // For CSV, check if microbairro is a known value
-        const mbNorm = normalize(p.csvMicrobairro);
-        const isKnown = MICROBAIRROS_BARRA.includes(mbNorm) || MICROBAIRROS_RECREIO.includes(mbNorm);
-        if (!isKnown) { filtered++; return false; }
-        return true;
+        return KNOWN_MICROBAIRROS.includes(normalize(p.csvMicrobairro));
       }
-      // Pipe format: filter by bairro
       const bNorm = normalize(p.bairro);
-      const isAllowed = BAIRROS_PERMITIDOS.some(b => bNorm.includes(b));
-      const isIgnored = BAIRROS_IGNORADOS.some(b => bNorm.includes(b));
-      if (!isAllowed || isIgnored) { filtered++; return false; }
-      return true;
+      return BAIRROS_PERMITIDOS.some(b => bNorm.includes(b));
     });
-    setFilteredOutCount(filtered);
 
-    // Load existing condominios
+    // Load existing
     const { data: existing, error } = await supabase
       .from("condominios_mapeamento")
       .select("id, nome_condominio")
@@ -157,14 +168,12 @@ export function ImportarCondominios() {
         key: `${i}-${nameNorm}`,
         nome: entry.nome,
         logradouro: entry.logradouro,
-        bairro: entry.bairro,
         microbairro: entry.csvMicrobairro || inferirMicrobairro(entry.logradouro, entry.bairro),
         exists,
         selected: !exists,
       };
     });
 
-    // Sort: new first, then existing
     analysisRows.sort((a, b) => {
       if (a.exists !== b.exists) return a.exists ? 1 : -1;
       return a.nome.localeCompare(b.nome);
@@ -175,15 +184,29 @@ export function ImportarCondominios() {
 
     const newCount = analysisRows.filter(r => !r.exists).length;
     const existCount = analysisRows.filter(r => r.exists).length;
-    toast.info(`${newCount} novos, ${existCount} já existentes${filtered > 0 ? `, ${filtered} filtrados (bairro fora do escopo)` : ""}`);
+    toast.info(`${newCount} novos encontrados, ${existCount} já existem na base`);
+  }, []);
+
+  // ── File upload handler ──────────────────────────────────────────────────
+  function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      const content = ev.target?.result as string;
+      processData(content);
+    };
+    reader.readAsText(file);
+    e.target.value = "";
   }
 
+  // ── Row actions ──────────────────────────────────────────────────────────
   function toggleRow(key: string) {
     setRows(prev => prev.map(r => r.key === key ? { ...r, selected: !r.selected } : r));
   }
 
-  function toggleAllNew(checked: boolean) {
-    setRows(prev => prev.map(r => r.exists ? r : { ...r, selected: checked }));
+  function selectAllNew() {
+    setRows(prev => prev.map(r => r.exists ? r : { ...r, selected: true }));
   }
 
   function updateMicrobairro(key: string, value: string) {
@@ -193,19 +216,19 @@ export function ImportarCondominios() {
   const newRows = useMemo(() => rows.filter(r => !r.exists), [rows]);
   const existingRows = useMemo(() => rows.filter(r => r.exists), [rows]);
   const selectedRows = useMemo(() => newRows.filter(r => r.selected), [newRows]);
-  const allNewSelected = newRows.length > 0 && newRows.every(r => r.selected);
 
+  // ── Import ───────────────────────────────────────────────────────────────
   async function importarSelecionados() {
     if (selectedRows.length === 0) {
-      toast.error("Selecione ao menos um condomínio para importar.");
+      toast.error("Selecione ao menos um condomínio.");
       return;
     }
 
+    if (!confirm(`Importar ${selectedRows.length} condomínios?`)) return;
+
     setImporting(true);
     let ok = 0;
-    let fail = 0;
 
-    // Insert in batches of 20
     for (let i = 0; i < selectedRows.length; i += 20) {
       const batch = selectedRows.slice(i, i + 20).map(r => ({
         nome_condominio: r.nome,
@@ -214,12 +237,8 @@ export function ImportarCondominios() {
         ativo: true,
       }));
 
-      const { error } = await supabase
-        .from("condominios_mapeamento")
-        .insert(batch);
-
+      const { error } = await supabase.from("condominios_mapeamento").insert(batch);
       if (error) {
-        fail += batch.length;
         console.error("Insert error:", error.message);
       } else {
         ok += batch.length;
@@ -228,12 +247,7 @@ export function ImportarCondominios() {
 
     setImporting(false);
     setImportedCount(ok);
-
-    if (fail === 0) {
-      toast.success(`${ok} condomínios adicionados com sucesso!`);
-    } else {
-      toast.warning(`${ok} adicionados, ${fail} com erro.`);
-    }
+    toast.success(`${ok} condomínios importados com sucesso!`);
     setStep("done");
   }
 
@@ -242,39 +256,62 @@ export function ImportarCondominios() {
     setRows([]);
     setStep("input");
     setImportedCount(0);
-    setFilteredOutCount(0);
   }
 
+  // ── RENDER ───────────────────────────────────────────────────────────────
   return (
     <div className="space-y-6 max-w-4xl">
-      {/* Header */}
       <div>
         <div className="flex items-center gap-2 mb-1">
           <Upload className="h-5 w-5 text-primary" />
           <h3 className="text-lg font-bold text-foreground">Importar Condomínios</h3>
         </div>
         <p className="text-sm text-muted-foreground">
-          Cole uma lista no formato <code className="text-xs bg-muted px-1 rounded">Nome | Logradouro | Bairro</code> ou CSV <code className="text-xs bg-muted px-1 rounded">nome,logradouro,bairro</code>.
-          Apenas Barra da Tijuca e Recreio dos Bandeirantes serão importados.
+          Selecione um CSV ou cole uma lista no formato{" "}
+          <code className="text-xs bg-muted px-1 rounded">Nome | Logradouro | Bairro</code>.
         </p>
       </div>
 
       {/* INPUT step */}
       {step === "input" && (
         <div className="space-y-4">
+          <input
+            ref={fileRef}
+            type="file"
+            accept=".csv"
+            className="hidden"
+            onChange={handleFileChange}
+          />
+          <Button
+            variant="outline"
+            className="w-full"
+            onClick={() => fileRef.current?.click()}
+            disabled={analyzing}
+          >
+            <FileUp className="h-4 w-4 mr-2" />
+            Selecionar CSV
+          </Button>
+
+          <div className="flex items-center gap-2 text-xs text-muted-foreground">
+            <div className="flex-1 border-t border-border" />
+            <span>ou cole manualmente</span>
+            <div className="flex-1 border-t border-border" />
+          </div>
+
           <Textarea
-            placeholder={`Formato pipe:\nAlphaville Barra | Avenida das Américas | BARRA DA TIJUCA\n\nFormato CSV:\nnome_condominio,logradouro_padrao,microbairro,ativo\nArt Life,Estrada Vereador Alceu de Carvalho,Recreio,true`}
-            className="min-h-[200px] font-mono text-xs"
+            placeholder={`Nome | Logradouro | Bairro\nAlphaville Barra | Avenida das Américas | BARRA DA TIJUCA`}
+            className="min-h-[160px] font-mono text-xs"
             value={pastedText}
             onChange={e => setPastedText(e.target.value)}
           />
 
-          <Button onClick={analisar} className="w-full" size="lg" disabled={!pastedText.trim() || analyzing}>
-            {analyzing ? (
-              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-            ) : (
-              <Upload className="h-4 w-4 mr-2" />
-            )}
+          <Button
+            onClick={() => processData(pastedText)}
+            className="w-full"
+            size="lg"
+            disabled={!pastedText.trim() || analyzing}
+          >
+            {analyzing ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Upload className="h-4 w-4 mr-2" />}
             {analyzing ? "Analisando…" : "Analisar"}
           </Button>
         </div>
@@ -289,35 +326,32 @@ export function ImportarCondominios() {
                 {newRows.length} novos
               </Badge>
               <Badge variant="secondary">{existingRows.length} já existem</Badge>
-              {filteredOutCount > 0 && (
-                <Badge variant="outline">{filteredOutCount} filtrados (bairro)</Badge>
-              )}
               <Badge variant="outline">{selectedRows.length} selecionados</Badge>
             </div>
-            <Button variant="ghost" size="sm" onClick={reset}>
-              Recomeçar
-            </Button>
+            <div className="flex gap-2">
+              <Button variant="ghost" size="sm" onClick={selectAllNew}>
+                Selecionar todos os novos
+              </Button>
+              <Button variant="ghost" size="sm" onClick={reset}>
+                Recomeçar
+              </Button>
+            </div>
           </div>
 
-          {/* New condominios */}
+          {/* New rows */}
           {newRows.length > 0 && (
             <div className="space-y-2">
               <p className="text-sm font-semibold text-foreground">Novos para importar</p>
               <div className="rounded-lg border border-emerald-200 dark:border-emerald-800/50 overflow-hidden">
-                <div className="max-h-[350px] overflow-auto">
+                <div className="max-h-[400px] overflow-auto">
                   <Table>
                     <TableHeader>
                       <TableRow className="bg-emerald-50/50 dark:bg-emerald-900/10">
-                        <TableHead className="w-10">
-                          <Checkbox
-                            checked={allNewSelected}
-                            onCheckedChange={c => toggleAllNew(!!c)}
-                          />
-                        </TableHead>
+                        <TableHead className="w-10" />
                         <TableHead className="text-xs">Nome</TableHead>
                         <TableHead className="text-xs">Logradouro</TableHead>
-                        <TableHead className="text-xs">Bairro</TableHead>
                         <TableHead className="text-xs w-[180px]">Microbairro</TableHead>
+                        <TableHead className="text-xs w-[80px]">Status</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -328,13 +362,24 @@ export function ImportarCondominios() {
                           </TableCell>
                           <TableCell className="text-xs font-medium py-1.5">{row.nome}</TableCell>
                           <TableCell className="text-xs text-muted-foreground py-1.5">{row.logradouro}</TableCell>
-                          <TableCell className="text-xs text-muted-foreground py-1.5">{row.bairro}</TableCell>
                           <TableCell className="py-1.5">
-                            <Input
-                              className="h-7 text-xs"
-                              value={row.microbairro}
-                              onChange={e => updateMicrobairro(row.key, e.target.value)}
-                            />
+                            <Select value={row.microbairro} onValueChange={v => updateMicrobairro(row.key, v)}>
+                              <SelectTrigger className="h-7 text-xs">
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {MICROBAIRRO_OPTIONS.map(opt => (
+                                  <SelectItem key={opt} value={opt} className="text-xs">
+                                    {opt}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          </TableCell>
+                          <TableCell className="py-1.5">
+                            <Badge className="bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-300 text-[10px]">
+                              Novo
+                            </Badge>
                           </TableCell>
                         </TableRow>
                       ))}
@@ -348,7 +393,7 @@ export function ImportarCondominios() {
           {/* Existing condominios */}
           {existingRows.length > 0 && (
             <div className="space-y-2">
-              <p className="text-sm font-semibold text-muted-foreground">Já existem no banco</p>
+              <p className="text-sm font-semibold text-muted-foreground">Já existem na base</p>
               <div className="rounded-lg border border-border overflow-hidden bg-muted/30">
                 <div className="max-h-[200px] overflow-auto">
                   <Table>
@@ -356,7 +401,8 @@ export function ImportarCondominios() {
                       <TableRow>
                         <TableHead className="text-xs">Nome</TableHead>
                         <TableHead className="text-xs">Logradouro</TableHead>
-                        <TableHead className="text-xs">Bairro</TableHead>
+                        <TableHead className="text-xs">Microbairro</TableHead>
+                        <TableHead className="text-xs w-[80px]">Status</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -364,7 +410,10 @@ export function ImportarCondominios() {
                         <TableRow key={row.key} className="opacity-60">
                           <TableCell className="text-xs py-1.5">{row.nome}</TableCell>
                           <TableCell className="text-xs text-muted-foreground py-1.5">{row.logradouro}</TableCell>
-                          <TableCell className="text-xs text-muted-foreground py-1.5">{row.bairro}</TableCell>
+                          <TableCell className="text-xs text-muted-foreground py-1.5">{row.microbairro}</TableCell>
+                          <TableCell className="py-1.5">
+                            <Badge variant="secondary" className="text-[10px]">Já existe</Badge>
+                          </TableCell>
                         </TableRow>
                       ))}
                     </TableBody>
@@ -374,18 +423,13 @@ export function ImportarCondominios() {
             </div>
           )}
 
-          {/* Import button */}
           <Button
             onClick={importarSelecionados}
             className="w-full"
             size="lg"
             disabled={selectedRows.length === 0 || importing}
           >
-            {importing ? (
-              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-            ) : (
-              <Upload className="h-4 w-4 mr-2" />
-            )}
+            {importing ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Upload className="h-4 w-4 mr-2" />}
             {importing ? "Importando…" : `Importar ${selectedRows.length} selecionados`}
           </Button>
         </div>
@@ -396,11 +440,11 @@ export function ImportarCondominios() {
         <div className="space-y-4 text-center py-8">
           <div className="flex items-center justify-center gap-2 text-primary">
             <Check className="h-6 w-6" />
-            <span className="text-lg font-semibold">{importedCount} condomínios adicionados!</span>
+            <span className="text-lg font-semibold">{importedCount} condomínios importados com sucesso!</span>
           </div>
           <div className="flex items-start gap-2 justify-center text-sm text-muted-foreground max-w-md mx-auto">
             <Sparkles className="h-4 w-4 mt-0.5 shrink-0 text-primary" />
-            <span>Lembre-se de rodar o <strong>Enriquecimento IA → Classificação IA</strong> para preencher padrão construtivo, tipologia e unidades estimadas.</span>
+            <span>Execute o <strong>Enriquecimento IA</strong> para completar os dados.</span>
           </div>
           <Button variant="outline" onClick={reset} className="mt-4">
             Importar mais condomínios
