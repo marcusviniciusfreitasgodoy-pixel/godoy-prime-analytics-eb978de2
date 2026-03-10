@@ -234,8 +234,26 @@ export default function InteligenciaTerritorial() {
           {/* Tab: Admin */}
           {showAdmin && (
             <>
-              <TabsContent value="enriquecimento" className="flex-1 min-h-0 mt-0 overflow-auto">
-                <EnriquecerCondominios />
+              <TabsContent value="enriquecimento" className="flex-1 min-h-0 mt-0 overflow-auto p-4">
+                <Tabs defaultValue="enriquecer-ia" className="space-y-4">
+                  <TabsList className="bg-muted">
+                    <TabsTrigger value="enriquecer-ia" className="gap-1 text-xs">
+                      <Sparkles className="h-3.5 w-3.5" />
+                      Classificação IA
+                    </TabsTrigger>
+                    <TabsTrigger value="atualizar-logradouros" className="gap-1 text-xs">
+                      <MapPin className="h-3.5 w-3.5" />
+                      Atualizar Logradouros
+                    </TabsTrigger>
+                  </TabsList>
+                  <TabsContent value="enriquecer-ia" className="mt-0">
+                    <EnriquecerCondominios />
+                  </TabsContent>
+                  <TabsContent value="atualizar-logradouros" className="mt-0">
+                    <AtualizarLogradouros />
+                  </TabsContent>
+                </Tabs>
+              </TabsContent>
               </TabsContent>
               <TabsContent value="admin" className="flex-1 min-h-0 mt-0 overflow-auto">
                 <TerritorialAdmin />
