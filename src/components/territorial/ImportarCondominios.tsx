@@ -247,7 +247,7 @@ export function ImportarCondominios() {
       {step === "input" && (
         <div className="space-y-4">
           <Textarea
-            placeholder={`Exemplo:\nAlphaville Barra | Avenida das Américas | BARRA DA TIJUCA\nCondomínio Reserva | Estrada do Pontal | RECREIO DOS BANDEIRANTES`}
+            placeholder={`Formato pipe:\nAlphaville Barra | Avenida das Américas | BARRA DA TIJUCA\n\nFormato CSV:\nnome_condominio,logradouro_padrao,microbairro,ativo\nArt Life,Estrada Vereador Alceu de Carvalho,Recreio,true`}
             className="min-h-[200px] font-mono text-xs"
             value={pastedText}
             onChange={e => setPastedText(e.target.value)}
