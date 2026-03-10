@@ -1,0 +1,2 @@
+
+ALTER FUNCTION public.processar_iptu_2025() SECURITY DEFINER;
