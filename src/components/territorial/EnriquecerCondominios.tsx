@@ -160,7 +160,7 @@ export function EnriquecerCondominios() {
         <p className="text-sm text-muted-foreground">
           Preenche <code className="text-xs bg-muted px-1 rounded">padrao_construtivo</code>,{" "}
           <code className="text-xs bg-muted px-1 rounded">unidades_estimadas</code> e{" "}
-          <code className="text-xs bg-muted px-1 rounded">tipologia_predominante</code> via Claude AI
+          <code className="text-xs bg-muted px-1 rounded">tipologia_predominante</code> via Lovable AI
         </p>
       </div>
 
