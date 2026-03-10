@@ -1,42 +1,37 @@
 
 
-## Plano: Corrigir ruas internas do Condomínio Malibu
+## Plano: Corrigir ruas internas do Santa Mônica Jardins
 
-### Situação atual
-O registro **Malibu** (`608d7a6b`) tem 5 ruas internas, algumas incorretas ou com grafia errada:
-- `RUA MARGARIDA VALLADAO` (manter, corrigir grafia)
-- `RUA DARIO COELHO` (remover)
-- `Rua Maisa` (corrigir para "Rua Maysa")
-- `Rua Conchita de Morais` (manter)
-- `Rua Ariosto Berna` (manter)
+### Registro
+- **ID:** `dbc68746-6b49-4cf2-a969-e2285705393e`
+- **Nome:** Santa Mônica Jardins
+- **Logradouro atual:** Avenida das Américas
 
-### Correção
-Substituir a lista completa por 7 ruas confirmadas pelo usuário:
+### Correções
+1. **Logradouro principal** → atualizar para `Avenida Jardins de Santa Mônica`
+2. **Ruas internas** → substituir lista completa por 6 ruas confirmadas:
+   - Rua Cartunista Millor Fernandes
+   - Rua Poeta Khalil Gibran
+   - Rua Escritor Elie Wiesel
+   - Rua Escritor Milan Kundera
+   - Rua Escritor Umberto Eco
+   - Rua Escritor Gabriel Garcia Marquez
 
-1. Rua Margarida Valladão *(manter, padronizar)*
-2. Rua Conchita de Morais *(manter)*
-3. Rua Ariosto Berna *(manter)*
-4. Rua Maysa *(corrigir grafia)*
-5. Rua Mesquitinha *(adicionar)*
-6. Rua Jorge Natal da Costa *(adicionar)*
-7. Rua Dick Farney *(adicionar)*
-
-**Removidas:** Rua Dario Coelho (não pertence ao Malibu)
-
-### SQL (via insert tool)
+### SQL
 ```sql
 UPDATE condominios_mapeamento
-SET ruas_internas = ARRAY[
-  'Rua Margarida Valladão',
-  'Rua Conchita de Morais',
-  'Rua Ariosto Berna',
-  'Rua Maysa',
-  'Rua Mesquitinha',
-  'Rua Jorge Natal da Costa',
-  'Rua Dick Farney'
-],
-atualizado_em = now()
-WHERE id = '608d7a6b-c4e6-4d8f-bd6a-b3fc885ac453';
+SET 
+  logradouro_padrao = 'Avenida Jardins de Santa Mônica',
+  ruas_internas = ARRAY[
+    'Rua Cartunista Millor Fernandes',
+    'Rua Poeta Khalil Gibran',
+    'Rua Escritor Elie Wiesel',
+    'Rua Escritor Milan Kundera',
+    'Rua Escritor Umberto Eco',
+    'Rua Escritor Gabriel Garcia Marquez'
+  ],
+  atualizado_em = now()
+WHERE id = 'dbc68746-6b49-4cf2-a969-e2285705393e';
 ```
 
 Nenhuma alteração de código necessária.
