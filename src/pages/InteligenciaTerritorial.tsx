@@ -1,6 +1,6 @@
 import { useState, useCallback } from "react";
 import { Helmet } from "react-helmet-async";
-import { Map, BarChart3, Building2, Settings, ChevronLeft, ChevronRight, X, SlidersHorizontal, Sparkles } from "lucide-react";
+import { Map, BarChart3, Building2, Settings, ChevronLeft, ChevronRight, X, SlidersHorizontal, Sparkles, MapPin } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
@@ -11,6 +11,7 @@ import { TerritorialRanking } from "@/components/territorial/TerritorialRanking"
 import { TerritorialLogradouros } from "@/components/territorial/TerritorialLogradouros";
 import { TerritorialAdmin } from "@/components/territorial/TerritorialAdmin";
 import { EnriquecerCondominios } from "@/components/territorial/EnriquecerCondominios";
+import { AtualizarLogradouros } from "@/components/territorial/AtualizarLogradouros";
 import {
   useTerritorialKPIs,
   useCondominiosBbox,
@@ -233,8 +234,25 @@ export default function InteligenciaTerritorial() {
           {/* Tab: Admin */}
           {showAdmin && (
             <>
-              <TabsContent value="enriquecimento" className="flex-1 min-h-0 mt-0 overflow-auto">
-                <EnriquecerCondominios />
+              <TabsContent value="enriquecimento" className="flex-1 min-h-0 mt-0 overflow-auto p-4">
+                <Tabs defaultValue="enriquecer-ia" className="space-y-4">
+                  <TabsList className="bg-muted">
+                    <TabsTrigger value="enriquecer-ia" className="gap-1 text-xs">
+                      <Sparkles className="h-3.5 w-3.5" />
+                      Classificação IA
+                    </TabsTrigger>
+                    <TabsTrigger value="atualizar-logradouros" className="gap-1 text-xs">
+                      <MapPin className="h-3.5 w-3.5" />
+                      Atualizar Logradouros
+                    </TabsTrigger>
+                  </TabsList>
+                  <TabsContent value="enriquecer-ia" className="mt-0">
+                    <EnriquecerCondominios />
+                  </TabsContent>
+                  <TabsContent value="atualizar-logradouros" className="mt-0">
+                    <AtualizarLogradouros />
+                  </TabsContent>
+                </Tabs>
               </TabsContent>
               <TabsContent value="admin" className="flex-1 min-h-0 mt-0 overflow-auto">
                 <TerritorialAdmin />
