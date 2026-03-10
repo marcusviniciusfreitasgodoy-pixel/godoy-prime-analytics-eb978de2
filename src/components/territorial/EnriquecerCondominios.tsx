@@ -19,7 +19,7 @@ function generateSQL(results: any[]) {
 WHERE id = '${r.id}';`);
 
   return `-- Enriquecimento gerado em ${new Date().toLocaleDateString("pt-BR")}
--- ${results.length} condomínios · via Claude AI
+-- ${results.length} condomínios · via Lovable AI
 -- ⚠️ Revise antes de executar
 
 ${stmts.join("\n\n")}
