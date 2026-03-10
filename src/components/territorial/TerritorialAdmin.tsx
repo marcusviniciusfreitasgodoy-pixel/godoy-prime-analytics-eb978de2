@@ -25,6 +25,7 @@ const ACTIONS = [
   { label: "Rodar Algoritmo", fn: "process-condominios-algorithm", icon: Cpu },
   { label: "Geocodificar ITBI", fn: "geocodificar-itbi-transactions", icon: MapPin },
   { label: "Enriquecer Logradouros", fn: "enrich-logradouros-geo", icon: Route },
+  { label: "Enriquecer Condomínios (Google Places)", fn: "enrich-condominios", icon: Search },
 ];
 
 export function TerritorialAdmin() {
