@@ -20,13 +20,13 @@ const STATUS_COLORS: Record<string, string> = {
 };
 
 const ACTIONS = [
-  { label: "Ingestão IPTU", fn: "ingest-iptu-prefeitura", icon: Database },
-  { label: "Ingestão Lotes", fn: "ingest-lotes-pal", icon: Map },
-  { label: "Ingestão Edificações", fn: "ingest-edificacoes-geo", icon: Building2 },
-  { label: "Rodar Algoritmo", fn: "process-condominios-algorithm", icon: Cpu },
-  { label: "Geocodificar ITBI", fn: "geocodificar-itbi-transactions", icon: MapPin },
-  { label: "Enriquecer Logradouros", fn: "enrich-logradouros-geo", icon: Route },
-  { label: "Enriquecer Condomínios (Google Places)", fn: "enrich-condominios", icon: Search },
+  { label: "Ingestão IPTU", fn: "ingest-iptu-prefeitura", icon: Database, tooltip: "Importa dados de IPTU da prefeitura para a base territorial" },
+  { label: "Ingestão Lotes", fn: "ingest-lotes-pal", icon: Map, tooltip: "Carrega polígonos de lotes do PAL (Plano de Alinhamento)" },
+  { label: "Ingestão Edificações", fn: "ingest-edificacoes-geo", icon: Building2, tooltip: "Importa dados de edificações georreferenciadas" },
+  { label: "Rodar Algoritmo", fn: "process-condominios-algorithm", icon: Cpu, tooltip: "Cruza dados de ITBI, IPTU e edificações para calcular KPIs dos condomínios" },
+  { label: "Geocodificar ITBI", fn: "geocodificar-itbi-transactions", icon: MapPin, tooltip: "Adiciona coordenadas geográficas às transações ITBI" },
+  { label: "Enriquecer Logradouros", fn: "enrich-logradouros-geo", icon: Route, tooltip: "Busca dados geográficos e complementares para logradouros" },
+  { label: "Enriquecer Condomínios (Google Places)", fn: "enrich-condominios", icon: Search, tooltip: "Busca coordenadas, endereço e Google Place ID via Google Places API" },
 ];
 
 export function TerritorialAdmin() {
