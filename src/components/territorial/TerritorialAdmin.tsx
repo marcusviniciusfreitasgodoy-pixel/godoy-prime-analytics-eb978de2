@@ -273,20 +273,29 @@ export function TerritorialAdmin() {
             </p>
           </div>
         )}
-        <Button
-          variant="outline"
-          size="sm"
-          disabled={isReversing || (pendingSemEndereco ?? 0) === 0}
-          onClick={runReverseGeocode}
-          className="gap-2"
-        >
-          {isReversing ? (
-            <Loader2 className="h-4 w-4 animate-spin" />
-          ) : (
-            <Search className="h-4 w-4" />
-          )}
-          {isReversing ? "Processando..." : "Resolver Endereços Pendentes"}
-        </Button>
+        <TooltipProvider delayDuration={300}>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                variant="outline"
+                size="sm"
+                disabled={isReversing || (pendingSemEndereco ?? 0) === 0}
+                onClick={runReverseGeocode}
+                className="gap-2"
+              >
+                {isReversing ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <Search className="h-4 w-4" />
+                )}
+                {isReversing ? "Processando..." : "Resolver Endereços Pendentes"}
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>
+              <p>Usa geocodificação reversa para identificar endereços de condomínios com coordenadas</p>
+            </TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
       </div>
 
       {/* ETL Logs */}
