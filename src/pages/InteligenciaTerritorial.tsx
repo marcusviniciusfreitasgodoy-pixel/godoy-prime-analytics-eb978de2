@@ -1,6 +1,6 @@
 import { useState, useCallback } from "react";
 import { Helmet } from "react-helmet-async";
-import { Map, BarChart3, Building2, Settings, ChevronLeft, ChevronRight, X, SlidersHorizontal, Sparkles, MapPin } from "lucide-react";
+import { Map, BarChart3, Building2, Settings, ChevronLeft, ChevronRight, X, SlidersHorizontal, Sparkles, MapPin, Upload } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
@@ -12,6 +12,7 @@ import { TerritorialLogradouros } from "@/components/territorial/TerritorialLogr
 import { TerritorialAdmin } from "@/components/territorial/TerritorialAdmin";
 import { EnriquecerCondominios } from "@/components/territorial/EnriquecerCondominios";
 import { AtualizarLogradouros } from "@/components/territorial/AtualizarLogradouros";
+import { ImportarCondominios } from "@/components/territorial/ImportarCondominios";
 import {
   useTerritorialKPIs,
   useCondominiosBbox,
@@ -245,12 +246,19 @@ export default function InteligenciaTerritorial() {
                       <MapPin className="h-3.5 w-3.5" />
                       Atualizar Logradouros
                     </TabsTrigger>
+                    <TabsTrigger value="importar" className="gap-1 text-xs">
+                      <Upload className="h-3.5 w-3.5" />
+                      Importar
+                    </TabsTrigger>
                   </TabsList>
                   <TabsContent value="enriquecer-ia" className="mt-0">
                     <EnriquecerCondominios />
                   </TabsContent>
                   <TabsContent value="atualizar-logradouros" className="mt-0">
                     <AtualizarLogradouros />
+                  </TabsContent>
+                  <TabsContent value="importar" className="mt-0">
+                    <ImportarCondominios />
                   </TabsContent>
                 </Tabs>
               </TabsContent>
