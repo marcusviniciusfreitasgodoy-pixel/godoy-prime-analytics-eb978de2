@@ -246,12 +246,20 @@ export default function InteligenciaTerritorial() {
                       <MapPin className="h-3.5 w-3.5" />
                       Atualizar Logradouros
                     </TabsTrigger>
+                    <TabsTrigger value="importar" className="gap-1 text-xs">
+                      <Upload className="h-3.5 w-3.5" />
+                      Importar
+                    </TabsTrigger>
                   </TabsList>
                   <TabsContent value="enriquecer-ia" className="mt-0">
                     <EnriquecerCondominios />
                   </TabsContent>
                   <TabsContent value="atualizar-logradouros" className="mt-0">
                     <AtualizarLogradouros />
+                  </TabsContent>
+                  <TabsContent value="importar" className="mt-0">
+                    <ImportarCondominios />
+                  </TabsContent>
                   </TabsContent>
                 </Tabs>
               </TabsContent>
