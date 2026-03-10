@@ -1,54 +1,43 @@
 
 
-## Plano: Corrigir ruas internas — mover do Aventura Center para o Mansões
+## Plano: Corrigir ruas internas do Condomínio Malibu
 
 ### Situação atual
-
-**Aventura Center** (`d58b4372`) tem 18 ruas internas atribuídas:
-Rua Augusto Presgrave, Rua Luiz Mario Miranda, Rua Thales de Aquino Coelho, Rua Benjamin Pesset, Rua Esther Scliar, Praça Heleno Claudio Fragoso, Rua Bolitreau Fragoso, Avenida Ruy Antunes Correa, Rua Procurador Machado Guimarães, Rua Wolmer da Silveira Netto, Avenida Di Cavalcanti, Rua Procurador Luis Orlando Cardoso, Rua Horus Vital Brazil, Rua Jorge Dodsworth Martins, e duplicatas em formato maiúsculo.
-
-**Mansões** (`9dafbfe7`) tem apenas 5 ruas (subset das acima, em maiúsculo).
+O registro **Malibu** (`608d7a6b`) tem 5 ruas internas, algumas incorretas ou com grafia errada:
+- `RUA MARGARIDA VALLADAO` (manter, corrigir grafia)
+- `RUA DARIO COELHO` (remover)
+- `Rua Maisa` (corrigir para "Rua Maysa")
+- `Rua Conchita de Morais` (manter)
+- `Rua Ariosto Berna` (manter)
 
 ### Correção
+Substituir a lista completa por 7 ruas confirmadas pelo usuário:
 
-1. **Transferir todas as ruas do Aventura Center para o Mansões**, consolidando a lista sem duplicatas e com nomes padronizados.
+1. Rua Margarida Valladão *(manter, padronizar)*
+2. Rua Conchita de Morais *(manter)*
+3. Rua Ariosto Berna *(manter)*
+4. Rua Maysa *(corrigir grafia)*
+5. Rua Mesquitinha *(adicionar)*
+6. Rua Jorge Natal da Costa *(adicionar)*
+7. Rua Dick Farney *(adicionar)*
 
-2. **Esvaziar as ruas internas do Aventura Center** (ou atribuir apenas as que realmente pertençam a ele, se houver).
+**Removidas:** Rua Dario Coelho (não pertence ao Malibu)
 
-### SQL (via insert tool — é UPDATE de dados, não de schema)
-
+### SQL (via insert tool)
 ```sql
--- Atualizar Mansões com a lista completa de ruas
 UPDATE condominios_mapeamento
 SET ruas_internas = ARRAY[
-  'Rua Augusto Presgrave',
-  'Rua Luiz Mario Miranda',
-  'Rua Thales de Aquino Coelho',
-  'Rua Benjamin Pesset',
-  'Rua Esther Scliar',
-  'Praça Heleno Claudio Fragoso',
-  'Rua Bolitreau Fragoso',
-  'Avenida Ruy Antunes Correa',
-  'Rua Procurador Machado Guimarães',
-  'Rua Wolmer da Silveira Netto',
-  'Avenida Di Cavalcanti',
-  'Rua Procurador Luis Orlando Cardoso',
-  'Rua Horus Vital Brazil',
-  'Rua Jorge Dodsworth Martins',
-  'Rua Noite Estrelada'
+  'Rua Margarida Valladão',
+  'Rua Conchita de Morais',
+  'Rua Ariosto Berna',
+  'Rua Maysa',
+  'Rua Mesquitinha',
+  'Rua Jorge Natal da Costa',
+  'Rua Dick Farney'
 ],
 atualizado_em = now()
-WHERE id = '9dafbfe7-5d1c-4cf1-9442-759235fb4279';
-
--- Limpar ruas do Aventura Center
-UPDATE condominios_mapeamento
-SET ruas_internas = '{}',
-    atualizado_em = now()
-WHERE id = 'd58b4372-5f8c-4e11-a516-754c90b786b2';
+WHERE id = '608d7a6b-c4e6-4d8f-bd6a-b3fc885ac453';
 ```
 
-### Resultado
-- Mansões passa a ter 15 ruas internas (sem duplicatas)
-- Aventura Center fica com lista vazia (pode ser preenchido depois com suas ruas reais)
-- Nenhuma alteração de código necessária
+Nenhuma alteração de código necessária.
 
