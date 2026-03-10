@@ -9,6 +9,21 @@ import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContai
 import { useCondoItbiHistory, useTorresByCondominio, type TerritorialCondominio } from "@/hooks/useTerritorialData";
 import { useNavigate } from "react-router-dom";
 
+const PLACEHOLDER_PATTERNS = /não identificad|não cadastrad|não localizad|falhou/i;
+
+function getCondoDisplayName(c: TerritorialCondominio): string {
+  if (c.nome_condominio && !PLACEHOLDER_PATTERNS.test(c.nome_condominio)) {
+    return c.nome_condominio;
+  }
+  if (c.logradouro_padrao && !PLACEHOLDER_PATTERNS.test(c.logradouro_padrao)) {
+    return c.logradouro_padrao;
+  }
+  if (c.latitude && c.longitude) {
+    return `📍 ${c.latitude.toFixed(4)}, ${c.longitude.toFixed(4)}`;
+  }
+  return "Condomínio sem identificação";
+}
+
 interface CondominioDetailPanelProps {
   condominio: TerritorialCondominio;
   onClose: () => void;
@@ -38,7 +53,7 @@ export function CondominioDetailPanel({ condominio: c, onClose }: CondominioDeta
       <div className="flex items-start justify-between p-4 border-b border-border">
         <div className="flex-1 min-w-0">
           <h3 className="font-bold text-foreground truncate text-base">
-            {c.nome_condominio || c.logradouro_padrao}
+            {getCondoDisplayName(c)}
           </h3>
           <p className="text-xs text-muted-foreground truncate mt-0.5">{c.logradouro_padrao}</p>
           <div className="flex items-center gap-2 mt-2">

@@ -11,6 +11,22 @@ import { List as VirtualList, type RowComponentProps } from "react-window";
 import { useLogradouroSuggestions, type TerritorialCondominio, type TerritorialKPIs } from "@/hooks/useTerritorialData";
 import { cn } from "@/lib/utils";
 
+const PLACEHOLDER_PATTERNS = /não identificad|não cadastrad|não localizad|falhou/i;
+
+function getCondoDisplayName(c: TerritorialCondominio): string {
+  if (c.nome_condominio && !PLACEHOLDER_PATTERNS.test(c.nome_condominio)) {
+    return c.nome_condominio;
+  }
+  if (c.logradouro_padrao && !PLACEHOLDER_PATTERNS.test(c.logradouro_padrao)) {
+    const num = (c as any).numero_inicio;
+    return num ? `${c.logradouro_padrao}, ${num}` : c.logradouro_padrao;
+  }
+  if (c.latitude && c.longitude) {
+    return `📍 ${c.latitude.toFixed(4)}, ${c.longitude.toFixed(4)}`;
+  }
+  return "Condomínio sem identificação";
+}
+
 interface CondoRowProps {
   filtered: TerritorialCondominio[];
   selectedId: string | null;
@@ -35,11 +51,7 @@ function CondoRow({ index, style, filtered, selectedId, onSelect }: { index: num
         )}
       >
         <p className="text-sm font-medium text-foreground truncate">
-          {c.nome_condominio || (
-            c.logradouro_padrao?.includes("não cadastrado") && c.latitude && c.longitude
-              ? `📍 ${c.latitude.toFixed(4)}, ${c.longitude.toFixed(4)}`
-              : c.logradouro_padrao
-          )}
+          {getCondoDisplayName(c)}
         </p>
         <div className="flex items-center gap-2 mt-1">
           {c.numero_torres ? (
