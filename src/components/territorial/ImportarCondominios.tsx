@@ -50,6 +50,7 @@ type ParsedEntry = {
   nome: string;
   logradouro: string;
   bairro: string;
+  csvMicrobairro?: string; // when CSV provides microbairro directly
 };
 
 type AnalysisRow = {
@@ -80,25 +81,56 @@ export function ImportarCondominios() {
 
     setAnalyzing(true);
 
-    // Parse lines
-    const lines = pastedText.split("\n").map(l => l.trim()).filter(Boolean);
+    // Parse lines — detect CSV (comma-separated) vs pipe-separated
+    const rawLines = pastedText.split("\n").map(l => l.trim()).filter(Boolean);
+
+    // Skip CSV header if present
+    const hasHeader = rawLines.length > 0 && normalize(rawLines[0]).includes("nome_condominio");
+    const lines = hasHeader ? rawLines.slice(1) : rawLines;
+
+    // Detect format: CSV uses commas without pipes
+    const isCSV = lines.length > 0 && !lines[0].includes("|") && lines[0].split(",").length >= 3;
+
+    // Known microbairro values that map to allowed bairros
+    const MICROBAIRROS_BARRA = [
+      "eixo lucio costa", "peninsula", "centro metropolitano", "ayrton senna",
+      "jardim oceanico", "abm", "parque das rosas", "eixo americas", "barra central", "alambique",
+    ];
+    const MICROBAIRROS_RECREIO = ["recreio"];
+
     const parsed: ParsedEntry[] = lines
       .map(line => {
-        const parts = line.split("|").map(p => p.trim());
-        return { nome: parts[0] || "", logradouro: parts[1] || "", bairro: parts[2] || "" };
+        if (isCSV) {
+          const parts = line.split(",").map(p => p.trim());
+          // CSV: nome_condominio, logradouro_padrao, microbairro[, ativo]
+          return {
+            nome: parts[0] || "",
+            logradouro: parts[1] || "",
+            bairro: "", // CSV doesn't have explicit bairro
+            csvMicrobairro: parts[2] || "",
+          };
+        } else {
+          const parts = line.split("|").map(p => p.trim());
+          return { nome: parts[0] || "", logradouro: parts[1] || "", bairro: parts[2] || "" };
+        }
       })
       .filter(p => p.nome && p.logradouro);
 
-    // Filter by allowed bairros
+    // Filter by allowed bairros / microbairros
     let filtered = 0;
     const allowed = parsed.filter(p => {
+      if (isCSV && p.csvMicrobairro) {
+        // For CSV, check if microbairro is a known value
+        const mbNorm = normalize(p.csvMicrobairro);
+        const isKnown = MICROBAIRROS_BARRA.includes(mbNorm) || MICROBAIRROS_RECREIO.includes(mbNorm);
+        if (!isKnown) { filtered++; return false; }
+        return true;
+      }
+      // Pipe format: filter by bairro
       const bNorm = normalize(p.bairro);
       const isAllowed = BAIRROS_PERMITIDOS.some(b => bNorm.includes(b));
       const isIgnored = BAIRROS_IGNORADOS.some(b => bNorm.includes(b));
-      if (!isAllowed || isIgnored) {
-        filtered++;
-        return false;
-      }
+      if (!isAllowed || isIgnored) { filtered++; return false; }
       return true;
     });
     setFilteredOutCount(filtered);
@@ -126,7 +158,7 @@ export function ImportarCondominios() {
         nome: entry.nome,
         logradouro: entry.logradouro,
         bairro: entry.bairro,
-        microbairro: inferirMicrobairro(entry.logradouro, entry.bairro),
+        microbairro: entry.csvMicrobairro || inferirMicrobairro(entry.logradouro, entry.bairro),
         exists,
         selected: !exists,
       };
@@ -222,7 +254,7 @@ export function ImportarCondominios() {
           <h3 className="text-lg font-bold text-foreground">Importar Condomínios</h3>
         </div>
         <p className="text-sm text-muted-foreground">
-          Cole uma lista no formato <code className="text-xs bg-muted px-1 rounded">Nome | Logradouro | Bairro</code>.
+          Cole uma lista no formato <code className="text-xs bg-muted px-1 rounded">Nome | Logradouro | Bairro</code> ou CSV <code className="text-xs bg-muted px-1 rounded">nome,logradouro,bairro</code>.
           Apenas Barra da Tijuca e Recreio dos Bandeirantes serão importados.
         </p>
       </div>
@@ -231,7 +263,7 @@ export function ImportarCondominios() {
       {step === "input" && (
         <div className="space-y-4">
           <Textarea
-            placeholder={`Exemplo:\nAlphaville Barra | Avenida das Américas | BARRA DA TIJUCA\nCondomínio Reserva | Estrada do Pontal | RECREIO DOS BANDEIRANTES`}
+            placeholder={`Formato pipe:\nAlphaville Barra | Avenida das Américas | BARRA DA TIJUCA\n\nFormato CSV:\nnome_condominio,logradouro_padrao,microbairro,ativo\nArt Life,Estrada Vereador Alceu de Carvalho,Recreio,true`}
             className="min-h-[200px] font-mono text-xs"
             value={pastedText}
             onChange={e => setPastedText(e.target.value)}
