@@ -158,7 +158,7 @@ export function ImportarCondominios() {
         nome: entry.nome,
         logradouro: entry.logradouro,
         bairro: entry.bairro,
-        microbairro: inferirMicrobairro(entry.logradouro, entry.bairro),
+        microbairro: entry.csvMicrobairro || inferirMicrobairro(entry.logradouro, entry.bairro),
         exists,
         selected: !exists,
       };
