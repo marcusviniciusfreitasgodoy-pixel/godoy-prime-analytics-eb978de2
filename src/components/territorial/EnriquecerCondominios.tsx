@@ -19,7 +19,7 @@ function generateSQL(results: any[]) {
 WHERE id = '${r.id}';`);
 
   return `-- Enriquecimento gerado em ${new Date().toLocaleDateString("pt-BR")}
--- ${results.length} condomínios · via Claude AI
+-- ${results.length} condomínios · via Lovable AI
 -- ⚠️ Revise antes de executar
 
 ${stmts.join("\n\n")}
@@ -42,6 +42,7 @@ const PADRAO_VARIANT: Record<string, "default" | "secondary" | "outline" | "dest
 const CONF_LABEL: Record<string, string> = {
   alta: "●●●",
   media: "●●○",
+  "média": "●●○",
   baixa: "●○○",
 };
 
@@ -159,7 +160,7 @@ export function EnriquecerCondominios() {
         <p className="text-sm text-muted-foreground">
           Preenche <code className="text-xs bg-muted px-1 rounded">padrao_construtivo</code>,{" "}
           <code className="text-xs bg-muted px-1 rounded">unidades_estimadas</code> e{" "}
-          <code className="text-xs bg-muted px-1 rounded">tipologia_predominante</code> via Claude AI
+          <code className="text-xs bg-muted px-1 rounded">tipologia_predominante</code> via Lovable AI
         </p>
       </div>
 
