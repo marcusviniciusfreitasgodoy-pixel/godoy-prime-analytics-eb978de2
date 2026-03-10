@@ -80,12 +80,28 @@ export function ImportarCondominios() {
 
     setAnalyzing(true);
 
-    // Parse lines
-    const lines = pastedText.split("\n").map(l => l.trim()).filter(Boolean);
+    // Parse lines — detect CSV (comma-separated) vs pipe-separated
+    const rawLines = pastedText.split("\n").map(l => l.trim()).filter(Boolean);
+
+    // Skip CSV header if present
+    const hasHeader = rawLines.length > 0 && normalize(rawLines[0]).includes("nome_condominio");
+    const lines = hasHeader ? rawLines.slice(1) : rawLines;
+
+    // Detect format: CSV uses commas without pipes
+    const isCSV = lines.length > 0 && !lines[0].includes("|") && lines[0].split(",").length >= 3;
+
     const parsed: ParsedEntry[] = lines
       .map(line => {
-        const parts = line.split("|").map(p => p.trim());
-        return { nome: parts[0] || "", logradouro: parts[1] || "", bairro: parts[2] || "" };
+        let parts: string[];
+        if (isCSV) {
+          parts = line.split(",").map(p => p.trim());
+          // CSV format: nome_condominio, logradouro_padrao, microbairro, ativo
+          // or: nome_condominio, logradouro_padrao, bairro
+          return { nome: parts[0] || "", logradouro: parts[1] || "", bairro: parts[2] || "" };
+        } else {
+          parts = line.split("|").map(p => p.trim());
+          return { nome: parts[0] || "", logradouro: parts[1] || "", bairro: parts[2] || "" };
+        }
       })
       .filter(p => p.nome && p.logradouro);
 
