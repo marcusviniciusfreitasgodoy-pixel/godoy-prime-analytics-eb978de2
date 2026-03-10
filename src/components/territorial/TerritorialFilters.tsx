@@ -35,11 +35,7 @@ function CondoRow({ index, style, filtered, selectedId, onSelect }: { index: num
         )}
       >
         <p className="text-sm font-medium text-foreground truncate">
-          {c.nome_condominio || (
-            c.logradouro_padrao?.includes("não cadastrado") && c.latitude && c.longitude
-              ? `📍 ${c.latitude.toFixed(4)}, ${c.longitude.toFixed(4)}`
-              : c.logradouro_padrao
-          )}
+          {getCondoDisplayName(c)}
         </p>
         <div className="flex items-center gap-2 mt-1">
           {c.numero_torres ? (
