@@ -68,6 +68,75 @@ export function Step1Location({ state, updateState, combined, onAutoValidated }:
   const [anunciosInitialized, setAnunciosInitialized] = useState(false);
   const [autoFetchLoading, setAutoFetchLoading] = useState(false);
 
+  const buildStreetSearchTerms = (logradouro: string): string[] => {
+    const sanitize = (value: string) =>
+      value
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "")
+        .toUpperCase()
+        .replace(/[,%]/g, " ")
+        .replace(/\s+/g, " ")
+        .trim();
+
+    const normalized = sanitize(logradouro);
+    const withoutNumber = sanitize(logradouro.replace(/\b\d+[A-Z]?\b/g, " "));
+    const withoutPrefix = withoutNumber
+      .replace(/^(AVENIDA|AVN|AV\.?|RUA|R\.?|ESTRADA|EST\.?|TRAVESSA|TV\.?|ALAMEDA|AL\.?|PRAÇA|PRACA|PRC|PÇ\.?|LARGO|LGO|LADEIRA|LAD)\s+/i, "")
+      .trim();
+
+    return Array.from(
+      new Set([normalized, withoutNumber, withoutPrefix].filter((term) => term.length >= 2))
+    );
+  };
+
+  const fetchMarketRows = async (
+    bairro: string,
+    logradouro: string,
+    ruasInternas?: string[]
+  ): Promise<{ rows: { valor_m2: number | null; valor_transacao: number | null }[]; source: "logradouro" | "bairro" }> => {
+    const createBaseQuery = () =>
+      supabase
+        .from("itbi_transactions")
+        .select("valor_m2, valor_transacao")
+        .ilike("bairro", bairro)
+        .eq("uso", "Residencial")
+        .gte("percentual_transferido", 90)
+        .not("valor_m2", "is", null)
+        .lte("valor_m2", 40000)
+        .limit(500);
+
+    let streetQuery = createBaseQuery();
+
+    if (ruasInternas && ruasInternas.length > 0) {
+      const normalizedRuas = ruasInternas
+        .map((rua) => rua.normalize("NFD").replace(/[\u0300-\u036f]/g, ""))
+        .filter(Boolean);
+
+      if (normalizedRuas.length > 0) {
+        const orFilter = normalizedRuas.map((rua) => `logradouro.ilike.%${rua}%`).join(",");
+        streetQuery = streetQuery.or(orFilter);
+      }
+    } else {
+      const streetTerms = buildStreetSearchTerms(logradouro);
+      if (streetTerms.length > 0) {
+        const streetFilter = streetTerms.map((term) => `logradouro.ilike.%${term}%`).join(",");
+        streetQuery = streetQuery.or(streetFilter);
+      }
+    }
+
+    const { data: streetRows, error: streetError } = await streetQuery;
+    if (streetError) throw streetError;
+
+    if (streetRows && streetRows.length > 0) {
+      return { rows: streetRows, source: "logradouro" };
+    }
+
+    const { data: bairroRows, error: bairroError } = await createBaseQuery();
+    if (bairroError) throw bairroError;
+
+    return { rows: bairroRows || [], source: "bairro" };
+  };
+
   // Sincroniza searchTerm quando logradouro muda
   useEffect(() => {
     if (state.logradouro && !useCustomSearch) {
