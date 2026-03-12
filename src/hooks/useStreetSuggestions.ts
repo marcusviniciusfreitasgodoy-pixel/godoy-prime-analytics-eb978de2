@@ -128,8 +128,7 @@ export function useStreetSuggestions(query: string, bairro: string = 'BARRA DA T
       });
 
       // Gerar variações de busca
-      const searchVariations: string[] = [cleanedSearch, correctedSearch];
-      
+      const searchVariations: string[] = Array.from(new Set([cleanedSearch, normalizedSearch, correctedSearch].filter(Boolean)));
       // Adicionar logradouros normalizados encontrados
       normalizedLogradouros.forEach(l => {
         if (!searchVariations.includes(l)) searchVariations.push(l);
