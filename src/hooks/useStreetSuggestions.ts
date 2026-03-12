@@ -58,7 +58,7 @@ export function useStreetSuggestions(query: string, bairro: string = 'BARRA DA T
         .from('logradouros_normalizacao')
         .select('logradouro_original, logradouro_normalizado')
         .or(`logradouro_original.ilike.%${cleanedSearch}%,logradouro_normalizado.ilike.%${cleanedSearch}%`)
-        .eq('bairro', debouncedBairro)
+        .ilike('bairro', debouncedBairro)
         .limit(20);
 
       const normalizedLogradouros = (normalizedMatches || []).map(m => m.logradouro_original);
