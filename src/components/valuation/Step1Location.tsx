@@ -342,69 +342,25 @@ export function Step1Location({ state, updateState, combined, onAutoValidated }:
       updateState({ bairro: suggestion.bairro_origem });
     }
     
-    // Buscar dados ITBI para o logradouro selecionado
+    // Buscar dados ITBI para o logradouro selecionado (com fallback automático para dados do bairro)
     try {
-       const { data, error } = await supabase
-        .from("itbi_transactions")
-        .select("valor_m2, valor_transacao")
-        .ilike("bairro", targetBairro)
-        .eq("uso", "Residencial")
-        .gte("percentual_transferido", 90)
-        .not("valor_m2", "is", null)
-        .lte("valor_m2", 40000)
-        .ilike("logradouro", `%${logradouroParaBusca}%`);
+      const { rows, source } = await fetchMarketRows(targetBairro, logradouroParaBusca);
 
-      console.log("[Step1] handleSelectStreet ITBI para:", logradouroParaBusca, "bairro:", targetBairro, "resultados:", data?.length, "erro:", error);
+      console.log(
+        "[Step1] handleSelectStreet ITBI para:",
+        logradouroParaBusca,
+        "bairro:",
+        targetBairro,
+        "resultados:",
+        rows?.length,
+        "fonte:",
+        source
+      );
 
-      if (!error && data && data.length >= 1) {
-        const rawValues = data.map(d => Number(d.valor_m2));
-        
-        let minValue: number;
-        let maxValue: number;
-        let medValue: number;
-        
-        if (rawValues.length >= 4 && settings.outlier_filter_method === 'percentile') {
-          const { values, min, max } = filterOutliersPercentile(rawValues);
-          const mid = Math.floor(values.length / 2);
-          minValue = min;
-          maxValue = max;
-          medValue = values.length % 2 ? values[mid] : (values[mid - 1] + values[mid]) / 2;
-        } else if (rawValues.length >= 4) {
-          const filteredValues = filterOutliersIQR(rawValues);
-          const values = filteredValues.sort((a, b) => a - b);
-          const finalValues = values.length >= 3 ? values : rawValues.sort((a, b) => a - b);
-          const mid = Math.floor(finalValues.length / 2);
-          minValue = finalValues[0];
-          maxValue = finalValues[finalValues.length - 1];
-          medValue = finalValues.length % 2 ? finalValues[mid] : (finalValues[mid - 1] + finalValues[mid]) / 2;
-        } else {
-          const sorted = rawValues.sort((a, b) => a - b);
-          minValue = sorted[0];
-          maxValue = sorted[sorted.length - 1];
-          const mid = Math.floor(sorted.length / 2);
-          medValue = sorted.length % 2 ? sorted[mid] : (sorted[mid - 1] + sorted[mid]) / 2;
-        }
-        
-        const avgValorTransacao = data.reduce((sum, d) => sum + (Number(d.valor_transacao) || 0), 0) / data.length;
-        
-        const itbiData: ITBIData = {
-          min_m2: Math.round(minValue),
-          med_m2: Math.round(medValue),
-          max_m2: Math.round(maxValue),
-          transaction_count: data.length,
-          avg_valor_transacao: Math.round(avgValorTransacao),
-        };
-
-        updateState({
-          logradouro: suggestion.logradouro,
-          itbiData,
-        });
-      } else {
-        updateState({
-          logradouro: suggestion.logradouro,
-          itbiData: null,
-        });
-      }
+      updateState({
+        logradouro: suggestion.logradouro,
+        itbiData: calculateITBIData(rows),
+      });
     } catch (error) {
       console.error("Erro ao buscar dados ITBI:", error);
       updateState({
