@@ -44,7 +44,7 @@ export function useStreetSuggestions(query: string, bairro: string = 'BARRA DA T
       const searchTerm = debouncedQuery.toUpperCase().trim();
       
       // Remove prefixos comuns para buscar pelo nome
-      let cleanedSearch = searchTerm
+      const cleanedSearchRaw = searchTerm
         .replace(/^(AVENIDA|AVN|AV|AV\.|AVENUE)\s*/i, '')
         .replace(/^(RUA|R|R\.)\s*/i, '')
         .replace(/^(PRAÇA|PRC|PRACA)\s*/i, '')
@@ -53,11 +53,16 @@ export function useStreetSuggestions(query: string, bairro: string = 'BARRA DA T
         .replace(/^(TRAVESSA|TV|TV\.)\s*/i, '')
         .trim();
 
+      // Evita busca ampla (%%) quando o termo fica vazio após remover prefixo
+      const cleanedSearch = cleanedSearchRaw || searchTerm;
+      const normalizedSearch = cleanedSearch.normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+      const normalizationTerms = Array.from(new Set([cleanedSearch, normalizedSearch].filter(Boolean)));
+
       // Primeiro: verificar tabela de normalização para obter match direto
       const { data: normalizedMatches } = await supabase
         .from('logradouros_normalizacao')
         .select('logradouro_original, logradouro_normalizado')
-        .or(`logradouro_original.ilike.%${cleanedSearch}%,logradouro_normalizado.ilike.%${cleanedSearch}%`)
+        .or(normalizationTerms.map(term => `logradouro_original.ilike.%${term}%,logradouro_normalizado.ilike.%${term}%`).join(','))
         .ilike('bairro', debouncedBairro)
         .limit(20);
 
@@ -123,8 +128,7 @@ export function useStreetSuggestions(query: string, bairro: string = 'BARRA DA T
       });
 
       // Gerar variações de busca
-      const searchVariations: string[] = [cleanedSearch, correctedSearch];
-      
+      const searchVariations: string[] = Array.from(new Set([cleanedSearch, normalizedSearch, correctedSearch].filter(Boolean)));
       // Adicionar logradouros normalizados encontrados
       normalizedLogradouros.forEach(l => {
         if (!searchVariations.includes(l)) searchVariations.push(l);
