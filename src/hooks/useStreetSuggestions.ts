@@ -260,8 +260,23 @@ export function useStreetSuggestions(query: string, bairro: string = 'BARRA DA T
             padrao_construtivo: c.padrao_construtivo || undefined,
             ruas_internas: c.ruas_internas || undefined,
           });
+          suggestedLogradouros.add(c.logradouro_padrao);
         }
       });
+
+      // Adicionar logradouros da tabela de normalização sem transações ITBI
+      if (suggestions.length < 12 && normalizedMatches && normalizedMatches.length > 0) {
+        normalizedMatches.forEach(m => {
+          const nome = m.logradouro_normalizado || m.logradouro_original;
+          if (!suggestedLogradouros.has(nome) && suggestions.length < 12) {
+            suggestions.push({
+              logradouro: nome,
+              total_transacoes: 0,
+            });
+            suggestedLogradouros.add(nome);
+          }
+        });
+      }
 
       // Cross-bairro fallback: se não encontrou nada e o termo tem 5+ caracteres,
       // buscar em todos os bairros para sugerir ao usuário trocar de bairro
