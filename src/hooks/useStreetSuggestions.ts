@@ -66,6 +66,8 @@ export function useStreetSuggestions(query: string, bairro: string = 'BARRA DA T
         .ilike('bairro', debouncedBairro)
         .limit(20);
 
+      const normalizedLogradouros = (normalizedMatches || []).map(m => m.logradouro_original);
+
       // Expandir abreviações comuns para busca
       const abbreviationMap: Record<string, string[]> = {
         'DESENHISTA': ['DESEN', 'DESENHISTA'],
