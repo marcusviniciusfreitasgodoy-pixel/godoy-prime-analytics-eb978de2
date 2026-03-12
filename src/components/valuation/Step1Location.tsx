@@ -152,76 +152,24 @@ export function Step1Location({ state, updateState, combined, onAutoValidated }:
 
       setAutoFetchLoading(true);
       try {
-        // Se tem condomínio com ruas internas, buscar em todas as ruas
         const ruasInternas = state.condominioSelecionado?.ruas_internas;
-        let query = supabase
-          .from("itbi_transactions")
-          .select("valor_m2, valor_transacao")
-          .ilike("bairro", state.bairro)
-          .eq("uso", "Residencial")
-          .gte("percentual_transferido", 90)
-          .not("valor_m2", "is", null)
-          .lte("valor_m2", 40000);
+        const { rows, source } = await fetchMarketRows(state.bairro, state.logradouro, ruasInternas);
 
-        if (ruasInternas && ruasInternas.length > 0) {
-          // Normalizar acentos das ruas internas para match com banco (ex: "Nélson" → "Nelson")
-          const normalizedRuas = ruasInternas.map(rua => 
-            rua.normalize('NFD').replace(/[\u0300-\u036f]/g, '')
-          );
-          const orFilter = normalizedRuas.map(rua => `logradouro.ilike.%${rua}%`).join(',');
-          query = query.or(orFilter);
-          console.log("[Step1] Auto-fetch ITBI para condomínio:", state.condominioSelecionado?.nome, "ruas:", ruasInternas.length);
-        } else {
-          query = query.ilike("logradouro", `%${state.logradouro}%`);
-        }
+        console.log(
+          "[Step1] Auto-fetch ITBI para:",
+          state.logradouro,
+          "bairro:",
+          state.bairro,
+          "resultados:",
+          rows?.length,
+          "fonte:",
+          source
+        );
 
-        const { data, error } = await query;
-
-      console.log("[Step1] Auto-fetch ITBI para:", state.logradouro, "bairro:", state.bairro, "resultados:", data?.length, "erro:", error);
-
-      if (!error && data && data.length >= 1) {
-        const rawValues = data.map(d => Number(d.valor_m2));
-        
-        let minValue: number;
-        let maxValue: number;
-        let medValue: number;
-        
-        // Aplica filtro baseado na configuração (IQR precisa de 4+ valores)
-        if (rawValues.length >= 4 && settings.outlier_filter_method === 'percentile') {
-          const { values, min, max } = filterOutliersPercentile(rawValues);
-          const mid = Math.floor(values.length / 2);
-          minValue = min;
-          maxValue = max;
-          medValue = values.length % 2 ? values[mid] : (values[mid - 1] + values[mid]) / 2;
-        } else if (rawValues.length >= 4) {
-          const filteredValues = filterOutliersIQR(rawValues);
-          const values = filteredValues.sort((a, b) => a - b);
-          const finalValues = values.length >= 3 ? values : rawValues.sort((a, b) => a - b);
-          const mid = Math.floor(finalValues.length / 2);
-          minValue = finalValues[0];
-          maxValue = finalValues[finalValues.length - 1];
-          medValue = finalValues.length % 2 ? finalValues[mid] : (finalValues[mid - 1] + finalValues[mid]) / 2;
-        } else {
-          // 1-3 transações: usar valores diretos sem filtro de outliers
-          const sorted = rawValues.sort((a, b) => a - b);
-          minValue = sorted[0];
-          maxValue = sorted[sorted.length - 1];
-          const mid = Math.floor(sorted.length / 2);
-          medValue = sorted.length % 2 ? sorted[mid] : (sorted[mid - 1] + sorted[mid]) / 2;
-        }
-        
-        const avgValorTransacao = data.reduce((sum, d) => sum + (Number(d.valor_transacao) || 0), 0) / data.length;
-        
-        updateState({
-          itbiData: {
-            min_m2: Math.round(minValue),
-            med_m2: Math.round(medValue),
-            max_m2: Math.round(maxValue),
-            transaction_count: data.length,
-            avg_valor_transacao: Math.round(avgValorTransacao),
-          },
-        });
-        onAutoValidated?.();
+        const itbiData = calculateITBIData(rows);
+        if (itbiData) {
+          updateState({ itbiData });
+          onAutoValidated?.();
         }
       } catch (error) {
         console.error("Erro ao auto-buscar dados ITBI:", error);
@@ -231,7 +179,16 @@ export function Step1Location({ state, updateState, combined, onAutoValidated }:
     };
 
     autoFetchITBI();
-  }, [state.logradouro, state.bairro, state.itbiData, state.condominioSelecionado?.nome, settings.outlier_filter_method, updateState, onAutoValidated]);
+  }, [
+    state.logradouro,
+    state.bairro,
+    state.itbiData,
+    state.condominioSelecionado?.nome,
+    state.condominioSelecionado?.ruas_internas,
+    settings.outlier_filter_method,
+    updateState,
+    onAutoValidated,
+  ]);
 
   // Restaura anúncios quando state.anuncioData mudar (edição de avaliação)
   useEffect(() => {
