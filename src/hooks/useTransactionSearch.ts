@@ -1,5 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
+import { buildLogradouroOrConditions } from '@/lib/logradouroSearch';
 
 // Limites de outliers por bairro
 const OUTLIER_LIMITS: Record<string, number> = {
@@ -46,7 +47,7 @@ export interface MicrobairroLiquidez {
 
 export function useTransactionSearch(params: TransactionSearchParams, enabled: boolean = false) {
   return useQuery<MicrobairroLiquidez[]>({
-    queryKey: ['transaction-search-v4', params.valorMin, params.valorMax, params.bairro, params.tipologia, params.periodoMeses, params.areaMin, params.areaMax, params.apenasIndividuais, params.valorM2Min, params.valorM2Max, params.logradouros],
+    queryKey: ['transaction-search-v5', params.valorMin, params.valorMax, params.bairro, params.tipologia, params.periodoMeses, params.areaMin, params.areaMax, params.apenasIndividuais, params.valorM2Min, params.valorM2Max, params.logradouros],
     queryFn: async () => {
       const meses = params.periodoMeses || 12;
       const startDateCalc = new Date();
@@ -69,10 +70,7 @@ export function useTransactionSearch(params: TransactionSearchParams, enabled: b
 
       // When logradouros array is provided (condominium search), filter by internal streets
       if (params.logradouros && params.logradouros.length > 0) {
-        const normalizeAccent = (s: string) => s.normalize('NFD').replace(/[\u0300-\u036f]/g, '');
-        const orConditions = params.logradouros
-          .map(rua => `logradouro.ilike.%${normalizeAccent(rua)}%`)
-          .join(',');
+        const orConditions = buildLogradouroOrConditions(params.logradouros);
         query = query.or(orConditions);
         // Still filter by bairro if provided
         if (params.bairro) {
@@ -122,17 +120,19 @@ export function useTransactionSearch(params: TransactionSearchParams, enabled: b
       const grouped = (data || []).reduce((acc, t) => {
         const micro = t.logradouro;
         if (!acc[micro]) {
-          acc[micro] = { valores: [], count: 0 };
+          acc[micro] = { somaPrecoPonderado: 0, pesoTotal: 0, count: 0 };
         }
-        acc[micro].valores.push(t.valor_m2!);
-        acc[micro].count += t.total_transacoes || 1;
+        const peso = t.total_transacoes || 1;
+        acc[micro].somaPrecoPonderado += (t.valor_m2 || 0) * peso;
+        acc[micro].pesoTotal += peso;
+        acc[micro].count += peso;
         return acc;
-      }, {} as Record<string, { valores: number[], count: number }>);
+      }, {} as Record<string, { somaPrecoPonderado: number; pesoTotal: number; count: number }>);
 
       const allResults = Object.entries(grouped).map(([microbairro, data]) => ({
         microbairro,
         total_transacoes: data.count,
-        preco_medio_m2: Math.round(data.valores.reduce((sum, v) => sum + v, 0) / data.valores.length),
+        preco_medio_m2: data.pesoTotal > 0 ? Math.round(data.somaPrecoPonderado / data.pesoTotal) : 0,
       }));
 
       const totalGeralTransacoes = allResults.reduce((sum, r) => sum + r.total_transacoes, 0);

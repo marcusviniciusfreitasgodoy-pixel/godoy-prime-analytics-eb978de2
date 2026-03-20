@@ -92,6 +92,8 @@ export interface CondominioSelecionado {
   nome: string;
   ruas_internas: string[];
   logradouro_padrao: string;
+  logradouro_itbi_normalizado?: string | null;
+  logradouros_busca?: string[];
 }
 
 export interface ValuationState {
