@@ -58,6 +58,62 @@ const TIPO_LOGRADOURO_MAP: Record<string, string> = {
   'NS': 'Nossa Senhora',
 };
 
+const MANUAL_INTERNAL_STREETS: Record<string, string[]> = {
+  'santa monica residencias': [
+    'Rua João Geraldo Kuhlman',
+    'Rua Pedro Ludovico',
+    'Rua Nelson Rodrigues',
+    'Rua Josué de Castro',
+    'Rua Sebastião Afonso Ferreira',
+    'Avenida Jean Paul Sartre',
+    'Avenida Hildebrando de Araujo Goes',
+    'Rua Desenhista Luiz Guimaraes',
+  ],
+};
+
+function normalizeComparisonText(value: string): string {
+  return value
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .replace(/[^a-z0-9\s]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+function getManualInternalStreets(condominioNome?: string | null): string[] | null {
+  if (!condominioNome) return null;
+
+  const manual = MANUAL_INTERNAL_STREETS[normalizeComparisonText(condominioNome)];
+  return manual ? [...manual] : null;
+}
+
+function isTechnicalStreetNoise(value: string): boolean {
+  const normalized = normalizeComparisonText(value);
+
+  return (
+    !normalized ||
+    /\b(paa|pal|quadra|lote|gleba|projeto)\b/.test(normalized) ||
+    /^rua \d+\b/.test(normalized)
+  );
+}
+
+function sanitizeInternalStreets(streets: string[]): string[] {
+  const unique = new Map<string, string>();
+
+  for (const street of streets) {
+    const trimmed = street?.trim();
+    if (!trimmed || isTechnicalStreetNoise(trimmed)) continue;
+
+    const normalizedKey = normalizeComparisonText(trimmed);
+    if (!normalizedKey || unique.has(normalizedKey)) continue;
+
+    unique.set(normalizedKey, normalizeLogradouro(trimmed));
+  }
+
+  return Array.from(unique.values());
+}
+
 // Função para normalizar logradouro do formato ITBI para legível
 function normalizeLogradouro(logradouroITBI: string): string {
   if (!logradouroITBI) return '';
@@ -273,6 +329,8 @@ serve(async (req) => {
       results.processed++;
       
       try {
+        const manualInternalStreets = getManualInternalStreets(condo.nome_condominio);
+
         // Montar query de busca
         const searchQuery = `${condo.nome_condominio}, ${bairro}, Rio de Janeiro, RJ, Brasil`;
         
@@ -294,8 +352,12 @@ serve(async (req) => {
         
         // Identificar ruas internas se temos coordenadas
         let ruasInternas: string[] = [];
-        if (placeInfo.lat && placeInfo.lng) {
+        if (manualInternalStreets) {
+          ruasInternas = manualInternalStreets;
+          console.log(`Using manual internal streets for ${condo.nome_condominio}`, { count: ruasInternas.length });
+        } else if (placeInfo.lat && placeInfo.lng) {
           ruasInternas = await findInternalStreets(supabaseUrl, supabaseServiceKey, placeInfo.lat, placeInfo.lng);
+          ruasInternas = sanitizeInternalStreets(ruasInternas);
           console.log(`Found ${ruasInternas.length} internal streets for ${condo.nome_condominio}`);
         }
         
