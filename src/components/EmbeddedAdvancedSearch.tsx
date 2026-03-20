@@ -378,7 +378,7 @@ export function EmbeddedAdvancedSearch({ defaultBairro = "" }: EmbeddedAdvancedS
       anoFim: anoFim || undefined,
       bairro: bairro || undefined,
       logradouro: condominioSelecionado ? undefined : (logradouro || undefined),
-      logradouros: condominioSelecionado?.ruas_internas,
+      logradouros: condominioSelecionado?.logradouros_busca ?? condominioSelecionado?.ruas_internas,
     });
   };
 

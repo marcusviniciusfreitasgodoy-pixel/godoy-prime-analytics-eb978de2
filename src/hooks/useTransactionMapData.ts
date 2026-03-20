@@ -2,6 +2,7 @@ import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useDemo } from '@/contexts/DemoContext';
 import { DEMO_MAP_DATA } from '@/data/demoData';
+import { buildLogradouroOrConditions } from '@/lib/logradouroSearch';
 
 interface TransactionMapData {
   microbairro: string;
@@ -20,6 +21,7 @@ interface UseTransactionMapDataParams {
   areaMin?: number;
   areaMax?: number;
   tipologia?: string;
+  logradouros?: string[];
 }
 
 // Limites de outlier por bairro
@@ -46,11 +48,12 @@ const OUTLIER_LIMITS: Record<string, number> = {
 };
 
 export function useTransactionMapData(params: UseTransactionMapDataParams, enabled: boolean = true) {
-  const { bairro, periodoMeses = 12, valorMin, valorMax, areaMin, areaMax, tipologia } = params;
+  const { bairro, periodoMeses = 12, valorMin, valorMax, areaMin, areaMax, tipologia, logradouros } = params;
   const { isDemo } = useDemo();
+  const isComercial = tipologia?.toLowerCase() === 'comercial';
 
   return useQuery({
-    queryKey: ['transaction-map-data-v2', bairro, periodoMeses, valorMin, valorMax, areaMin, areaMax, tipologia, isDemo],
+    queryKey: ['transaction-map-data-v3', bairro, periodoMeses, valorMin, valorMax, areaMin, areaMax, tipologia, logradouros, isDemo],
     queryFn: async (): Promise<TransactionMapData[]> => {
       if (isDemo) return DEMO_MAP_DATA;
       console.log('[useTransactionMapData] Buscando dados atualizados para', bairro);
@@ -65,7 +68,14 @@ export function useTransactionMapData(params: UseTransactionMapDataParams, enabl
         .select('logradouro, valor_m2, valor_transacao, area_m2, tipologia, total_transacoes')
         .eq('bairro', bairro.toUpperCase())
         .gte('data_transacao', dataStr)
+        .eq('uso', isComercial ? 'Comercial' : 'Residencial')
+        .not('valor_m2', 'is', null)
+        .gte('percentual_transferido', 90)
         .lte('valor_m2', OUTLIER_LIMITS[bairro.toUpperCase()] || 50000);
+
+      if (logradouros && logradouros.length > 0) {
+        query = query.or(buildLogradouroOrConditions(logradouros));
+      }
 
       if (valorMin) {
         query = query.gte('valor_transacao', valorMin);
@@ -79,8 +89,8 @@ export function useTransactionMapData(params: UseTransactionMapDataParams, enabl
       if (areaMax) {
         query = query.lte('area_m2', areaMax);
       }
-      if (tipologia && tipologia !== 'todas') {
-        query = query.eq('tipologia', tipologia);
+      if (tipologia && !isComercial) {
+        query = query.ilike('tipologia', `%${tipologia}%`);
       }
 
       const { data: transactions, error } = await query.limit(5000);

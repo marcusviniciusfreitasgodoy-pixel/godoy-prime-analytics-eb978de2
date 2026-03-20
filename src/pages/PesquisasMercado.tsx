@@ -99,12 +99,13 @@ export default function PesquisasMercado() {
       areaMin: transacaoAreaMin ? parseFloat(transacaoAreaMin) : undefined,
       areaMax: transacaoAreaMax ? parseFloat(transacaoAreaMax) : undefined,
       tipologia: transacaoTipologia === 'todas' ? undefined : transacaoTipologia || undefined,
+      logradouros: condominioSelecionado?.logradouros_busca ?? condominioSelecionado?.ruas_internas,
     },
     searchTransactions && viewMode === 'map'
   );
 
   // Queries
-  const condominioLogradouros = condominioSelecionado?.ruas_internas;
+  const condominioLogradouros = condominioSelecionado?.logradouros_busca ?? condominioSelecionado?.ruas_internas;
 
   const { data: transactionResult, isLoading: transactionLoading } = useTransactionSearch(
     {
@@ -148,7 +149,7 @@ export default function PesquisasMercado() {
     setCondominioSelecionado(null);
     setSearchTransactions(false);
     setVisibleCount(10);
-    queryClient.removeQueries({ queryKey: ['transaction-search'] });
+    queryClient.removeQueries({ queryKey: ['transaction-search-v5'] });
   };
 
   const exportTransactionResults = () => {

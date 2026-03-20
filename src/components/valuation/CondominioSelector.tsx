@@ -5,6 +5,7 @@ import { Search, Loader2, Building2, MapPin, SearchX } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
 import type { CondominioSelecionado } from "@/types/valuation";
+import { buildCondominioSearchLogradouros } from "@/lib/logradouroSearch";
 
 interface Props {
   value: string;
@@ -17,6 +18,7 @@ interface CondominioResult {
   id: string;
   nome_condominio: string;
   logradouro_padrao: string;
+  logradouro_itbi_normalizado: string | null;
   ruas_internas: string[] | null;
   total_transacoes_itbi: number | null;
 }
@@ -51,7 +53,7 @@ export function CondominioSelector({ value, condominioSelecionado, bairro, onCha
       const wildcardTerm = toAccentWildcard(removeAccents(searchTerm));
       const { data, error } = await supabase
         .from('condominios_mapeamento')
-        .select('id, nome_condominio, logradouro_padrao, ruas_internas, total_transacoes_itbi')
+        .select('id, nome_condominio, logradouro_padrao, logradouro_itbi_normalizado, ruas_internas, total_transacoes_itbi')
         .or(`nome_condominio.ilike.%${wildcardTerm}%,logradouro_padrao.ilike.%${wildcardTerm}%`)
         .limit(20);
       if (error) throw error;
@@ -109,12 +111,20 @@ export function CondominioSelector({ value, condominioSelecionado, bairro, onCha
   }, []);
 
   const handleSelect = (cond: CondominioResult) => {
+    const ruasInternas = cond.ruas_internas || [cond.logradouro_padrao];
+
     setSearchTerm(cond.nome_condominio);
     setShowSuggestions(false);
     onChange(cond.nome_condominio, {
       nome: cond.nome_condominio,
-      ruas_internas: cond.ruas_internas || [cond.logradouro_padrao],
+      ruas_internas: ruasInternas,
       logradouro_padrao: cond.logradouro_padrao,
+      logradouro_itbi_normalizado: cond.logradouro_itbi_normalizado,
+      logradouros_busca: buildCondominioSearchLogradouros({
+        logradouro_padrao: cond.logradouro_padrao,
+        logradouro_itbi_normalizado: cond.logradouro_itbi_normalizado,
+        ruas_internas: ruasInternas,
+      }),
     });
   };
 

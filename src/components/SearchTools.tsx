@@ -119,7 +119,7 @@ export function SearchTools({ bairro = "BARRA DA TIJUCA", vistoriaData }: Search
     setTransacaoAreaMin("");
     setTransacaoAreaMax("");
     setSearchTransactions(false);
-    queryClient.removeQueries({ queryKey: ['transaction-search'] });
+    queryClient.removeQueries({ queryKey: ['transaction-search-v5'] });
   };
 
   const exportTransactionResults = () => {
