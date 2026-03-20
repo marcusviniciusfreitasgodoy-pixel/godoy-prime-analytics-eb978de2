@@ -428,11 +428,14 @@ export function EmbeddedAdvancedSearch({ defaultBairro = "" }: EmbeddedAdvancedS
     if (searchParams?.valorMax) appliedFilters['Valor Máximo'] = formatCurrency(searchParams.valorMax);
     if (searchParams?.areaMin) appliedFilters['Área Mínima'] = `${searchParams.areaMin} m²`;
     if (searchParams?.areaMax) appliedFilters['Área Máxima'] = `${searchParams.areaMax} m²`;
-    if (searchParams?.tipologia) appliedFilters['Tipologia'] = searchParams.tipologia;
+    appliedFilters['Finalidade'] = searchParams?.uso || 'Residencial';
+    appliedFilters['Tipologia'] = searchParams?.tipologia || 'Todas';
     if (searchParams?.anoInicio) appliedFilters['Ano Início'] = searchParams.anoInicio;
     if (searchParams?.anoFim) appliedFilters['Ano Fim'] = searchParams.anoFim;
     if (searchParams?.bairro) appliedFilters['Bairro'] = searchParams.bairro;
     if (searchParams?.logradouro) appliedFilters['Logradouro'] = searchParams.logradouro;
+    if (nomeCondominio) appliedFilters['Condomínio'] = nomeCondominio;
+    if (fuzzyCorrection) appliedFilters['Busca Corrigida'] = `${fuzzyCorrection.original} → ${fuzzyCorrection.corrected}`;
 
     exportToXLSX({
       filename: 'busca_localizacao_godoy_prime',
@@ -451,9 +454,15 @@ export function EmbeddedAdvancedSearch({ defaultBairro = "" }: EmbeddedAdvancedS
         { key: 'total_transacoes', header: 'Transações', width: 12, format: 'number' },
       ],
       summary: [
-        { label: 'Total de Registros', value: realTotalRegistros },
-        { label: 'Total de Transações Reais', value: realTotalTransacoes },
-        { label: 'Média R$/m²', value: avgValueM2 },
+        { label: 'Total de Registros Agregados', value: realTotalRegistros.toLocaleString('pt-BR') },
+        { label: 'Total de Transações Reais', value: realTotalTransacoes.toLocaleString('pt-BR') },
+        { label: 'Registros Exibidos na Tabela', value: `${results.length.toLocaleString('pt-BR')} de ${realTotalRegistros.toLocaleString('pt-BR')}` },
+        { label: 'Média do Período (R$/m²)', value: formatCurrency(avgValueM2) },
+        { label: 'R$/m² Atual (últimos 3 meses)', value: currentValueM2 != null ? formatCurrency(currentValueM2) : 'Sem dados recentes' },
+        { label: 'Volume Estimado', value: formatCurrency(totalValue) },
+        { label: 'CAGR', value: cagrAnual != null ? `${cagrAnual.toFixed(1)}% a.a.` : 'Dados insuficientes' },
+        { label: 'Valorização Total', value: valorizacaoTotal != null ? `${valorizacaoTotal >= 0 ? '+' : ''}${valorizacaoTotal.toFixed(1)}%` : 'Dados insuficientes' },
+        { label: 'Confiança da Valorização', value: cagrAnual != null ? (confiancaCAGR ? `${confiancaCAGR} (${anosComDados} anos com dados)` : `${anosComDados} anos com dados`) : 'Dados insuficientes' },
       ],
     });
 
