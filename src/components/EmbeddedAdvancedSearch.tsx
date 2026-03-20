@@ -8,14 +8,13 @@ import { Label } from "./ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "./ui/table";
 import { Badge } from "./ui/badge";
-import { Loader2, FileDown, Search, FileText, X, FileSpreadsheet, MapPin, Building, RotateCcw, Info, Eye, Calendar, TrendingUp, DollarSign, BarChart3, ArrowUpRight, ArrowDownRight } from "lucide-react";
+import { Loader2, Search, FileText, X, FileSpreadsheet, MapPin, Building, RotateCcw, Info, Eye, Calendar, TrendingUp, DollarSign, BarChart3, ArrowUpRight, ArrowDownRight } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { exportToCSV, exportToXLSX } from "@/utils/exportUtils";
+import { exportToCSV, exportToPDF, exportToXLSX } from "@/utils/exportUtils";
 import { generateFuzzyVariations } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
 import { ScrollArea } from "./ui/scroll-area";
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "./ui/dropdown-menu";
 import { Popover, PopoverContent, PopoverTrigger } from "./ui/popover";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "./ui/tooltip";
 import { useStreetSuggestions } from "@/hooks/useStreetSuggestions";
@@ -417,31 +416,43 @@ export function EmbeddedAdvancedSearch({ defaultBairro = "" }: EmbeddedAdvancedS
     setDetailsDialogOpen(true);
   };
 
+  const locationExportFilters: Record<string, string> = {};
+  if (searchParams?.valorMin) locationExportFilters['Valor Mínimo'] = formatCurrency(searchParams.valorMin);
+  if (searchParams?.valorMax) locationExportFilters['Valor Máximo'] = formatCurrency(searchParams.valorMax);
+  if (searchParams?.areaMin) locationExportFilters['Área Mínima'] = `${searchParams.areaMin} m²`;
+  if (searchParams?.areaMax) locationExportFilters['Área Máxima'] = `${searchParams.areaMax} m²`;
+  locationExportFilters['Finalidade'] = searchParams?.uso || 'Residencial';
+  locationExportFilters['Tipologia'] = searchParams?.tipologia || 'Todas';
+  if (searchParams?.anoInicio) locationExportFilters['Ano Início'] = searchParams.anoInicio;
+  if (searchParams?.anoFim) locationExportFilters['Ano Fim'] = searchParams.anoFim;
+  if (searchParams?.bairro) locationExportFilters['Bairro'] = searchParams.bairro;
+  if (searchParams?.logradouro) locationExportFilters['Logradouro'] = searchParams.logradouro;
+  if (nomeCondominio) locationExportFilters['Condomínio'] = nomeCondominio;
+  if (fuzzyCorrection) locationExportFilters['Busca Corrigida'] = `${fuzzyCorrection.original} → ${fuzzyCorrection.corrected}`;
+
+  const locationExportSummary = [
+    { label: 'Total de Registros Agregados', value: realTotalRegistros.toLocaleString('pt-BR') },
+    { label: 'Total de Transações Reais', value: realTotalTransacoes.toLocaleString('pt-BR') },
+    { label: 'Registros Exibidos na Tabela', value: `${results?.length.toLocaleString('pt-BR') || '0'} de ${realTotalRegistros.toLocaleString('pt-BR')}` },
+    { label: 'Média do Período (R$/m²)', value: formatCurrency(avgValueM2) },
+    { label: 'R$/m² Atual (últimos 3 meses)', value: currentValueM2 != null ? formatCurrency(currentValueM2) : 'Sem dados recentes' },
+    { label: 'Volume Estimado', value: formatCurrency(totalValue) },
+    { label: 'CAGR', value: cagrAnual != null ? `${cagrAnual.toFixed(1)}% a.a.` : 'Dados insuficientes' },
+    { label: 'Valorização Total', value: valorizacaoTotal != null ? `${valorizacaoTotal >= 0 ? '+' : ''}${valorizacaoTotal.toFixed(1)}%` : 'Dados insuficientes' },
+    { label: 'Confiança da Valorização', value: cagrAnual != null ? (confiancaCAGR ? `${confiancaCAGR} (${anosComDados} anos com dados)` : `${anosComDados} anos com dados`) : 'Dados insuficientes' },
+  ];
+
   const handleExportXLSX = () => {
     if (!results || results.length === 0) {
       toast({ title: "Sem dados", description: "Faça uma busca primeiro.", variant: "destructive" });
       return;
     }
 
-    const appliedFilters: Record<string, string> = {};
-    if (searchParams?.valorMin) appliedFilters['Valor Mínimo'] = formatCurrency(searchParams.valorMin);
-    if (searchParams?.valorMax) appliedFilters['Valor Máximo'] = formatCurrency(searchParams.valorMax);
-    if (searchParams?.areaMin) appliedFilters['Área Mínima'] = `${searchParams.areaMin} m²`;
-    if (searchParams?.areaMax) appliedFilters['Área Máxima'] = `${searchParams.areaMax} m²`;
-    appliedFilters['Finalidade'] = searchParams?.uso || 'Residencial';
-    appliedFilters['Tipologia'] = searchParams?.tipologia || 'Todas';
-    if (searchParams?.anoInicio) appliedFilters['Ano Início'] = searchParams.anoInicio;
-    if (searchParams?.anoFim) appliedFilters['Ano Fim'] = searchParams.anoFim;
-    if (searchParams?.bairro) appliedFilters['Bairro'] = searchParams.bairro;
-    if (searchParams?.logradouro) appliedFilters['Logradouro'] = searchParams.logradouro;
-    if (nomeCondominio) appliedFilters['Condomínio'] = nomeCondominio;
-    if (fuzzyCorrection) appliedFilters['Busca Corrigida'] = `${fuzzyCorrection.original} → ${fuzzyCorrection.corrected}`;
-
     exportToXLSX({
       filename: 'busca_localizacao_godoy_prime',
       title: 'Busca por Localização - Godoy Prime Analytics',
       subtitle: 'Transações Oficiais',
-      filters: appliedFilters,
+      filters: locationExportFilters,
       data: results,
       columns: [
         { key: 'logradouro', header: 'Logradouro', width: 35, format: 'text' },
@@ -453,17 +464,34 @@ export function EmbeddedAdvancedSearch({ defaultBairro = "" }: EmbeddedAdvancedS
         { key: 'valor_m2', header: 'R$/m²', width: 15, format: 'currency' },
         { key: 'total_transacoes', header: 'Transações', width: 12, format: 'number' },
       ],
-      summary: [
-        { label: 'Total de Registros Agregados', value: realTotalRegistros.toLocaleString('pt-BR') },
-        { label: 'Total de Transações Reais', value: realTotalTransacoes.toLocaleString('pt-BR') },
-        { label: 'Registros Exibidos na Tabela', value: `${results.length.toLocaleString('pt-BR')} de ${realTotalRegistros.toLocaleString('pt-BR')}` },
-        { label: 'Média do Período (R$/m²)', value: formatCurrency(avgValueM2) },
-        { label: 'R$/m² Atual (últimos 3 meses)', value: currentValueM2 != null ? formatCurrency(currentValueM2) : 'Sem dados recentes' },
-        { label: 'Volume Estimado', value: formatCurrency(totalValue) },
-        { label: 'CAGR', value: cagrAnual != null ? `${cagrAnual.toFixed(1)}% a.a.` : 'Dados insuficientes' },
-        { label: 'Valorização Total', value: valorizacaoTotal != null ? `${valorizacaoTotal >= 0 ? '+' : ''}${valorizacaoTotal.toFixed(1)}%` : 'Dados insuficientes' },
-        { label: 'Confiança da Valorização', value: cagrAnual != null ? (confiancaCAGR ? `${confiancaCAGR} (${anosComDados} anos com dados)` : `${anosComDados} anos com dados`) : 'Dados insuficientes' },
+      summary: locationExportSummary,
+    });
+
+    toast({ title: "Exportado", description: `${results.length} registros exportados.` });
+  };
+
+  const handleExportPDF = async () => {
+    if (!results || results.length === 0) {
+      toast({ title: "Sem dados", description: "Faça uma busca primeiro.", variant: "destructive" });
+      return;
+    }
+
+    await exportToPDF({
+      filename: 'busca_localizacao_godoy_prime',
+      title: 'Busca por Localização - Godoy Prime Analytics',
+      subtitle: 'Transações Oficiais',
+      filters: locationExportFilters,
+      data: results,
+      columns: [
+        { key: 'logradouro', header: 'Logradouro', format: 'text' },
+        { key: 'bairro', header: 'Bairro', format: 'text' },
+        { key: 'tipologia', header: 'Tipologia', format: 'text' },
+        { key: 'data_transacao', header: 'Data', format: 'text' },
+        { key: 'valor_transacao', header: 'Valor Médio', format: 'currency' },
+        { key: 'valor_m2', header: 'R$/m²', format: 'currency' },
+        { key: 'total_transacoes', header: 'Transações', format: 'number' },
       ],
+      summary: locationExportSummary,
     });
 
     toast({ title: "Exportado", description: `${results.length} registros exportados.` });
@@ -719,23 +747,23 @@ export function EmbeddedAdvancedSearch({ defaultBairro = "" }: EmbeddedAdvancedS
           <RotateCcw className="h-4 w-4" />
         </Button>
         {results && results.length > 0 && (
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="outline" className="gap-1">
-                <FileDown className="h-4 w-4" />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              <DropdownMenuItem onClick={handleExportXLSX} className="gap-2 cursor-pointer">
-                <FileSpreadsheet className="h-4 w-4 text-green-600" />
-                <span>Excel (.xlsx)</span>
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={handleExportCSV} className="gap-2 cursor-pointer">
-                <FileText className="h-4 w-4 text-blue-500" />
-                <span>CSV (.csv)</span>
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
+          <>
+            <Button variant="outline" onClick={handleExportCSV}>
+              <FileText className="h-4 w-4 sm:mr-2" />
+              <span className="hidden sm:inline">Baixar CSV</span>
+              <span className="sm:hidden">CSV</span>
+            </Button>
+            <Button variant="outline" onClick={handleExportPDF}>
+              <FileText className="h-4 w-4 sm:mr-2" />
+              <span className="hidden sm:inline">Exportar PDF</span>
+              <span className="sm:hidden">PDF</span>
+            </Button>
+            <Button variant="outline" onClick={handleExportXLSX}>
+              <FileSpreadsheet className="h-4 w-4 sm:mr-2" />
+              <span className="hidden sm:inline">Baixar Excel</span>
+              <span className="sm:hidden">Excel</span>
+            </Button>
+          </>
         )}
       </div>
 
