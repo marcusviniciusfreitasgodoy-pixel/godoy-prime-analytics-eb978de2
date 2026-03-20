@@ -1,54 +1,41 @@
 
-Objetivo: adicionar exportação em PDF para os resultados da aba Transações na página Pesquisa de Mercado, com botão visível ao lado do botão de exportação já usado no fluxo atual.
+Objetivo: corrigir o cadastro do condomínio Santa Mônica Residências para que ele use somente o conjunto de ruas informado por você e impedir que o enriquecimento automático volte a inflar esse array no futuro.
 
-1. Ajuste de comportamento
-- Incluir um handler `exportTransactionResultsPDF` em `src/pages/PesquisasMercado.tsx`.
-- Reaproveitar `exportToPDF` de `src/utils/exportUtils.ts` para gerar o relatório com:
-  - filtros aplicados
-  - resumo estatístico
-  - ranking por logradouro exibido na tela
-- Manter a mesma validação dos outros exports: se não houver busca/resultados, mostrar aviso.
+1. Corrigir o dado na base
+- Atualizar o registro de `Santa Mônica Residências` em `condominios_mapeamento`.
+- Substituir completamente `ruas_internas` pelo conjunto abaixo, desconsiderando todas as demais entradas atuais:
+  - Rua João Geraldo Kuhlman
+  - Rua Pedro Ludovico
+  - Rua Nelson Rodrigues
+  - Rua Josué de Castro
+  - Rua Sebastião Afonso Ferreira
+  - Avenida Jean Paul Sartre
+  - Avenida Hildebrando de Araujo Goes
+  - Rua Desenhista Luiz Guimaraes
 
-2. Conteúdo do PDF
-- Exportar a mesma base já usada no CSV/XLSX da aba Transações:
-  - Logradouro
-  - Total de Transações
-  - Preço Médio R$/m²
-- Incluir no resumo:
-  - total de logradouros
-  - total de transações
-  - bairro
-  - período
-  - tipologia
-  - condomínio, quando houver
-  - filtros de valor/área/m² e “Apenas transações individuais”, se ativos
+2. Preservar o cadastro correto
+- Ajustar a rotina de enriquecimento em `supabase/functions/enrich-condominios/index.ts` para não sobrescrever manualmente esse condomínio com ruas “próximas” capturadas por raio geográfico.
+- Implementar uma proteção específica para condomínios com lista validada manualmente, priorizando o valor já salvo na base em vez de recalcular `ruas_internas`.
 
-3. Ajuste visual na tela
-- Trocar o fluxo atual de exportação da aba Transações por ações mais explícitas na área de resultados.
-- Inserir um botão de PDF ao lado do botão de CSV, como você pediu.
-- Preservar o padrão visual já existente com `Button`, ícone e estados consistentes.
+3. Blindar contra ruído estrutural
+- Incluir saneamento na geração de `ruas_internas` para evitar novos casos semelhantes:
+  - remover duplicatas e variantes só por caixa/acentuação
+  - ignorar entradas técnicas (`PAA`, `PAL`, etc.)
+  - excluir vias públicas amplas e ruas externas indevidas
+- Isso reduz o risco de outros condomínios herdarem logradouros errados.
 
-4. Arquivos envolvidos
-- `src/pages/PesquisasMercado.tsx`
-  - importar `exportToPDF`
-  - criar handler de PDF
-  - ajustar a área de ações/exportação
-- `src/components/SearchTools.tsx`
-  - aplicar o mesmo padrão se eu quiser manter consistência do componente reutilizável em outros fluxos
-- `src/utils/exportUtils.ts`
-  - só entra se eu precisar ampliar formatação do PDF para refletir melhor os dados do ranking
+4. Impacto esperado
+- O seletor de condomínio, a Pesquisa de Mercado e a expansão de busca por logradouros passarão a considerar apenas essas 8 ruas.
+- A contagem exibida deixará de mostrar 18 ruas internas.
+- Os filtros e resultados derivados do condomínio ficarão alinhados com a configuração correta.
 
-5. Observação técnica
-- Hoje o projeto já tem utilitário genérico de PDF pronto, então a implementação tende a ser pequena e sem impacto no backend.
-- Como o PDF atual limita colunas e linhas, vou configurar a exportação pensando no ranking da tela de Transações, que já cabe bem no layout existente.
+5. Arquivos/áreas envolvidos
+- Base de dados: atualização do registro em `condominios_mapeamento`
+- Backend de enriquecimento: `supabase/functions/enrich-condominios/index.ts`
+- Frontend não deve precisar de ajuste, porque já consome `ruas_internas` diretamente da base
 
-6. Resultado esperado
-- Na aba Transações de Pesquisa de Mercado, o usuário poderá gerar PDF diretamente a partir dos resultados em tela.
-- O PDF ficará alinhado com os filtros aplicados e com os números apresentados na busca.
-- CSV, Excel e PDF ficarão consistentes entre si.
-
-7. Validação prevista
-- Fazer uma busca real na aba Transações e conferir que o botão PDF aparece ao lado do botão solicitado.
-- Validar geração do arquivo com e sem condomínio selecionado.
-- Conferir se os totais e filtros do PDF batem com a tela.
-- Testar exportação fim a fim para garantir que o botão, download e conteúdo funcionam corretamente.
+6. Validação
+- Consultar novamente o registro após a correção
+- Conferir que o seletor mostra 8 ruas internas
+- Validar a Pesquisa de Mercado usando esse condomínio
+- Confirmar que uma nova execução do enriquecimento não reintroduz as 18 ruas antigas
