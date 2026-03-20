@@ -54,6 +54,7 @@ import { useActivityTracking } from "@/hooks/useActivityTracking";
 import { useFirstVisitTour } from "@/hooks/useFirstVisitTour";
 import { LastSyncIndicator } from "@/components/LastSyncIndicator";
 import { useOnboardingRedirect } from "@/hooks/useOnboardingRedirect";
+import { Loader2 } from "lucide-react";
 
 export default function Dashboard() {
   const { shouldRunTour, startTour, endTour } = useFirstVisitTour('dashboard');
@@ -333,7 +334,14 @@ export default function Dashboard() {
 
   // Se estiver verificando onboarding, não renderiza nada (vai redirecionar)
   if (isChecking) {
-    return null;
+    return (
+      <div className="min-h-[40vh] flex items-center justify-center">
+        <div className="text-center space-y-3">
+          <Loader2 className="h-6 w-6 animate-spin text-accent mx-auto" />
+          <p className="text-sm text-muted-foreground">Carregando dashboard...</p>
+        </div>
+      </div>
+    );
   }
 
   return (

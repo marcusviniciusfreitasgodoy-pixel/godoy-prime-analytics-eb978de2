@@ -14,43 +14,47 @@ export function useOnboardingRedirect() {
   const [isChecking, setIsChecking] = useState(true);
 
   useEffect(() => {
-    if (isDemo) {
-      setIsChecking(false);
-      return;
-    }
-    if (isLoading) return;
-
-    // Se não tem usuário, não faz nada
-    if (!user) {
-      setIsChecking(false);
+    if (isLoading) {
+      setIsChecking(true);
       return;
     }
 
-    // Verificar se já está na página de onboarding ou auth
-    const excludedPaths = ["/onboarding", "/auth", "/avaliacao-publica", "/agendar-visita", "/visitas/feedback", "/visitas/assinatura"];
-    const isExcludedPath = excludedPaths.some(path => location.pathname.startsWith(path));
-    
-    if (isExcludedPath) {
+    try {
+      if (isDemo || !user) {
+        setIsChecking(false);
+        return;
+      }
+
+      const excludedPaths = [
+        "/onboarding",
+        "/auth",
+        "/avaliacao-publica",
+        "/agendar-visita",
+        "/visitas/feedback",
+        "/visitas/assinatura",
+      ];
+
+      const isExcludedPath = excludedPaths.some((path) => location.pathname.startsWith(path));
+
+      if (isExcludedPath) {
+        setIsChecking(false);
+        return;
+      }
+
+      const onboardingCompleted = localStorage.getItem(ONBOARDING_KEY) === "true";
+      const userFirstLoginKey = `${FIRST_LOGIN_KEY}-${user.id}`;
+      const firstLoginChecked = localStorage.getItem(userFirstLoginKey) === "true";
+
+      if (!onboardingCompleted && !firstLoginChecked) {
+        localStorage.setItem(userFirstLoginKey, "true");
+        navigate("/onboarding", { replace: true });
+      }
+    } catch (error) {
+      console.error("[useOnboardingRedirect] Falha ao verificar onboarding:", error);
+    } finally {
       setIsChecking(false);
-      return;
     }
-
-    // Verificar se o onboarding já foi completado
-    const onboardingCompleted = localStorage.getItem(ONBOARDING_KEY) === "true";
-    
-    // Verificar se é o primeiro login deste usuário (usando o ID do usuário)
-    const userFirstLoginKey = `${FIRST_LOGIN_KEY}-${user.id}`;
-    const firstLoginChecked = localStorage.getItem(userFirstLoginKey) === "true";
-
-    if (!onboardingCompleted && !firstLoginChecked) {
-      // Marcar que verificamos o primeiro login
-      localStorage.setItem(userFirstLoginKey, "true");
-      // Redirecionar para onboarding
-      navigate("/onboarding", { replace: true });
-    }
-
-    setIsChecking(false);
-  }, [user, isLoading, navigate, location.pathname]);
+  }, [user, isLoading, isDemo, navigate, location.pathname]);
 
   const resetOnboarding = () => {
     localStorage.removeItem(ONBOARDING_KEY);
