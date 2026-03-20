@@ -1,95 +1,63 @@
 
+Objetivo: corrigir de forma estrutural a divergência entre as abas Localização e Transações para buscas por condomínio, garantindo consistência dos resultados, dos totais e da lógica de agrupamento.
 
-## Atualizar Materiais de Consulta e Orientação — Inteligência Territorial
+1. Diagnóstico consolidado
+- A divergência acontece porque a aba Transações hoje usa uma expansão mais fraca do condomínio:
+  - recebe só `ruas_internas` do `CondominioSelector`
+  - não inclui sempre o `logradouro_padrao`
+  - não inclui um nome ITBI normalizado
+  - não gera variações como `AVN`/`AV`/`AVENIDA`
+- Já a aba Localização usa busca mais ampla/fuzzy, por isso encontra registros como `AVN HILDEBRANDO DE ARAUJO GOES`.
+- No caso auditado, o condomínio “Santa Mônica Special” está mapeado com `Avenida Hildebrando de Araujo Goes`, enquanto o ITBI está salvo como `AVN HILDEBRANDO DE ARAUJO GOES`.
 
-O módulo Inteligência Territorial (novo) e os enriquecimentos dos módulos existentes (Motor de Avaliação com sugestão de logradouro IPTU, Pesquisa de Mercado com dados IPTU/venal) precisam ser refletidos em **8 arquivos** de documentação e orientação.
+2. Correção proposta
+- Criar uma lógica única de expansão de logradouros de condomínio para toda a aplicação:
+  - `logradouro_padrao`
+  - `ruas_internas`
+  - `logradouro_itbi_normalizado` quando existir
+  - versões sem acento
+  - versões com abreviações comuns de tipo de via
+- Fazer a aba Transações usar essa lista expandida, em vez de depender só de `ruas_internas`.
+- Aplicar a mesma lógica também ao modo mapa da aba Transações, para que lista, gráfico e mapa respondam com a mesma base.
+- Padronizar o cálculo dos resultados da aba Transações para usar ponderação por `total_transacoes` ao calcular preço médio/m², reforçando a consistência com o modelo agregado do ITBI.
 
----
+3. Arquivos que devem entrar na implementação
+- `src/components/valuation/CondominioSelector.tsx`
+  - ampliar o payload do condomínio selecionado para incluir também `logradouro_itbi_normalizado` e uma lista pronta de logradouros de busca
+- `src/types/valuation.ts`
+  - evoluir o tipo `CondominioSelecionado`
+- `src/hooks/useTransactionSearch.ts`
+  - trocar o filtro atual por uma busca expandida e padronizada
+  - corrigir média por logradouro para ser ponderada por `total_transacoes`
+- `src/hooks/useTransactionMapData.ts`
+  - aceitar filtro por logradouros expandidos do condomínio
+- `src/pages/PesquisasMercado.tsx`
+  - repassar a expansão correta para lista, gráfico e mapa
+- Opcional, se eu quiser eliminar duplicação futura:
+  - criar um helper compartilhado em `src/lib/...` para normalização/expansão de logradouros
 
-### Resumo das Alterações
+4. Comportamento esperado após a correção
+- Ao selecionar um condomínio, a aba Transações passará a encontrar o mesmo universo lógico da aba Localização.
+- Se existir ITBI sob `AVN`, `AV`, `AVENIDA` ou grafias equivalentes, o sistema consolidará tudo no mesmo resultado de busca do condomínio.
+- Exportações passarão a refletir a mesma base encontrada na tela.
+- O mapa deixará de divergir da lista quando houver filtro por condomínio.
 
-O conteúdo novo a adicionar em todos os materiais:
+5. Critério de qualidade
+- Se não houver dados reais, o sistema continuará mostrando zero ou “dados insuficientes”.
+- Se houver dados com nomes equivalentes, eles devem aparecer de forma consistente em todas as visões.
+- A lógica deve privilegiar precisão e consistência, não “forçar resultado”.
 
-1. **Módulo Inteligência Territorial** (4 sub-áreas: Mapa de Condomínios, Ficha de Condomínio, Ranking/Logradouro, Painel Admin)
-2. **Motor de Avaliação enriquecido** — agora sugere dados IPTU do logradouro (total de imóveis, preço médio real, comparativo venal vs real)
-3. **Pesquisa de Mercado enriquecida** — exibe unidades IPTU, valor venal vs real, variação geocodificada
-4. **Infraestrutura de dados** — 1.567 condomínios, 52.761 edificações, 1.515 lotes, 485 logradouros IPTU, 450+ logradouros geocodificados
+6. Validação que farei na implementação
+- Buscar “Santa Mônica Special” em Transações com 24 meses e confirmar que aparecem os registros de Hildebrando.
+- Comparar contagem e logradouros entre Localização e Transações para o mesmo condomínio.
+- Validar lista, gráfico, mapa e exportação com o mesmo filtro.
+- Testar outro condomínio com ruas internas e, se possível, um caso com abreviação diferente para garantir que a correção ficou geral, não pontual.
 
----
-
-### Arquivo 1: `src/pages/Apresentacao.tsx`
-
-- Adicionar **Inteligência Territorial** ao array `features` (com ícone `Map` ou `Building2`)
-- Atualizar descrições de "Avaliação Imobiliária" e "Pesquisas de Mercado" para mencionar dados IPTU
-- Atualizar `differentials` para incluir "Mapeamento Geoespacial" (1.567 condomínios, 52.761 edificações)
-- Atualizar texto do Hero para mencionar "mapeamento geoespacial completo"
-
-### Arquivo 2: `src/components/apresentacao/FunctionalityMapSection.tsx`
-
-- Adicionar card **Inteligência Territorial** ao array `functionalityMap` com dor/benefício
-- Atualizar dor/benefício do "Motor de Avaliação" para incluir dados IPTU
-- Atualizar dor/benefício da "Pesquisa de Mercado" para incluir venal vs real
-
-### Arquivo 3: `src/components/apresentacao/OnePagerPreview.tsx`
-
-- Adicionar "Inteligência Territorial" ao array `detailedModules` na Página 2
-- Atualizar texto do `modules` (Página 1) para refletir o Motor de Avaliação enriquecido
-- Atualizar métricas no bloco "O MERCADO" para mencionar 1.567 condomínios mapeados
-- Adicionar diferencial "Mapeamento Geoespacial" ao array `diferenciais`
-
-### Arquivo 4: `src/utils/productOnePagerPdfExport.ts`
-
-- Espelhar as mesmas alterações do OnePagerPreview no PDF:
-  - `drawSolucaoModulos`: atualizar módulos destaques
-  - `drawDiferenciais`: adicionar mapeamento geoespacial
-  - `drawPage2FuncionalidadesDetalhadas`: adicionar Inteligência Territorial ao `detailedModules`
-  - `drawMercado`: atualizar com 1.567 condomínios
-
-### Arquivo 5: `src/pages/ManualPlataforma.tsx`
-
-- Adicionar seção **Inteligência Territorial** ao array `manualSections` com 4+ features (Mapa, Ficha, Ranking, Logradouros, Admin)
-- Atualizar descrição da seção "Pesquisas de Mercado" e "Avaliação Imobiliária" com dados IPTU
-- Adicionar FAQ sobre Inteligência Territorial na seção FAQ (no arquivo `Onboarding.tsx`)
-
-### Arquivo 6: `src/pages/Onboarding.tsx`
-
-- Adicionar step **Inteligência Territorial** ao `allOnboardingSteps` com features descritivas e rota `/inteligencia-territorial`
-- Atualizar features do step "Pesquisas de Mercado" (id 3) e "Avaliação de Imóveis" (id 4)
-- Adicionar FAQ category "Inteligência Territorial" ao `faqCategories`
-- Atualizar FAQ "Geral" com menção ao mapeamento geoespacial
-
-### Arquivo 7: `src/utils/manualPdfExport.ts`
-
-- Adicionar módulo "Inteligência Territorial" ao array `manualContent.modulos` (entre módulo 3 e 4, renumerando)
-- Atualizar módulo "Pesquisas de Mercado" e "Avaliação Imobiliária" com funcionalidades IPTU
-- Adicionar FAQ category "Inteligência Territorial" ao `manualContent.faq`
-- Atualizar texto da introdução para mencionar mapeamento geoespacial
-
-### Arquivo 8: `src/utils/quickGuidePdfExport.ts`
-
-- Adicionar seção "INTELIGENCIA TERRITORIAL" com items sobre mapa, fichas de condomínio, ranking e logradouros
-- Atualizar seções existentes de Avaliação e Pesquisa com menção a dados IPTU
-
-### Arquivo 9: `src/utils/videoScriptPdfExport.ts`
-
-- Adicionar módulo de Inteligência Territorial ao roteiro (novo bloco com narração + screenshots)
-- Atualizar módulos de Avaliação e Pesquisa com menções a IPTU
-- Atualizar lista de módulos na capa
-- Atualizar duração estimada
-
----
-
-### Conteúdo-chave para Inteligência Territorial (usado em todos)
-
-**Dor:** Sem visão geoespacial dos condomínios, decisões de prospecção baseadas em experiência pessoal sem dados estruturados.
-
-**Benefício/Entrega:** Mapa interativo com 1.567 condomínios, ficha completa com torres, unidades, histórico de preços ITBI e dados IPTU. Ranking e análise por logradouro.
-
-**Features (para manual/onboarding):**
-- Mapa com 1.567 condomínios plotados com cores por faixa de unidades
-- Heatmap de densidade e camada de lotes PAL
-- Ficha de condomínio com torres, unidades, área, valor venal e histórico trimestral
-- Ranking ordenável por preço, transações, unidades e torres
-- Análise por logradouro com comparativo venal vs real
-- Painel administrativo com ETLs e cards de cobertura dinâmicos
-
+Detalhes técnicos
+- Causa raiz identificada: a busca de Transações usa `logradouro.ilike.%<rua_interna>%`, mas a rua interna salva está em forma longa (“Avenida...”) e o ITBI usa forma abreviada (“AVN...”).
+- O seletor de condomínio hoje retorna só:
+  - `nome`
+  - `ruas_internas`
+  - `logradouro_padrao`
+- A correção ideal é transformar o condomínio selecionado em um “pacote de busca” com múltiplas chaves equivalentes.
+- Também recomendo consolidar a regra de média ponderada por `total_transacoes` na aba Transações, porque o banco ITBI é agregado e esse peso é essencial para coerência analítica.
