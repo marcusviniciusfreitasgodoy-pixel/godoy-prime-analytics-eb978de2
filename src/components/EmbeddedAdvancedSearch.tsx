@@ -20,6 +20,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "./ui/popover";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "./ui/tooltip";
 import { useStreetSuggestions } from "@/hooks/useStreetSuggestions";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "./ui/dialog";
+import { getCompactReportYearOptions } from "@/lib/reportYearOptions";
 
 interface AdvancedSearchResult {
   id: string;
@@ -66,15 +67,7 @@ const USO_OPTIONS = [
   { value: 'Comercial', label: 'Comercial' },
 ];
 
-const ANO_OPTIONS = [
-  { value: '', label: 'Todos' },
-  { value: '2025', label: '2025' },
-  { value: '2024', label: '2024' },
-  { value: '2023', label: '2023' },
-  { value: '2022', label: '2022' },
-  { value: '2021', label: '2021' },
-  { value: '2020', label: '2020' },
-];
+const ANO_OPTIONS = getCompactReportYearOptions();
 
 // Limites de outliers por bairro (consistente com useTransactionSearch, useITBITransactions, etc.)
 const OUTLIER_LIMITS: Record<string, number> = {
