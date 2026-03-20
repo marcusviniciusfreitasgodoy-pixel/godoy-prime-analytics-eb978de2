@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Search, DollarSign, Loader2, FileDown, RotateCcw, Trash2, FileSpreadsheet, FileText, HelpCircle, BarChart3, List, Map, Info, Layers } from "lucide-react";
+import { Search, DollarSign, Loader2, RotateCcw, Trash2, FileSpreadsheet, FileText, HelpCircle, BarChart3, List, Map, Info, Layers } from "lucide-react";
 import { BarChart, Bar, XAxis, YAxis, Tooltip as RechartsTooltip, ResponsiveContainer, Cell } from "recharts";
 import { Label } from "@/components/ui/label";
 import {
@@ -18,10 +18,9 @@ import { useTransactionSearch } from "@/hooks/useTransactionSearch";
 import { useTransactionMapData } from "@/hooks/useTransactionMapData";
 import { useSearchHistory } from "@/hooks/useSearchHistory";
 import { Badge } from "@/components/ui/badge";
-import { exportToCSV, exportToXLSX } from "@/utils/exportUtils";
+import { exportToCSV, exportToPDF, exportToXLSX } from "@/utils/exportUtils";
 import { useToast } from "@/hooks/use-toast";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { EmbeddedAdvancedSearch } from "@/components/EmbeddedAdvancedSearch";
 import { useBairro } from "@/contexts/BairroContext";
 import { useActivityTracking } from "@/hooks/useActivityTracking";
@@ -152,6 +151,34 @@ export default function PesquisasMercado() {
     queryClient.removeQueries({ queryKey: ['transaction-search-v5'] });
   };
 
+  const transactionMinLabel = VALOR_OPTIONS.find(o => o.value === valorMin)?.label || 'Sem limite';
+  const transactionMaxLabel = VALOR_OPTIONS.find(o => o.value === valorMax)?.label || 'Sem limite';
+  const transactionTipologiaLabel = transacaoTipologia || 'Todas';
+  const totalTransactionRows = (transactionResult as any)?.__totalLogradouros || transactionResult?.length || 0;
+  const totalTransactions = (transactionResult as any)?.__totalGeral || transactionResult?.reduce((sum, r) => sum + r.total_transacoes, 0) || 0;
+
+  const transactionExportFilters: Record<string, string> = {
+    'Bairro': transacaoBairro,
+    'Tipologia': transactionTipologiaLabel,
+    'Período': `${transacaoPeriodo} meses`,
+    'Valor Mínimo': transactionMinLabel,
+    'Valor Máximo': transactionMaxLabel,
+    'Área Mínima': transacaoAreaMin ? `${transacaoAreaMin} m²` : 'Sem limite',
+    'Área Máxima': transacaoAreaMax ? `${transacaoAreaMax} m²` : 'Sem limite',
+    'Valor/m² Mínimo': valorM2Min ? `R$ ${Number(valorM2Min).toLocaleString('pt-BR')}` : 'Sem limite',
+    'Valor/m² Máximo': valorM2Max ? `R$ ${Number(valorM2Max).toLocaleString('pt-BR')}` : 'Sem limite',
+    'Apenas transações individuais': apenasIndividuais ? 'Sim' : 'Não',
+  };
+
+  if (condominioSelecionado?.nome || nomeCondominio) {
+    transactionExportFilters['Condomínio'] = condominioSelecionado?.nome || nomeCondominio;
+  }
+
+  const transactionExportSummary = [
+    { label: 'Total de Logradouros', value: totalTransactionRows },
+    { label: 'Total de Transações', value: totalTransactions },
+  ];
+
   const exportTransactionResults = () => {
     if (!transactionResult || transactionResult.length === 0) {
       toast({
@@ -189,36 +216,61 @@ export default function PesquisasMercado() {
       return;
     }
 
-    const minLabel = VALOR_OPTIONS.find(o => o.value === valorMin)?.label || 'Sem limite';
-    const maxLabel = VALOR_OPTIONS.find(o => o.value === valorMax)?.label || 'Sem limite';
-
     exportToXLSX({
       filename: `transacoes_${transacaoBairro.replace(/\s+/g, '_')}_${transacaoPeriodo}m`,
       title: 'Ranking de Transações por Logradouro',
       subtitle: `Bairro: ${transacaoBairro} | Período: ${transacaoPeriodo} meses`,
-      filters: {
-        'Valor Mínimo': minLabel,
-        'Valor Máximo': maxLabel,
-        'Bairro': transacaoBairro,
-        'Tipologia': transacaoTipologia || 'Todas',
-        'Período': `${transacaoPeriodo} meses`,
-      },
+      filters: transactionExportFilters,
       data: transactionResult,
       columns: [
         { key: 'microbairro', header: 'Logradouro', width: 40, format: 'text' },
         { key: 'total_transacoes', header: 'Total Transações', width: 18, format: 'number' },
         { key: 'preco_medio_m2', header: 'Preço Médio R$/m²', width: 20, format: 'currency' },
       ],
-      summary: [
-        { label: 'Total de Logradouros', value: transactionResult.length },
-        { label: 'Total de Transações', value: transactionResult.reduce((sum, r) => sum + r.total_transacoes, 0) },
-      ],
+      summary: transactionExportSummary,
     });
 
     trackExport('transaction_xlsx');
     toast({
       title: "Exportado com sucesso",
       description: `${transactionResult.length} logradouros exportados para Excel.`,
+    });
+  };
+
+  const exportTransactionResultsPDF = async () => {
+    if (!transactionResult || transactionResult.length === 0) {
+      toast({
+        title: "Sem dados",
+        description: "Faça uma busca primeiro para exportar os resultados.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    await exportToPDF({
+      filename: `transacoes_${transacaoBairro.replace(/\s+/g, '_')}_${transacaoPeriodo}m`,
+      title: 'Ranking de Transações por Logradouro',
+      subtitle: `Bairro: ${transacaoBairro} | Período: ${transacaoPeriodo} meses`,
+      filters: transactionExportFilters,
+      data: transactionResult,
+      columns: [
+        { key: 'microbairro', header: 'Logradouro', format: 'text' },
+        { key: 'total_transacoes', header: 'Transações', format: 'number' },
+        { key: 'preco_medio_m2', header: 'Preço Médio/m²', format: 'currency' },
+      ],
+      summary: [
+        ...transactionExportSummary,
+        { label: 'Tipologia', value: transactionTipologiaLabel },
+        ...(condominioSelecionado?.nome || nomeCondominio
+          ? [{ label: 'Condomínio', value: condominioSelecionado?.nome || nomeCondominio }]
+          : []),
+      ],
+    });
+
+    trackExport('transaction_pdf');
+    toast({
+      title: "Exportado com sucesso",
+      description: `${transactionResult.length} logradouros exportados para PDF.`,
     });
   };
 
@@ -520,23 +572,23 @@ export default function PesquisasMercado() {
                   <RotateCcw className="h-4 w-4" />
                 </Button>
                 {transactionResult && transactionResult.length > 0 && (
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <Button variant="outline" title="Exportar" data-tour="pesquisas-export">
-                        <FileDown className="h-4 w-4" />
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end">
-                      <DropdownMenuItem onClick={exportTransactionResultsXLSX} className="gap-2">
-                        <FileSpreadsheet className="h-4 w-4" />
-                        Excel (.xlsx)
-                      </DropdownMenuItem>
-                      <DropdownMenuItem onClick={exportTransactionResults} className="gap-2">
-                        <FileText className="h-4 w-4" />
-                        CSV (.csv)
-                      </DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
+                  <div className="flex flex-wrap gap-2" data-tour="pesquisas-export">
+                    <Button variant="outline" onClick={exportTransactionResults}>
+                      <FileText className="h-4 w-4 sm:mr-2" />
+                      <span className="hidden sm:inline">Baixar CSV</span>
+                      <span className="sm:hidden">CSV</span>
+                    </Button>
+                    <Button variant="outline" onClick={exportTransactionResultsPDF}>
+                      <FileText className="h-4 w-4 sm:mr-2" />
+                      <span className="hidden sm:inline">Exportar PDF</span>
+                      <span className="sm:hidden">PDF</span>
+                    </Button>
+                    <Button variant="outline" onClick={exportTransactionResultsXLSX}>
+                      <FileSpreadsheet className="h-4 w-4 sm:mr-2" />
+                      <span className="hidden sm:inline">Baixar Excel</span>
+                      <span className="sm:hidden">XLSX</span>
+                    </Button>
+                  </div>
                 )}
               </div>
               
