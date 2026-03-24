@@ -28,7 +28,7 @@ const formSchema = z.object({
   nome_visitante: z.string().trim().min(1, "Nome do visitante é obrigatório").max(200),
   telefone_visitante: z.string().trim().min(1, "Telefone é obrigatório").max(20),
   email_visitante: z.string().trim().email("Email inválido").max(255).or(z.literal("")),
-  cpf_visitante: z.string().trim().min(1, "CPF é obrigatório").max(14),
+  cpf_visitante: z.string().trim().max(14).optional().or(z.literal("")),
   rg_visitante: z.string().trim().max(20).optional(),
   endereco_visitante: z.string().trim().max(500).optional(),
   acompanhantes: z.array(acompanhanteSchema).max(2).optional(),
@@ -96,7 +96,7 @@ export default function NovaFichaVisita() {
         nome_visitante: data.nome_visitante,
         telefone_visitante: data.telefone_visitante,
         email_visitante: data.email_visitante || null,
-        cpf_visitante: data.cpf_visitante,
+        cpf_visitante: data.cpf_visitante || "",
         rg_visitante: data.rg_visitante || null,
         endereco_visitante: data.endereco_visitante || null,
         acompanhantes: data.acompanhantes && data.acompanhantes.length > 0
@@ -159,7 +159,7 @@ export default function NovaFichaVisita() {
                   )} />
                   <FormField control={form.control} name="cpf_visitante" render={({ field }) => (
                     <FormItem>
-                      <FormLabel>CPF *</FormLabel>
+                      <FormLabel>CPF</FormLabel>
                       <FormControl><Input placeholder="000.000.000-00" {...field} /></FormControl>
                       <FormMessage />
                     </FormItem>

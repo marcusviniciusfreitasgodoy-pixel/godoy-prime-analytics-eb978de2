@@ -486,7 +486,11 @@ export function ScheduleForm({ onSuccess, isPublic = false }: ScheduleFormProps)
                           mode="single"
                           selected={selectedDate}
                           onSelect={handleDateSelect}
-                          disabled={(date) => date < new Date()}
+                           disabled={(date) => {
+                             const today = new Date();
+                             today.setHours(0, 0, 0, 0);
+                             return date < today;
+                           }}
                           locale={ptBR}
                           initialFocus
                         />
@@ -569,7 +573,11 @@ export function ScheduleForm({ onSuccess, isPublic = false }: ScheduleFormProps)
                             mode="single"
                             selected={selectedDate2}
                             onSelect={handleDateSelect2}
-                            disabled={(date) => date < new Date()}
+                             disabled={(date) => {
+                               const today = new Date();
+                               today.setHours(0, 0, 0, 0);
+                               return date < today;
+                             }}
                             locale={ptBR}
                             initialFocus
                           />
