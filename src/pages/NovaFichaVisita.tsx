@@ -28,7 +28,7 @@ const formSchema = z.object({
   nome_visitante: z.string().trim().min(1, "Nome do visitante é obrigatório").max(200),
   telefone_visitante: z.string().trim().min(1, "Telefone é obrigatório").max(20),
   email_visitante: z.string().trim().email("Email inválido").max(255).or(z.literal("")),
-  cpf_visitante: z.string().trim().min(1, "CPF é obrigatório").max(14),
+  cpf_visitante: z.string().trim().max(14).optional().or(z.literal("")),
   rg_visitante: z.string().trim().max(20).optional(),
   endereco_visitante: z.string().trim().max(500).optional(),
   acompanhantes: z.array(acompanhanteSchema).max(2).optional(),
