@@ -315,8 +315,11 @@ export default function FichaVisitaPage() {
                         <Label>Valor</Label>
                         <Input
                           type="number"
-                          value={editedFicha.valor_imovel || ""}
-                          onChange={(e) => setEditedFicha(prev => ({ ...prev, valor_imovel: parseFloat(e.target.value) }))}
+                          value={editedFicha.valor_imovel ?? ""}
+                          onChange={(e) => {
+                            const val = e.target.value;
+                            setEditedFicha(prev => ({ ...prev, valor_imovel: val === "" ? null : parseFloat(val) }));
+                          }}
                         />
                       </div>
                       <div className="md:col-span-2">
