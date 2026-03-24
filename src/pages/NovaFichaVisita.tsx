@@ -96,7 +96,7 @@ export default function NovaFichaVisita() {
         nome_visitante: data.nome_visitante,
         telefone_visitante: data.telefone_visitante,
         email_visitante: data.email_visitante || null,
-        cpf_visitante: data.cpf_visitante,
+        cpf_visitante: data.cpf_visitante || "",
         rg_visitante: data.rg_visitante || null,
         endereco_visitante: data.endereco_visitante || null,
         acompanhantes: data.acompanhantes && data.acompanhantes.length > 0
