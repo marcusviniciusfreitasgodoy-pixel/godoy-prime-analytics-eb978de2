@@ -224,29 +224,29 @@ export default function FichaVisitaPage() {
 
       <PageTour page="fichaVisita" run={runTour} onFinish={() => setRunTour(false)} />
 
-      <div className="container mx-auto p-6 space-y-6">
+      <div className="container mx-auto px-3 py-4 sm:p-6 space-y-4 sm:space-y-6">
         {/* Header */}
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4" data-tour="ficha-header">
-          <div className="flex items-center gap-4">
-            <Button variant="ghost" onClick={() => navigate("/visitas")}>
-              <ArrowLeft className="h-4 w-4 mr-2" />
-              Voltar
+        <div className="flex flex-col gap-3 sm:gap-4" data-tour="ficha-header">
+          <div className="flex items-center gap-2 sm:gap-4">
+            <Button variant="ghost" size="sm" className="px-2 sm:px-3" onClick={() => navigate("/visitas")}>
+              <ArrowLeft className="h-4 w-4 sm:mr-2" />
+              <span className="hidden sm:inline">Voltar</span>
             </Button>
-            <div>
-              <div className="flex items-center gap-3">
-                <h1 className="text-2xl font-bold">{ficha.codigo}</h1>
+            <div className="min-w-0 flex-1">
+              <div className="flex items-center gap-2 sm:gap-3 flex-wrap">
+                <h1 className="text-lg sm:text-2xl font-bold truncate">{ficha.codigo}</h1>
                 <VisitStatusBadge status={ficha.status} />
               </div>
-              <p className="text-sm text-muted-foreground">
+              <p className="text-xs sm:text-sm text-muted-foreground truncate">
                 Criada em {format(new Date(ficha.created_at), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
               </p>
             </div>
           </div>
 
-          <div className="flex gap-2">
+          <div className="flex flex-wrap gap-2">
             <TourButton onClick={() => setRunTour(true)} />
             <Select value={ficha.status} onValueChange={(value) => handleStatusChange(value as StatusVisita)}>
-              <SelectTrigger className="w-[180px]">
+              <SelectTrigger className="w-[140px] sm:w-[180px] h-9">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -257,13 +257,15 @@ export default function FichaVisitaPage() {
               </SelectContent>
             </Select>
 
-            <Button variant="outline" onClick={handleExportPdf} data-tour="ficha-export-pdf">
-              <Download className="h-4 w-4 mr-2" />
-              Exportar PDF
+            <Button variant="outline" size="sm" onClick={handleExportPdf} data-tour="ficha-export-pdf">
+              <Download className="h-4 w-4 sm:mr-2" />
+              <span className="hidden sm:inline">Exportar PDF</span>
+              <span className="sm:hidden">PDF</span>
             </Button>
-            <Button variant="outline" onClick={() => setShowEmailDialog(true)} data-tour="ficha-send-email">
-              <Mail className="h-4 w-4 mr-2" />
-              Enviar por Email
+            <Button variant="outline" size="sm" onClick={() => setShowEmailDialog(true)} data-tour="ficha-send-email">
+              <Mail className="h-4 w-4 sm:mr-2" />
+              <span className="hidden sm:inline">Enviar por Email</span>
+              <span className="sm:hidden">Email</span>
             </Button>
           </div>
         </div>
