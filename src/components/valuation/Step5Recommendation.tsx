@@ -51,6 +51,22 @@ export function Step5Recommendation({ result, state, combined, onReset, existing
   const [pricingCompleted, setPricingCompleted] = useState(false);
   const [pricingData, setPricingData] = useState<PricingStrategyPDFData | null>(null);
   const [showEmailDialog, setShowEmailDialog] = useState(false);
+  const [observacoes, setObservacoes] = useState(state.observacoesImovel || "");
+
+  // Debounced save of observations to DB
+  useEffect(() => {
+    const currentId = valuationId || existingValuationId;
+    if (!currentId || observacoes === (state.observacoesImovel || "")) return;
+    
+    const timer = setTimeout(async () => {
+      await supabase
+        .from("valuations")
+        .update({ observacoes_imovel: observacoes || null })
+        .eq("id", currentId);
+    }, 1500);
+    
+    return () => clearTimeout(timer);
+  }, [observacoes, valuationId, existingValuationId]);
 
   // Carregar estratégia de precificação existente para edição
   useEffect(() => {
