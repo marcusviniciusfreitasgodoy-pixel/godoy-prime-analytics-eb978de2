@@ -1058,30 +1058,30 @@ export default function HistoricoAvaliacoes() {
                   <RefreshCw className="h-4 w-4 mr-2" />
                   Editar e Gerar Nova Avaliação
                 </Button>
-                <div className="flex gap-3">
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
                   <Button 
                     onClick={handleGoToVistoria}
                     variant="secondary"
-                    className="flex-1"
+                    size="sm"
                   >
-                    <ClipboardCheck className="h-4 w-4 mr-2" />
-                    Seguir para Vistoria
+                    <ClipboardCheck className="h-4 w-4 mr-1.5" />
+                    Vistoria
                   </Button>
                   <Button 
                     variant="outline"
                     onClick={() => handleExportPDF("completa")}
-                    className="flex-1"
+                    size="sm"
                   >
-                    <FileText className="h-4 w-4 mr-2" />
+                    <FileText className="h-4 w-4 mr-1.5" />
                     PDF Completo
                   </Button>
                   <Button 
                     variant="ghost"
                     onClick={() => handleExportPDF("simples")}
-                    className="flex-1"
+                    size="sm"
                   >
-                    <FileText className="h-4 w-4 mr-2" />
-                    PDF Simplificado
+                    <FileText className="h-4 w-4 mr-1.5" />
+                    PDF Simples
                   </Button>
                 </div>
                 <div className="flex gap-3">
