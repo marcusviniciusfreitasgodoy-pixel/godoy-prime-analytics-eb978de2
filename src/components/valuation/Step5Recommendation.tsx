@@ -193,6 +193,7 @@ export function Step5Recommendation({ result, state, combined, onReset, existing
           auto_capped: result.auto_capped || false,
           pdf_generated: false,
           base_price_selected: state.baseSelected || "med",
+          tipo_avaliacao: state.tipoAvaliacao || "completa",
         };
 
         let finalValuationId: string | null = targetValuationId || null;

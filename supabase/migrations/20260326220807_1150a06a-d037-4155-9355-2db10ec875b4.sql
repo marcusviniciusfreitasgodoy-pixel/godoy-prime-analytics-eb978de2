@@ -1,0 +1,1 @@
+ALTER TABLE valuations ADD COLUMN tipo_avaliacao character varying DEFAULT 'completa';
