@@ -2484,6 +2484,7 @@ export type Database = {
           spread_percentage: number
           suites: number | null
           telefone: string | null
+          tipo_avaliacao: string | null
           total_adjustment: number
           trend_direction: string | null
           trend_percentage: number | null
@@ -2539,6 +2540,7 @@ export type Database = {
           spread_percentage: number
           suites?: number | null
           telefone?: string | null
+          tipo_avaliacao?: string | null
           total_adjustment: number
           trend_direction?: string | null
           trend_percentage?: number | null
@@ -2594,6 +2596,7 @@ export type Database = {
           spread_percentage?: number
           suites?: number | null
           telefone?: string | null
+          tipo_avaliacao?: string | null
           total_adjustment?: number
           trend_direction?: string | null
           trend_percentage?: number | null
