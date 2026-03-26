@@ -271,11 +271,11 @@ export function Step0Identification({ state, updateState, showValidation = false
                     >
                       <div className="flex-1 min-w-0">
                         <div className="font-medium text-sm truncate">
-                          {suggestion.nome_condominio || suggestion.logradouro}
+                          {suggestion.logradouro}
                         </div>
                         {suggestion.nome_condominio && (
                           <div className="text-xs text-muted-foreground truncate">
-                            {suggestion.logradouro}
+                            🏢 {suggestion.nome_condominio}
                           </div>
                         )}
                         {suggestion.hierarquia && (

@@ -506,11 +506,11 @@ export function Step1Location({ state, updateState, combined, onAutoValidated }:
                         <Building2 className="h-4 w-4 text-muted-foreground shrink-0" />
                         <div className="min-w-0">
                           <span className="font-medium text-xs sm:text-sm truncate block">
-                            {suggestion.nome_condominio || suggestion.logradouro}
+                            {suggestion.logradouro}
                           </span>
                           {suggestion.nome_condominio && (
                             <span className="text-[10px] text-muted-foreground truncate block">
-                              {suggestion.logradouro}
+                              🏢 {suggestion.nome_condominio}
                             </span>
                           )}
                           {suggestion.hierarquia && (
