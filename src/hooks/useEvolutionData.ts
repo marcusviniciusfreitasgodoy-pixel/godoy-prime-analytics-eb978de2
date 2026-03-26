@@ -96,19 +96,21 @@ export function useEvolutionData(bairro: string = 'BARRA DA TIJUCA', granularity
         }
         
         if (!acc[key]) {
-          acc[key] = { geral: [], apartamento: [], casa: [] };
+          acc[key] = { geral: [] as { valor: number; peso: number }[], apartamento: [] as { valor: number; peso: number }[], casa: [] as { valor: number; peso: number }[] };
         }
         
-        acc[key].geral.push(t.valor_m2!);
+        const peso = t.total_transacoes || 1;
+        
+        acc[key].geral.push({ valor: t.valor_m2!, peso });
         
         if (t.tipologia?.toLowerCase().includes('apartamento')) {
-          acc[key].apartamento.push(t.valor_m2!);
+          acc[key].apartamento.push({ valor: t.valor_m2!, peso });
         } else if (t.tipologia?.toLowerCase().includes('casa')) {
-          acc[key].casa.push(t.valor_m2!);
+          acc[key].casa.push({ valor: t.valor_m2!, peso });
         }
         
         return acc;
-      }, {} as Record<string, { geral: number[], apartamento: number[], casa: number[] }>);
+      }, {} as Record<string, { geral: { valor: number; peso: number }[], apartamento: { valor: number; peso: number }[], casa: { valor: number; peso: number }[] }>);
 
       const periods = Object.keys(grouped).sort((a, b) => {
         if (granularity === 'annual') {
@@ -131,13 +133,17 @@ export function useEvolutionData(bairro: string = 'BARRA DA TIJUCA', granularity
           mesFormatted = `${semester}/${year.slice(2)}`;
         }
         
-        const avg = (arr: number[]) => arr.length > 0 
-          ? arr.reduce((sum, v) => sum + v, 0) / arr.length 
-          : 0;
+        // Média ponderada por total_transacoes
+        const weightedAvg = (arr: { valor: number; peso: number }[]) => {
+          if (arr.length === 0) return 0;
+          const somaPonderada = arr.reduce((sum, item) => sum + item.valor * item.peso, 0);
+          const somaPesos = arr.reduce((sum, item) => sum + item.peso, 0);
+          return somaPesos > 0 ? somaPonderada / somaPesos : 0;
+        };
         
-        const geralAvg = avg(grouped[key].geral);
-        const aptAvg = avg(grouped[key].apartamento);
-        const casaAvg = avg(grouped[key].casa);
+        const geralAvg = weightedAvg(grouped[key].geral);
+        const aptAvg = weightedAvg(grouped[key].apartamento);
+        const casaAvg = weightedAvg(grouped[key].casa);
         
         const variacao = index > 0 && previousGeral > 0
           ? ((geralAvg - previousGeral) / previousGeral) * 100
