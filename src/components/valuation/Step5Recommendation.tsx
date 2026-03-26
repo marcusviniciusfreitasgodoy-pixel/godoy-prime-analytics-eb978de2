@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -51,6 +51,22 @@ export function Step5Recommendation({ result, state, combined, onReset, existing
   const [pricingCompleted, setPricingCompleted] = useState(false);
   const [pricingData, setPricingData] = useState<PricingStrategyPDFData | null>(null);
   const [showEmailDialog, setShowEmailDialog] = useState(false);
+  const [observacoes, setObservacoes] = useState(state.observacoesImovel || "");
+
+  // Debounced save of observations to DB
+  useEffect(() => {
+    const currentId = valuationId || existingValuationId;
+    if (!currentId || observacoes === (state.observacoesImovel || "")) return;
+    
+    const timer = setTimeout(async () => {
+      await supabase
+        .from("valuations")
+        .update({ observacoes_imovel: observacoes || null })
+        .eq("id", currentId);
+    }, 1500);
+    
+    return () => clearTimeout(timer);
+  }, [observacoes, valuationId, existingValuationId]);
 
   // Carregar estratégia de precificação existente para edição
   useEffect(() => {
@@ -340,6 +356,7 @@ export function Step5Recommendation({ result, state, combined, onReset, existing
     try {
       const stateWithType: ValuationState = {
         ...state,
+        observacoesImovel: observacoes,
         tipoAvaliacao: isSimplified ? "simples" : "completa"
       };
       
@@ -465,6 +482,7 @@ export function Step5Recommendation({ result, state, combined, onReset, existing
     const tipoAvaliacao = reportType === 'simplificado' ? 'simples' : 'completa';
     const stateWithType: ValuationState = {
       ...state,
+      observacoesImovel: observacoes,
       tipoAvaliacao
     };
     return generateValuationPDFForEmail(result, stateWithType, combined, state.anuncioData?.fontes, pricingData);
@@ -689,6 +707,28 @@ export function Step5Recommendation({ result, state, combined, onReset, existing
               <span>45-75 dias</span>
             </div>
           </div>
+        </CardContent>
+      </Card>
+
+      {/* OBSERVAÇÕES E DADOS ADICIONAIS */}
+      <Card className="border border-border">
+        <CardHeader className="pb-1 sm:pb-2 px-3 sm:px-6">
+          <CardTitle className="text-sm sm:text-base flex items-center gap-2">
+            <FileText className="h-4 w-4 sm:h-5 sm:w-5 text-muted-foreground shrink-0" />
+            Observações e Dados Adicionais
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="px-3 sm:px-6 pb-4">
+          <textarea
+            value={observacoes}
+            onChange={(e) => setObservacoes(e.target.value)}
+            placeholder="Insira observações relevantes sobre o imóvel, condições especiais, informações complementares para o relatório..."
+            className="w-full min-h-[100px] rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring resize-y"
+            rows={4}
+          />
+          <p className="text-[10px] sm:text-xs text-muted-foreground mt-1.5">
+            Este campo será incluído no relatório PDF completo. Salva automaticamente.
+          </p>
         </CardContent>
       </Card>
 

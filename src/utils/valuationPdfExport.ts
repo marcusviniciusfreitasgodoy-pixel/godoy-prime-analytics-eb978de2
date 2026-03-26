@@ -1519,7 +1519,37 @@ function createValuationPDF(
     yPos += 37;
   }
 
-  // 9. DISCLAIMER PADRÃO
+  // 9. OBSERVAÇÕES E DADOS ADICIONAIS (apenas no relatório completo)
+  if (!isSimplified && state.observacoesImovel && state.observacoesImovel.trim()) {
+    if (yPos > getMaxContentY() - 60) {
+      doc.addPage();
+      yPos = 20;
+    }
+    
+    yPos = drawSectionTitle(doc, 'Observações e Dados Adicionais', yPos, marginLeft);
+    yPos += 2;
+    
+    doc.setFontSize(9);
+    doc.setFont('helvetica', 'normal');
+    doc.setTextColor(...BRAND_COLORS.darkGray);
+    
+    const obsLines = doc.splitTextToSize(state.observacoesImovel.trim(), contentWidth);
+    const obsHeight = obsLines.length * 4.5 + 10;
+    
+    // Box de fundo
+    doc.setFillColor(250, 250, 250);
+    doc.setDrawColor(200, 200, 200);
+    doc.setLineWidth(0.3);
+    doc.roundedRect(marginLeft - 3, yPos - 3, contentWidth + 6, obsHeight, 2, 2, 'FD');
+    
+    obsLines.forEach((line: string, i: number) => {
+      doc.text(line, marginLeft, yPos + 4 + (i * 4.5));
+    });
+    
+    yPos += obsHeight + 5;
+  }
+
+  // 10. DISCLAIMER PADRÃO
   drawDisclaimer(doc, yPos, marginLeft);
 
   // 10. GLOSSÁRIO DE TERMOS TÉCNICOS
