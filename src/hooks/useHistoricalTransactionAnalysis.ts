@@ -254,13 +254,18 @@ export function useHistoricalTransactionAnalysis(logradouro: string, bairro: str
         const year = new Date(t.data_transacao).getFullYear();
         if (!yearlyMap[year]) return;
 
+        const peso = t.total_transacoes || 1;
+
         // Contagem: sempre soma total_transacoes (mesmo se valor_m2 estiver ausente)
-        yearlyMap[year].totalTransacoes += (t.total_transacoes || 1);
+        yearlyMap[year].totalTransacoes += peso;
 
         // Preço: só entra nas estatísticas se houver valor_m2 e estiver dentro dos limites
+        // Expandir pelo peso para mediana/média ponderada
         const v = t.valor_m2;
         if (typeof v === 'number' && v >= effectiveMinLimit && v <= outlierLimit) {
-          yearlyMap[year].valores.push(v);
+          for (let i = 0; i < peso; i++) {
+            yearlyMap[year].valores.push(v);
+          }
         }
       });
       

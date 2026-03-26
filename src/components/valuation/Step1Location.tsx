@@ -93,11 +93,11 @@ export function Step1Location({ state, updateState, combined, onAutoValidated }:
     bairro: string,
     logradouro: string,
     ruasInternas?: string[]
-  ): Promise<{ rows: { valor_m2: number | null; valor_transacao: number | null }[]; source: "logradouro" | "bairro" }> => {
+  ): Promise<{ rows: { valor_m2: number | null; valor_transacao: number | null; total_transacoes: number | null }[]; source: "logradouro" | "bairro" }> => {
     const createBaseQuery = () =>
       supabase
         .from("itbi_transactions")
-        .select("valor_m2, valor_transacao")
+        .select("valor_m2, valor_transacao, total_transacoes")
         .ilike("bairro", bairro)
         .eq("uso", "Residencial")
         .gte("percentual_transferido", 90)
@@ -284,50 +284,70 @@ export function Step1Location({ state, updateState, combined, onAutoValidated }:
   };
 
   const calculateITBIData = (
-    rows: { valor_m2: number | null; valor_transacao: number | null }[]
+    rows: { valor_m2: number | null; valor_transacao: number | null; total_transacoes: number | null }[]
   ): ITBIData | null => {
     if (!rows || rows.length === 0) return null;
 
-    const rawValues = rows
-      .map((d) => Number(d.valor_m2))
-      .filter((value) => Number.isFinite(value));
+    // Expandir valores pelo peso de total_transacoes para mediana ponderada
+    // Cada linha do banco é um agregado mensal — uma linha com total_transacoes=37 
+    // representa 37 escrituras reais e deve ter 37x mais peso que uma com total_transacoes=1
+    const weightedValues: number[] = [];
+    let totalRealTransactions = 0;
 
-    if (rawValues.length === 0) return null;
+    rows.forEach((d) => {
+      const v = Number(d.valor_m2);
+      if (!Number.isFinite(v)) return;
+      const weight = Math.max(1, d.total_transacoes || 1);
+      totalRealTransactions += weight;
+      // Expandir: repetir o valor conforme o peso
+      for (let i = 0; i < weight; i++) {
+        weightedValues.push(v);
+      }
+    });
+
+    if (weightedValues.length === 0) return null;
 
     let minValue: number;
     let maxValue: number;
     let medValue: number;
 
-    if (rawValues.length >= 4 && settings.outlier_filter_method === "percentile") {
-      const { values, min, max } = filterOutliersPercentile(rawValues);
+    if (weightedValues.length >= 4 && settings.outlier_filter_method === "percentile") {
+      const { values, min, max } = filterOutliersPercentile(weightedValues);
       const mid = Math.floor(values.length / 2);
       minValue = min;
       maxValue = max;
       medValue = values.length % 2 ? values[mid] : (values[mid - 1] + values[mid]) / 2;
-    } else if (rawValues.length >= 4) {
-      const filteredValues = filterOutliersIQR(rawValues);
+    } else if (weightedValues.length >= 4) {
+      const filteredValues = filterOutliersIQR(weightedValues);
       const values = filteredValues.sort((a, b) => a - b);
-      const finalValues = values.length >= 3 ? values : rawValues.sort((a, b) => a - b);
+      const finalValues = values.length >= 3 ? values : weightedValues.sort((a, b) => a - b);
       const mid = Math.floor(finalValues.length / 2);
       minValue = finalValues[0];
       maxValue = finalValues[finalValues.length - 1];
       medValue = finalValues.length % 2 ? finalValues[mid] : (finalValues[mid - 1] + finalValues[mid]) / 2;
     } else {
-      const sorted = rawValues.sort((a, b) => a - b);
+      const sorted = weightedValues.sort((a, b) => a - b);
       minValue = sorted[0];
       maxValue = sorted[sorted.length - 1];
       const mid = Math.floor(sorted.length / 2);
       medValue = sorted.length % 2 ? sorted[mid] : (sorted[mid - 1] + sorted[mid]) / 2;
     }
 
-    const avgValorTransacao =
-      rows.reduce((sum, d) => sum + (Number(d.valor_transacao) || 0), 0) / rows.length;
+    // Média ponderada do valor de transação
+    let somaValorPonderado = 0;
+    let somaPesos = 0;
+    rows.forEach((d) => {
+      const peso = Math.max(1, d.total_transacoes || 1);
+      somaValorPonderado += (Number(d.valor_transacao) || 0) * peso;
+      somaPesos += peso;
+    });
+    const avgValorTransacao = somaPesos > 0 ? somaValorPonderado / somaPesos : 0;
 
     return {
       min_m2: Math.round(minValue),
       med_m2: Math.round(medValue),
       max_m2: Math.round(maxValue),
-      transaction_count: rows.length,
+      transaction_count: totalRealTransactions,
       avg_valor_transacao: Math.round(avgValorTransacao),
     };
   };
