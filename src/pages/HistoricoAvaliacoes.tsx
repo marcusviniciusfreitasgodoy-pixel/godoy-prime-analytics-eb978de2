@@ -135,6 +135,8 @@ interface Valuation {
   observacoes_imovel?: string | null;
   // Estratégia de precificação vinculada
   pricing_strategies?: PricingStrategy[];
+  // Tipo de avaliação
+  tipo_avaliacao?: string | null;
 }
 
 // Função para gerar dados históricos sintéticos para o PDF
@@ -439,7 +441,7 @@ export default function HistoricoAvaliacoes() {
     });
   };
 
-  const handleExportPDF = () => {
+  const handleExportPDF = (tipoOverride?: "simples" | "completa") => {
     if (!selectedValuation) return;
 
     // Cap de trend para evitar distorções (valores antigos salvos sem cap)
@@ -495,7 +497,7 @@ export default function HistoricoAvaliacoes() {
       result: null,
       // Gerar dados históricos sintéticos para o PDF baseados nos dados salvos
       historicalAnalysis: generateSyntheticHistoricalAnalysis(selectedValuation, trendPercentage),
-      tipoAvaliacao: "simples",
+      tipoAvaliacao: tipoOverride || (selectedValuation.tipo_avaliacao as "simples" | "completa") || "completa",
     };
 
     // Limpa o título de possíveis emojis corrompidos
@@ -1067,11 +1069,19 @@ export default function HistoricoAvaliacoes() {
                   </Button>
                   <Button 
                     variant="outline"
-                    onClick={handleExportPDF}
+                    onClick={() => handleExportPDF("completa")}
                     className="flex-1"
                   >
                     <FileText className="h-4 w-4 mr-2" />
-                    Reemitir PDF
+                    PDF Completo
+                  </Button>
+                  <Button 
+                    variant="ghost"
+                    onClick={() => handleExportPDF("simples")}
+                    className="flex-1"
+                  >
+                    <FileText className="h-4 w-4 mr-2" />
+                    PDF Simplificado
                   </Button>
                 </div>
                 <div className="flex gap-3">
