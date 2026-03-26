@@ -356,6 +356,7 @@ export function Step5Recommendation({ result, state, combined, onReset, existing
     try {
       const stateWithType: ValuationState = {
         ...state,
+        observacoesImovel: observacoes,
         tipoAvaliacao: isSimplified ? "simples" : "completa"
       };
       
