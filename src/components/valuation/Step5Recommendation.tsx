@@ -482,6 +482,7 @@ export function Step5Recommendation({ result, state, combined, onReset, existing
     const tipoAvaliacao = reportType === 'simplificado' ? 'simples' : 'completa';
     const stateWithType: ValuationState = {
       ...state,
+      observacoesImovel: observacoes,
       tipoAvaliacao
     };
     return generateValuationPDFForEmail(result, stateWithType, combined, state.anuncioData?.fontes, pricingData);
