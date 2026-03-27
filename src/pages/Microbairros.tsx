@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { MapPin, GitCompare, Plus, X, LayoutGrid, List, TrendingUp, Building2, Home } from "lucide-react";
+import { useState, useMemo } from "react";
+import { MapPin, GitCompare, Plus, X, LayoutGrid, List, TrendingUp, Building2, Home, Search } from "lucide-react";
 import { MicrobairroCard } from "@/components/MicrobairroCard";
 import { useMicrobairroDetalhado } from "@/hooks/useITBITransactions";
 import { useBairro } from "@/contexts/BairroContext";
@@ -8,17 +8,19 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
 import { useStreetComparison } from "@/hooks/useStreetComparison";
 import { StreetComparisonChart } from "@/components/StreetComparisonChart";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from "@/components/ui/table";
-import { extractSimplifiedCode } from "@/lib/utils";
+import { extractSimplifiedCode, normalizeAccents } from "@/lib/utils";
 
 export default function Microbairros() {
   const { selectedBairro, setSelectedBairro } = useBairro();
   const { data: microbairros, isLoading } = useMicrobairroDetalhado(selectedBairro);
   const [selectedStreets, setSelectedStreets] = useState<string[]>([]);
+  const [searchFilter, setSearchFilter] = useState("");
   const isMobile = useIsMobile();
   const [viewMode, setViewMode] = useState<'cards' | 'list'>(isMobile ? 'list' : 'cards');
   
@@ -38,6 +40,18 @@ export default function Microbairros() {
     setSelectedStreets(selectedStreets.filter(s => s !== logradouro));
   };
 
+  const filteredMicrobairros = useMemo(() => {
+    if (!microbairros) return [];
+    if (!searchFilter.trim()) return microbairros;
+    const norm = normalizeAccents(searchFilter.toUpperCase().trim());
+    return microbairros.filter(item => {
+      const name = normalizeAccents((item.condominioNome || item.microbairro || '').toUpperCase());
+      return name.includes(norm);
+    });
+  }, [microbairros, searchFilter]);
+
+  const maxTransacoes = Math.max(...(filteredMicrobairros).map((r) => r.total_transacoes), 1);
+
   if (isLoading) {
     return (
       <div className="space-y-6">
@@ -53,8 +67,6 @@ export default function Microbairros() {
       </div>
     );
   }
-
-  const maxTransacoes = Math.max(...(microbairros || []).map((r) => r.total_transacoes), 1);
 
   const getDisplayName = (item: { microbairro: string; condominioNome?: string; isTechnicalCode?: boolean }) => {
     return item.condominioNome 
@@ -89,6 +101,15 @@ export default function Microbairros() {
             </ToggleGroup>
             <BairroSelector value={selectedBairro} onChange={setSelectedBairro} />
           </div>
+        </div>
+        <div className="relative mt-3">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Input
+            placeholder="Buscar logradouro..."
+            value={searchFilter}
+            onChange={(e) => setSearchFilter(e.target.value)}
+            className="pl-9 max-w-sm"
+          />
         </div>
       </div>
 
@@ -181,7 +202,7 @@ export default function Microbairros() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {(microbairros || []).map((item) => {
+                {filteredMicrobairros.map((item) => {
                   const isSelected = selectedStreets.includes(item.microbairro);
                   const displayName = getDisplayName(item);
                   return (
@@ -251,7 +272,7 @@ export default function Microbairros() {
       {/* Visualização Cards */}
       {viewMode === 'cards' && (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
-          {(microbairros || []).map((item) => (
+          {filteredMicrobairros.map((item) => (
             <div key={item.microbairro} className="relative group">
               <MicrobairroCard
                 microbairro={item.microbairro}
@@ -283,7 +304,7 @@ export default function Microbairros() {
         </div>
       )}
 
-      {(microbairros || []).length === 0 && !isLoading && (
+      {filteredMicrobairros.length === 0 && !isLoading && (
         <div className="text-center py-12 text-muted-foreground">
           Nenhum dado disponível para exibição.
         </div>
