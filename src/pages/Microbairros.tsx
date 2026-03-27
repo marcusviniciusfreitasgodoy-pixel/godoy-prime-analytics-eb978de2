@@ -26,7 +26,7 @@ export default function Microbairros() {
   
   const { data: streetComparisonData, isLoading: isLoadingComparison } = useStreetComparison(
     selectedStreets, 
-    12, 
+    72, 
     selectedBairro
   );
 
