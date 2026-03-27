@@ -140,6 +140,37 @@ export const MicrobairroEvolutionChart = ({ bairro }: MicrobairroEvolutionChartP
     }
   }, [data, microbairros, hiddenLines, metric]);
 
+  if (isLoading) {
+    return (
+      <Card>
+        <CardHeader>
+          <Skeleton className="h-6 w-64" />
+        </CardHeader>
+        <CardContent>
+          <Skeleton className="h-[300px] w-full" />
+        </CardContent>
+      </Card>
+    );
+  }
+
+  if (data.length === 0) {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2 text-base">
+            <TrendingUp className="h-5 w-5 text-primary" />
+            {title}
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <p className="text-muted-foreground text-center py-8">
+            Dados insuficientes para exibir evolução por microbairro
+          </p>
+        </CardContent>
+      </Card>
+    );
+  }
+
   return (
     <Card>
       <CardHeader className="pb-2">
@@ -262,6 +293,15 @@ export const MicrobairroEvolutionChart = ({ bairro }: MicrobairroEvolutionChartP
             </LineChart>
           </ResponsiveContainer>
         </div>
+        
+        {summary && (
+          <p className="text-xs text-muted-foreground bg-muted/50 rounded p-2 mt-2">
+            <span className={summary.colorClass}>{summary.text1}</span>
+            {summary.text2 && (
+              <> <span className={summary.colorClass}>{summary.text2}</span></>
+            )}
+          </p>
+        )}
       </CardContent>
     </Card>
   );
