@@ -1,4 +1,4 @@
-import { MapPin, Menu, Home, ClipboardCheck, ClipboardList, FileText, LogOut, Users, UserCog, Search, Calculator, RefreshCw, Settings, History, Brain, CalendarCheck, Cog, BookOpen, Rocket, User, ChevronDown, Shield, Map, Kanban, MessageSquare, Presentation } from "lucide-react";
+import { MapPin, Menu, Home, ClipboardCheck, ClipboardList, FileText, LogOut, Users, UserCog, Search, Calculator, RefreshCw, Settings, History, Brain, CalendarCheck, Cog, BookOpen, Rocket, User, ChevronDown, Shield, Map, Kanban, MessageSquare, Presentation, BarChart3, Building2, HandshakeIcon, FolderOpen, SlidersHorizontal } from "lucide-react";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import logoSymbol from "@/assets/godoy-logo-symbol.png";
@@ -11,6 +11,7 @@ import { useAuthContext } from "@/contexts/AuthContext";
 import { useOrganization } from "@/contexts/OrganizationContext";
 import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "./ui/collapsible";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -20,38 +21,87 @@ import {
   DropdownMenuTrigger,
 } from "./ui/dropdown-menu";
 
-const navItems = [
-  { title: "Dashboard", url: "/", icon: Home },
-  { title: "Onboarding", url: "/onboarding", icon: Rocket },
-  { title: "Manual / Tour", url: "/manual", icon: BookOpen },
-  { title: "Microregiões", url: "/microbairros", icon: MapPin },
-  { title: "Inteligência Territorial", url: "/inteligencia-territorial", icon: Map },
-  { title: "Pesquisas de Mercado", url: "/pesquisas-mercado", icon: Search },
-  { title: "Avaliação Imobiliária", url: "/avaliacao-imobiliaria", icon: Calculator },
-  { title: "Histórico Avaliações", url: "/historico-avaliacoes", icon: History },
-  { title: "Vistoria Digital", url: "/vistoria-digital", icon: ClipboardCheck },
-  { title: "Histórico Vistorias", url: "/historico-vistorias", icon: ClipboardList },
-  { title: "Agendamento de Visitas", url: "/visitas", icon: CalendarCheck },
-  { title: "Documentação", url: "/documentacao", icon: FileText },
-  { title: "Apresentação", url: "/apresentacao", icon: Presentation },
-  { title: "Configurações", url: "/configuracoes", icon: Cog },
-];
+interface MobileNavItem {
+  title: string;
+  url: string;
+  icon: React.ComponentType<{ className?: string }>;
+}
 
-const gerenteItems = [
-  { title: "Calibrador Avaliação", url: "/calibrador-avaliacao", icon: Settings },
-  { title: "Calibrador Vistoria", url: "/calibrador-vistoria", icon: ClipboardList },
-  { title: "Configurar Formulários", url: "/configurar-formularios", icon: MessageSquare },
-  { title: "Pipeline CRM", url: "/pipeline", icon: Kanban },
-  { title: "Leads", url: "/leads", icon: Users },
-];
+interface MobileNavGroup {
+  label: string;
+  icon: React.ComponentType<{ className?: string }>;
+  items: MobileNavItem[];
+  requiresRole?: "gerente" | "admin" | "superadmin";
+}
 
-const adminItems = [
-  { title: "Base Conhecimento Sofia", url: "/base-conhecimento", icon: Brain },
-  { title: "Usuários", url: "/usuarios", icon: UserCog },
-];
-
-const superadminItems = [
-  { title: "Superadmin", url: "/admin", icon: Shield },
+const mobileMenuGroups: MobileNavGroup[] = [
+  {
+    label: "Início",
+    icon: Home,
+    items: [
+      { title: "Dashboard", url: "/", icon: Home },
+      { title: "Onboarding", url: "/onboarding", icon: Rocket },
+      { title: "Manual / Tour", url: "/manual", icon: BookOpen },
+    ],
+  },
+  {
+    label: "Mercado & Território",
+    icon: BarChart3,
+    items: [
+      { title: "Microregiões", url: "/microbairros", icon: MapPin },
+      { title: "Intel. Territorial", url: "/inteligencia-territorial", icon: Map },
+      { title: "Pesquisas de Mercado", url: "/pesquisas-mercado", icon: Search },
+    ],
+  },
+  {
+    label: "Avaliação & Vistoria",
+    icon: Building2,
+    items: [
+      { title: "Avaliação Imobiliária", url: "/avaliacao-imobiliaria", icon: Calculator },
+      { title: "Hist. Avaliações", url: "/historico-avaliacoes", icon: History },
+      { title: "Vistoria Digital", url: "/vistoria-digital", icon: ClipboardCheck },
+      { title: "Hist. Vistorias", url: "/historico-vistorias", icon: ClipboardList },
+    ],
+  },
+  {
+    label: "Clientes & Visitas",
+    icon: HandshakeIcon,
+    items: [
+      { title: "Visitas", url: "/visitas", icon: CalendarCheck },
+      { title: "Leads", url: "/leads", icon: Users },
+      { title: "Pipeline CRM", url: "/pipeline", icon: Kanban },
+    ],
+    requiresRole: "gerente",
+  },
+  {
+    label: "Documentos & Apoio",
+    icon: FolderOpen,
+    items: [
+      { title: "Documentação", url: "/documentacao", icon: FileText },
+      { title: "Apresentação", url: "/apresentacao", icon: Presentation },
+    ],
+  },
+  {
+    label: "Administração",
+    icon: SlidersHorizontal,
+    items: [
+      { title: "Calibr. Avaliação", url: "/calibrador-avaliacao", icon: Settings },
+      { title: "Calibr. Vistoria", url: "/calibrador-vistoria", icon: ClipboardList },
+      { title: "Config. Formulários", url: "/configurar-formularios", icon: MessageSquare },
+      { title: "Base Conhecimento", url: "/base-conhecimento", icon: Brain },
+      { title: "Usuários", url: "/usuarios", icon: UserCog },
+      { title: "Configurações", url: "/configuracoes", icon: Cog },
+    ],
+    requiresRole: "gerente",
+  },
+  {
+    label: "Superadmin",
+    icon: Shield,
+    items: [
+      { title: "Superadmin", url: "/admin", icon: Shield },
+    ],
+    requiresRole: "superadmin",
+  },
 ];
 
 export function Header() {
