@@ -209,13 +209,13 @@ export default function OnePagerPreview() {
               <div className="w-16 border-t-2 border-[#D4AF37] mt-0.5 mb-3" />
             </div>
 
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-2 gap-2">
               {detailedModules.map((m) =>
-              <div key={m.title} className="bg-[#F8F9FC] rounded-md p-3 border border-[#D4AF37]/30">
-                  <p className="text-[#0C2340] font-bold text-[11px]">{m.title}</p>
-                  <div className="w-full border-t border-[#D4AF37] my-1" />
-                  <p className="text-red-700 italic text-[9px]">Dor: {m.dor}</p>
-                  <p className="text-green-700 text-[9px] mt-1">Entrega: {m.entrega}</p>
+              <div key={m.title} className="bg-[#F8F9FC] rounded-md p-2 border border-[#D4AF37]/30">
+                  <p className="text-[#0C2340] font-bold text-[10px]">{m.title}</p>
+                  <div className="w-full border-t border-[#D4AF37] my-0.5" />
+                  <p className="text-red-700 italic text-[8px]">Dor: {m.dor}</p>
+                  <p className="text-green-700 text-[8px] mt-0.5">Entrega: {m.entrega}</p>
                 </div>
               )}
             </div>
