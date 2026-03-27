@@ -312,7 +312,7 @@ export default function PesquisasMercado() {
         </CardHeader>
         <CardContent>
           <Tabs defaultValue="localizacao" className="w-full" data-tour="pesquisas-tabs">
-            <TabsList className="grid w-full grid-cols-2 h-auto">
+            <TabsList className="grid w-full grid-cols-3 h-auto">
               <TabsTrigger value="localizacao" className="text-xs sm:text-sm py-2 px-1 sm:px-3">
                 <Search className="h-4 w-4 sm:mr-2" />
                 <span className="hidden sm:inline">Localização</span>
@@ -320,6 +320,10 @@ export default function PesquisasMercado() {
               <TabsTrigger value="transacoes" className="text-xs sm:text-sm py-2 px-1 sm:px-3">
                 <DollarSign className="h-4 w-4 sm:mr-2" />
                 <span className="hidden sm:inline">Transações</span>
+              </TabsTrigger>
+              <TabsTrigger value="mapa" className="text-xs sm:text-sm py-2 px-1 sm:px-3">
+                <Map className="h-4 w-4 sm:mr-2" />
+                <span className="hidden sm:inline">Mapa</span>
               </TabsTrigger>
             </TabsList>
 
