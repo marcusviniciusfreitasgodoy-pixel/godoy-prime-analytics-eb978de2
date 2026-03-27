@@ -29,12 +29,14 @@ import OnePagerPreview from "@/components/apresentacao/OnePagerPreview";
 
 const features = [
   { icon: BarChart3, title: "Painel Analítico", desc: "Indicadores de mercado em tempo real com evolução de preços por m² e liquidez por tipologia." },
-  { icon: TrendingUp, title: "Avaliação Imobiliária", desc: "Precificação inteligente com dados oficiais ITBI e enriquecimento IPTU — total de imóveis, preço médio real e comparativo venal vs real por logradouro." },
+  { icon: TrendingUp, title: "Avaliação Imobiliária", desc: "Precificação inteligente com dados ITBI e IPTU — 3 cenários de valor, campo de observações editável e laudo completo em PDF." },
   { icon: ClipboardCheck, title: "Vistoria Digital", desc: "Checklist completo com score automático, itens críticos e ajuste de valor por estado de conservação." },
-  { icon: Calendar, title: "Agendamento de Visitas", desc: "Gestão completa de visitas com fichas digitais, assinatura eletrônica, retorno automatizado e relatório analítico em PDF." },
+  { icon: Calendar, title: "Gestão de Visitas", desc: "Fichas digitais, assinatura eletrônica, feedback analítico com dashboard de métricas e ranking de corretores." },
   { icon: Target, title: "Microrregiões", desc: "Classificação e evolução de preços por microbairro com mapa interativo de transações." },
-  { icon: Map, title: "Inteligência Territorial", desc: "Mapa interativo com 1.567 condomínios, ficha completa com torres, unidades, histórico ITBI e dados IPTU. Ranking e análise por logradouro." },
-  { icon: Building2, title: "Gestão de Contatos", desc: "Gestão integrada com captação automática de contatos, notificações por email e WhatsApp, filtros avançados e acompanhamento de conversão com exportação CSV." },
+  { icon: Map, title: "Inteligência Territorial", desc: "Mapa interativo com 1.567 condomínios, ficha completa com torres, unidades, histórico ITBI e dados IPTU." },
+  { icon: Building2, title: "Gestão de Leads e CRM", desc: "Pipeline Kanban 8 estágios, captação automática, notificações email/WhatsApp e acompanhamento de conversão." },
+  { icon: Shield, title: "Avaliação Pública", desc: "Página de captação de compradores com avaliação gratuita, proteção patrimonial e geração automática de leads." },
+  { icon: Brain, title: "Calibradores e Personalização", desc: "Ajuste de pesos de avaliação e vistoria, formulários personalizáveis e branding white-label com logo próprio." },
 ];
 
 const differentials = [
