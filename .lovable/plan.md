@@ -1,80 +1,35 @@
 
 
-# Análise dos Módulos Onboarding, Manual e Tour Guiado
+# Adicionar Visualização Lista/Card no módulo Microregiões
 
-## Diagnóstico Completo
+## Objetivo
+Incluir um toggle de visualização (Cards / Lista) na página de Microregiões para facilitar a navegação mobile e a seleção rápida de logradouros para o comparativo.
 
-### 1. FUNCIONALIDADES AUSENTES NOS TRÊS MÓDULOS
+## Mudanças
 
-| Funcionalidade existente na plataforma | Onboarding | Manual | Tour (GuidedTour/PageTour) |
-|---|---|---|---|
-| **Configurar Formulários** (/configurar-formularios) | ❌ Ausente | ❌ Ausente | ❌ Ausente |
-| **Admin Panel / Superadmin** (/admin) | ❌ Ausente | ❌ Ausente | ❌ Ausente |
-| **Resumos interpretativos** (recém-adicionados nos gráficos) | ❌ Não mencionado | ❌ Não mencionado | N/A |
+### `src/pages/Microbairros.tsx`
+1. Adicionar estado `viewMode: 'cards' | 'list'` (default: `'cards'`)
+2. No mobile (`useIsMobile`), iniciar como `'list'` por padrão
+3. Adicionar `ToggleGroup` ao lado do `BairroSelector` no cabeçalho com ícones `LayoutGrid` (cards) e `List` (lista)
+4. Modo **Cards**: manter o grid atual (`grid-cols-1 md:grid-cols-2 lg:grid-cols-3`)
+5. Modo **Lista**: renderizar uma tabela compacta com colunas:
+   - Rank (#)
+   - Nome (displayName com badge de condomínio se aplicável)
+   - R$/m² médio
+   - Transações
+   - R$/m² Apt | Casa
+   - Tendência (badge)
+   - Botão "+" para adicionar ao comparativo
+6. Cada linha da lista é clicável para adicionar ao comparativo, com destaque visual para linhas já selecionadas
 
-### 2. INCONSISTÊNCIAS E ERROS ENCONTRADOS
+### Benefícios
+- **Mobile**: lista ocupa menos espaço vertical, permite ver mais logradouros de uma vez e selecionar com um toque
+- **Desktop**: mantém a opção de cards visuais para apresentações, com lista disponível para análise rápida
 
-**Onboarding:**
-- Step "Mapa de Vendas" (id:9) aponta para "/" mas o mapa foi movido para Inteligência Territorial (conforme memory `dashboard-comprehensive-specification`)
-- Step "CRM / Pipeline" (id:22) tem rota `/pipeline-crm` mas a rota real é `/pipeline`
-- Step "Avaliação Pública" (id:11) aponta para `/avaliacao-publica` mas a rota pública é `/avaliacao`
-- FAQ "mapa de vendas" no Dashboard ainda descreve como se estivesse lá, mas foi removido
-
-**Manual:**
-- Seção Dashboard ainda menciona "Mapa de Vendas" e "Exportação de Dados" como se o mapa estivesse no Dashboard
-- Seção CRM tem rota `/pipeline-crm` incorreta (deveria ser `/pipeline`)
-- Seção Propostas Digitais tem rota `/proposta-publica` — funcionalidade de propostas está vinculada à agenda de visitas
-- Falta seção "Configurar Formulários"
-- Falta menção aos resumos interpretativos nos gráficos de Evolução
-
-**GuidedTour (Tour do Dashboard):**
-- Ainda referencia `[data-tour="transaction-map"]` que não existe mais no Dashboard (mapa removido)
-- Referencia `[data-tour="sync-itbi"]` que é admin-only e pode não existir
-
-**PageTour:**
-- Não tem configuração para Inteligência Territorial
-- Não tem configuração para Pipeline CRM
-- Não tem configuração para Configurar Formulários
-
-### 3. DISPONIBILIDADE PARA TODOS OS USUÁRIOS
-
-**Onboarding:** ✅ Disponível — rota `/onboarding` está dentro do ProtectedRoute sem restrição de role. Conteúdo é filtrado por role (corretor vê módulos operacionais, gerente vê gestão, admin vê tudo).
-
-**Manual:** ✅ Disponível — rota `/manual` sem restrição. Seções admin só aparecem para admins (`isAdmin`).
-
-**Tour Guiado:** ✅ Disponível — executado no Dashboard via `useFirstVisitTour`. Disponível para todos os roles.
-
-**Sidebar:** ✅ "Onboarding" e "Manual / Tour" estão no grupo "Início" sem `requiresRole`, acessíveis a todos.
-
----
-
-## Plano de Correção
-
-### Arquivo 1: `src/pages/Onboarding.tsx`
-1. **Remover** step "Mapa de Vendas" (id:9) — redundante com Inteligência Territorial
-2. **Corrigir** rota do CRM de `/pipeline-crm` para `/pipeline`
-3. **Corrigir** rota da Avaliação Pública de `/avaliacao-publica` para `/avaliacao`
-4. **Adicionar** step "Configurar Formulários" nos módulos admin com rota `/configurar-formularios`
-5. **Atualizar** FAQ do Dashboard removendo menção ao mapa de vendas
-6. **Adicionar** FAQ sobre resumos interpretativos nos gráficos
-7. **Atualizar** descrição do Dashboard removendo referência ao mapa
-
-### Arquivo 2: `src/pages/ManualPlataforma.tsx`
-1. **Remover** referência ao Mapa de Vendas da seção Dashboard
-2. **Corrigir** rota CRM de `/pipeline-crm` para `/pipeline`
-3. **Adicionar** seção "Configurar Formulários" nas adminSections
-4. **Adicionar** menção aos resumos interpretativos nas seções de Dashboard e Evolução
-5. **Corrigir** rota Propostas Digitais
-
-### Arquivo 3: `src/components/GuidedTour.tsx`
-1. **Remover** step do `transaction-map` (mapa removido do Dashboard)
-2. **Remover** step do `sync-itbi` (não visível para todos)
-3. **Atualizar** descrição do step de evolução mencionando os resumos interpretativos
-
-### Arquivo 4: `src/components/PageTour.tsx`
-1. **Adicionar** configuração de tour para `inteligencia-territorial`
-2. **Adicionar** configuração de tour para `pipeline` (CRM)
-
-### Arquivo 5: `src/hooks/useTourNavigation.ts`
-1. **Adicionar** página Inteligência Territorial ao `TOUR_PAGES`
+## Detalhes Técnicos
+- Importar `useIsMobile` de `@/hooks/use-mobile`
+- Importar `ToggleGroup/ToggleGroupItem` e ícones `LayoutGrid`, `List`
+- Importar `Table, TableHeader, TableBody, TableRow, TableHead, TableCell` para o modo lista
+- Reutilizar a mesma lógica de `displayName` do `MicrobairroCard` (via `extractSimplifiedCode`)
+- Botão "+" visível diretamente na linha (sem hover) para facilitar toque mobile
 
