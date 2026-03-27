@@ -13,30 +13,35 @@ export function StreetComparisonChart({ data }: StreetComparisonChartProps) {
   const chartData = useMemo(() => {
     if (!data || data.length === 0) return [];
 
-    // Collect all months
-    const allMonths = new Set<string>();
-    data.forEach(street => {
-      street.dados_mensais.forEach(d => allMonths.add(d.mes));
+    // Group monthly data into semesters per street
+    const semesterMap = new Map<string, Record<string, { soma: number; peso: number }>>();
+
+    data.forEach((street, idx) => {
+      street.dados_mensais.forEach(d => {
+        const year = d.mes.substring(0, 4);
+        const mm = parseInt(d.mes.substring(5));
+        const sem = mm <= 6 ? 'S1' : 'S2';
+        const key = `${year}-${sem}`;
+
+        if (!semesterMap.has(key)) semesterMap.set(key, {});
+        const bucket = semesterMap.get(key)!;
+        if (!bucket[`rua${idx}`]) bucket[`rua${idx}`] = { soma: 0, peso: 0 };
+        bucket[`rua${idx}`].soma += d.media_m2 * d.transacoes;
+        bucket[`rua${idx}`].peso += d.transacoes;
+      });
     });
 
-    // Sort months
-    const sortedMonths = Array.from(allMonths).sort();
+    const sortedKeys = Array.from(semesterMap.keys()).sort();
 
-    const MONTH_LABELS: Record<string, string> = {
-      '01': 'Jan', '02': 'Fev', '03': 'Mar', '04': 'Abr',
-      '05': 'Mai', '06': 'Jun', '07': 'Jul', '08': 'Ago',
-      '09': 'Set', '10': 'Out', '11': 'Nov', '12': 'Dez',
-    };
+    return sortedKeys.map(key => {
+      const [year, sem] = key.split('-');
+      const label = `${sem === 'S1' ? '1°' : '2°'}Sem/${year.substring(2)}`;
+      const entry: Record<string, string | number> = { mes: label };
+      const bucket = semesterMap.get(key)!;
 
-    // Build chart data
-    return sortedMonths.map(mes => {
-      const mm = mes.substring(5);
-      const year = mes.substring(2, 4);
-      const entry: Record<string, string | number> = { mes: `${MONTH_LABELS[mm] || mm}/${year}` };
-      
-      data.forEach((street, idx) => {
-        const monthData = street.dados_mensais.find(d => d.mes === mes);
-        entry[`rua${idx}`] = monthData?.media_m2 || 0;
+      data.forEach((_, idx) => {
+        const b = bucket[`rua${idx}`];
+        entry[`rua${idx}`] = b && b.peso > 0 ? Math.round(b.soma / b.peso) : 0;
       });
 
       return entry;

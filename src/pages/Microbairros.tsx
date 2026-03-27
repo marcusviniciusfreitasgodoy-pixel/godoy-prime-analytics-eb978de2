@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { MapPin, GitCompare, Plus, X, LayoutGrid, List, TrendingUp, Building2, Home } from "lucide-react";
+import { useState, useMemo } from "react";
+import { MapPin, GitCompare, Plus, X, LayoutGrid, List, TrendingUp, Building2, Home, Search } from "lucide-react";
 import { MicrobairroCard } from "@/components/MicrobairroCard";
 import { useMicrobairroDetalhado } from "@/hooks/useITBITransactions";
 import { useBairro } from "@/contexts/BairroContext";
@@ -8,12 +8,13 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
 import { useStreetComparison } from "@/hooks/useStreetComparison";
 import { StreetComparisonChart } from "@/components/StreetComparisonChart";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from "@/components/ui/table";
-import { extractSimplifiedCode } from "@/lib/utils";
+import { extractSimplifiedCode, normalizeAccents } from "@/lib/utils";
 
 export default function Microbairros() {
   const { selectedBairro, setSelectedBairro } = useBairro();
