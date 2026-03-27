@@ -22,9 +22,17 @@ export function StreetComparisonChart({ data }: StreetComparisonChartProps) {
     // Sort months
     const sortedMonths = Array.from(allMonths).sort();
 
+    const MONTH_LABELS: Record<string, string> = {
+      '01': 'Jan', '02': 'Fev', '03': 'Mar', '04': 'Abr',
+      '05': 'Mai', '06': 'Jun', '07': 'Jul', '08': 'Ago',
+      '09': 'Set', '10': 'Out', '11': 'Nov', '12': 'Dez',
+    };
+
     // Build chart data
     return sortedMonths.map(mes => {
-      const entry: Record<string, string | number> = { mes: mes.substring(5) }; // MM format
+      const mm = mes.substring(5);
+      const year = mes.substring(2, 4);
+      const entry: Record<string, string | number> = { mes: `${MONTH_LABELS[mm] || mm}/${year}` };
       
       data.forEach((street, idx) => {
         const monthData = street.dados_mensais.find(d => d.mes === mes);
