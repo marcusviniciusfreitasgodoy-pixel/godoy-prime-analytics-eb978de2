@@ -873,6 +873,7 @@ export default function PesquisasMercado() {
                 />
               </div>
             </TabsContent>
+          </Tabs>
 
           {/* Search History */}
           {history.length > 0 && (
