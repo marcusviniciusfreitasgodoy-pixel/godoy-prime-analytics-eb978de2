@@ -202,7 +202,7 @@ export default function Microbairros() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {(microbairros || []).map((item) => {
+                {filteredMicrobairros.map((item) => {
                   const isSelected = selectedStreets.includes(item.microbairro);
                   const displayName = getDisplayName(item);
                   return (
@@ -272,7 +272,7 @@ export default function Microbairros() {
       {/* Visualização Cards */}
       {viewMode === 'cards' && (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
-          {(microbairros || []).map((item) => (
+          {filteredMicrobairros.map((item) => (
             <div key={item.microbairro} className="relative group">
               <MicrobairroCard
                 microbairro={item.microbairro}
@@ -304,7 +304,7 @@ export default function Microbairros() {
         </div>
       )}
 
-      {(microbairros || []).length === 0 && !isLoading && (
+      {filteredMicrobairros.length === 0 && !isLoading && (
         <div className="text-center py-12 text-muted-foreground">
           Nenhum dado disponível para exibição.
         </div>
