@@ -856,7 +856,23 @@ export default function PesquisasMercado() {
                 </div>
               )}
             </TabsContent>
-          </Tabs>
+
+            {/* Aba Mapa */}
+            <TabsContent value="mapa" className="space-y-4 mt-4">
+              <Alert className="border-primary/30 bg-primary/5">
+                <Info className="h-4 w-4 text-primary" />
+                <AlertDescription className="text-xs text-muted-foreground">
+                  Visualização geográfica das transações ITBI por logradouro. Os marcadores indicam volume e preço médio/m² das transações no período selecionado.
+                </AlertDescription>
+              </Alert>
+              <div className="h-[450px] lg:h-[550px]">
+                <TransactionMap
+                  data={mapData || []}
+                  bairro={transacaoBairro}
+                  isLoading={mapLoading}
+                />
+              </div>
+            </TabsContent>
 
           {/* Search History */}
           {history.length > 0 && (
