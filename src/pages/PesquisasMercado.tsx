@@ -312,7 +312,7 @@ export default function PesquisasMercado() {
         </CardHeader>
         <CardContent>
           <Tabs defaultValue="localizacao" className="w-full" data-tour="pesquisas-tabs">
-            <TabsList className="grid w-full grid-cols-2 h-auto">
+            <TabsList className="grid w-full grid-cols-3 h-auto">
               <TabsTrigger value="localizacao" className="text-xs sm:text-sm py-2 px-1 sm:px-3">
                 <Search className="h-4 w-4 sm:mr-2" />
                 <span className="hidden sm:inline">Localização</span>
@@ -320,6 +320,10 @@ export default function PesquisasMercado() {
               <TabsTrigger value="transacoes" className="text-xs sm:text-sm py-2 px-1 sm:px-3">
                 <DollarSign className="h-4 w-4 sm:mr-2" />
                 <span className="hidden sm:inline">Transações</span>
+              </TabsTrigger>
+              <TabsTrigger value="mapa" className="text-xs sm:text-sm py-2 px-1 sm:px-3">
+                <Map className="h-4 w-4 sm:mr-2" />
+                <span className="hidden sm:inline">Mapa</span>
               </TabsTrigger>
             </TabsList>
 
@@ -851,6 +855,23 @@ export default function PesquisasMercado() {
                   <p>Nenhuma transação encontrada com os filtros selecionados.</p>
                 </div>
               )}
+            </TabsContent>
+
+            {/* Aba Mapa */}
+            <TabsContent value="mapa" className="space-y-4 mt-4">
+              <Alert className="border-primary/30 bg-primary/5">
+                <Info className="h-4 w-4 text-primary" />
+                <AlertDescription className="text-xs text-muted-foreground">
+                  Visualização geográfica das transações ITBI por logradouro. Os marcadores indicam volume e preço médio/m² das transações no período selecionado.
+                </AlertDescription>
+              </Alert>
+              <div className="h-[450px] lg:h-[550px]">
+                <TransactionMap
+                  data={mapData || []}
+                  bairro={transacaoBairro}
+                  isLoading={mapLoading}
+                />
+              </div>
             </TabsContent>
           </Tabs>
 

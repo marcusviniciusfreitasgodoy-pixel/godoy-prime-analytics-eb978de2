@@ -16,7 +16,6 @@ import {
   Video,
   ClipboardCheck,
   Rocket,
-  Map,
 } from "lucide-react";
 import { MarketAssistant } from "@/components/MarketAssistant";
 import { Button } from "@/components/ui/button";
@@ -28,8 +27,6 @@ import { MicrobairroRanking } from "@/components/MicrobairroRanking";
 import { GuidedTour } from "@/components/GuidedTour";
 import { BairroSelector } from "@/components/BairroSelector";
 import { useBairro } from "@/contexts/BairroContext";
-import { TransactionMap } from "@/components/maps/TransactionMap";
-import { useTransactionMapData } from "@/hooks/useTransactionMapData";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { supabase } from "@/integrations/supabase/client";
 import { exportToCSV, exportToXLSX } from "@/utils/exportUtils";
@@ -82,7 +79,7 @@ export default function Dashboard() {
     queryClient.invalidateQueries({ queryKey: ['evolution-data-v8'] });
     queryClient.invalidateQueries({ queryKey: ['microbairro-ranking'] });
     queryClient.invalidateQueries({ queryKey: ['microbairro-detalhado'] });
-    queryClient.invalidateQueries({ queryKey: ['transaction-map-data'] });
+    
     queryClient.invalidateQueries({ queryKey: ['historical-analysis'] });
   }, [queryClient]);
 
@@ -91,17 +88,6 @@ export default function Dashboard() {
   const { data: rankingData } = useMicrobairroRanking(selectedBairro);
   const { data: evolutionData } = useEvolutionData(selectedBairro, 'semester');
   
-  // Hook para dados do mapa com filtros
-  const [mapFilters, setMapFilters] = useState({ periodoMeses: 12, precoMin: 0, precoMax: 100000 });
-  const { data: mapData, isLoading: isMapLoading, refetch: refetchMapData } = useTransactionMapData({
-    bairro: selectedBairro,
-    periodoMeses: mapFilters.periodoMeses,
-  });
-  
-  // Refetch quando período muda
-  useEffect(() => {
-    refetchMapData();
-  }, [mapFilters.periodoMeses, refetchMapData]);
 
   const fetchExportData = async () => {
     const { data, error } = await supabase
@@ -565,29 +551,6 @@ export default function Dashboard() {
         <MicrobairroEvolutionChart bairro={selectedBairro} />
       </div>
 
-      {/* Mapa de Transações */}
-      <Card data-tour="transaction-map">
-        <CardHeader className="pb-2">
-          <CardTitle className="flex items-center gap-2 text-lg">
-            <Map className="h-5 w-5 text-primary" />
-            Mapa de Transações
-          </CardTitle>
-          <p className="text-sm text-muted-foreground">
-            Visualização geográfica das transações nos últimos 12 meses
-          </p>
-        </CardHeader>
-        <CardContent className="pt-0">
-          <div className="h-[400px] lg:h-[500px]">
-            <TransactionMap 
-              data={mapData || []} 
-              bairro={selectedBairro} 
-              isLoading={isMapLoading}
-              onFiltersChange={setMapFilters}
-              initialFilters={mapFilters}
-            />
-          </div>
-        </CardContent>
-      </Card>
 
 
       {/* Aviso jurídico - visível apenas em mobile, no final da página */}
