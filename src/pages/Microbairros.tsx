@@ -15,6 +15,37 @@ import { useIsMobile } from "@/hooks/use-mobile";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from "@/components/ui/table";
 import { extractSimplifiedCode, normalizeAccents } from "@/lib/utils";
+import { expandLogradouroSearchTerms } from "@/lib/logradouroSearch";
+
+const ABBREV_MAP: Record<string, string> = {
+  'AVN': 'Avenida', 'AV': 'Avenida', 'AV.': 'Avenida',
+  'EST': 'Estrada', 'EST.': 'Estrada',
+  'TV': 'Travessa', 'TV.': 'Travessa',
+  'PCA': 'Praça', 'PC': 'Praça', 'PÇ': 'Praça',
+  'AL': 'Alameda', 'AL.': 'Alameda',
+  'R': 'Rua', 'R.': 'Rua',
+};
+
+function formatLogradouro(name: string): string {
+  if (!name) return name;
+  const parts = name.split(/\s+/);
+  const prefix = parts[0]?.toUpperCase();
+  if (ABBREV_MAP[prefix]) {
+    const rest = parts.slice(1).map(w =>
+      w.length <= 2 ? w.toLowerCase() : w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()
+    ).join(' ');
+    return `${ABBREV_MAP[prefix]} ${rest}`;
+  }
+  // If already full word like AVENIDA, ESTRADA etc, just title-case
+  const fullWords = ['AVENIDA', 'ESTRADA', 'TRAVESSA', 'PRAÇA', 'PRACA', 'ALAMEDA', 'RUA'];
+  if (fullWords.includes(prefix)) {
+    const rest = parts.slice(1).map(w =>
+      w.length <= 2 ? w.toLowerCase() : w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()
+    ).join(' ');
+    return `${parts[0].charAt(0).toUpperCase() + parts[0].slice(1).toLowerCase()} ${rest}`;
+  }
+  return name;
+}
 
 export default function Microbairros() {
   const { selectedBairro, setSelectedBairro } = useBairro();
@@ -43,10 +74,16 @@ export default function Microbairros() {
   const filteredMicrobairros = useMemo(() => {
     if (!microbairros) return [];
     if (!searchFilter.trim()) return microbairros;
-    const norm = normalizeAccents(searchFilter.toUpperCase().trim());
+    const normInput = normalizeAccents(searchFilter.toUpperCase().trim());
+    // Generate expanded search variants (e.g. "LUCIO COSTA" → also matches "AVN LUCIO COSTA")
+    const searchVariants = expandLogradouroSearchTerms(searchFilter.trim().toUpperCase())
+      .map(t => normalizeAccents(t.toUpperCase()));
+    if (!searchVariants.length) searchVariants.push(normInput);
+    
     return microbairros.filter(item => {
-      const name = normalizeAccents((item.condominioNome || item.microbairro || '').toUpperCase());
-      return name.includes(norm);
+      const rawName = normalizeAccents((item.microbairro || '').toUpperCase());
+      const condName = normalizeAccents((item.condominioNome || '').toUpperCase());
+      return searchVariants.some(v => rawName.includes(v) || condName.includes(v));
     });
   }, [microbairros, searchFilter]);
 
@@ -69,11 +106,9 @@ export default function Microbairros() {
   }
 
   const getDisplayName = (item: { microbairro: string; condominioNome?: string; isTechnicalCode?: boolean }) => {
-    return item.condominioNome 
-      ? item.condominioNome 
-      : item.isTechnicalCode 
-        ? extractSimplifiedCode(item.microbairro)
-        : item.microbairro;
+    if (item.condominioNome) return item.condominioNome;
+    if (item.isTechnicalCode) return extractSimplifiedCode(item.microbairro);
+    return formatLogradouro(item.microbairro);
   };
 
   return (
