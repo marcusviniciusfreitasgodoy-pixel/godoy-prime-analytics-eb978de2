@@ -118,7 +118,7 @@ export function DemoSidebar() {
                   <CollapsibleContent>
                     <SidebarGroupContent>
                       <SidebarMenu>
-                        {items(group).map((item) => (
+                        {group.items.map((item) => (
                           <SidebarMenuItem key={item.title}>
                             <SidebarMenuButton asChild>
                               <NavLink
