@@ -472,7 +472,7 @@ const manualSections: ManualSection[] = [
     title: "Propostas Digitais",
     icon: FileText,
     description: "Crie e gerencie propostas de compra com modelos simplificado e completo, aceite eletrônico e rastreabilidade.",
-    route: "/proposta-publica",
+    route: "/visitas",
     features: [
       {
         title: "Modelos de Proposta",

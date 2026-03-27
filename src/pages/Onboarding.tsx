@@ -502,7 +502,7 @@ const allOnboardingSteps: OnboardingStep[] = [
       "Vinculação com ficha de visita",
       "Histórico de propostas por imóvel"
     ],
-    route: "/proposta-publica",
+    route: "/visitas",
     color: "from-emerald-600 to-emerald-400",
     roles: ['corretor', 'gerente', 'admin'],
     category: 'operacional'
