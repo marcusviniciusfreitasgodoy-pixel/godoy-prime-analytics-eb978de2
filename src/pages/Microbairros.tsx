@@ -102,6 +102,16 @@ export default function Microbairros() {
             <BairroSelector value={selectedBairro} onChange={setSelectedBairro} />
           </div>
         </div>
+        <div className="relative mt-3">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Input
+            placeholder="Buscar logradouro..."
+            value={searchFilter}
+            onChange={(e) => setSearchFilter(e.target.value)}
+            className="pl-9 max-w-sm"
+          />
+          </div>
+        </div>
       </div>
 
       {/* Comparativo de Ruas */}
