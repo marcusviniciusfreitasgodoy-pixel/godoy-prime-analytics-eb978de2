@@ -3,6 +3,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import {
   BarChart3, TrendingUp, ClipboardCheck, Calendar, Target, Building2,
   Brain, FileSignature, Search, MapPin, CalendarPlus, FileSearch, FolderCheck, Users, Map,
+  Star, SlidersHorizontal, MessageSquare, Palette, Globe, Rocket,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 
@@ -24,7 +25,7 @@ const functionalityMap: FunctionalityItem[] = [
     icon: TrendingUp,
     title: "Motor de Avaliação",
     dor: "Precificação por feeling, laudos caros e demorados.",
-    beneficio: "Laudo em 5 min com 3 cenários + dados IPTU do logradouro (total de imóveis, preço médio real, venal vs real).",
+    beneficio: "Laudo em 5 min com 3 cenários, dados IPTU, campo de observações editável e PDF completo/simplificado.",
   },
   {
     icon: ClipboardCheck,
@@ -37,6 +38,12 @@ const functionalityMap: FunctionalityItem[] = [
     title: "Gestão de Visitas",
     dor: "Agendamento por WhatsApp, fichas em papel, sem controle.",
     beneficio: "Fichas digitais, assinatura eletrônica, retorno automatizado, relatório analítico.",
+  },
+  {
+    icon: Star,
+    title: "Feedback Analítico de Visitas",
+    dor: "Sem retorno estruturado das visitas, insights perdidos.",
+    beneficio: "Dashboard de métricas, comparativo cliente × corretor, ranking de performance e exportação PDF.",
   },
   {
     icon: Target,
@@ -103,6 +110,36 @@ const functionalityMap: FunctionalityItem[] = [
     title: "Gestão de Leads e CRM",
     dor: "Leads capturados sem acompanhamento, oportunidades perdidas.",
     beneficio: "Pipeline Kanban 8 estágios, qualificação automática, histórico de interações.",
+  },
+  {
+    icon: Globe,
+    title: "Avaliação Pública (Captação de Compradores)",
+    dor: "Compradores sem proteção contra sobrepreço, sem canal de captação passiva.",
+    beneficio: "Página pública com avaliação gratuita, geração automática de leads e notificações duais (email + WhatsApp).",
+  },
+  {
+    icon: SlidersHorizontal,
+    title: "Calibradores de Avaliação e Vistoria",
+    dor: "Pesos fixos, sem possibilidade de ajuste por perfil de mercado.",
+    beneficio: "Ajuste fino de 30+ variáveis de avaliação e checklist de vistoria por tipo de imóvel.",
+  },
+  {
+    icon: MessageSquare,
+    title: "Formulários Personalizáveis",
+    dor: "Formulários de feedback e fichas de visita genéricos, sem adaptação.",
+    beneficio: "Configuração de campos, seções e tipos por organização, com ativação/desativação individual.",
+  },
+  {
+    icon: Palette,
+    title: "Branding e White-Label",
+    dor: "Relatórios e interface sem identidade visual da empresa.",
+    beneficio: "Logo personalizado, nome da empresa em PDFs, configurações de marca própria.",
+  },
+  {
+    icon: Rocket,
+    title: "Onboarding e Tour Guiado",
+    dor: "Novos usuários perdidos, curva de aprendizado alta.",
+    beneficio: "Tour interativo passo a passo, manual integrado e onboarding guiado por perfil.",
   },
 ];
 
