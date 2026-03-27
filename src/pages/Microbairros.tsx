@@ -110,7 +110,6 @@ export default function Microbairros() {
             onChange={(e) => setSearchFilter(e.target.value)}
             className="pl-9 max-w-sm"
           />
-          </div>
         </div>
       </div>
 
