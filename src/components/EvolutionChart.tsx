@@ -275,6 +275,7 @@ export function EvolutionChart({ bairro = "BARRA DA TIJUCA" }: EvolutionChartPro
                 O preço médio saiu de <span className="font-medium">{formatCurrencyBR(geralSummary.firstVal)}/m²</span> ({geralSummary.first}) para <span className="font-medium">{formatCurrencyBR(geralSummary.lastVal)}/m²</span> ({geralSummary.last}) — <span className={geralSummary.colorClass + ' font-semibold'}>{geralSummary.direction} de {geralSummary.growth > 0 ? '+' : ''}{geralSummary.growth.toFixed(1)}%</span>. Pico em {geralSummary.peak} ({formatCurrencyBR(geralSummary.peakVal)}/m²).
               </p>
             )}
+          </TabsContent>
           
           <TabsContent value="tipologia" className="mt-2">
             <ResponsiveContainer width="100%" height={280} className="sm:!h-[320px]">
