@@ -251,17 +251,28 @@ export function Header() {
                 </div>
                 
                 <nav className="flex flex-col gap-1 pb-4 border-b border-border max-h-[60vh] overflow-y-auto">
-                  {allNavItems.map((item) => (
-                    <NavLink
-                      key={item.title}
-                      to={item.url}
-                      end
-                      className="flex items-center gap-3 px-3 py-2 text-primary-foreground/80 hover:bg-accent/10 rounded-md transition-colors"
-                      activeClassName="bg-accent/20 text-accent font-medium"
-                    >
-                      <item.icon className="h-4 w-4" />
-                      <span>{item.title}</span>
-                    </NavLink>
+                  {visibleGroups.map((group) => (
+                    <Collapsible key={group.label} defaultOpen={group.label === "Início"} className="group/mobile-nav">
+                      <CollapsibleTrigger className="flex w-full items-center gap-2 px-3 py-2 text-primary-foreground/60 hover:text-primary-foreground/80 transition-colors">
+                        <group.icon className="h-3.5 w-3.5" />
+                        <span className="flex-1 text-left text-[11px] font-semibold uppercase tracking-wider">{group.label}</span>
+                        <ChevronDown className="h-3 w-3 transition-transform group-data-[state=open]/mobile-nav:rotate-180" />
+                      </CollapsibleTrigger>
+                      <CollapsibleContent>
+                        {group.items.map((item) => (
+                          <NavLink
+                            key={item.title}
+                            to={item.url}
+                            end
+                            className="flex items-center gap-3 px-3 pl-8 py-2 text-primary-foreground/80 hover:bg-accent/10 rounded-md transition-colors"
+                            activeClassName="bg-accent/20 text-accent font-medium"
+                          >
+                            <item.icon className="h-4 w-4" />
+                            <span className="text-sm">{item.title}</span>
+                          </NavLink>
+                        ))}
+                      </CollapsibleContent>
+                    </Collapsible>
                   ))}
                 </nav>
                 
