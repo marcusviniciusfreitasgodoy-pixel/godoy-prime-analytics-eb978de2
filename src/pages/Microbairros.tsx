@@ -74,10 +74,16 @@ export default function Microbairros() {
   const filteredMicrobairros = useMemo(() => {
     if (!microbairros) return [];
     if (!searchFilter.trim()) return microbairros;
-    const norm = normalizeAccents(searchFilter.toUpperCase().trim());
+    const normInput = normalizeAccents(searchFilter.toUpperCase().trim());
+    // Generate expanded search variants (e.g. "LUCIO COSTA" → also matches "AVN LUCIO COSTA")
+    const searchVariants = expandLogradouroSearchTerms(searchFilter.trim().toUpperCase())
+      .map(t => normalizeAccents(t.toUpperCase()));
+    if (!searchVariants.length) searchVariants.push(normInput);
+    
     return microbairros.filter(item => {
-      const name = normalizeAccents((item.condominioNome || item.microbairro || '').toUpperCase());
-      return name.includes(norm);
+      const rawName = normalizeAccents((item.microbairro || '').toUpperCase());
+      const condName = normalizeAccents((item.condominioNome || '').toUpperCase());
+      return searchVariants.some(v => rawName.includes(v) || condName.includes(v));
     });
   }, [microbairros, searchFilter]);
 
@@ -100,11 +106,9 @@ export default function Microbairros() {
   }
 
   const getDisplayName = (item: { microbairro: string; condominioNome?: string; isTechnicalCode?: boolean }) => {
-    return item.condominioNome 
-      ? item.condominioNome 
-      : item.isTechnicalCode 
-        ? extractSimplifiedCode(item.microbairro)
-        : item.microbairro;
+    if (item.condominioNome) return item.condominioNome;
+    if (item.isTechnicalCode) return extractSimplifiedCode(item.microbairro);
+    return formatLogradouro(item.microbairro);
   };
 
   return (
