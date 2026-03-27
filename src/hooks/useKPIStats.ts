@@ -196,10 +196,40 @@ export function useKPIStats(bairro: string = 'BARRA DA TIJUCA') {
 
       const previousTransactions = previousPeriodData || [];
 
+      // Para variação anual: sempre usar rolling 12m vs 12m anteriores (simétrico)
+      let rolling12mTransactions: TransactionData[];
+      if (usandoDadosHistoricos) {
+        // Já são rolling 12m
+        rolling12mTransactions = currentTransactions;
+      } else {
+        // currentTransactions = YTD apenas; buscar rolling 12m separadamente
+        const { data: rolling12mData, error: rolling12mError } = await supabase
+          .from('itbi_transactions')
+          .select('valor_m2, tipologia, data_transacao, total_transacoes, logradouro')
+          .eq('uso', 'Residencial')
+          .ilike('bairro', bairro)
+          .not('valor_m2', 'is', null)
+          .lte('valor_m2', outlierLimit)
+          .gte('percentual_transferido', 90)
+          .gte('data_transacao', startDate12Months)
+          .limit(10000);
+
+        if (rolling12mError) throw rolling12mError;
+        rolling12mTransactions = rolling12mData || [];
+        console.log(`[KPI] Rolling 12m para variação: ${rolling12mTransactions.length} registros`);
+      }
+
       const currentApt = currentTransactions.filter(t => 
         t.tipologia?.toLowerCase().includes('apartamento')
       );
       const currentCasa = currentTransactions.filter(t => 
+        t.tipologia?.toLowerCase().includes('casa')
+      );
+
+      const rolling12mApt = rolling12mTransactions.filter(t =>
+        t.tipologia?.toLowerCase().includes('apartamento')
+      );
+      const rolling12mCasa = rolling12mTransactions.filter(t =>
         t.tipologia?.toLowerCase().includes('casa')
       );
       
@@ -259,9 +289,14 @@ export function useKPIStats(bairro: string = 'BARRA DA TIJUCA') {
         return ((atual - anterior) / anterior) * 100;
       };
 
-      const variacaoAnual = calcVariacao(precoMedio, precoMedioAnterior);
-      const variacaoAnualApt = calcVariacao(precoMedioApt, precoMedioAptAnterior);
-      const variacaoAnualCasa = calcVariacao(precoMedioCasa, precoMedioCasaAnterior);
+      // Variação anual usa rolling 12m (simétrico) em vez de YTD
+      const precoMedioRolling12m = calcMediaPonderada(rolling12mTransactions);
+      const precoMedioRolling12mApt = calcMediaPonderada(rolling12mApt);
+      const precoMedioRolling12mCasa = calcMediaPonderada(rolling12mCasa);
+
+      const variacaoAnual = calcVariacao(precoMedioRolling12m, precoMedioAnterior);
+      const variacaoAnualApt = calcVariacao(precoMedioRolling12mApt, precoMedioAptAnterior);
+      const variacaoAnualCasa = calcVariacao(precoMedioRolling12mCasa, precoMedioCasaAnterior);
       
       const variacaoMensal = (lastMonthTransactions.length > 0 && previousMonthTransactions.length > 0)
         ? calcVariacao(precoMedioLastMonth, precoMedioPrevMonth)
