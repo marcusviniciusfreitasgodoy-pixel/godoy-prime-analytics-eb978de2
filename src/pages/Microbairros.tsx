@@ -20,6 +20,7 @@ export default function Microbairros() {
   const { selectedBairro, setSelectedBairro } = useBairro();
   const { data: microbairros, isLoading } = useMicrobairroDetalhado(selectedBairro);
   const [selectedStreets, setSelectedStreets] = useState<string[]>([]);
+  const [searchFilter, setSearchFilter] = useState("");
   const isMobile = useIsMobile();
   const [viewMode, setViewMode] = useState<'cards' | 'list'>(isMobile ? 'list' : 'cards');
   
@@ -55,7 +56,17 @@ export default function Microbairros() {
     );
   }
 
-  const maxTransacoes = Math.max(...(microbairros || []).map((r) => r.total_transacoes), 1);
+  const filteredMicrobairros = useMemo(() => {
+    if (!microbairros) return [];
+    if (!searchFilter.trim()) return microbairros;
+    const norm = normalizeAccents(searchFilter.toUpperCase().trim());
+    return microbairros.filter(item => {
+      const name = normalizeAccents((item.condominioNome || item.microbairro || '').toUpperCase());
+      return name.includes(norm);
+    });
+  }, [microbairros, searchFilter]);
+
+  const maxTransacoes = Math.max(...(filteredMicrobairros).map((r) => r.total_transacoes), 1);
 
   const getDisplayName = (item: { microbairro: string; condominioNome?: string; isTechnicalCode?: boolean }) => {
     return item.condominioNome 
