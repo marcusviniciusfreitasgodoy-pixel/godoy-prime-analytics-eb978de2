@@ -1,38 +1,33 @@
 
 
-# Adicionar Resumo Interpretativo abaixo de cada aba do gráfico Evolução Histórica
+# Adicionar Resumo Interpretativo ao Gráfico de Evolução por Microbairro
 
 ## Objetivo
-Inserir, na base de cada gráfico (Geral, Tipologia, Variação), um bloco de texto curto e dinâmico que interpreta automaticamente os dados visíveis, usando linguagem simples para corretores.
+Inserir abaixo do gráfico um bloco de texto dinâmico que interpreta os dados visíveis, adaptando-se à métrica selecionada (R$/m² ou Transações) e às linhas visíveis (não ocultas pelo usuário).
 
-## Como funciona
+## Lógica por Métrica
 
-Para cada aba, um `useMemo` analisa os dados do `chartData` e gera uma frase-resumo contextual:
+### Métrica Valorização (R$/m²)
+- Identifica o microbairro com maior preço atual e o com menor (entre os visíveis)
+- Calcula o spread percentual entre eles
+- Exemplo: *"Orla (R$ 18.200/m²) lidera com 42% acima de ABM (R$ 12.800/m²). Maior valorização no período: Jardim Oceânico (+35%)."*
 
-### Aba Geral
-- Calcula variação entre primeiro e último período
-- Identifica o período com maior preço e o com menor
-- Exemplo: *"O preço médio saiu de R$ 9.200/m² para R$ 12.100/m² — valorização de +31% no período. Pico em S1/26 (R$ 12.100/m²)."*
-
-### Aba Tipologia
-- Compara o preço atual de apartamento vs casa
-- Calcula o spread percentual entre as tipologias
-- Exemplo: *"Apartamentos (R$ 12.500/m²) estão 18% acima de Casas (R$ 10.600/m²). Ambas as tipologias em tendência de alta."*
-
-### Aba Variação
-- Conta quantos períodos tiveram variação positiva vs negativa
-- Identifica o último período e sua direção
-- Exemplo: *"7 de 10 períodos com valorização. Último semestre (S1/26): +8,8%. Mercado predominantemente em alta."*
+### Métrica Liquidez (Transações)
+- Identifica o microbairro com mais transações acumuladas e o com menos (entre os visíveis)
+- Calcula variação do último período
+- Exemplo: *"Orla lidera com 892 transações acumuladas. Eixo Américas teve o maior crescimento recente (+18% no último semestre)."*
 
 ## Mudança no Código
 
-### `src/components/EvolutionChart.tsx`
-1. Criar 3 funções `useMemo` que recebem `chartData` e `granularity` e retornam a string interpretativa
-2. Abaixo de cada `</ResponsiveContainer>`, adicionar um `<p>` com estilo `text-xs text-muted-foreground bg-muted/50 rounded p-2 mt-2` contendo o texto gerado
-3. Usar `formatCurrencyBR` para valores monetários e linguagem direta ("valorização", "queda", "estável")
+### `src/components/MicrobairroEvolutionChart.tsx`
+1. Adicionar `useMemo` que analisa `data`, `microbairros`, `hiddenLines` e `metric`
+2. Para valorização: compara último período dos microbairros visíveis, calcula spread e identifica maior valorização primeiro→último
+3. Para liquidez: compara totais acumulados dos microbairros visíveis, identifica maior crescimento recente
+4. Abaixo do `</ResponsiveContainer>`, renderizar `<p className="text-xs text-muted-foreground bg-muted/50 rounded p-2 mt-2">` com o texto gerado
+5. Usar `formatCurrencyBR` para valores monetários e cores semânticas (verde/vermelho)
 
-## Regras de Texto
-- Máximo 2 frases por aba
-- Linguagem de impacto comercial (não técnica)
-- Cores semânticas: verde para alta, vermelho para queda, cinza para estável (via classes do Tailwind)
+## Regras
+- Máximo 2 frases
+- Respeita as linhas ocultas pelo usuário (hiddenLines)
+- Linguagem comercial direta
 
