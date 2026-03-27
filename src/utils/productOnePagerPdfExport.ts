@@ -307,15 +307,18 @@ function drawPage2FuncionalidadesDetalhadas(doc: jsPDF, margin: number, contentW
   const detailedModules = [
     { title: 'Painel Analítico', dor: 'Sem visão consolidada do mercado, decisões às cegas', entrega: '4 KPIs em tempo real, gráficos de 60 meses, exportação PDF/Excel' },
     { title: 'Microrregiões', dor: 'Barra tratada como região única, ignorando variações de R$/m²', entrega: 'Classificação e evolução por sub-região com dados ITBI segmentados' },
-    { title: 'Gestão de Visitas', dor: 'Agendamento por WhatsApp, fichas em papel, sem controle', entrega: 'Fichas digitais com assinatura eletrônica, selo de proximidade\nFeedback instantâneo' },
+    { title: 'Gestão de Visitas', dor: 'Agendamento por WhatsApp, fichas em papel, sem controle', entrega: 'Fichas digitais com assinatura eletrônica, feedback instantâneo' },
     { title: 'Propostas Digitais', dor: 'Propostas informais sem validade jurídica ou rastreio', entrega: 'Modelos simplificado/completo com aceite eletrônico e PDF' },
-    { title: 'Estratégia de Precificação', dor: 'Preço de anúncio definido sem metodologia, sem plano B', entrega: 'Diagnóstico 9 perguntas, 3 faixas (Atração/Mercado/Premium)\nLaudo de Avaliação e Vistoria' },
-    { title: 'Pesquisa de Mercado', dor: 'Sem acesso a dados reais de transações por localização e tipologia', entrega: 'Dados ITBI + unidades IPTU, valor venal vs preço real pago, variação geocodificada' },
-    { title: 'Inteligência Territorial', dor: 'Sem visão geoespacial dos condomínios para prospecção', entrega: 'Mapa 1.567 condomínios, ficha com torres/histórico ITBI, ranking por logradouro, painel admin' },
-    { title: 'Agendamento de Visitas', dor: 'Cliente depende do corretor para agendar, processo lento por WhatsApp', entrega: 'Agendamento automático pelo cliente com disponibilidade online e confirmação instantânea' },
-    { title: 'Análise de Documentação IA', dor: 'Revisão manual de documentos consome horas e gera erros', entrega: 'Upload de imagem/PDF com análise automática por IA, extração de campos e alertas' },
-    { title: 'Documentação Comprador e Vendedor', dor: 'Sem controle dos documentos necessários, esquecimentos geram atrasos', entrega: 'Lista de verificação completa para comprador e vendedor com progresso rastreável' },
-    { title: 'Gestão de Leads e CRM', dor: 'Contatos dispersos em WhatsApp, sem funil estruturado', entrega: 'Quadro de 8 estágios, captura de contatos, acompanhamento e notificações automáticas' },
+    { title: 'Estratégia de Precificação', dor: 'Preço definido sem metodologia, sem plano B', entrega: 'Diagnóstico 9 perguntas, 3 faixas (Atração/Mercado/Premium)' },
+    { title: 'Pesquisa de Mercado', dor: 'Sem acesso a dados reais por localização e tipologia', entrega: 'Dados ITBI + IPTU, valor venal vs preço real, variação geocodificada' },
+    { title: 'Inteligência Territorial', dor: 'Sem visão geoespacial dos condomínios', entrega: 'Mapa 1.567 condomínios, ficha completa, ranking por logradouro' },
+    { title: 'Agendamento de Visitas', dor: 'Cliente depende do corretor para agendar', entrega: 'Agendamento automático com disponibilidade online' },
+    { title: 'Análise Documentação IA', dor: 'Revisão manual consome horas e gera erros', entrega: 'Upload com análise automática por IA, extração e alertas' },
+    { title: 'Documentação Comprador/Vendedor', dor: 'Documentos incompletos geram atrasos', entrega: 'Checklist completo com progresso rastreável' },
+    { title: 'Gestão de Leads e CRM', dor: 'Contatos dispersos, sem funil estruturado', entrega: 'Pipeline 8 estágios, notificações automáticas' },
+    { title: 'Feedback Analítico', dor: 'Sem retorno estruturado das visitas', entrega: 'Dashboard métricas, ranking corretores, exportação PDF' },
+    { title: 'Avaliação Pública (Captação)', dor: 'Sem canal de captação passiva', entrega: 'Página pública, avaliação gratuita, geração de leads' },
+    { title: 'Calibradores e Personalização', dor: 'Pesos fixos, formulários genéricos', entrega: 'Ajuste 30+ variáveis, formulários configuráveis, branding' },
   ];
 
   const cellW = (contentWidth - 4) / 2;
