@@ -382,6 +382,8 @@ export function EvolutionChart({ bairro = "BARRA DA TIJUCA" }: EvolutionChartPro
                 <span className="font-semibold">{variacaoSummary.positivos} de {variacaoSummary.total}</span> períodos com valorização. Último período ({variacaoSummary.lastPeriod}): <span className={variacaoSummary.colorClass + ' font-semibold'}>{variacaoSummary.lastVar > 0 ? '+' : ''}{variacaoSummary.lastVar.toFixed(1)}%</span>. Mercado predominantemente em <span className="font-medium">{variacaoSummary.predominancia}</span>.
               </p>
             )}
+          </TabsContent>
+        </Tabs>
       </CardContent>
     </Card>
   );
