@@ -506,6 +506,29 @@ export const tourConfigs: Record<string, Step[]> = {
     },
   ],
 
+  // Inteligência Territorial
+  inteligenciaTerritorial: [
+    {
+      target: '[data-tour="territorial-map"]',
+      content: 'Mapa interativo com 1.567 condomínios. Cores indicam faixa de unidades. Ative heatmap ou camada de lotes PAL.',
+      disableBeacon: true,
+      placement: 'bottom',
+      title: '🗺️ Mapa de Condomínios',
+    },
+    {
+      target: '[data-tour="territorial-ranking"]',
+      content: 'Ranking de condomínios ordenável por unidades, torres, preço m² e transações. Exporte em CSV.',
+      placement: 'top',
+      title: '🏆 Ranking',
+    },
+    {
+      target: '[data-tour="territorial-logradouros"]',
+      content: 'Top logradouros por densidade de unidades com comparativo entre preço real (ITBI) e valor venal (IPTU).',
+      placement: 'top',
+      title: '📊 Análise por Logradouro',
+    },
+  ],
+
   // Calibrador de Avaliação
   calibrador: [
     {

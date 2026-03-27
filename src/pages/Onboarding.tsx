@@ -98,7 +98,7 @@ const faqCategories: FAQCategory[] = [
       { pergunta: "O que significa o valor mediano por metro quadrado?", resposta: "É o valor do meio quando todos os preços são colocados em ordem. Representa melhor o mercado porque não é afetado por valores muito altos ou muito baixos." },
       { pergunta: "Como funciona a lista de regiões?", resposta: "As regiões são ordenadas pelo preço por metro quadrado, permitindo ver quais áreas são mais valorizadas." },
       { pergunta: "Posso baixar os gráficos do painel?", resposta: "Sim, você pode baixar relatórios completos em formato para impressão e dados em planilha." },
-      { pergunta: "Como funciona o mapa de vendas?", resposta: "O mapa mostra a localização das vendas oficiais, permitindo ver os padrões de preços em cada região." }
+      { pergunta: "O que são os resumos interpretativos dos gráficos?", resposta: "São análises automáticas exibidas na base dos gráficos de evolução. Mostram insights como 'Mais caro hoje', 'Quem mais valorizou', 'Maior volume de vendas' e tendências, facilitando a leitura comercial dos dados." }
     ]
   },
   {
@@ -288,13 +288,13 @@ const allOnboardingSteps: OnboardingStep[] = [
   {
     id: 1,
     title: "Painel Principal",
-    description: "Visão geral do mercado imobiliário com indicadores, gráficos de evolução, lista de regiões e mapa de vendas.",
+    description: "Visão geral do mercado imobiliário com indicadores, gráficos de evolução com resumos interpretativos e ranking de regiões.",
     icon: <BarChart3 className="h-8 w-8" />,
     features: [
       "Indicadores em tempo real (valor mediano, volume, variação anual)",
-      "Gráfico de evolução semestral ou anual",
-      "Lista de regiões por preço e volume de vendas",
-      "Mapa de vendas com localização geográfica",
+      "Gráfico de evolução semestral ou anual com resumos interpretativos",
+      "Evolução por microbairro com análise automática de líderes",
+      "Ranking de regiões por preço e volume de vendas",
       "Baixar relatórios e planilhas"
     ],
     route: "/",
@@ -424,20 +424,20 @@ const allOnboardingSteps: OnboardingStep[] = [
   },
   {
     id: 9,
-    title: "Mapa de Vendas",
-    description: "Visualização geográfica das vendas oficiais com detalhes por localização.",
-    icon: <Map className="h-8 w-8" />,
+    title: "Configurar Formulários",
+    description: "Personalize os campos dos formulários de fichas de visita e feedback do corretor.",
+    icon: <Settings className="h-8 w-8" />,
     features: [
-      "Mapa interativo com marcadores",
-      "Agrupamento de vendas por região",
-      "Detalhes ao clicar em cada ponto",
-      "Filtros por período e tipo",
-      "Integração com dados do painel"
+      "Configuração de seções e campos personalizados",
+      "Tipos de campo: texto, número, seleção, checkbox",
+      "Ordenação e ativação/desativação de campos",
+      "Formulários de ficha de visita e feedback",
+      "Campos obrigatórios configuráveis"
     ],
-    route: "/",
+    route: "/configurar-formularios",
     color: "from-emerald-500 to-emerald-400",
-    roles: ['corretor', 'gerente', 'admin'],
-    category: 'operacional'
+    roles: ['admin'],
+    category: 'admin'
   },
   {
     id: 10,
@@ -468,7 +468,7 @@ const allOnboardingSteps: OnboardingStep[] = [
       "Integração com lista de leads",
       "Link compartilhável"
     ],
-    route: "/avaliacao-publica",
+    route: "/avaliacao",
     color: "from-cyan-500 to-cyan-400",
     roles: ['corretor', 'gerente', 'admin'],
     category: 'operacional'
@@ -485,7 +485,7 @@ const allOnboardingSteps: OnboardingStep[] = [
       "Histórico de atividades por lead",
       "Notas e acompanhamento de interações"
     ],
-    route: "/pipeline-crm",
+    route: "/pipeline",
     color: "from-violet-500 to-violet-400",
     roles: ['corretor', 'gerente', 'admin'],
     category: 'operacional'
@@ -502,7 +502,7 @@ const allOnboardingSteps: OnboardingStep[] = [
       "Vinculação com ficha de visita",
       "Histórico de propostas por imóvel"
     ],
-    route: "/proposta-publica",
+    route: "/visitas",
     color: "from-emerald-600 to-emerald-400",
     roles: ['corretor', 'gerente', 'admin'],
     category: 'operacional'

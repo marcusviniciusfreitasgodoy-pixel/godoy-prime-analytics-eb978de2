@@ -39,6 +39,11 @@ export const TOUR_PAGES: TourPage[] = [
     name: 'Visitas',
     steps: ['visitas-dashboard'],
   },
+  {
+    path: '/inteligencia-territorial',
+    name: 'Inteligência Territorial',
+    steps: ['territorial-map', 'territorial-ranking'],
+  },
 ];
 
 const TOUR_STATE_KEY = 'godoy-tour-state';

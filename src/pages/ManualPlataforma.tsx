@@ -78,15 +78,20 @@ const manualSections: ManualSection[] = [
       },
       {
         title: "Gráfico de Evolução",
-        description: "Histórico de preços desde 2020. Alterne entre visualização Semestral ou Anual e filtre por tipologia (Apartamento vs Casa).",
+        description: "Histórico de preços desde 2020. Alterne entre visualização Semestral ou Anual e filtre por tipologia (Apartamento vs Casa). Inclui resumo interpretativo automático na base do gráfico.",
         tips: [
           "Passe o mouse sobre os pontos para ver valores exatos",
           "Use o seletor de bairro no topo para mudar a região analisada",
+          "O resumo mostra valorização total, picos de preço e spread entre tipologias",
         ],
       },
       {
         title: "Evolução por Microbairro",
-        description: "Comparativo entre as microregiões. Identifique quais áreas estão se valorizando mais rapidamente.",
+        description: "Comparativo entre as microregiões com resumo interpretativo: 'Mais caro hoje', 'Mais acessível', 'Quem mais valorizou' e 'Maior volume de vendas'.",
+        tips: [
+          "Alterne entre Valorização (R$/m²) e Liquidez (transações)",
+          "As análises são geradas automaticamente com base nos dados visíveis",
+        ],
       },
       {
         title: "Ranking de Microbairros",
@@ -446,7 +451,7 @@ const manualSections: ManualSection[] = [
     title: "CRM / Pipeline",
     icon: Building2,
     description: "Gerencie seus leads em um pipeline visual estilo Kanban com 8 estágios de conversão.",
-    route: "/pipeline-crm",
+    route: "/pipeline",
     features: [
       {
         title: "Quadro Kanban",
@@ -467,7 +472,7 @@ const manualSections: ManualSection[] = [
     title: "Propostas Digitais",
     icon: FileText,
     description: "Crie e gerencie propostas de compra com modelos simplificado e completo, aceite eletrônico e rastreabilidade.",
-    route: "/proposta-publica",
+    route: "/visitas",
     features: [
       {
         title: "Modelos de Proposta",
@@ -614,6 +619,27 @@ const adminSections: ManualSection[] = [
       {
         title: "Pesos Personalizados",
         description: "Ajuste o peso de cada categoria para influenciar o cálculo da nota de conservação.",
+      },
+    ],
+  },
+  {
+    id: "configurar-formularios",
+    title: "Configurar Formulários",
+    icon: Cog,
+    description: "Personalize os campos dos formulários de fichas de visita e feedback do corretor.",
+    route: "/configurar-formularios",
+    features: [
+      {
+        title: "Seções e Campos",
+        description: "Adicione, edite ou remova seções e campos nos formulários de ficha de visita e feedback do corretor.",
+      },
+      {
+        title: "Tipos de Campo",
+        description: "Suporte a texto, número, seleção, checkbox, textarea e outros tipos com validação configurável.",
+      },
+      {
+        title: "Ordenação e Ativação",
+        description: "Reordene campos por prioridade e ative/desative conforme necessidade.",
       },
     ],
   },
