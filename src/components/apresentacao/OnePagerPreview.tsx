@@ -78,8 +78,12 @@ export default function OnePagerPreview() {
   { title: "Inteligência Territorial", dor: "Sem visão geoespacial dos condomínios para prospecção", entrega: "Mapa 1.567 condomínios, ficha com torres/histórico ITBI, ranking por logradouro, painel admin" },
   { title: "Agendamento de Visitas", dor: "Cliente depende do corretor para agendar, processo lento por WhatsApp", entrega: "Agendamento automático pelo cliente com disponibilidade online e confirmação instantânea" },
   { title: "Análise de Documentação IA", dor: "Revisão manual de documentos consome horas e gera erros", entrega: "Upload de imagem/PDF com análise automática por IA, extração de campos e alertas" },
-  { title: "Documentação Comprador e Vendedor", dor: "Sem controle dos documentos necessários, esquecimentos geram atrasos", entrega: "Lista de verificação completa para comprador e vendedor com progresso rastreável" },
-  { title: "Gestão de Leads e CRM", dor: "Contatos dispersos em WhatsApp, sem funil estruturado", entrega: "Quadro de 8 estágios, captura de contatos, acompanhamento e notificações automáticas" }];
+  { title: "Documentação Comprador/Vendedor", dor: "Sem controle dos documentos necessários, esquecimentos geram atrasos", entrega: "Lista de verificação completa para comprador e vendedor com progresso rastreável" },
+  { title: "Gestão de Leads e CRM", dor: "Contatos dispersos em WhatsApp, sem funil estruturado", entrega: "Quadro de 8 estágios, captura de contatos, acompanhamento e notificações automáticas" },
+  { title: "Feedback Analítico", dor: "Sem retorno estruturado das visitas, insights perdidos", entrega: "Dashboard métricas, comparativo cliente×corretor, ranking de corretores, exportação PDF" },
+  { title: "Avaliação Pública (Captação)", dor: "Sem canal de captação passiva de compradores", entrega: "Página pública com avaliação gratuita, geração de leads e notificações duais" },
+  { title: "Calibradores e Personalização", dor: "Pesos fixos, formulários genéricos, sem marca própria", entrega: "Ajuste de 30+ variáveis, formulários configuráveis, branding white-label com logo" },
+  ];
 
   return (
     <div className="max-w-4xl mx-auto space-y-6">
@@ -205,13 +209,13 @@ export default function OnePagerPreview() {
               <div className="w-16 border-t-2 border-[#D4AF37] mt-0.5 mb-3" />
             </div>
 
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-2 gap-2">
               {detailedModules.map((m) =>
-              <div key={m.title} className="bg-[#F8F9FC] rounded-md p-3 border border-[#D4AF37]/30">
-                  <p className="text-[#0C2340] font-bold text-[11px]">{m.title}</p>
-                  <div className="w-full border-t border-[#D4AF37] my-1" />
-                  <p className="text-red-700 italic text-[9px]">Dor: {m.dor}</p>
-                  <p className="text-green-700 text-[9px] mt-1">Entrega: {m.entrega}</p>
+              <div key={m.title} className="bg-[#F8F9FC] rounded-md p-2 border border-[#D4AF37]/30">
+                  <p className="text-[#0C2340] font-bold text-[10px]">{m.title}</p>
+                  <div className="w-full border-t border-[#D4AF37] my-0.5" />
+                  <p className="text-red-700 italic text-[8px]">Dor: {m.dor}</p>
+                  <p className="text-green-700 text-[8px] mt-0.5">Entrega: {m.entrega}</p>
                 </div>
               )}
             </div>
