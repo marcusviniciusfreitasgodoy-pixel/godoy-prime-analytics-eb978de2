@@ -15,6 +15,37 @@ import { useIsMobile } from "@/hooks/use-mobile";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from "@/components/ui/table";
 import { extractSimplifiedCode, normalizeAccents } from "@/lib/utils";
+import { expandLogradouroSearchTerms } from "@/lib/logradouroSearch";
+
+const ABBREV_MAP: Record<string, string> = {
+  'AVN': 'Avenida', 'AV': 'Avenida', 'AV.': 'Avenida',
+  'EST': 'Estrada', 'EST.': 'Estrada',
+  'TV': 'Travessa', 'TV.': 'Travessa',
+  'PCA': 'Praça', 'PC': 'Praça', 'PÇ': 'Praça',
+  'AL': 'Alameda', 'AL.': 'Alameda',
+  'R': 'Rua', 'R.': 'Rua',
+};
+
+function formatLogradouro(name: string): string {
+  if (!name) return name;
+  const parts = name.split(/\s+/);
+  const prefix = parts[0]?.toUpperCase();
+  if (ABBREV_MAP[prefix]) {
+    const rest = parts.slice(1).map(w =>
+      w.length <= 2 ? w.toLowerCase() : w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()
+    ).join(' ');
+    return `${ABBREV_MAP[prefix]} ${rest}`;
+  }
+  // If already full word like AVENIDA, ESTRADA etc, just title-case
+  const fullWords = ['AVENIDA', 'ESTRADA', 'TRAVESSA', 'PRAÇA', 'PRACA', 'ALAMEDA', 'RUA'];
+  if (fullWords.includes(prefix)) {
+    const rest = parts.slice(1).map(w =>
+      w.length <= 2 ? w.toLowerCase() : w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()
+    ).join(' ');
+    return `${parts[0].charAt(0).toUpperCase() + parts[0].slice(1).toLowerCase()} ${rest}`;
+  }
+  return name;
+}
 
 export default function Microbairros() {
   const { selectedBairro, setSelectedBairro } = useBairro();
