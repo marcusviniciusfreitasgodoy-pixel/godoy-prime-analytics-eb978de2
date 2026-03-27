@@ -1,7 +1,6 @@
-import { TrendingUp, Activity, TrendingDown, MapPin, Building2, BarChart3 } from "lucide-react";
+import { TrendingUp, Activity, TrendingDown, MapPin } from "lucide-react";
 import { KPICard } from "./KPICard";
 import { useKPIStats } from "@/hooks/useKPIStats";
-import { useTerritorialKPIs } from "@/hooks/useTerritorialData";
 import { Skeleton } from "./ui/skeleton";
 import { MethodologyDisclaimer } from "./MethodologyDisclaimer";
 
@@ -11,7 +10,7 @@ interface DashboardKPIsProps {
 
 export function DashboardKPIs({ bairro = "BARRA DA TIJUCA" }: DashboardKPIsProps) {
   const { data: stats, isLoading } = useKPIStats(bairro);
-  const { data: territorialKpis } = useTerritorialKPIs();
+  
 
   if (isLoading) {
     return (
@@ -46,7 +45,7 @@ export function DashboardKPIs({ bairro = "BARRA DA TIJUCA" }: DashboardKPIsProps
       <div className="flex justify-end">
         <MethodologyDisclaimer />
       </div>
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-2 sm:gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 xl:grid-cols-4 gap-2 sm:gap-4">
       <KPICard
         title={`Preço Médio (${currentYear} YTD)`}
         value={`R$ ${stats.precoMedio.toLocaleString('pt-BR')}`}
@@ -91,24 +90,6 @@ export function DashboardKPIs({ bairro = "BARRA DA TIJUCA" }: DashboardKPIsProps
           casa: `R$ ${stats.precoMedioBairroCasa.toLocaleString('pt-BR')}`,
         }}
       />
-      {territorialKpis && (
-        <>
-          <KPICard
-            title="Condomínios Mapeados"
-            value={territorialKpis.total_condominios?.toLocaleString("pt-BR") ?? "—"}
-            subtitle="Barra da Tijuca"
-            icon={Building2}
-            trend="neutral"
-          />
-          <KPICard
-            title="Com Histórico de Preços"
-            value={territorialKpis.com_historico_precos?.toLocaleString("pt-BR") ?? "—"}
-            subtitle="Dados ITBI reais"
-            icon={BarChart3}
-            trend="neutral"
-          />
-        </>
-      )}
       </div>
     </div>
   );
