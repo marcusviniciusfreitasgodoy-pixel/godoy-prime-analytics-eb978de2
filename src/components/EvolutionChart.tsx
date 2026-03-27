@@ -335,6 +335,9 @@ export function EvolutionChart({ bairro = "BARRA DA TIJUCA" }: EvolutionChartPro
                 Apartamentos (<span className="font-medium">{formatCurrencyBR(tipologiaSummary.apt)}/m²</span>) estão <span className="font-semibold">{tipologiaSummary.spread > 0 ? '+' : ''}{tipologiaSummary.spread.toFixed(0)}%</span> {tipologiaSummary.spread >= 0 ? 'acima' : 'abaixo'} de Casas (<span className="font-medium">{formatCurrencyBR(tipologiaSummary.casa)}/m²</span>). Apto em {tipologiaSummary.aptTrend}, Casa em {tipologiaSummary.casaTrend}.
               </p>
             )}
+          </TabsContent>
+          
+          <TabsContent value="variacao" className="mt-2">
             <ResponsiveContainer width="100%" height={280} className="sm:!h-[320px]">
               <ComposedChart data={chartData}>
                 <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" vertical={false} />
