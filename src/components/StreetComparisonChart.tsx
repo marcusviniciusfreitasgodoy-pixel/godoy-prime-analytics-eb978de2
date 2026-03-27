@@ -13,31 +13,26 @@ export function StreetComparisonChart({ data }: StreetComparisonChartProps) {
   const chartData = useMemo(() => {
     if (!data || data.length === 0) return [];
 
-    // Group monthly data into semesters per street
-    const semesterMap = new Map<string, Record<string, { soma: number; peso: number }>>();
+    // Group monthly data into annual buckets per street
+    const yearMap = new Map<string, Record<string, { soma: number; peso: number }>>();
 
     data.forEach((street, idx) => {
       street.dados_mensais.forEach(d => {
         const year = d.mes.substring(0, 4);
-        const mm = parseInt(d.mes.substring(5));
-        const sem = mm <= 6 ? 'S1' : 'S2';
-        const key = `${year}-${sem}`;
 
-        if (!semesterMap.has(key)) semesterMap.set(key, {});
-        const bucket = semesterMap.get(key)!;
+        if (!yearMap.has(year)) yearMap.set(year, {});
+        const bucket = yearMap.get(year)!;
         if (!bucket[`rua${idx}`]) bucket[`rua${idx}`] = { soma: 0, peso: 0 };
         bucket[`rua${idx}`].soma += d.media_m2 * d.transacoes;
         bucket[`rua${idx}`].peso += d.transacoes;
       });
     });
 
-    const sortedKeys = Array.from(semesterMap.keys()).sort();
+    const sortedYears = Array.from(yearMap.keys()).sort();
 
-    return sortedKeys.map(key => {
-      const [year, sem] = key.split('-');
-      const label = `${sem === 'S1' ? '1°' : '2°'}Sem/${year.substring(2)}`;
-      const entry: Record<string, string | number> = { mes: label };
-      const bucket = semesterMap.get(key)!;
+    return sortedYears.map(year => {
+      const entry: Record<string, string | number> = { mes: year };
+      const bucket = yearMap.get(year)!;
 
       data.forEach((_, idx) => {
         const b = bucket[`rua${idx}`];
