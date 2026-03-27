@@ -270,7 +270,11 @@ export function EvolutionChart({ bairro = "BARRA DA TIJUCA" }: EvolutionChartPro
                 />
               </ComposedChart>
             </ResponsiveContainer>
-          </TabsContent>
+            {geralSummary && (
+              <p className="text-xs bg-muted/50 rounded p-2 mt-2 leading-relaxed">
+                O preço médio saiu de <span className="font-medium">{formatCurrencyBR(geralSummary.firstVal)}/m²</span> ({geralSummary.first}) para <span className="font-medium">{formatCurrencyBR(geralSummary.lastVal)}/m²</span> ({geralSummary.last}) — <span className={geralSummary.colorClass + ' font-semibold'}>{geralSummary.direction} de {geralSummary.growth > 0 ? '+' : ''}{geralSummary.growth.toFixed(1)}%</span>. Pico em {geralSummary.peak} ({formatCurrencyBR(geralSummary.peakVal)}/m²).
+              </p>
+            )}
           
           <TabsContent value="tipologia" className="mt-2">
             <ResponsiveContainer width="100%" height={280} className="sm:!h-[320px]">
@@ -325,9 +329,11 @@ export function EvolutionChart({ bairro = "BARRA DA TIJUCA" }: EvolutionChartPro
                 />
               </ComposedChart>
             </ResponsiveContainer>
-          </TabsContent>
-          
-          <TabsContent value="variacao" className="mt-2">
+            {tipologiaSummary && (
+              <p className="text-xs bg-muted/50 rounded p-2 mt-2 leading-relaxed">
+                Apartamentos (<span className="font-medium">{formatCurrencyBR(tipologiaSummary.apt)}/m²</span>) estão <span className="font-semibold">{tipologiaSummary.spread > 0 ? '+' : ''}{tipologiaSummary.spread.toFixed(0)}%</span> {tipologiaSummary.spread >= 0 ? 'acima' : 'abaixo'} de Casas (<span className="font-medium">{formatCurrencyBR(tipologiaSummary.casa)}/m²</span>). Apto em {tipologiaSummary.aptTrend}, Casa em {tipologiaSummary.casaTrend}.
+              </p>
+            )}
             <ResponsiveContainer width="100%" height={280} className="sm:!h-[320px]">
               <ComposedChart data={chartData}>
                 <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" vertical={false} />
@@ -371,8 +377,11 @@ export function EvolutionChart({ bairro = "BARRA DA TIJUCA" }: EvolutionChartPro
                 />
               </ComposedChart>
             </ResponsiveContainer>
-          </TabsContent>
-        </Tabs>
+            {variacaoSummary && (
+              <p className="text-xs bg-muted/50 rounded p-2 mt-2 leading-relaxed">
+                <span className="font-semibold">{variacaoSummary.positivos} de {variacaoSummary.total}</span> períodos com valorização. Último período ({variacaoSummary.lastPeriod}): <span className={variacaoSummary.colorClass + ' font-semibold'}>{variacaoSummary.lastVar > 0 ? '+' : ''}{variacaoSummary.lastVar.toFixed(1)}%</span>. Mercado predominantemente em <span className="font-medium">{variacaoSummary.predominancia}</span>.
+              </p>
+            )}
       </CardContent>
     </Card>
   );
