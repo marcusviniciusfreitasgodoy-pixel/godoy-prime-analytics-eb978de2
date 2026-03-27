@@ -107,8 +107,8 @@ export const MicrobairroEvolutionChart = ({ bairro }: MicrobairroEvolutionChartP
       });
 
       return {
-        text1: `${highest.name} (${formatCurrencyBR(highest.val)}/m²) lidera com ${spread}% acima de ${lowest.name} (${formatCurrencyBR(lowest.val)}/m²).`,
-        text2: bestGrowthName ? `Maior valorização no período: ${bestGrowthName} (${bestGrowthPct > 0 ? '+' : ''}${bestGrowthPct.toFixed(1)}%).` : null,
+        text1: `Mais caro hoje: ${highest.name} a ${formatCurrencyBR(highest.val)}/m². Mais acessível: ${lowest.name} a ${formatCurrencyBR(lowest.val)}/m² (diferença de ${spread}%).`,
+        text2: bestGrowthName ? `Quem mais valorizou no período: ${bestGrowthName} (${bestGrowthPct > 0 ? '+' : ''}${bestGrowthPct.toFixed(1)}%).` : null,
         colorClass: Number(spread) > 0 ? 'text-emerald-600' : 'text-destructive',
       };
     } else {
@@ -133,8 +133,8 @@ export const MicrobairroEvolutionChart = ({ bairro }: MicrobairroEvolutionChartP
       }
 
       return {
-        text1: `${leader.name} lidera com ${leader.val.toLocaleString('pt-BR')} transações acumuladas.`,
-        text2: bestRecentName && bestRecentPct > 0 ? `${bestRecentName} teve o maior crescimento recente (+${bestRecentPct.toFixed(1)}%).` : null,
+        text1: `Maior volume de vendas: ${leader.name} com ${leader.val.toLocaleString('pt-BR')} transações acumuladas.`,
+        text2: bestRecentName && bestRecentPct > 0 ? `Crescimento mais rápido no último período: ${bestRecentName} (+${bestRecentPct.toFixed(1)}%).` : null,
         colorClass: 'text-emerald-600',
       };
     }
