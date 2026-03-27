@@ -1,23 +1,42 @@
 
 
-# Mover Mapa de Transações do Dashboard para Mercado & Território
+# Corrigir Cálculo da Variação Anual YoY
 
-## Objetivo
-Simplificar o Dashboard removendo a seção "Mapa de Transações" e reposicionando-a na página "Pesquisas de Mercado" (que já faz parte do grupo "Mercado & Território" no menu lateral).
+## Problema Identificado
+O cálculo usa **ano-calendário 2026** (apenas Jan-Fev, 2 meses de pico) como "período atual" e compara contra **12 meses completos** do período anterior — uma comparação desproporcional que infla o resultado de ~13% real para 21,47%.
 
-## O que muda
+## Solução
+Alterar o cálculo da variação anual para **sempre usar janelas rolling de 12 meses** (últimos 12m vs 12m anteriores), independentemente de usar dados do ano-calendário para o preço médio exibido.
 
-### 1. Dashboard (`src/pages/Dashboard.tsx`)
-- **Remover** o bloco do Mapa de Transações (Card com `TransactionMap`, linhas 568-590)
-- **Remover** imports não mais utilizados: `TransactionMap`, `useTransactionMapData`, `Map`
-- **Remover** estado e lógica do mapa: `mapFilters`, `setMapFilters`, `mapData`, `isMapLoading`, `refetchMapData`, e o `useEffect` de refetch
-- **Remover** invalidação de `transaction-map-data` no cache
+## Mudança no Código
 
-### 2. Pesquisas de Mercado (`src/pages/PesquisasMercado.tsx`)
-- **Adicionar** uma nova aba "Mapa" nas tabs existentes (ao lado de "Localização" e "Transações"), transformando o grid de 2 colunas em 3
-- Dentro da aba "Mapa", renderizar o `TransactionMap` com filtros próprios de período, usando o mesmo padrão que estava no Dashboard (card com header explicativo + mapa em altura 400-500px)
-- O mapa usará o `selectedBairro` do contexto já disponível na página
+### `src/hooks/useKPIStats.ts`
 
-### Resultado
-O Dashboard fica mais enxuto (KPIs + Gráficos de Evolução + Ranking + Assistente IA), e o Mapa de Transações ganha contexto junto às demais ferramentas de pesquisa de mercado.
+**Lógica atual:**
+- `precoMedio` = média ponderada de `currentTransactions` (que pode ser só 2 meses do ano atual)
+- `variacaoAnual` = comparação de `precoMedio` vs `precoMedioAnterior` (12-24 meses atrás)
+
+**Nova lógica:**
+- `precoMedio` = mantém como está (YTD ou fallback 12m) — usado para exibir no KPI "Preço Médio"
+- Para a **variação anual**, buscar separadamente os **últimos 12 meses** e calcular a média ponderada desse período, comparando contra os 12 meses anteriores
+- Isso garante comparação simétrica: 12m vs 12m, sempre
+
+**Mudança concreta:**
+1. Após buscar `currentTransactions` e `previousPeriodData`, criar uma query adicional para os últimos 12 meses (quando `currentTransactions` usar apenas o ano atual)
+2. Calcular `precoMedioRolling12m` a partir desses dados
+3. Usar `precoMedioRolling12m` (em vez de `precoMedio`) para o cálculo de `variacaoAnual`
+4. Aplicar o mesmo tratamento para `variacaoAnualApt` e `variacaoAnualCasa`
+
+**Otimização:** Quando o fallback de 12 meses já foi ativado (`usandoDadosHistoricos = true`), os dados já são rolling 12m e não precisam de query extra.
+
+### `src/components/DashboardKPIs.tsx`
+- Atualizar o subtitle do KPI "Variação Anual" para deixar claro que é "Últimos 12m vs 12m anteriores" (rolling)
+
+## Resultado Esperado
+A variação anual passará de **+21,47%** para **~+13,3%** — refletindo a valorização real sem distorção por amostra assimétrica.
+
+## Detalhes Técnicos
+- A query adicional para rolling 12m reutiliza os mesmos filtros (uso, bairro, outlier limit, percentual_transferido)
+- Quando `usandoDadosHistoricos` já é true, `currentTransactions` já contém 12 meses — basta reutilizar
+- Impacto apenas no cálculo da variação; preço médio YTD e liquidez permanecem inalterados
 
