@@ -20,13 +20,13 @@ const desktopTourSteps: Step[] = [
   },
   {
     target: '[data-tour="evolution-chart"]',
-    content: 'Gráfico de evolução histórica do mercado desde 2020. Alterne entre visualização Semestral ou Anual e veja tendências por tipo de imóvel (Apartamento ou Casa).',
+    content: 'Gráfico de evolução histórica do mercado desde 2020. Alterne entre Semestral ou Anual, filtre por tipologia e veja o resumo interpretativo automático na base do gráfico.',
     placement: 'top',
     title: '📈 Evolução de Preços',
   },
   {
     target: '[data-tour="microbairro-chart"]',
-    content: 'Evolução comparativa entre as regiões. Identifique quais áreas estão valorizando mais rapidamente.',
+    content: 'Evolução comparativa entre as regiões com análise automática: veja qual é a mais cara, a mais acessível e a que mais valorizou no período.',
     placement: 'top',
     title: '🗺️ Evolução por Região',
   },
@@ -35,12 +35,6 @@ const desktopTourSteps: Step[] = [
     content: 'Lista das regiões por preço médio do metro quadrado. Clique em uma região para ver detalhes como valor mediano, mínimo, máximo e total de vendas.',
     placement: 'top',
     title: '🏆 Lista de Regiões',
-  },
-  {
-    target: '[data-tour="transaction-map"]',
-    content: 'Mapa interativo com vendas geolocalizadas. Clique em um marcador para ver detalhes da venda. Use o zoom para explorar regiões específicas.',
-    placement: 'top',
-    title: '🗺️ Mapa de Vendas',
   },
   
   // Navegação Principal
@@ -121,13 +115,6 @@ const desktopTourSteps: Step[] = [
     title: '📥 Baixar Dados',
   },
   
-  // Sincronização Dados Oficiais (admin)
-  {
-    target: '[data-tour="sync-itbi"]',
-    content: 'Sincronize dados de vendas oficiais diretamente da Prefeitura. Selecione ano e mês e atualize a base de dados.',
-    placement: 'bottom',
-    title: '🔄 Atualizar Dados',
-  },
   
   // Manual
   {
