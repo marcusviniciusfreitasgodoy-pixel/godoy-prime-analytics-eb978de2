@@ -132,12 +132,16 @@ export function Header() {
     navigate("/auth");
   };
 
-  const allNavItems = [
-    ...navItems,
-    ...(isAdminOrGerente || isSuperadmin ? gerenteItems : []),
-    ...(isAdmin || isSuperadmin ? adminItems : []),
-    ...(isSuperadmin ? superadminItems : []),
-  ];
+  const shouldShowGroup = (group: MobileNavGroup) => {
+    if (!group.requiresRole) return true;
+    if (isSuperadmin) return true;
+    if (group.requiresRole === "superadmin") return isSuperadmin;
+    if (group.requiresRole === "admin") return isAdmin || isSuperadmin;
+    if (group.requiresRole === "gerente") return isAdminOrGerente || isSuperadmin;
+    return false;
+  };
+
+  const visibleGroups = mobileMenuGroups.filter(shouldShowGroup);
 
   const getUserInitials = () => {
     if (!user?.email) return "U";
