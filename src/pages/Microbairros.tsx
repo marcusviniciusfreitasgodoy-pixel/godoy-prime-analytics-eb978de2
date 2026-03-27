@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { MapPin, GitCompare, Plus, X } from "lucide-react";
+import { MapPin, GitCompare, Plus, X, LayoutGrid, List, TrendingUp, Building2, Home } from "lucide-react";
 import { MicrobairroCard } from "@/components/MicrobairroCard";
 import { useMicrobairroDetalhado } from "@/hooks/useITBITransactions";
 import { useBairro } from "@/contexts/BairroContext";
@@ -10,13 +10,18 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useStreetComparison } from "@/hooks/useStreetComparison";
 import { StreetComparisonChart } from "@/components/StreetComparisonChart";
+import { useIsMobile } from "@/hooks/use-mobile";
+import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
+import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from "@/components/ui/table";
+import { extractSimplifiedCode } from "@/lib/utils";
 
 export default function Microbairros() {
   const { selectedBairro, setSelectedBairro } = useBairro();
   const { data: microbairros, isLoading } = useMicrobairroDetalhado(selectedBairro);
   const [selectedStreets, setSelectedStreets] = useState<string[]>([]);
+  const isMobile = useIsMobile();
+  const [viewMode, setViewMode] = useState<'cards' | 'list'>(isMobile ? 'list' : 'cards');
   
-  // Hook para comparativo de ruas
   const { data: streetComparisonData, isLoading: isLoadingComparison } = useStreetComparison(
     selectedStreets, 
     12, 
@@ -51,6 +56,14 @@ export default function Microbairros() {
 
   const maxTransacoes = Math.max(...(microbairros || []).map((r) => r.total_transacoes), 1);
 
+  const getDisplayName = (item: { microbairro: string; condominioNome?: string; isTechnicalCode?: boolean }) => {
+    return item.condominioNome 
+      ? item.condominioNome 
+      : item.isTechnicalCode 
+        ? extractSimplifiedCode(item.microbairro)
+        : item.microbairro;
+  };
+
   return (
     <div className="space-y-6">
       {/* Cabeçalho */}
@@ -65,7 +78,17 @@ export default function Microbairros() {
               Comparativo de performance regional em {selectedBairro} (2025)
             </p>
           </div>
-          <BairroSelector value={selectedBairro} onChange={setSelectedBairro} />
+          <div className="flex items-center gap-2">
+            <ToggleGroup type="single" value={viewMode} onValueChange={(v) => v && setViewMode(v as 'cards' | 'list')}>
+              <ToggleGroupItem value="cards" aria-label="Visualização em cards" className="px-2.5">
+                <LayoutGrid className="h-4 w-4" />
+              </ToggleGroupItem>
+              <ToggleGroupItem value="list" aria-label="Visualização em lista" className="px-2.5">
+                <List className="h-4 w-4" />
+              </ToggleGroupItem>
+            </ToggleGroup>
+            <BairroSelector value={selectedBairro} onChange={setSelectedBairro} />
+          </div>
         </div>
       </div>
 
@@ -78,24 +101,20 @@ export default function Microbairros() {
             <Badge variant="secondary" className="ml-2">{selectedStreets.length}/5</Badge>
           </CardTitle>
           <p className="text-sm text-muted-foreground">
-            Clique no botão "+" nos cards abaixo para comparar até 5 ruas
+            {viewMode === 'list' 
+              ? 'Clique no botão "+" na tabela abaixo para comparar até 5 ruas'
+              : 'Clique no botão "+" nos cards abaixo para comparar até 5 ruas'}
           </p>
         </CardHeader>
         <CardContent>
           {selectedStreets.length > 0 ? (
             <div className="space-y-4">
-              {/* Badges das ruas selecionadas */}
               <div className="flex flex-wrap gap-2">
                 {selectedStreets.map((street) => (
-                  <Badge 
-                    key={street} 
-                    variant="outline" 
-                    className="pl-3 pr-1 py-1.5 gap-2"
-                  >
+                  <Badge key={street} variant="outline" className="pl-3 pr-1 py-1.5 gap-2">
                     <span className="text-xs max-w-[150px] truncate">{street}</span>
                     <Button 
-                      variant="ghost" 
-                      size="sm" 
+                      variant="ghost" size="sm" 
                       className="h-5 w-5 p-0 hover:bg-destructive/20"
                       onClick={() => handleRemoveStreet(street)}
                     >
@@ -104,8 +123,6 @@ export default function Microbairros() {
                   </Badge>
                 ))}
               </div>
-              
-              {/* Gráfico de comparação */}
               {isLoadingComparison ? (
                 <Skeleton className="h-[200px] w-full" />
               ) : streetComparisonData && streetComparisonData.length > 0 ? (
@@ -115,8 +132,6 @@ export default function Microbairros() {
                   Carregando dados de comparação...
                 </div>
               )}
-
-              {/* Tabela de estatísticas */}
               {streetComparisonData && streetComparisonData.length > 0 && (
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 mt-4">
                   {streetComparisonData.map((street) => (
@@ -127,9 +142,7 @@ export default function Microbairros() {
                       <div className="grid grid-cols-2 gap-2 text-xs">
                         <div>
                           <p className="text-muted-foreground">Mediana</p>
-                          <p className="font-bold text-primary">
-                            R$ {street.mediana_m2.toLocaleString('pt-BR')}
-                          </p>
+                          <p className="font-bold text-primary">R$ {street.mediana_m2.toLocaleString('pt-BR')}</p>
                         </div>
                         <div>
                           <p className="text-muted-foreground">Transações</p>
@@ -144,48 +157,131 @@ export default function Microbairros() {
           ) : (
             <div className="text-center py-8 text-muted-foreground">
               <GitCompare className="h-12 w-12 mx-auto mb-3 opacity-30" />
-              <p>Selecione ruas nos cards abaixo para comparar</p>
+              <p>Selecione ruas {viewMode === 'list' ? 'na tabela' : 'nos cards'} abaixo para comparar</p>
             </div>
           )}
         </CardContent>
       </Card>
 
-      {/* Grid de Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
-        {(microbairros || []).map((item) => (
-          <div key={item.microbairro} className="relative group">
-            <MicrobairroCard
-              microbairro={item.microbairro}
-              valor_m2={item.valor_m2}
-              total_transacoes={item.total_transacoes}
-              valor_m2_apt={item.valor_m2_apt}
-              valor_m2_casa={item.valor_m2_casa}
-              rank={item.rank}
-              trend={item.trend}
-              maxTransacoes={maxTransacoes}
-              condominioNome={item.condominioNome}
-              isTechnicalCode={item.isTechnicalCode}
-            />
-            {/* Botão de adicionar ao comparativo */}
-            {!selectedStreets.includes(item.microbairro) && selectedStreets.length < 5 && (
-              <Button
-                variant="secondary"
-                size="sm"
-                className="absolute top-2 right-2 h-8 w-8 p-0 opacity-0 group-hover:opacity-100 transition-opacity shadow-lg"
-                onClick={() => handleAddStreet(item.microbairro)}
-                title="Adicionar ao comparativo"
-              >
-                <Plus className="h-4 w-4" />
-              </Button>
-            )}
-            {selectedStreets.includes(item.microbairro) && (
-              <Badge className="absolute top-2 right-2 bg-accent text-accent-foreground">
-                Selecionado
-              </Badge>
-            )}
-          </div>
-        ))}
-      </div>
+      {/* Visualização Lista */}
+      {viewMode === 'list' && (
+        <Card>
+          <CardContent className="p-0">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead className="w-12 text-center">#</TableHead>
+                  <TableHead>Logradouro</TableHead>
+                  <TableHead className="text-right">R$/m²</TableHead>
+                  <TableHead className="text-right hidden sm:table-cell">Vendas</TableHead>
+                  <TableHead className="text-right hidden md:table-cell">Apt</TableHead>
+                  <TableHead className="text-right hidden md:table-cell">Casa</TableHead>
+                  <TableHead className="text-center hidden sm:table-cell">Tendência</TableHead>
+                  <TableHead className="w-12"></TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {(microbairros || []).map((item) => {
+                  const isSelected = selectedStreets.includes(item.microbairro);
+                  const displayName = getDisplayName(item);
+                  return (
+                    <TableRow 
+                      key={item.microbairro}
+                      className={isSelected ? 'bg-accent/10' : 'cursor-pointer'}
+                      onClick={() => {
+                        if (isSelected) {
+                          handleRemoveStreet(item.microbairro);
+                        } else if (selectedStreets.length < 5) {
+                          handleAddStreet(item.microbairro);
+                        }
+                      }}
+                    >
+                      <TableCell className="text-center font-bold text-muted-foreground">{item.rank}</TableCell>
+                      <TableCell>
+                        <div className="flex items-center gap-2 min-w-0">
+                          <span className="font-medium text-foreground truncate max-w-[200px] sm:max-w-none" title={item.microbairro}>
+                            {displayName}
+                          </span>
+                          {(item.isTechnicalCode || item.condominioNome) && (
+                            <Badge variant="outline" className="text-[10px] px-1.5 py-0 flex-shrink-0 border-amber-300 text-amber-700">
+                              <Building2 className="h-2.5 w-2.5 mr-0.5" />
+                              Cond.
+                            </Badge>
+                          )}
+                        </div>
+                      </TableCell>
+                      <TableCell className="text-right font-bold text-primary whitespace-nowrap">
+                        R$ {item.valor_m2.toLocaleString('pt-BR')}
+                      </TableCell>
+                      <TableCell className="text-right hidden sm:table-cell">{item.total_transacoes}</TableCell>
+                      <TableCell className="text-right hidden md:table-cell text-muted-foreground">
+                        R$ {item.valor_m2_apt.toLocaleString('pt-BR')}
+                      </TableCell>
+                      <TableCell className="text-right hidden md:table-cell text-muted-foreground">
+                        R$ {item.valor_m2_casa.toLocaleString('pt-BR')}
+                      </TableCell>
+                      <TableCell className="text-center hidden sm:table-cell">
+                        <Badge 
+                          variant={item.rank <= 3 ? "default" : "secondary"} 
+                          className={`text-[10px] ${item.rank <= 3 ? 'bg-emerald-500/20 text-emerald-700 border-emerald-300' : ''}`}
+                        >
+                          {item.trend === "high" ? "Alta" : "Estável"}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="text-center" onClick={(e) => e.stopPropagation()}>
+                        {isSelected ? (
+                          <Button variant="ghost" size="sm" className="h-7 w-7 p-0" onClick={() => handleRemoveStreet(item.microbairro)}>
+                            <X className="h-3.5 w-3.5 text-destructive" />
+                          </Button>
+                        ) : selectedStreets.length < 5 ? (
+                          <Button variant="ghost" size="sm" className="h-7 w-7 p-0" onClick={() => handleAddStreet(item.microbairro)}>
+                            <Plus className="h-3.5 w-3.5" />
+                          </Button>
+                        ) : null}
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
+              </TableBody>
+            </Table>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Visualização Cards */}
+      {viewMode === 'cards' && (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
+          {(microbairros || []).map((item) => (
+            <div key={item.microbairro} className="relative group">
+              <MicrobairroCard
+                microbairro={item.microbairro}
+                valor_m2={item.valor_m2}
+                total_transacoes={item.total_transacoes}
+                valor_m2_apt={item.valor_m2_apt}
+                valor_m2_casa={item.valor_m2_casa}
+                rank={item.rank}
+                trend={item.trend}
+                maxTransacoes={maxTransacoes}
+                condominioNome={item.condominioNome}
+                isTechnicalCode={item.isTechnicalCode}
+              />
+              {!selectedStreets.includes(item.microbairro) && selectedStreets.length < 5 && (
+                <Button
+                  variant="secondary" size="sm"
+                  className="absolute top-2 right-2 h-8 w-8 p-0 opacity-0 group-hover:opacity-100 transition-opacity shadow-lg"
+                  onClick={() => handleAddStreet(item.microbairro)}
+                  title="Adicionar ao comparativo"
+                >
+                  <Plus className="h-4 w-4" />
+                </Button>
+              )}
+              {selectedStreets.includes(item.microbairro) && (
+                <Badge className="absolute top-2 right-2 bg-accent text-accent-foreground">Selecionado</Badge>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
 
       {(microbairros || []).length === 0 && !isLoading && (
         <div className="text-center py-12 text-muted-foreground">
