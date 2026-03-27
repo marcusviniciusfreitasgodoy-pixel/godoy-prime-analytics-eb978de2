@@ -72,7 +72,7 @@ export function DashboardKPIs({ bairro = "BARRA DA TIJUCA" }: DashboardKPIsProps
       <KPICard
         title="Variação Anual (YoY)"
         value={stats.variacaoAnual === 'N/A' ? 'N/A' : `${variacaoPositiva ? '+' : ''}${stats.variacaoAnual}%`}
-        subtitle="Últimos 12 meses vs período anterior"
+        subtitle="Últimos 12m vs 12m anteriores"
         icon={variacaoPositiva ? TrendingUp : TrendingDown}
         trend={stats.variacaoAnual === 'N/A' ? "neutral" : (variacaoPositiva ? "up" : "down")}
         breakdown={{
