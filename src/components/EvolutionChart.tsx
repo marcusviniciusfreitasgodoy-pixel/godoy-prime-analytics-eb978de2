@@ -41,6 +41,42 @@ export function EvolutionChart({ bairro = "BARRA DA TIJUCA" }: EvolutionChartPro
   const periodCount = chartData.length;
   const periodLabel = granularity === 'annual' ? 'anos' : 'semestres';
 
+  // Resumo interpretativo — Aba Geral
+  const geralSummary = useMemo(() => {
+    if (chartData.length < 2) return null;
+    const first = chartData[0];
+    const last = chartData[chartData.length - 1];
+    const growth = ((last.geral - first.geral) / first.geral) * 100;
+    const peak = chartData.reduce((max, d) => d.geral > max.geral ? d : max, chartData[0]);
+    const direction = growth > 0 ? 'valorização' : growth < 0 ? 'queda' : 'estabilidade';
+    const colorClass = growth > 0 ? 'text-emerald-600 dark:text-emerald-400' : growth < 0 ? 'text-destructive' : 'text-muted-foreground';
+    return { first: first.mes, last: last.mes, firstVal: first.geral, lastVal: last.geral, growth, peak: peak.mes, peakVal: peak.geral, direction, colorClass };
+  }, [chartData]);
+
+  // Resumo interpretativo — Aba Tipologia
+  const tipologiaSummary = useMemo(() => {
+    if (chartData.length < 2) return null;
+    const last = chartData[chartData.length - 1];
+    const prev = chartData[chartData.length - 2];
+    const spread = last.apartamento > 0 && last.casa > 0
+      ? ((last.apartamento - last.casa) / last.casa) * 100
+      : 0;
+    const aptTrend = last.apartamento >= prev.apartamento ? 'alta' : 'queda';
+    const casaTrend = last.casa >= prev.casa ? 'alta' : 'queda';
+    return { apt: last.apartamento, casa: last.casa, spread, aptTrend, casaTrend };
+  }, [chartData]);
+
+  // Resumo interpretativo — Aba Variação
+  const variacaoSummary = useMemo(() => {
+    if (chartData.length < 2) return null;
+    const positivos = chartData.filter(d => d.variacao > 0).length;
+    const total = chartData.length;
+    const last = chartData[chartData.length - 1];
+    const predominancia = positivos > total / 2 ? 'alta' : positivos < total / 2 ? 'queda' : 'estável';
+    const colorClass = last.variacao > 0 ? 'text-emerald-600 dark:text-emerald-400' : last.variacao < 0 ? 'text-destructive' : 'text-muted-foreground';
+    return { positivos, total, lastVar: last.variacao, lastPeriod: last.mes, predominancia, colorClass };
+  }, [chartData]);
+
   // Calcular tendência de curto prazo (semestral)
   const shortTermTrend = useMemo(() => {
     if (!semesterData || semesterData.length < 2) return { direction: 'neutral' as const, value: 0, period: '' };
@@ -234,6 +270,11 @@ export function EvolutionChart({ bairro = "BARRA DA TIJUCA" }: EvolutionChartPro
                 />
               </ComposedChart>
             </ResponsiveContainer>
+            {geralSummary && (
+              <p className="text-xs bg-muted/50 rounded p-2 mt-2 leading-relaxed">
+                O preço médio saiu de <span className="font-medium">{formatCurrencyBR(geralSummary.firstVal)}/m²</span> ({geralSummary.first}) para <span className="font-medium">{formatCurrencyBR(geralSummary.lastVal)}/m²</span> ({geralSummary.last}) — <span className={geralSummary.colorClass + ' font-semibold'}>{geralSummary.direction} de {geralSummary.growth > 0 ? '+' : ''}{geralSummary.growth.toFixed(1)}%</span>. Pico em {geralSummary.peak} ({formatCurrencyBR(geralSummary.peakVal)}/m²).
+              </p>
+            )}
           </TabsContent>
           
           <TabsContent value="tipologia" className="mt-2">
@@ -289,6 +330,11 @@ export function EvolutionChart({ bairro = "BARRA DA TIJUCA" }: EvolutionChartPro
                 />
               </ComposedChart>
             </ResponsiveContainer>
+            {tipologiaSummary && (
+              <p className="text-xs bg-muted/50 rounded p-2 mt-2 leading-relaxed">
+                Apartamentos (<span className="font-medium">{formatCurrencyBR(tipologiaSummary.apt)}/m²</span>) estão <span className="font-semibold">{tipologiaSummary.spread > 0 ? '+' : ''}{tipologiaSummary.spread.toFixed(0)}%</span> {tipologiaSummary.spread >= 0 ? 'acima' : 'abaixo'} de Casas (<span className="font-medium">{formatCurrencyBR(tipologiaSummary.casa)}/m²</span>). Apto em {tipologiaSummary.aptTrend}, Casa em {tipologiaSummary.casaTrend}.
+              </p>
+            )}
           </TabsContent>
           
           <TabsContent value="variacao" className="mt-2">
@@ -335,6 +381,11 @@ export function EvolutionChart({ bairro = "BARRA DA TIJUCA" }: EvolutionChartPro
                 />
               </ComposedChart>
             </ResponsiveContainer>
+            {variacaoSummary && (
+              <p className="text-xs bg-muted/50 rounded p-2 mt-2 leading-relaxed">
+                <span className="font-semibold">{variacaoSummary.positivos} de {variacaoSummary.total}</span> períodos com valorização. Último período ({variacaoSummary.lastPeriod}): <span className={variacaoSummary.colorClass + ' font-semibold'}>{variacaoSummary.lastVar > 0 ? '+' : ''}{variacaoSummary.lastVar.toFixed(1)}%</span>. Mercado predominantemente em <span className="font-medium">{variacaoSummary.predominancia}</span>.
+              </p>
+            )}
           </TabsContent>
         </Tabs>
       </CardContent>
