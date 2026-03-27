@@ -322,7 +322,7 @@ function drawPage2FuncionalidadesDetalhadas(doc: jsPDF, margin: number, contentW
   ];
 
   const cellW = (contentWidth - 4) / 2;
-  const cellH = 32;
+  const cellH = 26;
 
   detailedModules.forEach((mod, i) => {
     const col = i % 2;
@@ -337,9 +337,8 @@ function drawPage2FuncionalidadesDetalhadas(doc: jsPDF, margin: number, contentW
     doc.setLineWidth(0.2);
     doc.roundedRect(x, cy, cellW, cellH, 2, 2, 'S');
 
-    // Title
     doc.setTextColor(...BRAND_COLORS.navy);
-    doc.setFontSize(8);
+    doc.setFontSize(7.5);
     doc.setFont('helvetica', 'bold');
     doc.text(mod.title, x + 4, cy + 6);
 
@@ -349,21 +348,21 @@ function drawPage2FuncionalidadesDetalhadas(doc: jsPDF, margin: number, contentW
 
     // Dor in dark red italic
     doc.setTextColor(160, 30, 30);
-    doc.setFontSize(6.5);
+    doc.setFontSize(6);
     doc.setFont('helvetica', 'italic');
     const dorSplit = doc.splitTextToSize(`Dor: ${mod.dor}`, cellW - 8);
     doc.text(dorSplit, x + 4, cy + 12);
 
     // Entrega in dark green
     doc.setTextColor(20, 120, 50);
-    doc.setFontSize(6.5);
+    doc.setFontSize(6);
     doc.setFont('helvetica', 'normal');
     const entSplit = doc.splitTextToSize(`Entrega: ${mod.entrega}`, cellW - 8);
-    doc.text(entSplit, x + 4, cy + 21);
+    doc.text(entSplit, x + 4, cy + 18);
 
   });
 
-  return y + (cellH + 3) * 5 + 4;
+  return y + (cellH + 3) * Math.ceil(detailedModules.length / 2) + 4;
 }
 
 
