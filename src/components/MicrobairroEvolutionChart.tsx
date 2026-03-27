@@ -2,7 +2,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useMicrobairroEvolutionData, GranularityType, MetricType } from '@/hooks/useMicrobairroEvolutionData';
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useMemo } from 'react';
 import {
   LineChart,
   Line,
@@ -106,6 +106,69 @@ export const MicrobairroEvolutionChart = ({ bairro }: MicrobairroEvolutionChartP
   }
 
   const { data, microbairros } = evolutionData;
+
+  const summary = useMemo(() => {
+    if (data.length < 2 || microbairros.length === 0) return null;
+    const visible = microbairros.filter(m => !hiddenLines.has(m));
+    if (visible.length === 0) return null;
+
+    const lastRow = data[data.length - 1];
+    const firstRow = data[0];
+
+    if (metric === 'valorization') {
+      const lastValues = visible
+        .map(m => ({ name: m, val: Number(lastRow[m]) || 0 }))
+        .filter(v => v.val > 0)
+        .sort((a, b) => b.val - a.val);
+      if (lastValues.length < 2) return null;
+      const highest = lastValues[0];
+      const lowest = lastValues[lastValues.length - 1];
+      const spread = ((highest.val - lowest.val) / lowest.val * 100).toFixed(0);
+
+      let bestGrowthName = '';
+      let bestGrowthPct = -Infinity;
+      visible.forEach(m => {
+        const first = Number(firstRow[m]) || 0;
+        const last = Number(lastRow[m]) || 0;
+        if (first > 0) {
+          const pct = ((last - first) / first) * 100;
+          if (pct > bestGrowthPct) { bestGrowthPct = pct; bestGrowthName = m; }
+        }
+      });
+
+      return {
+        text1: `${highest.name} (${formatCurrencyBR(highest.val)}/m²) lidera com ${spread}% acima de ${lowest.name} (${formatCurrencyBR(lowest.val)}/m²).`,
+        text2: bestGrowthName ? `Maior valorização no período: ${bestGrowthName} (${bestGrowthPct > 0 ? '+' : ''}${bestGrowthPct.toFixed(1)}%).` : null,
+        colorClass: Number(spread) > 0 ? 'text-emerald-600' : 'text-destructive',
+      };
+    } else {
+      const lastValues = visible
+        .map(m => ({ name: m, val: Number(lastRow[m]) || 0 }))
+        .sort((a, b) => b.val - a.val);
+      if (lastValues.length === 0) return null;
+      const leader = lastValues[0];
+
+      let bestRecentName = '';
+      let bestRecentPct = -Infinity;
+      if (data.length >= 2) {
+        const prevRow = data[data.length - 2];
+        visible.forEach(m => {
+          const prev = Number(prevRow[m]) || 0;
+          const curr = Number(lastRow[m]) || 0;
+          if (prev > 0) {
+            const pct = ((curr - prev) / prev) * 100;
+            if (pct > bestRecentPct) { bestRecentPct = pct; bestRecentName = m; }
+          }
+        });
+      }
+
+      return {
+        text1: `${leader.name} lidera com ${leader.val.toLocaleString('pt-BR')} transações acumuladas.`,
+        text2: bestRecentName && bestRecentPct > 0 ? `${bestRecentName} teve o maior crescimento recente (+${bestRecentPct.toFixed(1)}%).` : null,
+        colorClass: 'text-emerald-600',
+      };
+    }
+  }, [data, microbairros, hiddenLines, metric]);
 
   return (
     <Card>
