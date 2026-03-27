@@ -40,6 +40,18 @@ export default function Microbairros() {
     setSelectedStreets(selectedStreets.filter(s => s !== logradouro));
   };
 
+  const filteredMicrobairros = useMemo(() => {
+    if (!microbairros) return [];
+    if (!searchFilter.trim()) return microbairros;
+    const norm = normalizeAccents(searchFilter.toUpperCase().trim());
+    return microbairros.filter(item => {
+      const name = normalizeAccents((item.condominioNome || item.microbairro || '').toUpperCase());
+      return name.includes(norm);
+    });
+  }, [microbairros, searchFilter]);
+
+  const maxTransacoes = Math.max(...(filteredMicrobairros).map((r) => r.total_transacoes), 1);
+
   if (isLoading) {
     return (
       <div className="space-y-6">
@@ -55,18 +67,6 @@ export default function Microbairros() {
       </div>
     );
   }
-
-  const filteredMicrobairros = useMemo(() => {
-    if (!microbairros) return [];
-    if (!searchFilter.trim()) return microbairros;
-    const norm = normalizeAccents(searchFilter.toUpperCase().trim());
-    return microbairros.filter(item => {
-      const name = normalizeAccents((item.condominioNome || item.microbairro || '').toUpperCase());
-      return name.includes(norm);
-    });
-  }, [microbairros, searchFilter]);
-
-  const maxTransacoes = Math.max(...(filteredMicrobairros).map((r) => r.total_transacoes), 1);
 
   const getDisplayName = (item: { microbairro: string; condominioNome?: string; isTechnicalCode?: boolean }) => {
     return item.condominioNome 
