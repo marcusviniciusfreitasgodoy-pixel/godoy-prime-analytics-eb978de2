@@ -74,38 +74,8 @@ export const MicrobairroEvolutionChart = ({ bairro }: MicrobairroEvolutionChartP
     ? 'Preço médio R$/m² por microbairro ao longo do tempo'
     : 'Transações acumuladas desde 2020 por microbairro';
 
-  if (isLoading) {
-    return (
-      <Card>
-        <CardHeader>
-          <Skeleton className="h-6 w-64" />
-        </CardHeader>
-        <CardContent>
-          <Skeleton className="h-[300px] w-full" />
-        </CardContent>
-      </Card>
-    );
-  }
-
-  if (!evolutionData || evolutionData.data.length === 0) {
-    return (
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-base">
-            <TrendingUp className="h-5 w-5 text-primary" />
-            {title}
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <p className="text-muted-foreground text-center py-8">
-            Dados insuficientes para exibir evolução por microbairro
-          </p>
-        </CardContent>
-      </Card>
-    );
-  }
-
-  const { data, microbairros } = evolutionData;
+  const data = evolutionData?.data ?? [];
+  const microbairros = evolutionData?.microbairros ?? [];
 
   const summary = useMemo(() => {
     if (data.length < 2 || microbairros.length === 0) return null;
