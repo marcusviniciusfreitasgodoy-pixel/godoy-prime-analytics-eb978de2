@@ -22,6 +22,13 @@ import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
+const generateDefaultHorarios = () =>
+  Array.from({ length: 44 }, (_, i) => {
+    const h = Math.floor(i / 4) + 8;
+    const m = (i % 4) * 15;
+    return `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}`;
+  });
+
 const scheduleSchema = z.object({
   nome_visitante: z.string().min(3, "Nome deve ter pelo menos 3 caracteres"),
   telefone_visitante: z.string().min(10, "Telefone inválido"),
