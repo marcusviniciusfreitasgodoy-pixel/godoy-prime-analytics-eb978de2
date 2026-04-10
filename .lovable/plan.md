@@ -1,74 +1,53 @@
 
 
-## Plano: Notificar corretor sobre feedback e assinatura recebidos
+## Plano: Visualizar feedback completo + exportar PDF individual + excluir feedbacks de teste
 
-### Situação atual
+### 1. Excluir feedbacks de teste do banco
+Criar uma migration SQL para deletar os 3 feedbacks vinculados a ficha TESTE-001 (`ficha_visita_id = '9edc9c89-e56d-42ff-8d5f-17b57d5d9414'`):
 
-| Evento | Toast in-app | Email | WhatsApp |
-|---|---|---|---|
-| Feedback recebido | Sim (polling 30s) | Sim (email ao corretor) | Não |
-| Assinatura recebida | Não | Não | Não |
-
-### Alterações propostas
-
-#### 1. Notificar corretor por WhatsApp ao receber feedback
-**Arquivo:** `supabase/functions/public-submit/index.ts` (handler `handleFeedback`)
-
-Após inserir o feedback com sucesso, buscar a ficha vinculada e o perfil do corretor. Se o corretor tiver telefone, invocar a Edge Function `send-whatsapp` com uma mensagem informativa.
-
-#### 2. Notificar corretor por WhatsApp e email ao receber assinatura
-**Arquivo:** `supabase/functions/public-submit/index.ts` (handler `handleAssinatura`)
-
-Após salvar a assinatura, buscar a ficha completa e o perfil do corretor. Enviar:
-- WhatsApp ao corretor informando que a assinatura (do visitante ou do corretor) foi registrada
-- Email ao corretor via `send-visit-email` com tipo adequado
-
-#### 3. Adicionar toast in-app para assinaturas recebidas
-**Arquivo:** `src/components/visitas/FeedbackRealtimeListener.tsx`
-
-Expandir o polling para também verificar fichas com `assinatura_visitante` ou `assinatura_corretor` alterados recentemente, exibindo toast ao corretor logado.
-
-### Detalhes técnicos
-
-**No `handleFeedback` (public-submit):** após o insert bem-sucedido, adicionar bloco:
-```typescript
-// Buscar ficha e corretor para notificar
-const { data: fichaData } = await supabase
-  .from("fichas_visita")
-  .select("codigo, endereco_imovel, nome_visitante, corretor_id, nome_corretor")
-  .eq("id", fichaVisitaId)
-  .single();
-
-if (fichaData?.corretor_id) {
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("phone, email, full_name")
-    .eq("id", fichaData.corretor_id)
-    .single();
-
-  // WhatsApp ao corretor
-  if (profile?.phone) {
-    await fetch(`${Deno.env.get("SUPABASE_URL")}/functions/v1/send-whatsapp`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json", "Authorization": `Bearer ${Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")}` },
-      body: JSON.stringify({
-        telefone: profile.phone,
-        tipo: "confirmacao",
-        dados: {
-          nome_visitante: fichaData.nome_visitante,
-          endereco_imovel: fichaData.endereco_imovel,
-          nome_corretor: profile.full_name,
-          mensagem_extra: `O visitante ${fichaData.nome_visitante} enviou um feedback sobre o imóvel ${fichaData.endereco_imovel}.`
-        }
-      })
-    });
-  }
-}
+```sql
+DELETE FROM feedbacks_visita 
+WHERE ficha_visita_id = '9edc9c89-e56d-42ff-8d5f-17b57d5d9414';
 ```
 
-**No `handleAssinatura` (public-submit):** após o update bem-sucedido, adicionar bloco similar notificando o corretor de que a assinatura foi registrada.
+### 2. Criar modal de detalhe do feedback individual
+**Novo arquivo:** `src/components/visitas/FeedbackDetailModal.tsx`
+
+Um Dialog que exibe todos os campos do feedback de forma organizada:
+- Dados da visita (visitante, endereco, data, codigo)
+- Avaliacao geral (estrelas visuais)
+- Conexao com imovel
+- Efeitos UAU selecionados
+- O que mais/menos gostou
+- Ponto de resistencia, sugestoes
+- Nivel de interesse, percepcao de valor
+- Valor que ofertaria (formatado em R$)
+- Proposta (sim/nao)
+- Campos customizados (se houver)
+- Botao "Exportar PDF" no header do modal
+
+### 3. Tornar cards clicaveis na FeedbacksList e nos feedbacks recentes do Analytics
+**Arquivo:** `src/components/visitas/FeedbacksList.tsx`
+- Adicionar state para feedback selecionado
+- Ao clicar no card, abrir `FeedbackDetailModal` com os dados completos
+- Expandir o select da query para trazer todos os campos necessarios
+
+**Arquivo:** `src/components/visitas/FeedbackAnalyticsDashboard.tsx`
+- Na lista de feedbacks recentes, tornar cada item clicavel, abrindo o mesmo modal
+
+### 4. Criar exportacao PDF do feedback individual
+**Novo arquivo:** `src/utils/feedbackIndividualPdfExport.ts`
+
+PDF com marca Godoy Prime (usando `pdfTemplate.ts`) contendo:
+- Header com logo e dados da empresa
+- Titulo "Feedback da Visita - [codigo]"
+- Secoes organizadas: dados da visita, avaliacoes, comentarios, interesse/proposta
+- Footer com disclaimer
 
 ### Arquivos afetados
-- `supabase/functions/public-submit/index.ts` (2 blocos de notificação)
-- `src/components/visitas/FeedbackRealtimeListener.tsx` (polling de assinaturas — opcional)
+- Migration SQL (delete feedbacks teste)
+- `src/components/visitas/FeedbackDetailModal.tsx` (novo)
+- `src/utils/feedbackIndividualPdfExport.ts` (novo)
+- `src/components/visitas/FeedbacksList.tsx` (tornar cards clicaveis)
+- `src/components/visitas/FeedbackAnalyticsDashboard.tsx` (feedbacks recentes clicaveis)
 
