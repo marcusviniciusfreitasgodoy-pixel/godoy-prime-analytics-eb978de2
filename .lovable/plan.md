@@ -1,89 +1,35 @@
 
 
-## Plano: Fluxo Automático Completo de Visitas
+## Plano: Migração Evolution API → Z-API
 
-### Contexto
-Hoje o fluxo requer ações manuais: criar ficha a partir do agendamento, disparar assinatura e feedback manualmente. O objetivo é automatizar todo o ciclo de vida.
+### Dados fornecidos
+- **Instance ID**: `3F172E6464E6822C9BFA9E648AE68DF9`
+- **Token**: `2489C64D3BF41EBEA82BBA81`
 
-### Alterações no Banco de Dados
+### Passo 1 — Configurar Secrets
+Adicionar 2 novos secrets e remover os 3 antigos:
 
-**Migração SQL** -- Adicionar coluna `agendamento_id` na tabela `fichas_visita` para vincular ficha ao agendamento:
+| Ação | Secret | Valor |
+|------|--------|-------|
+| Adicionar | `ZAPI_INSTANCE_ID` | `3F172E6464E6822C9BFA9E648AE68DF9` |
+| Adicionar | `ZAPI_TOKEN` | `2489C64D3BF41EBEA82BBA81` |
+| Remover | `EVOLUTION_API_URL` | — |
+| Remover | `EVOLUTION_API_KEY` | — |
+| Remover | `EVOLUTION_INSTANCE_NAME` | — |
 
-```sql
-ALTER TABLE public.fichas_visita 
-  ADD COLUMN agendamento_id uuid REFERENCES public.agendamentos_visita(id);
-```
+### Passo 2 — Atualizar `send-whatsapp/index.ts`
+- Substituir leitura de `EVOLUTION_*` por `ZAPI_INSTANCE_ID` e `ZAPI_TOKEN`
+- Endpoint: `https://api.z-api.io/instances/{ID}/token/{TOKEN}/send-text`
+- Body: `{ phone, message }` (ao invés de `{ number, text }`)
+- Remover header `apikey`
 
-### Alterações no Código
+### Passo 3 — Atualizar `notify-proposta/index.ts`
+- Mesma substituição na seção de WhatsApp (linhas 255-278)
+- Endpoint e body no formato Z-API
 
-**1. Criação automática da ficha ao agendar** (`src/hooks/useAgendamentos.ts`)
+### Passo 4 — Deploy das 2 funções
 
-No `onSuccess` do `createAgendamento`, após as notificações existentes, inserir automaticamente um registro em `fichas_visita` com:
-- Dados do agendamento (nome, telefone, email, endereço, código imóvel, corretor, data)
-- `cpf_visitante: "A preencher"`, `nome_proprietario: "A preencher"` (campos obrigatórios com placeholder)
-- `status: "agendada"`
-- `agendamento_id` vinculado ao agendamento recém-criado
-- Código gerado automaticamente (`VIS-...`)
-- Invalidar query `fichas-visita`
-
-**2. Disparo automático ao marcar "realizada"** (`src/hooks/useVisitas.ts`)
-
-No `onSuccess` do `updateStatus`, quando o status muda para `"realizada"`, além do feedback que já é disparado, adicionar:
-- Envio do link de assinatura do visitante via Email e WhatsApp (URL: `/visitas/assinatura/{codigo}/visitante`)
-- Envio do link de assinatura do corretor via Email (URL: `/visitas/assinatura/{codigo}/corretor`)
-- Manter os disparos de feedback já existentes
-
-**3. Cancelamento automático da ficha vinculada** (`src/hooks/useAgendamentos.ts`)
-
-No `onSuccess` do `updateStatus` do agendamento, quando `novoStatus === 'cancelada'`:
-- Buscar ficha vinculada pelo `agendamento_id`
-- Atualizar status da ficha para `"cancelada"`
-- Invalidar query `fichas-visita`
-
-Mesma lógica no `handleCancelAgendamento` do `VisitCard.tsx`.
-
-**4. Remover botão manual "Criar Ficha"** (`src/components/visitas/VisitCard.tsx`, `src/pages/Visitas.tsx`)
-
-- Remover o botão `<FilePlus>` do card de agendamento (a ficha já é criada automaticamente)
-- Remover a função `handleCreateFichaFromAgendamento` da página Visitas
-- Adicionar botão "Ver Ficha" no card de agendamento que navega para a ficha vinculada
-
-**5. Possibilitar edição de dados faltantes na ficha** (`src/pages/FichaVisitaPage.tsx`)
-
-A página de detalhes da ficha já possui modo de edição. Melhorias:
-- Destacar visualmente campos com valor "A preencher" (borda amarela/aviso)
-- Adicionar banner informativo quando a ficha tem campos pendentes: "Preencha os dados faltantes antes da visita"
-- Garantir que CPF, nome do proprietário e outros campos placeholder sejam editáveis no formulário existente
-
-**6. Atualizar tipos** (`src/types/visitas.ts`)
-
-- Adicionar `agendamento_id?: string | null` ao `FichaVisita` e `FichaVisitaInsert`
-
-### Fluxo Resultante
-
-```text
-Agendamento criado
-  ├── Notificações (email/whatsapp) [já existe]
-  └── Ficha de visita criada automaticamente (status: agendada)
-       └── Campos "A preencher" destacados para edição
-
-Status → "realizada"
-  ├── Link de assinatura visitante (email + whatsapp)
-  ├── Link de assinatura corretor (email)
-  └── Link de feedback (email + whatsapp) [já existe]
-
-Status → "cancelada" (agendamento)
-  └── Ficha vinculada cancelada automaticamente
-```
-
-### Arquivos Modificados
-- `supabase/migrations/` -- nova migração (coluna `agendamento_id`)
-- `src/types/visitas.ts` -- adicionar `agendamento_id`
-- `src/hooks/useAgendamentos.ts` -- auto-criar ficha + auto-cancelar
-- `src/hooks/useVisitas.ts` -- disparar assinatura ao marcar realizada
-- `src/components/visitas/VisitCard.tsx` -- remover botão manual, adicionar "Ver Ficha"
-- `src/pages/Visitas.tsx` -- remover `handleCreateFichaFromAgendamento`
-- `src/pages/FichaVisitaPage.tsx` -- destacar campos pendentes
-- `src/utils/visitEmailService.ts` -- adicionar função de envio de link de assinatura
-- `src/utils/whatsappService.ts` -- adicionar função de envio de link de assinatura via WhatsApp
+### Arquivos alterados
+- `supabase/functions/send-whatsapp/index.ts`
+- `supabase/functions/notify-proposta/index.ts`
 
