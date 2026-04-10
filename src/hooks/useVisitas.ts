@@ -145,12 +145,11 @@ export function useVisitas() {
           try {
             const { data: profile } = await supabase
               .from("profiles")
-              .select("email, full_name" as any)
+              .select("email, full_name, phone" as any)
               .eq("id", data.corretor_id)
               .single();
-            const corretorProfile = profile as unknown as { email: string | null; full_name: string } | null;
+            const corretorProfile = profile as unknown as { email: string | null; full_name: string; phone: string | null } | null;
             if (corretorProfile?.email) {
-              // Reutiliza o email de feedback para notificar o corretor
               await import("@/utils/visitEmailService").then(m =>
                 m.sendCorretorAgendamentoEmail(corretorProfile!.email!, {
                   nome_visitante: data.nome_visitante,
@@ -159,6 +158,17 @@ export function useVisitas() {
                   nome_corretor: corretorProfile!.full_name,
                 })
               );
+            }
+            // Enviar WhatsApp ao corretor com ficha completa
+            if (corretorProfile?.phone) {
+              try {
+                const resultado = await enviarFichaCompletaPosVisita(corretorProfile.phone, data);
+                if (resultado.success) {
+                  toast.success("WhatsApp enviado ao corretor!");
+                }
+              } catch (errWa) {
+                console.error("Erro ao enviar WhatsApp ao corretor:", errWa);
+              }
             }
           } catch (err) {
             console.error("Erro ao notificar corretor:", err);
