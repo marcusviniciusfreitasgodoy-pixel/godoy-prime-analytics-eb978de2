@@ -13,10 +13,11 @@ import { ptBR } from "date-fns/locale";
 import { Loader2, Clock, Plus, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 
-const DEFAULT_HORARIOS = [
-  "08:00", "09:00", "10:00", "11:00",
-  "14:00", "15:00", "16:00", "17:00", "18:00"
-];
+const DEFAULT_HORARIOS = Array.from({ length: 44 }, (_, i) => {
+  const h = Math.floor(i / 4) + 8;
+  const m = (i % 4) * 15;
+  return `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}`;
+});
 
 export function AvailabilityManager() {
   const { user } = useAuthContext();
@@ -175,19 +176,31 @@ export function AvailabilityManager() {
                 </Button>
               </div>
 
-              <div className="grid grid-cols-3 gap-2">
-                {DEFAULT_HORARIOS.map((horario) => (
-                  <Button
-                    key={horario}
-                    type="button"
-                    variant={selectedHorarios.includes(horario) ? "default" : "outline"}
-                    size="sm"
-                    onClick={() => toggleHorario(horario)}
-                    className="w-full"
-                  >
-                    {horario}
-                  </Button>
-                ))}
+              <div className="space-y-3">
+                {Array.from({ length: 11 }, (_, hourIdx) => {
+                  const hour = hourIdx + 8;
+                  const hourStr = hour.toString().padStart(2, '0');
+                  const slots = DEFAULT_HORARIOS.filter(h => h.startsWith(`${hourStr}:`));
+                  return (
+                    <div key={hour}>
+                      <p className="text-xs font-medium text-muted-foreground mb-1">{hourStr}h</p>
+                      <div className="grid grid-cols-4 gap-1">
+                        {slots.map((horario) => (
+                          <Button
+                            key={horario}
+                            type="button"
+                            variant={selectedHorarios.includes(horario) ? "default" : "outline"}
+                            size="sm"
+                            onClick={() => toggleHorario(horario)}
+                            className="w-full text-xs"
+                          >
+                            {horario}
+                          </Button>
+                        ))}
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
 
               <div className="pt-4">

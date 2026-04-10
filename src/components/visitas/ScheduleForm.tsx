@@ -22,6 +22,13 @@ import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
+const generateDefaultHorarios = () =>
+  Array.from({ length: 44 }, (_, i) => {
+    const h = Math.floor(i / 4) + 8;
+    const m = (i % 4) * 15;
+    return `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}`;
+  });
+
 const scheduleSchema = z.object({
   nome_visitante: z.string().min(3, "Nome deve ter pelo menos 3 caracteres"),
   telefone_visitante: z.string().min(10, "Telefone inválido"),
@@ -112,10 +119,7 @@ export function ScheduleForm({ onSuccess, isPublic = false }: ScheduleFormProps)
         const dateStr = format(dataHora, "yyyy-MM-dd");
         const horarios = await getHorariosDisponiveis(dateStr);
         if (horarios.length === 0) {
-          setHorariosDisponiveis([
-            "08:00", "09:00", "10:00", "11:00",
-            "14:00", "15:00", "16:00", "17:00", "18:00"
-          ]);
+          setHorariosDisponiveis(generateDefaultHorarios());
         } else {
           setHorariosDisponiveis(horarios);
         }
@@ -130,10 +134,7 @@ export function ScheduleForm({ onSuccess, isPublic = false }: ScheduleFormProps)
           const dateStr2 = format(dataHora2, "yyyy-MM-dd");
           const horarios2 = await getHorariosDisponiveis(dateStr2);
           if (horarios2.length === 0) {
-            setHorariosDisponiveis2([
-              "08:00", "09:00", "10:00", "11:00",
-              "14:00", "15:00", "16:00", "17:00", "18:00"
-            ]);
+            setHorariosDisponiveis2(generateDefaultHorarios());
           } else {
             setHorariosDisponiveis2(horarios2);
           }
@@ -180,10 +181,7 @@ export function ScheduleForm({ onSuccess, isPublic = false }: ScheduleFormProps)
       
       // Se não houver horários cadastrados, mostra horários padrão
       if (horarios.length === 0) {
-        setHorariosDisponiveis([
-          "08:00", "09:00", "10:00", "11:00",
-          "14:00", "15:00", "16:00", "17:00", "18:00"
-        ]);
+        setHorariosDisponiveis(generateDefaultHorarios());
       } else {
         setHorariosDisponiveis(horarios);
       }
@@ -202,10 +200,7 @@ export function ScheduleForm({ onSuccess, isPublic = false }: ScheduleFormProps)
       const horarios = await getHorariosDisponiveis(dateStr);
       
       if (horarios.length === 0) {
-        setHorariosDisponiveis2([
-          "08:00", "09:00", "10:00", "11:00",
-          "14:00", "15:00", "16:00", "17:00", "18:00"
-        ]);
+        setHorariosDisponiveis2(generateDefaultHorarios());
       } else {
         setHorariosDisponiveis2(horarios);
       }
