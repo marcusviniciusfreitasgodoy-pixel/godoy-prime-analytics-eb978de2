@@ -203,10 +203,12 @@ serve(async (req) => {
     const numeroFormatado = formatarTelefone(telefone);
     const mensagem = gerarMensagem(tipo, dados);
 
-    console.log(`Enviando WhatsApp para ${numeroFormatado} (tipo: ${tipo})`);
+    // Normalizar URL removendo barra final
+    const baseUrl = EVOLUTION_API_URL.replace(/\/+$/, '');
+    const evolutionUrl = `${baseUrl}/message/sendText/${EVOLUTION_INSTANCE_NAME}`;
 
-    // Enviar mensagem via Evolution API
-    const evolutionUrl = `${EVOLUTION_API_URL}/message/sendText/${EVOLUTION_INSTANCE_NAME}`;
+    console.log(`Enviando WhatsApp para ${numeroFormatado} (tipo: ${tipo})`);
+    console.log(`Evolution API URL: ${evolutionUrl}`);
     
     const response = await fetch(evolutionUrl, {
       method: 'POST',
