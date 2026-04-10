@@ -46,6 +46,7 @@ export function useVisitas() {
     onSuccess: () => {
       if (isDemo) return;
       queryClient.invalidateQueries({ queryKey: ["fichas-visita"] });
+      queryClient.invalidateQueries({ queryKey: ["visitas-stats"] });
       toast.success("Ficha de visita criada com sucesso!");
     },
     onError: (error) => {
@@ -75,6 +76,7 @@ export function useVisitas() {
     onSuccess: () => {
       if (isDemo) return;
       queryClient.invalidateQueries({ queryKey: ["fichas-visita"] });
+      queryClient.invalidateQueries({ queryKey: ["visitas-stats"] });
       toast.success("Ficha atualizada com sucesso!");
     },
     onError: (error) => {
@@ -104,6 +106,7 @@ export function useVisitas() {
     onSuccess: async (data) => {
       if (isDemo) return;
       queryClient.invalidateQueries({ queryKey: ["fichas-visita"] });
+      queryClient.invalidateQueries({ queryKey: ["visitas-stats"] });
       toast.success("Status atualizado!");
 
       if (data.status === "realizada") {

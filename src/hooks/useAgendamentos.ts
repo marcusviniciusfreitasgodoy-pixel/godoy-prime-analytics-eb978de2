@@ -46,6 +46,7 @@ export function useAgendamentos() {
     onSuccess: async (data) => {
       if (isDemo) return;
       queryClient.invalidateQueries({ queryKey: ["agendamentos-visita"] });
+      queryClient.invalidateQueries({ queryKey: ["visitas-stats"] });
       toast.success("Agendamento criado com sucesso!");
 
       if (data.email_visitante) {
@@ -105,6 +106,7 @@ export function useAgendamentos() {
     onSuccess: async (data) => {
       if (isDemo) return;
       queryClient.invalidateQueries({ queryKey: ["agendamentos-visita"] });
+      queryClient.invalidateQueries({ queryKey: ["visitas-stats"] });
       toast.success("Agendamento atualizado!");
 
       if (data.telefone_visitante) {
@@ -143,6 +145,7 @@ export function useAgendamentos() {
     onSuccess: async ({ agendamento, statusAnterior, novoStatus }) => {
       if (isDemo) return;
       queryClient.invalidateQueries({ queryKey: ["agendamentos-visita"] });
+      queryClient.invalidateQueries({ queryKey: ["visitas-stats"] });
       toast.success("Status atualizado!");
 
       if (novoStatus === 'cancelada' && statusAnterior !== 'cancelada' && agendamento.telefone_visitante) {

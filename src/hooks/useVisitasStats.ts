@@ -43,18 +43,29 @@ export function useVisitasStats() {
       const inicioMesAnterior = startOfMonth(subMonths(new Date(), 1)).toISOString();
       const fimMesAnterior = startOfMonth(new Date()).toISOString();
 
-      const { data: fichas, error: fichasError } = await supabase.from("fichas_visita").select("*");
-      if (fichasError) throw fichasError;
+      const [
+        { data: fichas, error: fichasError },
+        { data: feedbacks, error: feedbacksError },
+        { data: agendamentos, error: agendamentosError },
+      ] = await Promise.all([
+        supabase.from("fichas_visita").select("*"),
+        supabase.from("feedbacks_visita" as any).select("*"),
+        supabase.from("agendamentos_visita" as any).select("status"),
+      ]);
 
-      const { data: feedbacks, error: feedbacksError } = await supabase.from("feedbacks_visita" as any).select("*");
+      if (fichasError) throw fichasError;
       if (feedbacksError) throw feedbacksError;
+      if (agendamentosError) throw agendamentosError;
 
       const fichasData = fichas || [];
       const feedbacksData = (feedbacks || []) as any[];
+      const agendamentosData = (agendamentos || []) as unknown as Array<{ status: string | null }>;
 
-      const totalAgendadas = fichasData.filter(f => f.status === "agendada").length;
+      const totalAgendadas = agendamentosData.filter(
+        (agendamento) => agendamento.status === "agendada" || agendamento.status === "confirmada"
+      ).length;
       const totalRealizadas = fichasData.filter(f => f.status === "realizada").length;
-      const totalCanceladas = fichasData.filter(f => f.status === "cancelada").length;
+      const totalCanceladas = agendamentosData.filter((agendamento) => agendamento.status === "cancelada").length;
       const realizadasMesAtual = fichasData.filter(f => f.status === "realizada" && f.data_visita >= inicioMesAtual).length;
       const realizadasMesAnterior = fichasData.filter(f => f.status === "realizada" && f.data_visita >= inicioMesAnterior && f.data_visita < fimMesAnterior).length;
       const variacaoMensal = realizadasMesAnterior > 0 ? ((realizadasMesAtual - realizadasMesAnterior) / realizadasMesAnterior) * 100 : 0;
