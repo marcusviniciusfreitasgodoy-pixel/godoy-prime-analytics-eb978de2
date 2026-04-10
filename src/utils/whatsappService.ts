@@ -149,6 +149,6 @@ export async function enviarFichaCompletaPosVisita(
     valor_imovel: ficha.valor_imovel ? ficha.valor_imovel.toLocaleString('pt-BR') : undefined,
     link_assinatura: `${baseUrl}/visitas/assinatura/${ficha.codigo}/visitante`,
     link_feedback: `${baseUrl}/visitas/feedback/${ficha.codigo}`,
-    link_ficha: `${baseUrl}/visitas/ficha/${ficha.id}`,
+    link_ficha: `${baseUrl}/visitas/ficha-publica/${ficha.codigo}`,
   });
 }

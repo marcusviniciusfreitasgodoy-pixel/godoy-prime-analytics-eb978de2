@@ -53,6 +53,7 @@ import PipelineCRM from "./pages/PipelineCRM";
 import CalibradorFeedbackCorretor from "./pages/CalibradorFeedbackCorretor";
 import ConfigurarFormularios from "./pages/ConfigurarFormularios";
 import InteligenciaTerritorial from "./pages/InteligenciaTerritorial";
+import FichaVisitaPublica from "./pages/FichaVisitaPublica";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -89,6 +90,7 @@ const App = () => (
                 <Route path="/visitas/assinatura" element={<AssinaturaLanding />} />
                 <Route path="/visitas/assinatura/:codigo/:tipo" element={<AssinaturaVisita />} />
                 <Route path="/proposta/:codigo" element={<PropostaPublica />} />
+                <Route path="/visitas/ficha-publica/:codigo" element={<FichaVisitaPublica />} />
                 <Route path="/demo/*" element={<DemoLayout />} />
                 <Route
                   path="/*"
