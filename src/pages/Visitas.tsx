@@ -27,7 +27,6 @@ export default function Visitas() {
   const { data: feedbackAnalytics } = useFeedbackAnalytics();
   const { isDemo } = useDemo();
   const [activeTab, setActiveTab] = useState("dashboard");
-  const [activeTab, setActiveTab] = useState("dashboard");
   const [runTour, setRunTour] = useState(false);
   const [statusFilter, setStatusFilter] = useState<string>("todos");
   const [sortOrder, setSortOrder] = useState<"desc" | "asc">("desc");
