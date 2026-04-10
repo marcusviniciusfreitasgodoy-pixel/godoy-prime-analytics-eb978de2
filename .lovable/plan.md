@@ -1,49 +1,74 @@
 
 
-## Plano: Notificar corretor por WhatsApp ao marcar visita como "realizada"
+## Plano: Notificar corretor sobre feedback e assinatura recebidos
 
-### Problema
-Quando a visita e marcada como "realizada", o sistema envia WhatsApp apenas ao visitante. O corretor responsavel nao recebe nenhuma notificacao por WhatsApp.
+### Situação atual
 
-### Alteracao
+| Evento | Toast in-app | Email | WhatsApp |
+|---|---|---|---|
+| Feedback recebido | Sim (polling 30s) | Sim (email ao corretor) | Não |
+| Assinatura recebida | Não | Não | Não |
 
-**Arquivo: `src/hooks/useVisitas.ts`** (linhas ~143-166)
+### Alterações propostas
 
-Apos o bloco que ja busca o perfil do corretor para envio de email, adicionar envio de WhatsApp ao corretor usando o telefone do perfil (`profile.phone`). Usar o mesmo template `pos_visita` com os mesmos dados, mas direcionado ao corretor.
+#### 1. Notificar corretor por WhatsApp ao receber feedback
+**Arquivo:** `supabase/functions/public-submit/index.ts` (handler `handleFeedback`)
 
-Logica:
-1. O bloco ja faz `supabase.from("profiles").select("email, full_name")` para o `corretor_id`
-2. Expandir o select para incluir `phone`
-3. Apos enviar o email, verificar se `corretorProfile.phone` existe
-4. Se sim, chamar `enviarFichaCompletaPosVisita(corretorProfile.phone, data)` para o corretor
-5. Mostrar toast de sucesso/erro
+Após inserir o feedback com sucesso, buscar a ficha vinculada e o perfil do corretor. Se o corretor tiver telefone, invocar a Edge Function `send-whatsapp` com uma mensagem informativa.
 
-### Codigo resumido da alteracao
+#### 2. Notificar corretor por WhatsApp e email ao receber assinatura
+**Arquivo:** `supabase/functions/public-submit/index.ts` (handler `handleAssinatura`)
 
+Após salvar a assinatura, buscar a ficha completa e o perfil do corretor. Enviar:
+- WhatsApp ao corretor informando que a assinatura (do visitante ou do corretor) foi registrada
+- Email ao corretor via `send-visit-email` com tipo adequado
+
+#### 3. Adicionar toast in-app para assinaturas recebidas
+**Arquivo:** `src/components/visitas/FeedbackRealtimeListener.tsx`
+
+Expandir o polling para também verificar fichas com `assinatura_visitante` ou `assinatura_corretor` alterados recentemente, exibindo toast ao corretor logado.
+
+### Detalhes técnicos
+
+**No `handleFeedback` (public-submit):** após o insert bem-sucedido, adicionar bloco:
 ```typescript
-// Linha ~148: expandir select
-.select("email, full_name, phone" as any)
+// Buscar ficha e corretor para notificar
+const { data: fichaData } = await supabase
+  .from("fichas_visita")
+  .select("codigo, endereco_imovel, nome_visitante, corretor_id, nome_corretor")
+  .eq("id", fichaVisitaId)
+  .single();
 
-// Linha ~151: expandir tipo
-const corretorProfile = profile as unknown as { 
-  email: string | null; 
-  full_name: string; 
-  phone: string | null;
-} | null;
+if (fichaData?.corretor_id) {
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("phone, email, full_name")
+    .eq("id", fichaData.corretor_id)
+    .single();
 
-// Apos o bloco de email do corretor (~161), adicionar:
-if (corretorProfile?.phone) {
-  try {
-    const resultado = await enviarFichaCompletaPosVisita(corretorProfile.phone, data);
-    if (resultado.success) {
-      toast.success("WhatsApp enviado ao corretor!");
-    }
-  } catch (err) {
-    console.error("Erro ao enviar WhatsApp ao corretor:", err);
+  // WhatsApp ao corretor
+  if (profile?.phone) {
+    await fetch(`${Deno.env.get("SUPABASE_URL")}/functions/v1/send-whatsapp`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "Authorization": `Bearer ${Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")}` },
+      body: JSON.stringify({
+        telefone: profile.phone,
+        tipo: "confirmacao",
+        dados: {
+          nome_visitante: fichaData.nome_visitante,
+          endereco_imovel: fichaData.endereco_imovel,
+          nome_corretor: profile.full_name,
+          mensagem_extra: `O visitante ${fichaData.nome_visitante} enviou um feedback sobre o imóvel ${fichaData.endereco_imovel}.`
+        }
+      })
+    });
   }
 }
 ```
 
-### Arquivo afetado
-- `src/hooks/useVisitas.ts` (1 arquivo, ~10 linhas adicionadas)
+**No `handleAssinatura` (public-submit):** após o update bem-sucedido, adicionar bloco similar notificando o corretor de que a assinatura foi registrada.
+
+### Arquivos afetados
+- `supabase/functions/public-submit/index.ts` (2 blocos de notificação)
+- `src/components/visitas/FeedbackRealtimeListener.tsx` (polling de assinaturas — opcional)
 
