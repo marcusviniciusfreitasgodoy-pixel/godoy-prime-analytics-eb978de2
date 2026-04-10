@@ -15,8 +15,7 @@ import { VisitasEvolutionChart } from "@/components/visitas/VisitasEvolutionChar
 import { CorretorRanking } from "@/components/visitas/CorretorRanking";
 import { FeedbackAnalyticsDashboard } from "@/components/visitas/FeedbackAnalyticsDashboard";
 import { PageTour, TourButton } from "@/components/PageTour";
-import { Calendar, List, Plus, Loader2, LayoutDashboard, Trophy, MessageSquare, ArrowUpDown } from "lucide-react";
-import { useNavigate } from "react-router-dom";
+import { Calendar, List, Plus, Loader2, LayoutDashboard, Trophy, MessageSquare, ArrowUpDown, FilePlus } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { useFeedbackAnalytics } from "@/hooks/useFeedbackAnalytics";
