@@ -1,35 +1,65 @@
 
 
-## Plano: Migração Evolution API → Z-API
+## Plano: Template "pos_visita" com ficha completa no WhatsApp
 
-### Dados fornecidos
-- **Instance ID**: `3F172E6464E6822C9BFA9E648AE68DF9`
-- **Token**: `2489C64D3BF41EBEA82BBA81`
+### Objetivo
+Criar um novo template `pos_visita` na Edge Function `send-whatsapp` que envia todos os dados da ficha de visita ao visitante, com links de assinatura e feedback, e instrucoes para preencher dados faltantes. Automatizar o envio ao mudar status para "realizada".
 
-### Passo 1 — Configurar Secrets
-Adicionar 2 novos secrets e remover os 3 antigos:
+### Alteracoes
 
-| Ação | Secret | Valor |
-|------|--------|-------|
-| Adicionar | `ZAPI_INSTANCE_ID` | `3F172E6464E6822C9BFA9E648AE68DF9` |
-| Adicionar | `ZAPI_TOKEN` | `2489C64D3BF41EBEA82BBA81` |
-| Remover | `EVOLUTION_API_URL` | — |
-| Remover | `EVOLUTION_API_KEY` | — |
-| Remover | `EVOLUTION_INSTANCE_NAME` | — |
+#### 1. Edge Function `send-whatsapp` — novo template `pos_visita`
 
-### Passo 2 — Atualizar `send-whatsapp/index.ts`
-- Substituir leitura de `EVOLUTION_*` por `ZAPI_INSTANCE_ID` e `ZAPI_TOKEN`
-- Endpoint: `https://api.z-api.io/instances/{ID}/token/{TOKEN}/send-text`
-- Body: `{ phone, message }` (ao invés de `{ number, text }`)
-- Remover header `apikey`
+- Adicionar `'pos_visita'` ao tipo `WhatsAppRequest['tipo']`
+- Expandir a interface `dados` com campos opcionais: `valor_imovel`, `condominio_edificio`, `unidade_imovel`, `nome_corretor`, `nome_proprietario`, `cpf_visitante`, `link_feedback`, `link_ficha`
+- Criar template `pos_visita` no `gerarMensagem` com formato:
 
-### Passo 3 — Atualizar `notify-proposta/index.ts`
-- Mesma substituição na seção de WhatsApp (linhas 255-278)
-- Endpoint e body no formato Z-API
+```text
+📋 *Ficha de Visita Realizada*
 
-### Passo 4 — Deploy das 2 funções
+Olá *{nome_visitante}*! 👋
 
-### Arquivos alterados
-- `supabase/functions/send-whatsapp/index.ts`
-- `supabase/functions/notify-proposta/index.ts`
+Sua visita foi concluída com sucesso. Seguem os dados registrados:
+
+🏠 *Dados do Imóvel*
+📍 Endereço: {endereco_imovel}
+🏢 Condomínio: {condominio_edificio}
+🏠 Unidade: {unidade_imovel}
+🔑 Código: {codigo_imovel}
+💰 Valor: R$ {valor_imovel}
+👤 Proprietário: {nome_proprietario}
+
+📅 Data da Visita: {data_hora}
+👔 Corretor: {nome_corretor}
+
+📝 *Assinatura Digital:*
+{link_assinatura}
+
+⭐ *Pesquisa de Satisfação:*
+{link_feedback}
+
+📋 *Ficha Completa:*
+{link_ficha}
+
+⚠️ *Importante:* Por favor, analise os dados acima e
+preencha qualquer informação que esteja faltando
+acessando os links acima.
+
+_Godoy Prime Analytics_
+```
+
+#### 2. `src/utils/whatsappService.ts` — nova funcao `enviarFichaCompletaPosVisita`
+
+- Criar funcao que aceita a ficha completa (`FichaVisita`) e monta o payload com todos os dados do imovel, links de assinatura, feedback e ficha
+- Usar tipo `'pos_visita'`
+
+#### 3. `src/hooks/useVisitas.ts` — substituir chamada no `updateStatus`
+
+- No bloco `if (data.status === "realizada")`, substituir a chamada a `enviarSolicitacaoFeedback` pela nova `enviarFichaCompletaPosVisita`
+- Passar todos os dados da ficha (valor, condominio, unidade, proprietario, corretor, etc.) junto com os links de assinatura, feedback e ficha
+
+### Detalhes tecnicos
+- A Edge Function `send-whatsapp` precisa ser re-deployada apos a alteracao
+- O `whatsappService.ts` importara o tipo `FichaVisita` para tipagem
+- O link da ficha sera: `{baseUrl}/visitas/ficha/{id}`
+- Campos nulos/vazios serao omitidos do template (exibicao condicional)
 
