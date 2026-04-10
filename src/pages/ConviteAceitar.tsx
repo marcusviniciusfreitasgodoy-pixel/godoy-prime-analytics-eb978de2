@@ -34,7 +34,7 @@ export default function ConviteAceitar() {
   const loadInvite = async () => {
     try {
       const { data, error } = await supabase
-        .rpc("lookup_invite_by_token", { p_token: token });
+        .rpc("lookup_invite_by_token" as any, { p_token: token });
 
       if (error || !data || (Array.isArray(data) && data.length === 0)) {
         setExpired(true);
