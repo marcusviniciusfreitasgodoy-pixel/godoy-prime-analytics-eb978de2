@@ -330,15 +330,22 @@ export default function FichaVisitaPage() {
                         />
                       </div>
                       <div>
-                        <Label>Valor</Label>
+                        <Label>Valor (R$)</Label>
                         <Input
-                          type="number"
-                          value={editedFicha.valor_imovel ?? ""}
+                          type="text"
+                          inputMode="numeric"
+                          placeholder="Ex: 1500000"
+                          value={editedFicha.valor_imovel != null ? String(editedFicha.valor_imovel) : ""}
                           onChange={(e) => {
-                            const val = e.target.value;
-                            setEditedFicha(prev => ({ ...prev, valor_imovel: val === "" ? null : parseFloat(val) }));
+                            const raw = e.target.value.replace(/[^\d.,]/g, '').replace(',', '.');
+                            setEditedFicha(prev => ({ ...prev, valor_imovel: raw === "" ? null : parseFloat(raw) || null }));
                           }}
                         />
+                        {editedFicha.valor_imovel != null && (
+                          <p className="text-xs text-muted-foreground mt-1">
+                            {new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(editedFicha.valor_imovel)}
+                          </p>
+                        )}
                       </div>
                       <div className="md:col-span-2">
                         <Label>Proprietário</Label>
