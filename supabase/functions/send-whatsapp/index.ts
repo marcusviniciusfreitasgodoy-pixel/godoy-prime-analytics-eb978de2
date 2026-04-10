@@ -145,7 +145,7 @@ Sua visita foi concluída com sucesso. Seguem os dados registrados:
 📅 *Data da Visita:* ${dataFormatada}${dados.nome_corretor ? `\n👔 *Corretor:* ${dados.nome_corretor}` : ''}
 
 ${dados.link_assinatura ? `📝 *Assinatura Digital:*\n${dados.link_assinatura}\n` : ''}
-${dados.link_feedback ? `⭐ *Pesquisa de Satisfação:*\n${dados.link_feedback}\n` : ''}
+${dados.link_feedback ? `⭐ *Feedback sobre o Imóvel:*\n${dados.link_feedback}\n` : ''}
 ${dados.link_ficha ? `📋 *Ficha Completa:*\n${dados.link_ficha}\n` : ''}
 ⚠️ *Importante:* Por favor, analise os dados acima e preencha qualquer informação que esteja faltando acessando os links acima.
 
