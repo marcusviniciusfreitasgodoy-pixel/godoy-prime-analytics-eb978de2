@@ -7,7 +7,6 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useVisitas } from "@/hooks/useVisitas";
 import { useAgendamentos } from "@/hooks/useAgendamentos";
 import { useVisitasStats } from "@/hooks/useVisitasStats";
-import { useAuth } from "@/hooks/useAuth";
 import { useDemo } from "@/contexts/DemoContext";
 import { VisitCard } from "@/components/visitas/VisitCard";
 import { VisitasDashboardKPIs } from "@/components/visitas/VisitasDashboardKPIs";
