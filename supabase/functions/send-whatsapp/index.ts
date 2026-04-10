@@ -220,7 +220,20 @@ serve(async (req) => {
       }),
     });
 
-    const responseData = await response.json();
+    const responseText = await response.text();
+    let responseData: any;
+    try {
+      responseData = JSON.parse(responseText);
+    } catch {
+      console.error('Evolution API resposta não-JSON:', responseText);
+      if (!response.ok) {
+        return new Response(
+          JSON.stringify({ success: false, error: 'Resposta inválida da Evolution API', details: responseText }),
+          { status: 502, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+      responseData = { raw: responseText };
+    }
 
     if (!response.ok) {
       console.error('Erro Evolution API:', responseData);
