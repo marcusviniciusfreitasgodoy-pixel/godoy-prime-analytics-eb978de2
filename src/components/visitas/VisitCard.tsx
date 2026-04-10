@@ -7,7 +7,7 @@ import { VisitStatusBadge } from "./VisitStatusBadge";
 import { BrokerFeedbackModal } from "./BrokerFeedbackModal";
 import { format, differenceInCalendarDays, differenceInHours } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { MapPin, User, Phone, Calendar, Eye, FileText, XCircle, FilePlus, Mail, Clock, MessageSquare } from "lucide-react";
+import { MapPin, User, Phone, Calendar, Eye, FileText, XCircle, Mail, Clock, MessageSquare } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";

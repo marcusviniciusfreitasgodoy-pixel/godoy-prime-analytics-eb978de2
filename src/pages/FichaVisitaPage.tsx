@@ -270,6 +270,22 @@ export default function FichaVisitaPage() {
           </div>
         </div>
 
+        {/* Banner de campos pendentes */}
+        {(ficha.cpf_visitante === "A preencher" || ficha.nome_proprietario === "A preencher") && (
+          <div className="bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 rounded-lg p-4 flex items-center gap-3">
+            <div className="h-8 w-8 rounded-full bg-amber-100 dark:bg-amber-900 flex items-center justify-center flex-shrink-0">
+              <FileText className="h-4 w-4 text-amber-600 dark:text-amber-400" />
+            </div>
+            <div className="flex-1">
+              <p className="text-sm font-medium text-amber-800 dark:text-amber-200">Campos pendentes de preenchimento</p>
+              <p className="text-xs text-amber-600 dark:text-amber-400">Clique em "Editar Ficha" para preencher CPF, proprietário e outros dados antes da visita.</p>
+            </div>
+            <Button variant="outline" size="sm" className="border-amber-300 text-amber-700 hover:bg-amber-100" onClick={() => setIsEditing(true)}>
+              Completar
+            </Button>
+          </div>
+        )}
+
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6">
           {/* Coluna Principal */}
           <div className="lg:col-span-2 space-y-6">
