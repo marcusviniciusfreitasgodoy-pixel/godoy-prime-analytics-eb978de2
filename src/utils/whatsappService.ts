@@ -1,5 +1,6 @@
 import { supabase } from "@/integrations/supabase/client";
 import { fetchNotificationSettings } from "@/hooks/useNotificationSettings";
+import { FichaVisita } from "@/types/visitas";
 
 interface WhatsAppDados {
   nome_visitante: string;
@@ -8,9 +9,16 @@ interface WhatsAppDados {
   codigo_imovel?: string;
   link_assinatura?: string;
   link_reagendamento?: string;
+  valor_imovel?: string;
+  condominio_edificio?: string;
+  unidade_imovel?: string;
+  nome_corretor?: string;
+  nome_proprietario?: string;
+  link_feedback?: string;
+  link_ficha?: string;
 }
 
-type TipoMensagem = 'confirmacao' | 'lembrete' | 'cancelamento' | 'reagendamento';
+type TipoMensagem = 'confirmacao' | 'lembrete' | 'cancelamento' | 'reagendamento' | 'pos_visita';
 
 export async function enviarWhatsApp(
   telefone: string,
@@ -22,7 +30,7 @@ export async function enviarWhatsApp(
     const settings = await fetchNotificationSettings();
     
     if (settings) {
-      const tipoConfig: Record<TipoMensagem, keyof typeof settings> = {
+      const tipoConfig: Partial<Record<TipoMensagem, keyof typeof settings>> = {
         confirmacao: 'whatsapp_confirmacao',
         lembrete: 'whatsapp_lembrete',
         cancelamento: 'whatsapp_cancelamento',
@@ -119,5 +127,28 @@ export async function enviarSolicitacaoFeedback(
     endereco_imovel: dados.endereco_imovel,
     data_hora: new Date().toISOString(),
     link_assinatura: feedbackUrl,
+  });
+}
+
+// Enviar ficha completa pós-visita por WhatsApp
+export async function enviarFichaCompletaPosVisita(
+  telefone: string,
+  ficha: FichaVisita
+): Promise<{ success: boolean; error?: string }> {
+  const baseUrl = window.location.origin;
+
+  return enviarWhatsApp(telefone, 'pos_visita', {
+    nome_visitante: ficha.nome_visitante,
+    endereco_imovel: ficha.endereco_imovel,
+    data_hora: ficha.data_visita,
+    codigo_imovel: ficha.codigo_imovel || undefined,
+    condominio_edificio: ficha.condominio_edificio || undefined,
+    unidade_imovel: ficha.unidade_imovel || undefined,
+    nome_corretor: ficha.nome_corretor || undefined,
+    nome_proprietario: ficha.nome_proprietario || undefined,
+    valor_imovel: ficha.valor_imovel ? ficha.valor_imovel.toLocaleString('pt-BR') : undefined,
+    link_assinatura: `${baseUrl}/visitas/assinatura/${ficha.codigo}/visitante`,
+    link_feedback: `${baseUrl}/visitas/feedback/${ficha.codigo}`,
+    link_ficha: `${baseUrl}/visitas/ficha/${ficha.id}`,
   });
 }

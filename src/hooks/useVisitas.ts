@@ -2,7 +2,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { FichaVisita, FichaVisitaInsert, StatusVisita } from "@/types/visitas";
 import { sendFeedbackRequestEmail } from "@/utils/visitEmailService";
-import { enviarSolicitacaoFeedback } from "@/utils/whatsappService";
+import { enviarFichaCompletaPosVisita } from "@/utils/whatsappService";
 import { toast } from "sonner";
 import { useDemo } from "@/contexts/DemoContext";
 import { DEMO_FICHAS_VISITA } from "@/data/demoData";
@@ -128,19 +128,15 @@ export function useVisitas() {
           }
         }
 
-        // Enviar link de assinatura + feedback ao visitante por WhatsApp
+        // Enviar ficha completa + assinatura + feedback ao visitante por WhatsApp
         if (data.telefone_visitante) {
           try {
-            const resultado = await enviarSolicitacaoFeedback(data.telefone_visitante, {
-              nome_visitante: data.nome_visitante,
-              endereco_imovel: data.endereco_imovel,
-              codigo_visita: data.codigo,
-            });
+            const resultado = await enviarFichaCompletaPosVisita(data.telefone_visitante, data);
             if (resultado.success) {
-              toast.success("WhatsApp com link de feedback enviado!");
+              toast.success("WhatsApp com ficha completa enviado!");
             }
           } catch (err) {
-            console.error("Erro ao enviar WhatsApp de feedback:", err);
+            console.error("Erro ao enviar WhatsApp pós-visita:", err);
           }
         }
 
