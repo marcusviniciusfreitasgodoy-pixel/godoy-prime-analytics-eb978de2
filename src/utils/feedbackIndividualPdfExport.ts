@@ -8,7 +8,6 @@ import {
   formatCurrencyPDF,
   getMaxContentY,
   addNewPageWithTemplate,
-  drawDisclaimer,
 } from './pdfTemplate';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -77,19 +76,31 @@ function drawStars(doc: jsPDF, rating: number, y: number, ml: number): number {
   doc.setTextColor(...BRAND_COLORS.navy);
   doc.text('Avaliação Geral:', ml, y);
   
-  const starX = ml + doc.getTextWidth('Avaliação Geral: ') + 2;
+  const starX = ml + doc.getTextWidth('Avaliação Geral: ') + 5;
+  const starSize = 2.5;
+  
   for (let i = 1; i <= 5; i++) {
+    const cx = starX + (i - 1) * 8;
+    const cy = y - 1.5;
+    
     if (i <= rating) {
-      doc.setTextColor(...BRAND_COLORS.gold);
+      doc.setFillColor(...BRAND_COLORS.gold);
+      doc.circle(cx, cy, starSize, 'F');
+      doc.setDrawColor(180, 150, 40);
+      doc.setLineWidth(0.3);
+      doc.circle(cx, cy, starSize, 'S');
     } else {
-      doc.setTextColor(200, 200, 200);
+      doc.setFillColor(220, 220, 220);
+      doc.circle(cx, cy, starSize, 'F');
+      doc.setDrawColor(200, 200, 200);
+      doc.setLineWidth(0.3);
+      doc.circle(cx, cy, starSize, 'S');
     }
-    doc.setFontSize(12);
-    doc.text('★', starX + (i - 1) * 7, y);
   }
+  
   doc.setFontSize(9);
   doc.setTextColor(...BRAND_COLORS.darkGray);
-  doc.text(`(${rating}/5)`, starX + 38, y);
+  doc.text(`(${rating}/5)`, starX + 42, y);
   return y + 8;
 }
 
@@ -219,9 +230,6 @@ export async function exportFeedbackIndividualPdf(feedback: FeedbackPdfData): Pr
     y += 4;
   }
 
-  // Disclaimer
-  y = checkPageBreak(doc, y, 30);
-  drawDisclaimer(doc, y, ml);
 
   applyFootersToAllPages(doc, companyInfo);
   return doc;
