@@ -252,20 +252,20 @@ serve(async (req) => {
       }
     }
 
-    // ========== SEND WHATSAPP VIA EVOLUTION API ==========
-    const EVOLUTION_API_URL = Deno.env.get('EVOLUTION_API_URL');
-    const EVOLUTION_API_KEY = Deno.env.get('EVOLUTION_API_KEY');
-    const EVOLUTION_INSTANCE_NAME = Deno.env.get('EVOLUTION_INSTANCE_NAME');
+    // ========== SEND WHATSAPP VIA Z-API ==========
+    const ZAPI_INSTANCE_ID = Deno.env.get('ZAPI_INSTANCE_ID');
+    const ZAPI_TOKEN = Deno.env.get('ZAPI_TOKEN');
 
-    if (EVOLUTION_API_URL && EVOLUTION_API_KEY && EVOLUTION_INSTANCE_NAME && corretorPhone) {
+    if (ZAPI_INSTANCE_ID && ZAPI_TOKEN && corretorPhone) {
       try {
         const numero = formatarTelefone(corretorPhone);
         const mensagem = gerarMensagemWhatsApp(payload);
 
-        const res = await fetch(`${EVOLUTION_API_URL}/message/sendText/${EVOLUTION_INSTANCE_NAME}`, {
+        const zapiUrl = `https://api.z-api.io/instances/${ZAPI_INSTANCE_ID}/token/${ZAPI_TOKEN}/send-text`;
+        const res = await fetch(zapiUrl, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json', 'apikey': EVOLUTION_API_KEY },
-          body: JSON.stringify({ number: numero, text: mensagem }),
+          headers: { 'Content-Type': 'application/json', 'Client-Token': ZAPI_TOKEN },
+          body: JSON.stringify({ phone: numero, message: mensagem }),
         });
         const resData = await res.text();
         console.log('WhatsApp corretor:', res.status, resData);
@@ -274,7 +274,7 @@ serve(async (req) => {
         console.error('Erro WhatsApp:', e);
       }
     } else {
-      console.log('WhatsApp não enviado: Evolution não configurada ou telefone do corretor não disponível');
+      console.log('WhatsApp não enviado: Z-API não configurada ou telefone do corretor não disponível');
     }
 
     return new Response(
