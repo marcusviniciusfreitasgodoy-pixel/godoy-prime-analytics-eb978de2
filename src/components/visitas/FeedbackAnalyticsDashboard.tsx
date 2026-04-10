@@ -16,6 +16,7 @@ import { ptBR } from "date-fns/locale";
 import { exportFeedbackAnalyticsPdf } from "@/utils/feedbackAnalyticsPdfExport";
 import { SendPdfEmailDialog, type ReportType } from "@/components/SendPdfEmailDialog";
 import { useToast } from "@/hooks/use-toast";
+import { FeedbackDetailModal, type FeedbackDetail } from "./FeedbackDetailModal";
 
 const PIE_COLORS = [
   "hsl(152 76% 36%)", // emerald
