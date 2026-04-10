@@ -3296,6 +3296,25 @@ export type Database = {
           status: Database["public"]["Enums"]["status_visita"]
         }[]
       }
+      get_ficha_publica: {
+        Args: { p_codigo: string }
+        Returns: {
+          codigo: string
+          codigo_imovel: string
+          condominio_edificio: string
+          data_visita: string
+          endereco_imovel: string
+          nome_corretor: string
+          nome_proprietario: string
+          nome_visitante: string
+          observacoes: string
+          status: Database["public"]["Enums"]["status_visita"]
+          tem_assinatura_corretor: boolean
+          tem_assinatura_visitante: boolean
+          unidade_imovel: string
+          valor_imovel: number
+        }[]
+      }
       get_logradouros_sem_geo: {
         Args: { p_limite?: number }
         Returns: {
