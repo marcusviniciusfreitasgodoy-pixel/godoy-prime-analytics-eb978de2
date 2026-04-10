@@ -59,7 +59,7 @@ export function useVisitasStats() {
 
       const fichasData = fichas || [];
       const feedbacksData = (feedbacks || []) as any[];
-      const agendamentosData = (agendamentos || []) as Array<{ status: string | null }>;
+      const agendamentosData = (agendamentos || []) as unknown as Array<{ status: string | null }>;
 
       const totalAgendadas = agendamentosData.filter(
         (agendamento) => agendamento.status === "agendada" || agendamento.status === "confirmada"
