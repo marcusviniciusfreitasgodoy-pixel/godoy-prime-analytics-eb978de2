@@ -33,6 +33,24 @@ export function VisitCard({ ficha, agendamento, type, onCreateFicha }: VisitCard
         .eq('id', id);
       
       if (error) throw error;
+
+      // Auto-cancelar ficha vinculada
+      try {
+        const { data: fichaVinculada } = await supabase
+          .from('fichas_visita' as any)
+          .select('id')
+          .eq('agendamento_id', id)
+          .maybeSingle();
+        if (fichaVinculada) {
+          await supabase
+            .from('fichas_visita' as any)
+            .update({ status: 'cancelada' as const })
+            .eq('id', (fichaVinculada as any).id);
+          queryClient.invalidateQueries({ queryKey: ['fichas-visita'] });
+        }
+      } catch (fichaErr) {
+        console.error('Erro ao cancelar ficha vinculada:', fichaErr);
+      }
       
       // Enviar e-mail de cancelamento se tiver email do visitante
       if (agendamentoData?.email_visitante) {
@@ -60,6 +78,23 @@ export function VisitCard({ ficha, agendamento, type, onCreateFicha }: VisitCard
     } catch (err) {
       console.error('Erro ao cancelar agendamento:', err);
       toast.error('Erro ao cancelar agendamento');
+    }
+  };
+
+  const handleViewFicha = async (agendamentoId: string) => {
+    try {
+      const { data: fichaVinculada } = await supabase
+        .from('fichas_visita' as any)
+        .select('id')
+        .eq('agendamento_id', agendamentoId)
+        .maybeSingle();
+      if (fichaVinculada) {
+        navigate(`/visitas/ficha/${(fichaVinculada as any).id}`);
+      } else {
+        toast.info('Ficha não encontrada para este agendamento');
+      }
+    } catch (err) {
+      console.error('Erro ao buscar ficha:', err);
     }
   };
 
@@ -196,16 +231,15 @@ export function VisitCard({ ficha, agendamento, type, onCreateFicha }: VisitCard
                 >
                   Editar
                 </Button>
-                {onCreateFicha && (
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => onCreateFicha(agendamento)}
-                    title="Criar Ficha de Visita"
-                  >
-                    <FilePlus className="h-4 w-4" />
-                  </Button>
-                )}
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => handleViewFicha(agendamento.id)}
+                  title="Ver Ficha de Visita"
+                >
+                  <Eye className="h-4 w-4 mr-1" />
+                  <span className="hidden sm:inline">Ficha</span>
+                </Button>
                 <Button
                   variant="ghost"
                   size="sm"

@@ -110,6 +110,11 @@ export function useVisitas() {
       toast.success("Status atualizado!");
 
       if (data.status === "realizada") {
+        const baseUrl = window.location.origin;
+        const signatureVisitanteUrl = `${baseUrl}/visitas/assinatura/${data.codigo}/visitante`;
+        const signatureCorretorUrl = `${baseUrl}/visitas/assinatura/${data.codigo}/corretor`;
+
+        // Enviar link de assinatura + feedback ao visitante por email
         if (data.email_visitante) {
           try {
             await sendFeedbackRequestEmail(data.email_visitante, {
@@ -123,6 +128,7 @@ export function useVisitas() {
           }
         }
 
+        // Enviar link de assinatura + feedback ao visitante por WhatsApp
         if (data.telefone_visitante) {
           try {
             const resultado = await enviarSolicitacaoFeedback(data.telefone_visitante, {
@@ -135,6 +141,31 @@ export function useVisitas() {
             }
           } catch (err) {
             console.error("Erro ao enviar WhatsApp de feedback:", err);
+          }
+        }
+
+        // Notificar corretor com link de assinatura por email
+        if (data.corretor_id) {
+          try {
+            const { data: profile } = await supabase
+              .from("profiles")
+              .select("email, full_name" as any)
+              .eq("id", data.corretor_id)
+              .single();
+            const corretorProfile = profile as unknown as { email: string | null; full_name: string } | null;
+            if (corretorProfile?.email) {
+              // Reutiliza o email de feedback para notificar o corretor
+              await import("@/utils/visitEmailService").then(m =>
+                m.sendCorretorAgendamentoEmail(corretorProfile!.email!, {
+                  nome_visitante: data.nome_visitante,
+                  endereco_imovel: data.endereco_imovel,
+                  data_hora: data.data_visita,
+                  nome_corretor: corretorProfile!.full_name,
+                })
+              );
+            }
+          } catch (err) {
+            console.error("Erro ao notificar corretor:", err);
           }
         }
       }
