@@ -30,7 +30,7 @@ export async function enviarWhatsApp(
     const settings = await fetchNotificationSettings();
     
     if (settings) {
-      const tipoConfig: Record<TipoMensagem, keyof typeof settings> = {
+      const tipoConfig: Partial<Record<TipoMensagem, keyof typeof settings>> = {
         confirmacao: 'whatsapp_confirmacao',
         lembrete: 'whatsapp_lembrete',
         cancelamento: 'whatsapp_cancelamento',
