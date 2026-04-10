@@ -8,9 +8,11 @@ export function FeedbackRealtimeListener() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const lastCheckRef = useRef<string>(new Date().toISOString());
+  const lastSignatureCheckRef = useRef<string>(new Date().toISOString());
 
   useEffect(() => {
     const interval = setInterval(async () => {
+      // --- Poll for new feedbacks ---
       const { data: newFeedbacks } = await supabase
         .from("feedbacks_visita" as any)
         .select("ficha_visita_id, created_at")
@@ -55,7 +57,37 @@ export function FeedbackRealtimeListener() {
         queryClient.invalidateQueries({ queryKey: ["visitas-stats"] });
         queryClient.invalidateQueries({ queryKey: ["feedback-analytics"] });
       }
-    }, 30000); // Poll every 30 seconds
+
+      // --- Poll for new signatures ---
+      const { data: recentFichas } = await supabase
+        .from("fichas_visita" as any)
+        .select("id, codigo, endereco_imovel, nome_visitante, assinatura_visitante, assinatura_corretor, updated_at")
+        .gt("updated_at", lastSignatureCheckRef.current)
+        .order("updated_at", { ascending: false })
+        .limit(5);
+
+      if (recentFichas && recentFichas.length > 0) {
+        lastSignatureCheckRef.current = (recentFichas as any)[0].updated_at;
+
+        for (const ficha of recentFichas as any[]) {
+          if (ficha.assinatura_visitante || ficha.assinatura_corretor) {
+            toast.info(
+              `✍️ Assinatura registrada — ${ficha.nome_visitante} — ${ficha.endereco_imovel}`,
+              {
+                duration: 8000,
+                action: {
+                  label: "Ver ficha",
+                  onClick: () => navigate(`/visitas/ficha/${ficha.id}`),
+                },
+              }
+            );
+          }
+        }
+
+        queryClient.invalidateQueries({ queryKey: ["fichas-visita"] });
+        queryClient.invalidateQueries({ queryKey: ["visitas-stats"] });
+      }
+    }, 30000);
 
     return () => clearInterval(interval);
   }, [navigate, queryClient]);

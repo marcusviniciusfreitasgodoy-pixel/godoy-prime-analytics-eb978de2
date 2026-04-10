@@ -28,6 +28,28 @@ function requireUUID(obj: Record<string, unknown>, key: string, label: string): 
   return v;
 }
 
+// ── Direct WhatsApp helper (bypasses auth-gated send-whatsapp) ────────
+async function sendDirectWhatsApp(telefone: string, message: string) {
+  const ZAPI_INSTANCE_ID = Deno.env.get("ZAPI_INSTANCE_ID");
+  const ZAPI_TOKEN = Deno.env.get("ZAPI_TOKEN");
+  const ZAPI_CLIENT_TOKEN = Deno.env.get("ZAPI_CLIENT_TOKEN");
+  if (!ZAPI_INSTANCE_ID || !ZAPI_TOKEN) return;
+
+  let numero = telefone.replace(/\D/g, "");
+  if (numero.startsWith("0")) numero = numero.substring(1);
+  if (!numero.startsWith("55")) numero = "55" + numero;
+
+  const url = `https://api.z-api.io/instances/${ZAPI_INSTANCE_ID}/token/${ZAPI_TOKEN}/send-text`;
+  await fetch(url, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      ...(ZAPI_CLIENT_TOKEN ? { "Client-Token": ZAPI_CLIENT_TOKEN } : {}),
+    },
+    body: JSON.stringify({ phone: numero, message }),
+  });
+}
+
 // ── Handlers ──────────────────────────────────────────────────────────
 async function handleFeedback(
   supabase: ReturnType<typeof createClient>,
@@ -80,6 +102,31 @@ async function handleFeedback(
 
   const { error } = await supabase.from("feedbacks_visita").insert(allowed);
   if (error) throw error;
+
+  // Notify broker via WhatsApp
+  try {
+    const { data: fichaData } = await supabase
+      .from("fichas_visita")
+      .select("codigo, endereco_imovel, nome_visitante, corretor_id, nome_corretor")
+      .eq("id", fichaVisitaId)
+      .single();
+
+    if (fichaData?.corretor_id) {
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("phone, full_name")
+        .eq("id", fichaData.corretor_id)
+        .single();
+
+      if (profile?.phone) {
+        await sendDirectWhatsApp(profile.phone,
+          `📩 *Novo Feedback Recebido!*\n\nOlá *${profile.full_name || fichaData.nome_corretor}*! 👋\n\nO visitante *${fichaData.nome_visitante}* enviou um feedback sobre o imóvel:\n\n📍 *Endereço:* ${fichaData.endereco_imovel}\n🔑 *Código:* ${fichaData.codigo}\n\nAcesse a plataforma para conferir os detalhes.\n\n_Godoy Prime Analytics_`
+        );
+      }
+    }
+  } catch (notifyErr) {
+    console.error("Erro ao notificar corretor sobre feedback:", notifyErr);
+  }
 
   return new Response(JSON.stringify({ success: true }), {
     status: 200,
@@ -184,6 +231,32 @@ async function handleAssinatura(
     .update({ [field]: signatureData })
     .eq("id", ficha.id);
   if (error) throw error;
+
+  // Notify broker via WhatsApp about signature
+  try {
+    const { data: fichaCompleta } = await supabase
+      .from("fichas_visita")
+      .select("codigo, endereco_imovel, nome_visitante, corretor_id, nome_corretor")
+      .eq("id", ficha.id)
+      .single();
+
+    if (fichaCompleta?.corretor_id) {
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("phone, full_name")
+        .eq("id", fichaCompleta.corretor_id)
+        .single();
+
+      const tipoLabel = tipo === "visitante" ? "do visitante" : "do corretor";
+      if (profile?.phone) {
+        await sendDirectWhatsApp(profile.phone,
+          `✍️ *Assinatura Registrada!*\n\nOlá *${profile.full_name || fichaCompleta.nome_corretor}*! 👋\n\nA assinatura *${tipoLabel}* foi registrada na ficha de visita:\n\n📍 *Endereço:* ${fichaCompleta.endereco_imovel}\n👤 *Visitante:* ${fichaCompleta.nome_visitante}\n🔑 *Código:* ${fichaCompleta.codigo}\n\n_Godoy Prime Analytics_`
+        );
+      }
+    }
+  } catch (notifyErr) {
+    console.error("Erro ao notificar corretor sobre assinatura:", notifyErr);
+  }
 
   return new Response(JSON.stringify({ success: true }), {
     status: 200,
