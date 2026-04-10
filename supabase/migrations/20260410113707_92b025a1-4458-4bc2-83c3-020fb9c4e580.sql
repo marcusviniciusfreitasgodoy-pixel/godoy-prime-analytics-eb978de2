@@ -1,0 +1,1 @@
+UPDATE profiles SET organization_id = 'a0000000-0000-0000-0000-000000000001' WHERE id = '6c029966-f331-4653-887c-9c275683b2bc' AND organization_id IS NULL;
