@@ -8,7 +8,7 @@ const corsHeaders = {
 
 interface WhatsAppRequest {
   telefone: string;
-  tipo: 'confirmacao' | 'lembrete' | 'cancelamento' | 'reagendamento';
+  tipo: 'confirmacao' | 'lembrete' | 'cancelamento' | 'reagendamento' | 'pos_visita';
   dados: {
     nome_visitante: string;
     endereco_imovel: string;
@@ -16,6 +16,13 @@ interface WhatsAppRequest {
     codigo_imovel?: string;
     link_assinatura?: string;
     link_reagendamento?: string;
+    valor_imovel?: string;
+    condominio_edificio?: string;
+    unidade_imovel?: string;
+    nome_corretor?: string;
+    nome_proprietario?: string;
+    link_feedback?: string;
+    link_ficha?: string;
   };
 }
 
@@ -121,6 +128,26 @@ ${dados.codigo_imovel ? `🏠 *Código:* ${dados.codigo_imovel}` : ''}
 
 ${dados.link_assinatura ? `📝 *Link para Assinatura:*\n${dados.link_assinatura}\n` : ''}
 Estamos aguardando você! 😊
+
+_Godoy Prime Analytics_
+📞 (21) 96407-5124`;
+
+    case 'pos_visita':
+      return `📋 *Ficha de Visita Realizada*
+
+Olá *${dados.nome_visitante}*! 👋
+
+Sua visita foi concluída com sucesso. Seguem os dados registrados:
+
+🏠 *Dados do Imóvel*
+📍 *Endereço:* ${dados.endereco_imovel}${dados.condominio_edificio ? `\n🏢 *Condomínio:* ${dados.condominio_edificio}` : ''}${dados.unidade_imovel ? `\n🔢 *Unidade:* ${dados.unidade_imovel}` : ''}${dados.codigo_imovel ? `\n🔑 *Código:* ${dados.codigo_imovel}` : ''}${dados.valor_imovel ? `\n💰 *Valor:* R$ ${dados.valor_imovel}` : ''}${dados.nome_proprietario ? `\n👤 *Proprietário:* ${dados.nome_proprietario}` : ''}
+
+📅 *Data da Visita:* ${dataFormatada}${dados.nome_corretor ? `\n👔 *Corretor:* ${dados.nome_corretor}` : ''}
+
+${dados.link_assinatura ? `📝 *Assinatura Digital:*\n${dados.link_assinatura}\n` : ''}
+${dados.link_feedback ? `⭐ *Pesquisa de Satisfação:*\n${dados.link_feedback}\n` : ''}
+${dados.link_ficha ? `📋 *Ficha Completa:*\n${dados.link_ficha}\n` : ''}
+⚠️ *Importante:* Por favor, analise os dados acima e preencha qualquer informação que esteja faltando acessando os links acima.
 
 _Godoy Prime Analytics_
 📞 (21) 96407-5124`;
