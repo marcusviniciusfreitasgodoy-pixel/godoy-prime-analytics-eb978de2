@@ -1,33 +1,26 @@
 
 
-# Busca/Filtro + Gráfico Semestral nas Microregiões
+# Horários Quebrados no Agendamento de Visitas
 
-## Mudança 1: Campo de busca na lista de Microregiões
-
-### `src/pages/Microbairros.tsx`
-- Adicionar estado `searchFilter: string`
-- Renderizar um `Input` com ícone `Search` acima da tabela/cards (visível em ambos os modos)
-- Filtrar `microbairros` pelo `searchFilter` antes de renderizar, comparando com `microbairro`, `condominioNome` e `displayName` (case-insensitive, sem acentos via `normalizeAccents`)
-- Importar `Input` de `@/components/ui/input`, `Search` de `lucide-react`, `normalizeAccents` de `@/lib/utils`
-
-## Mudança 2: Gráfico por semestre em vez de mensal
-
-### `src/components/StreetComparisonChart.tsx`
-- Em vez de agrupar por mês (`YYYY-MM`), agrupar os `dados_mensais` por **semestre** (`YYYY-S1` / `YYYY-S2`)
-- Calcular a média ponderada de `media_m2` × `transacoes` dentro de cada semestre
-- Labels do eixo X: `1°Sem/24`, `2°Sem/24`, `1°Sem/25`, etc.
-- Isso elimina meses zerados e produz um gráfico mais limpo e legível
-
-### Lógica de agrupamento (pseudo-código)
-```typescript
-// Converter mes "YYYY-MM" → semestre "YYYY-S1" ou "YYYY-S2"
-const semestre = parseInt(mm) <= 6 ? 'S1' : 'S2';
-const key = `${year}-${semestre}`;
-// Agregar soma ponderada e peso total por semestre
-// Label: "1°Sem/24" ou "2°Sem/25"
-```
+## Objetivo
+Substituir a lista de horários cheios (08:00, 09:00...) por horários com intervalos de 15 minutos (08:00, 08:15, 08:30, 08:45, 09:00...) tanto no agendamento quanto na gestão de disponibilidade.
 
 ## Arquivos alterados
-1. `src/pages/Microbairros.tsx` — campo de busca + filtro
-2. `src/components/StreetComparisonChart.tsx` — agrupamento semestral
+
+### 1. `src/components/visitas/AvailabilityManager.tsx`
+- Expandir `DEFAULT_HORARIOS` para incluir intervalos de 15 minutos:
+  `"08:00", "08:15", "08:30", "08:45", "09:00", ... "18:00", "18:15", "18:30", "18:45"`
+- Ajustar o grid de botões de `grid-cols-3` para `grid-cols-4` para acomodar mais opções
+- Agrupar visualmente os horários por hora (separadores ou labels de hora)
+
+### 2. `src/components/visitas/ScheduleForm.tsx`
+- Alterar os horários padrão (fallback quando não há disponibilidade cadastrada) de cheios para intervalos de 15 minutos nas 3 ocorrências (linhas ~116, ~134, ~184, ~206)
+- O select de horário já funciona com qualquer string "HH:mm", então não precisa de mudança estrutural
+
+### 3. `src/hooks/useDisponibilidade.ts`
+- Nenhuma alteração necessária — já armazena `horarios_disponiveis: string[]` livre
+
+## Detalhes técnicos
+- Gerar horários com: `Array.from({length: 45}, (_, i) => { const h = Math.floor(i/4)+8; const m = (i%4)*15; return \`\${h.toString().padStart(2,'0')}:\${m.toString().padStart(2,'0')}\` })`
+- O parsing em `onSubmit` já usa `split(":")` para horas e minutos, então suporta `:15`, `:30`, `:45` sem mudanças
 
