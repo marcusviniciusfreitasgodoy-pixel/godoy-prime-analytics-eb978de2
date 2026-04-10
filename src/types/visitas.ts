@@ -37,6 +37,7 @@ export interface FichaVisita {
   aceita_ofertas_similares: boolean;
   created_at: string;
   updated_at: string;
+  agendamento_id?: string | null;
 }
 
 export interface FichaVisitaInsert {
@@ -62,6 +63,7 @@ export interface FichaVisitaInsert {
   assinatura_corretor?: string | null;
   notas?: string | null;
   aceita_ofertas_similares?: boolean;
+  agendamento_id?: string | null;
 }
 
 export interface FeedbackVisita {

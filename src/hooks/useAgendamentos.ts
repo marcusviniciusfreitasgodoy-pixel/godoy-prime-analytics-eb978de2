@@ -49,6 +49,38 @@ export function useAgendamentos() {
       queryClient.invalidateQueries({ queryKey: ["visitas-stats"] });
       toast.success("Agendamento criado com sucesso!");
 
+      // Auto-criar ficha de visita vinculada ao agendamento
+      try {
+        const codigo = `VIS-${Date.now().toString(36).toUpperCase()}`;
+        let nomeCorretor = "Corretor";
+        if (data.corretor_id) {
+          const { data: profile } = await supabase
+            .from("profiles").select("full_name" as any).eq("id", data.corretor_id).single();
+          if (profile) nomeCorretor = (profile as any).full_name || "Corretor";
+        }
+        await supabase
+          .from("fichas_visita" as any)
+          .insert({
+            codigo,
+            agendamento_id: data.id,
+            nome_visitante: data.nome_visitante,
+            telefone_visitante: data.telefone_visitante,
+            email_visitante: data.email_visitante || null,
+            cpf_visitante: "A preencher",
+            endereco_imovel: data.endereco_imovel,
+            codigo_imovel: data.codigo_imovel || null,
+            corretor_id: data.corretor_id || null,
+            nome_corretor: nomeCorretor,
+            nome_proprietario: "A preencher",
+            data_visita: data.data_hora,
+            status: "agendada" as const,
+          });
+        queryClient.invalidateQueries({ queryKey: ["fichas-visita"] });
+        toast.success("Ficha de visita criada automaticamente!");
+      } catch (fichaErr) {
+        console.error("Erro ao criar ficha automática:", fichaErr);
+      }
+
       if (data.email_visitante) {
         try {
           await sendAgendamentoConfirmadoEmail(data.email_visitante, {
@@ -148,14 +180,33 @@ export function useAgendamentos() {
       queryClient.invalidateQueries({ queryKey: ["visitas-stats"] });
       toast.success("Status atualizado!");
 
-      if (novoStatus === 'cancelada' && statusAnterior !== 'cancelada' && agendamento.telefone_visitante) {
+      if (novoStatus === 'cancelada' && statusAnterior !== 'cancelada') {
+        // Auto-cancelar ficha vinculada
         try {
-          const resultado = await enviarCancelamentoVisita(agendamento.telefone_visitante, {
-            nome_visitante: agendamento.nome_visitante, endereco_imovel: agendamento.endereco_imovel,
-            data_hora: agendamento.data_hora,
-          });
-          if (resultado.success) toast.success("WhatsApp de cancelamento enviado!");
-        } catch (err) { console.error("Erro ao enviar WhatsApp:", err); }
+          const { data: fichaVinculada } = await supabase
+            .from("fichas_visita" as any)
+            .select("id")
+            .eq("agendamento_id", agendamento.id)
+            .maybeSingle();
+          if (fichaVinculada) {
+            await supabase
+              .from("fichas_visita" as any)
+              .update({ status: "cancelada" as const })
+              .eq("id", (fichaVinculada as any).id);
+            queryClient.invalidateQueries({ queryKey: ["fichas-visita"] });
+            toast.info("Ficha de visita cancelada automaticamente");
+          }
+        } catch (err) { console.error("Erro ao cancelar ficha vinculada:", err); }
+
+        if (agendamento.telefone_visitante) {
+          try {
+            const resultado = await enviarCancelamentoVisita(agendamento.telefone_visitante, {
+              nome_visitante: agendamento.nome_visitante, endereco_imovel: agendamento.endereco_imovel,
+              data_hora: agendamento.data_hora,
+            });
+            if (resultado.success) toast.success("WhatsApp de cancelamento enviado!");
+          } catch (err) { console.error("Erro ao enviar WhatsApp:", err); }
+        }
       }
     },
     onError: (error) => {
