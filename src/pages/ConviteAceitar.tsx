@@ -34,27 +34,19 @@ export default function ConviteAceitar() {
   const loadInvite = async () => {
     try {
       const { data, error } = await supabase
-        .from("organization_invites")
-        .select("*, organizations(name)")
-        .eq("token", token)
-        .is("accepted_at", null)
-        .single();
+        .rpc("lookup_invite_by_token" as any, { p_token: token });
 
-      if (error || !data) {
+      if (error || !data || (Array.isArray(data) && data.length === 0)) {
         setExpired(true);
         setIsLoading(false);
         return;
       }
 
-      if (new Date(data.expires_at) < new Date()) {
-        setExpired(true);
-        setIsLoading(false);
-        return;
-      }
+      const inviteData = Array.isArray(data) ? data[0] : data;
 
-      setInvite(data);
-      setEmail(data.email);
-      setOrgName((data as any).organizations?.name || "");
+      setInvite(inviteData);
+      setEmail(inviteData.email);
+      setOrgName(inviteData.organization_name || "");
     } catch {
       setExpired(true);
     } finally {

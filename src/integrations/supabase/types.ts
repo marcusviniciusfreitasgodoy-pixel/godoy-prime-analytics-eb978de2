@@ -3334,6 +3334,17 @@ export type Database = {
       }
       limpar_torres_algoritmo: { Args: never; Returns: undefined }
       longtransactionsenabled: { Args: never; Returns: boolean }
+      lookup_invite_by_token: {
+        Args: { p_token: string }
+        Returns: {
+          accepted_at: string
+          email: string
+          expires_at: string
+          id: string
+          organization_name: string
+          role: string
+        }[]
+      }
       normalizar_logradouro: { Args: { texto: string }; Returns: string }
       populate_geometry_columns:
         | { Args: { tbl_oid: unknown; use_typmod?: boolean }; Returns: number }
