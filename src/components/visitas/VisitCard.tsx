@@ -17,10 +17,9 @@ interface VisitCardProps {
   ficha?: FichaVisita;
   agendamento?: AgendamentoVisita;
   type: "ficha" | "agendamento";
-  onCreateFicha?: (agendamento: AgendamentoVisita) => void;
 }
 
-export function VisitCard({ ficha, agendamento, type, onCreateFicha }: VisitCardProps) {
+export function VisitCard({ ficha, agendamento, type }: VisitCardProps) {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [brokerFeedbackOpen, setBrokerFeedbackOpen] = useState(false);
