@@ -16,6 +16,7 @@ import { ptBR } from "date-fns/locale";
 import { exportFeedbackAnalyticsPdf } from "@/utils/feedbackAnalyticsPdfExport";
 import { SendPdfEmailDialog, type ReportType } from "@/components/SendPdfEmailDialog";
 import { useToast } from "@/hooks/use-toast";
+import { FeedbackDetailModal, type FeedbackDetail } from "./FeedbackDetailModal";
 
 const PIE_COLORS = [
   "hsl(152 76% 36%)", // emerald
@@ -79,7 +80,9 @@ export function FeedbackAnalyticsDashboard() {
   const { data: analytics, isLoading } = useFeedbackAnalytics();
   const [isExporting, setIsExporting] = useState(false);
   const [emailDialogOpen, setEmailDialogOpen] = useState(false);
+  const [selectedFeedback, setSelectedFeedback] = useState<FeedbackDetail | null>(null);
   const { toast } = useToast();
+
 
   const handleDownloadPdf = async () => {
     if (!analytics) return;
@@ -307,7 +310,11 @@ export function FeedbackAnalyticsDashboard() {
         </CardHeader>
         <CardContent className="space-y-2">
           {analytics.recentFeedbacks.map((fb) => (
-            <div key={fb.id} className="flex items-center justify-between p-2 rounded-lg border bg-muted/30 text-sm">
+            <div
+              key={fb.id}
+              className="flex items-center justify-between p-2 rounded-lg border bg-muted/30 text-sm cursor-pointer hover:bg-muted/60 transition-colors"
+              onClick={() => setSelectedFeedback(fb as unknown as FeedbackDetail)}
+            >
               <div className="flex items-center gap-3 min-w-0 flex-1">
                 <Badge variant="outline" className="shrink-0 text-xs">
                   <Star className="h-3 w-3 fill-yellow-400 text-yellow-400 mr-0.5" />
@@ -332,6 +339,12 @@ export function FeedbackAnalyticsDashboard() {
       </Card>
       {/* Client vs Broker Comparison */}
       <ClientBrokerComparison />
+
+      <FeedbackDetailModal
+        open={!!selectedFeedback}
+        onOpenChange={(open) => !open && setSelectedFeedback(null)}
+        feedback={selectedFeedback}
+      />
     </div>
   );
 }
