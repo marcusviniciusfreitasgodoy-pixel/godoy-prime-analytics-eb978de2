@@ -66,8 +66,9 @@ export async function enviarConfirmacaoAgendamento(
 ): Promise<{ success: boolean; error?: string }> {
   const baseUrl = window.location.origin;
   
+  const { link_assinatura, ...dadosSemAssinatura } = dados;
   return enviarWhatsApp(telefone, 'confirmacao', {
-    ...dados,
+    ...dadosSemAssinatura,
     link_reagendamento: dados.agendamentoId 
       ? `${baseUrl}/agendar-visita?edit=${dados.agendamentoId}` 
       : undefined,
