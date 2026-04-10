@@ -17,7 +17,6 @@ import { FeedbackAnalyticsDashboard } from "@/components/visitas/FeedbackAnalyti
 import { PageTour, TourButton } from "@/components/PageTour";
 import { Calendar, List, Plus, Loader2, LayoutDashboard, Trophy, MessageSquare, ArrowUpDown, FilePlus } from "lucide-react";
 import { useNavigate } from "react-router-dom";
-import { toast } from "sonner";
 import { useFeedbackAnalytics } from "@/hooks/useFeedbackAnalytics";
 
 export default function Visitas() {
@@ -27,8 +26,7 @@ export default function Visitas() {
   const { stats, corretorRanking, evolucaoMensal, isLoading: loadingStats } = useVisitasStats();
   const { data: feedbackAnalytics } = useFeedbackAnalytics();
   const { isDemo } = useDemo();
-  const { user } = useAuth();
-  const demoUser = isDemo ? { email: "demo@godoyprime.com.br" } : user;
+  const [activeTab, setActiveTab] = useState("dashboard");
   const [activeTab, setActiveTab] = useState("dashboard");
   const [runTour, setRunTour] = useState(false);
   const [statusFilter, setStatusFilter] = useState<string>("todos");
