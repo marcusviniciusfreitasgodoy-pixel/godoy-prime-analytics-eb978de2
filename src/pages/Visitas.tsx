@@ -7,7 +7,6 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useVisitas } from "@/hooks/useVisitas";
 import { useAgendamentos } from "@/hooks/useAgendamentos";
 import { useVisitasStats } from "@/hooks/useVisitasStats";
-import { useAuth } from "@/hooks/useAuth";
 import { useDemo } from "@/contexts/DemoContext";
 import { VisitCard } from "@/components/visitas/VisitCard";
 import { VisitasDashboardKPIs } from "@/components/visitas/VisitasDashboardKPIs";
@@ -15,21 +14,17 @@ import { VisitasEvolutionChart } from "@/components/visitas/VisitasEvolutionChar
 import { CorretorRanking } from "@/components/visitas/CorretorRanking";
 import { FeedbackAnalyticsDashboard } from "@/components/visitas/FeedbackAnalyticsDashboard";
 import { PageTour, TourButton } from "@/components/PageTour";
-import { AgendamentoVisita } from "@/types/visitas";
 import { Calendar, List, Plus, Loader2, LayoutDashboard, Trophy, MessageSquare, ArrowUpDown, FilePlus } from "lucide-react";
 import { useNavigate } from "react-router-dom";
-import { toast } from "sonner";
 import { useFeedbackAnalytics } from "@/hooks/useFeedbackAnalytics";
 
 export default function Visitas() {
   const navigate = useNavigate();
-  const { fichas, isLoading: loadingFichas, createFicha } = useVisitas();
+  const { fichas, isLoading: loadingFichas } = useVisitas();
   const { agendamentos, isLoading: loadingAgendamentos } = useAgendamentos();
   const { stats, corretorRanking, evolucaoMensal, isLoading: loadingStats } = useVisitasStats();
   const { data: feedbackAnalytics } = useFeedbackAnalytics();
   const { isDemo } = useDemo();
-  const { user } = useAuth();
-  const demoUser = isDemo ? { email: "demo@godoyprime.com.br" } : user;
   const [activeTab, setActiveTab] = useState("dashboard");
   const [runTour, setRunTour] = useState(false);
   const [statusFilter, setStatusFilter] = useState<string>("todos");
@@ -54,33 +49,6 @@ export default function Visitas() {
     return filtered;
   }, [agendamentos, statusFilter, sortOrder]);
 
-  const handleCreateFichaFromAgendamento = async (agendamento: AgendamentoVisita) => {
-    if (isDemo) {
-      toast.info("Funcionalidade desabilitada no modo demonstração");
-      return;
-    }
-    try {
-      const codigo = `VIS-${Date.now().toString(36).toUpperCase()}`;
-      await createFicha.mutateAsync({
-        codigo,
-        nome_visitante: agendamento.nome_visitante,
-        telefone_visitante: agendamento.telefone_visitante,
-        email_visitante: agendamento.email_visitante || null,
-        cpf_visitante: "A preencher",
-        endereco_imovel: agendamento.endereco_imovel,
-        codigo_imovel: agendamento.codigo_imovel || null,
-        nome_corretor: demoUser?.email?.split('@')[0] || "Corretor",
-        nome_proprietario: "A preencher",
-        data_visita: agendamento.data_hora,
-        status: "agendada",
-      });
-      toast.success("Ficha de visita criada com sucesso!");
-      setActiveTab("fichas");
-    } catch (error) {
-      console.error("Erro ao criar ficha:", error);
-      toast.error("Erro ao criar ficha de visita");
-    }
-  };
 
   return (
     <>
@@ -190,7 +158,6 @@ export default function Visitas() {
                     key={agendamento.id}
                     agendamento={agendamento}
                     type="agendamento"
-                    onCreateFicha={handleCreateFichaFromAgendamento}
                   />
                 ))}
               </div>
