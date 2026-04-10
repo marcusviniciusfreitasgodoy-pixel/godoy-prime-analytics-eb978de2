@@ -167,16 +167,15 @@ serve(async (req) => {
     console.log('Usuário autenticado:', claimsData.user.email);
     // ========== FIM DA VERIFICAÇÃO ==========
 
-    const EVOLUTION_API_URL = Deno.env.get('EVOLUTION_API_URL');
-    const EVOLUTION_API_KEY = Deno.env.get('EVOLUTION_API_KEY');
-    const EVOLUTION_INSTANCE_NAME = Deno.env.get('EVOLUTION_INSTANCE_NAME');
+    const ZAPI_INSTANCE_ID = Deno.env.get('ZAPI_INSTANCE_ID');
+    const ZAPI_TOKEN = Deno.env.get('ZAPI_TOKEN');
 
-    if (!EVOLUTION_API_URL || !EVOLUTION_API_KEY || !EVOLUTION_INSTANCE_NAME) {
-      console.error('Evolution API não configurada');
+    if (!ZAPI_INSTANCE_ID || !ZAPI_TOKEN) {
+      console.error('Z-API não configurada');
       return new Response(
         JSON.stringify({ 
           success: false, 
-          error: 'Evolution API não configurada' 
+          error: 'Z-API não configurada' 
         }),
         { 
           status: 500, 
@@ -203,22 +202,20 @@ serve(async (req) => {
     const numeroFormatado = formatarTelefone(telefone);
     const mensagem = gerarMensagem(tipo, dados);
 
-    // Normalizar URL removendo barra final
-    const baseUrl = EVOLUTION_API_URL.replace(/\/+$/, '');
-    const evolutionUrl = `${baseUrl}/message/sendText/${EVOLUTION_INSTANCE_NAME}`;
+    const zapiUrl = `https://api.z-api.io/instances/${ZAPI_INSTANCE_ID}/token/${ZAPI_TOKEN}/send-text`;
 
     console.log(`Enviando WhatsApp para ${numeroFormatado} (tipo: ${tipo})`);
-    console.log(`Evolution API URL: ${evolutionUrl}`);
+    console.log(`Z-API URL: ${zapiUrl}`);
     
-    const response = await fetch(evolutionUrl, {
+    const response = await fetch(zapiUrl, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'apikey': EVOLUTION_API_KEY,
+        'Client-Token': ZAPI_TOKEN,
       },
       body: JSON.stringify({
-        number: numeroFormatado,
-        text: mensagem,
+        phone: numeroFormatado,
+        message: mensagem,
       }),
     });
 
