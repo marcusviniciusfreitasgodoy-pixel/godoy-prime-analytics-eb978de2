@@ -255,6 +255,7 @@ serve(async (req) => {
     // ========== SEND WHATSAPP VIA Z-API ==========
     const ZAPI_INSTANCE_ID = Deno.env.get('ZAPI_INSTANCE_ID');
     const ZAPI_TOKEN = Deno.env.get('ZAPI_TOKEN');
+    const ZAPI_CLIENT_TOKEN = Deno.env.get('ZAPI_CLIENT_TOKEN');
 
     if (ZAPI_INSTANCE_ID && ZAPI_TOKEN && corretorPhone) {
       try {
@@ -264,7 +265,7 @@ serve(async (req) => {
         const zapiUrl = `https://api.z-api.io/instances/${ZAPI_INSTANCE_ID}/token/${ZAPI_TOKEN}/send-text`;
         const res = await fetch(zapiUrl, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json', 'Client-Token': ZAPI_TOKEN },
+          headers: { 'Content-Type': 'application/json', ...(ZAPI_CLIENT_TOKEN ? { 'Client-Token': ZAPI_CLIENT_TOKEN } : {}) },
           body: JSON.stringify({ phone: numero, message: mensagem }),
         });
         const resData = await res.text();
