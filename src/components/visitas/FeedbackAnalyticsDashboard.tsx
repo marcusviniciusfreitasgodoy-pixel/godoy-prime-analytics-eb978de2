@@ -80,7 +80,9 @@ export function FeedbackAnalyticsDashboard() {
   const { data: analytics, isLoading } = useFeedbackAnalytics();
   const [isExporting, setIsExporting] = useState(false);
   const [emailDialogOpen, setEmailDialogOpen] = useState(false);
+  const [selectedFeedback, setSelectedFeedback] = useState<FeedbackDetail | null>(null);
   const { toast } = useToast();
+
 
   const handleDownloadPdf = async () => {
     if (!analytics) return;
