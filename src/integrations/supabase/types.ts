@@ -664,6 +664,7 @@ export type Database = {
         Row: {
           aceita_ofertas_similares: boolean | null
           acompanhantes: Json | null
+          agendamento_id: string | null
           assinatura_corretor: string | null
           assinatura_visitante: string | null
           campos_customizados: Json | null
@@ -693,6 +694,7 @@ export type Database = {
         Insert: {
           aceita_ofertas_similares?: boolean | null
           acompanhantes?: Json | null
+          agendamento_id?: string | null
           assinatura_corretor?: string | null
           assinatura_visitante?: string | null
           campos_customizados?: Json | null
@@ -722,6 +724,7 @@ export type Database = {
         Update: {
           aceita_ofertas_similares?: boolean | null
           acompanhantes?: Json | null
+          agendamento_id?: string | null
           assinatura_corretor?: string | null
           assinatura_visitante?: string | null
           campos_customizados?: Json | null
@@ -749,6 +752,13 @@ export type Database = {
           valor_imovel?: number | null
         }
         Relationships: [
+          {
+            foreignKeyName: "fichas_visita_agendamento_id_fkey"
+            columns: ["agendamento_id"]
+            isOneToOne: false
+            referencedRelation: "agendamentos_visita"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "fichas_visita_organization_id_fkey"
             columns: ["organization_id"]
