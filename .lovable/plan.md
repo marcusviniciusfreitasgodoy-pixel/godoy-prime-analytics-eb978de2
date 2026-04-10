@@ -1,61 +1,59 @@
 
 
-## Correções no PDF de Feedback Individual
+## Plano: Ficha de Visita pública para o cliente
 
-### Problemas identificados
-1. **Ícones de estrelas quebrados**: O caractere Unicode `★` (linha 88) pode não renderizar corretamente no jsPDF com a fonte Helvetica padrão, aparecendo como caixas pretas ou símbolos corrompidos
-2. **Aviso legal inapropriado**: O disclaimer sobre dados da Prefeitura do Rio de Janeiro não se aplica a feedbacks de clientes (linhas 222-224)
+### Problema
+O link da ficha completa enviado por WhatsApp (`/visitas/ficha/:id`) aponta para uma rota protegida que exige login. O visitante não tem cadastro no sistema.
+
+### Solução
+Criar uma página pública que exibe a ficha de visita com dados seguros (sem PII sensível), acessível pelo código da visita — seguindo o mesmo padrão das páginas públicas de assinatura e feedback.
 
 ### Alterações
 
-**Arquivo: `src/utils/feedbackIndividualPdfExport.ts`**
+#### 1. Nova RPC no banco de dados
+Criar função `get_ficha_publica(p_codigo text)` que retorna campos seguros para visualização pública: código, endereço, data, nome do corretor, condomínio, unidade, código do imóvel, valor, nome do visitante, nome do proprietário, observações, status, assinaturas (indicador se existem).
 
-1. **Corrigir função `drawStars`** (linhas 74-94): Substituir o caractere Unicode `★` por círculos preenchidos desenhados via jsPDF, que são 100% confiáveis em qualquer fonte
+#### 2. Nova página pública
+**Novo arquivo:** `src/pages/FichaVisitaPublica.tsx`
+- Busca a ficha via RPC `get_ficha_publica` pelo código da URL
+- Exibe os dados em cards organizados (imóvel, visita, corretor, observações)
+- Mostra indicadores de assinatura (se já foram coletadas)
+- Links para feedback e assinatura
+- Layout limpo sem sidebar/header do sistema
 
-2. **Remover chamada do disclaimer** (linhas 222-224): Eliminar o bloco que chama `drawDisclaimer`, mantendo apenas `applyFootersToAllPages`
+#### 3. Nova rota pública no App.tsx
+Adicionar rota `/visitas/ficha-publica/:codigo` fora do `ProtectedRoute`, junto das demais rotas públicas (feedback, assinatura).
 
-### Código da correção das estrelas
+#### 4. Atualizar link no WhatsApp
+**Arquivo:** `src/utils/whatsappService.ts`
+- Alterar `link_ficha` de `/visitas/ficha/${ficha.id}` para `/visitas/ficha-publica/${ficha.codigo}`
 
-```typescript
-// Substituição do caractere Unicode por círculos desenhados
-function drawStars(doc: jsPDF, rating: number, y: number, ml: number): number {
-  doc.setFontSize(9);
-  doc.setFont('helvetica', 'bold');
-  doc.setTextColor(...BRAND_COLORS.navy);
-  doc.text('Avaliação Geral:', ml, y);
-  
-  const starX = ml + doc.getTextWidth('Avaliação Geral: ') + 5;
-  const starSize = 2.5; // raio do círculo
-  
-  for (let i = 1; i <= 5; i++) {
-    const cx = starX + (i - 1) * 8;
-    const cy = y - 1.5;
-    
-    if (i <= rating) {
-      // Estrela preenchida (dourada)
-      doc.setFillColor(...BRAND_COLORS.gold);
-      doc.circle(cx, cy, starSize, 'F');
-      // Borda sutil
-      doc.setDrawColor(180, 150, 40);
-      doc.setLineWidth(0.3);
-      doc.circle(cx, cy, starSize, 'S');
-    } else {
-      // Estrela vazia (cinza claro)
-      doc.setFillColor(220, 220, 220);
-      doc.circle(cx, cy, starSize, 'F');
-      doc.setDrawColor(200, 200, 200);
-      doc.setLineWidth(0.3);
-      doc.circle(cx, cy, starSize, 'S');
-    }
-  }
-  
-  doc.setFontSize(9);
-  doc.setTextColor(...BRAND_COLORS.darkGray);
-  doc.text(`(${rating}/5)`, starX + 42, y);
-  return y + 8;
-}
+### Detalhes técnicos
+
+**Migration SQL:**
+```sql
+CREATE OR REPLACE FUNCTION public.get_ficha_publica(p_codigo text)
+RETURNS TABLE (
+  codigo text, endereco_imovel text, data_visita timestamptz,
+  nome_corretor text, condominio_edificio text, unidade_imovel text,
+  codigo_imovel text, valor_imovel numeric, nome_visitante text,
+  nome_proprietario text, observacoes text, status status_visita,
+  tem_assinatura_visitante boolean, tem_assinatura_corretor boolean
+)
+LANGUAGE sql SECURITY DEFINER SET search_path = public
+AS $$
+  SELECT codigo, endereco_imovel, data_visita, nome_corretor,
+    condominio_edificio, unidade_imovel, codigo_imovel, valor_imovel,
+    nome_visitante, nome_proprietario, observacoes, status,
+    (assinatura_visitante IS NOT NULL) as tem_assinatura_visitante,
+    (assinatura_corretor IS NOT NULL) as tem_assinatura_corretor
+  FROM fichas_visita WHERE codigo = p_codigo;
+$$;
 ```
 
-### Arquivo afetado
-- `src/utils/feedbackIndividualPdfExport.ts` (2 alterações: estrelas + remoção do disclaimer)
+### Arquivos afetados
+- Migration SQL (nova RPC)
+- `src/pages/FichaVisitaPublica.tsx` (novo)
+- `src/App.tsx` (nova rota pública)
+- `src/utils/whatsappService.ts` (atualizar link)
 
