@@ -35,7 +35,7 @@ export function useWhatsAppLogs(filters?: { tipo?: string; status?: string }) {
 
       const { data, error } = await query;
       if (error) throw error;
-      return (data || []) as WhatsAppLog[];
+      return (data || []) as unknown as WhatsAppLog[];
     },
   });
 }
