@@ -21,6 +21,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Badge } from "@/components/ui/badge";
 import { FichaVisita, StatusVisita, Acompanhante } from "@/types/visitas";
 import { exportFichaVisitaPdf, generateFichaVisitaPdfDoc } from "@/utils/fichaVisitaPdfExport";
+import { generatePropostaPdf, exportPropostaPdf } from "@/utils/propostaPdfExport";
+import { sendPdfByEmail } from "@/utils/pdfEmailService";
 import { sendFeedbackRequestEmail } from "@/utils/visitEmailService";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
