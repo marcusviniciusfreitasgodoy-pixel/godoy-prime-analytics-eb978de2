@@ -1,5 +1,5 @@
 import jsPDF from 'jspdf';
-import { drawGodoyHeader, drawGodoyFooter, BRAND_COLORS, fetchCompanyInfoForPDF } from './pdfTemplate';
+import { drawGodoyHeader, applyFootersToAllPages, BRAND_COLORS, fetchCompanyInfoForPDF } from './pdfTemplate';
 
 interface PropostaData {
   codigo: string;
@@ -222,7 +222,7 @@ export async function generatePropostaPdf(proposta: PropostaData): Promise<jsPDF
   doc.setFontSize(7);
   doc.text('Assinatura do Vendedor', col1, y + 4);
 
-  drawGodoyFooter(doc, companyInfo);
+  applyFootersToAllPages(doc, companyInfo);
 
   return doc;
 }
