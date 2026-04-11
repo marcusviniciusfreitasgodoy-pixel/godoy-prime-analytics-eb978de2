@@ -62,7 +62,7 @@ export function ProposalForm({ preFill, onSuccess, standalone = false }: Proposa
       telefone: preFill?.telefone || "",
       email: preFill?.email || "",
       endereco_resumido: preFill?.endereco_resumido || "",
-      valor_ofertado: preFill?.valor_ofertado ? `R$ ${preFill.valor_ofertado.toLocaleString("pt-BR")}` : "",
+      valor_ofertado: preFill?.valor_ofertado ? String(preFill.valor_ofertado) : "",
       forma_aceite: "assinatura",
     },
   });
@@ -255,7 +255,9 @@ export function ProposalForm({ preFill, onSuccess, standalone = false }: Proposa
                 <FormField control={form.control} name="financiamento" render={({ field }) => (
                   <FormItem>
                     <FormLabel>Financiamento bancário</FormLabel>
-                    <FormControl><Input placeholder="Ex: Financiamento CEF sujeito a aprovação" {...field} /></FormControl>
+                    <FormControl>
+                      <CurrencyInput value={field.value || ""} onChange={field.onChange} placeholder="R$ 0" />
+                    </FormControl>
                   </FormItem>
                 )} />
             <FormField control={form.control} name="outras_condicoes" render={({ field }) => (
