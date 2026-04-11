@@ -113,7 +113,7 @@ export default function FichaVisitaPage() {
     }
   };
 
-
+  const handleSaveSignature = async (type: "visitante" | "corretor", signatureData: string) => {
     if (!ficha) return;
 
     try {
