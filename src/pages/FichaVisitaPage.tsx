@@ -3,6 +3,7 @@ import { useParams, useNavigate } from "react-router-dom";
 import { useState, useEffect } from "react";
 import { useVisitas } from "@/hooks/useVisitas";
 import { useFeedbackVisita } from "@/hooks/useFeedbackVisita";
+import { usePropostas } from "@/hooks/usePropostas";
 import { useAuthContext } from "@/contexts/AuthContext";
 import { useCompanySettings, getLogoBase64ForPDF } from "@/hooks/useCompanySettings";
 import { useCorretores } from "@/hooks/useCorretores";
@@ -20,6 +21,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Badge } from "@/components/ui/badge";
 import { FichaVisita, StatusVisita, Acompanhante } from "@/types/visitas";
 import { exportFichaVisitaPdf, generateFichaVisitaPdfDoc } from "@/utils/fichaVisitaPdfExport";
+import { generatePropostaPdf, exportPropostaPdf } from "@/utils/propostaPdfExport";
+import { sendPdfByEmail } from "@/utils/pdfEmailService";
 import { sendFeedbackRequestEmail } from "@/utils/visitEmailService";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -51,6 +54,7 @@ export default function FichaVisitaPage() {
   const { feedbacks } = useFeedbackVisita(id);
   const { settings: companySettings } = useCompanySettings();
   const { corretores } = useCorretores();
+  const { getPropostasByFicha } = usePropostas();
 
   const [ficha, setFicha] = useState<FichaVisita | null>(null);
   const [isEditing, setIsEditing] = useState(false);
@@ -59,6 +63,9 @@ export default function FichaVisitaPage() {
   const [editedFicha, setEditedFicha] = useState<Partial<FichaVisita>>({});
   const [runTour, setRunTour] = useState(false);
   const [showEmailDialog, setShowEmailDialog] = useState(false);
+  const [propostas, setPropostas] = useState<any[]>([]);
+  const [loadingPropostas, setLoadingPropostas] = useState(false);
+  const [sendingPropostaPdf, setSendingPropostaPdf] = useState<string | null>(null);
 
   useEffect(() => {
     if (fichas && id) {
@@ -69,6 +76,42 @@ export default function FichaVisitaPage() {
       }
     }
   }, [fichas, id]);
+
+  // Load proposals for this ficha
+  useEffect(() => {
+    if (ficha?.id) {
+      setLoadingPropostas(true);
+      getPropostasByFicha(ficha.id)
+        .then(setPropostas)
+        .catch(() => setPropostas([]))
+        .finally(() => setLoadingPropostas(false));
+    }
+  }, [ficha?.id]);
+
+  const handleSendPropostaPdfToSeller = async (proposta: any, email: string) => {
+    setSendingPropostaPdf(proposta.id);
+    try {
+      const pdfDoc = await generatePropostaPdf(proposta);
+      const result = await sendPdfByEmail({
+        to: email,
+        recipientName: 'Proprietário',
+        subject: `Proposta de Compra - ${proposta.endereco_resumido} - ${proposta.codigo}`,
+        pdfDoc,
+        pdfFilename: `proposta-${proposta.codigo}.pdf`,
+        documentType: 'ficha_visita',
+        customMessage: `Segue a proposta de compra do proponente ${proposta.nome_completo} no valor de ${proposta.valor_ofertado ? proposta.valor_ofertado.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }) : '—'}. Por favor, analise e assine o aceite no espaço indicado.`,
+      });
+      if (result.success) {
+        toast.success("PDF da proposta enviado ao vendedor!");
+      } else {
+        throw new Error(result.error);
+      }
+    } catch (err: any) {
+      toast.error("Erro ao enviar PDF: " + (err.message || "Tente novamente"));
+    } finally {
+      setSendingPropostaPdf(null);
+    }
+  };
 
   const handleSaveSignature = async (type: "visitante" | "corretor", signatureData: string) => {
     if (!ficha) return;
@@ -761,6 +804,75 @@ export default function FichaVisitaPage() {
                     </Button>
                   </div>
                 </div>
+
+                {/* Propostas recebidas */}
+                {propostas.length > 0 && (
+                  <>
+                    <Separator />
+                    <div className="space-y-3">
+                      <p className="text-sm font-medium flex items-center gap-2">
+                        <CheckCircle className="h-4 w-4 text-green-600" />
+                        Propostas Recebidas ({propostas.length})
+                      </p>
+                      {propostas.map((p: any) => (
+                        <div key={p.id} className="p-3 border rounded-lg space-y-2 bg-muted/30">
+                          <div className="flex justify-between items-start">
+                            <div>
+                              <p className="text-sm font-medium">{p.nome_completo}</p>
+                              <p className="text-xs text-muted-foreground">{p.codigo}</p>
+                            </div>
+                            <Badge variant={p.status === 'aceita' ? 'default' : p.status === 'recusada' ? 'destructive' : 'secondary'}>
+                              {p.status}
+                            </Badge>
+                          </div>
+                          {p.valor_ofertado && (
+                            <p className="text-sm font-bold text-primary">
+                              {p.valor_ofertado.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
+                            </p>
+                          )}
+                          <div className="flex gap-2">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="flex-1"
+                              onClick={async () => {
+                                const { exportPropostaPdf } = await import("@/utils/propostaPdfExport");
+                                await exportPropostaPdf(p);
+                                toast.success("PDF baixado!");
+                              }}
+                            >
+                              <Download className="h-3 w-3 mr-1" />
+                              PDF
+                            </Button>
+                            <Button
+                              variant="default"
+                              size="sm"
+                              className="flex-1"
+                              disabled={sendingPropostaPdf === p.id}
+                              onClick={() => {
+                                const email = prompt("Email do vendedor/proprietário:");
+                                if (email) handleSendPropostaPdfToSeller(p, email);
+                              }}
+                            >
+                              {sendingPropostaPdf === p.id ? (
+                                <Loader2 className="h-3 w-3 mr-1 animate-spin" />
+                              ) : (
+                                <Send className="h-3 w-3 mr-1" />
+                              )}
+                              Enviar ao Vendedor
+                            </Button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </>
+                )}
+
+                {loadingPropostas && (
+                  <div className="flex justify-center py-2">
+                    <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+                  </div>
+                )}
               </CardContent>
             </Card>
 
