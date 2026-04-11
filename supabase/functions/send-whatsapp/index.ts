@@ -185,13 +185,13 @@ serve(async (req) => {
     const userId = claimsData.user.id;
     console.log('Usuário autenticado:', claimsData.user.email);
 
-    // Get user's organization
-    const { data: orgData } = await supabaseAdmin
-      .from('organization_members')
+    // Get user's organization from profiles table
+    const { data: profileData } = await supabaseAdmin
+      .from('profiles')
       .select('organization_id')
-      .eq('user_id', userId)
+      .eq('id', userId)
       .maybeSingle();
-    const organizationId = orgData?.organization_id || null;
+    const organizationId = profileData?.organization_id || null;
 
     const ZAPI_INSTANCE_ID = Deno.env.get('ZAPI_INSTANCE_ID');
     const ZAPI_TOKEN = Deno.env.get('ZAPI_TOKEN');
