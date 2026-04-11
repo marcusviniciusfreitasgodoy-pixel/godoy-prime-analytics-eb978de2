@@ -26,25 +26,17 @@ interface WhatsAppRequest {
   };
 }
 
-// Formatar telefone para o padrão internacional
 function formatarTelefone(telefone: string): string {
-  // Remove tudo que não é número
   let numero = telefone.replace(/\D/g, '');
-  
-  // Se começar com 0, remove
   if (numero.startsWith('0')) {
     numero = numero.substring(1);
   }
-  
-  // Se não tiver código do país, adiciona 55 (Brasil)
   if (!numero.startsWith('55')) {
     numero = '55' + numero;
   }
-  
   return numero;
 }
 
-// Formatar data/hora para exibição
 function formatarDataHora(dataHoraISO: string): string {
   const data = new Date(dataHoraISO);
   const opcoes: Intl.DateTimeFormatOptions = {
@@ -59,7 +51,6 @@ function formatarDataHora(dataHoraISO: string): string {
   return data.toLocaleDateString('pt-BR', opcoes);
 }
 
-// Templates de mensagem
 function gerarMensagem(tipo: WhatsAppRequest['tipo'], dados: WhatsAppRequest['dados']): string {
   const dataFormatada = formatarDataHora(dados.data_hora);
   
@@ -75,7 +66,6 @@ Sua visita foi agendada com sucesso!
 ${dados.codigo_imovel ? `🏠 *Código:* ${dados.codigo_imovel}` : ''}
 📅 *Data e Hora:* ${dataFormatada}
 
-${dados.link_assinatura ? `📝 *Link para Assinatura:*\n${dados.link_assinatura}\n` : ''}
 ${dados.link_reagendamento ? `🔄 *Precisa reagendar?*\n${dados.link_reagendamento}\n` : ''}
 ⚠️ *Importante:* Caso precise cancelar ou reagendar, favor nos avisar com antecedência.
 
@@ -126,7 +116,6 @@ Sua visita foi reagendada com sucesso!
 ${dados.codigo_imovel ? `🏠 *Código:* ${dados.codigo_imovel}` : ''}
 📅 *Nova Data e Hora:* ${dataFormatada}
 
-${dados.link_assinatura ? `📝 *Link para Assinatura:*\n${dados.link_assinatura}\n` : ''}
 Estamos aguardando você! 😊
 
 _Godoy Prime Analytics_
@@ -158,16 +147,13 @@ _Godoy Prime Analytics_
 }
 
 serve(async (req) => {
-  // Handle CORS preflight
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
-    // ========== VERIFICAÇÃO DE AUTENTICAÇÃO ==========
     const authHeader = req.headers.get('Authorization');
     if (!authHeader?.startsWith('Bearer ')) {
-      console.error('Token de autenticação não fornecido');
       return new Response(
         JSON.stringify({ success: false, error: 'Token de autenticação não fornecido' }),
         { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -176,9 +162,14 @@ serve(async (req) => {
 
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const supabaseAnonKey = Deno.env.get('SUPABASE_ANON_KEY')!;
+    const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+    
     const supabase = createClient(supabaseUrl, supabaseAnonKey, {
       global: { headers: { Authorization: authHeader } }
     });
+
+    // Service role client for logging (bypasses RLS)
+    const supabaseAdmin = createClient(supabaseUrl, serviceRoleKey);
 
     const token = authHeader.replace('Bearer ', '');
     const { data: claimsData, error: claimsError } = await supabase.auth.getUser(token);
@@ -191,24 +182,25 @@ serve(async (req) => {
       );
     }
 
+    const userId = claimsData.user.id;
     console.log('Usuário autenticado:', claimsData.user.email);
-    // ========== FIM DA VERIFICAÇÃO ==========
+
+    // Get user's organization
+    const { data: orgData } = await supabaseAdmin
+      .from('organization_members')
+      .select('organization_id')
+      .eq('user_id', userId)
+      .maybeSingle();
+    const organizationId = orgData?.organization_id || null;
 
     const ZAPI_INSTANCE_ID = Deno.env.get('ZAPI_INSTANCE_ID');
     const ZAPI_TOKEN = Deno.env.get('ZAPI_TOKEN');
     const ZAPI_CLIENT_TOKEN = Deno.env.get('ZAPI_CLIENT_TOKEN');
 
     if (!ZAPI_INSTANCE_ID || !ZAPI_TOKEN) {
-      console.error('Z-API não configurada');
       return new Response(
-        JSON.stringify({ 
-          success: false, 
-          error: 'Z-API não configurada' 
-        }),
-        { 
-          status: 500, 
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
-        }
+        JSON.stringify({ success: false, error: 'Z-API não configurada' }),
+        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
@@ -216,14 +208,8 @@ serve(async (req) => {
 
     if (!telefone || !tipo || !dados) {
       return new Response(
-        JSON.stringify({ 
-          success: false, 
-          error: 'Parâmetros obrigatórios: telefone, tipo, dados' 
-        }),
-        { 
-          status: 400, 
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
-        }
+        JSON.stringify({ success: false, error: 'Parâmetros obrigatórios: telefone, tipo, dados' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
@@ -233,7 +219,6 @@ serve(async (req) => {
     const zapiUrl = `https://api.z-api.io/instances/${ZAPI_INSTANCE_ID}/token/${ZAPI_TOKEN}/send-text`;
 
     console.log(`Enviando WhatsApp para ${numeroFormatado} (tipo: ${tipo})`);
-    console.log(`Z-API URL: ${zapiUrl}`);
     
     const response = await fetch(zapiUrl, {
       method: 'POST',
@@ -252,10 +237,22 @@ serve(async (req) => {
     try {
       responseData = JSON.parse(responseText);
     } catch {
-      console.error('Evolution API resposta não-JSON:', responseText);
+      console.error('Z-API resposta não-JSON:', responseText);
       if (!response.ok) {
+        // Log failed attempt
+        await supabaseAdmin.from('whatsapp_message_logs').insert({
+          telefone_destino: numeroFormatado,
+          tipo_mensagem: tipo,
+          mensagem_texto: mensagem,
+          status_envio: 'failed',
+          resposta_api: { raw: responseText },
+          erro_mensagem: 'Resposta não-JSON da API',
+          organization_id: organizationId,
+          usuario_id: userId,
+          dados_contexto: dados,
+        });
         return new Response(
-          JSON.stringify({ success: false, error: 'Resposta inválida da Evolution API', details: responseText }),
+          JSON.stringify({ success: false, error: 'Resposta inválida da Z-API', details: responseText }),
           { status: 502, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         );
       }
@@ -263,19 +260,39 @@ serve(async (req) => {
     }
 
     if (!response.ok) {
-      console.error('Erro Evolution API:', responseData);
+      // Log failed send
+      await supabaseAdmin.from('whatsapp_message_logs').insert({
+        telefone_destino: numeroFormatado,
+        tipo_mensagem: tipo,
+        mensagem_texto: mensagem,
+        status_envio: 'failed',
+        resposta_api: responseData,
+        erro_mensagem: responseData?.message || `HTTP ${response.status}`,
+        organization_id: organizationId,
+        usuario_id: userId,
+        dados_contexto: dados,
+      });
+
       return new Response(
-        JSON.stringify({ 
-          success: false, 
-          error: 'Erro ao enviar mensagem',
-          details: responseData 
-        }),
-        { 
-          status: response.status, 
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
-        }
+        JSON.stringify({ success: false, error: 'Erro ao enviar mensagem', details: responseData }),
+        { status: response.status, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
+
+    const messageIdExterno = responseData?.messageId || responseData?.key?.id || responseData?.id || null;
+
+    // Log successful send
+    await supabaseAdmin.from('whatsapp_message_logs').insert({
+      telefone_destino: numeroFormatado,
+      tipo_mensagem: tipo,
+      mensagem_texto: mensagem,
+      status_envio: 'sent',
+      resposta_api: responseData,
+      message_id_externo: messageIdExterno,
+      organization_id: organizationId,
+      usuario_id: userId,
+      dados_contexto: dados,
+    });
 
     console.log('WhatsApp enviado com sucesso:', responseData);
 
@@ -283,26 +300,17 @@ serve(async (req) => {
       JSON.stringify({ 
         success: true, 
         message: 'WhatsApp enviado com sucesso',
-        messageId: responseData.key?.id || responseData.id 
+        messageId: messageIdExterno
       }),
-      { 
-        status: 200, 
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
-      }
+      { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
 
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : 'Erro desconhecido';
     console.error('Erro ao enviar WhatsApp:', error);
     return new Response(
-      JSON.stringify({ 
-        success: false, 
-        error: errorMessage 
-      }),
-      { 
-        status: 500, 
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
-      }
+      JSON.stringify({ success: false, error: errorMessage }),
+      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   }
 });
