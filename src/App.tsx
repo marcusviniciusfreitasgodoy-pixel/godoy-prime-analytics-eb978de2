@@ -54,6 +54,7 @@ import CalibradorFeedbackCorretor from "./pages/CalibradorFeedbackCorretor";
 import ConfigurarFormularios from "./pages/ConfigurarFormularios";
 import InteligenciaTerritorial from "./pages/InteligenciaTerritorial";
 import FichaVisitaPublica from "./pages/FichaVisitaPublica";
+import WhatsAppLogs from "./pages/WhatsAppLogs";
 
 const queryClient = new QueryClient({
   defaultOptions: {
