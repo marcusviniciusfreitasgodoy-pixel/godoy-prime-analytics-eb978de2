@@ -240,8 +240,10 @@ export function ProposalForm({ preFill, onSuccess, standalone = false }: Proposa
             )} />
             <FormField control={form.control} name="sinal_entrada" render={({ field }) => (
               <FormItem>
-                <FormLabel>Sinal / Entrada (valor e data/prazo)</FormLabel>
-                <FormControl><Input placeholder="Ex: R$ 50.000 na assinatura do compromisso" {...field} /></FormControl>
+                <FormLabel>Sinal / Entrada</FormLabel>
+                <FormControl>
+                  <CurrencyInput value={field.value || ""} onChange={field.onChange} placeholder="R$ 0" />
+                </FormControl>
               </FormItem>
             )} />
             <FormField control={form.control} name="parcelas" render={({ field }) => (
