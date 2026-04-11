@@ -1,29 +1,32 @@
 
 
-## Plano: Enviar mensagens de teste por WhatsApp
+## Plano: Adicionar envio de Proposta de Compra na Ficha de Visita
 
-Vou invocar a Edge Function `send-whatsapp` para cada tipo de mensagem suportado, enviando para o número **21964075124**. São 5 tipos de mensagem do ciclo de visitas.
+### O que será feito
+Adicionar um novo card na coluna lateral da página de Ficha de Visita (`FichaVisitaPage.tsx`) com opções para enviar o formulário de proposta ao cliente — pré-preenchido com os dados do imóvel/visitante ou em branco.
 
-### Mensagens a enviar
+### Alterações
 
-| # | Tipo | Descrição |
-|---|------|-----------|
-| 1 | `confirmacao` | Confirmação de agendamento |
-| 2 | `lembrete` | Lembrete de visita |
-| 3 | `cancelamento` | Cancelamento de visita |
-| 4 | `reagendamento` | Reagendamento de visita |
-| 5 | `pos_visita` | Ficha completa pós-visita |
+#### 1. `src/pages/FichaVisitaPage.tsx`
+- Adicionar novo card "Proposta de Compra" na coluna lateral, após o card de Feedback
+- **Link pré-preenchido**: gera URL `/proposta/{codigo}` usando o código da ficha (já busca dados via RPC `get_ficha_by_codigo`)
+- **Link em branco**: gera URL `/proposta/novo` (formulário vazio)
+- Botões: "Copiar Link Pré-preenchido", "Copiar Link em Branco", "Abrir" (ExternalLink)
+- Exibir contador de propostas já recebidas (usando `usePropostas.getPropostasByFicha`)
+- Ícone: `FileSignature` ou `HandCoins`
 
-### Dados de teste usados
+#### 2. `src/pages/PropostaPublica.tsx`
+- Ajustar para funcionar sem código (rota `/proposta/novo`) — exibe formulário em branco quando `codigo` não corresponde a uma ficha existente
 
-Todas as mensagens usarão dados fictícios consistentes:
-- **Visitante:** Marcus Godoy (teste)
-- **Endereço:** Rua Barão da Torre, 200 - Ipanema
-- **Data/hora:** 2026-04-15T14:00:00-03:00
-- **Código imóvel:** IMV-TESTE-001
-- **Links:** links reais da plataforma com código de teste
+#### 3. `src/App.tsx`
+- Verificar se rota `/proposta/:codigo` já cobre o caso "novo" (já existe, apenas garantir que `PropostaPublica` trata `codigo = "novo"` corretamente)
 
-### Execução
+### Detalhes técnicos
+- O link pré-preenchido usa o código da ficha: a página `PropostaPublica` já faz RPC para buscar dados e preencher o formulário
+- O link em branco usa `/proposta/novo` — a página detecta que não há ficha e exibe formulário vazio
+- Nenhuma migration necessária — usa infraestrutura existente
 
-Chamarei `supabase--curl_edge_functions` 5 vezes (uma para cada tipo) com o body adequado, autenticado com o token do usuário logado.
+### Arquivo afetado
+- `src/pages/FichaVisitaPage.tsx` (novo card na sidebar)
+- `src/pages/PropostaPublica.tsx` (ajuste menor para código "novo")
 
