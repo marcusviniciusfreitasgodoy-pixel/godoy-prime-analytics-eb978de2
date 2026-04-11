@@ -1,32 +1,31 @@
 
 
-## Plano: Adicionar envio de Proposta de Compra na Ficha de Visita
+## Plano: Corrigir visibilidade das propostas de compra
 
-### O que será feito
-Adicionar um novo card na coluna lateral da página de Ficha de Visita (`FichaVisitaPage.tsx`) com opções para enviar o formulário de proposta ao cliente — pré-preenchido com os dados do imóvel/visitante ou em branco.
+### Problema identificado
+As propostas existem no banco de dados mas com `organization_id = NULL`. A política de RLS exige `organization_id = get_user_org_id(auth.uid())` para visualizar, então propostas sem `organization_id` ficam invisíveis.
+
+A causa raiz está na Edge Function `public-submit` — ela aceita `organization_id` do payload do cliente (que pode não enviá-lo), em vez de resolver automaticamente a partir da `ficha_visita_id`.
 
 ### Alterações
 
-#### 1. `src/pages/FichaVisitaPage.tsx`
-- Adicionar novo card "Proposta de Compra" na coluna lateral, após o card de Feedback
-- **Link pré-preenchido**: gera URL `/proposta/{codigo}` usando o código da ficha (já busca dados via RPC `get_ficha_by_codigo`)
-- **Link em branco**: gera URL `/proposta/novo` (formulário vazio)
-- Botões: "Copiar Link Pré-preenchido", "Copiar Link em Branco", "Abrir" (ExternalLink)
-- Exibir contador de propostas já recebidas (usando `usePropostas.getPropostasByFicha`)
-- Ícone: `FileSignature` ou `HandCoins`
+#### 1. `supabase/functions/public-submit/index.ts` — handleProposta
+- Quando `ficha_visita_id` estiver presente, buscar o `organization_id` da tabela `fichas_visita` no servidor (service role)
+- Ignorar qualquer `organization_id` enviado pelo cliente (segurança)
+- Isso garante que toda proposta vinculada a uma ficha herda a organização correta
 
-#### 2. `src/pages/PropostaPublica.tsx`
-- Ajustar para funcionar sem código (rota `/proposta/novo`) — exibe formulário em branco quando `codigo` não corresponde a uma ficha existente
+#### 2. Migration SQL — Corrigir propostas existentes
+- Atualizar as 3 propostas existentes com `organization_id = NULL`, preenchendo a partir de `fichas_visita.organization_id` via `ficha_visita_id`
 
-#### 3. `src/App.tsx`
-- Verificar se rota `/proposta/:codigo` já cobre o caso "novo" (já existe, apenas garantir que `PropostaPublica` trata `codigo = "novo"` corretamente)
+```sql
+UPDATE propostas_compra p
+SET organization_id = fv.organization_id
+FROM fichas_visita fv
+WHERE p.ficha_visita_id = fv.id
+  AND p.organization_id IS NULL;
+```
 
-### Detalhes técnicos
-- O link pré-preenchido usa o código da ficha: a página `PropostaPublica` já faz RPC para buscar dados e preencher o formulário
-- O link em branco usa `/proposta/novo` — a página detecta que não há ficha e exibe formulário vazio
-- Nenhuma migration necessária — usa infraestrutura existente
-
-### Arquivo afetado
-- `src/pages/FichaVisitaPage.tsx` (novo card na sidebar)
-- `src/pages/PropostaPublica.tsx` (ajuste menor para código "novo")
+### Resultado esperado
+- Propostas existentes ficarão visíveis imediatamente
+- Novas propostas receberão `organization_id` automaticamente no servidor
 
