@@ -698,6 +698,72 @@ export default function FichaVisitaPage() {
               </CardContent>
             </Card>
 
+            {/* Proposta de Compra */}
+            <Card data-tour="ficha-proposta">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <FileSignature className="h-5 w-5" />
+                  Proposta de Compra
+                </CardTitle>
+                <CardDescription>
+                  Envie o formulário de proposta ao cliente
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                <div className="space-y-2">
+                  <p className="text-sm font-medium">Link pré-preenchido</p>
+                  <p className="text-xs text-muted-foreground">Com dados do imóvel e visitante</p>
+                  <div className="flex gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="flex-1"
+                      onClick={() => {
+                        navigator.clipboard.writeText(`${window.location.origin}/proposta/${ficha.codigo}`);
+                        toast.success("Link da proposta pré-preenchida copiado!");
+                      }}
+                    >
+                      Copiar Link
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => window.open(`/proposta/${ficha.codigo}`, "_blank")}
+                    >
+                      <ExternalLink className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </div>
+
+                <Separator />
+
+                <div className="space-y-2">
+                  <p className="text-sm font-medium">Link em branco</p>
+                  <p className="text-xs text-muted-foreground">Cliente preenche todos os dados</p>
+                  <div className="flex gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="flex-1"
+                      onClick={() => {
+                        navigator.clipboard.writeText(`${window.location.origin}/proposta/novo`);
+                        toast.success("Link da proposta em branco copiado!");
+                      }}
+                    >
+                      Copiar Link
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => window.open("/proposta/novo", "_blank")}
+                    >
+                      <ExternalLink className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
             {/* Link para Feedback */}
             <Card data-tour="ficha-feedback">
               <CardHeader>

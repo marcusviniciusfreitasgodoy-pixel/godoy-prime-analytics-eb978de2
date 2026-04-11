@@ -15,7 +15,7 @@ export default function PropostaPublica() {
 
   useEffect(() => {
     const loadFicha = async () => {
-      if (!codigo) {
+      if (!codigo || codigo === "novo") {
         setLoading(false);
         return;
       }
