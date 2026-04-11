@@ -130,6 +130,7 @@ const App = () => (
                               <Route path="/visitas/disponibilidade" element={<DisponibilidadeVisitas />} />
                               <Route path="/visitas/ficha/:id" element={<FichaVisitaPage />} />
                               <Route path="/configuracoes" element={<Configuracoes />} />
+                              <Route path="/whatsapp-logs" element={<ProtectedRoute requireAdminOrGerente={true}><WhatsAppLogs /></ProtectedRoute>} />
                               <Route path="/apresentacao" element={<Apresentacao />} />
                                 <Route path="*" element={<NotFound />} />
                               </Routes>

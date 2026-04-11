@@ -72,6 +72,7 @@ const menuGroups: NavGroup[] = [
     icon: HandshakeIcon,
     items: [
       { title: "Visitas", url: "/visitas", icon: CalendarCheck, tourId: "nav-visitas" },
+      { title: "WhatsApp Log", url: "/whatsapp-logs", icon: MessageSquare, tourId: "nav-whatsapp-logs" },
       { title: "Leads", url: "/leads", icon: Users, tourId: "nav-leads" },
       { title: "Pipeline CRM", url: "/pipeline", icon: Kanban, tourId: "nav-pipeline" },
     ],
