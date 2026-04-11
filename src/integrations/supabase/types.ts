@@ -2842,6 +2842,59 @@ export type Database = {
           },
         ]
       }
+      whatsapp_message_logs: {
+        Row: {
+          created_at: string
+          dados_contexto: Json | null
+          erro_mensagem: string | null
+          id: string
+          mensagem_texto: string | null
+          message_id_externo: string | null
+          organization_id: string | null
+          resposta_api: Json | null
+          status_envio: string
+          telefone_destino: string
+          tipo_mensagem: string
+          usuario_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          dados_contexto?: Json | null
+          erro_mensagem?: string | null
+          id?: string
+          mensagem_texto?: string | null
+          message_id_externo?: string | null
+          organization_id?: string | null
+          resposta_api?: Json | null
+          status_envio?: string
+          telefone_destino: string
+          tipo_mensagem: string
+          usuario_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          dados_contexto?: Json | null
+          erro_mensagem?: string | null
+          id?: string
+          mensagem_texto?: string | null
+          message_id_externo?: string | null
+          organization_id?: string | null
+          resposta_api?: Json | null
+          status_envio?: string
+          telefone_destino?: string
+          tipo_mensagem?: string
+          usuario_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "whatsapp_message_logs_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       geography_columns: {

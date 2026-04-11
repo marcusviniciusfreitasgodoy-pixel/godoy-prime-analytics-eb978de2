@@ -54,6 +54,7 @@ import CalibradorFeedbackCorretor from "./pages/CalibradorFeedbackCorretor";
 import ConfigurarFormularios from "./pages/ConfigurarFormularios";
 import InteligenciaTerritorial from "./pages/InteligenciaTerritorial";
 import FichaVisitaPublica from "./pages/FichaVisitaPublica";
+import WhatsAppLogs from "./pages/WhatsAppLogs";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -129,6 +130,7 @@ const App = () => (
                               <Route path="/visitas/disponibilidade" element={<DisponibilidadeVisitas />} />
                               <Route path="/visitas/ficha/:id" element={<FichaVisitaPage />} />
                               <Route path="/configuracoes" element={<Configuracoes />} />
+                              <Route path="/whatsapp-logs" element={<ProtectedRoute requireAdminOrGerente={true}><WhatsAppLogs /></ProtectedRoute>} />
                               <Route path="/apresentacao" element={<Apresentacao />} />
                                 <Route path="*" element={<NotFound />} />
                               </Routes>
