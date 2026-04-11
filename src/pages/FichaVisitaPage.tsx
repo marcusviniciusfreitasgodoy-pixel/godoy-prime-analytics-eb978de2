@@ -77,7 +77,43 @@ export default function FichaVisitaPage() {
     }
   }, [fichas, id]);
 
-  const handleSaveSignature = async (type: "visitante" | "corretor", signatureData: string) => {
+  // Load proposals for this ficha
+  useEffect(() => {
+    if (ficha?.id) {
+      setLoadingPropostas(true);
+      getPropostasByFicha(ficha.id)
+        .then(setPropostas)
+        .catch(() => setPropostas([]))
+        .finally(() => setLoadingPropostas(false));
+    }
+  }, [ficha?.id]);
+
+  const handleSendPropostaPdfToSeller = async (proposta: any, email: string) => {
+    setSendingPropostaPdf(proposta.id);
+    try {
+      const pdfDoc = await generatePropostaPdf(proposta);
+      const result = await sendPdfByEmail({
+        to: email,
+        recipientName: 'Proprietário',
+        subject: `Proposta de Compra - ${proposta.endereco_resumido} - ${proposta.codigo}`,
+        pdfDoc,
+        pdfFilename: `proposta-${proposta.codigo}.pdf`,
+        documentType: 'ficha_visita',
+        customMessage: `Segue a proposta de compra do proponente ${proposta.nome_completo} no valor de ${proposta.valor_ofertado ? proposta.valor_ofertado.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }) : '—'}. Por favor, analise e assine o aceite no espaço indicado.`,
+      });
+      if (result.success) {
+        toast.success("PDF da proposta enviado ao vendedor!");
+      } else {
+        throw new Error(result.error);
+      }
+    } catch (err: any) {
+      toast.error("Erro ao enviar PDF: " + (err.message || "Tente novamente"));
+    } finally {
+      setSendingPropostaPdf(null);
+    }
+  };
+
+
     if (!ficha) return;
 
     try {
