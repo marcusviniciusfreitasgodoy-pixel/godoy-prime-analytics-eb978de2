@@ -26,10 +26,10 @@ export function useWhatsAppLogs(filters?: { tipo?: string; status?: string }) {
         .order("created_at", { ascending: false })
         .limit(200);
 
-      if (filters?.tipo) {
+      if (filters?.tipo && filters.tipo !== "all") {
         query = query.eq("tipo_mensagem", filters.tipo);
       }
-      if (filters?.status) {
+      if (filters?.status && filters.status !== "all") {
         query = query.eq("status_envio", filters.status);
       }
 
