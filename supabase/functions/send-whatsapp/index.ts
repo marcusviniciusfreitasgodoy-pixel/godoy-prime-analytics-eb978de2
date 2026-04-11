@@ -282,7 +282,7 @@ serve(async (req) => {
     const messageIdExterno = responseData?.messageId || responseData?.key?.id || responseData?.id || null;
 
     // Log successful send
-    await supabaseAdmin.from('whatsapp_message_logs').insert({
+    const { error: logError } = await supabaseAdmin.from('whatsapp_message_logs').insert({
       telefone_destino: numeroFormatado,
       tipo_mensagem: tipo,
       mensagem_texto: mensagem,
@@ -293,6 +293,11 @@ serve(async (req) => {
       usuario_id: userId,
       dados_contexto: dados,
     });
+    if (logError) {
+      console.error('Erro ao salvar log WhatsApp:', logError);
+    } else {
+      console.log('Log WhatsApp salvo com sucesso');
+    }
 
     console.log('WhatsApp enviado com sucesso:', responseData);
 
