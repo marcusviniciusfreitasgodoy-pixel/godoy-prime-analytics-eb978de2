@@ -54,6 +54,7 @@ export default function FichaVisitaPage() {
   const { feedbacks } = useFeedbackVisita(id);
   const { settings: companySettings } = useCompanySettings();
   const { corretores } = useCorretores();
+  const { getPropostasByFicha } = usePropostas();
 
   const [ficha, setFicha] = useState<FichaVisita | null>(null);
   const [isEditing, setIsEditing] = useState(false);
@@ -62,6 +63,9 @@ export default function FichaVisitaPage() {
   const [editedFicha, setEditedFicha] = useState<Partial<FichaVisita>>({});
   const [runTour, setRunTour] = useState(false);
   const [showEmailDialog, setShowEmailDialog] = useState(false);
+  const [propostas, setPropostas] = useState<any[]>([]);
+  const [loadingPropostas, setLoadingPropostas] = useState(false);
+  const [sendingPropostaPdf, setSendingPropostaPdf] = useState<string | null>(null);
 
   useEffect(() => {
     if (fichas && id) {
