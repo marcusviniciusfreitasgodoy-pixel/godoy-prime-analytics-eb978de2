@@ -804,6 +804,75 @@ export default function FichaVisitaPage() {
                     </Button>
                   </div>
                 </div>
+
+                {/* Propostas recebidas */}
+                {propostas.length > 0 && (
+                  <>
+                    <Separator />
+                    <div className="space-y-3">
+                      <p className="text-sm font-medium flex items-center gap-2">
+                        <CheckCircle className="h-4 w-4 text-green-600" />
+                        Propostas Recebidas ({propostas.length})
+                      </p>
+                      {propostas.map((p: any) => (
+                        <div key={p.id} className="p-3 border rounded-lg space-y-2 bg-muted/30">
+                          <div className="flex justify-between items-start">
+                            <div>
+                              <p className="text-sm font-medium">{p.nome_completo}</p>
+                              <p className="text-xs text-muted-foreground">{p.codigo}</p>
+                            </div>
+                            <Badge variant={p.status === 'aceita' ? 'default' : p.status === 'recusada' ? 'destructive' : 'secondary'}>
+                              {p.status}
+                            </Badge>
+                          </div>
+                          {p.valor_ofertado && (
+                            <p className="text-sm font-bold text-primary">
+                              {p.valor_ofertado.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
+                            </p>
+                          )}
+                          <div className="flex gap-2">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="flex-1"
+                              onClick={async () => {
+                                const { exportPropostaPdf } = await import("@/utils/propostaPdfExport");
+                                await exportPropostaPdf(p);
+                                toast.success("PDF baixado!");
+                              }}
+                            >
+                              <Download className="h-3 w-3 mr-1" />
+                              PDF
+                            </Button>
+                            <Button
+                              variant="default"
+                              size="sm"
+                              className="flex-1"
+                              disabled={sendingPropostaPdf === p.id}
+                              onClick={() => {
+                                const email = prompt("Email do vendedor/proprietário:");
+                                if (email) handleSendPropostaPdfToSeller(p, email);
+                              }}
+                            >
+                              {sendingPropostaPdf === p.id ? (
+                                <Loader2 className="h-3 w-3 mr-1 animate-spin" />
+                              ) : (
+                                <Send className="h-3 w-3 mr-1" />
+                              )}
+                              Enviar ao Vendedor
+                            </Button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </>
+                )}
+
+                {loadingPropostas && (
+                  <div className="flex justify-center py-2">
+                    <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+                  </div>
+                )}
               </CardContent>
             </Card>
 
