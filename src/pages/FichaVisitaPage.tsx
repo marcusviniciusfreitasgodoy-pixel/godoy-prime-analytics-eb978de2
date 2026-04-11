@@ -3,6 +3,7 @@ import { useParams, useNavigate } from "react-router-dom";
 import { useState, useEffect } from "react";
 import { useVisitas } from "@/hooks/useVisitas";
 import { useFeedbackVisita } from "@/hooks/useFeedbackVisita";
+import { usePropostas } from "@/hooks/usePropostas";
 import { useAuthContext } from "@/contexts/AuthContext";
 import { useCompanySettings, getLogoBase64ForPDF } from "@/hooks/useCompanySettings";
 import { useCorretores } from "@/hooks/useCorretores";
