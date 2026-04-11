@@ -162,18 +162,30 @@ async function handleProposta(
     );
   }
 
-  // Build safe insert object
+  // Build safe insert object — exclude organization_id from client payload
   const allowedFields = [
     "codigo", "cpf_cnpj", "nome_completo", "telefone", "email",
     "endereco_resumido", "modelo", "ficha_visita_id", "valor_ofertado",
     "sinal_entrada", "parcelas", "financiamento", "outras_condicoes",
     "assinatura_proponente", "cnh_url", "unidade", "matricula",
     "cidade_uf", "data_hora", "validade_proposta", "moeda",
-    "numero_proposta", "organization_id",
+    "numero_proposta",
   ];
   const insert: Record<string, unknown> = {};
   for (const f of allowedFields) {
     if (payload[f] !== undefined) insert[f] = payload[f];
+  }
+
+  // Resolve organization_id server-side from ficha_visita
+  if (insert.ficha_visita_id) {
+    const { data: fichaOrg } = await supabase
+      .from("fichas_visita")
+      .select("organization_id")
+      .eq("id", insert.ficha_visita_id)
+      .single();
+    if (fichaOrg?.organization_id) {
+      insert.organization_id = fichaOrg.organization_id;
+    }
   }
 
   const { data, error } = await supabase.from("propostas_compra").insert(insert).select().single();
