@@ -97,13 +97,7 @@ Este é o documento MAIS IMPORTANTE de uma transação imobiliária. Analise com
 
 **Regras:** Se o regime for comunhão (parcial ou universal), AMBOS os cônjuges devem assinar a escritura de venda (Art. 1.647, I, CC). Se houver averbação de divórcio, verificar partilha de bens.
 
-### 5. Certidão de Casamento com averbação de divórcio
-Mesmos campos acima, mas verificar:
-- Se houve partilha do imóvel
-- A quem foi atribuído o imóvel na partilha
-- Se há necessidade de averbação da partilha na matrícula
-
-### 6. Certidão de Distribuidores (Cíveis, Criminais, Trabalhistas, Protestos)
+### 5. Certidão de Distribuidores (Cíveis, Criminais, Trabalhistas, Protestos)
 **dados_extraidos** deve conter:
 - "tipo_certidao": "cível | criminal | trabalhista | protesto | federal"
 - "nome_pesquisado": nome
@@ -114,18 +108,18 @@ Mesmos campos acima, mas verificar:
 
 **Regras:** Se houver ações de execução, falência ou recuperação judicial, marque CRITICO. Se houver protestos, marque ATENCAO.
 
-### 7. Contrato Social / Estatuto (Pessoa Jurídica)
+### 6. Contrato Social / Estatuto (Pessoa Jurídica)
 **dados_extraidos** deve conter:
 - "razao_social": razão social
 - "cnpj": CNPJ
 - "socios": [{"nome": "...", "cpf": "...", "participacao": "X%"}]
 - "representante_legal": quem tem poderes para assinar
 - "objeto_social": resumo
-- "clausulas_venda_imovel": se há cláusula sobre alienação de imóveis (necessidade de assembleia, etc.)
+- "clausulas_venda_imovel": se há cláusula sobre alienação de imóveis
 
-**Regras:** Verificar se o representante tem poderes para alienar imóveis. Se exigir assembleia/autorização dos sócios, alertar.
+**Regras:** Verificar se o representante tem poderes para alienar imóveis.
 
-### 8. RG / CPF / CNH
+### 7. RG / CPF / CNH
 **dados_extraidos** deve conter:
 - "nome_completo": nome
 - "numero_documento": número
@@ -136,13 +130,13 @@ Mesmos campos acima, mas verificar:
 
 **Regras:** RG com mais de 10 anos: ATENCAO. Documento vencido: CRITICO.
 
-### 9. Certidão da Funesbom (Taxa de Bombeiros)
+### 8. Certidão da Funesbom (Taxa de Bombeiros)
 **dados_extraidos** deve conter:
 - "inscricao": número
 - "situacao": "regular" | "débitos"
 - "exercicio": ano
 
-### 10. Comprovante de Residência
+### 9. Comprovante de Residência
 **dados_extraidos** deve conter:
 - "nome_titular": nome
 - "endereco": endereço completo
@@ -160,7 +154,8 @@ Mesmos campos acima, mas verificar:
 4. Sempre sugira o item do checklist correspondente
 5. Cite a legislação aplicável nos alertas (ex: "Conforme Art. 1.647, I, do Código Civil...")
 6. Para Certidão de Ônus Reais, SEMPRE liste TODOS os R- e AV- encontrados, sem exceção
-7. Retorne APENAS o JSON, sem markdown ou texto adicional`;
+7. Retorne APENAS o JSON, sem markdown ou texto adicional
+8. Se o documento tiver múltiplas páginas (múltiplas imagens), analise TODAS as páginas como partes do mesmo documento`;
 
 async function fetchKnowledgeBase(): Promise<string> {
   try {
@@ -193,6 +188,29 @@ async function fetchKnowledgeBase(): Promise<string> {
   }
 }
 
+function extractJSON(raw: string): any {
+  let cleaned = raw
+    .replace(/^```json\s*/im, '')
+    .replace(/^```\s*/im, '')
+    .replace(/```\s*$/im, '')
+    .trim();
+
+  if (!cleaned.startsWith('{') && !cleaned.startsWith('[')) {
+    const objStart = cleaned.indexOf('{');
+    const arrStart = cleaned.indexOf('[');
+    const isArray = arrStart !== -1 && (objStart === -1 || arrStart < objStart);
+    const start = isArray ? arrStart : objStart;
+    const end = isArray ? cleaned.lastIndexOf(']') : cleaned.lastIndexOf('}');
+    if (start !== -1 && end > start) {
+      cleaned = cleaned.slice(start, end + 1);
+    } else {
+      throw new Error('No valid JSON found in response');
+    }
+  }
+
+  return JSON.parse(cleaned);
+}
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
@@ -222,9 +240,13 @@ serve(async (req) => {
       });
     }
 
-    const { image, mimeType, filename } = await req.json();
+    const body = await req.json();
+    // Support both old format (single image) and new format (images array)
+    const images: string[] = body.images || (body.image ? [body.image] : []);
+    const mimeType = body.mimeType || 'image/jpeg';
+    const filename = body.filename || 'documento';
     
-    if (!image) {
+    if (images.length === 0) {
       throw new Error('Imagem do documento é obrigatória');
     }
 
@@ -233,12 +255,27 @@ serve(async (req) => {
       throw new Error('LOVABLE_API_KEY is not configured');
     }
 
-    console.log('Analyzing document:', filename || 'unknown', 'type:', mimeType);
+    console.log('Analyzing document:', filename, 'type:', mimeType, 'pages:', images.length);
 
     const knowledgeContext = await fetchKnowledgeBase();
     const systemPrompt = BASE_SYSTEM_PROMPT + knowledgeContext;
 
-    const imageUrl = image.startsWith('data:') ? image : `data:${mimeType || 'image/jpeg'};base64,${image}`;
+    // Build content array with all page images
+    const userContent: any[] = [
+      { 
+        type: 'text', 
+        text: `Analise este documento imobiliário (${images.length} página(s)) e extraia TODAS as informações relevantes seguindo as instruções detalhadas do tipo de documento correspondente. Liste TODOS os registros (R-) e averbações (AV-) se for uma certidão de ônus reais. Fundamente alertas em legislação. Nome do arquivo: ${filename}` 
+      },
+    ];
+
+    for (let i = 0; i < images.length; i++) {
+      const img = images[i];
+      const imageUrl = img.startsWith('data:') ? img : `data:${mimeType};base64,${img}`;
+      userContent.push({
+        type: 'image_url',
+        image_url: { url: imageUrl }
+      });
+    }
 
     const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
       method: 'POST',
@@ -250,21 +287,10 @@ serve(async (req) => {
         model: 'google/gemini-2.5-pro',
         messages: [
           { role: 'system', content: systemPrompt },
-          { 
-            role: 'user', 
-            content: [
-              { 
-                type: 'text', 
-                text: `Analise este documento imobiliário e extraia TODAS as informações relevantes seguindo as instruções detalhadas do tipo de documento correspondente. Liste TODOS os registros (R-) e averbações (AV-) se for uma certidão de ônus reais. Fundamente alertas em legislação. Nome do arquivo: ${filename || 'documento'}` 
-              },
-              { 
-                type: 'image_url', 
-                image_url: { url: imageUrl } 
-              }
-            ] 
-          }
+          { role: 'user', content: userContent }
         ],
         reasoning: { effort: 'high' },
+        max_tokens: 16000,
       }),
     });
 
@@ -289,6 +315,13 @@ serve(async (req) => {
     }
 
     const data = await response.json();
+    
+    // Check for truncation
+    const finishReason = data.choices?.[0]?.finish_reason;
+    if (finishReason === 'length' || finishReason === 'max_tokens') {
+      console.warn('Response truncated! finish_reason:', finishReason);
+    }
+    
     const content = data.choices?.[0]?.message?.content;
 
     if (!content) {
@@ -297,16 +330,15 @@ serve(async (req) => {
 
     let analysisResult;
     try {
-      const cleanContent = content.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
-      analysisResult = JSON.parse(cleanContent);
+      analysisResult = extractJSON(content);
     } catch (parseError) {
-      console.error('Error parsing AI response:', content);
+      console.error('Error parsing AI response:', content.substring(0, 500));
       analysisResult = {
         tipo_documento: 'Não identificado',
         status: 'ATENCAO',
-        status_motivo: 'Não foi possível analisar o documento automaticamente',
+        status_motivo: 'Não foi possível estruturar a análise automaticamente',
         dados_extraidos: {},
-        alertas: ['Documento requer análise manual'],
+        alertas: ['Documento requer análise manual — a IA retornou um formato inesperado'],
         validade: null,
         checklist_item: null,
         proximos_passos: ['Verifique o documento manualmente'],
@@ -315,7 +347,14 @@ serve(async (req) => {
       };
     }
 
-    console.log('Document analysis completed:', analysisResult.tipo_documento);
+    // Add truncation warning if detected
+    if (finishReason === 'length' || finishReason === 'max_tokens') {
+      if (!analysisResult.alertas) analysisResult.alertas = [];
+      analysisResult.alertas.push('⚠️ A análise pode estar incompleta — resposta da IA foi truncada por limite de tokens.');
+      if (analysisResult.confianca === 'ALTA') analysisResult.confianca = 'MEDIA';
+    }
+
+    console.log('Document analysis completed:', analysisResult.tipo_documento, '| Status:', analysisResult.status);
 
     return new Response(JSON.stringify(analysisResult), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
