@@ -6,6 +6,58 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
+async function callAIWithRetry(prompt: string, apiKey: string, maxRetries = 3): Promise<any> {
+  for (let attempt = 1; attempt <= maxRetries; attempt++) {
+    try {
+      const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${apiKey}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          model: "google/gemini-2.5-flash",
+          messages: [{ role: "user", content: prompt }],
+        }),
+      });
+
+      if (response.status === 429) {
+        return { error: "Rate limit excedido. Tente novamente em alguns segundos.", status: 429 };
+      }
+      if (response.status === 402) {
+        return { error: "Créditos insuficientes. Adicione créditos em Settings → Workspace → Usage.", status: 402 };
+      }
+
+      if (response.status >= 500) {
+        const t = await response.text();
+        console.error(`AI gateway attempt ${attempt}/${maxRetries}: HTTP ${response.status}`);
+        if (attempt < maxRetries) {
+          const delay = attempt * 2000;
+          console.log(`Retrying in ${delay}ms...`);
+          await new Promise(r => setTimeout(r, delay));
+          continue;
+        }
+        return { error: `AI gateway indisponível após ${maxRetries} tentativas. Tente novamente em alguns minutos.`, status: 502, fallback: true };
+      }
+
+      if (!response.ok) {
+        const t = await response.text();
+        console.error("AI gateway error:", response.status, t);
+        return { error: `AI gateway HTTP ${response.status}`, status: response.status };
+      }
+
+      return { data: await response.json(), status: 200 };
+    } catch (e: any) {
+      console.error(`AI gateway attempt ${attempt}/${maxRetries} network error:`, e.message);
+      if (attempt < maxRetries) {
+        await new Promise(r => setTimeout(r, attempt * 2000));
+        continue;
+      }
+      return { error: `Erro de rede após ${maxRetries} tentativas: ${e.message}`, status: 500, fallback: true };
+    }
+  }
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
@@ -64,39 +116,16 @@ Retorne APENAS um JSON válido com o array, sem nenhum texto adicional:
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY não configurada");
 
-    const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${LOVABLE_API_KEY}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        model: "google/gemini-3-flash-preview",
-        messages: [{ role: "user", content: prompt }],
-      }),
-    });
+    const result = await callAIWithRetry(prompt, LOVABLE_API_KEY);
 
-    if (!response.ok) {
-      if (response.status === 429) {
-        return new Response(JSON.stringify({ error: "Rate limit excedido. Tente novamente em alguns segundos." }), {
-          status: 429,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
-      }
-      if (response.status === 402) {
-        return new Response(JSON.stringify({ error: "Créditos insuficientes. Adicione créditos em Settings → Workspace → Usage." }), {
-          status: 402,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
-      }
-      const t = await response.text();
-      console.error("AI gateway error:", response.status, t);
-      throw new Error(`AI gateway HTTP ${response.status}`);
+    if (result.error) {
+      return new Response(JSON.stringify({ error: result.error, fallback: result.fallback || false }), {
+        status: result.status === 429 || result.status === 402 ? result.status : 200,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
     }
 
-    const data = await response.json();
-    const text = data.choices?.[0]?.message?.content || "";
-
+    const text = result.data.choices?.[0]?.message?.content || "";
     const clean = text.replace(/```json|```/g, "").trim();
     const match = clean.match(/\[[\s\S]*\]/);
     if (!match) throw new Error("JSON não encontrado na resposta");
@@ -108,8 +137,8 @@ Retorne APENAS um JSON válido com o array, sem nenhum texto adicional:
     });
   } catch (error: any) {
     console.error("enrich-condominios-ai error:", error);
-    return new Response(JSON.stringify({ error: error.message }), {
-      status: 500,
+    return new Response(JSON.stringify({ error: error.message, fallback: true }), {
+      status: 200,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   }
