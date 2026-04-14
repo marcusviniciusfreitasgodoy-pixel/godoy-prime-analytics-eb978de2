@@ -115,10 +115,16 @@ export function EnriquecerCondominios() {
         });
 
         if (error) throw new Error(error.message);
-        if (data?.error) throw new Error(data.error);
-
-        all.push(...(data.results || []));
-        setResults([...all]);
+        if (data?.error) {
+          if (data.fallback) {
+            setErrors(prev => [...prev, `Lote ${i + 1}: ${data.error} (tentando próximo lote)`]);
+          } else {
+            throw new Error(data.error);
+          }
+        } else {
+          all.push(...(data.results || []));
+          setResults([...all]);
+        }
       } catch (e: any) {
         setErrors(prev => [...prev, `Lote ${i + 1}: ${e.message}`]);
       }
