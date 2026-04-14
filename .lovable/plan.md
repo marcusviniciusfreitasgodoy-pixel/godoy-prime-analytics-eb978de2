@@ -1,23 +1,30 @@
 
 
-## Plano: Fortalecer a análise de documentos e base de conhecimento
+## Plano: Melhorar análise de Certidão de Ônus Reais e outros documentos
 
-### Alteração 1: Atualizar modelo do analisador de documentos
+### Problema
+O prompt atual é genérico — lista tipos de documento mas não detalha os campos a extrair de cada um. Para documentos complexos como a Certidão de Ônus Reais, isso resulta em análises superficiais.
+
+### Alteração 1: Prompt especializado por tipo de documento
 **Arquivo:** `supabase/functions/analyze-document/index.ts`
-- Trocar `model: "google/gemini-2.5-flash"` para `model: "google/gemini-2.5-pro"`
-- O modelo Pro tem raciocínio superior para extrair dados de documentos complexos (matrículas, certidões, contratos)
+- Expandir o `BASE_SYSTEM_PROMPT` com instruções detalhadas para cada tipo de documento
+- Para **Certidão de Ônus Reais** especificamente:
+  - Extrair: nº matrícula, RGI, comarca, proprietário(s), CPF/CNPJ, descrição do imóvel, área, todos os registros (R-) e averbações (AV-), ônus ativos (hipotecas, penhoras, alienações fiduciárias, usufrutos, cláusulas restritivas), data de emissão
+  - Classificar cada ônus como ativo/cancelado
+  - Alertar sobre ônus que impedem a venda
+- Instruções similares para: IPTU, Quitação Condominial, Certidão de Casamento, Contrato Social, Distribuidores
+- Habilitar **reasoning** (`reasoning: { effort: "high" }`) para análise mais profunda
 
-### Alteração 2: Integrar base de conhecimento ao analisador
-**Arquivo:** `supabase/functions/analyze-document/index.ts`
-- Antes de chamar a IA, buscar artigos relevantes da `sofia_knowledge_base` (categoria "documentacao", "legislacao", "due_diligence")
-- Injetar esse conhecimento no prompt do sistema para que a IA dê alertas mais específicos e fundamentados (ex: "Conforme Lei 6.015/1973, Art. 167...")
-
-### Alteração 3: Funcionalidade de importação em massa na Base de Conhecimento
-**Arquivo:** `src/pages/BaseConhecimento.tsx`
-- Adicionar botão "Importar CSV" que aceita arquivo com colunas: categoria, título, conteúdo, palavras-chave, fonte
-- Processar e inserir em lote na tabela `sofia_knowledge_base`
+### Alteração 2: Seed de artigos de legislação cartorária
+**Migração SQL** para inserir artigos na `sofia_knowledge_base`:
+- Lei 6.015/1973 (Lei de Registros Públicos) — artigos relevantes sobre matrículas, registros e averbações
+- Tipos de ônus reais e seus efeitos legais
+- Checklist de due diligence para Certidão de Ônus
+- Prazos de validade de certidões
 
 ### Resultado esperado
-- Análise de documentos mais precisa e com alertas fundamentados na legislação
-- Possibilidade de alimentar rapidamente a base com conteúdo especializado
+- Extração detalhada de todos os registros e averbações da matrícula
+- Identificação precisa de ônus que bloqueiam a transação
+- Alertas fundamentados em legislação específica
+- Análise mais profunda via reasoning do modelo
 
