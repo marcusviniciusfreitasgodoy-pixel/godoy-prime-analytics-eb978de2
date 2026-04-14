@@ -210,63 +210,75 @@ export function IPTU2025Upload() {
           }}
         />
 
-        <Button
-          variant="outline"
-          size="sm"
-          disabled={uploading !== null}
-          onClick={() => resFileRef.current?.click()}
-          className="gap-2"
-        >
-          {uploading === "Residencial" ? (
-            <Loader2 className="h-4 w-4 animate-spin" />
-          ) : (
-            <Upload className="h-4 w-4" />
-          )}
-          Upload Residencial
-          {resStats && <CheckCircle className="h-3 w-3 text-green-500" />}
-        </Button>
+        <div className="flex flex-col items-center gap-1">
+          <Button
+            variant="outline"
+            size="sm"
+            disabled={uploading !== null}
+            onClick={() => resFileRef.current?.click()}
+            className="gap-2"
+          >
+            {uploading === "Residencial" ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <Upload className="h-4 w-4" />
+            )}
+            Upload Residencial
+            {resStats && <CheckCircle className="h-3 w-3 text-green-500" />}
+          </Button>
+          <span className="text-[9px] font-medium px-1.5 py-0.5 rounded-full bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300">CSV → Staging</span>
+        </div>
 
-        <Button
-          variant="outline"
-          size="sm"
-          disabled={uploading !== null}
-          onClick={() => comFileRef.current?.click()}
-          className="gap-2"
-        >
-          {uploading === "Não Residencial" ? (
-            <Loader2 className="h-4 w-4 animate-spin" />
-          ) : (
-            <Upload className="h-4 w-4" />
-          )}
-          Upload Não Residencial
-          {comStats && <CheckCircle className="h-3 w-3 text-green-500" />}
-        </Button>
+        <div className="flex flex-col items-center gap-1">
+          <Button
+            variant="outline"
+            size="sm"
+            disabled={uploading !== null}
+            onClick={() => comFileRef.current?.click()}
+            className="gap-2"
+          >
+            {uploading === "Não Residencial" ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <Upload className="h-4 w-4" />
+            )}
+            Upload Não Residencial
+            {comStats && <CheckCircle className="h-3 w-3 text-green-500" />}
+          </Button>
+          <span className="text-[9px] font-medium px-1.5 py-0.5 rounded-full bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300">CSV → Staging</span>
+        </div>
 
-        <Button
-          variant="default"
-          size="sm"
-          disabled={!canProcess || processing}
-          onClick={handleProcess}
-          className="gap-2"
-        >
-          {processing ? (
-            <Loader2 className="h-4 w-4 animate-spin" />
-          ) : (
-            <Play className="h-4 w-4" />
-          )}
-          Processar IPTU 2025
-        </Button>
+        <div className="flex flex-col items-center gap-1">
+          <Button
+            variant="default"
+            size="sm"
+            disabled={!canProcess || processing}
+            onClick={handleProcess}
+            className="gap-2"
+          >
+            {processing ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <Play className="h-4 w-4" />
+            )}
+            Processar IPTU 2025
+          </Button>
+          <span className="text-[9px] font-medium px-1.5 py-0.5 rounded-full bg-cyan-100 text-cyan-800 dark:bg-cyan-900/40 dark:text-cyan-300">RPC</span>
+        </div>
 
         {(tableCount ?? 0) > 0 && (
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={handleClearTable}
-            className="gap-1 text-destructive hover:text-destructive"
-          >
-            <Trash2 className="h-3 w-3" />
-            Limpar
-          </Button>
+          <div className="flex flex-col items-center gap-1">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={handleClearTable}
+              className="gap-1 text-destructive hover:text-destructive"
+            >
+              <Trash2 className="h-3 w-3" />
+              Limpar
+            </Button>
+            <span className="text-[9px] font-medium px-1.5 py-0.5 rounded-full bg-muted text-muted-foreground">Reset</span>
+          </div>
         )}
       </div>
 

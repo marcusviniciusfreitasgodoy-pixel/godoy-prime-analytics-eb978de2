@@ -19,15 +19,22 @@ const STATUS_COLORS: Record<string, string> = {
   partial: "bg-yellow-500",
 };
 
+const BADGE_STYLES: Record<string, string> = {
+  "ArcGIS": "bg-emerald-100 text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-300",
+  "Algoritmo": "bg-purple-100 text-purple-800 dark:bg-purple-900/40 dark:text-purple-300",
+  "Google API": "bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-300",
+  "Export": "bg-muted text-muted-foreground",
+};
+
 const ACTIONS = [
-  { label: "Ingestão IPTU", fn: "ingest-iptu-prefeitura", icon: Database, tooltip: "Importa dados de IPTU da prefeitura para a base territorial" },
-  { label: "Ingestão Lotes", fn: "ingest-lotes-pal", icon: Map, tooltip: "Carrega polígonos de lotes do PAL (Plano de Alinhamento)" },
-  { label: "Ingestão Edificações", fn: "ingest-edificacoes-geo", icon: Building2, tooltip: "Importa dados de edificações georreferenciadas" },
-  { label: "Rodar Algoritmo", fn: "process-condominios-algorithm", icon: Cpu, tooltip: "Cruza dados de ITBI, IPTU e edificações para calcular KPIs dos condomínios" },
-  { label: "Geocodificar ITBI", fn: "geocodificar-itbi-transactions", icon: MapPin, tooltip: "Adiciona coordenadas geográficas às transações ITBI" },
-  { label: "Enriquecer Logradouros", fn: "enrich-logradouros-geo", icon: Route, tooltip: "Busca dados geográficos e complementares para logradouros" },
-  { label: "Enriquecer Condomínios (Google Places)", fn: "enrich-condominios", icon: Search, tooltip: "Busca coordenadas, endereço e Google Place ID via Places API (New)" },
-  { label: "Enriquecer Detalhes (Places Details)", fn: "enrich-places-details", icon: Building2, tooltip: "Busca tipos, fotos, resumo editorial e link do Google Maps para condomínios com Place ID" },
+  { label: "Ingestão IPTU", fn: "ingest-iptu-prefeitura", icon: Database, badge: "ArcGIS", tooltip: "Puxa resumos de logradouros (tipologia, total imóveis, área) da camada IPTU da Prefeitura RJ. Resultado: preenche card \"IPTU Logradouros\"." },
+  { label: "Ingestão Lotes", fn: "ingest-lotes-pal", icon: Map, badge: "ArcGIS", tooltip: "Baixa polígonos de lotes (terrenos) da Barra da Tijuca via GeoPAL. Resultado: preenche card \"Lotes PAL\" e habilita camada de lotes no mapa." },
+  { label: "Ingestão Edificações", fn: "ingest-edificacoes-geo", icon: Building2, badge: "ArcGIS", tooltip: "Importa contornos de edificações com altura, andares e tipo (ArcGIS 2019). Resultado: preenche card \"Edificações\"." },
+  { label: "Rodar Algoritmo", fn: "process-condominios-algorithm", icon: Cpu, badge: "Algoritmo", tooltip: "Cruza ITBI + IPTU + edificações para identificar condomínios e calcular preço médio/m², torres e unidades. Resultado: atualiza cards \"Condomínios\", \"Com ITBI\" e \"Com Logradouro\"." },
+  { label: "Geocodificar ITBI", fn: "geocodificar-itbi-transactions", icon: MapPin, badge: "Google API", tooltip: "Adiciona lat/lng às transações ITBI sem coordenadas via Google Geocoding API. Resultado: transações passam a aparecer no mapa." },
+  { label: "Enriquecer Logradouros", fn: "enrich-logradouros-geo", icon: Route, badge: "Google API", tooltip: "Geocodifica nomes de ruas sem coordenadas em logradouros_geo via Google Geocoding API. Resultado: ruas ganham posição no mapa." },
+  { label: "Enriquecer Condomínios (Google Places)", fn: "enrich-condominios", icon: Search, badge: "Google API", tooltip: "Busca place_id, coordenadas e endereço formatado via Google Places API (New). Resultado: condomínios ganham marcador preciso no mapa." },
+  { label: "Enriquecer Detalhes (Places Details)", fn: "enrich-places-details", icon: Building2, badge: "Google API", tooltip: "Busca tipos, rating, fotos e resumo editorial via Places API (New) para condomínios com place_id. Resultado: ficha do condomínio exibe dados do Google." },
 ];
 
 export function TerritorialAdmin() {
@@ -204,45 +211,55 @@ export function TerritorialAdmin() {
           {ACTIONS.map((action) => (
             <Tooltip key={action.fn}>
               <TooltipTrigger asChild>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  disabled={running !== null}
-                  onClick={() => invokeAction(action.fn)}
-                  className="gap-2"
-                >
-                  {running === action.fn ? (
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                  ) : (
-                    <action.icon className="h-4 w-4" />
-                  )}
-                  {action.label}
-                </Button>
+                <div className="flex flex-col items-center gap-1">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    disabled={running !== null}
+                    onClick={() => invokeAction(action.fn)}
+                    className="gap-2"
+                  >
+                    {running === action.fn ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <action.icon className="h-4 w-4" />
+                    )}
+                    {action.label}
+                  </Button>
+                  <span className={`text-[9px] font-medium px-1.5 py-0.5 rounded-full ${BADGE_STYLES[action.badge]}`}>
+                    {action.badge}
+                  </span>
+                </div>
               </TooltipTrigger>
-              <TooltipContent>
-                <p>{action.tooltip}</p>
+              <TooltipContent className="max-w-xs">
+                <p className="text-xs">{action.tooltip}</p>
               </TooltipContent>
             </Tooltip>
           ))}
           <Tooltip>
             <TooltipTrigger asChild>
-              <Button
-                variant="outline"
-                size="sm"
-                disabled={isExporting}
-                onClick={exportCondominiosCSV}
-                className="gap-2"
-              >
-                {isExporting ? (
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                ) : (
-                  <Download className="h-4 w-4" />
-                )}
-                Exportar CSV
-              </Button>
+              <div className="flex flex-col items-center gap-1">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  disabled={isExporting}
+                  onClick={exportCondominiosCSV}
+                  className="gap-2"
+                >
+                  {isExporting ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <Download className="h-4 w-4" />
+                  )}
+                  Exportar CSV
+                </Button>
+                <span className={`text-[9px] font-medium px-1.5 py-0.5 rounded-full ${BADGE_STYLES["Export"]}`}>
+                  Export
+                </span>
+              </div>
             </TooltipTrigger>
-            <TooltipContent>
-              <p>Exporta todos os condomínios ativos para um arquivo CSV</p>
+            <TooltipContent className="max-w-xs">
+              <p className="text-xs">Exporta todos os condomínios ativos para arquivo CSV. Resultado: download do arquivo.</p>
             </TooltipContent>
           </Tooltip>
         </div>
