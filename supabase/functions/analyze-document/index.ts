@@ -5,7 +5,8 @@ const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version',
 };
-const SYSTEM_PROMPT = `Você é um especialista em análise de documentos imobiliários do Brasil, especialmente para transações de compra e venda de imóveis no Rio de Janeiro.
+
+const BASE_SYSTEM_PROMPT = `Você é um especialista em análise de documentos imobiliários do Brasil, especialmente para transações de compra e venda de imóveis no Rio de Janeiro.
 
 Sua função é analisar documentos enviados (certidões, escrituras, declarações) e extrair informações relevantes.
 
@@ -45,13 +46,43 @@ Regras importantes:
 4. Sempre sugira o item do checklist correspondente
 5. Retorne APENAS o JSON, sem markdown ou texto adicional`;
 
+async function fetchKnowledgeBase(): Promise<string> {
+  try {
+    const supabaseAdmin = createClient(
+      Deno.env.get('SUPABASE_URL')!,
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!,
+    );
+
+    const { data, error } = await supabaseAdmin
+      .from('sofia_knowledge_base')
+      .select('title, content, source, category')
+      .in('category', ['documentacao', 'legislacao', 'due_diligence', 'contratos'])
+      .eq('is_active', true)
+      .limit(30);
+
+    if (error || !data || data.length === 0) {
+      console.log('No knowledge base articles found or error:', error?.message);
+      return '';
+    }
+
+    const knowledgeText = data.map((article: any) => {
+      const source = article.source ? ` (Fonte: ${article.source})` : '';
+      return `### ${article.title}${source}\n${article.content}`;
+    }).join('\n\n');
+
+    return `\n\n---\n## BASE DE CONHECIMENTO ESPECIALIZADA\nUtilize as informações abaixo para fundamentar seus alertas e recomendações. Cite fontes legais quando aplicável.\n\n${knowledgeText}`;
+  } catch (err) {
+    console.error('Error fetching knowledge base:', err);
+    return '';
+  }
+}
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
-    // Authenticate user
     const authHeader = req.headers.get('Authorization');
     if (!authHeader?.startsWith('Bearer ')) {
       return new Response(JSON.stringify({ error: 'Autenticação obrigatória' }), {
@@ -88,7 +119,10 @@ serve(async (req) => {
 
     console.log('Analyzing document:', filename || 'unknown', 'type:', mimeType);
 
-    // Prepare the image for the API
+    // Fetch knowledge base articles to enrich the prompt
+    const knowledgeContext = await fetchKnowledgeBase();
+    const systemPrompt = BASE_SYSTEM_PROMPT + knowledgeContext;
+
     const imageUrl = image.startsWith('data:') ? image : `data:${mimeType || 'image/jpeg'};base64,${image}`;
 
     const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
@@ -98,15 +132,15 @@ serve(async (req) => {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'google/gemini-2.5-flash',
+        model: 'google/gemini-2.5-pro',
         messages: [
-          { role: 'system', content: SYSTEM_PROMPT },
+          { role: 'system', content: systemPrompt },
           { 
             role: 'user', 
             content: [
               { 
                 type: 'text', 
-                text: `Analise este documento imobiliário e extraia todas as informações relevantes. Nome do arquivo: ${filename || 'documento'}` 
+                text: `Analise este documento imobiliário e extraia todas as informações relevantes. Fundamente alertas em legislação quando possível. Nome do arquivo: ${filename || 'documento'}` 
               },
               { 
                 type: 'image_url', 
@@ -145,15 +179,12 @@ serve(async (req) => {
       throw new Error('Resposta vazia da IA');
     }
 
-    // Parse the JSON response
     let analysisResult;
     try {
-      // Remove markdown code blocks if present
       const cleanContent = content.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
       analysisResult = JSON.parse(cleanContent);
     } catch (parseError) {
       console.error('Error parsing AI response:', content);
-      // Return a structured error response
       analysisResult = {
         tipo_documento: 'Não identificado',
         status: 'ATENCAO',
