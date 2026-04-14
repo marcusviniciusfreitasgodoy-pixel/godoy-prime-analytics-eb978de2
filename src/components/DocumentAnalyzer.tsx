@@ -126,10 +126,43 @@ export function DocumentAnalyzer({ onChecklistItemSuggested }: DocumentAnalyzerP
     });
   };
 
+  const convertPdfToImages = async (file: File): Promise<string[]> => {
+    const arrayBuffer = await file.arrayBuffer();
+    const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+    const maxPages = Math.min(pdf.numPages, 5); // Max 5 pages
+    const images: string[] = [];
+
+    for (let i = 1; i <= maxPages; i++) {
+      const page = await pdf.getPage(i);
+      const scale = 2; // Higher resolution for better OCR
+      const viewport = page.getViewport({ scale });
+      const canvas = document.createElement('canvas');
+      canvas.width = viewport.width;
+      canvas.height = viewport.height;
+      const ctx = canvas.getContext('2d')!;
+      await page.render({ canvasContext: ctx, viewport }).promise;
+      images.push(canvas.toDataURL('image/jpeg', 0.9));
+      canvas.remove();
+    }
+
+    return images;
+  };
+
   const analyzeDocument = async (doc: DocumentFile): Promise<AnalysisResult> => {
     const { data: { session } } = await supabase.auth.getSession();
     if (!session?.access_token) {
       throw new Error('Você precisa estar autenticado para analisar documentos.');
+    }
+
+    // For PDFs, convert pages to images first
+    let images: string[];
+    let mimeType = doc.file.type;
+
+    if (doc.file.type === 'application/pdf') {
+      images = await convertPdfToImages(doc.file);
+      mimeType = 'image/jpeg';
+    } else {
+      images = [doc.preview];
     }
 
     const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/analyze-document`, {
@@ -140,8 +173,8 @@ export function DocumentAnalyzer({ onChecklistItemSuggested }: DocumentAnalyzerP
         'apikey': import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
       },
       body: JSON.stringify({
-        image: doc.preview,
-        mimeType: doc.file.type,
+        images,
+        mimeType,
         filename: doc.file.name,
       }),
     });
