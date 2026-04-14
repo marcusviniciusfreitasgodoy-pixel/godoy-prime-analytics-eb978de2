@@ -26,7 +26,8 @@ const ACTIONS = [
   { label: "Rodar Algoritmo", fn: "process-condominios-algorithm", icon: Cpu, tooltip: "Cruza dados de ITBI, IPTU e edificações para calcular KPIs dos condomínios" },
   { label: "Geocodificar ITBI", fn: "geocodificar-itbi-transactions", icon: MapPin, tooltip: "Adiciona coordenadas geográficas às transações ITBI" },
   { label: "Enriquecer Logradouros", fn: "enrich-logradouros-geo", icon: Route, tooltip: "Busca dados geográficos e complementares para logradouros" },
-  { label: "Enriquecer Condomínios (Google Places)", fn: "enrich-condominios", icon: Search, tooltip: "Busca coordenadas, endereço e Google Place ID via Google Places API" },
+  { label: "Enriquecer Condomínios (Google Places)", fn: "enrich-condominios", icon: Search, tooltip: "Busca coordenadas, endereço e Google Place ID via Places API (New)" },
+  { label: "Enriquecer Detalhes (Places Details)", fn: "enrich-places-details", icon: Building2, tooltip: "Busca tipos, fotos, resumo editorial e link do Google Maps para condomínios com Place ID" },
 ];
 
 export function TerritorialAdmin() {
