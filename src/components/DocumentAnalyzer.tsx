@@ -7,6 +7,10 @@ import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
+import * as pdfjsLib from "pdfjs-dist";
+
+// Configure pdf.js worker
+pdfjsLib.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.mjs`;
 import {
   Collapsible,
   CollapsibleContent,
