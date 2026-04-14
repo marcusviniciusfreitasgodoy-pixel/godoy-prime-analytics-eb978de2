@@ -1,14 +1,12 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
-import { MapPin, Layers, Grid3X3 } from "lucide-react";
+import { MapPin, Layers, Grid3X3, Loader2 } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
 import type { TerritorialCondominio, MapBounds, LotePAL } from "@/hooks/useTerritorialData";
 
-interface FocusCoord {
-  lat: number;
-  lng: number;
-}
+interface FocusCoord { lat: number; lng: number; }
 
 interface TerritorialMapProps {
   condominios: TerritorialCondominio[];
@@ -27,11 +25,12 @@ interface TerritorialMapProps {
 
 declare global {
   interface Window {
-    L?: any;
+    google: typeof google;
+    initTerritorialMap?: () => void;
   }
 }
 
-const BARRA_CENTER: [number, number] = [-22.988, -43.32];
+const BARRA_CENTER = { lat: -22.988, lng: -43.32 };
 const BARRA_ZOOM = 13;
 
 function getMarkerColor(unidades: number | null): string {
@@ -42,233 +41,164 @@ function getMarkerColor(unidades: number | null): string {
   return "#7C3AED";
 }
 
-async function ensureLeafletLoaded() {
-  if (window.L) return window.L;
-
-  if (!document.getElementById("leaflet-css")) {
-    const css = document.createElement("link");
-    css.id = "leaflet-css";
-    css.rel = "stylesheet";
-    css.href = "https://unpkg.com/leaflet@1.9.4/dist/leaflet.css";
-    document.head.appendChild(css);
-  }
-
-  await new Promise<void>((resolve, reject) => {
-    const existing = document.getElementById("leaflet-js") as HTMLScriptElement | null;
-    if (existing) {
-      if (window.L) resolve();
-      else existing.addEventListener("load", () => resolve(), { once: true });
-      return;
-    }
-
-    const script = document.createElement("script");
-    script.id = "leaflet-js";
-    script.src = "https://unpkg.com/leaflet@1.9.4/dist/leaflet.js";
-    script.async = true;
-    script.onload = () => resolve();
-    script.onerror = () => reject(new Error("Falha ao carregar mapa"));
-    document.body.appendChild(script);
-  });
-
-  return window.L;
-}
-
-async function ensureHeatLoaded() {
-  if ((window.L as any)?.heatLayer) return;
-
-  await new Promise<void>((resolve, reject) => {
-    const existing = document.getElementById("leaflet-heat-js");
-    if (existing) {
-      if ((window.L as any)?.heatLayer) resolve();
-      else existing.addEventListener("load", () => resolve(), { once: true });
-      return;
-    }
-    const script = document.createElement("script");
-    script.id = "leaflet-heat-js";
-    script.src = "https://unpkg.com/leaflet.heat@0.2.0/dist/leaflet-heat.js";
-    script.async = true;
-    script.onload = () => resolve();
-    script.onerror = () => reject(new Error("Falha ao carregar heatmap"));
-    document.body.appendChild(script);
-  });
-}
-
 export function TerritorialMap({
-  condominios,
-  selectedId,
-  onSelect,
-  onBoundsChange,
-  showHeatmap,
-  onToggleHeatmap,
-  focusCoord,
-  lotes = [],
-  showLotes,
-  onToggleLotes,
-  currentZoom,
-  onZoomChange,
+  condominios, selectedId, onSelect, onBoundsChange,
+  showHeatmap, onToggleHeatmap, focusCoord,
+  lotes = [], showLotes, onToggleLotes,
+  currentZoom, onZoomChange,
 }: TerritorialMapProps) {
   const mapElementRef = useRef<HTMLDivElement | null>(null);
-  const mapRef = useRef<any>(null);
-  const markersLayerRef = useRef<any>(null);
-  const heatLayerRef = useRef<any>(null);
-  const lotesLayerRef = useRef<any>(null);
+  const mapRef = useRef<google.maps.Map | null>(null);
+  const markersRef = useRef<google.maps.marker.AdvancedMarkerElement[]>([]);
+  const heatmapRef = useRef<google.maps.visualization.HeatmapLayer | null>(null);
+  const lotesPolygonsRef = useRef<google.maps.Polygon[]>([]);
+  const [apiKey, setApiKey] = useState<string | null>(null);
+  const [mapReady, setMapReady] = useState(false);
+  const [loading, setLoading] = useState(true);
 
+  // Fetch API key
   useEffect(() => {
-    let cancelled = false;
+    (async () => {
+      try {
+        const resp = await supabase.functions.invoke("get-google-maps-key");
+        if (resp.data?.apiKey) setApiKey(resp.data.apiKey);
+      } catch (e) { console.error("Error fetching API key:", e); }
+      finally { setLoading(false); }
+    })();
+  }, []);
 
-    const initMap = async () => {
-      if (!mapElementRef.current || mapRef.current) return;
+  // Load Google Maps script
+  useEffect(() => {
+    if (!apiKey) return;
+    if (window.google?.maps?.visualization) { setMapReady(true); return; }
 
-      const L = await ensureLeafletLoaded();
-      if (cancelled || !mapElementRef.current) return;
+    const existing = document.getElementById("google-maps-script");
+    if (existing) {
+      if (window.google?.maps?.visualization) { setMapReady(true); return; }
+      const handler = () => setMapReady(true);
+      existing.addEventListener("load", handler, { once: true });
+      return;
+    }
 
-      const map = L.map(mapElementRef.current, {
-        center: BARRA_CENTER,
-        zoom: BARRA_ZOOM,
-        zoomControl: false,
+    const script = document.createElement("script");
+    script.id = "google-maps-script";
+    script.src = `https://maps.googleapis.com/maps/api/js?key=${apiKey}&libraries=marker,visualization&callback=initTerritorialMap`;
+    script.async = true;
+    script.defer = true;
+    window.initTerritorialMap = () => setMapReady(true);
+    document.head.appendChild(script);
+  }, [apiKey]);
+
+  // Init map
+  useEffect(() => {
+    if (!mapReady || !mapElementRef.current || mapRef.current) return;
+
+    const map = new google.maps.Map(mapElementRef.current, {
+      center: BARRA_CENTER, zoom: BARRA_ZOOM,
+      mapId: "territorial-map",
+      mapTypeControl: false, streetViewControl: true,
+      fullscreenControl: true, zoomControl: true,
+      styles: [{ featureType: "poi", elementType: "labels", stylers: [{ visibility: "off" }] }],
+    });
+    mapRef.current = map;
+
+    const emitBounds = () => {
+      const b = map.getBounds();
+      if (!b) return;
+      onBoundsChange({
+        north: b.getNorthEast().lat(), south: b.getSouthWest().lat(),
+        east: b.getNorthEast().lng(), west: b.getSouthWest().lng(),
       });
-
-      L.control.zoom({ position: "topleft" }).addTo(map);
-
-      L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
-      }).addTo(map);
-
-      markersLayerRef.current = L.layerGroup().addTo(map);
-      lotesLayerRef.current = L.layerGroup().addTo(map);
-      mapRef.current = map;
-
-      const emitBounds = () => {
-        const b = map.getBounds();
-        onBoundsChange({
-          north: b.getNorth(),
-          south: b.getSouth(),
-          east: b.getEast(),
-          west: b.getWest(),
-        });
-        onZoomChange(map.getZoom());
-      };
-
-      emitBounds();
-      map.on("moveend", emitBounds);
+      onZoomChange(map.getZoom() || BARRA_ZOOM);
     };
 
-    initMap();
+    map.addListener("idle", emitBounds);
+    emitBounds();
+  }, [mapReady, onBoundsChange, onZoomChange]);
 
-    return () => {
-      cancelled = true;
-      if (heatLayerRef.current) {
-        heatLayerRef.current.remove();
-        heatLayerRef.current = null;
-      }
-      if (mapRef.current) {
-        mapRef.current.remove();
-        mapRef.current = null;
-      }
-      markersLayerRef.current = null;
-      lotesLayerRef.current = null;
-    };
-  }, [onBoundsChange, onZoomChange]);
-
-  // flyTo when focusCoord changes
+  // Focus coord
   useEffect(() => {
     if (focusCoord && mapRef.current) {
-      mapRef.current.flyTo([focusCoord.lat, focusCoord.lng], 16, { duration: 1.5 });
+      mapRef.current.panTo({ lat: focusCoord.lat, lng: focusCoord.lng });
+      mapRef.current.setZoom(16);
     }
   }, [focusCoord]);
 
-  // P2.2: Real heatmap with leaflet.heat
+  // Heatmap
   useEffect(() => {
     const map = mapRef.current;
-    if (!map) return;
+    if (!map || !window.google) return;
 
     if (showHeatmap) {
-      ensureHeatLoaded().then(() => {
-        const L = window.L;
-        if (!L?.heatLayer || !mapRef.current) return;
-
-        // Remove previous
-        if (heatLayerRef.current) {
-          heatLayerRef.current.remove();
-        }
-
-        const heatPoints = condominios
-          .filter(c => c.latitude != null && c.longitude != null)
-          .map(c => [
-            c.latitude,
-            c.longitude,
-            Math.min(1, (c.unidades_estimadas || 1) / 500),
-          ]);
-
-        heatLayerRef.current = (L as any).heatLayer(heatPoints, {
-          radius: 35,
-          blur: 25,
-          maxZoom: 16,
-          max: 1.0,
-          gradient: {
-            0.2: "#93C5FD",
-            0.5: "#3B82F6",
-            0.8: "#1D4ED8",
-            1.0: "#7C3AED",
-          },
-        }).addTo(mapRef.current);
-      }).catch(console.error);
-    } else {
-      if (heatLayerRef.current) {
-        heatLayerRef.current.remove();
-        heatLayerRef.current = null;
-      }
+      if (heatmapRef.current) heatmapRef.current.setMap(null);
+      const heatData = condominios
+        .filter(c => c.latitude != null && c.longitude != null)
+        .map(c => ({
+          location: new google.maps.LatLng(c.latitude, c.longitude),
+          weight: Math.min(1, (c.unidades_estimadas || 1) / 500),
+        }));
+      heatmapRef.current = new google.maps.visualization.HeatmapLayer({
+        data: heatData, map,
+        radius: 35, opacity: 0.7,
+        gradient: ["rgba(147,197,253,0)", "#93C5FD", "#3B82F6", "#1D4ED8", "#7C3AED"],
+      });
+    } else if (heatmapRef.current) {
+      heatmapRef.current.setMap(null);
+      heatmapRef.current = null;
     }
   }, [showHeatmap, condominios]);
 
-  // P2.1: Lotes PAL layer
+  // Lotes PAL layer
   useEffect(() => {
-    const lotesLayer = lotesLayerRef.current;
-    const L = window.L;
-    if (!lotesLayer || !L) return;
+    const map = mapRef.current;
+    if (!map || !window.google) return;
 
-    lotesLayer.clearLayers();
+    // Clear previous
+    lotesPolygonsRef.current.forEach(p => p.setMap(null));
+    lotesPolygonsRef.current = [];
 
     if (!showLotes || currentZoom < 15) return;
 
-    lotes.forEach((lote) => {
+    lotes.forEach(lote => {
       if (!lote.geom_geojson) return;
       try {
-        const geoLayer = L.geoJSON(lote.geom_geojson, {
-          style: {
-            color: "#3B82F6",
-            weight: 1,
-            fillOpacity: 0.05,
-            fillColor: "#3B82F6",
-          },
+        const geojson = typeof lote.geom_geojson === "string" ? JSON.parse(lote.geom_geojson) : lote.geom_geojson;
+        const coords = geojson.type === "Polygon" ? geojson.coordinates[0] :
+          geojson.type === "MultiPolygon" ? geojson.coordinates[0][0] : null;
+        if (!coords) return;
+
+        const path = coords.map((c: number[]) => ({ lat: c[1], lng: c[0] }));
+        const polygon = new google.maps.Polygon({
+          paths: path, map,
+          strokeColor: "#3B82F6", strokeWeight: 1,
+          fillColor: "#3B82F6", fillOpacity: 0.05,
         });
-        geoLayer.bindTooltip(
-          `<div style="font-size:11px;">
-            <strong>${lote.logradouro || "Lote"}</strong>
-            ${lote.area_lote ? `<br/>${Number(lote.area_lote).toLocaleString("pt-BR")} m²` : ""}
-          </div>`,
-          { sticky: true }
-        );
-        geoLayer.addTo(lotesLayer);
-      } catch (e) {
-        // Skip invalid geojson
-      }
+
+        const infoWindow = new google.maps.InfoWindow({
+          content: `<div style="font-size:11px;"><strong>${lote.logradouro || "Lote"}</strong>${lote.area_lote ? `<br/>${Number(lote.area_lote).toLocaleString("pt-BR")} m²` : ""}</div>`,
+        });
+        polygon.addListener("click", (e: any) => {
+          infoWindow.setPosition(e.latLng);
+          infoWindow.open(map);
+        });
+
+        lotesPolygonsRef.current.push(polygon);
+      } catch { /* skip invalid geojson */ }
     });
   }, [lotes, showLotes, currentZoom]);
 
-  // Markers layer
+  // Markers
   useEffect(() => {
     const map = mapRef.current;
-    const layer = markersLayerRef.current;
-    const L = window.L;
-    if (!map || !layer || !L) return;
+    if (!map || !window.google) return;
 
-    layer.clearLayers();
+    // Clear previous markers
+    markersRef.current.forEach(m => m.map = null);
+    markersRef.current = [];
 
-    // When heatmap is active, don't show markers
     if (showHeatmap) return;
 
-    const zoom = map.getZoom();
+    const zoom = map.getZoom() || BARRA_ZOOM;
     const shouldCluster = zoom < 14;
 
     type ClusterItem = TerritorialCondominio & { _clusterCount?: number };
@@ -283,64 +213,76 @@ export function TerritorialMap({
         grid[key].push(c);
       });
       markersToRender = Object.values(grid).map(group => ({
-        ...group[0],
-        _clusterCount: group.length,
+        ...group[0], _clusterCount: group.length,
       }));
     } else {
       markersToRender = condominios.filter(c => c.latitude != null && c.longitude != null);
     }
 
-    markersToRender.forEach((c) => {
+    markersToRender.forEach(c => {
       const hasPrice = c.preco_medio_m2 != null && c.preco_medio_m2 > 0;
       const color = getMarkerColor(c.unidades_estimadas);
       const isSelected = c.id === selectedId;
       const clusterCount = (c as ClusterItem)._clusterCount ?? 1;
       const isCluster = clusterCount > 1;
 
-      const marker = L.circleMarker([c.latitude, c.longitude], {
-        radius: isSelected ? 10 : 7,
-        fillColor: color,
-        fillOpacity: hasPrice ? 0.85 : 0.3,
-        color: isSelected ? "#F59E0B" : hasPrice ? color : "#94A3B8",
-        weight: isSelected ? 3 : hasPrice ? 2 : 1,
-        dashArray: hasPrice ? undefined : "4 4",
-      });
+      const size = isSelected ? 20 : isCluster ? 28 : 14;
 
+      let html: string;
       if (isCluster) {
-        marker.on("click", () => {
-          map.flyTo([c.latitude, c.longitude], zoom + 2, { duration: 0.8 });
-        });
-        marker.bindTooltip(
-          `<div style="font-size:12px;font-weight:600;text-align:center;">${clusterCount} condomínios<br/><span style="font-weight:400;font-size:11px;">Clique para zoom</span></div>`,
-          { sticky: true, direction: "top" }
-        );
-        const icon = L.divIcon({
-          className: '',
-          html: `<div style="background:hsl(var(--accent));color:white;border-radius:50%;width:28px;height:28px;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;border:2px solid white;box-shadow:0 1px 4px rgba(0,0,0,.3);">${clusterCount}</div>`,
-          iconSize: [28, 28],
-          iconAnchor: [14, 14],
-        });
-        L.marker([c.latitude, c.longitude], { icon }).addTo(layer).on("click", () => {
-          map.flyTo([c.latitude, c.longitude], zoom + 2, { duration: 0.8 });
-        });
+        html = `<div style="background:hsl(210,80%,45%);color:white;border-radius:50%;width:${size}px;height:${size}px;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;border:2px solid white;box-shadow:0 1px 4px rgba(0,0,0,.3);cursor:pointer;">${clusterCount}</div>`;
       } else {
-        marker.on("click", () => onSelect(c));
-        const priceText = hasPrice
-          ? `<div style="color:hsl(var(--accent));font-weight:700;">R$ ${Number(c.preco_medio_m2).toLocaleString("pt-BR")}/m²</div>`
-          : "";
-        marker.bindTooltip(
-          `<div style="min-width:160px;font-size:12px;line-height:1.5;">
-            <div style="font-weight:600;margin-bottom:2px;">${c.nome_condominio || c.logradouro_padrao}</div>
-            <div style="font-size:11px;color:#6b7280;">${c.numero_torres ?? "?"} torre(s) · ${c.unidades_estimadas ?? "?"} unidades</div>
-            ${priceText}
-          </div>`,
-          { sticky: true, direction: "top" }
-        );
+        const opacity = hasPrice ? 0.85 : 0.3;
+        const border = isSelected ? "3px solid #F59E0B" : hasPrice ? `2px solid ${color}` : `1px dashed #94A3B8`;
+        html = `<div style="width:${size}px;height:${size}px;border-radius:50%;background:${color};opacity:${opacity};border:${border};cursor:pointer;box-shadow:0 1px 3px rgba(0,0,0,.2);"></div>`;
       }
 
-      marker.addTo(layer);
+      const markerEl = document.createElement("div");
+      markerEl.innerHTML = html;
+
+      const marker = new google.maps.marker.AdvancedMarkerElement({
+        map, position: { lat: c.latitude, lng: c.longitude },
+        content: markerEl,
+        title: isCluster ? `${clusterCount} condomínios` : c.nome_condominio || c.logradouro_padrao,
+      });
+
+      const infoWindow = new google.maps.InfoWindow();
+
+      if (isCluster) {
+        marker.addListener("click", () => {
+          map.panTo({ lat: c.latitude, lng: c.longitude });
+          map.setZoom(zoom + 2);
+        });
+      } else {
+        marker.addListener("click", () => onSelect(c));
+
+        markerEl.addEventListener("mouseenter", () => {
+          const priceText = hasPrice
+            ? `<div style="color:#7C3AED;font-weight:700;">R$ ${Number(c.preco_medio_m2).toLocaleString("pt-BR")}/m²</div>`
+            : "";
+          infoWindow.setContent(`
+            <div style="min-width:160px;font-size:12px;line-height:1.5;">
+              <div style="font-weight:600;margin-bottom:2px;">${c.nome_condominio || c.logradouro_padrao}</div>
+              <div style="font-size:11px;color:#6b7280;">${c.numero_torres ?? "?"} torre(s) · ${c.unidades_estimadas ?? "?"} unidades</div>
+              ${priceText}
+            </div>
+          `);
+          infoWindow.open(map, marker);
+        });
+        markerEl.addEventListener("mouseleave", () => infoWindow.close());
+      }
+
+      markersRef.current.push(marker);
     });
   }, [condominios, selectedId, showHeatmap, onSelect]);
+
+  if (loading) {
+    return (
+      <div className="h-full w-full flex items-center justify-center bg-muted/30 rounded-lg" style={{ minHeight: "400px" }}>
+        <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+      </div>
+    );
+  }
 
   return (
     <div className="relative h-full w-full">
@@ -349,10 +291,11 @@ export function TerritorialMap({
       <div className="absolute top-2 right-2 z-[1000]">
         <div className="bg-background rounded-md shadow-md p-1 border border-border">
           <Button
-            variant="ghost"
-            size="icon"
-            className="h-8 w-8"
-            onClick={() => mapRef.current?.setView(BARRA_CENTER, BARRA_ZOOM)}
+            variant="ghost" size="icon" className="h-8 w-8"
+            onClick={() => {
+              mapRef.current?.panTo(BARRA_CENTER);
+              mapRef.current?.setZoom(BARRA_ZOOM);
+            }}
             title="Centralizar na Barra"
           >
             <MapPin className="h-4 w-4" />

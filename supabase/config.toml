@@ -110,3 +110,6 @@ verify_jwt = false
 
 [functions.enrich-condominios-ai]
 verify_jwt = false
+
+[functions.enrich-places-details]
+verify_jwt = false
