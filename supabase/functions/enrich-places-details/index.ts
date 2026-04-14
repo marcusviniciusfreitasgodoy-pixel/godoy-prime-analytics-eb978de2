@@ -98,21 +98,20 @@ Deno.serve(async (req) => {
       try {
         const details = await fetchPlaceDetails(condo.google_place_id, googleApiKey);
 
-        const updateData: Record<string, any> = {};
-        if (details.types) updateData.google_place_types = details.types;
+        const updateData: Record<string, any> = {
+          google_place_types: details.types || ["_no_types_returned"],
+        };
         if (details.googleMapsUri) updateData.google_maps_uri = details.googleMapsUri;
         if (details.editorialSummary?.text) updateData.google_editorial_summary = details.editorialSummary.text;
         if (details.photos) {
           updateData.google_photos_refs = details.photos.slice(0, 5).map((p: any) => p.name);
         }
 
-        if (Object.keys(updateData).length > 0) {
-          const { error: upErr } = await serviceClient
-            .from("condominios_mapeamento")
-            .update(updateData)
-            .eq("id", condo.id);
-          if (upErr) throw upErr;
-        }
+        const { error: upErr } = await serviceClient
+          .from("condominios_mapeamento")
+          .update(updateData)
+          .eq("id", condo.id);
+        if (upErr) throw upErr;
 
         results.enriched++;
         results.details.push({
