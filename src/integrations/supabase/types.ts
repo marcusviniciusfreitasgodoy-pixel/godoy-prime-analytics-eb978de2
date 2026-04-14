@@ -195,7 +195,11 @@ export type Database = {
           fonte_identificacao: string | null
           geom: unknown
           geom_lote: unknown
+          google_editorial_summary: string | null
+          google_maps_uri: string | null
+          google_photos_refs: string[] | null
           google_place_id: string | null
+          google_place_types: string[] | null
           id: string
           latitude: number | null
           logradouro_itbi_normalizado: string | null
@@ -229,7 +233,11 @@ export type Database = {
           fonte_identificacao?: string | null
           geom?: unknown
           geom_lote?: unknown
+          google_editorial_summary?: string | null
+          google_maps_uri?: string | null
+          google_photos_refs?: string[] | null
           google_place_id?: string | null
+          google_place_types?: string[] | null
           id?: string
           latitude?: number | null
           logradouro_itbi_normalizado?: string | null
@@ -263,7 +271,11 @@ export type Database = {
           fonte_identificacao?: string | null
           geom?: unknown
           geom_lote?: unknown
+          google_editorial_summary?: string | null
+          google_maps_uri?: string | null
+          google_photos_refs?: string[] | null
           google_place_id?: string | null
+          google_place_types?: string[] | null
           id?: string
           latitude?: number | null
           logradouro_itbi_normalizado?: string | null
