@@ -14,6 +14,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { toast } from "sonner";
 import { Plus, Edit, Trash2, Search, Book, FileText, Scale, TrendingUp, Brain, Loader2 } from "lucide-react";
 import sofiaAvatar from "@/assets/sofia-avatar.png";
+import CSVImportButton from "@/components/knowledge/CSVImportButton";
 
 const CATEGORIES = [
   { value: "documentacao", label: "Documentação", icon: FileText },
@@ -200,13 +201,15 @@ export default function BaseConhecimento() {
           </div>
         </div>
         
-        <Dialog open={isDialogOpen} onOpenChange={(open) => { setIsDialogOpen(open); if (!open) resetForm(); }}>
-          <DialogTrigger asChild>
-            <Button className="gap-2">
-              <Plus className="h-4 w-4" />
-              Novo Artigo
-            </Button>
-          </DialogTrigger>
+        <div className="flex gap-2">
+          <CSVImportButton />
+          <Dialog open={isDialogOpen} onOpenChange={(open) => { setIsDialogOpen(open); if (!open) resetForm(); }}>
+            <DialogTrigger asChild>
+              <Button className="gap-2">
+                <Plus className="h-4 w-4" />
+                Novo Artigo
+              </Button>
+            </DialogTrigger>
           <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>{editingArticle ? "Editar Artigo" : "Novo Artigo"}</DialogTitle>
@@ -291,6 +294,7 @@ export default function BaseConhecimento() {
             </form>
           </DialogContent>
         </Dialog>
+        </div>
       </div>
 
       {/* Stats */}
