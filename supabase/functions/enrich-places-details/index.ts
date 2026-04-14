@@ -75,7 +75,7 @@ Deno.serve(async (req) => {
       .from("condominios_mapeamento")
       .select("id, nome_condominio, google_place_id")
       .not("google_place_id", "is", null)
-      .is("google_editorial_summary", null)
+      .or("google_place_types.is.null,google_place_types.eq.{}")
       .limit(limit);
 
     if (body.condominioId) {
