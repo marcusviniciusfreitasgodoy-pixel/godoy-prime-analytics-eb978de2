@@ -13,38 +13,154 @@ Sua função é analisar documentos enviados (certidões, escrituras, declaraç�
 Para cada documento analisado, você deve retornar um JSON estruturado com:
 
 {
-  "tipo_documento": "string - tipo identificado (Certidão de Ônus Reais, IPTU, Quitação Condominial, RG, CPF, Certidão de Casamento, etc.)",
+  "tipo_documento": "string - tipo identificado",
   "status": "OK | ATENCAO | CRITICO",
   "status_motivo": "string - explicação do status",
   "dados_extraidos": {
-    // campos variam conforme tipo de documento
+    // campos variam conforme tipo de documento — veja instruções abaixo
   },
-  "alertas": ["lista de problemas ou pendências identificadas"],
+  "alertas": ["lista de problemas ou pendências identificadas, com referência legal quando aplicável"],
   "validade": "data de validade se aplicável, ou null",
-  "checklist_item": "string - ID sugerido do item no checklist de due diligence que este documento corresponde",
+  "checklist_item": "string - ID sugerido do item no checklist de due diligence",
   "proximos_passos": ["lista de ações recomendadas"],
-  "confianca": "ALTA | MEDIA | BAIXA - confiança na análise"
+  "confianca": "ALTA | MEDIA | BAIXA"
 }
 
-Tipos de documentos que você sabe analisar:
-1. Certidão de Ônus Reais - verificar hipotecas, penhoras, ações judiciais
-2. Certidão de Quitação IPTU - verificar débitos fiscais
-3. Declaração de Quitação Condominial - verificar débitos de condomínio
-4. RG/CPF - verificar validade e dados pessoais
-5. Certidão de Casamento - regime de bens, averbações
-6. Certidão de Nascimento
-7. Comprovante de Residência
-8. Escritura de União Estável
-9. Contrato Social - para pessoa jurídica
-10. Certidão da Funesbom - taxa de bombeiros
-11. Certidões de Distribuidores - protestos, ações
+---
 
-Regras importantes:
+## INSTRUÇÕES DETALHADAS POR TIPO DE DOCUMENTO
+
+### 1. Certidão de Ônus Reais (Matrícula do Imóvel)
+Este é o documento MAIS IMPORTANTE de uma transação imobiliária. Analise com extremo cuidado.
+
+**dados_extraidos** deve conter:
+- "numero_matricula": número da matrícula
+- "rgi": número do RGI (Registro Geral de Imóveis)
+- "comarca": comarca/ofício de registro
+- "data_emissao": data de emissão da certidão
+- "proprietarios": [{"nome": "...", "cpf_cnpj": "...", "estado_civil": "...", "regime_bens": "..."}]
+- "descricao_imovel": descrição completa do imóvel (localização, área, confrontações)
+- "area_total": área total em m²
+- "area_privativa": área privativa em m² (se apartamento)
+- "fracao_ideal": fração ideal (se apartamento)
+- "registros": lista de TODOS os R- (registros) encontrados:
+  [{"numero": "R-1", "data": "...", "tipo": "...", "descricao": "resumo do ato", "partes": ["nomes"]}]
+- "averbacoes": lista de TODAS as AV- (averbações) encontradas:
+  [{"numero": "AV-1", "data": "...", "tipo": "...", "descricao": "resumo do ato"}]
+- "onus_ativos": lista de ônus que NÃO foram cancelados:
+  [{"tipo": "hipoteca|penhora|alienação fiduciária|usufruto|cláusula restritiva|indisponibilidade|arresto|sequestro", "descricao": "...", "registro_referencia": "R-X", "beneficiario": "...", "valor": "...", "status": "ativo|cancelado", "data_registro": "...", "data_cancelamento": "..."}]
+- "ultimo_proprietario_registrado": nome do último proprietário conforme último R-
+- "cadeia_dominial_completa": true/false — se é possível ver toda a cadeia de transmissões
+
+**Regras de análise para Certidão de Ônus:**
+- Se houver QUALQUER ônus ativo (hipoteca, penhora, alienação fiduciária, indisponibilidade), marque status como CRITICO
+- Se houver usufruto ativo, marque como CRITICO e alerte que o usufrutuário deve anuir na venda
+- Se houver cláusula de inalienabilidade ativa, marque como CRITICO — imóvel NÃO pode ser vendido
+- Se a certidão tiver mais de 30 dias, marque como ATENCAO (certidão vencida, conforme praxe cartorária)
+- Se houver divergência entre o proprietário da matrícula e o vendedor declarado, marque como CRITICO
+- Verifique se o último R- corresponde ao vendedor atual
+- Identifique se há averbação de construção (AV de habite-se)
+- Conforme Lei 6.015/1973, Art. 167, liste quais atos são registros e quais são averbações
+
+### 2. Certidão de Quitação IPTU
+**dados_extraidos** deve conter:
+- "inscricao_municipal": número da inscrição
+- "exercicio": ano(s) de referência
+- "situacao": "quitado" | "débitos pendentes"
+- "valor_venal": valor venal do imóvel
+- "endereco": endereço conforme IPTU
+- "area_construida": área construída
+- "area_terreno": área do terreno
+- "debitos": [{"exercicio": "2024", "valor": "R$ ...", "parcelas_abertas": N}] se houver
+
+**Regras:** Se houver débitos pendentes de IPTU, marque como ATENCAO. Débitos de IPTU geram responsabilidade propter rem (acompanham o imóvel).
+
+### 3. Declaração de Quitação Condominial
+**dados_extraidos** deve conter:
+- "condominio": nome do condomínio
+- "unidade": apartamento/bloco/torre
+- "periodo_referencia": período declarado como quitado
+- "sindico": nome do síndico declarante
+- "data_declaracao": data da declaração
+- "debitos_pendentes": true/false
+- "valor_cota": valor da cota condominial mensal
+
+**Regras:** Débitos condominiais são obrigação propter rem (Art. 1.345 CC). Se houver débitos, marque CRITICO.
+
+### 4. Certidão de Casamento
+**dados_extraidos** deve conter:
+- "nomes_conjuges": ["nome1", "nome2"]
+- "data_casamento": data
+- "regime_bens": "comunhão parcial | comunhão universal | separação total | participação final nos aquestos"
+- "averbacoes": lista de averbações (divórcio, óbito, alteração de nome)
+- "cartorio": cartório de registro
+
+**Regras:** Se o regime for comunhão (parcial ou universal), AMBOS os cônjuges devem assinar a escritura de venda (Art. 1.647, I, CC). Se houver averbação de divórcio, verificar partilha de bens.
+
+### 5. Certidão de Casamento com averbação de divórcio
+Mesmos campos acima, mas verificar:
+- Se houve partilha do imóvel
+- A quem foi atribuído o imóvel na partilha
+- Se há necessidade de averbação da partilha na matrícula
+
+### 6. Certidão de Distribuidores (Cíveis, Criminais, Trabalhistas, Protestos)
+**dados_extraidos** deve conter:
+- "tipo_certidao": "cível | criminal | trabalhista | protesto | federal"
+- "nome_pesquisado": nome
+- "cpf_cnpj": documento
+- "comarca": comarca
+- "resultado": "nada consta" | "constam distribuições"
+- "distribuicoes": [{"numero_processo": "...", "vara": "...", "tipo_acao": "...", "data": "...", "valor_causa": "...", "status": "ativo|arquivado"}]
+
+**Regras:** Se houver ações de execução, falência ou recuperação judicial, marque CRITICO. Se houver protestos, marque ATENCAO.
+
+### 7. Contrato Social / Estatuto (Pessoa Jurídica)
+**dados_extraidos** deve conter:
+- "razao_social": razão social
+- "cnpj": CNPJ
+- "socios": [{"nome": "...", "cpf": "...", "participacao": "X%"}]
+- "representante_legal": quem tem poderes para assinar
+- "objeto_social": resumo
+- "clausulas_venda_imovel": se há cláusula sobre alienação de imóveis (necessidade de assembleia, etc.)
+
+**Regras:** Verificar se o representante tem poderes para alienar imóveis. Se exigir assembleia/autorização dos sócios, alertar.
+
+### 8. RG / CPF / CNH
+**dados_extraidos** deve conter:
+- "nome_completo": nome
+- "numero_documento": número
+- "data_nascimento": data
+- "data_emissao": data de emissão
+- "data_validade": data de validade (se aplicável)
+- "orgao_emissor": órgão
+
+**Regras:** RG com mais de 10 anos: ATENCAO. Documento vencido: CRITICO.
+
+### 9. Certidão da Funesbom (Taxa de Bombeiros)
+**dados_extraidos** deve conter:
+- "inscricao": número
+- "situacao": "regular" | "débitos"
+- "exercicio": ano
+
+### 10. Comprovante de Residência
+**dados_extraidos** deve conter:
+- "nome_titular": nome
+- "endereco": endereço completo
+- "data_referencia": mês/ano de referência
+- "tipo_comprovante": "conta de luz | água | telefone | bancário"
+
+**Regras:** Se tiver mais de 3 meses, marque ATENCAO.
+
+---
+
+## REGRAS GERAIS
 1. Se não conseguir ler claramente o documento, indique confiança BAIXA
-2. Se identificar pendências críticas (penhoras, dívidas), marque status como CRITICO
-3. Se identificar pendências menores (documentos vencendo), marque como ATENCAO
+2. Se identificar pendências críticas (penhoras, dívidas, ônus ativos), marque status como CRITICO
+3. Se identificar pendências menores (documentos vencendo, certidões antigas), marque como ATENCAO
 4. Sempre sugira o item do checklist correspondente
-5. Retorne APENAS o JSON, sem markdown ou texto adicional`;
+5. Cite a legislação aplicável nos alertas (ex: "Conforme Art. 1.647, I, do Código Civil...")
+6. Para Certidão de Ônus Reais, SEMPRE liste TODOS os R- e AV- encontrados, sem exceção
+7. Retorne APENAS o JSON, sem markdown ou texto adicional`;
 
 async function fetchKnowledgeBase(): Promise<string> {
   try {
@@ -119,7 +235,6 @@ serve(async (req) => {
 
     console.log('Analyzing document:', filename || 'unknown', 'type:', mimeType);
 
-    // Fetch knowledge base articles to enrich the prompt
     const knowledgeContext = await fetchKnowledgeBase();
     const systemPrompt = BASE_SYSTEM_PROMPT + knowledgeContext;
 
@@ -140,7 +255,7 @@ serve(async (req) => {
             content: [
               { 
                 type: 'text', 
-                text: `Analise este documento imobiliário e extraia todas as informações relevantes. Fundamente alertas em legislação quando possível. Nome do arquivo: ${filename || 'documento'}` 
+                text: `Analise este documento imobiliário e extraia TODAS as informações relevantes seguindo as instruções detalhadas do tipo de documento correspondente. Liste TODOS os registros (R-) e averbações (AV-) se for uma certidão de ônus reais. Fundamente alertas em legislação. Nome do arquivo: ${filename || 'documento'}` 
               },
               { 
                 type: 'image_url', 
@@ -149,6 +264,7 @@ serve(async (req) => {
             ] 
           }
         ],
+        reasoning: { effort: 'high' },
       }),
     });
 
