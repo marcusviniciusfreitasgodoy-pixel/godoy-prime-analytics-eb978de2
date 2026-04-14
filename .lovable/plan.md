@@ -1,22 +1,45 @@
 
 
-## Plano: Corrigir filtro da Edge Function `enrich-places-details` e processar os 274 pendentes
+## Plano: Adicionar badges explicativos a cada botão do painel Admin
 
-### Problema identificado
-A função `enrich-places-details` filtra por `google_editorial_summary IS NULL` (linha 78), mas o Google não retorna `editorialSummary` para a maioria dos condomínios residenciais. O campo permanece `null` após o enriquecimento, causando reprocessamento infinito dos mesmos registros.
+### O que cada botão faz (referência)
 
-### Correção
-1. **Alterar o filtro na Edge Function** — trocar `.is("google_editorial_summary", null)` por `.is("google_place_types", null)` OU usar um filtro combinado que verifica se `google_place_types` é null ou vazio. Assim a função só processa registros que realmente não foram enriquecidos ainda.
+| Botão | Fonte de dados | O que faz | Resultado visível |
+|-------|---------------|-----------|-------------------|
+| **Ingestão IPTU** | ArcGIS Prefeitura RJ | Puxa resumos de logradouros (tipologia, total imóveis, área) da camada IPTU | Preenche card "IPTU Logradouros" |
+| **Ingestão Lotes** | ArcGIS GeoPAL | Baixa polígonos de lotes (terrenos) da Barra da Tijuca | Preenche card "Lotes PAL", habilita camada de lotes no mapa |
+| **Ingestão Edificações** | ArcGIS Edificações 2019 | Importa contornos de edificações com altura, andares e tipo | Preenche card "Edificações" |
+| **Rodar Algoritmo** | Dados já ingeridos (ITBI + IPTU + edificações) | Cruza fontes para identificar condomínios, calcular preço médio/m², torres e unidades | Atualiza cards "Condomínios", "Com ITBI", "Com Logradouro" |
+| **Geocodificar ITBI** | Google Geocoding API | Adiciona lat/lng às transações ITBI sem coordenadas | Transações passam a aparecer no mapa |
+| **Enriquecer Logradouros** | Google Geocoding API | Geocodifica nomes de ruas que não têm coordenadas em `logradouros_geo` | Ruas ganham posição no mapa |
+| **Enriquecer Condomínios** | Google Places API (New) | Busca place_id, coordenadas e endereço formatado para condomínios | Condomínios ganham marcador preciso no mapa |
+| **Enriquecer Detalhes** | Google Places API (New) | Busca tipos, rating, fotos e resumo editorial para condomínios com place_id | Ficha do condomínio exibe dados do Google |
+| **Exportar CSV** | Base local | Exporta todos os condomínios ativos para arquivo CSV | Download do arquivo |
+| **Upload Residencial / Não Residencial** | CSV do usuário | Importa dados IPTU 2025 para tabela de staging | Atualiza contagem de registros |
+| **Processar IPTU 2025** | Tabela de staging | Cruza IPTU 2025 com condomínios (área média, divergências) | Exibe cards de resultado |
+| **Limpar** | — | Apaga registros da tabela de staging | Zera contagem |
 
-2. **Executar o enriquecimento em lotes** — após o deploy, chamar a função em lotes de 50 até processar todos os 274 pendentes (6 chamadas).
+### Implementação
 
-### Alteração técnica
+**Arquivo:** `src/components/territorial/TerritorialAdmin.tsx`
 
-**Arquivo:** `supabase/functions/enrich-places-details/index.ts`
-- Linha 78: trocar `.is("google_editorial_summary", null)` por `.or("google_place_types.is.null,google_place_types.eq.{}")` para filtrar apenas registros sem types preenchidos.
+1. Adicionar campo `badge` ao array `ACTIONS` com texto curto da categoria (ex: "ArcGIS", "Google API", "Local").
+2. Renderizar um `<Badge>` pequeno abaixo ou ao lado de cada botão com o texto da categoria.
+3. Expandir os tooltips existentes para incluir a descrição do resultado esperado (já parcialmente presentes).
 
-### Sequência
-1. Corrigir o filtro → deploy automático
-2. Executar 6 chamadas de `limit: 50` para cobrir os 274 pendentes
-3. Confirmar contagem final de registros com `google_place_types` preenchido
+**Arquivo:** `src/components/territorial/IPTU2025Upload.tsx`
+
+4. Adicionar badges similares aos botões de Upload ("CSV → Staging"), Processar ("RPC") e Limpar ("Reset").
+
+### Categorias dos badges
+
+- `ArcGIS` — Ingestão IPTU, Lotes, Edificações
+- `Algoritmo` — Rodar Algoritmo
+- `Google API` — Geocodificar ITBI, Enriquecer Logradouros, Enriquecer Condomínios, Enriquecer Detalhes
+- `Export` — Exportar CSV
+- `CSV → Staging` — Upload Residencial / Não Residencial
+- `RPC` — Processar IPTU 2025
+- `Reset` — Limpar
+
+Cada badge usará cor distinta (verde para ArcGIS, azul para Google API, roxo para Algoritmo, cinza para Export/Reset, amarelo para Staging, etc.) e os tooltips serão expandidos com a descrição do resultado.
 
