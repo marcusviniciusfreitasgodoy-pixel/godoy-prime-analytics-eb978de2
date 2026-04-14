@@ -14,6 +14,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { toast } from "sonner";
 import { Plus, Edit, Trash2, Search, Book, FileText, Scale, TrendingUp, Brain, Loader2 } from "lucide-react";
 import sofiaAvatar from "@/assets/sofia-avatar.png";
+import CSVImportButton from "@/components/knowledge/CSVImportButton";
 
 const CATEGORIES = [
   { value: "documentacao", label: "Documentação", icon: FileText },
