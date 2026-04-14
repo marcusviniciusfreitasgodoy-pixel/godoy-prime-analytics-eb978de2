@@ -1,31 +1,23 @@
 
 
-## Plano: Corrigir visibilidade das propostas de compra
+## Plano: Fortalecer a análise de documentos e base de conhecimento
 
-### Problema identificado
-As propostas existem no banco de dados mas com `organization_id = NULL`. A política de RLS exige `organization_id = get_user_org_id(auth.uid())` para visualizar, então propostas sem `organization_id` ficam invisíveis.
+### Alteração 1: Atualizar modelo do analisador de documentos
+**Arquivo:** `supabase/functions/analyze-document/index.ts`
+- Trocar `model: "google/gemini-2.5-flash"` para `model: "google/gemini-2.5-pro"`
+- O modelo Pro tem raciocínio superior para extrair dados de documentos complexos (matrículas, certidões, contratos)
 
-A causa raiz está na Edge Function `public-submit` — ela aceita `organization_id` do payload do cliente (que pode não enviá-lo), em vez de resolver automaticamente a partir da `ficha_visita_id`.
+### Alteração 2: Integrar base de conhecimento ao analisador
+**Arquivo:** `supabase/functions/analyze-document/index.ts`
+- Antes de chamar a IA, buscar artigos relevantes da `sofia_knowledge_base` (categoria "documentacao", "legislacao", "due_diligence")
+- Injetar esse conhecimento no prompt do sistema para que a IA dê alertas mais específicos e fundamentados (ex: "Conforme Lei 6.015/1973, Art. 167...")
 
-### Alterações
-
-#### 1. `supabase/functions/public-submit/index.ts` — handleProposta
-- Quando `ficha_visita_id` estiver presente, buscar o `organization_id` da tabela `fichas_visita` no servidor (service role)
-- Ignorar qualquer `organization_id` enviado pelo cliente (segurança)
-- Isso garante que toda proposta vinculada a uma ficha herda a organização correta
-
-#### 2. Migration SQL — Corrigir propostas existentes
-- Atualizar as 3 propostas existentes com `organization_id = NULL`, preenchendo a partir de `fichas_visita.organization_id` via `ficha_visita_id`
-
-```sql
-UPDATE propostas_compra p
-SET organization_id = fv.organization_id
-FROM fichas_visita fv
-WHERE p.ficha_visita_id = fv.id
-  AND p.organization_id IS NULL;
-```
+### Alteração 3: Funcionalidade de importação em massa na Base de Conhecimento
+**Arquivo:** `src/pages/BaseConhecimento.tsx`
+- Adicionar botão "Importar CSV" que aceita arquivo com colunas: categoria, título, conteúdo, palavras-chave, fonte
+- Processar e inserir em lote na tabela `sofia_knowledge_base`
 
 ### Resultado esperado
-- Propostas existentes ficarão visíveis imediatamente
-- Novas propostas receberão `organization_id` automaticamente no servidor
+- Análise de documentos mais precisa e com alertas fundamentados na legislação
+- Possibilidade de alimentar rapidamente a base com conteúdo especializado
 
