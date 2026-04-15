@@ -1,11 +1,12 @@
 import { useMemo } from "react";
-import { X, ExternalLink, Building2, MapPin, Ruler, DollarSign, BarChart3, AlertCircle } from "lucide-react";
+import { X, ExternalLink, Building2, MapPin, Ruler, DollarSign, BarChart3, AlertCircle, Info } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
+import { Tooltip as RechartsTooltip, LineChart, Line, XAxis, YAxis, CartesianGrid, ResponsiveContainer } from "recharts";
+import { Tooltip, TooltipTrigger, TooltipContent, TooltipProvider } from "@/components/ui/tooltip";
 import { useCondoItbiHistory, useTorresByCondominio, type TerritorialCondominio } from "@/hooks/useTerritorialData";
 import { useNavigate } from "react-router-dom";
 
