@@ -13,7 +13,7 @@ type SortKey = "nome_condominio" | "preco_medio_m2" | "total_transacoes_itbi" | 
 const PAGE_SIZE = 50;
 
 export function TerritorialRanking() {
-  const [showAll, setShowAll] = useState(true);
+  const [showAll, setShowAll] = useState(false);
   const { data: condominios, isLoading } = useCondominiosRanking(showAll);
   const [sortKey, setSortKey] = useState<SortKey>("nome_condominio");
   const [sortAsc, setSortAsc] = useState(true);

@@ -18,9 +18,79 @@ Deno.serve(async (req) => {
     );
 
     const body = await req.json();
-    const { bairro = "Barra da Tijuca", modo = "completo", limpar_algoritmo = false } = body;
+    const { bairro = "Barra da Tijuca", modo = "completo", limpar_algoritmo = false, enrich_only = false } = body;
 
-    console.log(`[process-condominios-algorithm] bairro=${bairro} modo=${modo} limpar=${limpar_algoritmo}`);
+    console.log(`[process-condominios-algorithm] bairro=${bairro} modo=${modo} limpar=${limpar_algoritmo} enrich_only=${enrich_only}`);
+
+    // Mode: enrich_only — skip identification/cleanup, only run ITBI enrichment
+    if (enrich_only) {
+      console.log("[enrich_only] Running ITBI enrichment only...");
+
+      const { data: logEntry } = await supabase
+        .from("etl_log")
+        .insert({
+          fonte: "enrich_only_itbi",
+          bairro,
+          status: "running",
+          detalhes: { enrich_only: true },
+        })
+        .select("id")
+        .single();
+
+      const logId = logEntry?.id;
+
+      let totalAtualizados = 0;
+      let step2Errors = 0;
+      const batchSize = 100;
+      const totalLotes = 20;
+
+      for (let lote = 0; lote < totalLotes; lote++) {
+        const { data: loteResult, error: loteError } = await supabase.rpc(
+          "enriquecer_condominios_com_itbi",
+          { p_offset: lote * batchSize, p_limite: batchSize }
+        );
+
+        if (loteError) {
+          console.error(`[enrich_only] Batch ${lote} error:`, loteError.message);
+          step2Errors++;
+          continue;
+        }
+
+        const batchCount = loteResult?.condominios_com_itbi || 0;
+        totalAtualizados += batchCount;
+        console.log(`[enrich_only] Batch ${lote}: ${batchCount} updated`);
+      }
+
+      // Also update logradouro summaries
+      const { data: r3, error: e3 } = await supabase.rpc("atualizar_resumo_logradouros");
+      if (e3) console.error("[enrich_only] Resumo error:", e3);
+
+      const resultado = {
+        enrich_only: true,
+        condominios_com_itbi: totalAtualizados,
+        batches_with_errors: step2Errors,
+        resumo_logradouros: r3,
+      };
+
+      if (logId) {
+        await supabase
+          .from("etl_log")
+          .update({
+            status: "success",
+            registros_atualizados: totalAtualizados,
+            detalhes: resultado,
+            finalizado_em: new Date().toISOString(),
+          })
+          .eq("id", logId);
+      }
+
+      console.log("[enrich_only] Complete:", JSON.stringify(resultado));
+
+      return new Response(
+        JSON.stringify({ success: true, ...resultado }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
 
     // Create ETL log entry
     const { data: logEntry, error: logError } = await supabase

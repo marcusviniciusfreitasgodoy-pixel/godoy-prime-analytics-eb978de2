@@ -353,6 +353,43 @@ export function TerritorialAdmin() {
                   ))}
                 </div>
 
+                {/* Enriquecer Registros Manuais */}
+                <div className="border border-border rounded-lg p-4 space-y-3">
+                  <p className="text-xs font-semibold text-muted-foreground flex items-center gap-2">
+                    <Database className="h-3.5 w-3.5" />
+                    Enriquecer Registros Manuais (ITBI)
+                  </p>
+                  <p className="text-[11px] text-muted-foreground">
+                    Executa apenas o join espacial ITBI nos condomínios que ainda não possuem preço/m² — sem limpar registros existentes.
+                  </p>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    disabled={running !== null}
+                    onClick={async () => {
+                      setRunning("enrich-only");
+                      try {
+                        const { data, error } = await supabase.functions.invoke("process-condominios-algorithm", {
+                          body: { enrich_only: true },
+                        });
+                        if (error) throw error;
+                        toast({
+                          title: "Enriquecimento concluído",
+                          description: `${data?.condominios_com_itbi ?? 0} condomínios atualizados com dados ITBI.`,
+                        });
+                      } catch (err: any) {
+                        toast({ title: "Erro", description: err.message, variant: "destructive" });
+                      } finally {
+                        setRunning(null);
+                      }
+                    }}
+                    className="gap-2"
+                  >
+                    {running === "enrich-only" ? <Loader2 className="h-4 w-4 animate-spin" /> : <Wrench className="h-4 w-4" />}
+                    {running === "enrich-only" ? "Enriquecendo..." : "Enriquecer Registros Manuais"}
+                  </Button>
+                </div>
+
                 {/* ⑩ Reverse Geocode */}
                 <div className="border border-border rounded-lg p-4 space-y-3">
                   <p className="text-xs font-semibold text-muted-foreground flex items-center gap-2">
