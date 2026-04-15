@@ -1,47 +1,42 @@
 
 
-# Diferenciar condomínios duplicados + Corrigir dados de "Torres" em ruas de casas
+# Enriquecer 542 registros manuais sem dados
 
-## Problemas identificados
+## Diagnóstico
 
-### 1. Nomes duplicados na lista lateral
-10 registros da Rua Lourenço Filho aparecem com o mesmo nome porque `nome_condominio = "Rua Lourenço Filho"` (placeholder). Sem diferenciador visual, o usuário não sabe qual é qual.
+542 condomínios com `fonte_identificacao = 'manual'` foram importados com apenas nome, logradouro e coordenadas. Faltam:
+- `preco_medio_m2` e `total_transacoes_itbi` (join espacial com ITBI)
+- `numero_torres` e `unidades_estimadas` (enriquecimento via Google Places ou IA)
+- `padrao_construtivo` (classificação IA)
 
-### 2. "Torres" em rua de casas (dados incorretos)
-Os 10 registros mostram entre 5 e 16 "torres", mas a Rua Lourenço Filho é uma rua exclusivamente de casas. O campo `numero_torres` foi preenchido automaticamente pelo algoritmo PAL (que conta footprints de edificações por lote), e cada footprint de casa foi contado como "torre". Isso é **dado incorreto** que confunde o corretor.
+Esses registros aparecem no Ranking com traços em todas as colunas, como os "Americas 02–15".
 
-**Origem do problema:** O `algoritmo_pal` agrupa lotes e conta edificações (footprints) dentro de cada agrupamento, armazenando o resultado em `numero_torres`. Para condomínios verticais isso faz sentido (cada torre = um bloco). Para loteamentos de casas, cada casa vira uma "torre" — gerando números absurdos.
+## Solução em duas frentes
 
-## Solução
+### Frente 1 — Enriquecimento ITBI automático (prioridade)
+**Ação:** Executar a RPC `enriquecer_condominios_com_itbi` que já existe, que faz o join espacial (150m) entre as coordenadas dos condomínios e as transações ITBI, preenchendo `preco_medio_m2`, `total_transacoes_itbi` e `ultima_transacao_itbi`.
 
-### Parte 1 — Diferenciar nomes duplicados no display
-**Arquivo:** `src/components/territorial/TerritorialFilters.tsx`
+- Isso pode ser disparado pela aba Admin do Territorial (botão "Processar Algoritmo")
+- Mas atualmente o pipeline limpa registros de algoritmo antes de rodar — precisa de ajuste para **não limpar** os manuais e apenas enriquecer
 
-Aprimorar `getCondoDisplayName` para quando o nome é placeholder (igual ao logradouro):
-- Se tiver `numero_inicio` → "Rua Lourenço Filho, 123"
-- Se não tiver número → usar coordenadas abreviadas como sufixo para distinguir (ex: "Rua Lourenço Filho · loc. A")
-- Na sub-linha, substituir "X torres" por "X edificações" quando `fonte_identificacao = 'algoritmo_pal'` e não houver `padrao_construtivo` definido, pois o algoritmo conta footprints e não torres reais
+**Arquivo:** `supabase/functions/process-condominios-algorithm/index.ts`
+- Adicionar um modo `enrich_only` que pula as etapas de identificação (PAL/DBSCAN) e limpeza, e roda apenas o `enriquecer_condominios_com_itbi` nos registros que ainda não têm dados ITBI
 
-### Parte 2 — Corrigir label "torres" → "edificações" para registros PAL sem classificação
-**Arquivo:** `src/components/territorial/TerritorialFilters.tsx`
+### Frente 2 — Botão dedicado na aba Admin para enriquecer manuais
+**Arquivo:** `src/components/territorial/TerritorialAdmin.tsx`
+- Adicionar botão "Enriquecer Registros Manuais" que chama a Edge Function no modo `enrich_only`
+- Mostrar progresso e resultado (quantos foram enriquecidos com ITBI)
 
-No componente `CondoRow`, quando `fonte_identificacao === 'algoritmo_pal'` e `padrao_construtivo` é null, exibir "X edif." em vez de "X torres". Isso reflete com precisão o que o dado significa: contagem de footprints, não torres de um prédio.
-
-### Parte 3 — Nota explicativa no painel de detalhes
-**Arquivo:** `src/components/territorial/CondominioDetailPanel.tsx`
-
-Quando o condomínio selecionado tem `fonte_identificacao = 'algoritmo_pal'`, adicionar um badge/nota discreta: "Identificado por algoritmo — dados podem necessitar de revisão manual".
-
-## Impacto nos dados
-
-- **Não altera dados no banco** — apenas muda como são exibidos
-- Corretores deixam de ver "16 torres" numa rua de casas
-- Lista lateral fica navegável mesmo com múltiplos registros no mesmo logradouro
+### Frente 3 — Ocultar registros completamente vazios do Ranking
+**Arquivo:** `src/components/territorial/TerritorialRanking.tsx`
+- No modo default ("Com preço"), já filtra registros sem preço — verificar se funciona corretamente
+- Adicionar indicador visual para registros com dados parciais (ex: tem torres mas não tem preço)
 
 ## Arquivos alterados
 
 | Arquivo | Alteração |
 |---------|-----------|
-| `src/components/territorial/TerritorialFilters.tsx` | `getCondoDisplayName` com diferenciador; label "edif." para PAL |
-| `src/components/territorial/CondominioDetailPanel.tsx` | Badge "Identificado por algoritmo" |
+| `supabase/functions/process-condominios-algorithm/index.ts` | Modo `enrich_only` para rodar apenas ITBI sem limpar |
+| `src/components/territorial/TerritorialAdmin.tsx` | Botão "Enriquecer Manuais" |
+| `src/components/territorial/TerritorialRanking.tsx` | Melhorar filtro default para esconder vazios |
 
