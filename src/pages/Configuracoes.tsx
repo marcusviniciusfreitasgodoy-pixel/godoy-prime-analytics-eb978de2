@@ -1,9 +1,7 @@
 import { Helmet } from "react-helmet-async";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { CompanyLogoUpload } from "@/components/CompanyLogoUpload";
-import { Settings, Building2, Phone, MapPin, FileText, Globe, Filter, Database, Trash2, User, Briefcase, Home, Loader2, Eye, MessageCircle, Bell, Mail, BadgeCheck } from "lucide-react";
-import { Settings, Building2, Phone, MapPin, FileText, Globe, Filter, Database, Trash2, User, Briefcase, Home, Loader2, Eye, MessageCircle, Bell, Mail, BadgeCheck } from "lucide-react";
-import { useCondominiosStats } from "@/hooks/useCondominiosStats";
+import { Settings, Building2, Phone, MapPin, FileText, Globe, Filter, Database, Trash2, User, Briefcase, Loader2, Eye, MessageCircle, Bell, Mail, BadgeCheck } from "lucide-react";
 import { useCorretorProfile } from "@/hooks/useCorretorProfile";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
