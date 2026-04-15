@@ -1,6 +1,7 @@
 import { useState, useMemo, useEffect, useRef, useCallback } from "react";
-import { Search, Building2, TrendingUp, Home, DollarSign } from "lucide-react";
+import { Search, Building2, TrendingUp, Home, DollarSign, Info } from "lucide-react";
 import { Input } from "@/components/ui/input";
+import { Tooltip, TooltipTrigger, TooltipContent, TooltipProvider } from "@/components/ui/tooltip";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Slider } from "@/components/ui/slider";
@@ -182,28 +183,40 @@ export function TerritorialFilters({
   const precoM2 = kpis?.preco_medio_m2_barra != null ? Number(kpis.preco_medio_m2_barra) : null;
 
   const kpiCards = [
-    { label: "Condomínios", value: kpis?.total_condominios ?? "—", icon: Building2 },
-    { label: "Com histórico", value: kpis?.com_historico_precos ?? "—", icon: TrendingUp },
-    { label: "Unidades", value: kpis?.unidades_mapeadas ? Number(kpis.unidades_mapeadas).toLocaleString("pt-BR") : "—", icon: Home },
-    { label: "R$/m² médio", value: precoM2 ? `R$ ${precoM2.toLocaleString("pt-BR")}` : "—", icon: DollarSign },
+    { label: "Condomínios", value: kpis?.total_condominios ?? "—", icon: Building2, tooltip: "Total de condomínios ativos mapeados na base territorial (inclui identificados manualmente e por algoritmo)" },
+    { label: "Com histórico", value: kpis?.com_historico_precos ?? "—", icon: TrendingUp, tooltip: "Condomínios que possuem pelo menos 1 transação ITBI registrada, permitindo análise de preço real praticado" },
+    { label: "Unidades", value: kpis?.unidades_mapeadas ? Number(kpis.unidades_mapeadas).toLocaleString("pt-BR") : "—", icon: Home, tooltip: "Soma estimada de unidades residenciais nos condomínios mapeados (baseado em dados IPTU e levantamento de torres)" },
+    { label: "R$/m² médio", value: precoM2 ? `R$ ${precoM2.toLocaleString("pt-BR")}` : "—", icon: DollarSign, tooltip: "Preço médio por m² calculado a partir das transações ITBI residenciais na Barra da Tijuca" },
   ];
 
   return (
     <div className="flex flex-col h-full gap-3">
       {/* KPIs */}
-      <div className="grid grid-cols-2 gap-2">
-        {kpiCards.map((kpi) => (
-          <Card key={kpi.label} className="bg-card border-border">
-            <CardContent className="p-3">
-              <div className="flex items-center gap-2 mb-1">
-                <kpi.icon className="h-3.5 w-3.5 text-accent" />
-                <span className="text-[10px] text-muted-foreground uppercase tracking-wider">{kpi.label}</span>
-              </div>
-              <p className="text-lg font-bold text-foreground">{kpi.value}</p>
-            </CardContent>
-          </Card>
-        ))}
-      </div>
+      <TooltipProvider delayDuration={200}>
+        <div className="grid grid-cols-2 gap-2">
+          {kpiCards.map((kpi) => (
+            <Card key={kpi.label} className="bg-card border-border">
+              <CardContent className="p-3">
+                <div className="flex items-center gap-2 mb-1">
+                  <kpi.icon className="h-3.5 w-3.5 text-accent" />
+                  <span className="text-[10px] text-muted-foreground uppercase tracking-wider flex-1">{kpi.label}</span>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <button type="button" className="text-muted-foreground/50 hover:text-muted-foreground transition-colors">
+                        <Info className="h-3 w-3" />
+                      </button>
+                    </TooltipTrigger>
+                    <TooltipContent side="top" className="max-w-[220px] text-xs">
+                      {kpi.tooltip}
+                    </TooltipContent>
+                  </Tooltip>
+                </div>
+                <p className="text-lg font-bold text-foreground">{kpi.value}</p>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      </TooltipProvider>
 
       {/* Filters */}
       <div className="space-y-3">
