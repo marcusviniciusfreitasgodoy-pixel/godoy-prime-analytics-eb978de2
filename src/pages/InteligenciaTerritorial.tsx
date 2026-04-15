@@ -113,16 +113,10 @@ export default function InteligenciaTerritorial() {
                 <span className="hidden sm:inline">Ruas</span>
               </TabsTrigger>
               {showAdmin && (
-                <>
-                  <TabsTrigger value="enriquecimento" className="gap-1 text-[10px] md:text-xs px-2 md:px-3">
-                    <Sparkles className="h-3 w-3 md:h-3.5 md:w-3.5" />
-                    <span className="hidden sm:inline">Enriquecimento IA</span>
-                  </TabsTrigger>
                   <TabsTrigger value="admin" className="gap-1 text-[10px] md:text-xs px-2 md:px-3">
                     <Settings className="h-3 w-3 md:h-3.5 md:w-3.5" />
                     <span className="hidden sm:inline">Admin</span>
                   </TabsTrigger>
-                </>
               )}
             </TabsList>
           </div>
@@ -231,38 +225,9 @@ export default function InteligenciaTerritorial() {
 
           {/* Tab: Admin */}
           {showAdmin && (
-            <>
-              <TabsContent value="enriquecimento" className="flex-1 min-h-0 mt-0 overflow-auto p-4">
-                <Tabs defaultValue="enriquecer-ia" className="space-y-4">
-                  <TabsList className="bg-muted">
-                    <TabsTrigger value="enriquecer-ia" className="gap-1 text-xs">
-                      <Sparkles className="h-3.5 w-3.5" />
-                      Classificação IA
-                    </TabsTrigger>
-                    <TabsTrigger value="atualizar-logradouros" className="gap-1 text-xs">
-                      <MapPin className="h-3.5 w-3.5" />
-                      Atualizar Logradouros
-                    </TabsTrigger>
-                    <TabsTrigger value="importar" className="gap-1 text-xs">
-                      <Upload className="h-3.5 w-3.5" />
-                      Importar
-                    </TabsTrigger>
-                  </TabsList>
-                  <TabsContent value="enriquecer-ia" className="mt-0">
-                    <EnriquecerCondominios />
-                  </TabsContent>
-                  <TabsContent value="atualizar-logradouros" className="mt-0">
-                    <AtualizarLogradouros />
-                  </TabsContent>
-                  <TabsContent value="importar" className="mt-0">
-                    <ImportarCondominios />
-                  </TabsContent>
-                </Tabs>
-              </TabsContent>
               <TabsContent value="admin" className="flex-1 min-h-0 mt-0 overflow-auto">
                 <TerritorialAdmin />
               </TabsContent>
-            </>
           )}
         </Tabs>
       </div>
