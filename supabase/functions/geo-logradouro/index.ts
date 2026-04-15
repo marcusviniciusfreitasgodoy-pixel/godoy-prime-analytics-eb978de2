@@ -422,46 +422,65 @@ Deno.serve(async (req) => {
       }
 
       // Criar mapa de logradouro -> coordenadas do condomínio (com normalização)
-      const condominioMap = new Map<string, { lat: number; lng: number; nome: string }>();
+      // IMPORTANTE: se uma rua aparece em múltiplos condomínios, marca como AMBÍGUA e não usa
+      const condominioMap = new Map<string, { lat: number; lng: number; nome: string } | 'AMBIGUOUS'>();
+      
+      const addToCondMap = (key: string, coordData: { lat: number; lng: number; nome: string }) => {
+        const upper = key.toUpperCase().trim();
+        if (!upper) return;
+        const existing = condominioMap.get(upper);
+        if (!existing) {
+          condominioMap.set(upper, coordData);
+        } else if (existing !== 'AMBIGUOUS' && existing.nome !== coordData.nome) {
+          // Mesma rua em condomínios DIFERENTES → ambíguo, não usar
+          condominioMap.set(upper, 'AMBIGUOUS');
+        }
+      };
+
       for (const cond of condominiosData || []) {
         if (cond.latitude && cond.longitude) {
           const coordData = { lat: cond.latitude, lng: cond.longitude, nome: cond.nome_condominio };
           
-          // Mapear logradouro_padrao
-          const key = cond.logradouro_padrao?.toUpperCase();
-          if (key) {
-            condominioMap.set(key, coordData);
+          // Mapear logradouro_padrao (endereço principal do condomínio — alta confiança)
+          if (cond.logradouro_padrao) {
+            addToCondMap(cond.logradouro_padrao, coordData);
           }
           // Mapear logradouro_itbi_normalizado
           if (cond.logradouro_itbi_normalizado) {
-            condominioMap.set(cond.logradouro_itbi_normalizado.toUpperCase(), coordData);
+            addToCondMap(cond.logradouro_itbi_normalizado, coordData);
           }
           // Mapear ruas_internas
           if (Array.isArray(cond.ruas_internas)) {
             for (const rua of cond.ruas_internas) {
               if (rua) {
-                condominioMap.set(rua.toUpperCase(), coordData);
+                addToCondMap(rua, coordData);
               }
             }
           }
         }
       }
 
-      console.log(`[geo-logradouro] Condomínios com coordenadas carregados: ${condominioMap.size} logradouros mapeados, ${aliasMap.size} aliases`);
+      // Remover entradas ambíguas do mapa
+      const ambiguousCount = [...condominioMap.values()].filter(v => v === 'AMBIGUOUS').length;
+      for (const [k, v] of condominioMap) {
+        if (v === 'AMBIGUOUS') condominioMap.delete(k);
+      }
+
+      console.log(`[geo-logradouro] Condomínios: ${condominioMap.size} únicos, ${ambiguousCount} ambíguos removidos, ${aliasMap.size} aliases`);
 
       // Função para buscar match de condomínio com normalização/fuzzy
       const findCondominioMatch = (logradouro: string): { lat: number; lng: number; nome: string } | null => {
         const upper = logradouro.toUpperCase();
         
-        // 1. Match direto
+        // 1. Match direto (já filtrado de ambíguos)
         const direct = condominioMap.get(upper);
-        if (direct) return direct;
+        if (direct && direct !== 'AMBIGUOUS') return direct;
 
         // 2. Match via alias de normalização
         const alias = aliasMap.get(upper);
         if (alias) {
           const aliasMatch = condominioMap.get(alias);
-          if (aliasMatch) return aliasMatch;
+          if (aliasMatch && aliasMatch !== 'AMBIGUOUS') return aliasMatch;
         }
 
         // 3. Match fuzzy: verificar se o logradouro contém palavras-chave de uma rua interna
@@ -472,6 +491,7 @@ Deno.serve(async (req) => {
         
         if (words.length >= 2) {
           for (const [condKey, condCoord] of condominioMap) {
+            if (condCoord === 'AMBIGUOUS') continue;
             const condWords = condKey.split(/\s+/).filter(w => w.length > 3 && !PREFIXES.has(w));
             if (condWords.length < 2) continue;
             
