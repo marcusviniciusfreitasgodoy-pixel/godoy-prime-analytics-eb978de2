@@ -1,52 +1,114 @@
 
 
-## Correção: Marcadores com localização incorreta (Rua Dario Coelho e outros)
+# Análise dos Botões de Enriquecimento e Proposta de Consolidação
 
-### Problema identificado
+## Inventário Atual — Onde cada botão está e o que faz
 
-O marcador de `RUA DARIO COELHO` aparece longe da localização real porque:
+```text
+┌──────────────────────────────────────────────────────────────────────┐
+│ LOCALIZAÇÃO 1: Aba "Admin" (TerritorialAdmin.tsx)                   │
+│ 8 botões de ação + 1 export + 1 seção especial                     │
+├──────────────────────────────────────────────────────────────────────┤
+│ ArcGIS (3):                                                         │
+│  • Ingestão IPTU          → ingest-iptu-prefeitura                  │
+│  • Ingestão Lotes         → ingest-lotes-pal                        │
+│  • Ingestão Edificações   → ingest-edificacoes-geo                  │
+│                                                                      │
+│ Algoritmo (1):                                                       │
+│  • Rodar Algoritmo        → process-condominios-algorithm           │
+│                                                                      │
+│ Google API (4):                                                      │
+│  • Geocodificar ITBI      → geocodificar-itbi-transactions          │
+│  • Enriquecer Logradouros → enrich-logradouros-geo                  │
+│  • Enriquecer Condos (Places) → enrich-condominios                  │
+│  • Enriquecer Detalhes    → enrich-places-details                   │
+│                                                                      │
+│ Outros:                                                              │
+│  • Exportar CSV                                                      │
+│  • Upload IPTU 2025 (seção)                                          │
+│  • Resolver Endereços Pendentes (geocodificação reversa)             │
+├──────────────────────────────────────────────────────────────────────┤
+│ LOCALIZAÇÃO 2: Aba "Enriquecimento IA" (InteligenciaTerritorial)    │
+│  • Classificação IA       → enrich-condominios-ai (Gemini)          │
+│  • Atualizar Logradouros  → fuzzy match + SQL manual                │
+│  • Importar              → CSV / texto paste                         │
+├──────────────────────────────────────────────────────────────────────┤
+│ LOCALIZAÇÃO 3: Página "Configurações" (Configuracoes.tsx)           │
+│  • Merge CSV Condomínios  → merge-condominios                       │
+│  • Enriquecer Dados       → enrich-condominios (DUPLICADO do Admin) │
+└──────────────────────────────────────────────────────────────────────┘
+```
 
-1. A rua é interna de 2 condomínios (Barra Premium e Barra First) → marcada como `AMBIGUOUS` → sem match de condomínio
-2. No cache `logradouros_geo`, está como `STALE` (coordenada antiga zerada pela migration anterior)
-3. No `batch-geocode`, há **345 entradas STALE** competindo por apenas **50 chamadas Google** — as que ficam de fora recebem **coordenadas aleatórias** baseadas no centroide do bairro (linhas 621-635)
+## Problemas Identificados
 
-Resultado: a maioria dos 345 logradouros STALE aparece em posições aleatórias no mapa.
+1. **Duplicação**: "Enriquecer Condomínios (Google Places)" aparece na aba Admin **e** na página Configurações — mesma Edge Function
+2. **Fragmentação**: 13 botões espalhados em 3 lugares, sem ordem lógica de execução
+3. **Sem sequência clara**: Um admin novo não sabe em que ordem rodar os processos
+4. **Merge CSV** na página Configurações está deslocado — é tarefa de dados, não de configuração
+5. **Aba "Enriquecimento IA"** mistura tarefas de importação (CSV) com IA e logradouros — o nome não reflete o conteúdo
 
-### Solução (3 partes)
+## Proposta: Reorganização em 3 Grupos Lógicos com Sequência
 
-#### 1. Para ruas ambíguas: usar média das coordenadas dos condomínios
+Consolidar tudo na aba **Admin** do módulo Territorial, organizado em 3 seções com numeração de etapas:
 
-Quando um logradouro aparece em múltiplos condomínios, em vez de marcar como `AMBIGUOUS` e ignorar, calcular a **média ponderada** das coordenadas dos condomínios associados. No caso da Rua Dario Coelho, os dois condos (Barra Premium e Barra First) ficam lado a lado — a média será uma posição correta.
+```text
+┌──────────────────────────────────────────────────────────────────┐
+│ ABA ADMIN TERRITORIAL (reorganizada)                             │
+│                                                                  │
+│ ▼ SEÇÃO 1 — INGESTÃO (fontes externas → banco)                   │
+│   ① Upload IPTU 2025                                             │
+│   ② Ingestão IPTU (ArcGIS)                                      │
+│   ③ Ingestão Lotes (ArcGIS)                                     │
+│   ④ Ingestão Edificações (ArcGIS)                                │
+│   ⑤ Importar Condomínios (CSV/texto) ← vem da aba Enriq. IA     │
+│   ⑥ Merge CSV Condomínios ← vem de Configurações                │
+│                                                                  │
+│ ▼ SEÇÃO 2 — PROCESSAMENTO (cruzamentos + geocodificação)         │
+│   ⑦ Rodar Algoritmo (PAL)                                       │
+│   ⑧ Geocodificar ITBI (Google)                                  │
+│   ⑨ Enriquecer Condomínios (Google Places)                       │
+│   ⑩ Resolver Endereços Pendentes (reverse geocode)               │
+│   ⑪ Enriquecer Logradouros (Google Geocoding)                    │
+│                                                                  │
+│ ▼ SEÇÃO 3 — QUALIDADE (refinamento + IA)                         │
+│   ⑫ Classificação IA (Gemini) ← vem da aba Enriq. IA            │
+│   ⑬ Enriquecer Detalhes (Places Details)                         │
+│   ⑭ Atualizar Logradouros (fuzzy match) ← vem da aba Enriq. IA  │
+│   ⑮ Pipeline Correção Geo (NOVO — plano aprovado anteriormente)  │
+│                                                                  │
+│ ─── Cards de cobertura (já existentes) ───                       │
+│ ─── Tabela ETL Logs (já existente) ───                           │
+│ ─── Exportar CSV (já existente) ───                              │
+└──────────────────────────────────────────────────────────────────┘
+```
 
-**Arquivo:** `supabase/functions/geo-logradouro/index.ts`
-- Mudar a lógica de `AMBIGUOUS`: em vez de `condominioMap.set(upper, 'AMBIGUOUS')`, guardar array de coordenadas e depois calcular centroide
+## Mudanças Concretas
 
-#### 2. Para entradas além do limite Google: usar cache existente, não aleatório
+| Ação | Detalhe |
+|------|---------|
+| **Mover** Importar, Classificação IA e Atualizar Logradouros | Da aba "Enriquecimento IA" → para dentro da aba Admin (seções 1 e 3) |
+| **Remover** aba "Enriquecimento IA" | Fica vazia após a migração — eliminar a tab |
+| **Mover** Merge CSV e Enriquecer Dados | De Configurações → seções 1 e 2 do Admin |
+| **Remover** `EnrichCondominiosButton` de Configurações | Já existe em Admin; elimina duplicação |
+| **Agrupar** botões em 3 Collapsible/Accordion | Ingestão, Processamento, Qualidade |
+| **Adicionar** botão "Pipeline Correção Geo" | Executa as 3 migrations SQL do plano anterior em sequência |
+| **Numerar** visualmente cada etapa | Para guiar a ordem de execução |
 
-Nas linhas 621-635, quando um endereço não consegue slot no Google, em vez de gerar coordenadas aleatórias, usar as coordenadas do cache STALE (que podem ser imprecisas, mas são melhores que random). Só usar fallback aleatório se não houver nenhum cache.
+## Resultado Esperado
 
-**Arquivo:** `supabase/functions/geo-logradouro/index.ts`
-- Alterar o loop de fallback para consultar `cachedMap` antes de gerar random
+- **1 lugar centralizado** para todas as operações de dados (aba Admin)
+- **Sequência numerada** que guia o admin na ordem correta
+- **Zero duplicação** de botões
+- Página Configurações volta a ter apenas configurações da empresa/usuário
+- Aba "Enriquecimento IA" eliminada (conteúdo absorvido)
 
-#### 3. Migration: re-geocodificar STALE em massa via condomínio
-
-Executar uma migration SQL que:
-- Para ruas internas de **um único** condomínio: copiar coordenadas do condomínio
-- Para ruas internas **compartilhadas**: usar a média das coordenadas dos condos
-- Marcar todas como `CONDOMINIO` para que não precisem mais de Google
-
-Isso resolve os 345 STALE de uma vez.
-
-### Resumo das alterações
+## Arquivos a Alterar
 
 | Arquivo | O que muda |
 |---------|-----------|
-| `supabase/functions/geo-logradouro/index.ts` | Ruas ambíguas usam centroide dos condos; fallback usa cache em vez de random |
-| Migration SQL | Batch update de STALE → CONDOMINIO usando média de coordenadas |
-
-### Resultado esperado
-
-- `RUA DARIO COELHO` aparecerá entre Barra Premium e Barra First (posição correta)
-- ~345 entradas STALE serão corrigidas na migration
-- Futuras ruas ambíguas também serão resolvidas automaticamente
+| `src/components/territorial/TerritorialAdmin.tsx` | Reorganizar em 3 seções accordion; absorver ImportarCondominios, EnriquecerCondominios (IA), AtualizarLogradouros; adicionar Pipeline Correção Geo |
+| `src/pages/InteligenciaTerritorial.tsx` | Remover aba "Enriquecimento IA" e suas sub-tabs |
+| `src/pages/Configuracoes.tsx` | Remover MergeCondominiosButton e EnrichCondominiosButton |
+| `supabase/functions/geo-logradouro/index.ts` | Aplicar correção de centroide e fallback (plano anterior) |
+| Migration SQL | 3 migrations do plano anterior (GOOGLE→CONDOMINIO, aliases ITBI, limpeza) |
 
