@@ -11,7 +11,7 @@ import { TerritorialRanking } from "@/components/territorial/TerritorialRanking"
 import { TerritorialLogradouros } from "@/components/territorial/TerritorialLogradouros";
 import { TerritorialAdmin } from "@/components/territorial/TerritorialAdmin";
 import {
-  useCondominiosBbox,
+  useCondominiosBairro,
   useLotesPALBbox,
   type TerritorialCondominio,
   type MapBounds,
@@ -26,7 +26,7 @@ export default function InteligenciaTerritorial() {
   const showAdmin = isAdmin || isSuperadmin;
   const isMobile = useIsMobile();
 
-  const [bounds, setBounds] = useState<MapBounds | null>(null);
+  const [loteBounds, setLoteBounds] = useState<MapBounds | null>(null);
   const [selectedCondo, setSelectedCondo] = useState<TerritorialCondominio | null>(null);
   const [filteredCondos, setFilteredCondos] = useState<TerritorialCondominio[]>([]);
   const [showHeatmap, setShowHeatmap] = useState(false);
@@ -38,12 +38,11 @@ export default function InteligenciaTerritorial() {
   const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false);
   const [mobileDetailOpen, setMobileDetailOpen] = useState(false);
 
-  
-  const { data: condominios = [], isLoading } = useCondominiosBbox(bounds);
-  const { data: lotes = [] } = useLotesPALBbox(bounds, showLotes && currentZoom >= 15);
+  const { data: condominios = [], isLoading } = useCondominiosBairro();
+  const { data: lotes = [] } = useLotesPALBbox(loteBounds, showLotes && currentZoom >= 15);
 
   const handleBoundsChange = useCallback((b: MapBounds) => {
-    setBounds(b);
+    setLoteBounds(b);
   }, []);
 
   const handleZoomChange = useCallback((zoom: number) => {
