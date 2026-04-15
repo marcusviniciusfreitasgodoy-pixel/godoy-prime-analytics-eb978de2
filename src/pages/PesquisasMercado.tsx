@@ -80,6 +80,7 @@ export default function PesquisasMercado() {
   const [transacaoAreaMax, setTransacaoAreaMax] = useState<string>("");
   const [searchTransactions, setSearchTransactions] = useState(false);
   const [visibleCount, setVisibleCount] = useState(10);
+  const [activeTab, setActiveTab] = useState<string>('localizacao');
   const [viewMode, setViewMode] = useState<'list' | 'chart' | 'map'>('list');
   const [chartMetric, setChartMetric] = useState<'transacoes' | 'preco'>('transacoes');
   const [apenasIndividuais, setApenasIndividuais] = useState(false);
@@ -100,7 +101,7 @@ export default function PesquisasMercado() {
       tipologia: transacaoTipologia === 'todas' ? undefined : transacaoTipologia || undefined,
       logradouros: condominioSelecionado?.logradouros_busca ?? condominioSelecionado?.ruas_internas,
     },
-    viewMode === 'map'
+    activeTab === 'mapa' || viewMode === 'map'
   );
 
   // Queries
@@ -311,7 +312,7 @@ export default function PesquisasMercado() {
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <Tabs defaultValue="localizacao" className="w-full" data-tour="pesquisas-tabs">
+          <Tabs defaultValue="localizacao" className="w-full" data-tour="pesquisas-tabs" onValueChange={setActiveTab}>
             <TabsList className="grid w-full grid-cols-3 h-auto">
               <TabsTrigger value="localizacao" className="text-xs sm:text-sm py-2 px-1 sm:px-3">
                 <Search className="h-4 w-4 sm:mr-2" />
