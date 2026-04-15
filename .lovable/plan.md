@@ -1,51 +1,29 @@
 
 
-# Por que aparece "Condomínio" antes dos nomes na lista
+# Adicionar tooltips explicativos nos KPI Cards da Inteligência Territorial
 
-## Causa raiz
+## Problema
+Os 4 cards de KPIs (Condomínios, Com histórico, Unidades, R$/m² médio) não explicam o que significam. O usuário precisa entender a lógica por trás de cada métrica.
 
-O `algoritmo_pal` (Edge Function `process-condominios-algorithm`) gerou **1.060 dos 1.602** condomínios ativos (66%) com nomes genéricos no formato `"Condomínio " + logradouro`. Exemplos:
+## Solução
+Adicionar um ícone `Info` (ℹ️) em cada card que, ao passar o mouse (ou tocar no mobile), exibe um tooltip com a explicação da métrica.
 
-- `Condomínio AVN DO PEPE` (na verdade é o logradouro `AVN DO PEPE`)
-- `Condomínio RUA OSWALDO PISANI` (na verdade é `RUA OSWALDO PISANI`)
-- `Condomínio AVENIDA DAS AMERICAS` (nem é condomínio)
+## Explicações para cada card
 
-Esses registros não têm nome real de condomínio — o algoritmo simplesmente colou o prefixo "Condomínio" no logradouro como placeholder. Na lista lateral do mapa, a função `getCondoDisplayName()` exibe `nome_condominio` diretamente, sem tratar esse padrão.
+| Card | Explicação |
+|------|-----------|
+| **Condomínios** | Total de condomínios ativos mapeados na base territorial (inclui identificados manualmente e por algoritmo) |
+| **Com histórico** | Condomínios que possuem pelo menos 1 transação ITBI registrada, permitindo análise de preço real praticado |
+| **Unidades** | Soma estimada de unidades residenciais nos condomínios mapeados (baseado em dados IPTU e levantamento de torres) |
+| **R$/m² médio** | Preço médio por m² calculado a partir das transações ITBI residenciais na Barra da Tijuca |
 
-## Solução (2 partes)
+## Implementação
 
-### Parte 1 — UI: tratar nomes genéricos no display
+**Arquivo:** `src/components/territorial/TerritorialFilters.tsx`
 
-No `TerritorialFilters.tsx`, na função `getCondoDisplayName()`, adicionar detecção do padrão `"Condomínio " + logradouro` e nesses casos exibir apenas o logradouro formatado (sem o prefixo redundante).
-
-Lógica:
-```
-Se nome_condominio começa com "Condomínio " E o resto é igual ao logradouro_padrao:
-  → exibir apenas logradouro_padrao (com Title Case)
-Senão:
-  → exibir nome_condominio normal
-```
-
-**Arquivo:** `src/components/territorial/TerritorialFilters.tsx` — editar `getCondoDisplayName()`
-
-### Parte 2 — Dados: limpar nomes genéricos no banco
-
-Migration SQL para substituir os 1.060 nomes gerados pelo algoritmo por `NULL`, fazendo o display cair no fallback do logradouro. Isso também permite que futuras execuções do `enrich-condominios` (Google Places) preencham com o nome real.
-
-```sql
-UPDATE condominios_mapeamento
-SET nome_condominio = NULL
-WHERE fonte_identificacao = 'algoritmo_pal'
-  AND nome_condominio ILIKE 'Condomínio %'
-  AND ativo = true;
-```
-
-**Resultado:** Na lista, em vez de "Condomínio AVN DO PEPE" aparecerá apenas "Avenida do Pepê" (com expansão de abreviações e Title Case).
-
-## Alterações
-
-| Arquivo | O que muda |
-|---------|-----------|
-| `src/components/territorial/TerritorialFilters.tsx` | `getCondoDisplayName()` ignora nomes que são "Condomínio + logradouro" |
-| Migration SQL | Limpar 1.060 nomes genéricos → `NULL` |
+- Adicionar campo `tooltip` ao array `kpiCards`
+- Importar `Tooltip`, `TooltipTrigger`, `TooltipContent`, `TooltipProvider` de `@/components/ui/tooltip`
+- Importar ícone `Info` do lucide-react
+- Envolver cada card com `Tooltip` e adicionar ícone `Info` discreto (h-3 w-3, text-muted-foreground) ao lado do label
+- No mobile, o tooltip funciona ao tocar no ícone
 
