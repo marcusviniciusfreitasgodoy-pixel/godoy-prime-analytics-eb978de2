@@ -11,7 +11,6 @@ import { TerritorialRanking } from "@/components/territorial/TerritorialRanking"
 import { TerritorialLogradouros } from "@/components/territorial/TerritorialLogradouros";
 import { TerritorialAdmin } from "@/components/territorial/TerritorialAdmin";
 import {
-  useTerritorialKPIs,
   useCondominiosBbox,
   useLotesPALBbox,
   type TerritorialCondominio,
@@ -39,7 +38,7 @@ export default function InteligenciaTerritorial() {
   const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false);
   const [mobileDetailOpen, setMobileDetailOpen] = useState(false);
 
-  const { data: kpis } = useTerritorialKPIs();
+  
   const { data: condominios = [], isLoading } = useCondominiosBbox(bounds);
   const { data: lotes = [] } = useLotesPALBbox(bounds, showLotes && currentZoom >= 15);
 

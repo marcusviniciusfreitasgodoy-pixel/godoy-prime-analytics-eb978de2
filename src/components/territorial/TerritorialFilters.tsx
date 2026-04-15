@@ -9,7 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
 import { List as VirtualList, type RowComponentProps } from "react-window";
-import { useLogradouroSuggestions, type TerritorialCondominio, type TerritorialKPIs } from "@/hooks/useTerritorialData";
+import { useLogradouroSuggestions, type TerritorialCondominio } from "@/hooks/useTerritorialData";
 import { cn } from "@/lib/utils";
 
 const PLACEHOLDER_PATTERNS = /não identificad|não cadastrad|não localizad|falhou/i;
