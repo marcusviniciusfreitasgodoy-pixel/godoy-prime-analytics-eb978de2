@@ -375,7 +375,7 @@ Deno.serve(async (req) => {
       );
     }
 
-    // POST /batch-geocode - Geocodifica múltiplos endereços (COM GOOGLE)
+    // POST /batch-geocode - Geocodifica múltiplos endereços (COM GOOGLE + CONDOMINIO)
     if (path === 'batch-geocode' && req.method === 'POST') {
       const { enderecos, forceRefresh = false } = body;
 
@@ -399,12 +399,42 @@ Deno.serve(async (req) => {
         (cachedData || []).map((c) => [`${c.logradouro}|${c.bairro}`, c])
       );
 
-      // Considera cache “stale” se não for GOOGLE ou se last_sync for antigo
+      // Buscar todos os condomínios com coordenadas para cruzamento
+      const { data: condominiosData } = await supabase
+        .from('condominios_mapeamento')
+        .select('logradouro_padrao, ruas_internas, latitude, longitude, nome_condominio')
+        .eq('ativo', true)
+        .not('latitude', 'is', null)
+        .not('longitude', 'is', null);
+
+      // Criar mapa de logradouro -> coordenadas do condomínio
+      const condominioMap = new Map<string, { lat: number; lng: number; nome: string }>();
+      for (const cond of condominiosData || []) {
+        if (cond.latitude && cond.longitude) {
+          // Mapear logradouro_padrao
+          const key = cond.logradouro_padrao?.toUpperCase();
+          if (key) {
+            condominioMap.set(key, { lat: cond.latitude, lng: cond.longitude, nome: cond.nome_condominio });
+          }
+          // Mapear ruas_internas
+          if (Array.isArray(cond.ruas_internas)) {
+            for (const rua of cond.ruas_internas) {
+              if (rua) {
+                condominioMap.set(rua.toUpperCase(), { lat: cond.latitude, lng: cond.longitude, nome: cond.nome_condominio });
+              }
+            }
+          }
+        }
+      }
+
+      console.log(`[geo-logradouro] Condomínios com coordenadas carregados: ${condominioMap.size} logradouros mapeados`);
+
+      // Considera cache "stale" se não for GOOGLE/CONDOMINIO ou se last_sync for antigo
       const STALE_AFTER_MS = 1000 * 60 * 60 * 24 * 30; // 30 dias
       const isStale = (row: any) => {
         if (!row) return true;
         if (forceRefresh) return true;
-        if (row.hierarquia !== 'GOOGLE') return true;
+        if (row.hierarquia !== 'GOOGLE' && row.hierarquia !== 'CONDOMINIO') return true;
         if (!row.last_sync) return true;
         const t = Date.parse(row.last_sync);
         if (Number.isNaN(t)) return true;
@@ -421,25 +451,64 @@ Deno.serve(async (req) => {
         if (cached && cached.latitude && cached.longitude && !isStale(cached)) {
           results.push({
             ...cached,
-            source: cached.hierarquia === 'GOOGLE' ? 'google_cache' : 'cache',
+            source: cached.hierarquia === 'GOOGLE' ? 'google_cache' : cached.hierarquia === 'CONDOMINIO' ? 'condominio_cache' : 'cache',
           });
         } else {
           toFetch.push(endereco);
         }
       }
 
-      // Buscar via Google para os que precisam refresh (limitado para não estourar quota)
+      // Buscar via Condomínio primeiro, depois Google para os que precisam refresh
       const MAX_GOOGLE_CALLS = 50;
-      const toFetchLimited = toFetch.slice(0, MAX_GOOGLE_CALLS);
+      const needGoogle: { logradouro: string; bairro: string }[] = [];
 
-      console.log(`[geo-logradouro] Buscando ${toFetchLimited.length} endereços via Google`);
+      for (const endereco of toFetch) {
+        const fallbackBairro = endereco.bairro?.toUpperCase() || 'BARRA DA TIJUCA';
+        const logUpper = endereco.logradouro?.toUpperCase();
+
+        // 1. Verificar se o logradouro pertence a um condomínio mapeado
+        const condMatch = condominioMap.get(logUpper);
+        if (condMatch) {
+          const result = {
+            logradouro: endereco.logradouro,
+            bairro: fallbackBairro,
+            latitude: condMatch.lat,
+            longitude: condMatch.lng,
+            aproximado: false,
+            source: 'condominio',
+          };
+          results.push(result);
+
+          // Salvar no cache com hierarquia CONDOMINIO
+          supabase
+            .from('logradouros_geo')
+            .upsert(
+              {
+                logradouro: result.logradouro,
+                bairro: result.bairro,
+                hierarquia: 'CONDOMINIO',
+                latitude: result.latitude,
+                longitude: result.longitude,
+                last_sync: new Date().toISOString(),
+              },
+              { onConflict: 'logradouro,bairro' }
+            )
+            .then(() => {});
+          continue;
+        }
+
+        // 2. Não é condomínio — precisa Google
+        needGoogle.push(endereco);
+      }
+
+      const toFetchLimited = needGoogle.slice(0, MAX_GOOGLE_CALLS);
+      console.log(`[geo-logradouro] Condomínio match: ${toFetch.length - needGoogle.length}, Google fetch: ${toFetchLimited.length}`);
 
       for (const endereco of toFetchLimited) {
         const fallbackBairro = endereco.bairro?.toUpperCase() || 'BARRA DA TIJUCA';
         const fallback =
           BAIRRO_CENTROIDS[fallbackBairro] || BAIRRO_CENTROIDS['BARRA DA TIJUCA'];
 
-        // Tentar Google Geocoding
         const googleResult = await geocodeWithGoogle(endereco.logradouro, fallbackBairro);
 
         if (googleResult) {
@@ -454,7 +523,6 @@ Deno.serve(async (req) => {
 
           results.push(result);
 
-          // Salvar no cache (fire and forget)
           supabase
             .from('logradouros_geo')
             .upsert(
@@ -484,8 +552,8 @@ Deno.serve(async (req) => {
         });
       }
 
-      // Para endereços além do limite, usar fallback
-      for (const endereco of toFetch.slice(MAX_GOOGLE_CALLS)) {
+      // Para endereços além do limite de Google, tentar condomínio primeiro
+      for (const endereco of needGoogle.slice(MAX_GOOGLE_CALLS)) {
         const fallbackBairro = endereco.bairro?.toUpperCase() || 'BARRA DA TIJUCA';
         const fallback =
           BAIRRO_CENTROIDS[fallbackBairro] || BAIRRO_CENTROIDS['BARRA DA TIJUCA'];
