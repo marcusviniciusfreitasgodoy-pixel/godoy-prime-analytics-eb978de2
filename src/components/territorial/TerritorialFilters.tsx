@@ -88,7 +88,6 @@ function CondoRow({ index, style, filtered, selectedId, onSelect }: { index: num
 }
 
 interface TerritorialFiltersProps {
-  kpis: TerritorialKPIs | null;
   condominios: TerritorialCondominio[];
   selectedId: string | null;
   onSelect: (condo: TerritorialCondominio) => void;
@@ -97,7 +96,6 @@ interface TerritorialFiltersProps {
 }
 
 export function TerritorialFilters({
-  kpis,
   condominios,
   selectedId,
   onSelect,
