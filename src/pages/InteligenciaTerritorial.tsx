@@ -79,7 +79,7 @@ export default function InteligenciaTerritorial() {
 
   const filtersContent = (
     <TerritorialFilters
-      kpis={kpis ?? null}
+      
       condominios={condominios}
       selectedId={selectedCondo?.id ?? null}
       onSelect={handleSelectCondo}
