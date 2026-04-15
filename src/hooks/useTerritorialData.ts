@@ -108,6 +108,36 @@ export function useCondominiosBbox(bounds: MapBounds | null) {
   });
 }
 
+export function useCondominiosBairro() {
+  return useQuery({
+    queryKey: ["condominios-bairro-all"],
+    queryFn: async () => {
+      const allData: TerritorialCondominio[] = [];
+      const pageSize = 1000;
+      let from = 0;
+      let hasMore = true;
+
+      while (hasMore) {
+        const { data, error } = await supabase
+          .from("condominios_mapeamento")
+          .select("id, nome_condominio, logradouro_padrao, latitude, longitude, unidades_estimadas, numero_torres, preco_medio_m2, total_transacoes_itbi, ultima_transacao_itbi, padrao_construtivo, fonte_identificacao, confianca_identificacao, area_lote, area_total_construida, valor_venal_estimado")
+          .eq("ativo", true)
+          .not("latitude", "is", null)
+          .order("preco_medio_m2", { ascending: false, nullsFirst: false })
+          .range(from, from + pageSize - 1);
+
+        if (error) throw error;
+        allData.push(...((data || []) as TerritorialCondominio[]));
+        hasMore = (data?.length ?? 0) === pageSize;
+        from += pageSize;
+      }
+
+      return allData;
+    },
+    staleTime: 5 * 60 * 1000,
+  });
+}
+
 export function useCondoItbiHistory(lat: number | null, lng: number | null) {
   return useQuery({
     queryKey: ["condo-itbi-history", lat, lng],
