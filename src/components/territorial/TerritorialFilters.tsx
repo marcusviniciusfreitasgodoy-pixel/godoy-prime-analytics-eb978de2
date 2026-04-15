@@ -78,7 +78,7 @@ function CondoRow({ index, style, filtered, selectedId, onSelect }: { index: num
         <div className="flex items-center gap-2 mt-1">
           {c.numero_torres ? (
             <span className="text-[10px] text-muted-foreground">
-              {c.numero_torres} {isAlgorithmPalWithoutClassification(c) ? "edif." : "torres"}
+              {c.numero_torres} {isAlgorithmPalWithoutClassification(c) ? "edificações" : "torres"}
             </span>
           ) : null}
           {c.unidades_estimadas ? (
