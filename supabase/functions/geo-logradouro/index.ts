@@ -493,7 +493,7 @@ Deno.serve(async (req) => {
         
         if (words.length >= 2) {
           for (const [condKey, condCoord] of condominioMap) {
-            const condCoordVal = condCoord;
+            
             const condWords = condKey.split(/\s+/).filter(w => w.length > 3 && !PREFIXES.has(w));
             if (condWords.length < 2) continue;
             
