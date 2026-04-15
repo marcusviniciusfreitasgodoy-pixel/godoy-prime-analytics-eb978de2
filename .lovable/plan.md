@@ -1,57 +1,47 @@
 
 
-# Recomendação: Carregar todos os condomínios do bairro (Opção 1)
+# Diferenciar condomínios duplicados + Corrigir dados de "Torres" em ruas de casas
 
-## Por que esta é a melhor abordagem
+## Problemas identificados
 
-A Barra da Tijuca é **um único bairro**. O usuário espera ver o panorama completo ao abrir o módulo — não um recorte arbitrário baseado no zoom do mapa. Os problemas atuais (confusão com números parciais, impressão de dados incompletos) são causados diretamente pela lógica de viewport (bbox).
+### 1. Nomes duplicados na lista lateral
+10 registros da Rua Lourenço Filho aparecem com o mesmo nome porque `nome_condominio = "Rua Lourenço Filho"` (placeholder). Sem diferenciador visual, o usuário não sabe qual é qual.
 
-**Argumentos técnicos:**
-- 1.349 markers com clustering ativo é perfeitamente suportado pelo Google Maps (clustering já está implementado para zoom < 14)
-- Elimina a dependência do viewport — KPIs e lista são sempre consistentes
-- Remove a complexidade do `useCondominiosBbox` e seus re-fetches a cada pan/zoom
+### 2. "Torres" em rua de casas (dados incorretos)
+Os 10 registros mostram entre 5 e 16 "torres", mas a Rua Lourenço Filho é uma rua exclusivamente de casas. O campo `numero_torres` foi preenchido automaticamente pelo algoritmo PAL (que conta footprints de edificações por lote), e cada footprint de casa foi contado como "torre". Isso é **dado incorreto** que confunde o corretor.
 
-**Argumentos de UX:**
-- O corretor abre a página e vê **tudo**: 1.349 condomínios, 354 com ITBI, preço médio real do bairro
-- Filtros (busca, unidades, ITBI) reduzem progressivamente — comportamento intuitivo
-- Sem surpresas ao dar zoom ou mover o mapa
+**Origem do problema:** O `algoritmo_pal` agrupa lotes e conta edificações (footprints) dentro de cada agrupamento, armazenando o resultado em `numero_torres`. Para condomínios verticais isso faz sentido (cada torre = um bloco). Para loteamentos de casas, cada casa vira uma "torre" — gerando números absurdos.
 
-## Implementação
+## Solução
 
-### 1. Novo hook: `useCondominiosBairro`
-**Arquivo:** `src/hooks/useTerritorialData.ts`
-- Criar hook que busca **todos** os condomínios ativos com coordenadas, sem depender de bounds
-- Query simples: `SELECT * FROM condominios_mapeamento WHERE ativo = true AND latitude IS NOT NULL ORDER BY preco_medio_m2 DESC NULLS LAST LIMIT 2000`
-- Substituir `useCondominiosBbox` na página territorial
-
-### 2. Simplificar a página
-**Arquivo:** `src/pages/InteligenciaTerritorial.tsx`
-- Remover state `bounds` e callback `handleBoundsChange`
-- Usar `useCondominiosBairro()` em vez de `useCondominiosBbox(bounds)`
-- O mapa continua reportando bounds/zoom para controlar lotes (que SÃO viewport-dependent por serem pesados)
-
-### 3. Mapa: remover dependência de bounds para condos
-**Arquivo:** `src/components/territorial/TerritorialMap.tsx`
-- `onBoundsChange` continua existindo apenas para controlar a camada de lotes
-- Markers de condomínios vêm da prop `condominios` (já filtrada pelo sidebar)
-
-### 4. KPIs continuam reativos aos filtros
+### Parte 1 — Diferenciar nomes duplicados no display
 **Arquivo:** `src/components/territorial/TerritorialFilters.tsx`
-- Sem alteração — os KPIs já calculam a partir de `filtered`, que agora será o subconjunto dos 1.349 totais
 
-## Resultado
+Aprimorar `getCondoDisplayName` para quando o nome é placeholder (igual ao logradouro):
+- Se tiver `numero_inicio` → "Rua Lourenço Filho, 123"
+- Se não tiver número → usar coordenadas abreviadas como sufixo para distinguir (ex: "Rua Lourenço Filho · loc. A")
+- Na sub-linha, substituir "X torres" por "X edificações" quando `fonte_identificacao = 'algoritmo_pal'` e não houver `padrao_construtivo` definido, pois o algoritmo conta footprints e não torres reais
 
-| Antes | Depois |
-|-------|--------|
-| ~300-1000 condos dependendo do zoom | 1.349 condos sempre visíveis |
-| KPIs mudam ao mover o mapa (confuso) | KPIs mudam apenas com filtros (intuitivo) |
-| Busca "Oswaldo Paes" pode dar 0 se fora do viewport | Busca sempre encontra se existe no bairro |
+### Parte 2 — Corrigir label "torres" → "edificações" para registros PAL sem classificação
+**Arquivo:** `src/components/territorial/TerritorialFilters.tsx`
+
+No componente `CondoRow`, quando `fonte_identificacao === 'algoritmo_pal'` e `padrao_construtivo` é null, exibir "X edif." em vez de "X torres". Isso reflete com precisão o que o dado significa: contagem de footprints, não torres de um prédio.
+
+### Parte 3 — Nota explicativa no painel de detalhes
+**Arquivo:** `src/components/territorial/CondominioDetailPanel.tsx`
+
+Quando o condomínio selecionado tem `fonte_identificacao = 'algoritmo_pal'`, adicionar um badge/nota discreta: "Identificado por algoritmo — dados podem necessitar de revisão manual".
+
+## Impacto nos dados
+
+- **Não altera dados no banco** — apenas muda como são exibidos
+- Corretores deixam de ver "16 torres" numa rua de casas
+- Lista lateral fica navegável mesmo com múltiplos registros no mesmo logradouro
 
 ## Arquivos alterados
 
 | Arquivo | Alteração |
 |---------|-----------|
-| `src/hooks/useTerritorialData.ts` | Novo hook `useCondominiosBairro` (query direta sem bbox) |
-| `src/pages/InteligenciaTerritorial.tsx` | Usar novo hook, remover state `bounds` para condos |
-| `src/components/territorial/TerritorialMap.tsx` | Manter `onBoundsChange` apenas para lotes |
+| `src/components/territorial/TerritorialFilters.tsx` | `getCondoDisplayName` com diferenciador; label "edif." para PAL |
+| `src/components/territorial/CondominioDetailPanel.tsx` | Badge "Identificado por algoritmo" |
 
