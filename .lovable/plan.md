@@ -1,46 +1,86 @@
 
+## Diagnóstico
 
-## Diagnóstico: Marcadores do mapa com localização incorreta
+O erro acontece por dois motivos combinados:
 
-### Problema identificado
+1. **O nome vindo do ITBI está abreviado**
+   - No mapa aparece `RUA DESEN LUIZ GUIMARAES`
+   - Na base de condomínios / ruas internas a rua está como `Rua Desenhista Luiz Guimaraes`
+   - A Edge Function `geo-logradouro` hoje faz o cruzamento com `condominios_mapeamento` por **match exato** (`toUpperCase()`), então esse caso **não casa**.
 
-Os logradouros no mapa estão sendo geocodificados individualmente pelo Google como se fossem ruas públicas, mas **muitas dessas ruas são internas de condomínios** (ex: Rua Paulo Areal é rua interna do Condomínio América Mall / Barra Deck). O Google retorna coordenadas genéricas ou imprecisas para essas ruas privadas, causando marcadores agrupados no lugar errado.
+2. **O cache atual favorece coordenadas Google já salvas**
+   - No `batch-geocode`, se existir um registro em `logradouros_geo` com `hierarquia = 'GOOGLE'`, ele é retornado antes de tentar corrigir pelo condomínio.
+   - A migration anterior também **não sobrescreveu** linhas já marcadas como `GOOGLE`.
+   - Resultado: mesmo depois da melhoria por condomínio, o ponto antigo e errado continua sendo usado.
 
-**Dados concretos:**
-- `RUA PAULO AREAL` geocodificada pelo Google em `-22.9996, -43.3822` (posição genérica)
-- O condomínio América Mall (que contém essa rua) está em `-22.9997, -43.3796` — ~250m de diferença
-- Na base `logradouros_geo`: 508 entradas na Barra, apenas 149 com geocodificação Google, 359 com fontes menos precisas
+## Evidência no código
 
-### Causa raiz
+- `supabase/functions/geo-logradouro/index.ts`
+  - usa cache primeiro (`hierarquia = GOOGLE/CONDOMINIO` é considerado válido)
+  - monta `condominioMap` com chaves literais de `logradouro_padrao` e `ruas_internas`
+- `supabase/functions/enrich-condominios/index.ts`
+  - já traz `Rua Desenhista Luiz Guimaraes` como rua interna manual de **Santa Monica Residências**
+- O popup do print mostra `RUA DESEN LUIZ GUIMARAES`, confirmando o problema de abreviação.
 
-O `batch-geocode` (Edge Function `geo-logradouro`) envia o nome da rua ao Google sem cruzar com a tabela `condominios_mapeamento`. A tabela de condomínios já tem **coordenadas precisas** e sabe quais ruas são internas (`ruas_internas`), mas essa informação não é usada na geocodificação do mapa.
+## Correção proposta
 
-### Solução proposta
+### 1) Fazer normalização antes do match com condomínio
+Atualizar `supabase/functions/geo-logradouro/index.ts` para:
+- consultar também `logradouro_itbi_normalizado`
+- aplicar normalização/aliases de logradouro antes do lookup
+- considerar equivalência entre variantes abreviadas e nome completo
 
-Adicionar uma **camada de enriquecimento por condomínio** no fluxo de geocodificação batch:
+Exemplo do que precisa casar:
+- `RUA DESEN LUIZ GUIMARAES`
+- `RUA DESENHISTA LUIZ GUIMARAES`
 
-1. **Na Edge Function `geo-logradouro` (endpoint `batch-geocode`):**
-   - Antes de chamar o Google, consultar `condominios_mapeamento` para verificar se o logradouro aparece como `logradouro_padrao` ou dentro de `ruas_internas` de algum condomínio com coordenadas
-   - Se encontrar correspondência, usar as coordenadas do condomínio (latitude/longitude) com `source: 'condominio'` e `aproximado: false`
-   - Só recorrer ao Google para ruas que **não** pertencem a nenhum condomínio mapeado
+A forma mais segura é usar a tabela `logradouros_normalizacao` como camada de alias antes do match com condomínio.
 
-2. **Atualizar o cache `logradouros_geo`:**
-   - Marcar entradas corrigidas com `hierarquia: 'CONDOMINIO'` para identificar a fonte
-   - Executar uma migration SQL que faça um batch update das ~359 entradas sem Google, cruzando com `condominios_mapeamento`
+### 2) Dar prioridade ao condomínio sobre cache Google
+No `batch-geocode`, a ordem deve virar:
+1. normalizar nome do logradouro
+2. tentar match com condomínio
+3. se achar condomínio, **sobrescrever** qualquer cache anterior e retornar `source: 'condominio'`
+4. só usar cache Google / Google novo quando não houver match com condomínio
 
-3. **No frontend `useTransactionMapData.ts`:**
-   - Nenhuma alteração necessária — o hook já consome as coordenadas retornadas pelo `batch-geocode`
+Isso é essencial para ruas internas, porque a coordenada do condomínio é mais confiável que o geocode genérico.
 
-### Arquivos alterados
+### 3) Corrigir os registros já salvos no cache
+Criar uma migration SQL para atualizar `logradouros_geo` quando houver correspondência com condomínio, **inclusive se hoje estiver como `GOOGLE`** para ruas internas/aliases conhecidos.
 
-| Arquivo | Alteração |
-|---------|-----------|
-| `supabase/functions/geo-logradouro/index.ts` | Adicionar consulta a `condominios_mapeamento` no `batch-geocode` antes do Google |
-| Migration SQL | Update batch de `logradouros_geo` cruzando com coordenadas de condomínios |
+Isso deve corrigir imediatamente casos como:
+- `RUA DESEN LUIZ GUIMARAES`
 
-### Impacto esperado
+## Arquivos a ajustar
 
-- Ruas internas de condomínios passam a aparecer sobre o condomínio correto no mapa
-- Redução de chamadas ao Google Geocoding API (economia de quota)
-- Marcadores deixam de se aglomerar em posições genéricas
+1. `supabase/functions/geo-logradouro/index.ts`
+   - adicionar normalização/alias
+   - inverter prioridade para condomínio antes do cache Google
+   - atualizar cache com `hierarquia = 'CONDOMINIO'` quando houver match
 
+2. `supabase/migrations/...sql`
+   - inserir alias/manual mapping para casos abreviados necessários
+   - atualizar `logradouros_geo` já existente para substituir coordenadas erradas
+
+## Resultado esperado
+
+Depois dessa correção:
+- `Rua Desenhista Luiz Guimaraes` passará a cair no **Santa Monica Residências**, perto da Av. das Américas
+- o mapa deixará de usar o ponto genérico perto da Av. Lúcio Costa / Barramares
+- futuras ruas internas com abreviações do ITBI também terão muito menos erro
+
+## Implementação objetiva
+
+1. Revisar `geo-logradouro` para lookup normalizado + alias
+2. Mudar precedência: condomínio > cache Google > Google novo > fallback
+3. Criar migration para corrigir cache já salvo
+4. Validar no mapa os casos:
+   - Rua Desenhista Luiz Guimaraes
+   - Rua Paulo Areal
+   - outras ruas internas do Santa Monica Residências
+
+## Detalhe técnico
+
+A causa não é o mapa em si. O problema está na **resolução espacial do logradouro** antes do marcador ser desenhado:
+- o hook `useTransactionMapData` apenas consome a resposta do `geo-logradouro/batch-geocode`
+- portanto a correção correta é no backend de geocodificação + cache, não no componente visual do mapa
