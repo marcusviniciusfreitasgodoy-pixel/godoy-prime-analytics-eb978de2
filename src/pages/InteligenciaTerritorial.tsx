@@ -156,7 +156,7 @@ export default function InteligenciaTerritorial() {
               {/* Center: Map */}
               <div className="flex-1 min-w-0">
                 <TerritorialMap
-                  condominios={filteredCondos.length > 0 || condominios.length === 0 ? filteredCondos : condominios}
+                  condominios={filteredCondos}
                   selectedId={selectedCondo?.id ?? null}
                   onSelect={handleSelectCondo}
                   onBoundsChange={handleBoundsChange}
