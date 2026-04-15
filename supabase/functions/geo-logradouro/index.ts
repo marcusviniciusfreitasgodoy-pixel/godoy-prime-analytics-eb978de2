@@ -620,20 +620,34 @@ Deno.serve(async (req) => {
         });
       }
 
-      // Para endereços além do limite de Google, tentar condomínio primeiro
+      // Para endereços além do limite de Google, usar cache existente se disponível
       for (const endereco of needGoogle.slice(MAX_GOOGLE_CALLS)) {
         const fallbackBairro = endereco.bairro?.toUpperCase() || 'BARRA DA TIJUCA';
-        const fallback =
-          BAIRRO_CENTROIDS[fallbackBairro] || BAIRRO_CENTROIDS['BARRA DA TIJUCA'];
+        const key = `${endereco.logradouro}|${fallbackBairro}`;
+        const cached = cachedMap.get(key);
 
-        results.push({
-          logradouro: endereco.logradouro,
-          bairro: fallbackBairro,
-          latitude: fallback.lat + (Math.random() - 0.5) * 0.008,
-          longitude: fallback.lng + (Math.random() - 0.5) * 0.008,
-          aproximado: true,
-          source: 'fallback_limit',
-        });
+        if (cached && cached.latitude && cached.longitude) {
+          // Usar coordenadas do cache (mesmo STALE, melhor que random)
+          results.push({
+            logradouro: endereco.logradouro,
+            bairro: fallbackBairro,
+            latitude: cached.latitude,
+            longitude: cached.longitude,
+            aproximado: true,
+            source: 'stale_cache',
+          });
+        } else {
+          const fallback =
+            BAIRRO_CENTROIDS[fallbackBairro] || BAIRRO_CENTROIDS['BARRA DA TIJUCA'];
+          results.push({
+            logradouro: endereco.logradouro,
+            bairro: fallbackBairro,
+            latitude: fallback.lat + (Math.random() - 0.5) * 0.008,
+            longitude: fallback.lng + (Math.random() - 0.5) * 0.008,
+            aproximado: true,
+            source: 'fallback_limit',
+          });
+        }
       }
 
       const googleCount = results.filter(
