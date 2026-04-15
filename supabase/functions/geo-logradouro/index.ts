@@ -482,7 +482,7 @@ Deno.serve(async (req) => {
         const alias = aliasMap.get(upper);
         if (alias) {
           const aliasMatch = condominioMap.get(alias);
-          if (aliasMatch && aliasMatch !== 'AMBIGUOUS') return aliasMatch;
+          if (aliasMatch) return aliasMatch;
         }
 
         // 3. Match fuzzy: verificar se o logradouro contém palavras-chave de uma rua interna
