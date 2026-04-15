@@ -13,9 +13,21 @@ import { cn } from "@/lib/utils";
 
 const PLACEHOLDER_PATTERNS = /não identificad|não cadastrad|não localizad|falhou/i;
 
+function isGenericCondoName(nome: string, logradouro: string | null): boolean {
+  if (!logradouro) return false;
+  const prefix = "condomínio ";
+  const lower = nome.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+  const logLower = logradouro.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+  if (!lower.startsWith(prefix.normalize("NFD").replace(/[\u0300-\u036f]/g, ""))) return false;
+  const rest = lower.slice(prefix.length).trim();
+  return rest === logLower || logLower.includes(rest) || rest.includes(logLower);
+}
+
 function getCondoDisplayName(c: TerritorialCondominio): string {
   if (c.nome_condominio && !PLACEHOLDER_PATTERNS.test(c.nome_condominio)) {
-    return c.nome_condominio;
+    if (!isGenericCondoName(c.nome_condominio, c.logradouro_padrao)) {
+      return c.nome_condominio;
+    }
   }
   if (c.logradouro_padrao && !PLACEHOLDER_PATTERNS.test(c.logradouro_padrao)) {
     const num = (c as any).numero_inicio;
