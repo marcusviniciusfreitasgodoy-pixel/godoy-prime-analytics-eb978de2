@@ -206,26 +206,45 @@ export function CondominioDetailPanel({ condominio: c, onClose }: CondominioDeta
               <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2 flex items-center gap-1.5">
                 <BarChart3 className="h-3.5 w-3.5" /> Torres ({torres.length})
               </h4>
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead className="text-xs h-8 px-2">Torre</TableHead>
-                    <TableHead className="text-xs h-8 px-2">Andares</TableHead>
-                    <TableHead className="text-xs h-8 px-2">Un. est.</TableHead>
-                    <TableHead className="text-xs h-8 px-2">Área (m²)</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {torres.map((t) => (
-                    <TableRow key={t.id}>
-                      <TableCell className="text-xs px-2 py-1.5">{t.nome_torre || `Torre ${t.numero_torre}`}</TableCell>
-                      <TableCell className="text-xs px-2 py-1.5">{t.andares ?? "—"}</TableCell>
-                      <TableCell className="text-xs px-2 py-1.5">{t.unidades_estimadas ?? "—"}</TableCell>
-                      <TableCell className="text-xs px-2 py-1.5">{t.area_footprint?.toLocaleString("pt-BR") ?? "—"}</TableCell>
+              <TooltipProvider>
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead className="text-xs h-8 px-2">Torre</TableHead>
+                      <TableHead className="text-xs h-8 px-2">Andares</TableHead>
+                      <TableHead className="text-xs h-8 px-2">Un. est.</TableHead>
+                      <TableHead className="text-xs h-8 px-2">
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <span className="inline-flex items-center gap-1 cursor-help">
+                              Projeção (m²) <Info className="h-3 w-3 text-muted-foreground" />
+                            </span>
+                          </TooltipTrigger>
+                          <TooltipContent side="top" className="max-w-[220px] text-xs">
+                            Área da projeção da torre no solo (footprint). A área construída total é aprox. este valor × nº de andares.
+                          </TooltipContent>
+                        </Tooltip>
+                      </TableHead>
+                      <TableHead className="text-xs h-8 px-2">Área total est.</TableHead>
                     </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
+                  </TableHeader>
+                  <TableBody>
+                    {torres.map((t) => (
+                      <TableRow key={t.id}>
+                        <TableCell className="text-xs px-2 py-1.5">{t.nome_torre || `Torre ${t.numero_torre}`}</TableCell>
+                        <TableCell className="text-xs px-2 py-1.5">{t.andares ?? "—"}</TableCell>
+                        <TableCell className="text-xs px-2 py-1.5">{t.unidades_estimadas ?? "—"}</TableCell>
+                        <TableCell className="text-xs px-2 py-1.5">{t.area_footprint?.toLocaleString("pt-BR") ?? "—"}</TableCell>
+                        <TableCell className="text-xs px-2 py-1.5">
+                          {t.area_footprint && t.andares
+                            ? (t.area_footprint * t.andares).toLocaleString("pt-BR")
+                            : "—"}
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </TooltipProvider>
             </section>
           )}
 
