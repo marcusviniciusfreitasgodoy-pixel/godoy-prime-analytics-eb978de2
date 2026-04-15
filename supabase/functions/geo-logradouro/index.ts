@@ -472,9 +472,9 @@ Deno.serve(async (req) => {
       const findCondominioMatch = (logradouro: string): { lat: number; lng: number; nome: string } | null => {
         const upper = logradouro.toUpperCase();
         
-        // 1. Match direto
+        // 1. Match direto (já filtrado de ambíguos)
         const direct = condominioMap.get(upper);
-        if (direct) return direct;
+        if (direct && direct !== 'AMBIGUOUS') return direct;
 
         // 2. Match via alias de normalização
         const alias = aliasMap.get(upper);
