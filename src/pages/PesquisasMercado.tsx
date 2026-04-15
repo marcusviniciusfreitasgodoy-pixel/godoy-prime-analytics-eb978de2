@@ -80,6 +80,7 @@ export default function PesquisasMercado() {
   const [transacaoAreaMax, setTransacaoAreaMax] = useState<string>("");
   const [searchTransactions, setSearchTransactions] = useState(false);
   const [visibleCount, setVisibleCount] = useState(10);
+  const [activeTab, setActiveTab] = useState<string>('localizacao');
   const [viewMode, setViewMode] = useState<'list' | 'chart' | 'map'>('list');
   const [chartMetric, setChartMetric] = useState<'transacoes' | 'preco'>('transacoes');
   const [apenasIndividuais, setApenasIndividuais] = useState(false);
