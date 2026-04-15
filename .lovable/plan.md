@@ -1,34 +1,34 @@
 
 
-## Plano: Relatório PDF Executivo — Casas na Barra da Tijuca
+## Diagnóstico: Mapa sem dados na Pesquisa de Mercado
 
-### Dados coletados
+### Causa raiz
 
-**Resumo geral (últimos 12 meses):**
-- 60 registros agregados representando ~138 transações reais
-- Preço médio ponderado: ~R$ 8.206/m²
-- Área média: ~468 m²
-- Evolução 2020→2026: R$ 6.524 → R$ 8.456/m² (CAGR ~4,4%)
+O mapa só carrega dados quando **duas condições** são verdadeiras simultaneamente:
+1. `searchTransactions === true` — o usuário clicou "Buscar" na aba Transações
+2. `viewMode === 'map'` — a aba ativa é "Mapa"
 
-**Ranking por logradouro** (top 10 por volume): Av. das Américas (15 trans), Av. Lúcio Costa (14), Rua Ivaldo de Azambuja (7), etc.
+Se o usuário navegar diretamente para a aba Mapa sem ter clicado "Buscar" primeiro na aba Transações, o mapa aparece vazio porque a query nunca é disparada.
 
-**Faixas de preço**: 5 faixas de < R$ 6k a > R$ 12k/m² com distribuição de transações.
+### Correção proposta
 
-### O que será gerado
+Alterar a lógica de ativação da query do mapa para que ele carregue dados automaticamente ao entrar na aba Mapa, sem exigir que o usuário tenha feito uma busca prévia na aba Transações.
 
-Um PDF executivo de ~4 páginas com branding Godoy Prime (Navy/Gold), contendo:
+**Arquivo:** `src/pages/PesquisasMercado.tsx`, linha 103
 
-1. **Capa** — Título, data, logo
-2. **Resumo Executivo** — KPIs (preço médio, liquidez, área média, valorização anual)
-3. **Ranking por Logradouro** — Tabela com top 15 ruas: preço/m², transações, área média, faixa min-max
-4. **Distribuição por Faixa de Preço** — Tabela com 5 faixas, volume e área média
-5. **Evolução Histórica** — Tabela 2020-2026 com preço médio, transações e variação anual
-6. **Metodologia e Disclaimers** — Fontes, filtros aplicados
+**De:**
+```typescript
+searchTransactions && viewMode === 'map'
+```
 
-### Implementação
+**Para:**
+```typescript
+viewMode === 'map'
+```
 
-- Script Python com `reportlab` salvo em `/tmp/`, output em `/mnt/documents/relatorio_casas_barra.pdf`
-- Cores da marca: Navy `#0C2340`, Gold `#D4AF37`
-- Dados hardcoded no script a partir das consultas já realizadas
-- QA visual obrigatório após geração
+Isso faz o mapa carregar dados ITBI automaticamente ao selecionar a aba Mapa, usando o bairro e filtros atuais (período, valor, área, tipologia). A experiência fica consistente: o usuário abre o Mapa e já vê os marcadores.
+
+### Impacto
+- Nenhum efeito colateral — a query `useTransactionMapData` já tem seu próprio `enabled: !!bairro`
+- O filtro interno do mapa (faixa de preço por slider) continua funcionando normalmente sobre os dados carregados
 
