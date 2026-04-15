@@ -552,8 +552,8 @@ Deno.serve(async (req) => {
         });
       }
 
-      // Para endereços além do limite, usar fallback
-      for (const endereco of toFetch.slice(MAX_GOOGLE_CALLS)) {
+      // Para endereços além do limite de Google, tentar condomínio primeiro
+      for (const endereco of needGoogle.slice(MAX_GOOGLE_CALLS)) {
         const fallbackBairro = endereco.bairro?.toUpperCase() || 'BARRA DA TIJUCA';
         const fallback =
           BAIRRO_CENTROIDS[fallbackBairro] || BAIRRO_CENTROIDS['BARRA DA TIJUCA'];
