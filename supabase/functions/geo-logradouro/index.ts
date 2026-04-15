@@ -546,6 +546,7 @@ Deno.serve(async (req) => {
         }
       }
 
+      const MAX_GOOGLE_CALLS = 50;
       const toFetchLimited = needGoogle.slice(0, MAX_GOOGLE_CALLS);
       console.log(`[geo-logradouro] Condomínio match: ${toFetch.length - needGoogle.length}, Google fetch: ${toFetchLimited.length}`);
 
