@@ -105,7 +105,7 @@ export function TerritorialFilters({
   const [searchTerm, setSearchTerm] = useState("");
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [unidadesRange, setUnidadesRange] = useState([0, 500]);
-  const [somenteComItbi, setSomenteComItbi] = useState(true);
+  const [somenteComItbi, setSomenteComItbi] = useState(false);
   const [fontes, setFontes] = useState<Record<string, boolean>>({
     manual: true,
     algoritmo_pal: true,
