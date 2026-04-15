@@ -1,29 +1,23 @@
 
 
-# Adicionar tooltips explicativos nos KPI Cards da Inteligência Territorial
+# Corrigir rótulo "Área (m²)" e adicionar tooltips na tabela de Torres
 
 ## Problema
-Os 4 cards de KPIs (Condomínios, Com histórico, Unidades, R$/m² médio) não explicam o que significam. O usuário precisa entender a lógica por trás de cada métrica.
+
+A coluna "Área (m²)" na tabela de Torres exibe `area_footprint` — a área da projeção da torre no solo (footprint). O rótulo atual sugere erroneamente que é a área total construída, causando confusão.
 
 ## Solução
-Adicionar um ícone `Info` (ℹ️) em cada card que, ao passar o mouse (ou tocar no mobile), exibe um tooltip com a explicação da métrica.
 
-## Explicações para cada card
+No `CondominioDetailPanel.tsx`, fazer 2 ajustes:
 
-| Card | Explicação |
-|------|-----------|
-| **Condomínios** | Total de condomínios ativos mapeados na base territorial (inclui identificados manualmente e por algoritmo) |
-| **Com histórico** | Condomínios que possuem pelo menos 1 transação ITBI registrada, permitindo análise de preço real praticado |
-| **Unidades** | Soma estimada de unidades residenciais nos condomínios mapeados (baseado em dados IPTU e levantamento de torres) |
-| **R$/m² médio** | Preço médio por m² calculado a partir das transações ITBI residenciais na Barra da Tijuca |
+1. **Renomear** a coluna de "Área (m²)" para **"Projeção (m²)"**
+2. **Adicionar tooltip** no cabeçalho explicando: "Área da projeção da torre no solo (footprint). A área construída total é aproximadamente este valor × número de andares."
 
-## Implementação
+Opcionalmente, adicionar uma coluna calculada **"Área total est."** = `area_footprint × andares` para dar a informação que o usuário realmente procura.
 
-**Arquivo:** `src/components/territorial/TerritorialFilters.tsx`
+## Alteração
 
-- Adicionar campo `tooltip` ao array `kpiCards`
-- Importar `Tooltip`, `TooltipTrigger`, `TooltipContent`, `TooltipProvider` de `@/components/ui/tooltip`
-- Importar ícone `Info` do lucide-react
-- Envolver cada card com `Tooltip` e adicionar ícone `Info` discreto (h-3 w-3, text-muted-foreground) ao lado do label
-- No mobile, o tooltip funciona ao tocar no ícone
+| Arquivo | O que muda |
+|---------|-----------|
+| `src/components/territorial/CondominioDetailPanel.tsx` | Renomear coluna, adicionar tooltip explicativo, adicionar coluna "Área total est." calculada |
 
