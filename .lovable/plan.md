@@ -1,42 +1,82 @@
 
 
-# Enriquecer 542 registros manuais sem dados
+# Documentação Técnica Completa para Migração — Godoy Prime Analytics
 
-## Diagnóstico
+## Objetivo
 
-542 condomínios com `fonte_identificacao = 'manual'` foram importados com apenas nome, logradouro e coordenadas. Faltam:
-- `preco_medio_m2` e `total_transacoes_itbi` (join espacial com ITBI)
-- `numero_torres` e `unidades_estimadas` (enriquecimento via Google Places ou IA)
-- `padrao_construtivo` (classificação IA)
+Gerar um pacote de documentação técnica completo (PDF executivo + arquivos Markdown detalhados) que permita a uma equipe externa replicar integralmente a plataforma em outra infraestrutura.
 
-Esses registros aparecem no Ranking com traços em todas as colunas, como os "Americas 02–15".
+## Escopo do Documento
 
-## Solução em duas frentes
+O pacote cobrirá **8 seções principais**:
 
-### Frente 1 — Enriquecimento ITBI automático (prioridade)
-**Ação:** Executar a RPC `enriquecer_condominios_com_itbi` que já existe, que faz o join espacial (150m) entre as coordenadas dos condomínios e as transações ITBI, preenchendo `preco_medio_m2`, `total_transacoes_itbi` e `ultima_transacao_itbi`.
+### 1. Visão Geral da Plataforma
+- Propósito, público-alvo, modelo SaaS (Starter/Pro/Enterprise)
+- Stack tecnológico: React 18, Vite 5, Tailwind CSS, TypeScript, Supabase (PostgreSQL + PostGIS + Auth + Edge Functions + Storage)
+- Arquitetura dual: domínio autenticado (Analytics) + domínio público (Avaliação)
 
-- Isso pode ser disparado pela aba Admin do Territorial (botão "Processar Algoritmo")
-- Mas atualmente o pipeline limpa registros de algoritmo antes de rodar — precisa de ajuste para **não limpar** os manuais e apenas enriquecer
+### 2. Mapa Completo de Rotas e Módulos (35+ páginas)
+- Todas as rotas públicas e protegidas com controle de acesso (admin, gerente, corretor)
+- Descrição funcional de cada módulo: Dashboard, Pesquisas de Mercado, Avaliação Imobiliária, Vistoria Digital, Inteligência Territorial, CRM/Pipeline, Visitas, etc.
 
-**Arquivo:** `supabase/functions/process-condominios-algorithm/index.ts`
-- Adicionar um modo `enrich_only` que pula as etapas de identificação (PAL/DBSCAN) e limpeza, e roda apenas o `enriquecer_condominios_com_itbi` nos registros que ainda não têm dados ITBI
+### 3. Schema do Banco de Dados (48 tabelas)
+- DDL completo de todas as tabelas com tipos, defaults, constraints
+- Políticas RLS detalhadas por tabela
+- Enums: `app_role`, `status_visita`, `uso_imovel`, `origem_agendamento`, etc.
+- Relacionamentos e foreign keys
 
-### Frente 2 — Botão dedicado na aba Admin para enriquecer manuais
-**Arquivo:** `src/components/territorial/TerritorialAdmin.tsx`
-- Adicionar botão "Enriquecer Registros Manuais" que chama a Edge Function no modo `enrich_only`
-- Mostrar progresso e resultado (quantos foram enriquecidos com ITBI)
+### 4. RPCs e Funções SQL (~25 funções customizadas)
+- Assinatura, parâmetros e lógica de cada função: `enriquecer_condominios_com_itbi`, `identificar_condominios_pal`, `get_territorial_kpis`, `get_condominios_bbox`, `atualizar_resumo_logradouros`, `normalizar_logradouro`, `has_role`, `get_user_org_id`, etc.
+- Triggers: `handle_new_user`, `set_organization_id`, `generate_visit_code`
 
-### Frente 3 — Ocultar registros completamente vazios do Ranking
-**Arquivo:** `src/components/territorial/TerritorialRanking.tsx`
-- No modo default ("Com preço"), já filtra registros sem preço — verificar se funciona corretamente
-- Adicionar indicador visual para registros com dados parciais (ex: tem torres mas não tem preço)
+### 5. Edge Functions (39 funções serverless)
+- Código-fonte completo de cada função com descrição do propósito
+- Categorização: Ingestão de dados, Geocodificação, Enriquecimento, Comunicação, IA, Público
+- Dependências externas e secrets necessários
 
-## Arquivos alterados
+### 6. Secrets e Integrações Externas (14 secrets)
+- Lista de todas as variáveis de ambiente necessárias
+- APIs externas: Google Maps/Places/Geocoding, Resend (e-mail), Z-API (WhatsApp), ElevenLabs (TTS), Lovable AI Gateway
+- Instruções de obtenção de cada credencial
 
-| Arquivo | Alteração |
-|---------|-----------|
-| `supabase/functions/process-condominios-algorithm/index.ts` | Modo `enrich_only` para rodar apenas ITBI sem limpar |
-| `src/components/territorial/TerritorialAdmin.tsx` | Botão "Enriquecer Manuais" |
-| `src/components/territorial/TerritorialRanking.tsx` | Melhorar filtro default para esconder vazios |
+### 7. Lógicas de Negócio Críticas
+- Motor de Avaliação: cálculo ITBI + anúncios (70/30), IQR outliers, ajustes por características, caps
+- Vistoria Digital: scoring, checklists dinâmicos (Casa vs Apartamento)
+- Estratégia de dados em 3 camadas (ITBI + IPTU + Geoespacial)
+- Enriquecimento espacial: ST_DWithin 150m, algoritmo PAL
+- Microbairros: classificação em 8 regiões
+- KPIs: janela rolling 12 meses, média/mediana ponderada
+
+### 8. Geração de PDFs e Exportações
+- Padrão jsPDF manual (sem html2canvas)
+- Templates: Avaliação, Vistoria, Ficha de Visita, Proposta, Feedback, One-Pager
+- Exportação XLSX com branding
+
+## Entregáveis
+
+| Arquivo | Formato | Conteúdo |
+|---------|---------|----------|
+| `godoy-prime-migration-guide.pdf` | PDF ~40-60 páginas | Documento executivo com todas as 8 seções, diagramas ASCII, tabelas |
+| `docs/01-visao-geral.md` | Markdown | Stack, arquitetura, dependências |
+| `docs/02-rotas-modulos.md` | Markdown | Mapa completo de rotas e funcionalidades |
+| `docs/03-database-schema.md` | Markdown | DDL, RLS, enums, triggers |
+| `docs/04-rpcs-functions.md` | Markdown | Funções SQL com assinaturas |
+| `docs/05-edge-functions.md` | Markdown | Código e descrição de cada Edge Function |
+| `docs/06-secrets-integracoes.md` | Markdown | Variáveis de ambiente e APIs externas |
+| `docs/07-logicas-negocio.md` | Markdown | Cálculos, fórmulas, regras |
+| `docs/08-pdfs-exportacoes.md` | Markdown | Templates e padrões de geração |
+
+## Processo de Geração
+
+1. Script Python que lê o codebase, queries SQL e memory files
+2. Gera os 8 arquivos Markdown em `/mnt/documents/docs/`
+3. Consolida tudo em um PDF executivo via `reportlab`
+4. QA visual de cada página do PDF
+
+## Observações
+
+- O documento incluirá **trechos de código reais** das Edge Functions e hooks
+- Schemas SQL serão extraídos diretamente do banco via queries
+- As políticas RLS serão documentadas tabela a tabela
+- Estimativa: ~15 minutos de geração
 
