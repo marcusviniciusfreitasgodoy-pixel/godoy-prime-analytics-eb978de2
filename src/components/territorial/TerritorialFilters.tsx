@@ -283,10 +283,24 @@ export function TerritorialFilters({
       {/* Results list — virtualized */}
       <div className="flex-1 min-h-0 flex flex-col">
         <p className="text-xs text-muted-foreground mb-2">{filtered.length} condomínios</p>
-        {searchTerm.trim().length >= 2 && filtered.length === 0 && (
-          <p className="text-xs text-muted-foreground mb-2">
-            Nenhum condomínio mapeado encontrado para este logradouro.
-          </p>
+        {filtered.length === 0 && condominios.length > 0 && (
+          <div className="text-center space-y-2 py-2">
+            <p className="text-xs text-muted-foreground">
+              {searchTerm.trim().length >= 2
+                ? "Nenhum condomínio encontrado para este logradouro."
+                : "Nenhum condomínio corresponde aos filtros atuais."}
+            </p>
+            <button
+              onClick={() => {
+                setSearchTerm("");
+                setSomenteComItbi(false);
+                setUnidadesRange([0, 500]);
+              }}
+              className="text-xs text-accent hover:underline font-medium"
+            >
+              Limpar filtros
+            </button>
+          </div>
         )}
         <div className="flex-1 min-h-0" ref={listContainerRef}>
           <VirtualList
