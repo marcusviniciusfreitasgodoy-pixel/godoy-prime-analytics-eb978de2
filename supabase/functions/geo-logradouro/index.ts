@@ -476,7 +476,7 @@ Deno.serve(async (req) => {
         
         // 1. Match direto (já filtrado de ambíguos)
         const direct = condominioMap.get(upper);
-        if (direct && direct !== 'AMBIGUOUS') return direct;
+        if (direct) return direct;
 
         // 2. Match via alias de normalização
         const alias = aliasMap.get(upper);
