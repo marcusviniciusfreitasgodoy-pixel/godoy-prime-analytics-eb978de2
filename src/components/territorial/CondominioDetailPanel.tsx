@@ -158,7 +158,7 @@ export function CondominioDetailPanel({ condominio: c, onClose }: CondominioDeta
                           tick={{ fontSize: 10, fill: "hsl(var(--muted-foreground))" }}
                           tickFormatter={(v) => `${(v / 1000).toFixed(0)}k`}
                         />
-                        <Tooltip
+                        <RechartsTooltip
                           contentStyle={{
                             backgroundColor: "hsl(var(--card))",
                             border: "1px solid hsl(var(--border))",
