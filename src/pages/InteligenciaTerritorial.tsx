@@ -1,6 +1,6 @@
 import { useState, useCallback } from "react";
 import { Helmet } from "react-helmet-async";
-import { Map, BarChart3, Building2, Settings, ChevronLeft, ChevronRight, X, SlidersHorizontal, Sparkles, MapPin, Upload } from "lucide-react";
+import { Map, BarChart3, Building2, Settings, ChevronLeft, ChevronRight, X, SlidersHorizontal } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
@@ -10,9 +10,6 @@ import { CondominioDetailPanel } from "@/components/territorial/CondominioDetail
 import { TerritorialRanking } from "@/components/territorial/TerritorialRanking";
 import { TerritorialLogradouros } from "@/components/territorial/TerritorialLogradouros";
 import { TerritorialAdmin } from "@/components/territorial/TerritorialAdmin";
-import { EnriquecerCondominios } from "@/components/territorial/EnriquecerCondominios";
-import { AtualizarLogradouros } from "@/components/territorial/AtualizarLogradouros";
-import { ImportarCondominios } from "@/components/territorial/ImportarCondominios";
 import {
   useTerritorialKPIs,
   useCondominiosBbox,

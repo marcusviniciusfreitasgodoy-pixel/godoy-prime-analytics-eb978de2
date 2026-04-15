@@ -1,16 +1,21 @@
 import { useState, useEffect } from "react";
-import { Loader2, Play, Database, Building2, Map, Cpu, MapPin, Route, Search, Download } from "lucide-react";
+import { Loader2, Play, Database, Building2, Map, Cpu, MapPin, Route, Search, Download, ChevronDown, Upload, Sparkles, Wrench } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Progress } from "@/components/ui/progress";
 import { Tooltip, TooltipTrigger, TooltipContent, TooltipProvider } from "@/components/ui/tooltip";
-import { useEtlLogs } from "@/hooks/useTerritorialData";
-import { useCoverageStats } from "@/hooks/useTerritorialData";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { useEtlLogs, useCoverageStats } from "@/hooks/useTerritorialData";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { IPTU2025Upload } from "./IPTU2025Upload";
+import { ImportarCondominios } from "./ImportarCondominios";
+import { EnriquecerCondominios } from "./EnriquecerCondominios";
+import { AtualizarLogradouros } from "./AtualizarLogradouros";
+import { MergeCondominiosButton } from "@/components/MergeCondominiosButton";
+import { cn } from "@/lib/utils";
 
 const STATUS_COLORS: Record<string, string> = {
   success: "bg-green-500",
@@ -19,23 +24,100 @@ const STATUS_COLORS: Record<string, string> = {
   partial: "bg-yellow-500",
 };
 
-const BADGE_STYLES: Record<string, string> = {
-  "ArcGIS": "bg-emerald-100 text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-300",
-  "Algoritmo": "bg-purple-100 text-purple-800 dark:bg-purple-900/40 dark:text-purple-300",
-  "Google API": "bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-300",
-  "Export": "bg-muted text-muted-foreground",
+type ActionItem = {
+  step: number;
+  label: string;
+  fn: string;
+  icon: React.ElementType;
+  tooltip: string;
 };
 
-const ACTIONS = [
-  { label: "Ingestão IPTU", fn: "ingest-iptu-prefeitura", icon: Database, badge: "ArcGIS", tooltip: "Puxa resumos de logradouros (tipologia, total imóveis, área) da camada IPTU da Prefeitura RJ. Resultado: preenche card \"IPTU Logradouros\"." },
-  { label: "Ingestão Lotes", fn: "ingest-lotes-pal", icon: Map, badge: "ArcGIS", tooltip: "Baixa polígonos de lotes (terrenos) da Barra da Tijuca via GeoPAL. Resultado: preenche card \"Lotes PAL\" e habilita camada de lotes no mapa." },
-  { label: "Ingestão Edificações", fn: "ingest-edificacoes-geo", icon: Building2, badge: "ArcGIS", tooltip: "Importa contornos de edificações com altura, andares e tipo (ArcGIS 2019). Resultado: preenche card \"Edificações\"." },
-  { label: "Rodar Algoritmo", fn: "process-condominios-algorithm", icon: Cpu, badge: "Algoritmo", tooltip: "Cruza ITBI + IPTU + edificações para identificar condomínios e calcular preço médio/m², torres e unidades. Resultado: atualiza cards \"Condomínios\", \"Com ITBI\" e \"Com Logradouro\"." },
-  { label: "Geocodificar ITBI", fn: "geocodificar-itbi-transactions", icon: MapPin, badge: "Google API", tooltip: "Adiciona lat/lng às transações ITBI sem coordenadas via Google Geocoding API. Resultado: transações passam a aparecer no mapa." },
-  { label: "Enriquecer Logradouros", fn: "enrich-logradouros-geo", icon: Route, badge: "Google API", tooltip: "Geocodifica nomes de ruas sem coordenadas em logradouros_geo via Google Geocoding API. Resultado: ruas ganham posição no mapa." },
-  { label: "Enriquecer Condomínios (Google Places)", fn: "enrich-condominios", icon: Search, badge: "Google API", tooltip: "Busca place_id, coordenadas e endereço formatado via Google Places API (New). Resultado: condomínios ganham marcador preciso no mapa." },
-  { label: "Enriquecer Detalhes (Places Details)", fn: "enrich-places-details", icon: Building2, badge: "Google API", tooltip: "Busca tipos, rating, fotos e resumo editorial via Places API (New) para condomínios com place_id. Resultado: ficha do condomínio exibe dados do Google." },
+const INGESTAO_ACTIONS: ActionItem[] = [
+  { step: 2, label: "Ingestão IPTU (ArcGIS)", fn: "ingest-iptu-prefeitura", icon: Database, tooltip: "Puxa resumos de logradouros (tipologia, total imóveis, área) da camada IPTU da Prefeitura RJ." },
+  { step: 3, label: "Ingestão Lotes (ArcGIS)", fn: "ingest-lotes-pal", icon: Map, tooltip: "Baixa polígonos de lotes (terrenos) da Barra da Tijuca via GeoPAL." },
+  { step: 4, label: "Ingestão Edificações (ArcGIS)", fn: "ingest-edificacoes-geo", icon: Building2, tooltip: "Importa contornos de edificações com altura, andares e tipo (ArcGIS 2019)." },
 ];
+
+const PROCESSAMENTO_ACTIONS: ActionItem[] = [
+  { step: 7, label: "Rodar Algoritmo (PAL)", fn: "process-condominios-algorithm", icon: Cpu, tooltip: "Cruza ITBI + IPTU + edificações para identificar condomínios e calcular preço médio/m², torres e unidades." },
+  { step: 8, label: "Geocodificar ITBI (Google)", fn: "geocodificar-itbi-transactions", icon: MapPin, tooltip: "Adiciona lat/lng às transações ITBI sem coordenadas via Google Geocoding API." },
+  { step: 9, label: "Enriquecer Condomínios (Google Places)", fn: "enrich-condominios", icon: Search, tooltip: "Busca place_id, coordenadas e endereço formatado via Google Places API (New)." },
+  { step: 11, label: "Enriquecer Logradouros (Google Geocoding)", fn: "enrich-logradouros-geo", icon: Route, tooltip: "Geocodifica nomes de ruas sem coordenadas em logradouros_geo via Google Geocoding API." },
+];
+
+const QUALIDADE_ACTIONS: ActionItem[] = [
+  { step: 13, label: "Enriquecer Detalhes (Places Details)", fn: "enrich-places-details", icon: Building2, tooltip: "Busca tipos, rating, fotos e resumo editorial via Places API (New) para condomínios com place_id." },
+];
+
+function SectionHeader({ title, description, open, icon: Icon }: { title: string; description: string; open: boolean; icon: React.ElementType }) {
+  return (
+    <div className="flex items-center gap-3 w-full py-2">
+      <div className="h-8 w-8 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
+        <Icon className="h-4 w-4 text-primary" />
+      </div>
+      <div className="flex-1 text-left">
+        <p className="text-sm font-semibold text-foreground">{title}</p>
+        <p className="text-[11px] text-muted-foreground">{description}</p>
+      </div>
+      <ChevronDown className={cn("h-4 w-4 text-muted-foreground transition-transform duration-200 shrink-0", open && "rotate-180")} />
+    </div>
+  );
+}
+
+function ActionButton({ action, running, onClick }: { action: ActionItem; running: string | null; onClick: (fn: string) => void }) {
+  return (
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <Button
+          variant="outline"
+          size="sm"
+          disabled={running !== null}
+          onClick={() => onClick(action.fn)}
+          className="gap-2 justify-start"
+        >
+          {running === action.fn ? (
+            <Loader2 className="h-4 w-4 animate-spin" />
+          ) : (
+            <action.icon className="h-4 w-4" />
+          )}
+          <span className="text-xs text-muted-foreground font-mono mr-1">⑥</span>
+          {action.label}
+        </Button>
+      </TooltipTrigger>
+      <TooltipContent className="max-w-xs">
+        <p className="text-xs">{action.tooltip}</p>
+      </TooltipContent>
+    </Tooltip>
+  );
+}
+
+function StepButton({ action, running, onClick }: { action: ActionItem; running: string | null; onClick: (fn: string) => void }) {
+  const circled = ["⓪","①","②","③","④","⑤","⑥","⑦","⑧","⑨","⑩","⑪","⑫","⑬","⑭","⑮"];
+  return (
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <Button
+          variant="outline"
+          size="sm"
+          disabled={running !== null}
+          onClick={() => onClick(action.fn)}
+          className="gap-2 justify-start h-auto py-2"
+        >
+          {running === action.fn ? (
+            <Loader2 className="h-4 w-4 animate-spin" />
+          ) : (
+            <action.icon className="h-4 w-4 shrink-0" />
+          )}
+          <span className="text-xs text-muted-foreground font-mono shrink-0">{circled[action.step] || action.step}</span>
+          <span className="text-left">{action.label}</span>
+        </Button>
+      </TooltipTrigger>
+      <TooltipContent className="max-w-xs">
+        <p className="text-xs">{action.tooltip}</p>
+      </TooltipContent>
+    </Tooltip>
+  );
+}
 
 export function TerritorialAdmin() {
   const { data: logs, isLoading } = useEtlLogs();
@@ -46,6 +128,10 @@ export function TerritorialAdmin() {
   const [isReversing, setIsReversing] = useState(false);
   const [pendingSemEndereco, setPendingSemEndereco] = useState<number | null>(null);
   const [isExporting, setIsExporting] = useState(false);
+
+  const [openIngestao, setOpenIngestao] = useState(false);
+  const [openProcessamento, setOpenProcessamento] = useState(false);
+  const [openQualidade, setOpenQualidade] = useState(false);
 
   const exportCondominiosCSV = async () => {
     setIsExporting(true);
@@ -96,7 +182,6 @@ export function TerritorialAdmin() {
     }
   };
 
-  // Count condominios without address on mount
   useEffect(() => {
     const countPending = async () => {
       const { count: countNaoCadastrado } = await supabase
@@ -138,10 +223,7 @@ export function TerritorialAdmin() {
         });
 
         continuar = data.proxima_chamada_necessaria;
-
-        if (continuar) {
-          await new Promise((r) => setTimeout(r, 2000));
-        }
+        if (continuar) await new Promise((r) => setTimeout(r, 2000));
       }
 
       const msg = iteracoes >= MAX_ITERACOES && continuar
@@ -190,10 +272,10 @@ export function TerritorialAdmin() {
   ];
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 p-4">
       <h3 className="text-lg font-bold text-foreground">Administração Territorial</h3>
 
-      {/* Coverage */}
+      {/* Coverage Cards */}
       <div className="grid grid-cols-3 md:grid-cols-6 gap-3">
         {coverageCards.map((c) => (
           <Card key={c.label}>
@@ -205,117 +287,160 @@ export function TerritorialAdmin() {
         ))}
       </div>
 
-      {/* Actions */}
       <TooltipProvider delayDuration={300}>
-        <div className="flex flex-wrap gap-2">
-          {ACTIONS.map((action) => (
-            <Tooltip key={action.fn}>
-              <TooltipTrigger asChild>
-                <div className="flex flex-col items-center gap-1">
+        {/* ═══════ SEÇÃO 1 — INGESTÃO ═══════ */}
+        <Collapsible open={openIngestao} onOpenChange={setOpenIngestao}>
+          <div className="border border-border rounded-lg overflow-hidden">
+            <CollapsibleTrigger className="w-full px-4 hover:bg-muted/50 transition-colors">
+              <SectionHeader
+                title="Seção 1 — Ingestão"
+                description="Fontes externas → banco de dados (IPTU, ArcGIS, CSV, Merge)"
+                open={openIngestao}
+                icon={Database}
+              />
+            </CollapsibleTrigger>
+            <CollapsibleContent>
+              <div className="px-4 pb-4 space-y-4 border-t border-border pt-4">
+                {/* ① Upload IPTU 2025 */}
+                <div className="space-y-2">
+                  <p className="text-xs font-semibold text-muted-foreground">① Upload IPTU 2025</p>
+                  <IPTU2025Upload />
+                </div>
+
+                {/* ②③④ ArcGIS Actions */}
+                <div className="flex flex-wrap gap-2">
+                  {INGESTAO_ACTIONS.map((action) => (
+                    <StepButton key={action.fn} action={action} running={running} onClick={invokeAction} />
+                  ))}
+                </div>
+
+                {/* ⑤ Importar Condomínios (CSV/texto) */}
+                <div className="space-y-2">
+                  <p className="text-xs font-semibold text-muted-foreground">⑤ Importar Condomínios (CSV/texto)</p>
+                  <ImportarCondominios />
+                </div>
+
+                {/* ⑥ Merge CSV Condomínios */}
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-xs font-semibold text-muted-foreground">⑥ Merge CSV Condomínios</p>
+                    <p className="text-[11px] text-muted-foreground">Mesclar novos condomínios preservando os existentes</p>
+                  </div>
+                  <MergeCondominiosButton />
+                </div>
+              </div>
+            </CollapsibleContent>
+          </div>
+        </Collapsible>
+
+        {/* ═══════ SEÇÃO 2 — PROCESSAMENTO ═══════ */}
+        <Collapsible open={openProcessamento} onOpenChange={setOpenProcessamento}>
+          <div className="border border-border rounded-lg overflow-hidden">
+            <CollapsibleTrigger className="w-full px-4 hover:bg-muted/50 transition-colors">
+              <SectionHeader
+                title="Seção 2 — Processamento"
+                description="Cruzamentos, geocodificação e enriquecimento de coordenadas"
+                open={openProcessamento}
+                icon={Cpu}
+              />
+            </CollapsibleTrigger>
+            <CollapsibleContent>
+              <div className="px-4 pb-4 space-y-4 border-t border-border pt-4">
+                {/* ⑦⑧⑨⑪ Processing buttons */}
+                <div className="flex flex-wrap gap-2">
+                  {PROCESSAMENTO_ACTIONS.map((action) => (
+                    <StepButton key={action.fn} action={action} running={running} onClick={invokeAction} />
+                  ))}
+                </div>
+
+                {/* ⑩ Reverse Geocode */}
+                <div className="border border-border rounded-lg p-4 space-y-3">
+                  <p className="text-xs font-semibold text-muted-foreground flex items-center gap-2">
+                    <Search className="h-3.5 w-3.5" />
+                    ⑩ Resolver Endereços Pendentes (reverse geocode)
+                  </p>
+                  <p className="text-[11px] text-muted-foreground">
+                    {pendingSemEndereco != null
+                      ? `${pendingSemEndereco} condomínios sem endereço (com coordenadas)`
+                      : "Verificando..."}
+                  </p>
+                  {reverseProgress && (
+                    <div className="space-y-1">
+                      <Progress
+                        value={reverseProgress.total > 0
+                          ? (reverseProgress.resolvidos / reverseProgress.total) * 100
+                          : 0}
+                      />
+                      <p className="text-xs text-muted-foreground">
+                        Resolvendo {reverseProgress.resolvidos}/{reverseProgress.total}...
+                      </p>
+                    </div>
+                  )}
                   <Button
                     variant="outline"
                     size="sm"
-                    disabled={running !== null}
-                    onClick={() => invokeAction(action.fn)}
+                    disabled={isReversing || (pendingSemEndereco ?? 0) === 0}
+                    onClick={runReverseGeocode}
                     className="gap-2"
                   >
-                    {running === action.fn ? (
-                      <Loader2 className="h-4 w-4 animate-spin" />
-                    ) : (
-                      <action.icon className="h-4 w-4" />
-                    )}
-                    {action.label}
+                    {isReversing ? <Loader2 className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />}
+                    {isReversing ? "Processando..." : "Resolver Endereços Pendentes"}
                   </Button>
-                  <span className={`text-[9px] font-medium px-1.5 py-0.5 rounded-full ${BADGE_STYLES[action.badge]}`}>
-                    {action.badge}
-                  </span>
                 </div>
-              </TooltipTrigger>
-              <TooltipContent className="max-w-xs">
-                <p className="text-xs">{action.tooltip}</p>
-              </TooltipContent>
-            </Tooltip>
-          ))}
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <div className="flex flex-col items-center gap-1">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  disabled={isExporting}
-                  onClick={exportCondominiosCSV}
-                  className="gap-2"
-                >
-                  {isExporting ? (
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                  ) : (
-                    <Download className="h-4 w-4" />
-                  )}
-                  Exportar CSV
-                </Button>
-                <span className={`text-[9px] font-medium px-1.5 py-0.5 rounded-full ${BADGE_STYLES["Export"]}`}>
-                  Export
-                </span>
               </div>
-            </TooltipTrigger>
-            <TooltipContent className="max-w-xs">
-              <p className="text-xs">Exporta todos os condomínios ativos para arquivo CSV. Resultado: download do arquivo.</p>
-            </TooltipContent>
-          </Tooltip>
-        </div>
+            </CollapsibleContent>
+          </div>
+        </Collapsible>
+
+        {/* ═══════ SEÇÃO 3 — QUALIDADE ═══════ */}
+        <Collapsible open={openQualidade} onOpenChange={setOpenQualidade}>
+          <div className="border border-border rounded-lg overflow-hidden">
+            <CollapsibleTrigger className="w-full px-4 hover:bg-muted/50 transition-colors">
+              <SectionHeader
+                title="Seção 3 — Qualidade"
+                description="Refinamento com IA, detalhes Google, correções de logradouros"
+                open={openQualidade}
+                icon={Sparkles}
+              />
+            </CollapsibleTrigger>
+            <CollapsibleContent>
+              <div className="px-4 pb-4 space-y-4 border-t border-border pt-4">
+                {/* ⑫ Classificação IA (Gemini) */}
+                <div className="space-y-2">
+                  <p className="text-xs font-semibold text-muted-foreground">⑫ Classificação IA (Gemini)</p>
+                  <EnriquecerCondominios />
+                </div>
+
+                {/* ⑬ Enriquecer Detalhes */}
+                <div className="flex flex-wrap gap-2">
+                  {QUALIDADE_ACTIONS.map((action) => (
+                    <StepButton key={action.fn} action={action} running={running} onClick={invokeAction} />
+                  ))}
+                </div>
+
+                {/* ⑭ Atualizar Logradouros (fuzzy match) */}
+                <div className="space-y-2">
+                  <p className="text-xs font-semibold text-muted-foreground">⑭ Atualizar Logradouros (fuzzy match)</p>
+                  <AtualizarLogradouros />
+                </div>
+              </div>
+            </CollapsibleContent>
+          </div>
+        </Collapsible>
       </TooltipProvider>
 
-      {/* IPTU 2025 */}
-      <div className="border border-border rounded-lg p-4">
-        <IPTU2025Upload />
-      </div>
-
-      {/* Reverse Geocoding */}
-      <div className="border border-border rounded-lg p-4 space-y-3">
-        <h4 className="text-sm font-semibold text-foreground flex items-center gap-2">
-          <Search className="h-4 w-4" />
-          Resolver Endereços Pendentes
-        </h4>
-        <p className="text-xs text-muted-foreground">
-          {pendingSemEndereco != null
-            ? `${pendingSemEndereco} condomínios sem endereço (com coordenadas)`
-            : "Verificando..."}
-        </p>
-        {reverseProgress && (
-          <div className="space-y-1">
-            <Progress
-              value={reverseProgress.total > 0
-                ? (reverseProgress.resolvidos / reverseProgress.total) * 100
-                : 0}
-            />
-            <p className="text-xs text-muted-foreground">
-              Resolvendo {reverseProgress.resolvidos}/{reverseProgress.total}...
-            </p>
-          </div>
-        )}
-        <TooltipProvider delayDuration={300}>
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button
-                variant="outline"
-                size="sm"
-                disabled={isReversing || (pendingSemEndereco ?? 0) === 0}
-                onClick={runReverseGeocode}
-                className="gap-2"
-              >
-                {isReversing ? (
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                ) : (
-                  <Search className="h-4 w-4" />
-                )}
-                {isReversing ? "Processando..." : "Resolver Endereços Pendentes"}
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent>
-              <p>Usa geocodificação reversa para identificar endereços de condomínios com coordenadas</p>
-            </TooltipContent>
-          </Tooltip>
-        </TooltipProvider>
+      {/* Export CSV */}
+      <div className="flex justify-end">
+        <Button
+          variant="outline"
+          size="sm"
+          disabled={isExporting}
+          onClick={exportCondominiosCSV}
+          className="gap-2"
+        >
+          {isExporting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
+          Exportar CSV
+        </Button>
       </div>
 
       {/* ETL Logs */}
