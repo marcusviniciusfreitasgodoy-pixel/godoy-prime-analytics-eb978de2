@@ -100,7 +100,7 @@ export default function PesquisasMercado() {
       tipologia: transacaoTipologia === 'todas' ? undefined : transacaoTipologia || undefined,
       logradouros: condominioSelecionado?.logradouros_busca ?? condominioSelecionado?.ruas_internas,
     },
-    searchTransactions && viewMode === 'map'
+    viewMode === 'map'
   );
 
   // Queries
