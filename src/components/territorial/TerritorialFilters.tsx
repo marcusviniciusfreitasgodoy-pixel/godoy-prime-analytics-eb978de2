@@ -32,12 +32,21 @@ function getCondoDisplayName(c: TerritorialCondominio): string {
   }
   if (c.logradouro_padrao && !PLACEHOLDER_PATTERNS.test(c.logradouro_padrao)) {
     const num = (c as any).numero_inicio;
-    return num ? `${c.logradouro_padrao}, ${num}` : c.logradouro_padrao;
+    if (num) return `${c.logradouro_padrao}, ${num}`;
+    // Use abbreviated coords to differentiate duplicates without numero_inicio
+    if (c.latitude && c.longitude) {
+      return `${c.logradouro_padrao} · ${c.latitude.toFixed(4)}, ${c.longitude.toFixed(4)}`;
+    }
+    return c.logradouro_padrao;
   }
   if (c.latitude && c.longitude) {
     return `📍 ${c.latitude.toFixed(4)}, ${c.longitude.toFixed(4)}`;
   }
   return "Condomínio sem identificação";
+}
+
+function isAlgorithmPalWithoutClassification(c: TerritorialCondominio): boolean {
+  return c.fonte_identificacao === "algoritmo_pal" && !c.padrao_construtivo;
 }
 
 interface CondoRowProps {
@@ -68,7 +77,9 @@ function CondoRow({ index, style, filtered, selectedId, onSelect }: { index: num
         </p>
         <div className="flex items-center gap-2 mt-1">
           {c.numero_torres ? (
-            <span className="text-[10px] text-muted-foreground">{c.numero_torres} torres</span>
+            <span className="text-[10px] text-muted-foreground">
+              {c.numero_torres} {isAlgorithmPalWithoutClassification(c) ? "edif." : "torres"}
+            </span>
           ) : null}
           {c.unidades_estimadas ? (
             <span className="text-[10px] text-muted-foreground">{c.unidades_estimadas} un.</span>

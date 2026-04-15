@@ -1,5 +1,5 @@
 import { useMemo } from "react";
-import { X, ExternalLink, Building2, MapPin, Ruler, DollarSign, BarChart3, AlertCircle, Info } from "lucide-react";
+import { X, ExternalLink, Building2, MapPin, Ruler, DollarSign, BarChart3, AlertCircle, Info, Bot } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
@@ -57,7 +57,7 @@ export function CondominioDetailPanel({ condominio: c, onClose }: CondominioDeta
             {getCondoDisplayName(c)}
           </h3>
           <p className="text-xs text-muted-foreground truncate mt-0.5">{c.logradouro_padrao}</p>
-          <div className="flex items-center gap-2 mt-2">
+          <div className="flex items-center gap-2 mt-2 flex-wrap">
             {c.fonte_identificacao && (
               <Badge variant="outline" className="text-[10px]">{c.fonte_identificacao}</Badge>
             )}
@@ -68,6 +68,14 @@ export function CondominioDetailPanel({ condominio: c, onClose }: CondominioDeta
               {(conf * 100).toFixed(0)}% confiança
             </Badge>
           </div>
+          {c.fonte_identificacao === "algoritmo_pal" && (
+            <div className="flex items-start gap-1.5 mt-2 p-2 bg-muted/50 rounded-md">
+              <Bot className="h-3.5 w-3.5 text-muted-foreground shrink-0 mt-0.5" />
+              <p className="text-[10px] text-muted-foreground leading-tight">
+                Identificado por algoritmo — dados de torres e unidades podem representar edificações individuais (casas) e necessitar de revisão manual.
+              </p>
+            </div>
+          )}
         </div>
         <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0" onClick={onClose}>
           <X className="h-4 w-4" />
@@ -83,7 +91,7 @@ export function CondominioDetailPanel({ condominio: c, onClose }: CondominioDeta
             </h4>
             <div className="grid grid-cols-2 gap-2">
               {[
-                { label: "Torres", value: c.numero_torres ?? "—" },
+                { label: c.fonte_identificacao === "algoritmo_pal" && !c.padrao_construtivo ? "Edificações" : "Torres", value: c.numero_torres ?? "—" },
                 { label: "Unidades est.", value: c.unidades_estimadas?.toLocaleString("pt-BR") ?? "—" },
                 { label: "Área lote", value: c.area_lote ? `${c.area_lote.toLocaleString("pt-BR")} m²` : "—" },
                 { label: "Área construída", value: c.area_total_construida ? `${c.area_total_construida.toLocaleString("pt-BR")} m²` : "—" },
