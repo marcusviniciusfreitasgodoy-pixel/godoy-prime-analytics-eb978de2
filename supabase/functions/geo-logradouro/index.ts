@@ -422,51 +422,53 @@ Deno.serve(async (req) => {
       }
 
       // Criar mapa de logradouro -> coordenadas do condomínio (com normalização)
-      // IMPORTANTE: se uma rua aparece em múltiplos condomínios, marca como AMBÍGUA e não usa
-      const condominioMap = new Map<string, { lat: number; lng: number; nome: string } | 'AMBIGUOUS'>();
+      // Para ruas compartilhadas entre condomínios, calcula centroide (média das coords)
+      const condominioMultiMap = new Map<string, { lat: number; lng: number; nome: string }[]>();
       
       const addToCondMap = (key: string, coordData: { lat: number; lng: number; nome: string }) => {
         const upper = key.toUpperCase().trim();
         if (!upper) return;
-        const existing = condominioMap.get(upper);
+        const existing = condominioMultiMap.get(upper);
         if (!existing) {
-          condominioMap.set(upper, coordData);
-        } else if (existing !== 'AMBIGUOUS' && existing.nome !== coordData.nome) {
-          // Mesma rua em condomínios DIFERENTES → ambíguo, não usar
-          condominioMap.set(upper, 'AMBIGUOUS');
+          condominioMultiMap.set(upper, [coordData]);
+        } else {
+          // Só adicionar se for condomínio diferente
+          if (!existing.some(e => e.nome === coordData.nome)) {
+            existing.push(coordData);
+          }
         }
       };
 
       for (const cond of condominiosData || []) {
         if (cond.latitude && cond.longitude) {
           const coordData = { lat: cond.latitude, lng: cond.longitude, nome: cond.nome_condominio };
-          
-          // Mapear logradouro_padrao (endereço principal do condomínio — alta confiança)
-          if (cond.logradouro_padrao) {
-            addToCondMap(cond.logradouro_padrao, coordData);
-          }
-          // Mapear logradouro_itbi_normalizado
-          if (cond.logradouro_itbi_normalizado) {
-            addToCondMap(cond.logradouro_itbi_normalizado, coordData);
-          }
-          // Mapear ruas_internas
+          if (cond.logradouro_padrao) addToCondMap(cond.logradouro_padrao, coordData);
+          if (cond.logradouro_itbi_normalizado) addToCondMap(cond.logradouro_itbi_normalizado, coordData);
           if (Array.isArray(cond.ruas_internas)) {
             for (const rua of cond.ruas_internas) {
-              if (rua) {
-                addToCondMap(rua, coordData);
-              }
+              if (rua) addToCondMap(rua, coordData);
             }
           }
         }
       }
 
-      // Remover entradas ambíguas do mapa
-      const ambiguousCount = [...condominioMap.values()].filter(v => v === 'AMBIGUOUS').length;
-      for (const [k, v] of condominioMap) {
-        if (v === 'AMBIGUOUS') condominioMap.delete(k);
+      // Resolver mapa final: único → direto, múltiplos → centroide
+      const condominioMap = new Map<string, { lat: number; lng: number; nome: string }>();
+      let multiCount = 0;
+      for (const [key, coords] of condominioMultiMap) {
+        if (coords.length === 1) {
+          condominioMap.set(key, coords[0]);
+        } else {
+          // Calcular centroide (média) das coordenadas dos condomínios
+          const avgLat = coords.reduce((s, c) => s + c.lat, 0) / coords.length;
+          const avgLng = coords.reduce((s, c) => s + c.lng, 0) / coords.length;
+          const nomes = coords.map(c => c.nome).join(' / ');
+          condominioMap.set(key, { lat: avgLat, lng: avgLng, nome: nomes });
+          multiCount++;
+        }
       }
 
-      console.log(`[geo-logradouro] Condomínios: ${condominioMap.size} únicos, ${ambiguousCount} ambíguos removidos, ${aliasMap.size} aliases`);
+      console.log(`[geo-logradouro] Condomínios: ${condominioMap.size} total, ${multiCount} multi-condo (centroide), ${aliasMap.size} aliases`);
 
       // Função para buscar match de condomínio com normalização/fuzzy
       const findCondominioMatch = (logradouro: string): { lat: number; lng: number; nome: string } | null => {
@@ -474,13 +476,13 @@ Deno.serve(async (req) => {
         
         // 1. Match direto (já filtrado de ambíguos)
         const direct = condominioMap.get(upper);
-        if (direct && direct !== 'AMBIGUOUS') return direct;
+        if (direct) return direct;
 
         // 2. Match via alias de normalização
         const alias = aliasMap.get(upper);
         if (alias) {
           const aliasMatch = condominioMap.get(alias);
-          if (aliasMatch && aliasMatch !== 'AMBIGUOUS') return aliasMatch;
+          if (aliasMatch) return aliasMatch;
         }
 
         // 3. Match fuzzy: verificar se o logradouro contém palavras-chave de uma rua interna
@@ -491,7 +493,7 @@ Deno.serve(async (req) => {
         
         if (words.length >= 2) {
           for (const [condKey, condCoord] of condominioMap) {
-            if (condCoord === 'AMBIGUOUS') continue;
+            
             const condWords = condKey.split(/\s+/).filter(w => w.length > 3 && !PREFIXES.has(w));
             if (condWords.length < 2) continue;
             
@@ -618,20 +620,34 @@ Deno.serve(async (req) => {
         });
       }
 
-      // Para endereços além do limite de Google, tentar condomínio primeiro
+      // Para endereços além do limite de Google, usar cache existente se disponível
       for (const endereco of needGoogle.slice(MAX_GOOGLE_CALLS)) {
         const fallbackBairro = endereco.bairro?.toUpperCase() || 'BARRA DA TIJUCA';
-        const fallback =
-          BAIRRO_CENTROIDS[fallbackBairro] || BAIRRO_CENTROIDS['BARRA DA TIJUCA'];
+        const key = `${endereco.logradouro}|${fallbackBairro}`;
+        const cached = cachedMap.get(key);
 
-        results.push({
-          logradouro: endereco.logradouro,
-          bairro: fallbackBairro,
-          latitude: fallback.lat + (Math.random() - 0.5) * 0.008,
-          longitude: fallback.lng + (Math.random() - 0.5) * 0.008,
-          aproximado: true,
-          source: 'fallback_limit',
-        });
+        if (cached && cached.latitude && cached.longitude) {
+          // Usar coordenadas do cache (mesmo STALE, melhor que random)
+          results.push({
+            logradouro: endereco.logradouro,
+            bairro: fallbackBairro,
+            latitude: cached.latitude,
+            longitude: cached.longitude,
+            aproximado: true,
+            source: 'stale_cache',
+          });
+        } else {
+          const fallback =
+            BAIRRO_CENTROIDS[fallbackBairro] || BAIRRO_CENTROIDS['BARRA DA TIJUCA'];
+          results.push({
+            logradouro: endereco.logradouro,
+            bairro: fallbackBairro,
+            latitude: fallback.lat + (Math.random() - 0.5) * 0.008,
+            longitude: fallback.lng + (Math.random() - 0.5) * 0.008,
+            aproximado: true,
+            source: 'fallback_limit',
+          });
+        }
       }
 
       const googleCount = results.filter(
