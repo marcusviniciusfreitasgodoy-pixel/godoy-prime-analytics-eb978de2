@@ -98,7 +98,7 @@ export function useCondominiosBbox(bounds: MapBounds | null) {
         p_south: bounds.south,
         p_east: bounds.east,
         p_west: bounds.west,
-        p_limit: 300,
+        p_limit: 2000,
       });
       if (error) throw error;
       return (data || []) as TerritorialCondominio[];

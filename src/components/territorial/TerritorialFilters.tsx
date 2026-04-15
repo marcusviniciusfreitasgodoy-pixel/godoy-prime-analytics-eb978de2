@@ -9,7 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
 import { List as VirtualList, type RowComponentProps } from "react-window";
-import { useLogradouroSuggestions, type TerritorialCondominio, type TerritorialKPIs } from "@/hooks/useTerritorialData";
+import { useLogradouroSuggestions, type TerritorialCondominio } from "@/hooks/useTerritorialData";
 import { cn } from "@/lib/utils";
 
 const PLACEHOLDER_PATTERNS = /não identificad|não cadastrad|não localizad|falhou/i;
@@ -88,7 +88,6 @@ function CondoRow({ index, style, filtered, selectedId, onSelect }: { index: num
 }
 
 interface TerritorialFiltersProps {
-  kpis: TerritorialKPIs | null;
   condominios: TerritorialCondominio[];
   selectedId: string | null;
   onSelect: (condo: TerritorialCondominio) => void;
@@ -97,7 +96,6 @@ interface TerritorialFiltersProps {
 }
 
 export function TerritorialFilters({
-  kpis,
   condominios,
   selectedId,
   onSelect,
@@ -180,13 +178,25 @@ export function TerritorialFilters({
     onFilteredChange(filtered);
   }, [filtered, onFilteredChange]);
 
-  const precoM2 = kpis?.preco_medio_m2_barra != null ? Number(kpis.preco_medio_m2_barra) : null;
+  // Dynamic KPIs based on filtered list
+  const dynamicKpis = useMemo(() => {
+    const comHistorico = filtered.filter(c => c.preco_medio_m2 && c.preco_medio_m2 > 0);
+    const totalUnidades = filtered.reduce((sum, c) => sum + (c.unidades_estimadas ?? 0), 0);
+    const precos = comHistorico.map(c => c.preco_medio_m2!);
+    const mediaPreco = precos.length > 0 ? Math.round(precos.reduce((a, b) => a + b, 0) / precos.length) : null;
+    return {
+      total: filtered.length,
+      comHistorico: comHistorico.length,
+      unidades: totalUnidades,
+      precoMedio: mediaPreco,
+    };
+  }, [filtered]);
 
   const kpiCards = [
-    { label: "Condomínios", value: kpis?.total_condominios ?? "—", icon: Building2, tooltip: "Total de condomínios ativos mapeados na base territorial (inclui identificados manualmente e por algoritmo)" },
-    { label: "Com histórico", value: kpis?.com_historico_precos ?? "—", icon: TrendingUp, tooltip: "Condomínios que possuem pelo menos 1 transação ITBI registrada, permitindo análise de preço real praticado" },
-    { label: "Unidades", value: kpis?.unidades_mapeadas ? Number(kpis.unidades_mapeadas).toLocaleString("pt-BR") : "—", icon: Home, tooltip: "Soma estimada de unidades residenciais nos condomínios mapeados (baseado em dados IPTU e levantamento de torres)" },
-    { label: "R$/m² médio", value: precoM2 ? `R$ ${precoM2.toLocaleString("pt-BR")}` : "—", icon: DollarSign, tooltip: "Preço médio por m² calculado a partir das transações ITBI residenciais na Barra da Tijuca" },
+    { label: "Condomínios", value: dynamicKpis.total, icon: Building2, tooltip: "Total de condomínios visíveis com os filtros atuais (busca, unidades, histórico ITBI)" },
+    { label: "Com histórico", value: dynamicKpis.comHistorico, icon: TrendingUp, tooltip: "Condomínios filtrados que possuem pelo menos 1 transação ITBI registrada" },
+    { label: "Unidades", value: dynamicKpis.unidades > 0 ? dynamicKpis.unidades.toLocaleString("pt-BR") : "—", icon: Home, tooltip: "Soma estimada de unidades residenciais nos condomínios filtrados" },
+    { label: "R$/m² médio", value: dynamicKpis.precoMedio ? `R$ ${dynamicKpis.precoMedio.toLocaleString("pt-BR")}` : "—", icon: DollarSign, tooltip: "Preço médio por m² dos condomínios filtrados, baseado em transações ITBI" },
   ];
 
   return (
