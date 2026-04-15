@@ -546,8 +546,9 @@ Deno.serve(async (req) => {
         }
       }
 
+      const MAX_GOOGLE_CALLS = 50;
       const toFetchLimited = needGoogle.slice(0, MAX_GOOGLE_CALLS);
-      console.log(`[geo-logradouro] Condomínio match: ${toFetch.length - needGoogle.length}, Google fetch: ${toFetchLimited.length}`);
+      console.log(`[geo-logradouro] Condomínio match: ${enderecos.length - needGoogle.length}, Google fetch: ${toFetchLimited.length}`);
 
       for (const endereco of toFetchLimited) {
         const fallbackBairro = endereco.bairro?.toUpperCase() || 'BARRA DA TIJUCA';
