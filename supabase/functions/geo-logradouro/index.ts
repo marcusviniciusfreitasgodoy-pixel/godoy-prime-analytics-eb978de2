@@ -402,72 +402,101 @@ Deno.serve(async (req) => {
       // Buscar todos os condomínios com coordenadas para cruzamento
       const { data: condominiosData } = await supabase
         .from('condominios_mapeamento')
-        .select('logradouro_padrao, ruas_internas, latitude, longitude, nome_condominio')
+        .select('logradouro_padrao, ruas_internas, logradouro_itbi_normalizado, latitude, longitude, nome_condominio')
         .eq('ativo', true)
         .not('latitude', 'is', null)
         .not('longitude', 'is', null);
 
-      // Criar mapa de logradouro -> coordenadas do condomínio
+      // Buscar aliases de normalização para expandir o matching
+      const { data: normalizacaoData } = await supabase
+        .from('logradouros_normalizacao')
+        .select('logradouro_original, logradouro_normalizado');
+
+      // Mapa de alias: original → normalizado (e vice-versa)
+      const aliasMap = new Map<string, string>();
+      for (const n of normalizacaoData || []) {
+        if (n.logradouro_original && n.logradouro_normalizado) {
+          aliasMap.set(n.logradouro_original.toUpperCase(), n.logradouro_normalizado.toUpperCase());
+          aliasMap.set(n.logradouro_normalizado.toUpperCase(), n.logradouro_original.toUpperCase());
+        }
+      }
+
+      // Criar mapa de logradouro -> coordenadas do condomínio (com normalização)
       const condominioMap = new Map<string, { lat: number; lng: number; nome: string }>();
       for (const cond of condominiosData || []) {
         if (cond.latitude && cond.longitude) {
+          const coordData = { lat: cond.latitude, lng: cond.longitude, nome: cond.nome_condominio };
+          
           // Mapear logradouro_padrao
           const key = cond.logradouro_padrao?.toUpperCase();
           if (key) {
-            condominioMap.set(key, { lat: cond.latitude, lng: cond.longitude, nome: cond.nome_condominio });
+            condominioMap.set(key, coordData);
+          }
+          // Mapear logradouro_itbi_normalizado
+          if (cond.logradouro_itbi_normalizado) {
+            condominioMap.set(cond.logradouro_itbi_normalizado.toUpperCase(), coordData);
           }
           // Mapear ruas_internas
           if (Array.isArray(cond.ruas_internas)) {
             for (const rua of cond.ruas_internas) {
               if (rua) {
-                condominioMap.set(rua.toUpperCase(), { lat: cond.latitude, lng: cond.longitude, nome: cond.nome_condominio });
+                condominioMap.set(rua.toUpperCase(), coordData);
               }
             }
           }
         }
       }
 
-      console.log(`[geo-logradouro] Condomínios com coordenadas carregados: ${condominioMap.size} logradouros mapeados`);
+      console.log(`[geo-logradouro] Condomínios com coordenadas carregados: ${condominioMap.size} logradouros mapeados, ${aliasMap.size} aliases`);
 
-      // Considera cache "stale" se não for GOOGLE/CONDOMINIO ou se last_sync for antigo
-      const STALE_AFTER_MS = 1000 * 60 * 60 * 24 * 30; // 30 dias
-      const isStale = (row: any) => {
-        if (!row) return true;
-        if (forceRefresh) return true;
-        if (row.hierarquia !== 'GOOGLE' && row.hierarquia !== 'CONDOMINIO') return true;
-        if (!row.last_sync) return true;
-        const t = Date.parse(row.last_sync);
-        if (Number.isNaN(t)) return true;
-        return Date.now() - t > STALE_AFTER_MS;
+      // Função para buscar match de condomínio com normalização/fuzzy
+      const findCondominioMatch = (logradouro: string): { lat: number; lng: number; nome: string } | null => {
+        const upper = logradouro.toUpperCase();
+        
+        // 1. Match direto
+        const direct = condominioMap.get(upper);
+        if (direct) return direct;
+
+        // 2. Match via alias de normalização
+        const alias = aliasMap.get(upper);
+        if (alias) {
+          const aliasMatch = condominioMap.get(alias);
+          if (aliasMatch) return aliasMatch;
+        }
+
+        // 3. Match fuzzy: verificar se o logradouro contém palavras-chave de uma rua interna
+        // Ex: "RUA DESEN LUIZ GUIMARAES" vs "RUA DESENHISTA LUIZ GUIMARAES"
+        // Extrair palavras significativas (>3 chars, excluir prefixos comuns)
+        const PREFIXES = new Set(['RUA', 'AVENIDA', 'AV', 'ESTRADA', 'EST', 'TRAVESSA', 'TV', 'PRACA', 'ALAMEDA', 'AL']);
+        const words = upper.split(/\s+/).filter(w => w.length > 3 && !PREFIXES.has(w));
+        
+        if (words.length >= 2) {
+          for (const [condKey, condCoord] of condominioMap) {
+            const condWords = condKey.split(/\s+/).filter(w => w.length > 3 && !PREFIXES.has(w));
+            if (condWords.length < 2) continue;
+            
+            // Verificar se pelo menos 2 palavras significativas coincidem
+            const matchCount = words.filter(w => condWords.some(cw => cw.includes(w) || w.includes(cw))).length;
+            if (matchCount >= 2 && matchCount >= Math.min(words.length, condWords.length) * 0.6) {
+              console.log(`[geo-logradouro] Fuzzy match: "${logradouro}" → "${condKey}" (${condCoord.nome})`);
+              return condCoord;
+            }
+          }
+        }
+
+        return null;
       };
 
+      // PRIORIDADE: condomínio > cache Google/CONDOMINIO > Google novo > fallback
       const results: any[] = [];
-      const toFetch: { logradouro: string; bairro: string }[] = [];
-
-      for (const endereco of enderecos) {
-        const key = `${endereco.logradouro}|${endereco.bairro?.toUpperCase()}`;
-        const cached = cachedMap.get(key);
-
-        if (cached && cached.latitude && cached.longitude && !isStale(cached)) {
-          results.push({
-            ...cached,
-            source: cached.hierarquia === 'GOOGLE' ? 'google_cache' : cached.hierarquia === 'CONDOMINIO' ? 'condominio_cache' : 'cache',
-          });
-        } else {
-          toFetch.push(endereco);
-        }
-      }
-
-      // Buscar via Condomínio primeiro, depois Google para os que precisam refresh
-      const MAX_GOOGLE_CALLS = 50;
       const needGoogle: { logradouro: string; bairro: string }[] = [];
 
-      for (const endereco of toFetch) {
+      for (const endereco of enderecos) {
         const fallbackBairro = endereco.bairro?.toUpperCase() || 'BARRA DA TIJUCA';
         const logUpper = endereco.logradouro?.toUpperCase();
 
-        // 1. Verificar se o logradouro pertence a um condomínio mapeado
-        const condMatch = condominioMap.get(logUpper);
+        // 1. PRIMEIRO: verificar match com condomínio (prioridade máxima)
+        const condMatch = findCondominioMatch(endereco.logradouro);
         if (condMatch) {
           const result = {
             logradouro: endereco.logradouro,
@@ -479,7 +508,7 @@ Deno.serve(async (req) => {
           };
           results.push(result);
 
-          // Salvar no cache com hierarquia CONDOMINIO
+          // Atualizar cache com hierarquia CONDOMINIO (sobrescreve GOOGLE se existir)
           supabase
             .from('logradouros_geo')
             .upsert(
@@ -497,8 +526,24 @@ Deno.serve(async (req) => {
           continue;
         }
 
-        // 2. Não é condomínio — precisa Google
-        needGoogle.push(endereco);
+        // 2. Se não é condomínio, verificar cache válido
+        const key = `${endereco.logradouro}|${fallbackBairro}`;
+        const cached = cachedMap.get(key);
+        const STALE_AFTER_MS = 1000 * 60 * 60 * 24 * 30; // 30 dias
+        const isFresh = cached && cached.latitude && cached.longitude && !forceRefresh &&
+          (cached.hierarquia === 'GOOGLE' || cached.hierarquia === 'CONDOMINIO') &&
+          cached.last_sync && !Number.isNaN(Date.parse(cached.last_sync)) &&
+          (Date.now() - Date.parse(cached.last_sync) <= STALE_AFTER_MS);
+
+        if (isFresh) {
+          results.push({
+            ...cached,
+            source: cached.hierarquia === 'GOOGLE' ? 'google_cache' : 'condominio_cache',
+          });
+        } else {
+          // 3. Precisa Google
+          needGoogle.push(endereco);
+        }
       }
 
       const toFetchLimited = needGoogle.slice(0, MAX_GOOGLE_CALLS);
