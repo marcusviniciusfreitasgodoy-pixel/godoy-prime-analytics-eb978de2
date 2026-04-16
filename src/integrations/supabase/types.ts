@@ -343,7 +343,9 @@ export type Database = {
           confianca: string | null
           created_at: string
           dados_extraidos: Json | null
+          expires_at: string | null
           ficha_visita_id: string | null
+          file_expires_at: string | null
           file_mime_type: string | null
           file_name: string
           file_path: string | null
@@ -365,7 +367,9 @@ export type Database = {
           confianca?: string | null
           created_at?: string
           dados_extraidos?: Json | null
+          expires_at?: string | null
           ficha_visita_id?: string | null
+          file_expires_at?: string | null
           file_mime_type?: string | null
           file_name: string
           file_path?: string | null
@@ -387,7 +391,9 @@ export type Database = {
           confianca?: string | null
           created_at?: string
           dados_extraidos?: Json | null
+          expires_at?: string | null
           ficha_visita_id?: string | null
+          file_expires_at?: string | null
           file_mime_type?: string | null
           file_name?: string
           file_path?: string | null
