@@ -1,59 +1,31 @@
 
+User quer adicionar aviso legal sobre a análise de documentos ser apenas uma ferramenta auxiliar, não substituindo consulta a advogado/especialista. Vou adicionar em locais estratégicos do DocumentAnalyzer e da página de Histórico.
 
-## Diagnóstico
+## Plano: Aviso Legal sobre Análise de Documentos
 
-A função `analyze-document` **não envia a data atual** no prompt para o modelo de IA (Gemini). Isso faz com que o modelo use seu **conhecimento interno de "data de treinamento"**, que pode ser de 2024 ou início de 2025.
+### Onde adicionar
 
-Quando o documento mostra "15/04/2026", o modelo interpreta como **data futura** porque, na sua referência interna, ainda estamos em 2024/início de 2025. Por isso disparou o alerta crítico.
+1. **`src/components/DocumentAnalyzer.tsx`** — banner persistente no topo do componente (usando `Alert` com ícone de escudo/aviso) informando que a análise é auxiliar e não substitui parecer jurídico.
 
-**Hoje é 16/04/2026** (data real do sistema), e o documento é de 15/04/2026 — ou seja, foi emitido **ontem**, totalmente válido. O alerta é um **falso positivo**.
+2. **`src/components/DocumentAnalyzer.tsx`** — rodapé/disclaimer compacto dentro de cada card de resultado de análise, reforçando o aviso ao lado das recomendações da IA.
 
-### Onde está o problema
+3. **`src/pages/HistoricoDocumentos.tsx`** — banner no topo da página de histórico e dentro do modal de detalhes da análise.
 
-`supabase/functions/analyze-document/index.ts` (linha ~264-268):
-```ts
-const userContent = [
-  { type: 'text', text: `Analise este documento imobiliário...` },
-  // ❌ Nenhuma menção à data atual
-];
-```
+### Conteúdo do aviso (texto único reutilizável)
 
-O `BASE_SYSTEM_PROMPT` também não inclui a data de referência.
+> **Importante:** Esta análise é gerada por inteligência artificial e tem caráter **meramente auxiliar e informativo**. Os resultados não substituem a avaliação de um **advogado, despachante imobiliário ou especialista em transações imobiliárias**. Sempre consulte um profissional habilitado antes de tomar qualquer decisão sobre compra, venda ou regularização de imóveis.
 
-## Correção Proposta
+### Formato visual
 
-### 1. Injetar a data atual no prompt (servidor-side)
+- Componente `Alert` (variant default) com ícone `ShieldAlert` ou `Scale` (lucide-react)
+- Cor de destaque suave (amber/yellow) para chamar atenção sem alarmar
+- Texto curto e direto no banner principal; versão compacta nos cards/modais
 
-No início do handler em `analyze-document/index.ts`, calcular a data atual em pt-BR e incluir tanto no system prompt quanto no user content:
-
-```ts
-const hoje = new Date().toLocaleDateString('pt-BR', { 
-  day: '2-digit', month: '2-digit', year: 'numeric',
-  timeZone: 'America/Sao_Paulo'
-});
-
-const systemPrompt = BASE_SYSTEM_PROMPT 
-  + `\n\n## DATA DE REFERÊNCIA\nA data atual é **${hoje}**. Use SEMPRE esta data como referência para validar prazos, vencimentos, datas de emissão e detectar datas futuras. NÃO use seu conhecimento interno de data — use apenas a data fornecida aqui.`
-  + knowledgeContext;
-```
-
-E também no `userContent[0].text`:
-```ts
-text: `Data atual: ${hoje}. Analise este documento imobiliário (${images.length} página(s))...`
-```
-
-### 2. Reforçar regra anti-alucinação de data
-
-Adicionar nas REGRAS GERAIS do prompt:
-> "9. Para validar datas futuras/vencidas, use EXCLUSIVAMENTE a data de referência fornecida no início. Nunca use sua data de treinamento."
-
-## Arquivos alterados
+### Arquivos alterados
 
 | Arquivo | Alteração |
 |---------|-----------|
-| `supabase/functions/analyze-document/index.ts` | Injetar `hoje` (America/Sao_Paulo) no system prompt + user message; adicionar regra 9 |
+| `src/components/DocumentAnalyzer.tsx` | Banner no topo + disclaimer compacto em cada card de resultado |
+| `src/pages/HistoricoDocumentos.tsx` | Banner no topo da listagem + aviso no modal de detalhes |
 
-## Resultado esperado
-
-Documentos emitidos até a data atual deixam de ser marcados como "data futura". O modelo passa a usar a data real do sistema (16/04/2026) como referência, eliminando esse tipo de falso positivo em todas as análises (certidões, declarações, comprovantes, etc.).
-
+Sem mudanças de banco, lógica ou Edge Functions — apenas UI/copy.
