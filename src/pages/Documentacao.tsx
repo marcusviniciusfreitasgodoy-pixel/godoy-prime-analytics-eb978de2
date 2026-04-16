@@ -113,9 +113,9 @@ const getInitialChecklist = (flags: AllFlags): DocumentCategory[] => [
       { id: 'i-funesbom', label: 'Certidão da Funesbom', checked: false, tooltip: 'Prova de quitação da Taxa de Incêndio (Bombeiros)' },
       { id: 'i-2distribuidor', label: 'Certidões do 2º Distribuidor', checked: false, tooltip: 'Feitos, Protestos e Títulos (específico do RJ)' },
       { id: 'i-interdicoes', label: 'Certidões do 1º e 2º Interdições e Tutelas', checked: false, tooltip: 'Prova que o vendedor não é incapaz civilmente' },
-      { id: 'i-justica-federal', label: 'Certidão Negativa da Justiça Federal', checked: false },
-      { id: 'i-receita-federal', label: 'Certidão da Receita Federal', checked: false },
-      { id: 'i-cndt', label: 'Certidão Negativa de Débitos Trabalhistas (CNDT)', checked: false },
+      { id: 'i-justica-federal', label: 'Certidão Negativa da Justiça Federal', checked: false, tooltip: 'Comprova que o vendedor não possui ações cíveis, criminais ou execuções fiscais na Justiça Federal. Resolve o risco de fraude contra credores e bloqueios judiciais que possam recair sobre o imóvel.' },
+      { id: 'i-receita-federal', label: 'Certidão da Receita Federal', checked: false, tooltip: 'Certidão Conjunta de Débitos Federais e Dívida Ativa da União. Comprova a inexistência de débitos com a Receita Federal e a PGFN, evitando que dívidas tributárias do vendedor recaiam sobre o comprador ou o imóvel.' },
+      { id: 'i-cndt', label: 'Certidão Negativa de Débitos Trabalhistas (CNDT)', checked: false, tooltip: 'Emitida pelo TST, comprova que o vendedor não possui dívidas trabalhistas reconhecidas judicialmente. Protege o comprador de eventuais penhoras do imóvel para quitar débitos com ex-empregados.' },
     ],
   },
   {
