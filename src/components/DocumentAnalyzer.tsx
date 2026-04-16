@@ -1,6 +1,8 @@
 import { useState, useCallback } from "react";
+import { Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
-import { Upload, FileText, Loader2, CheckCircle, AlertTriangle, XCircle, RefreshCw, Sparkles, Trash2, ChevronDown, ChevronUp } from "lucide-react";
+import { useQueryClient } from "@tanstack/react-query";
+import { Upload, FileText, Loader2, CheckCircle, AlertTriangle, XCircle, RefreshCw, Sparkles, Trash2, ChevronDown, ChevronUp, History } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
