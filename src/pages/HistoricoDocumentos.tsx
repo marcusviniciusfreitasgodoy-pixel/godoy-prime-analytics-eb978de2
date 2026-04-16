@@ -9,6 +9,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { CheckCircle, AlertTriangle, XCircle, Search, Trash2, Eye, FileText, Loader2, Download, Sparkles } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { formatDate } from "@/utils/exportUtils";
+import { LegalDisclaimer } from "@/components/LegalDisclaimer";
 
 const statusConfig: Record<string, { label: string; icon: any; cls: string }> = {
   OK: { label: "OK", icon: CheckCircle, cls: "bg-green-500/10 text-green-600 border-green-500/20" },
@@ -59,6 +60,9 @@ export default function HistoricoDocumentos() {
           Todos os documentos analisados pela IA, organizados por data.
         </p>
       </div>
+
+      {/* Aviso Legal */}
+      <LegalDisclaimer variant="full" />
 
       {/* Stats */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
@@ -186,6 +190,8 @@ export default function HistoricoDocumentos() {
                   </Button>
                 </div>
               )}
+
+              <LegalDisclaimer variant="compact" />
             </div>
           )}
         </DialogContent>

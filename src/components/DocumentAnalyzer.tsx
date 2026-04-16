@@ -18,6 +18,7 @@ import {
   CollapsibleContent,
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
+import { LegalDisclaimer } from "@/components/LegalDisclaimer";
 
 interface AnalysisResult {
   tipo_documento: string;
@@ -390,6 +391,9 @@ export function DocumentAnalyzer({ onChecklistItemSuggested }: DocumentAnalyzerP
         </div>
       </CardHeader>
       <CardContent className="space-y-4 px-3 sm:px-6">
+        {/* Aviso Legal */}
+        <LegalDisclaimer variant="full" />
+
         {/* Upload Area */}
         <div
           onDragOver={handleDragOver}
@@ -617,6 +621,9 @@ export function DocumentAnalyzer({ onChecklistItemSuggested }: DocumentAnalyzerP
                               Marcar item no checklist
                             </Button>
                           )}
+
+                          {/* Aviso compacto no rodapé do card */}
+                          <LegalDisclaimer variant="compact" />
                         </div>
                       )}
 
