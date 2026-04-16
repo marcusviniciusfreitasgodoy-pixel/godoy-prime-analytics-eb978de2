@@ -1,82 +1,59 @@
 
 
-# Documentação Técnica Completa para Migração — Godoy Prime Analytics
+## Diagnóstico
 
-## Objetivo
+A função `analyze-document` **não envia a data atual** no prompt para o modelo de IA (Gemini). Isso faz com que o modelo use seu **conhecimento interno de "data de treinamento"**, que pode ser de 2024 ou início de 2025.
 
-Gerar um pacote de documentação técnica completo (PDF executivo + arquivos Markdown detalhados) que permita a uma equipe externa replicar integralmente a plataforma em outra infraestrutura.
+Quando o documento mostra "15/04/2026", o modelo interpreta como **data futura** porque, na sua referência interna, ainda estamos em 2024/início de 2025. Por isso disparou o alerta crítico.
 
-## Escopo do Documento
+**Hoje é 16/04/2026** (data real do sistema), e o documento é de 15/04/2026 — ou seja, foi emitido **ontem**, totalmente válido. O alerta é um **falso positivo**.
 
-O pacote cobrirá **8 seções principais**:
+### Onde está o problema
 
-### 1. Visão Geral da Plataforma
-- Propósito, público-alvo, modelo SaaS (Starter/Pro/Enterprise)
-- Stack tecnológico: React 18, Vite 5, Tailwind CSS, TypeScript, Supabase (PostgreSQL + PostGIS + Auth + Edge Functions + Storage)
-- Arquitetura dual: domínio autenticado (Analytics) + domínio público (Avaliação)
+`supabase/functions/analyze-document/index.ts` (linha ~264-268):
+```ts
+const userContent = [
+  { type: 'text', text: `Analise este documento imobiliário...` },
+  // ❌ Nenhuma menção à data atual
+];
+```
 
-### 2. Mapa Completo de Rotas e Módulos (35+ páginas)
-- Todas as rotas públicas e protegidas com controle de acesso (admin, gerente, corretor)
-- Descrição funcional de cada módulo: Dashboard, Pesquisas de Mercado, Avaliação Imobiliária, Vistoria Digital, Inteligência Territorial, CRM/Pipeline, Visitas, etc.
+O `BASE_SYSTEM_PROMPT` também não inclui a data de referência.
 
-### 3. Schema do Banco de Dados (48 tabelas)
-- DDL completo de todas as tabelas com tipos, defaults, constraints
-- Políticas RLS detalhadas por tabela
-- Enums: `app_role`, `status_visita`, `uso_imovel`, `origem_agendamento`, etc.
-- Relacionamentos e foreign keys
+## Correção Proposta
 
-### 4. RPCs e Funções SQL (~25 funções customizadas)
-- Assinatura, parâmetros e lógica de cada função: `enriquecer_condominios_com_itbi`, `identificar_condominios_pal`, `get_territorial_kpis`, `get_condominios_bbox`, `atualizar_resumo_logradouros`, `normalizar_logradouro`, `has_role`, `get_user_org_id`, etc.
-- Triggers: `handle_new_user`, `set_organization_id`, `generate_visit_code`
+### 1. Injetar a data atual no prompt (servidor-side)
 
-### 5. Edge Functions (39 funções serverless)
-- Código-fonte completo de cada função com descrição do propósito
-- Categorização: Ingestão de dados, Geocodificação, Enriquecimento, Comunicação, IA, Público
-- Dependências externas e secrets necessários
+No início do handler em `analyze-document/index.ts`, calcular a data atual em pt-BR e incluir tanto no system prompt quanto no user content:
 
-### 6. Secrets e Integrações Externas (14 secrets)
-- Lista de todas as variáveis de ambiente necessárias
-- APIs externas: Google Maps/Places/Geocoding, Resend (e-mail), Z-API (WhatsApp), ElevenLabs (TTS), Lovable AI Gateway
-- Instruções de obtenção de cada credencial
+```ts
+const hoje = new Date().toLocaleDateString('pt-BR', { 
+  day: '2-digit', month: '2-digit', year: 'numeric',
+  timeZone: 'America/Sao_Paulo'
+});
 
-### 7. Lógicas de Negócio Críticas
-- Motor de Avaliação: cálculo ITBI + anúncios (70/30), IQR outliers, ajustes por características, caps
-- Vistoria Digital: scoring, checklists dinâmicos (Casa vs Apartamento)
-- Estratégia de dados em 3 camadas (ITBI + IPTU + Geoespacial)
-- Enriquecimento espacial: ST_DWithin 150m, algoritmo PAL
-- Microbairros: classificação em 8 regiões
-- KPIs: janela rolling 12 meses, média/mediana ponderada
+const systemPrompt = BASE_SYSTEM_PROMPT 
+  + `\n\n## DATA DE REFERÊNCIA\nA data atual é **${hoje}**. Use SEMPRE esta data como referência para validar prazos, vencimentos, datas de emissão e detectar datas futuras. NÃO use seu conhecimento interno de data — use apenas a data fornecida aqui.`
+  + knowledgeContext;
+```
 
-### 8. Geração de PDFs e Exportações
-- Padrão jsPDF manual (sem html2canvas)
-- Templates: Avaliação, Vistoria, Ficha de Visita, Proposta, Feedback, One-Pager
-- Exportação XLSX com branding
+E também no `userContent[0].text`:
+```ts
+text: `Data atual: ${hoje}. Analise este documento imobiliário (${images.length} página(s))...`
+```
 
-## Entregáveis
+### 2. Reforçar regra anti-alucinação de data
 
-| Arquivo | Formato | Conteúdo |
-|---------|---------|----------|
-| `godoy-prime-migration-guide.pdf` | PDF ~40-60 páginas | Documento executivo com todas as 8 seções, diagramas ASCII, tabelas |
-| `docs/01-visao-geral.md` | Markdown | Stack, arquitetura, dependências |
-| `docs/02-rotas-modulos.md` | Markdown | Mapa completo de rotas e funcionalidades |
-| `docs/03-database-schema.md` | Markdown | DDL, RLS, enums, triggers |
-| `docs/04-rpcs-functions.md` | Markdown | Funções SQL com assinaturas |
-| `docs/05-edge-functions.md` | Markdown | Código e descrição de cada Edge Function |
-| `docs/06-secrets-integracoes.md` | Markdown | Variáveis de ambiente e APIs externas |
-| `docs/07-logicas-negocio.md` | Markdown | Cálculos, fórmulas, regras |
-| `docs/08-pdfs-exportacoes.md` | Markdown | Templates e padrões de geração |
+Adicionar nas REGRAS GERAIS do prompt:
+> "9. Para validar datas futuras/vencidas, use EXCLUSIVAMENTE a data de referência fornecida no início. Nunca use sua data de treinamento."
 
-## Processo de Geração
+## Arquivos alterados
 
-1. Script Python que lê o codebase, queries SQL e memory files
-2. Gera os 8 arquivos Markdown em `/mnt/documents/docs/`
-3. Consolida tudo em um PDF executivo via `reportlab`
-4. QA visual de cada página do PDF
+| Arquivo | Alteração |
+|---------|-----------|
+| `supabase/functions/analyze-document/index.ts` | Injetar `hoje` (America/Sao_Paulo) no system prompt + user message; adicionar regra 9 |
 
-## Observações
+## Resultado esperado
 
-- O documento incluirá **trechos de código reais** das Edge Functions e hooks
-- Schemas SQL serão extraídos diretamente do banco via queries
-- As políticas RLS serão documentadas tabela a tabela
-- Estimativa: ~15 minutos de geração
+Documentos emitidos até a data atual deixam de ser marcados como "data futura". O modelo passa a usar a data real do sistema (16/04/2026) como referência, eliminando esse tipo de falso positivo em todas as análises (certidões, declarações, comprovantes, etc.).
 
