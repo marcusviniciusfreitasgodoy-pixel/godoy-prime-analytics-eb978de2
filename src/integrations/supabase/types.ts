@@ -336,6 +336,83 @@ export type Database = {
           },
         ]
       }
+      document_analyses: {
+        Row: {
+          alertas: Json | null
+          checklist_item: string | null
+          confianca: string | null
+          created_at: string
+          dados_extraidos: Json | null
+          ficha_visita_id: string | null
+          file_mime_type: string | null
+          file_name: string
+          file_path: string | null
+          file_size_bytes: number | null
+          id: string
+          organization_id: string | null
+          proximos_passos: Json | null
+          raw_response: string | null
+          status: string | null
+          status_motivo: string | null
+          tipo_documento: string | null
+          updated_at: string
+          user_id: string
+          validade: string | null
+        }
+        Insert: {
+          alertas?: Json | null
+          checklist_item?: string | null
+          confianca?: string | null
+          created_at?: string
+          dados_extraidos?: Json | null
+          ficha_visita_id?: string | null
+          file_mime_type?: string | null
+          file_name: string
+          file_path?: string | null
+          file_size_bytes?: number | null
+          id?: string
+          organization_id?: string | null
+          proximos_passos?: Json | null
+          raw_response?: string | null
+          status?: string | null
+          status_motivo?: string | null
+          tipo_documento?: string | null
+          updated_at?: string
+          user_id: string
+          validade?: string | null
+        }
+        Update: {
+          alertas?: Json | null
+          checklist_item?: string | null
+          confianca?: string | null
+          created_at?: string
+          dados_extraidos?: Json | null
+          ficha_visita_id?: string | null
+          file_mime_type?: string | null
+          file_name?: string
+          file_path?: string | null
+          file_size_bytes?: number | null
+          id?: string
+          organization_id?: string | null
+          proximos_passos?: Json | null
+          raw_response?: string | null
+          status?: string | null
+          status_motivo?: string | null
+          tipo_documento?: string | null
+          updated_at?: string
+          user_id?: string
+          validade?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "document_analyses_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       edificacoes_geo: {
         Row: {
           altura_max: number | null
