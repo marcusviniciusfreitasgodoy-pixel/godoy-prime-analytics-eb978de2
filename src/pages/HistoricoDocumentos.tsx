@@ -1,21 +1,67 @@
 import { useState } from "react";
-import { useDocumentAnalyses, useDeleteDocumentAnalysis, getDocumentFileUrl, type DocumentAnalysisRecord } from "@/hooks/useDocumentAnalyses";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  useDocumentAnalyses,
+  useDeleteDocumentAnalysis,
+  getDocumentFileUrl,
+  daysUntil,
+  FILE_RETENTION_DAYS,
+  ANALYSIS_RETENTION_DAYS,
+  type DocumentAnalysisRecord,
+} from "@/hooks/useDocumentAnalyses";
+import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { CheckCircle, AlertTriangle, XCircle, Search, Trash2, Eye, FileText, Loader2, Download, Sparkles } from "lucide-react";
+import {
+  CheckCircle, AlertTriangle, XCircle, Search, Trash2, Eye, FileText,
+  Loader2, Download, Sparkles, Clock, Archive, FileDown,
+} from "lucide-react";
 import { cn } from "@/lib/utils";
 import { formatDate } from "@/utils/exportUtils";
 import { LegalDisclaimer } from "@/components/LegalDisclaimer";
+import { exportDocumentAnalysisPdf } from "@/utils/documentAnalysisPdfExport";
 
 const statusConfig: Record<string, { label: string; icon: any; cls: string }> = {
   OK: { label: "OK", icon: CheckCircle, cls: "bg-green-500/10 text-green-600 border-green-500/20" },
   ATENCAO: { label: "Atenção", icon: AlertTriangle, cls: "bg-yellow-500/10 text-yellow-600 border-yellow-500/20" },
   CRITICO: { label: "Crítico", icon: XCircle, cls: "bg-red-500/10 text-red-600 border-red-500/20" },
 };
+
+function FileExpirationBadge({ record }: { record: DocumentAnalysisRecord }) {
+  const days = daysUntil(record.file_expires_at);
+  if (!record.file_path) {
+    return (
+      <Badge variant="outline" className="text-[10px] bg-muted text-muted-foreground border-muted-foreground/20">
+        <Archive className="h-3 w-3 mr-1" /> Arquivo expirado
+      </Badge>
+    );
+  }
+  if (days === null) return null;
+  if (days < 0) {
+    return (
+      <Badge variant="outline" className="text-[10px] bg-muted text-muted-foreground border-muted-foreground/20">
+        <Archive className="h-3 w-3 mr-1" /> Arquivo expirado
+      </Badge>
+    );
+  }
+  const urgent = days <= 7;
+  return (
+    <Badge
+      variant="outline"
+      className={cn(
+        "text-[10px]",
+        urgent
+          ? "bg-orange-500/10 text-orange-600 border-orange-500/20"
+          : "bg-blue-500/10 text-blue-600 border-blue-500/20"
+      )}
+    >
+      <Clock className="h-3 w-3 mr-1" />
+      {days === 0 ? "Arquivo expira hoje" : `Arquivo expira em ${days}d`}
+    </Badge>
+  );
+}
 
 export default function HistoricoDocumentos() {
   const { data: analyses = [], isLoading } = useDocumentAnalyses();
@@ -26,7 +72,8 @@ export default function HistoricoDocumentos() {
   const [fileUrl, setFileUrl] = useState<string | null>(null);
 
   const filtered = analyses.filter((a) => {
-    const matchSearch = !search || 
+    const matchSearch =
+      !search ||
       a.file_name.toLowerCase().includes(search.toLowerCase()) ||
       (a.tipo_documento || "").toLowerCase().includes(search.toLowerCase());
     const matchStatus = statusFilter === "all" || a.status === statusFilter;
@@ -59,6 +106,22 @@ export default function HistoricoDocumentos() {
         <p className="text-muted-foreground text-sm mt-1">
           Todos os documentos analisados pela IA, organizados por data.
         </p>
+      </div>
+
+      {/* Política de retenção */}
+      <div className="flex items-start gap-3 rounded-lg border border-blue-500/20 bg-blue-500/5 p-3 sm:p-4">
+        <Clock className="h-5 w-5 shrink-0 mt-0.5 text-blue-600 dark:text-blue-400" />
+        <div className="space-y-1 text-xs sm:text-sm text-blue-900 dark:text-blue-200">
+          <p className="font-semibold">Política de retenção</p>
+          <p className="leading-relaxed">
+            Para manter o sistema rápido e organizado, os <strong>arquivos originais</strong> ficam
+            disponíveis por <strong>{FILE_RETENTION_DAYS} dias</strong> e as{" "}
+            <strong>análises (dados extraídos, alertas e próximos passos)</strong> são mantidas por{" "}
+            <strong>{ANALYSIS_RETENTION_DAYS} dias</strong>. Após esse prazo o registro é removido
+            automaticamente. Use o botão <strong>“Exportar PDF da análise”</strong> para arquivar
+            externamente antes da expiração.
+          </p>
+        </div>
       </div>
 
       {/* Aviso Legal */}
@@ -118,6 +181,7 @@ export default function HistoricoDocumentos() {
                       </Badge>
                       {a.tipo_documento && <span className="text-xs text-muted-foreground">{a.tipo_documento}</span>}
                       <span className="text-xs text-muted-foreground">{formatDate(a.created_at)}</span>
+                      <FileExpirationBadge record={a} />
                     </div>
                   </div>
                   <div className="flex gap-1 shrink-0">
@@ -150,6 +214,21 @@ export default function HistoricoDocumentos() {
                 {selected.tipo_documento && <Badge variant="outline">{selected.tipo_documento}</Badge>}
                 {selected.confianca && <Badge variant="outline">Confiança: {selected.confianca}</Badge>}
                 <span className="text-xs text-muted-foreground">{formatDate(selected.created_at)}</span>
+                <FileExpirationBadge record={selected} />
+              </div>
+
+              {/* Botão de exportação destacado */}
+              <div className="flex flex-wrap gap-2">
+                <Button size="sm" onClick={() => exportDocumentAnalysisPdf(selected)}>
+                  <FileDown className="h-4 w-4 mr-2" /> Exportar PDF da análise
+                </Button>
+                {fileUrl && (
+                  <Button variant="outline" size="sm" asChild>
+                    <a href={fileUrl} target="_blank" rel="noopener noreferrer">
+                      <Download className="h-4 w-4 mr-2" /> Abrir documento original
+                    </a>
+                  </Button>
+                )}
               </div>
 
               {selected.status_motivo && (
@@ -181,13 +260,11 @@ export default function HistoricoDocumentos() {
                 </div>
               )}
 
-              {fileUrl && (
-                <div>
-                  <Button variant="outline" size="sm" asChild>
-                    <a href={fileUrl} target="_blank" rel="noopener noreferrer">
-                      <Download className="h-4 w-4 mr-2" /> Abrir documento original
-                    </a>
-                  </Button>
+              {!selected.file_path && (
+                <div className="text-xs text-muted-foreground italic flex items-center gap-2">
+                  <Archive className="h-3.5 w-3.5" />
+                  O arquivo original deste documento já foi removido conforme a política de retenção
+                  ({FILE_RETENTION_DAYS} dias). A análise permanece disponível.
                 </div>
               )}
 
