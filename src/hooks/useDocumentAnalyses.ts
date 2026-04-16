@@ -23,7 +23,12 @@ export interface DocumentAnalysisRecord {
   ficha_visita_id: string | null;
   created_at: string;
   updated_at: string;
+  file_expires_at: string | null;
+  expires_at: string | null;
 }
+
+export const FILE_RETENTION_DAYS = 30;
+export const ANALYSIS_RETENTION_DAYS = 180;
 
 export function useDocumentAnalyses() {
   return useQuery({
@@ -70,4 +75,11 @@ export async function getDocumentFileUrl(filePath: string): Promise<string | nul
     .createSignedUrl(filePath, 3600);
   if (error) return null;
   return data.signedUrl;
+}
+
+/** Dias restantes (arredondado p/ baixo). Negativo = já expirou. */
+export function daysUntil(iso: string | null): number | null {
+  if (!iso) return null;
+  const ms = new Date(iso).getTime() - Date.now();
+  return Math.floor(ms / (1000 * 60 * 60 * 24));
 }
