@@ -51,6 +51,50 @@ export function DocumentAnalyzer({ onChecklistItemSuggested }: DocumentAnalyzerP
   const [isAnalyzingBatch, setIsAnalyzingBatch] = useState(false);
   const [expandedDoc, setExpandedDoc] = useState<string | null>(null);
   const { toast } = useToast();
+  const queryClient = useQueryClient();
+
+  const persistAnalysis = async (doc: DocumentFile, result: AnalysisResult) => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+      const { data: profile } = await supabase
+        .from("profiles" as any)
+        .select("organization_id")
+        .eq("id", user.id)
+        .maybeSingle();
+      const orgId = (profile as any)?.organization_id;
+      if (!orgId) return;
+
+      const ext = doc.file.name.split(".").pop() || "bin";
+      const filePath = `${orgId}/${user.id}/${Date.now()}-${Math.random().toString(36).substr(2, 6)}.${ext}`;
+      const { error: uploadErr } = await supabase.storage
+        .from("document-analyses")
+        .upload(filePath, doc.file, { contentType: doc.file.type, upsert: false });
+
+      const { error: insertErr } = await supabase.from("document_analyses" as any).insert({
+        organization_id: orgId,
+        user_id: user.id,
+        file_name: doc.file.name,
+        file_path: uploadErr ? null : filePath,
+        file_mime_type: doc.file.type,
+        file_size_bytes: doc.file.size,
+        tipo_documento: result.tipo_documento,
+        status: result.status,
+        status_motivo: result.status_motivo,
+        dados_extraidos: result.dados_extraidos || {},
+        alertas: result.alertas || [],
+        validade: result.validade,
+        checklist_item: result.checklist_item,
+        proximos_passos: result.proximos_passos || [],
+        confianca: result.confianca,
+        raw_response: result.raw_response,
+      });
+      if (insertErr) console.error("Persist analysis error:", insertErr);
+      else queryClient.invalidateQueries({ queryKey: ["document-analyses"] });
+    } catch (e) {
+      console.error("persistAnalysis failed:", e);
+    }
+  };
 
   const handleDragOver = useCallback((e: React.DragEvent) => {
     e.preventDefault();
