@@ -1,6 +1,8 @@
 import { useState, useCallback } from "react";
+import { Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
-import { Upload, FileText, Loader2, CheckCircle, AlertTriangle, XCircle, RefreshCw, Sparkles, Trash2, ChevronDown, ChevronUp } from "lucide-react";
+import { useQueryClient } from "@tanstack/react-query";
+import { Upload, FileText, Loader2, CheckCircle, AlertTriangle, XCircle, RefreshCw, Sparkles, Trash2, ChevronDown, ChevronUp, History } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -49,6 +51,50 @@ export function DocumentAnalyzer({ onChecklistItemSuggested }: DocumentAnalyzerP
   const [isAnalyzingBatch, setIsAnalyzingBatch] = useState(false);
   const [expandedDoc, setExpandedDoc] = useState<string | null>(null);
   const { toast } = useToast();
+  const queryClient = useQueryClient();
+
+  const persistAnalysis = async (doc: DocumentFile, result: AnalysisResult) => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+      const { data: profile } = await supabase
+        .from("profiles" as any)
+        .select("organization_id")
+        .eq("id", user.id)
+        .maybeSingle();
+      const orgId = (profile as any)?.organization_id;
+      if (!orgId) return;
+
+      const ext = doc.file.name.split(".").pop() || "bin";
+      const filePath = `${orgId}/${user.id}/${Date.now()}-${Math.random().toString(36).substr(2, 6)}.${ext}`;
+      const { error: uploadErr } = await supabase.storage
+        .from("document-analyses")
+        .upload(filePath, doc.file, { contentType: doc.file.type, upsert: false });
+
+      const { error: insertErr } = await supabase.from("document_analyses" as any).insert({
+        organization_id: orgId,
+        user_id: user.id,
+        file_name: doc.file.name,
+        file_path: uploadErr ? null : filePath,
+        file_mime_type: doc.file.type,
+        file_size_bytes: doc.file.size,
+        tipo_documento: result.tipo_documento,
+        status: result.status,
+        status_motivo: result.status_motivo,
+        dados_extraidos: result.dados_extraidos || {},
+        alertas: result.alertas || [],
+        validade: result.validade,
+        checklist_item: result.checklist_item,
+        proximos_passos: result.proximos_passos || [],
+        confianca: result.confianca,
+        raw_response: result.raw_response,
+      });
+      if (insertErr) console.error("Persist analysis error:", insertErr);
+      else queryClient.invalidateQueries({ queryKey: ["document-analyses"] });
+    } catch (e) {
+      console.error("persistAnalysis failed:", e);
+    }
+  };
 
   const handleDragOver = useCallback((e: React.DragEvent) => {
     e.preventDefault();
@@ -216,6 +262,9 @@ export function DocumentAnalyzer({ onChecklistItemSuggested }: DocumentAnalyzerP
         // Auto-expand the first analyzed document to show results immediately
         setExpandedDoc(doc.id);
 
+        // Persist to backend (storage + DB) for history
+        persistAnalysis(doc, result);
+
         // Suggest checklist item if available
         if (result.checklist_item && onChecklistItemSuggested) {
           onChecklistItemSuggested(result.checklist_item);
@@ -324,12 +373,20 @@ export function DocumentAnalyzer({ onChecklistItemSuggested }: DocumentAnalyzerP
             <Sparkles className="h-4 w-4 sm:h-5 sm:w-5 text-accent shrink-0" />
             <span className="truncate">Análise Inteligente de Documentos</span>
           </CardTitle>
-          {documents.length > 0 && (
-            <Button variant="ghost" size="sm" onClick={resetAll} className="text-xs shrink-0">
-              <RefreshCw className="h-3 w-3 mr-1" />
-              <span className="hidden sm:inline">Limpar</span>
+          <div className="flex items-center gap-1 shrink-0">
+            <Button variant="ghost" size="sm" asChild className="text-xs">
+              <Link to="/historico-documentos">
+                <History className="h-3 w-3 mr-1" />
+                <span className="hidden sm:inline">Histórico</span>
+              </Link>
             </Button>
-          )}
+            {documents.length > 0 && (
+              <Button variant="ghost" size="sm" onClick={resetAll} className="text-xs">
+                <RefreshCw className="h-3 w-3 mr-1" />
+                <span className="hidden sm:inline">Limpar</span>
+              </Button>
+            )}
+          </div>
         </div>
       </CardHeader>
       <CardContent className="space-y-4 px-3 sm:px-6">
