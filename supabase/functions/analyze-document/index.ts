@@ -155,7 +155,8 @@ Este é o documento MAIS IMPORTANTE de uma transação imobiliária. Analise com
 5. Cite a legislação aplicável nos alertas (ex: "Conforme Art. 1.647, I, do Código Civil...")
 6. Para Certidão de Ônus Reais, SEMPRE liste TODOS os R- e AV- encontrados, sem exceção
 7. Retorne APENAS o JSON, sem markdown ou texto adicional
-8. Se o documento tiver múltiplas páginas (múltiplas imagens), analise TODAS as páginas como partes do mesmo documento`;
+8. Se o documento tiver múltiplas páginas (múltiplas imagens), analise TODAS as páginas como partes do mesmo documento
+9. Para validar datas futuras, vencidas, prazos e validade, use EXCLUSIVAMENTE a "DATA DE REFERÊNCIA" fornecida no final deste prompt. NUNCA use sua data interna de treinamento como referência temporal — ela está desatualizada e causará falsos positivos`;
 
 async function fetchKnowledgeBase(): Promise<string> {
   try {
@@ -258,13 +259,20 @@ serve(async (req) => {
     console.log('Analyzing document:', filename, 'type:', mimeType, 'pages:', images.length);
 
     const knowledgeContext = await fetchKnowledgeBase();
-    const systemPrompt = BASE_SYSTEM_PROMPT + knowledgeContext;
+
+    const hoje = new Date().toLocaleDateString('pt-BR', {
+      day: '2-digit', month: '2-digit', year: 'numeric',
+      timeZone: 'America/Sao_Paulo'
+    });
+    const dateContext = `\n\n---\n## DATA DE REFERÊNCIA (OBRIGATÓRIA)\nA data atual do sistema é **${hoje}** (fuso América/São_Paulo).\n- Use SEMPRE esta data para calcular validade, vencimento e detectar datas futuras.\n- NÃO confie no seu conhecimento interno de "data atual" — ele está defasado.\n- Uma data no documento só é "futura" se for POSTERIOR a ${hoje}.\n- Datas iguais ou anteriores a ${hoje} são passadas/presentes e NÃO devem disparar alerta de "data futura".`;
+
+    const systemPrompt = BASE_SYSTEM_PROMPT + dateContext + knowledgeContext;
 
     // Build content array with all page images
     const userContent: any[] = [
       { 
         type: 'text', 
-        text: `Analise este documento imobiliário (${images.length} página(s)) e extraia TODAS as informações relevantes seguindo as instruções detalhadas do tipo de documento correspondente. Liste TODOS os registros (R-) e averbações (AV-) se for uma certidão de ônus reais. Fundamente alertas em legislação. Nome do arquivo: ${filename}` 
+        text: `Data atual de referência: ${hoje}. Analise este documento imobiliário (${images.length} página(s)) e extraia TODAS as informações relevantes seguindo as instruções detalhadas do tipo de documento correspondente. Liste TODOS os registros (R-) e averbações (AV-) se for uma certidão de ônus reais. Fundamente alertas em legislação. Nome do arquivo: ${filename}` 
       },
     ];
 
