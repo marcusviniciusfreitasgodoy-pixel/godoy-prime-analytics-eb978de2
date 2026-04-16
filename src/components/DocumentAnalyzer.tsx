@@ -262,6 +262,9 @@ export function DocumentAnalyzer({ onChecklistItemSuggested }: DocumentAnalyzerP
         // Auto-expand the first analyzed document to show results immediately
         setExpandedDoc(doc.id);
 
+        // Persist to backend (storage + DB) for history
+        persistAnalysis(doc, result);
+
         // Suggest checklist item if available
         if (result.checklist_item && onChecklistItemSuggested) {
           onChecklistItemSuggested(result.checklist_item);
@@ -370,12 +373,20 @@ export function DocumentAnalyzer({ onChecklistItemSuggested }: DocumentAnalyzerP
             <Sparkles className="h-4 w-4 sm:h-5 sm:w-5 text-accent shrink-0" />
             <span className="truncate">Análise Inteligente de Documentos</span>
           </CardTitle>
-          {documents.length > 0 && (
-            <Button variant="ghost" size="sm" onClick={resetAll} className="text-xs shrink-0">
-              <RefreshCw className="h-3 w-3 mr-1" />
-              <span className="hidden sm:inline">Limpar</span>
+          <div className="flex items-center gap-1 shrink-0">
+            <Button variant="ghost" size="sm" asChild className="text-xs">
+              <Link to="/historico-documentos">
+                <History className="h-3 w-3 mr-1" />
+                <span className="hidden sm:inline">Histórico</span>
+              </Link>
             </Button>
-          )}
+            {documents.length > 0 && (
+              <Button variant="ghost" size="sm" onClick={resetAll} className="text-xs">
+                <RefreshCw className="h-3 w-3 mr-1" />
+                <span className="hidden sm:inline">Limpar</span>
+              </Button>
+            )}
+          </div>
         </div>
       </CardHeader>
       <CardContent className="space-y-4 px-3 sm:px-6">

@@ -22,6 +22,7 @@ import HistoricoAvaliacoes from "./pages/HistoricoAvaliacoes";
 import HistoricoVistorias from "./pages/HistoricoVistorias";
 import VistoriaDigital from "./pages/VistoriaDigital";
 import Documentacao from "./pages/Documentacao";
+import HistoricoDocumentos from "./pages/HistoricoDocumentos";
 import ManualPlataforma from "./pages/ManualPlataforma";
 import BaseConhecimento from "./pages/BaseConhecimento";
 import CalibradorAvaliacao from "./pages/CalibradorAvaliacao";
@@ -113,6 +114,7 @@ const App = () => (
                               <Route path="/vistoria-digital" element={<VistoriaDigital />} />
                               <Route path="/historico-vistorias" element={<HistoricoVistorias />} />
                               <Route path="/documentacao" element={<Documentacao />} />
+                              <Route path="/historico-documentos" element={<HistoricoDocumentos />} />
                               <Route path="/manual" element={<ManualPlataforma />} />
                               <Route path="/base-conhecimento" element={<ProtectedRoute requireAdmin={true}><BaseConhecimento /></ProtectedRoute>} />
                               <Route path="/calibrador-avaliacao" element={<ProtectedRoute requireAdminOrGerente={true}><CalibradorAvaliacao /></ProtectedRoute>} />
