@@ -132,7 +132,28 @@ export function useCondominiosBairro() {
         from += pageSize;
       }
 
-      return allData;
+      // Deduplicação: agrupa por (nome_condominio + logradouro_padrao + coordenada arredondada ~11m)
+      // Mantém o registro com mais informação (preço/transações/unidades preenchidas).
+      const norm = (s: string | null | undefined) =>
+        (s || "").trim().toLowerCase().replace(/\s+/g, " ");
+      const score = (c: TerritorialCondominio) =>
+        (c.preco_medio_m2 ? 4 : 0) +
+        (c.total_transacoes_itbi ? 2 : 0) +
+        (c.unidades_estimadas ? 1 : 0) +
+        (c.confianca_identificacao || 0);
+
+      const groups = new Map<string, TerritorialCondominio>();
+      for (const c of allData) {
+        const latKey = c.latitude != null ? c.latitude.toFixed(4) : "na";
+        const lngKey = c.longitude != null ? c.longitude.toFixed(4) : "na";
+        const key = `${norm(c.nome_condominio)}|${norm(c.logradouro_padrao)}|${latKey},${lngKey}`;
+        const existing = groups.get(key);
+        if (!existing || score(c) > score(existing)) {
+          groups.set(key, c);
+        }
+      }
+
+      return Array.from(groups.values());
     },
     staleTime: 5 * 60 * 1000,
   });
