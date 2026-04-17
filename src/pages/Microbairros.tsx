@@ -1,5 +1,6 @@
 import { useState, useMemo } from "react";
-import { MapPin, GitCompare, Plus, X, LayoutGrid, List, TrendingUp, Building2, Home, Search } from "lucide-react";
+import { MapPin, GitCompare, Plus, X, LayoutGrid, List, TrendingUp, Building2, Home, Search, HelpCircle } from "lucide-react";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { MicrobairroCard } from "@/components/MicrobairroCard";
 import { useMicrobairroDetalhado } from "@/hooks/useITBITransactions";
 import { useBairro } from "@/contexts/BairroContext";
