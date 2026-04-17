@@ -1,57 +1,49 @@
 
 
-## Diagnóstico
+## Plano: Pesquisa de Prioridades com Imobiliárias (DOCX + PDF) — v2
 
-**Banco de dados (1.602 condomínios ativos):**
-- 1.349 com coordenadas no mapa
-- **1.240 sem `preco_medio_m2`** (e sem `total_transacoes_itbi`) → são esses os pontos "vazios" do print
-- 1.579 sem `padrao_construtivo`
-- 541 sem `unidades_estimadas`
-- 422 sem nome/logradouro
+Adicionar a coluna **"Dor que resolve"** ao lado de cada funcionalidade, mantendo o restante do plano anterior. Isso ajuda o respondente a entender o propósito de cada item antes de priorizar.
 
-A função `enriquecer_condominios_com_itbi` (RPC) já existe e é executada via aba **Admin → "Executar APENAS Enriquecimento ITBI (Spatial Join)"**. Ela cruza `condominios_mapeamento` com `itbi_transactions` por proximidade espacial (150m) e preenche `preco_medio_m2`, `total_transacoes_itbi` e `ultima_transacao_itbi`.
+### Estrutura de cada módulo
 
-**Heatmap / Lotes:** o código está funcional, mas:
-- Heatmap só aparece se houver `condominios` com `latitude/longitude` (existem 1.349). Mas o gradiente começa com `rgba(147,197,253,0)` — o primeiro stop totalmente transparente faz com que pontos com `weight` baixo fiquem invisíveis em zooms afastados. Vou aumentar `opacity` e `radius`, e ajustar o gradiente.
-- **Sem tooltips explicativas** nos toggles "Heatmap" e "Lotes" — usuário não entende o que fazem.
+Para cada um dos **21 módulos**:
 
-## Plano
+1. **Subtítulo do módulo** + 1 linha de finalidade
+2. **Tabela "Funcionalidades"** com **5 colunas**:
+   | Funcionalidade | Dor que resolve | Alta | Média | Baixa |
+   |---|---|---|---|---|
+3. **Tabela "Informações geradas"** (KPIs/relatórios) com **4 colunas**:
+   | Informação | Para que serve | Alta · Média · Baixa |
+4. Caixa "Sugestões para este módulo" (3 linhas em branco)
 
-### 1. Reenriquecer pontos vazios (dados)
+> A coluna "Dor que resolve" reaproveita textualmente o mapeamento já existente em `FunctionalityMapSection.tsx` (ex.: *"Vistorias sem padrão, disputas jurídicas, relatórios manuais"* para Vistoria Digital), garantindo coerência com o discurso comercial da plataforma.
 
-Executar a RPC `enriquecer_condominios_com_itbi` em lote completo via Edge Function `process-condominios-algorithm` com `enrich_only: true`. Isso preenche `preco_medio_m2`, `total_transacoes_itbi` e `ultima_transacao_itbi` para os 1.240 pontos sem ITBI usando join espacial (150m).
+### Módulos cobertos (mesma ordem da v1)
 
-**Forma de execução:** acionar diretamente via tool `code--exec` chamando a Edge Function com service role após aprovação. Resultado esperado: maioria dos 1.240 pontos passa a exibir preço/transações no popover do mapa.
+Painel Analítico · Microrregiões · Inteligência Territorial · Pesquisas de Mercado · Motor de Avaliação · Histórico de Avaliações · Vistoria Digital · Histórico de Vistorias · Estratégia de Precificação · Análise de Documentação IA · Documentação Comprador/Vendedor · Histórico de Documentos · Gestão de Visitas · Feedback de Visitas · Propostas Digitais · Pipeline CRM · Gestão de Leads · Sofia IA · Avaliação Pública · Configurações & Branding · Manual/Onboarding/Tour
 
-> **Observação importante:** muitos pontos estão em ruas sem transações ITBI próximas (ex: condomínios em ruas internas como "Avenida Paralela", "Rua Alambique" — séries B16, B19, etc.). Esses **continuarão sem preço** porque não há dado de ITBI no raio de 150m. É comportamento esperado da camada de dados real (ITBI agregado da Prefeitura). O marcador desses casos seguirá com borda tracejada cinza (já implementado em `getMarkerColor`/`hasPrice`), agora com tooltip mais clara.
+### Cabeçalho e seção final (inalterados)
 
-### 2. Melhorar marcador "sem dados" (UX)
+- Cabeçalho: título + objetivo (1 parágrafo, ~10 min) + instruções (marcar A/M/B com X)
+- Final: funcionalidades ausentes (10 linhas) · 3 módulos essenciais · 3 módulos menos usados · comentários gerais (10 linhas)
 
-No `TerritorialMap.tsx`, no `mouseenter` de marcadores sem `preco_medio_m2`, mostrar mensagem explícita: *"Sem transações ITBI registradas no raio de 150m nos últimos anos."* — em vez do popover ficar quase vazio.
+### Visual
 
-### 3. Tooltips e correção visual nos toggles Heatmap/Lotes
+- Fonte Arial (DOCX) / Helvetica (PDF), A4, margens 2 cm
+- Navy `#0C2340` em títulos · Gold `#D4AF37` em separadores · cabeçalho de tabela em Navy com texto branco
+- Coluna "Dor que resolve" com largura ~5 cm (texto curto, 1 linha); colunas A/M/B com ~1 cm
+- Rodapé: "Pesquisa anônima — Godoy Prime Analytics — 2026" + nº da página
+- Estimativa: ~15–18 páginas (3 a mais que a v1 por causa da coluna extra)
 
-Em `TerritorialMap.tsx` (rodapé esquerdo do mapa):
+### Execução
 
-| Toggle | Tooltip (HelpCircle ao lado do label) |
-|---|---|
-| **Heatmap** | "Mapa de calor ponderado pelo número estimado de unidades. Áreas vermelhas/roxas indicam maior densidade construtiva (mais unidades por região). Útil para identificar polos de adensamento na Barra." |
-| **Lotes** | "Exibe os contornos dos lotes oficiais (PAL — Projeto de Alinhamento) sobrepostos ao mapa. Disponível apenas a partir do zoom 15. Clique em um lote para ver logradouro e área (m²)." |
-
-**Ajustes no Heatmap para ficar visível:**
-- Aumentar `radius` de 35 → 50
-- Aumentar `opacity` de 0.7 → 0.85  
-- Ajustar gradiente para começar visível: `["rgba(0,0,0,0)", "rgba(147,197,253,0.6)", "#3B82F6", "#1D4ED8", "#7C3AED", "#DC2626"]`
-- Garantir `weight` mínimo de 0.2 (em vez de cair para quase 0 quando `unidades_estimadas` é nulo)
-
-### 4. Padrão visual
-
-Mesmo padrão já usado em `Documentacao.tsx`/`Microbairros.tsx`: ícone `HelpCircle` (h-3 w-3, `text-muted-foreground`) ao lado do `Label`, dentro de `Tooltip` do shadcn, envolto em `TooltipProvider`.
-
-### Arquivos alterados
-
-| Arquivo | Mudança |
-|---|---|
-| `src/components/territorial/TerritorialMap.tsx` | Tooltips nos toggles Heatmap/Lotes + ajuste gradiente/opacity/radius do heatmap + popover melhorado para pontos sem preço |
-| (execução) Edge Function `process-condominios-algorithm` com `enrich_only: true` | Enriquecer ITBI em lote para todos os 1.240 pontos pendentes |
+1. Script único `/tmp/gerar_pesquisa.py`:
+   - Estrutura de dados com tuplas `(funcionalidade, dor)` e `(informação, propósito)` por módulo
+   - Geração DOCX via `python-docx` (5/4 colunas, shading Navy no header)
+   - Conversão para PDF via LibreOffice headless
+2. Saída em `/mnt/documents/`:
+   - `Pesquisa_Imobiliarias_Godoy_Prime_v2.docx`
+   - `Pesquisa_Imobiliarias_Godoy_Prime_v2.pdf`
+3. **QA obrigatório:** `pdftoppm` em todas as páginas — verificar overflow da coluna "Dor que resolve", alinhamento das colunas A/M/B e quebras de página no meio de módulos.
+4. Entrega via `<lov-artifact>` (DOCX + PDF).
 
