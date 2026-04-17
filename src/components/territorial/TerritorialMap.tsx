@@ -2,7 +2,8 @@ import { useEffect, useRef, useState, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
-import { MapPin, Layers, Grid3X3, Loader2 } from "lucide-react";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { MapPin, Layers, Grid3X3, Loader2, HelpCircle } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import type { TerritorialCondominio, MapBounds, LotePAL } from "@/hooks/useTerritorialData";
 
@@ -135,12 +136,19 @@ export function TerritorialMap({
         .filter(c => c.latitude != null && c.longitude != null)
         .map(c => ({
           location: new google.maps.LatLng(c.latitude, c.longitude),
-          weight: Math.min(1, (c.unidades_estimadas || 1) / 500),
+          weight: Math.max(0.2, Math.min(1, (c.unidades_estimadas || 50) / 500)),
         }));
       heatmapRef.current = new google.maps.visualization.HeatmapLayer({
         data: heatData, map,
-        radius: 35, opacity: 0.7,
-        gradient: ["rgba(147,197,253,0)", "#93C5FD", "#3B82F6", "#1D4ED8", "#7C3AED"],
+        radius: 50, opacity: 0.85,
+        gradient: [
+          "rgba(0,0,0,0)",
+          "rgba(147,197,253,0.6)",
+          "#3B82F6",
+          "#1D4ED8",
+          "#7C3AED",
+          "#DC2626",
+        ],
       });
     } else if (heatmapRef.current) {
       heatmapRef.current.setMap(null);
@@ -259,9 +267,9 @@ export function TerritorialMap({
         markerEl.addEventListener("mouseenter", () => {
           const priceText = hasPrice
             ? `<div style="color:#7C3AED;font-weight:700;">R$ ${Number(c.preco_medio_m2).toLocaleString("pt-BR")}/m²</div>`
-            : "";
+            : `<div style="font-size:10px;color:#94A3B8;font-style:italic;margin-top:4px;">Sem transações ITBI registradas no raio de 150m.</div>`;
           infoWindow.setContent(`
-            <div style="min-width:160px;font-size:12px;line-height:1.5;">
+            <div style="min-width:180px;font-size:12px;line-height:1.5;">
               <div style="font-weight:600;margin-bottom:2px;">${c.nome_condominio || c.logradouro_padrao}</div>
               <div style="font-size:11px;color:#6b7280;">${c.numero_torres ?? "?"} torre(s) · ${c.unidades_estimadas ?? "?"} unidades</div>
               ${priceText}
@@ -303,21 +311,43 @@ export function TerritorialMap({
         </div>
       </div>
 
-      <div className="absolute bottom-4 left-2 md:left-4 z-[1000] bg-background/90 backdrop-blur rounded-lg p-2 md:p-3 shadow-md border border-border space-y-1.5 md:space-y-2">
-        <div className="flex items-center gap-1.5 md:gap-2">
-          <Layers className="h-3.5 w-3.5 md:h-4 md:w-4 text-muted-foreground" />
-          <Label htmlFor="heatmap-toggle" className="text-[10px] md:text-xs font-medium">Heatmap</Label>
-          <Switch id="heatmap-toggle" checked={showHeatmap} onCheckedChange={onToggleHeatmap} />
+      <TooltipProvider delayDuration={150}>
+        <div className="absolute bottom-4 left-2 md:left-4 z-[1000] bg-background/90 backdrop-blur rounded-lg p-2 md:p-3 shadow-md border border-border space-y-1.5 md:space-y-2">
+          <div className="flex items-center gap-1.5 md:gap-2">
+            <Layers className="h-3.5 w-3.5 md:h-4 md:w-4 text-muted-foreground" />
+            <Label htmlFor="heatmap-toggle" className="text-[10px] md:text-xs font-medium">Heatmap</Label>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <button type="button" className="text-muted-foreground hover:text-foreground" aria-label="Sobre o Heatmap">
+                  <HelpCircle className="h-3 w-3" />
+                </button>
+              </TooltipTrigger>
+              <TooltipContent side="top" className="max-w-[260px] text-xs">
+                Mapa de calor ponderado pelo número estimado de unidades. Áreas em vermelho/roxo indicam maior densidade construtiva (mais unidades por região). Útil para identificar polos de adensamento na Barra.
+              </TooltipContent>
+            </Tooltip>
+            <Switch id="heatmap-toggle" checked={showHeatmap} onCheckedChange={onToggleHeatmap} />
+          </div>
+          <div className="flex items-center gap-1.5 md:gap-2">
+            <Grid3X3 className="h-3.5 w-3.5 md:h-4 md:w-4 text-muted-foreground" />
+            <Label htmlFor="lotes-toggle" className="text-[10px] md:text-xs font-medium">Lotes</Label>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <button type="button" className="text-muted-foreground hover:text-foreground" aria-label="Sobre os Lotes">
+                  <HelpCircle className="h-3 w-3" />
+                </button>
+              </TooltipTrigger>
+              <TooltipContent side="top" className="max-w-[260px] text-xs">
+                Exibe os contornos dos lotes oficiais (PAL — Projeto de Alinhamento) sobrepostos ao mapa. Disponível apenas a partir do zoom 15. Clique em um lote para ver logradouro e área (m²).
+              </TooltipContent>
+            </Tooltip>
+            <Switch id="lotes-toggle" checked={showLotes} onCheckedChange={onToggleLotes} />
+            {showLotes && currentZoom < 15 && (
+              <span className="text-[10px] text-muted-foreground ml-1">zoom 15+</span>
+            )}
+          </div>
         </div>
-        <div className="flex items-center gap-1.5 md:gap-2">
-          <Grid3X3 className="h-3.5 w-3.5 md:h-4 md:w-4 text-muted-foreground" />
-          <Label htmlFor="lotes-toggle" className="text-[10px] md:text-xs font-medium">Lotes</Label>
-          <Switch id="lotes-toggle" checked={showLotes} onCheckedChange={onToggleLotes} />
-          {showLotes && currentZoom < 15 && (
-            <span className="text-[10px] text-muted-foreground ml-1">zoom 15+</span>
-          )}
-        </div>
-      </div>
+      </TooltipProvider>
     </div>
   );
 }
