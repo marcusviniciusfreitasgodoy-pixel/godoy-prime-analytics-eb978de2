@@ -230,10 +230,38 @@ export default function Microbairros() {
                   <TableHead className="w-12 text-center">#</TableHead>
                   <TableHead>Logradouro</TableHead>
                   <TableHead className="text-right">R$/m²</TableHead>
-                  <TableHead className="text-right hidden sm:table-cell">Vendas</TableHead>
+                  <TableHead className="text-right hidden sm:table-cell">
+                    <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <span className="inline-flex items-center gap-1 cursor-help">
+                            Vendas
+                            <HelpCircle className="h-3.5 w-3.5 text-muted-foreground" />
+                          </span>
+                        </TooltipTrigger>
+                        <TooltipContent className="max-w-xs">
+                          Número total de transações ITBI residenciais registradas neste logradouro nos últimos 24 meses (com percentual transferido ≥ 90%).
+                        </TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
+                  </TableHead>
                   <TableHead className="text-right hidden md:table-cell">Apt</TableHead>
                   <TableHead className="text-right hidden md:table-cell">Casa</TableHead>
-                  <TableHead className="text-center hidden sm:table-cell">Tendência</TableHead>
+                  <TableHead className="text-center hidden sm:table-cell">
+                    <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <span className="inline-flex items-center gap-1 cursor-help justify-center">
+                            Tendência
+                            <HelpCircle className="h-3.5 w-3.5 text-muted-foreground" />
+                          </span>
+                        </TooltipTrigger>
+                        <TooltipContent className="max-w-xs">
+                          Classificação de desempenho do logradouro com base na sua posição no ranking de preço/m² dos últimos 24 meses. "Alta" indica top 3 do bairro; "Estável" indica desempenho consistente fora do top 3.
+                        </TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
+                  </TableHead>
                   <TableHead className="w-12"></TableHead>
                 </TableRow>
               </TableHeader>
