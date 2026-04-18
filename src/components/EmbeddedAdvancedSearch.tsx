@@ -128,10 +128,11 @@ export function EmbeddedAdvancedSearch({ defaultBairro = "" }: EmbeddedAdvancedS
   const { data: streetSuggestions } = useStreetSuggestions(logradouro, bairro || undefined);
 
   // Evita duplicidades no dropdown (alguns cenários podem retornar o mesmo logradouro mais de uma vez)
-  const uniqueStreetSuggestions = (streetSuggestions || []).filter((s, idx, arr) => {
-    const key = `${s.logradouro}__${s.nome_condominio || ''}`;
-    return idx === arr.findIndex(x => `${x.logradouro}__${x.nome_condominio || ''}` === key);
-  });
+  // Mostra apenas logradouros únicos (condomínios têm campo de busca dedicado abaixo)
+  const uniqueStreetSuggestions = (streetSuggestions || []).reduce((acc, s) => {
+    if (!acc.find(x => x.logradouro === s.logradouro)) acc.push(s);
+    return acc;
+  }, [] as typeof streetSuggestions);
   
   // Search trigger
   const [searchParams, setSearchParams] = useState<{
