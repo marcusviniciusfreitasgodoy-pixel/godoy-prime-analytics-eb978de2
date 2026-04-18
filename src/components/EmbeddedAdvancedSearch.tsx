@@ -128,10 +128,11 @@ export function EmbeddedAdvancedSearch({ defaultBairro = "" }: EmbeddedAdvancedS
   const { data: streetSuggestions } = useStreetSuggestions(logradouro, bairro || undefined);
 
   // Evita duplicidades no dropdown (alguns cenários podem retornar o mesmo logradouro mais de uma vez)
-  const uniqueStreetSuggestions = (streetSuggestions || []).filter((s, idx, arr) => {
-    const key = `${s.logradouro}__${s.nome_condominio || ''}`;
-    return idx === arr.findIndex(x => `${x.logradouro}__${x.nome_condominio || ''}` === key);
-  });
+  // Mostra apenas logradouros únicos (condomínios têm campo de busca dedicado abaixo)
+  const uniqueStreetSuggestions = (streetSuggestions || []).reduce((acc, s) => {
+    if (!acc.find(x => x.logradouro === s.logradouro)) acc.push(s);
+    return acc;
+  }, [] as typeof streetSuggestions);
   
   // Search trigger
   const [searchParams, setSearchParams] = useState<{
@@ -602,16 +603,7 @@ export function EmbeddedAdvancedSearch({ defaultBairro = "" }: EmbeddedAdvancedS
                         setLogradouroPopoverOpen(false);
                       }}
                     >
-                      <div className="flex flex-col min-w-0 flex-1">
-                        {s.nome_condominio ? (
-                          <>
-                            <span className="truncate font-medium">{s.nome_condominio}</span>
-                            <span className="truncate text-xs text-muted-foreground">{s.logradouro}</span>
-                          </>
-                        ) : (
-                          <span className="truncate">{s.logradouro}</span>
-                        )}
-                      </div>
+                      <span className="truncate">{s.logradouro}</span>
                       <div className="flex items-center gap-1 shrink-0">
                         {s.bairro_origem && (
                           <Badge variant="outline" className="text-[10px] border-amber-400 text-amber-700 bg-amber-50">
