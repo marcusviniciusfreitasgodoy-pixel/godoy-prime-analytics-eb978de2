@@ -602,7 +602,16 @@ export function EmbeddedAdvancedSearch({ defaultBairro = "" }: EmbeddedAdvancedS
                         setLogradouroPopoverOpen(false);
                       }}
                     >
-                      <span className="truncate">{s.nome_condominio || s.logradouro}</span>
+                      <div className="flex flex-col min-w-0 flex-1">
+                        {s.nome_condominio ? (
+                          <>
+                            <span className="truncate font-medium">{s.nome_condominio}</span>
+                            <span className="truncate text-xs text-muted-foreground">{s.logradouro}</span>
+                          </>
+                        ) : (
+                          <span className="truncate">{s.logradouro}</span>
+                        )}
+                      </div>
                       <div className="flex items-center gap-1 shrink-0">
                         {s.bairro_origem && (
                           <Badge variant="outline" className="text-[10px] border-amber-400 text-amber-700 bg-amber-50">
