@@ -874,18 +874,17 @@ export function EmbeddedAdvancedSearch({ defaultBairro = "" }: EmbeddedAdvancedS
               {cagrAnual != null && valorizacaoTotal != null ? (
                 <div className="space-y-1.5">
                   <div className="flex items-center justify-between">
-                    <TooltipProvider>
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <span className="text-xs text-muted-foreground cursor-help flex items-center gap-1">
-                            CAGR <Info className="h-3 w-3" />
-                          </span>
-                        </TooltipTrigger>
-                        <TooltipContent className="max-w-xs">
-                          <p className="text-xs">Taxa de crescimento anual composta — compara média ponderada do primeiro vs último ano ({anosComDados} anos de dados).</p>
-                        </TooltipContent>
-                      </Tooltip>
-                    </TooltipProvider>
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <button type="button" className="text-xs text-muted-foreground cursor-pointer flex items-center gap-1 hover:text-foreground">
+                          CAGR <Info className="h-3 w-3" />
+                        </button>
+                      </PopoverTrigger>
+                      <PopoverContent className="max-w-xs text-xs" side="top">
+                        <p className="font-medium mb-1">CAGR — Taxa de Crescimento Anual Composta</p>
+                        <p>Mostra quanto o valor/m² cresceu, em média, por ano, considerando juros compostos. Compara a média ponderada do primeiro vs último ano ({anosComDados} anos de dados).</p>
+                      </PopoverContent>
+                    </Popover>
                     <span className="flex items-center gap-1">
                       {cagrAnual >= 0 ? (
                         <ArrowUpRight className="h-3 w-3 text-emerald-600" />
