@@ -251,6 +251,17 @@ serve(async (req) => {
       throw new Error('Imagem do documento é obrigatória');
     }
 
+    // Whitelist de modelos permitidos para análise de documentos
+    const ALLOWED_MODELS: Record<string, { effort: 'low' | 'medium' | 'high' }> = {
+      'google/gemini-3-flash-preview': { effort: 'low' },
+      'google/gemini-2.5-flash': { effort: 'medium' },
+      'google/gemini-2.5-pro': { effort: 'high' },
+      'openai/gpt-5': { effort: 'high' },
+    };
+    const requestedModel = typeof body.model === 'string' ? body.model : 'google/gemini-2.5-pro';
+    const modelConfig = ALLOWED_MODELS[requestedModel] || ALLOWED_MODELS['google/gemini-2.5-pro'];
+    const selectedModel = ALLOWED_MODELS[requestedModel] ? requestedModel : 'google/gemini-2.5-pro';
+
     const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
     if (!LOVABLE_API_KEY) {
       throw new Error('LOVABLE_API_KEY is not configured');
@@ -285,6 +296,8 @@ serve(async (req) => {
       });
     }
 
+    console.log('Using model:', selectedModel, 'effort:', modelConfig.effort);
+
     const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
       method: 'POST',
       headers: {
@@ -292,12 +305,12 @@ serve(async (req) => {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'google/gemini-2.5-pro',
+        model: selectedModel,
         messages: [
           { role: 'system', content: systemPrompt },
           { role: 'user', content: userContent }
         ],
-        reasoning: { effort: 'high' },
+        reasoning: { effort: modelConfig.effort },
         max_tokens: 16000,
       }),
     });
