@@ -1,42 +1,19 @@
-import { useState } from "react";
-import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { z } from "zod";
+import { useState, useMemo, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
 import { CurrencyInput } from "@/components/ui/currency-input";
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 
 import { CNHUpload } from "./CNHUpload";
 import { PublicSignatureCanvas } from "./PublicSignatureCanvas";
+import { ProposalModelSelector } from "./ProposalModelSelector";
+import { DynamicFieldRenderer } from "@/components/forms/DynamicFieldRenderer";
+import { useFormConfig, type FormConfigField } from "@/hooks/useFormConfig";
 import { usePropostas } from "@/hooks/usePropostas";
 import { PropostaPreFill } from "@/types/proposta";
 import { supabase } from "@/integrations/supabase/client";
 import { Loader2, Send, AlertTriangle } from "lucide-react";
-
-const proposalSchema = z.object({
-  nome_completo: z.string().min(3, "Nome obrigatório"),
-  cpf_cnpj: z.string().min(11, "CPF/CNPJ obrigatório"),
-  telefone: z.string().min(10, "Telefone obrigatório"),
-  email: z.string().email("Email inválido").optional().or(z.literal("")),
-  endereco_resumido: z.string().min(5, "Endereço obrigatório"),
-  unidade: z.string().optional(),
-  matricula: z.string().optional(),
-  valor_ofertado: z.string().min(1, "Valor obrigatório"),
-  sinal_entrada: z.string().optional(),
-  parcelas: z.string().optional(),
-  financiamento: z.string().optional(),
-  outras_condicoes: z.string().optional(),
-  cidade_uf: z.string().optional(),
-  numero_proposta: z.string().optional(),
-  validade_proposta: z.string().optional(),
-  forma_aceite: z.string().optional(),
-});
-
-type ProposalFormData = z.infer<typeof proposalSchema>;
+import { toast } from "sonner";
 
 interface ProposalFormProps {
   preFill?: PropostaPreFill;
@@ -44,34 +21,94 @@ interface ProposalFormProps {
   standalone?: boolean;
 }
 
-export function ProposalForm({ preFill, onSuccess, standalone = false }: ProposalFormProps) {
+// Campos cujo valor é monetário e devem usar CurrencyInput
+const CURRENCY_FIELDS = new Set(["valor_ofertado", "sinal_entrada", "financiamento"]);
+
+// Mapeamento dos field_id da configuração -> coluna na tabela propostas_compra
+const PERSIST_KEYS = new Set([
+  "nome_completo",
+  "cpf_cnpj",
+  "telefone",
+  "email",
+  "endereco_resumido",
+  "unidade",
+  "matricula",
+  "valor_ofertado",
+  "sinal_entrada",
+  "parcelas",
+  "financiamento",
+  "outras_condicoes",
+  "cidade_uf",
+  "numero_proposta",
+  "validade_proposta",
+  "forma_aceite",
+]);
+
+function parseCurrency(v: any): number | null {
+  if (v === null || v === undefined || v === "") return null;
+  const s = String(v).replace(/\D/g, "");
+  if (!s) return null;
+  return parseFloat(s);
+}
+
+export function ProposalForm({ preFill, onSuccess }: ProposalFormProps) {
   const { createProposta, uploadCNH } = usePropostas();
-  const modelo = 'completo';
+  const { activeConfig, activeConfigLoading } = useFormConfig("proposta_compra");
+
+  const [modelo, setModelo] = useState<"simplificado" | "completo">("completo");
+  const [values, setValues] = useState<Record<string, any>>({});
   const [assinatura, setAssinatura] = useState<string | null>(null);
   const [cnhUrl, setCnhUrl] = useState<string | null>(null);
   const [isUploadingCNH, setIsUploadingCNH] = useState(false);
   const [submitted, setSubmitted] = useState(false);
 
-  const codigo = `PROP-${Date.now().toString(36).toUpperCase()}`;
+  const codigo = useMemo(() => `PROP-${Date.now().toString(36).toUpperCase()}`, []);
 
-  const form = useForm<ProposalFormData>({
-    resolver: zodResolver(proposalSchema),
-    defaultValues: {
-      nome_completo: preFill?.nome_completo || "",
-      cpf_cnpj: preFill?.cpf_cnpj || "",
-      telefone: preFill?.telefone || "",
-      email: preFill?.email || "",
-      endereco_resumido: preFill?.endereco_resumido || "",
-      valor_ofertado: preFill?.valor_ofertado ? String(preFill.valor_ofertado) : "",
-      forma_aceite: "assinatura",
-    },
-  });
+  // Pré-preenche valores a partir do preFill e dos campos da configuração
+  useEffect(() => {
+    if (!activeConfig) return;
+    setValues((prev) => {
+      const next = { ...prev };
+      // pré-preenchimentos vindos da ficha de visita
+      if (preFill?.nome_completo && !next.nome_completo) next.nome_completo = preFill.nome_completo;
+      if (preFill?.cpf_cnpj && !next.cpf_cnpj) next.cpf_cnpj = preFill.cpf_cnpj;
+      if (preFill?.telefone && !next.telefone) next.telefone = preFill.telefone;
+      if (preFill?.email && !next.email) next.email = preFill.email;
+      if (preFill?.endereco_resumido && !next.endereco_resumido) next.endereco_resumido = preFill.endereco_resumido;
+      if (preFill?.valor_ofertado && !next.valor_ofertado) next.valor_ofertado = String(preFill.valor_ofertado);
+      // padrão de forma_aceite
+      if (next.forma_aceite === undefined) next.forma_aceite = "assinatura_fisica";
+      return next;
+    });
+  }, [activeConfig, preFill]);
+
+  // Filtra campos por modelo + ativo + ordena
+  const visibleFieldsBySection = useMemo(() => {
+    if (!activeConfig) return [] as Array<{ section: any; fields: FormConfigField[] }>;
+    const sections = [...activeConfig.sections].sort((a, b) => a.display_order - b.display_order);
+    return sections.map((section) => {
+      const fields = activeConfig.fields
+        .filter((f) => f.section_id === section.section_id)
+        .filter((f) => f.is_active !== false)
+        .filter((f) => {
+          // Se o campo não tem modelos definidos => aparece em ambos
+          if (!Array.isArray(f.modelos) || f.modelos.length === 0) return true;
+          return f.modelos.includes(modelo);
+        })
+        .sort((a, b) => a.display_order - b.display_order);
+      return { section, fields };
+    }).filter((s) => s.fields.length > 0);
+  }, [activeConfig, modelo]);
+
+  const setValue = (key: string, v: any) => {
+    setValues((prev) => ({ ...prev, [key]: v }));
+  };
 
   const handleCNHUpload = async (file: File) => {
     setIsUploadingCNH(true);
     try {
       const path = await uploadCNH(file, codigo);
-      setCnhUrl(path); // Salva o path relativo, não a URL
+      setCnhUrl(path);
     } catch {
       // toast handled in hook
     } finally {
@@ -79,56 +116,78 @@ export function ProposalForm({ preFill, onSuccess, standalone = false }: Proposa
     }
   };
 
-  const onSubmit = async (data: ProposalFormData) => {
-    if (!modelo) return;
-    if (!assinatura) return;
+  const validate = (): string | null => {
+    if (!activeConfig) return "Configuração ainda carregando";
+    for (const { fields } of visibleFieldsBySection) {
+      for (const f of fields) {
+        if (!f.is_required) continue;
+        const v = values[f.field_id];
+        if (v === undefined || v === null || String(v).trim() === "") {
+          return `Campo obrigatório: ${f.label}`;
+        }
+      }
+    }
+    if (!assinatura) return "Assinatura do proponente é obrigatória";
+    return null;
+  };
 
-    const valorNum = data.valor_ofertado
-      ? parseFloat(data.valor_ofertado.replace(/\D/g, ""))
-      : null;
+  const onSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const err = validate();
+    if (err) {
+      toast.error(err);
+      return;
+    }
 
-    await createProposta.mutateAsync({
+    // Monta payload — só campos que mapeiam para colunas da tabela
+    const payload: Record<string, any> = {
       codigo,
       modelo,
       ficha_visita_id: preFill?.ficha_visita_id || null,
       organization_id: preFill?.organization_id || null,
-      nome_completo: data.nome_completo,
-      cpf_cnpj: data.cpf_cnpj,
-      telefone: data.telefone,
-      email: data.email || null,
-      endereco_resumido: data.endereco_resumido,
-      unidade: data.unidade || null,
-      matricula: data.matricula || null,
-      valor_ofertado: valorNum,
-      sinal_entrada: data.sinal_entrada || null,
-      parcelas: data.parcelas || null,
-      financiamento: data.financiamento || null,
-      outras_condicoes: data.outras_condicoes || null,
-      cidade_uf: data.cidade_uf || null,
-      numero_proposta: data.numero_proposta || null,
-      validade_proposta: data.validade_proposta || null,
-      forma_aceite: data.forma_aceite || "assinatura",
       assinatura_proponente: assinatura,
       cnh_url: cnhUrl,
-    });
+    };
 
-    // Fire-and-forget: notify corretor via email + WhatsApp
+    for (const key of Object.keys(values)) {
+      if (!PERSIST_KEYS.has(key)) continue;
+      const raw = values[key];
+      if (key === "valor_ofertado") {
+        payload[key] = parseCurrency(raw);
+      } else if (key === "sinal_entrada" || key === "financiamento") {
+        // mantém como string (textual) para compatibilidade com schema atual
+        payload[key] = raw ? String(raw) : null;
+      } else {
+        payload[key] = raw === "" || raw === undefined ? null : raw;
+      }
+    }
+
+    // Defaults seguros
+    if (!payload.nome_completo || !payload.cpf_cnpj || !payload.telefone || !payload.endereco_resumido || !payload.valor_ofertado) {
+      toast.error("Preencha os campos essenciais (nome, CPF, telefone, endereço e valor)");
+      return;
+    }
+    if (!payload.forma_aceite) payload.forma_aceite = "assinatura_fisica";
+
+    await createProposta.mutateAsync(payload);
+
+    // Notifica corretor (não-bloqueante)
     if (preFill?.ficha_visita_id) {
       supabase.functions.invoke("notify-proposta", {
         body: {
           ficha_visita_id: preFill.ficha_visita_id,
-          nome_proponente: data.nome_completo,
-          telefone_proponente: data.telefone,
-          email_proponente: data.email || undefined,
-          endereco_imovel: data.endereco_resumido,
-          valor_ofertado: valorNum,
+          nome_proponente: payload.nome_completo,
+          telefone_proponente: payload.telefone,
+          email_proponente: payload.email || undefined,
+          endereco_imovel: payload.endereco_resumido,
+          valor_ofertado: payload.valor_ofertado,
           codigo_proposta: codigo,
-          sinal_entrada: data.sinal_entrada || undefined,
-          parcelas: data.parcelas || undefined,
-          financiamento: data.financiamento || undefined,
-          outras_condicoes: data.outras_condicoes || undefined,
+          sinal_entrada: payload.sinal_entrada || undefined,
+          parcelas: payload.parcelas || undefined,
+          financiamento: payload.financiamento || undefined,
+          outras_condicoes: payload.outras_condicoes || undefined,
         },
-      }).catch((err) => console.warn("Notificação proposta (não-bloqueante):", err));
+      }).catch((errN) => console.warn("Notificação proposta (não-bloqueante):", errN));
     }
 
     setSubmitted(true);
@@ -149,213 +208,115 @@ export function ProposalForm({ preFill, onSuccess, standalone = false }: Proposa
     );
   }
 
+  if (activeConfigLoading || !activeConfig) {
+    return (
+      <Card>
+        <CardContent className="pt-6 flex items-center justify-center text-muted-foreground gap-2">
+          <Loader2 className="h-4 w-4 animate-spin" />
+          Carregando formulário...
+        </CardContent>
+      </Card>
+    );
+  }
 
   return (
-    <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6 overflow-hidden">
-        {/* Identificação do Proponente */}
-        <Card>
+    <form onSubmit={onSubmit} className="space-y-6 overflow-hidden">
+      {/* Seletor de modelo */}
+      <Card>
+        <CardHeader className="pb-3">
+          <CardTitle className="text-lg">Modelo da Proposta</CardTitle>
+          <CardDescription>Escolha o modelo. A configuração de campos é definida em "Configurar Formulários".</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <ProposalModelSelector selected={modelo} onSelect={setModelo} />
+        </CardContent>
+      </Card>
+
+      {/* Renderização dinâmica das seções/campos */}
+      {visibleFieldsBySection.map(({ section, fields }) => (
+        <Card key={section.id}>
           <CardHeader>
-            <CardTitle className="text-lg">Identificação do Proponente</CardTitle>
+            <CardTitle className="text-lg">{section.title}</CardTitle>
+            {section.description && <CardDescription>{section.description}</CardDescription>}
           </CardHeader>
           <CardContent className="space-y-4">
-            <FormField control={form.control} name="nome_completo" render={({ field }) => (
-              <FormItem>
-                <FormLabel>Nome completo / Razão social *</FormLabel>
-                <FormControl><Input {...field} /></FormControl>
-                <FormMessage />
-              </FormItem>
-            )} />
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <FormField control={form.control} name="cpf_cnpj" render={({ field }) => (
-                <FormItem>
-                  <FormLabel>CPF / CNPJ *</FormLabel>
-                  <FormControl><Input {...field} /></FormControl>
-                  <FormMessage />
-                </FormItem>
-              )} />
-              <FormField control={form.control} name="telefone" render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Telefone / WhatsApp *</FormLabel>
-                  <FormControl><Input {...field} /></FormControl>
-                  <FormMessage />
-                </FormItem>
-              )} />
+            {fields.map((field) => {
+              const isCurrency = CURRENCY_FIELDS.has(field.field_id);
+              if (isCurrency) {
+                return (
+                  <div key={field.id} className="space-y-1.5">
+                    <label className="text-sm font-medium">
+                      {field.label}
+                      {field.is_required && <span className="text-destructive ml-1">*</span>}
+                    </label>
+                    <CurrencyInput
+                      value={values[field.field_id] || ""}
+                      onChange={(v) => setValue(field.field_id, v)}
+                      placeholder={field.placeholder || "R$ 0"}
+                    />
+                    {field.help_text && (
+                      <p className="text-xs text-muted-foreground">{field.help_text}</p>
+                    )}
+                  </div>
+                );
+              }
+              return (
+                <DynamicFieldRenderer
+                  key={field.id}
+                  field={field}
+                  value={values[field.field_id]}
+                  onChange={(v) => setValue(field.field_id, v)}
+                />
+              );
+            })}
+          </CardContent>
+        </Card>
+      ))}
+
+      {/* Cláusula fixa */}
+      <Card className="border-border bg-muted/50">
+        <CardContent className="pt-6">
+          <div className="flex gap-2 items-start">
+            <AlertTriangle className="h-5 w-5 text-muted-foreground shrink-0 mt-0.5" />
+            <div className="text-sm text-foreground space-y-2">
+              <p className="font-semibold">Cláusula de Documento Posterior</p>
+              <p>
+                Este documento serve exclusivamente para validação de valor e condições de pagamento.
+                Os demais termos, informações e condições completas — incluindo, sem limitar, obrigações das partes,
+                documentação, prazos, posse, responsabilidades, garantias, penalidades e formalização —
+                constarão do Instrumento de Promessa/Compromisso de Compra e Venda (ou Compra e Venda) a ser
+                apresentado após o aceite.
+              </p>
             </div>
-            <FormField control={form.control} name="email" render={({ field }) => (
-              <FormItem>
-                <FormLabel>E-mail</FormLabel>
-                <FormControl><Input type="email" {...field} /></FormControl>
-                <FormMessage />
-              </FormItem>
-            )} />
-          </CardContent>
-        </Card>
+          </div>
+        </CardContent>
+      </Card>
 
-        {/* Identificação do Imóvel */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-lg">Identificação do Imóvel</CardTitle>
-            <CardDescription>Apenas referência — sem detalhes de área, quartos ou vagas.</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <FormField control={form.control} name="endereco_resumido" render={({ field }) => (
-              <FormItem>
-                <FormLabel>Endereço (logradouro + nº + bairro) *</FormLabel>
-                <FormControl><Input {...field} /></FormControl>
-                <FormMessage />
-              </FormItem>
-            )} />
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <FormField control={form.control} name="unidade" render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Unidade (apto/casa/lote)</FormLabel>
-                    <FormControl><Input {...field} /></FormControl>
-                  </FormItem>
-                )} />
-                <FormField control={form.control} name="matricula" render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Matrícula (se disponível)</FormLabel>
-                    <FormControl><Input {...field} /></FormControl>
-                  </FormItem>
-                )} />
-            </div>
-          </CardContent>
-        </Card>
+      {/* CNH e Assinatura */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <CNHUpload onUpload={handleCNHUpload} isUploading={isUploadingCNH} uploadedUrl={cnhUrl} />
+        <PublicSignatureCanvas
+          title="Assinatura do Proponente"
+          description="Desenhe sua assinatura para confirmar a proposta"
+          onSave={(sig) => setAssinatura(sig)}
+        />
+      </div>
 
-        {/* Valor e Condições */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-lg">Valor Ofertado e Condições de Pagamento</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <FormField control={form.control} name="valor_ofertado" render={({ field }) => (
-              <FormItem>
-                <FormLabel>Valor total ofertado *</FormLabel>
-                <FormControl>
-                  <CurrencyInput value={field.value} onChange={field.onChange} placeholder="R$ 0" />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )} />
-            <FormField control={form.control} name="sinal_entrada" render={({ field }) => (
-              <FormItem>
-                <FormLabel>Sinal / Entrada</FormLabel>
-                <FormControl>
-                  <CurrencyInput value={field.value || ""} onChange={field.onChange} placeholder="R$ 0" />
-                </FormControl>
-              </FormItem>
-            )} />
-            <FormField control={form.control} name="parcelas" render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Parcelas (quantidade, valores e vencimentos)</FormLabel>
-                    <FormControl><Textarea rows={2} placeholder="Ex: 12x de R$ 10.000, vencimento dia 15" {...field} /></FormControl>
-                  </FormItem>
-                )} />
-                <FormField control={form.control} name="financiamento" render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Financiamento bancário</FormLabel>
-                    <FormControl>
-                      <CurrencyInput value={field.value || ""} onChange={field.onChange} placeholder="R$ 0" />
-                    </FormControl>
-                  </FormItem>
-                )} />
-            <FormField control={form.control} name="outras_condicoes" render={({ field }) => (
-              <FormItem>
-                <FormLabel>Outras condições (permuta, etc.)</FormLabel>
-                <FormControl><Textarea rows={2} {...field} /></FormControl>
-              </FormItem>
-            )} />
-          </CardContent>
-        </Card>
+      {!assinatura && (
+        <p className="text-sm text-muted-foreground text-center">
+          ⚠️ Confirme sua assinatura acima antes de enviar.
+        </p>
+      )}
 
-        <Card>
-            <CardHeader>
-              <CardTitle className="text-lg">Validade e Aceite</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <FormField control={form.control} name="cidade_uf" render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Cidade/UF</FormLabel>
-                    <FormControl><Input placeholder="Rio de Janeiro/RJ" {...field} /></FormControl>
-                  </FormItem>
-                )} />
-                <FormField control={form.control} name="validade_proposta" render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Validade da proposta</FormLabel>
-                    <FormControl><Input type="datetime-local" {...field} /></FormControl>
-                  </FormItem>
-                )} />
-              </div>
-              <FormField control={form.control} name="forma_aceite" render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Forma de aceite do vendedor</FormLabel>
-                  <FormControl>
-                    <RadioGroup onValueChange={field.onChange} defaultValue={field.value} className="flex flex-col gap-2">
-                      <div className="flex items-center space-x-2">
-                        <RadioGroupItem value="assinatura" id="aceite-assinatura" />
-                        <label htmlFor="aceite-assinatura" className="text-sm cursor-pointer">
-                          Assinatura neste documento
-                        </label>
-                      </div>
-                      <div className="flex items-center space-x-2">
-                        <RadioGroupItem value="escrito" id="aceite-escrito" />
-                        <label htmlFor="aceite-escrito" className="text-sm cursor-pointer">
-                          Aceite por escrito (e-mail/WhatsApp) com "ACEITO" + Nº da proposta + data
-                        </label>
-                      </div>
-                    </RadioGroup>
-                  </FormControl>
-                </FormItem>
-              )} />
-            </CardContent>
-        </Card>
-
-        <Card className="border-border bg-muted/50">
-            <CardContent className="pt-6">
-              <div className="flex gap-2 items-start">
-                <AlertTriangle className="h-5 w-5 text-muted-foreground shrink-0 mt-0.5" />
-                <div className="text-sm text-foreground space-y-2">
-                  <p className="font-semibold">Cláusula de Documento Posterior</p>
-                  <p>
-                    Este documento serve exclusivamente para validação de valor e condições de pagamento.
-                    Os demais termos, informações e condições completas — incluindo, sem limitar, obrigações das partes,
-                    documentação, prazos, posse, responsabilidades, garantias, penalidades e formalização —
-                    constarão do Instrumento de Promessa/Compromisso de Compra e Venda (ou Compra e Venda) a ser
-                    apresentado após o aceite.
-                  </p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-        {/* CNH e Assinatura lado a lado em desktop */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <CNHUpload onUpload={handleCNHUpload} isUploading={isUploadingCNH} uploadedUrl={cnhUrl} />
-          <PublicSignatureCanvas
-            title="Assinatura do Proponente"
-            description="Desenhe sua assinatura para confirmar a proposta"
-            onSave={(sig) => setAssinatura(sig)}
-          />
-        </div>
-
-        {!assinatura && (
-          <p className="text-sm text-muted-foreground text-center">
-            ⚠️ Confirme sua assinatura acima antes de enviar.
-          </p>
-        )}
-
-        <Button
-          type="submit"
-          className="w-full"
-          size="lg"
-          disabled={createProposta.isPending || !assinatura || !modelo}
-        >
-          {createProposta.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-          Enviar Proposta
-        </Button>
-      </form>
-    </Form>
+      <Button
+        type="submit"
+        className="w-full"
+        size="lg"
+        disabled={createProposta.isPending || !assinatura}
+      >
+        {createProposta.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+        Enviar Proposta
+      </Button>
+    </form>
   );
 }

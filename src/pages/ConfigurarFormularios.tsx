@@ -12,6 +12,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Settings, Plus, Pencil, Trash2, Save, ListChecks, Lock, CalendarCheck, MessageSquare, ClipboardCheck, FileText } from "lucide-react";
 import { useFormConfig, TipoFormulario, FormConfigSection, FormConfigField } from "@/hooks/useFormConfig";
@@ -36,12 +37,19 @@ const TAB_CONFIG: { value: TipoFormulario; label: string; icon: any }[] = [
   { value: "proposta_compra", label: "Proposta de Compra", icon: FileText },
 ];
 
+const PROPOSTA_MODELOS = [
+  { value: "simplificado", label: "Simplificado" },
+  { value: "completo", label: "Completo" },
+];
+
 function FormConfigTab({ tipoFormulario }: { tipoFormulario: TipoFormulario }) {
   const {
     data, isLoading,
     createSection, updateSection, deleteSection,
     createField, updateField, deleteField,
   } = useFormConfig(tipoFormulario);
+
+  const isProposta = tipoFormulario === "proposta_compra";
 
   const [sectionDialogOpen, setSectionDialogOpen] = useState(false);
   const [fieldDialogOpen, setFieldDialogOpen] = useState(false);
@@ -55,7 +63,17 @@ function FormConfigTab({ tipoFormulario }: { tipoFormulario: TipoFormulario }) {
   const [fieldToDelete, setFieldToDelete] = useState<FormConfigField | null>(null);
 
   const [sectionForm, setSectionForm] = useState({ section_id: "", title: "", description: "" });
-  const [fieldForm, setFieldForm] = useState({ field_id: "", label: "", field_type: "text", options: "", is_required: false, placeholder: "", help_text: "" });
+  const [fieldForm, setFieldForm] = useState({
+    field_id: "",
+    label: "",
+    field_type: "text",
+    options: "",
+    is_required: false,
+    is_active: true,
+    placeholder: "",
+    help_text: "",
+    modelos: [] as string[],
+  });
 
   const sections = useMemo(() => {
     if (!data?.sections) return [];
@@ -82,7 +100,17 @@ function FormConfigTab({ tipoFormulario }: { tipoFormulario: TipoFormulario }) {
   const openAddField = (sectionId: string) => {
     setSelectedSectionId(sectionId);
     setEditingField(null);
-    setFieldForm({ field_id: "", label: "", field_type: "text", options: "", is_required: false, placeholder: "", help_text: "" });
+    setFieldForm({
+      field_id: "",
+      label: "",
+      field_type: "text",
+      options: "",
+      is_required: false,
+      is_active: true,
+      placeholder: "",
+      help_text: "",
+      modelos: isProposta ? ["simplificado", "completo"] : [],
+    });
     setFieldDialogOpen(true);
   };
 
@@ -96,8 +124,10 @@ function FormConfigTab({ tipoFormulario }: { tipoFormulario: TipoFormulario }) {
       field_type: field.field_type,
       options: opts,
       is_required: field.is_required,
+      is_active: field.is_active,
       placeholder: field.placeholder || "",
       help_text: field.help_text || "",
+      modelos: Array.isArray(field.modelos) ? field.modelos : [],
     });
     setFieldDialogOpen(true);
   };
@@ -121,6 +151,10 @@ function FormConfigTab({ tipoFormulario }: { tipoFormulario: TipoFormulario }) {
       ? fieldForm.options.split(",").map(o => o.trim()).filter(Boolean)
       : null;
 
+    const modelosValue = isProposta
+      ? (fieldForm.modelos.length > 0 ? fieldForm.modelos : null)
+      : null;
+
     if (editingField) {
       await updateField.mutateAsync({
         id: editingField.id,
@@ -128,8 +162,10 @@ function FormConfigTab({ tipoFormulario }: { tipoFormulario: TipoFormulario }) {
         field_type: fieldForm.field_type,
         options: parsedOptions,
         is_required: fieldForm.is_required,
+        is_active: fieldForm.is_active,
         placeholder: fieldForm.placeholder || null,
         help_text: fieldForm.help_text || null,
+        modelos: modelosValue,
       });
     } else {
       await createField.mutateAsync({
@@ -141,13 +177,26 @@ function FormConfigTab({ tipoFormulario }: { tipoFormulario: TipoFormulario }) {
         is_required: fieldForm.is_required,
         is_locked: false,
         display_order: maxOrder + 1,
-        is_active: true,
+        is_active: fieldForm.is_active,
         placeholder: fieldForm.placeholder || null,
         help_text: fieldForm.help_text || null,
-        modelos: null,
+        modelos: modelosValue,
       });
     }
     setFieldDialogOpen(false);
+  };
+
+  const toggleModelo = (modelo: string, checked: boolean) => {
+    setFieldForm((prev) => {
+      const set = new Set(prev.modelos);
+      if (checked) set.add(modelo);
+      else set.delete(modelo);
+      return { ...prev, modelos: Array.from(set) };
+    });
+  };
+
+  const handleQuickToggleActive = async (field: FormConfigField, value: boolean) => {
+    await updateField.mutateAsync({ id: field.id, is_active: value });
   };
 
   const handleDeleteSection = async () => {
@@ -178,6 +227,11 @@ function FormConfigTab({ tipoFormulario }: { tipoFormulario: TipoFormulario }) {
             <Badge variant="outline" className="gap-1"><ListChecks className="h-3 w-3" /> {sections.length} seções</Badge>
             <Button onClick={openAddSection} size="sm" className="gap-1"><Plus className="h-4 w-4" /> Nova Seção</Button>
           </div>
+          {isProposta && (
+            <p className="text-xs text-muted-foreground mt-2">
+              Para a Proposta de Compra você pode definir em quais modelos cada campo aparece (Simplificado e/ou Completo) ao editar o campo.
+            </p>
+          )}
         </CardHeader>
         <CardContent>
           {sections.length === 0 ? (
@@ -201,19 +255,33 @@ function FormConfigTab({ tipoFormulario }: { tipoFormulario: TipoFormulario }) {
                     <AccordionContent className="pb-4">
                       <div className="space-y-2 mt-2">
                         {fields.map((field) => (
-                          <div key={field.id} className="flex items-start justify-between p-3 bg-muted/50 rounded-lg group">
+                          <div key={field.id} className={`flex items-start justify-between p-3 bg-muted/50 rounded-lg group ${!field.is_active ? "opacity-60" : ""}`}>
                             <div className="flex-1">
                               <div className="flex items-center gap-2 flex-wrap">
                                 <p className="text-sm font-medium">{field.label}</p>
                                 <Badge variant="outline" className="text-[10px]">{FIELD_TYPES.find(t => t.value === field.field_type)?.label || field.field_type}</Badge>
                                 {field.is_required && <Badge variant="destructive" className="text-[10px]">Obrigatório</Badge>}
                                 {field.is_locked && <Badge variant="secondary" className="text-[10px] gap-0.5"><Lock className="h-2.5 w-2.5" /> Sistema</Badge>}
+                                {!field.is_active && <Badge variant="outline" className="text-[10px]">Desativado</Badge>}
+                                {isProposta && Array.isArray(field.modelos) && field.modelos.length > 0 && field.modelos.map((m) => (
+                                  <Badge key={m} variant="outline" className="text-[10px] capitalize">{m}</Badge>
+                                ))}
+                                {isProposta && (!field.modelos || field.modelos.length === 0) && (
+                                  <Badge variant="outline" className="text-[10px]">Todos os modelos</Badge>
+                                )}
                               </div>
                               {field.options && Array.isArray(field.options) && field.options.length > 0 && (
                                 <p className="text-xs text-muted-foreground mt-1">Opções: {field.options.join(", ")}</p>
                               )}
                             </div>
-                            <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                            <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                              <div className="flex items-center gap-1.5 mr-1">
+                                <Switch
+                                  checked={field.is_active}
+                                  onCheckedChange={(v) => handleQuickToggleActive(field, v)}
+                                  aria-label="Ativar/desativar"
+                                />
+                              </div>
                               <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => openEditField(field)}>
                                 <Pencil className="h-3.5 w-3.5" />
                               </Button>
@@ -273,7 +341,7 @@ function FormConfigTab({ tipoFormulario }: { tipoFormulario: TipoFormulario }) {
 
       {/* Field Dialog */}
       <Dialog open={fieldDialogOpen} onOpenChange={setFieldDialogOpen}>
-        <DialogContent>
+        <DialogContent className="max-h-[90vh] overflow-y-auto">
           <DialogHeader><DialogTitle>{editingField ? "Editar Campo" : "Novo Campo"}</DialogTitle></DialogHeader>
           <div className="space-y-4 py-4">
             <div className="space-y-2">
@@ -313,6 +381,33 @@ function FormConfigTab({ tipoFormulario }: { tipoFormulario: TipoFormulario }) {
               <Switch checked={fieldForm.is_required} onCheckedChange={(v) => setFieldForm({ ...fieldForm, is_required: v })} />
               <Label>Campo obrigatório</Label>
             </div>
+            <div className="flex items-center gap-2">
+              <Switch checked={fieldForm.is_active} onCheckedChange={(v) => setFieldForm({ ...fieldForm, is_active: v })} />
+              <Label>Campo ativo (aparece no formulário)</Label>
+            </div>
+
+            {isProposta && (
+              <div className="space-y-2 rounded-md border p-3 bg-muted/30">
+                <Label className="text-sm">Aparece nos modelos de proposta</Label>
+                <p className="text-xs text-muted-foreground">
+                  Marque pelo menos um. Se nenhum estiver marcado, o campo aparecerá em ambos os modelos.
+                </p>
+                <div className="flex flex-wrap gap-4 pt-1">
+                  {PROPOSTA_MODELOS.map((m) => {
+                    const checked = fieldForm.modelos.includes(m.value);
+                    return (
+                      <label key={m.value} className="flex items-center gap-2 cursor-pointer">
+                        <Checkbox
+                          checked={checked}
+                          onCheckedChange={(v) => toggleModelo(m.value, !!v)}
+                        />
+                        <span className="text-sm">{m.label}</span>
+                      </label>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setFieldDialogOpen(false)}>Cancelar</Button>
@@ -363,12 +458,12 @@ export default function ConfigurarFormularios() {
             Configurar Formulários
           </h1>
           <p className="text-muted-foreground mt-1">
-            Gerencie seções e campos dos formulários de visita e feedback
+            Gerencie seções e campos dos formulários de visita, feedback e proposta
           </p>
         </div>
 
         <Tabs defaultValue="ficha_visita" className="w-full">
-          <TabsList className="grid w-full grid-cols-3">
+          <TabsList className="grid w-full grid-cols-2 sm:grid-cols-4">
             {TAB_CONFIG.map(t => (
               <TabsTrigger key={t.value} value={t.value} className="gap-1.5">
                 <t.icon className="h-4 w-4" />
