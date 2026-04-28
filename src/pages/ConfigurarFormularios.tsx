@@ -14,8 +14,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Switch } from "@/components/ui/switch";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Settings, Plus, Pencil, Trash2, Save, ListChecks, Lock, CalendarCheck, MessageSquare, ClipboardCheck, FileText } from "lucide-react";
+import { Settings, Plus, Pencil, Trash2, Save, ListChecks, Lock, CalendarCheck, MessageSquare, ClipboardCheck, FileText, Eye } from "lucide-react";
 import { useFormConfig, TipoFormulario, FormConfigSection, FormConfigField } from "@/hooks/useFormConfig";
+import { FormPreviewDialog } from "@/components/forms/FormPreviewDialog";
 
 const FIELD_TYPES = [
   { value: "text", label: "Texto curto" },
@@ -42,7 +43,7 @@ const PROPOSTA_MODELOS = [
   { value: "completo", label: "Completo" },
 ];
 
-function FormConfigTab({ tipoFormulario }: { tipoFormulario: TipoFormulario }) {
+function FormConfigTab({ tipoFormulario, tipoLabel }: { tipoFormulario: TipoFormulario; tipoLabel: string }) {
   const {
     data, isLoading,
     createSection, updateSection, deleteSection,
@@ -55,6 +56,7 @@ function FormConfigTab({ tipoFormulario }: { tipoFormulario: TipoFormulario }) {
   const [fieldDialogOpen, setFieldDialogOpen] = useState(false);
   const [deleteSectionDialogOpen, setDeleteSectionDialogOpen] = useState(false);
   const [deleteFieldDialogOpen, setDeleteFieldDialogOpen] = useState(false);
+  const [previewOpen, setPreviewOpen] = useState(false);
 
   const [editingSection, setEditingSection] = useState<FormConfigSection | null>(null);
   const [editingField, setEditingField] = useState<FormConfigField | null>(null);
@@ -225,7 +227,19 @@ function FormConfigTab({ tipoFormulario }: { tipoFormulario: TipoFormulario }) {
         <CardHeader className="pb-3">
           <div className="flex items-center justify-between">
             <Badge variant="outline" className="gap-1"><ListChecks className="h-3 w-3" /> {sections.length} seções</Badge>
-            <Button onClick={openAddSection} size="sm" className="gap-1"><Plus className="h-4 w-4" /> Nova Seção</Button>
+            <div className="flex items-center gap-2">
+              <Button
+                onClick={() => setPreviewOpen(true)}
+                size="sm"
+                variant="outline"
+                className="gap-1"
+                disabled={sections.length === 0}
+                title={sections.length === 0 ? "Adicione uma seção para visualizar" : "Visualizar formulário ativo"}
+              >
+                <Eye className="h-4 w-4" /> Visualizar
+              </Button>
+              <Button onClick={openAddSection} size="sm" className="gap-1"><Plus className="h-4 w-4" /> Nova Seção</Button>
+            </div>
           </div>
           {isProposta && (
             <p className="text-xs text-muted-foreground mt-2">
@@ -443,6 +457,15 @@ function FormConfigTab({ tipoFormulario }: { tipoFormulario: TipoFormulario }) {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <FormPreviewDialog
+        open={previewOpen}
+        onOpenChange={setPreviewOpen}
+        tipoFormulario={tipoFormulario}
+        tipoLabel={tipoLabel}
+        sections={data?.sections ?? []}
+        fields={data?.fields ?? []}
+      />
     </>
   );
 }
@@ -473,7 +496,7 @@ export default function ConfigurarFormularios() {
           </TabsList>
           {TAB_CONFIG.map(t => (
             <TabsContent key={t.value} value={t.value} className="mt-4">
-              <FormConfigTab tipoFormulario={t.value} />
+              <FormConfigTab tipoFormulario={t.value} tipoLabel={t.label} />
             </TabsContent>
           ))}
         </Tabs>
