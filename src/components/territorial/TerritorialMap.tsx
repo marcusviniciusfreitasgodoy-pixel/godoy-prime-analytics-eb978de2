@@ -312,7 +312,7 @@ export function TerritorialMap({
       </div>
 
       <TooltipProvider delayDuration={150}>
-        <div className="absolute bottom-4 left-2 md:left-4 z-[1000] bg-background/90 backdrop-blur rounded-lg p-2 md:p-3 shadow-md border border-border space-y-1.5 md:space-y-2">
+        <div className="absolute bottom-16 left-2 md:bottom-4 md:left-4 z-[1000] bg-background/95 backdrop-blur rounded-lg p-2 md:p-3 shadow-md border border-border space-y-1.5 md:space-y-2">
           <div className="flex items-center gap-1.5 md:gap-2">
             <Layers className="h-3.5 w-3.5 md:h-4 md:w-4 text-muted-foreground" />
             <Label htmlFor="heatmap-toggle" className="text-[10px] md:text-xs font-medium">Heatmap</Label>
