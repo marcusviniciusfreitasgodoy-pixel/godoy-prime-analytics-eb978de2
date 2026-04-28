@@ -48,6 +48,26 @@ export function useFormConfig(tipoFormulario: TipoFormulario) {
   const { data, isLoading } = useQuery({
     queryKey,
     queryFn: async () => {
+      // For proposta_compra, ensure the org has its own copy of the default template
+      if (tipoFormulario === "proposta_compra") {
+        const { data: profile } = await supabase
+          .from("profiles")
+          .select("organization_id")
+          .eq("id", (await supabase.auth.getUser()).data.user?.id ?? "")
+          .maybeSingle();
+        const orgId = (profile as any)?.organization_id;
+        if (orgId) {
+          const { count } = await supabase
+            .from("form_config_sections" as any)
+            .select("id", { count: "exact", head: true })
+            .eq("tipo_formulario", "proposta_compra")
+            .eq("organization_id", orgId);
+          if (!count || count === 0) {
+            await supabase.rpc("seed_proposta_compra_for_org" as any, { _org_id: orgId });
+          }
+        }
+      }
+
       const { data: sections, error: secError } = await supabase
         .from("form_config_sections" as any)
         .select("*")
