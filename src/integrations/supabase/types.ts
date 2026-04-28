@@ -351,6 +351,7 @@ export type Database = {
           file_path: string | null
           file_size_bytes: number | null
           id: string
+          modelo_usado: string | null
           organization_id: string | null
           proximos_passos: Json | null
           raw_response: string | null
@@ -375,6 +376,7 @@ export type Database = {
           file_path?: string | null
           file_size_bytes?: number | null
           id?: string
+          modelo_usado?: string | null
           organization_id?: string | null
           proximos_passos?: Json | null
           raw_response?: string | null
@@ -399,6 +401,7 @@ export type Database = {
           file_path?: string | null
           file_size_bytes?: number | null
           id?: string
+          modelo_usado?: string | null
           organization_id?: string | null
           proximos_passos?: Json | null
           raw_response?: string | null

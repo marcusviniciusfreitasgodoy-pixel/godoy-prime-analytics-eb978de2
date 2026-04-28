@@ -1,0 +1,1 @@
+ALTER TABLE public.document_analyses ADD COLUMN IF NOT EXISTS modelo_usado TEXT;
