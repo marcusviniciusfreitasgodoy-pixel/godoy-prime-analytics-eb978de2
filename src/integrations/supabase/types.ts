@@ -878,6 +878,7 @@ export type Database = {
           is_locked: boolean | null
           is_required: boolean | null
           label: string
+          modelos: string[] | null
           options: Json | null
           organization_id: string | null
           placeholder: string | null
@@ -896,6 +897,7 @@ export type Database = {
           is_locked?: boolean | null
           is_required?: boolean | null
           label: string
+          modelos?: string[] | null
           options?: Json | null
           organization_id?: string | null
           placeholder?: string | null
@@ -914,6 +916,7 @@ export type Database = {
           is_locked?: boolean | null
           is_required?: boolean | null
           label?: string
+          modelos?: string[] | null
           options?: Json | null
           organization_id?: string | null
           placeholder?: string | null

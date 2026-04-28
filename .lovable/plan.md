@@ -1,77 +1,52 @@
+# Editar o modelo de Proposta de Compra
 
-# Plano: Múltiplos Agentes de IA para Análise de Documentos
+## Diagnóstico
 
-Permitir que você escolha **qual agente de IA** usar a cada upload de documento, equilibrando velocidade, custo e profundidade conforme a complexidade do documento.
+Você está em **/configurar-formularios**, mas hoje essa tela só permite editar 3 formulários:
 
----
+- Ficha de Visita
+- Feedback Cliente
+- Feedback Corretor
 
-## Agentes que serão disponibilizados
+A **Proposta de Compra** (componentes `ProposalForm.tsx` e `ProposalModelSelector.tsx`, com modelos "Simplificado" e "Completo") **não está cadastrada como um tipo de formulário configurável**. Por isso você não vê nada para editar — a aba não existe.
 
-Quatro perfis cuidadosamente escolhidos para cobrir os cenários reais do corretor:
+Além disso, ao contrário da Ficha de Visita (que é totalmente dinâmica via `form_config_sections` / `form_config_fields`), a Proposta hoje tem campos **fixos no código** (valor ofertado, sinal, parcelas, financiamento, validade, etc.), divididos em dois layouts hard-coded: simplificado e completo.
 
-| Agente | Modelo (interno) | Quando usar | Velocidade | Profundidade |
-|---|---|---|---|---|
-| **Análise Rápida** | google/gemini-3-flash-preview | Triagem rápida, IPTU, condomínio, declarações simples | Muito rápida (~5s) | Boa |
-| **Análise Equilibrada** | google/gemini-2.5-flash | Documentos do dia a dia, contratos padrão | Rápida (~10s) | Muito boa |
-| **Análise Profunda** *(padrão atual)* | google/gemini-2.5-pro | Matrículas, escrituras, certidões de ônus reais | Média (~20-30s) | Excelente |
-| **Análise Jurídica Premium** | openai/gpt-5 | Pareceres complexos, múltiplas cláusulas, due diligence crítica | Lenta (~30-45s) | Máxima |
+## O que vou fazer
 
-> Os nomes mostrados na tela serão amigáveis (ex.: "Análise Rápida"), sem expor detalhes técnicos do modelo.
+### 1. Adicionar "Proposta de Compra" como tipo de formulário configurável
+- Estender o tipo `TipoFormulario` em `src/hooks/useFormConfig.ts` para incluir `"proposta_compra"`.
+- Adicionar a aba na tela `/configurar-formularios` com ícone `FileText`, ao lado das outras 3.
+- Criar migration SQL inserindo as **seções e campos padrão da Proposta** (seções: Identificação do Proponente, Imóvel, Condições Comerciais, Validade e Aceite) populando `form_config_sections` e `form_config_fields` com `tipo_formulario = 'proposta_compra'`.
+- Marcar como `is_locked = true` os campos críticos (nome, CPF, valor ofertado, assinatura) para evitar que sejam excluídos por engano.
 
----
+### 2. Permitir escolher quais campos aparecem em cada modelo
+- Adicionar uma coluna nova `modelos` (text[]) em `form_config_fields` indicando em quais modelos o campo aparece (`['simplificado','completo']` ou só `['completo']`).
+- Na UI de edição do campo (já existente), incluir checkboxes "Aparece em: Simplificado / Completo".
 
-## O que muda na interface (página Documentação)
+### 3. Tornar o `ProposalForm.tsx` dinâmico
+- Refatorar `ProposalForm.tsx` para ler a configuração ativa via `useFormConfig("proposta_compra").activeConfig` e renderizar os campos com `DynamicFieldRenderer` (igual a Ficha de Visita).
+- Filtrar os campos pelo modelo selecionado (simplificado/completo) usando a nova coluna `modelos`.
+- Manter a lógica especial de assinatura, upload de CNH e cálculo de valores que não são campos comuns.
 
-1. **Novo seletor de agente** acima da área de upload, com:
-   - Cards visuais para cada um dos 4 agentes (ícone, nome, descrição curta, badge de velocidade)
-   - Padrão pré-selecionado: **Análise Profunda** (mantém o comportamento atual)
-   - Tooltip explicando "quando usar cada um"
+### 4. PDF da proposta
+- Atualizar `src/utils/propostaPdfExport.ts` para renderizar dinamicamente os campos configurados, mantendo o cabeçalho/rodapé padrão.
 
-2. **Indicação visual no resultado**: cada análise no histórico mostrará qual agente foi usado (badge discreto), para você comparar resultados.
+## Detalhes técnicos
 
-3. **Memória da última escolha**: o seletor lembra o último agente escolhido (localStorage), para não precisar reconfigurar a cada upload.
+**Arquivos alterados/criados:**
+- `supabase/migrations/...` — adiciona coluna `modelos text[]` em `form_config_fields`, insere seções/campos padrão da proposta.
+- `src/hooks/useFormConfig.ts` — adiciona `"proposta_compra"` ao tipo.
+- `src/pages/ConfigurarFormularios.tsx` — adiciona entrada no `TAB_CONFIG`, e checkboxes de modelo no diálogo de campo.
+- `src/components/visitas/ProposalForm.tsx` — refator para ler config dinâmica.
+- `src/utils/propostaPdfExport.ts` — render dinâmico dos campos.
+- `src/integrations/supabase/types.ts` — atualizado automaticamente.
 
----
+**Compatibilidade:** os campos críticos da tabela `propostas_compra` permanecem (valor_ofertado, cpf_cnpj, assinatura, etc.). Apenas a apresentação/coleta passa a ser configurável; o schema do banco não muda.
 
-## Mudanças técnicas (resumo)
+## Confirmações antes de implementar
 
-1. **Edge function `analyze-document`**:
-   - Aceitar parâmetro `model` no body da requisição
-   - Validar contra whitelist de 4 modelos permitidos (segurança)
-   - Ajustar `reasoning.effort` automaticamente: `high` para Pro/GPT-5, `medium` para Flash, `low` para Flash-preview
-   - Manter fallback para `gemini-2.5-pro` se nenhum modelo for enviado (compatibilidade)
+1. Você quer poder **adicionar/remover/renomear campos** da proposta (ex.: criar campo "Origem do recurso"), ou apenas **mostrar/ocultar** os campos existentes?
+2. Manter os 2 modelos atuais (Simplificado / Completo) e só configurar quais campos aparecem em cada, ou você quer poder **criar novos modelos** (ex.: "Proposta Comercial")?
 
-2. **Banco de dados** (`document_analyses`):
-   - Adicionar coluna `modelo_usado` (text) para registrar qual agente gerou a análise
-   - Migração simples, sem perda de dados existentes
-
-3. **Componente `DocumentAnalyzer.tsx`**:
-   - Novo subcomponente `AgentSelector` com os 4 cards
-   - Estado `selectedAgent` propagado no `fetch` para a edge function
-   - Persistência em localStorage
-
-4. **Histórico de Documentos** (`HistoricoDocumentos.tsx`):
-   - Novo badge "Agente: [nome]" ao lado do tipo de documento
-   - Filtro opcional por agente usado
-
----
-
-## Considerações importantes
-
-- **Custo**: cada agente tem custo diferente no Lovable AI. O agente "Premium" (GPT-5) consome mais créditos por análise. O texto explicativo no seletor avisará isso.
-- **Limite de páginas**: continua em 5 páginas por documento (limite atual da função), independente do agente.
-- **Resultado estruturado**: todos os 4 agentes retornam o mesmo JSON estruturado, garantindo compatibilidade total com o histórico, PDFs e checklists já existentes.
-- **Sem quebra**: análises antigas (sem `modelo_usado`) continuarão funcionando — o badge simplesmente não aparecerá nelas.
-
----
-
-## Arquivos que serão alterados
-
-- `supabase/functions/analyze-document/index.ts` — aceitar `model` parametrizado
-- `src/components/DocumentAnalyzer.tsx` — adicionar seletor de agente
-- `src/components/AgentSelector.tsx` *(novo)* — UI dos 4 cards
-- `src/pages/HistoricoDocumentos.tsx` — exibir agente usado
-- `src/hooks/useDocumentAnalyses.ts` — adicionar `modelo_usado` ao tipo
-- **Migração SQL** — adicionar coluna `modelo_usado` em `document_analyses`
-
-Após aprovar, eu implemento tudo e você poderá testar imediatamente escolhendo agentes diferentes para um mesmo documento e comparar os resultados.
+Se preferir, posso começar pela versão mais simples: cadastrar a Proposta como tipo configurável com os campos atuais e permitir mostrar/ocultar e reordenar — sem criar modelos novos. É o caminho mais rápido para você conseguir editar hoje.

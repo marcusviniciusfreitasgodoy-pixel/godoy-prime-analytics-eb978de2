@@ -13,7 +13,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Settings, Plus, Pencil, Trash2, Save, ListChecks, Lock, CalendarCheck, MessageSquare, ClipboardCheck } from "lucide-react";
+import { Settings, Plus, Pencil, Trash2, Save, ListChecks, Lock, CalendarCheck, MessageSquare, ClipboardCheck, FileText } from "lucide-react";
 import { useFormConfig, TipoFormulario, FormConfigSection, FormConfigField } from "@/hooks/useFormConfig";
 
 const FIELD_TYPES = [
@@ -33,6 +33,7 @@ const TAB_CONFIG: { value: TipoFormulario; label: string; icon: any }[] = [
   { value: "ficha_visita", label: "Ficha de Visita", icon: CalendarCheck },
   { value: "feedback_cliente", label: "Feedback Cliente", icon: MessageSquare },
   { value: "feedback_corretor", label: "Feedback Corretor", icon: ClipboardCheck },
+  { value: "proposta_compra", label: "Proposta de Compra", icon: FileText },
 ];
 
 function FormConfigTab({ tipoFormulario }: { tipoFormulario: TipoFormulario }) {
@@ -143,6 +144,7 @@ function FormConfigTab({ tipoFormulario }: { tipoFormulario: TipoFormulario }) {
         is_active: true,
         placeholder: fieldForm.placeholder || null,
         help_text: fieldForm.help_text || null,
+        modelos: null,
       });
     }
     setFieldDialogOpen(false);
