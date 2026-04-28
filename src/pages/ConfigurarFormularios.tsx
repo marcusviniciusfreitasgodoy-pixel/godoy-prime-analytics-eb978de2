@@ -43,6 +43,18 @@ const PROPOSTA_MODELOS = [
   { value: "completo", label: "Completo" },
 ];
 
+// Aceita opções no formato string[] ou {label,value}[] e devolve apenas os labels.
+const optionLabels = (raw: any): string[] => {
+  if (!Array.isArray(raw)) return [];
+  return raw
+    .map((o: any) => {
+      if (typeof o === "string" || typeof o === "number") return String(o);
+      if (o && typeof o === "object") return String(o.label ?? o.value ?? "");
+      return "";
+    })
+    .filter((s) => s !== "");
+};
+
 function FormConfigTab({ tipoFormulario, tipoLabel }: { tipoFormulario: TipoFormulario; tipoLabel: string }) {
   const {
     data, isLoading,
@@ -119,7 +131,7 @@ function FormConfigTab({ tipoFormulario, tipoLabel }: { tipoFormulario: TipoForm
   const openEditField = (field: FormConfigField) => {
     setSelectedSectionId(field.section_id);
     setEditingField(field);
-    const opts = Array.isArray(field.options) ? field.options.join(", ") : "";
+    const opts = optionLabels(field.options).join(", ");
     setFieldForm({
       field_id: field.field_id,
       label: field.label,
@@ -284,8 +296,8 @@ function FormConfigTab({ tipoFormulario, tipoLabel }: { tipoFormulario: TipoForm
                                   <Badge variant="outline" className="text-[10px]">Todos os modelos</Badge>
                                 )}
                               </div>
-                              {field.options && Array.isArray(field.options) && field.options.length > 0 && (
-                                <p className="text-xs text-muted-foreground mt-1">Opções: {field.options.join(", ")}</p>
+                              {Array.isArray(field.options) && optionLabels(field.options).length > 0 && (
+                                <p className="text-xs text-muted-foreground mt-1">Opções: {optionLabels(field.options).join(", ")}</p>
                               )}
                             </div>
                             <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
