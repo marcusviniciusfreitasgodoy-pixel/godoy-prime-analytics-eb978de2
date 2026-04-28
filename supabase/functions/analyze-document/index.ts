@@ -377,6 +377,8 @@ serve(async (req) => {
 
     console.log('Document analysis completed:', analysisResult.tipo_documento, '| Status:', analysisResult.status);
 
+    analysisResult.modelo_usado = selectedModel;
+
     return new Response(JSON.stringify(analysisResult), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
