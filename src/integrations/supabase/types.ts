@@ -3491,6 +3491,7 @@ export type Database = {
           logradouro: string
         }[]
       }
+      get_plan_max_users: { Args: { _plan: string }; Returns: number }
       get_territorial_kpis: {
         Args: never
         Returns: {
