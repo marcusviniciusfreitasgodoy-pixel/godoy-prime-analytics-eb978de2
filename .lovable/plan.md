@@ -1,59 +1,72 @@
-## Enforcement de limite de usuários por organização (plano)
+## Problema
 
-Hoje o sistema já tem a infraestrutura parcial: a tabela `organizations` tem `max_users`, existe a função `check_org_limits`, e a tela de Usuários (`src/pages/Usuarios.tsx`) já consulta `limits.users.allowed` antes de enviar convite. **Mas três falhas permitem burlar o limite:**
+Ao clicar em **Visualizar** em `/configurar-formularios`, a página quebra com:
 
-1. A contagem usada por `check_org_limits` ignora **convites pendentes** — um admin pode disparar 50 convites e todos serão aceitos.
-2. **Não há trigger no banco** bloqueando inserts em `organization_invites` ou em `profiles` (qualquer chamada direta à API contorna o frontend).
-3. `max_users` não está sincronizado com o plano contratado (a org existente está com 999 manualmente).
+> Objects are not valid as a React child (found: object with keys {label, value})
 
-### O que será feito
+### Causa raiz
 
-#### 1. Migração SQL — função e trigger de enforcement
+Vários campos existentes no banco (ex.: `qualificacao_lead`, `nivel_interesse`, `prazo_compra`) têm `options` no formato:
 
-- **Atualizar `check_org_limits`**: para `_resource_type = 'users'`, somar `COUNT(profiles WHERE organization_id = _org_id)` + `COUNT(organization_invites WHERE organization_id = _org_id AND accepted_at IS NULL AND expires_at > now())`. Isso reflete o uso real (já contratado + reservado).
-- **Nova função `enforce_org_user_limit()`** (trigger function, `SECURITY DEFINER`, `SET search_path = public`):
-  - Em `BEFORE INSERT` em `organization_invites`: lê `max_users`, conta profiles + convites pendentes da org, e se `>= max_users`, faz `RAISE EXCEPTION 'Limite de usuários do plano atingido (X/Y). Faça upgrade para adicionar mais corretores.'`.
-  - Em `BEFORE INSERT OR UPDATE OF organization_id` em `profiles`: idem (apenas conta profiles, ignora convites para não bloquear o aceite que consome o convite).
-- **Triggers**:
-  - `trg_enforce_user_limit_invite BEFORE INSERT ON organization_invites`.
-  - `trg_enforce_user_limit_profile BEFORE INSERT OR UPDATE OF organization_id ON profiles`.
-- **Função helper `get_plan_max_users(plan text)`** retorna: `starter → 3`, `pro → 10`, `enterprise → 999`.
-- **Trigger `trg_set_max_users_on_plan_change BEFORE INSERT OR UPDATE OF plan ON organizations`**: define automaticamente `NEW.max_users = get_plan_max_users(NEW.plan)` quando o plano muda (mantém manualmente sobreponível por superadmin se necessário, mas garante consistência por padrão).
+```json
+[{ "label": "Frio", "value": "frio" }, { "label": "Morno", "value": "morno" }]
+```
 
-#### 2. Backfill de dados (insert tool, após aprovar a migração)
+Mas o `DynamicFieldRenderer` (usado pelo dialog de pré-visualização) trata cada opção como **string simples**:
 
-- Atualizar `organizations.max_users` para todas as orgs conforme `get_plan_max_users(plan)`.
-- A org "Godoy Prime Realty" (enterprise) ficará com 999 — sem mudança prática.
+```tsx
+// src/components/forms/DynamicFieldRenderer.tsx (select e radio)
+{options.map((opt: string) => (
+  <SelectItem key={opt} value={opt}>{opt}</SelectItem>
+))}
+```
 
-#### 3. Frontend — `src/pages/Usuarios.tsx` e `src/contexts/OrganizationContext.tsx`
+Quando `opt` é um objeto, `value={opt}` e `{opt}` jogam o erro do React, derrubando a página inteira (ErrorBoundary).
 
-- **Contexto**: `OrganizationContext` continuará lendo `check_org_limits` (que agora já considera convites). Sem mudança de assinatura.
-- **Tela Usuários**:
-  - Exibir badge no topo: `Usuários: X de Y (plano Pro)` com cor de alerta quando `current >= max - 1`.
-  - Desabilitar o botão "Convidar Usuário" quando `!limits.users.allowed`, com tooltip "Limite do plano atingido — faça upgrade".
-  - Tratar mensagem de erro do trigger (`error.message` começando com "Limite de usuários") e mostrar toast amigável + CTA "Ver planos".
-  - Mostrar contador de convites pendentes consumindo vagas: `2 ativos + 1 convite pendente = 3/3`.
+A listagem da página (`ConfigurarFormularios.tsx` linha 288) também imprime `field.options.join(", ")`, gerando `"[object Object], [object Object]"` em vez dos labels reais — funciona, mas fica feio.
 
-#### 4. Documentação na UI
+## Correção
 
-- Adicionar nota no diálogo de convite: "Convites pendentes contam como vaga ocupada até serem aceitos ou expirarem (7 dias)."
+### 1. `src/components/forms/DynamicFieldRenderer.tsx`
 
-### Detalhes técnicos
+Adicionar um helper que normaliza cada opção para `{ label, value }`, aceitando os 3 formatos suportados:
 
-- **Bypass admin**: `superadmin` não bypassa o limite por padrão (regra de negócio = cobrança por tier). Se quiser permitir override, a função pode checar `has_role(invited_by, 'superadmin')` — confirmar antes de implementar.
-- **Aceite de convite**: quando `organization_invites.accepted_at` é setado e o `profile` é inserido, o profile insert ainda passa pelo trigger; mas como o convite ainda existe (apenas com `accepted_at` preenchido), a fórmula da função filtra `accepted_at IS NULL`, então não conta duas vezes.
-- **Compatibilidade**: a função `check_org_limits` mantém a mesma assinatura — nenhum código frontend precisa ser alterado por causa dela.
-- **Limites por plano** (centralizados no banco):
-  - `starter` → 3 usuários
-  - `pro` → 10 usuários
-  - `enterprise` → 999 usuários (efetivamente ilimitado)
+- `"texto"` → `{ label: "texto", value: "texto" }`
+- `{ label, value }` → mantém
+- `{ value }` ou `{ label }` → preenche o que faltar
 
-### Arquivos afetados
+Usar nas branches `select`, `radio` e `checkbox` (essa última hoje nem renderiza opções múltiplas — vamos manter como está, mas blindar).
 
-- **Nova migração**: `supabase/migrations/<timestamp>_enforce_org_user_limit.sql`
-- **Insert (após migração)**: `UPDATE organizations SET max_users = get_plan_max_users(plan)`
-- **Editado**: `src/pages/Usuarios.tsx` (badge, disable, mensagens)
+```tsx
+type RawOption = string | { label?: string; value?: string };
+const normalizeOptions = (raw: any): { label: string; value: string }[] =>
+  Array.isArray(raw)
+    ? raw.map((o: RawOption) =>
+        typeof o === "string"
+          ? { label: o, value: o }
+          : { label: String(o?.label ?? o?.value ?? ""), value: String(o?.value ?? o?.label ?? "") }
+      ).filter(o => o.value !== "")
+    : [];
+```
 
-### Pergunta antes de implementar
+E usar `opt.value` como `key`/`value` e `opt.label` como conteúdo visível.
 
-Quer que `superadmin` (você) possa **ultrapassar** o limite manualmente (ex.: cliente VIP), ou o limite vale para todos sem exceção?
+### 2. `src/pages/ConfigurarFormularios.tsx` — linha 288
+
+Trocar `field.options.join(", ")` por uma renderização que extraia o label de cada item (string ou `{label}`), mostrando algo legível na listagem das seções.
+
+### 3. `openEditField` (linha 122) — pequena melhoria
+
+Hoje, ao editar um campo cujas opções são objetos, o input "Opções (separadas por vírgula)" recebe `"[object Object], [object Object]"`. Vamos extrair o `label` de cada item para o usuário ver e poder editar como texto. (As opções continuarão sendo salvas como array de strings ao salvar, mantendo o comportamento atual de `handleSaveField`.)
+
+## Escopo
+
+- Arquivos editados: `src/components/forms/DynamicFieldRenderer.tsx`, `src/pages/ConfigurarFormularios.tsx`.
+- Sem migração de banco — manteremos compatibilidade com ambos os formatos (`string[]` e `{label,value}[]`).
+- Sem mudança em `BrokerFeedbackForm`, `FeedbackForm`, `ProposalForm` (eles também usam `DynamicFieldRenderer`, então ganham a correção automaticamente).
+
+## Resultado esperado
+
+- Botão **Visualizar** abre o dialog sem quebrar a página, mesmo para formulários como Feedback Corretor que usam opções `{label,value}`.
+- Listagem de campos exibe rótulos legíveis em vez de `[object Object]`.
+- Edição de campos com opções no formato objeto mostra os labels editáveis como texto separado por vírgula.
