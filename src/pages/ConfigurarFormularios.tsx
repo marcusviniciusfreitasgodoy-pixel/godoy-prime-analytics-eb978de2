@@ -144,6 +144,7 @@ function FormConfigTab({ tipoFormulario }: { tipoFormulario: TipoFormulario }) {
         is_active: true,
         placeholder: fieldForm.placeholder || null,
         help_text: fieldForm.help_text || null,
+        modelos: null,
       });
     }
     setFieldDialogOpen(false);
