@@ -1,4 +1,4 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useQueryClient } from "@tanstack/react-query";
@@ -19,6 +19,7 @@ import {
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
 import { LegalDisclaimer } from "@/components/LegalDisclaimer";
+import { AgentSelector, AGENTS, DEFAULT_AGENT, getAgentById, type AgentId } from "@/components/AgentSelector";
 
 interface AnalysisResult {
   tipo_documento: string;
@@ -31,6 +32,7 @@ interface AnalysisResult {
   proximos_passos: string[];
   confianca: 'ALTA' | 'MEDIA' | 'BAIXA';
   raw_response?: string;
+  modelo_usado?: string;
 }
 
 interface DocumentFile {
@@ -51,6 +53,14 @@ export function DocumentAnalyzer({ onChecklistItemSuggested }: DocumentAnalyzerP
   const [documents, setDocuments] = useState<DocumentFile[]>([]);
   const [isAnalyzingBatch, setIsAnalyzingBatch] = useState(false);
   const [expandedDoc, setExpandedDoc] = useState<string | null>(null);
+  const [selectedAgent, setSelectedAgent] = useState<AgentId>(() => {
+    if (typeof window === "undefined") return DEFAULT_AGENT;
+    const saved = localStorage.getItem("documentAnalyzer.agent") as AgentId | null;
+    return AGENTS.some((a) => a.id === saved) ? (saved as AgentId) : DEFAULT_AGENT;
+  });
+  useEffect(() => {
+    try { localStorage.setItem("documentAnalyzer.agent", selectedAgent); } catch {}
+  }, [selectedAgent]);
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -89,6 +99,7 @@ export function DocumentAnalyzer({ onChecklistItemSuggested }: DocumentAnalyzerP
         proximos_passos: result.proximos_passos || [],
         confianca: result.confianca,
         raw_response: result.raw_response,
+        modelo_usado: result.modelo_usado || null,
       });
       if (insertErr) console.error("Persist analysis error:", insertErr);
       else queryClient.invalidateQueries({ queryKey: ["document-analyses"] });
@@ -223,6 +234,7 @@ export function DocumentAnalyzer({ onChecklistItemSuggested }: DocumentAnalyzerP
         images,
         mimeType,
         filename: doc.file.name,
+        model: selectedAgent,
       }),
     });
 
@@ -393,6 +405,13 @@ export function DocumentAnalyzer({ onChecklistItemSuggested }: DocumentAnalyzerP
       <CardContent className="space-y-4 px-3 sm:px-6">
         {/* Aviso Legal */}
         <LegalDisclaimer variant="full" />
+
+        {/* Seletor de Agente de IA */}
+        <AgentSelector
+          value={selectedAgent}
+          onChange={setSelectedAgent}
+          disabled={isAnalyzingBatch}
+        />
 
         {/* Upload Area */}
         <div

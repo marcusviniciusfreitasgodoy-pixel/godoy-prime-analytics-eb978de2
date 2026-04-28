@@ -25,6 +25,7 @@ export interface DocumentAnalysisRecord {
   updated_at: string;
   file_expires_at: string | null;
   expires_at: string | null;
+  modelo_usado: string | null;
 }
 
 export const FILE_RETENTION_DAYS = 30;

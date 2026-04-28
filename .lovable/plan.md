@@ -1,63 +1,77 @@
 
+# Plano: Múltiplos Agentes de IA para Análise de Documentos
 
-## Plano: Pesquisa v3 — Detalhamento Completo + Uso Atual + Identificação Mínima
+Permitir que você escolha **qual agente de IA** usar a cada upload de documento, equilibrando velocidade, custo e profundidade conforme a complexidade do documento.
 
-### Mudanças vs v2
+---
 
-| Item | v2 (atual) | v3 (novo) |
-|---|---|---|
-| Profundidade | Resumido (1 linha) | **Completo** (descrição + exemplo prático + benefício) |
-| Escala | Alta / Média / Baixa | **Uso atual (Sim/Não)** + **Relevância (Alta/Média/Baixa)** |
-| Identificação | Anônima | **Mínima** (nome da imobiliária + cargo) |
-| "Dor que resolve" | Mantida | Mantida (já cumpre parte do detalhamento) |
+## Agentes que serão disponibilizados
 
-### Estrutura nova de cada item
+Quatro perfis cuidadosamente escolhidos para cobrir os cenários reais do corretor:
 
-Cada **funcionalidade** vira um bloco com 3 linhas curtas + 1 tabela de marcação:
+| Agente | Modelo (interno) | Quando usar | Velocidade | Profundidade |
+|---|---|---|---|---|
+| **Análise Rápida** | google/gemini-3-flash-preview | Triagem rápida, IPTU, condomínio, declarações simples | Muito rápida (~5s) | Boa |
+| **Análise Equilibrada** | google/gemini-2.5-flash | Documentos do dia a dia, contratos padrão | Rápida (~10s) | Muito boa |
+| **Análise Profunda** *(padrão atual)* | google/gemini-2.5-pro | Matrículas, escrituras, certidões de ônus reais | Média (~20-30s) | Excelente |
+| **Análise Jurídica Premium** | openai/gpt-5 | Pareceres complexos, múltiplas cláusulas, due diligence crítica | Lenta (~30-45s) | Máxima |
 
-> **Nome da funcionalidade**
-> *Dor que resolve:* [texto curto]
-> *Como funciona:* [1-2 linhas explicando o fluxo prático na plataforma]
-> *Benefício esperado:* [1 linha de ganho concreto — tempo, conversão, segurança jurídica, etc.]
->
-> | Já uso hoje? | Relevância para meu dia a dia |
-> |---|---|
-> | ☐ Sim · ☐ Não | ☐ Alta · ☐ Média · ☐ Baixa |
+> Os nomes mostrados na tela serão amigáveis (ex.: "Análise Rápida"), sem expor detalhes técnicos do modelo.
 
-Mesmo padrão (mais enxuto) para **informações geradas** — descrição de 1 linha + tabela de marcação.
+---
 
-### Nova seção de Identificação (no início)
+## O que muda na interface (página Documentação)
 
-Bloco "Identificação da Imobiliária" antes do conteúdo:
-- Nome da imobiliária: ____________________
-- Cargo do respondente: ____________________
-- (Opcional) Nº de corretores: ___ · Bairros de atuação: ___________
+1. **Novo seletor de agente** acima da área de upload, com:
+   - Cards visuais para cada um dos 4 agentes (ícone, nome, descrição curta, badge de velocidade)
+   - Padrão pré-selecionado: **Análise Profunda** (mantém o comportamento atual)
+   - Tooltip explicando "quando usar cada um"
 
-### Módulos cobertos (mesmos 21 da v2)
+2. **Indicação visual no resultado**: cada análise no histórico mostrará qual agente foi usado (badge discreto), para você comparar resultados.
 
-Painel Analítico · Microrregiões · Inteligência Territorial · Pesquisas de Mercado · Motor de Avaliação · Histórico de Avaliações · Vistoria Digital · Histórico de Vistorias · Estratégia de Precificação · Análise de Documentação IA · Documentação Comprador/Vendedor · Histórico de Documentos · Gestão de Visitas · Feedback de Visitas · Propostas Digitais · Pipeline CRM · Gestão de Leads · Sofia IA · Avaliação Pública · Configurações & Branding · Manual/Onboarding/Tour
+3. **Memória da última escolha**: o seletor lembra o último agente escolhido (localStorage), para não precisar reconfigurar a cada upload.
 
-### Seção final (mantida)
+---
 
-Funcionalidades ausentes (10 linhas) · 3 módulos essenciais · 3 módulos menos usados · comentários gerais (10 linhas).
+## Mudanças técnicas (resumo)
 
-### Visual
+1. **Edge function `analyze-document`**:
+   - Aceitar parâmetro `model` no body da requisição
+   - Validar contra whitelist de 4 modelos permitidos (segurança)
+   - Ajustar `reasoning.effort` automaticamente: `high` para Pro/GPT-5, `medium` para Flash, `low` para Flash-preview
+   - Manter fallback para `gemini-2.5-pro` se nenhum modelo for enviado (compatibilidade)
 
-- A4, margens 2 cm, fonte Helvetica/Arial
-- Navy `#0C2340` em títulos · Gold `#D4AF37` em separadores de módulo
-- Cada item em "card" com leve borda inferior cinza para separar visualmente
-- Tabelas de marcação compactas (2 colunas, ~3 cm cada)
-- **Estimativa: ~30–35 páginas** (significativamente maior que a v2 por causa do detalhamento completo)
+2. **Banco de dados** (`document_analyses`):
+   - Adicionar coluna `modelo_usado` (text) para registrar qual agente gerou a análise
+   - Migração simples, sem perda de dados existentes
 
-### Execução
+3. **Componente `DocumentAnalyzer.tsx`**:
+   - Novo subcomponente `AgentSelector` com os 4 cards
+   - Estado `selectedAgent` propagado no `fetch` para a edge function
+   - Persistência em localStorage
 
-1. Script Python `/tmp/gerar_pesquisa_v3.py` usando `python-docx`:
-   - Estrutura de dados com tuplas `(nome, dor, como_funciona, beneficio)` por funcionalidade
-   - Geração DOCX com blocos formatados + tabelas 2x2 de marcação
-   - Conversão DOCX → PDF via LibreOffice headless
-2. Saída em `/mnt/documents/`:
-   - `Pesquisa_Imobiliarias_Godoy_Prime_v3.docx`
-   - `Pesquisa_Imobiliarias_Godoy_Prime_v3.pdf`
-3. **QA obrigatório:** `pdftoppm` em todas as páginas — verificar quebras de página no meio de cards, alinhamento das tabelas Sim/Não · A/M/B, espaçamento entre módulos.
-4. Entrega via `<lov-artifact>` (DOCX + PDF).
+4. **Histórico de Documentos** (`HistoricoDocumentos.tsx`):
+   - Novo badge "Agente: [nome]" ao lado do tipo de documento
+   - Filtro opcional por agente usado
 
+---
+
+## Considerações importantes
+
+- **Custo**: cada agente tem custo diferente no Lovable AI. O agente "Premium" (GPT-5) consome mais créditos por análise. O texto explicativo no seletor avisará isso.
+- **Limite de páginas**: continua em 5 páginas por documento (limite atual da função), independente do agente.
+- **Resultado estruturado**: todos os 4 agentes retornam o mesmo JSON estruturado, garantindo compatibilidade total com o histórico, PDFs e checklists já existentes.
+- **Sem quebra**: análises antigas (sem `modelo_usado`) continuarão funcionando — o badge simplesmente não aparecerá nelas.
+
+---
+
+## Arquivos que serão alterados
+
+- `supabase/functions/analyze-document/index.ts` — aceitar `model` parametrizado
+- `src/components/DocumentAnalyzer.tsx` — adicionar seletor de agente
+- `src/components/AgentSelector.tsx` *(novo)* — UI dos 4 cards
+- `src/pages/HistoricoDocumentos.tsx` — exibir agente usado
+- `src/hooks/useDocumentAnalyses.ts` — adicionar `modelo_usado` ao tipo
+- **Migração SQL** — adicionar coluna `modelo_usado` em `document_analyses`
+
+Após aprovar, eu implemento tudo e você poderá testar imediatamente escolhendo agentes diferentes para um mesmo documento e comparar os resultados.
