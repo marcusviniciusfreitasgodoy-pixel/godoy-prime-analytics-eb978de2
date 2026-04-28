@@ -95,25 +95,26 @@ export default function InteligenciaTerritorial() {
 
       <div className="h-[calc(100vh-4rem)] md:h-[calc(100vh-8rem)]">
         <Tabs defaultValue="mapa" className="h-full flex flex-col">
-          <div className="flex items-center justify-between mb-2 md:mb-3 gap-2">
-            <h1 className="text-lg md:text-xl font-bold text-foreground truncate">Inteligência Territorial</h1>
-            <TabsList className="bg-muted shrink-0">
-              <TabsTrigger value="mapa" className="gap-1 text-[10px] md:text-xs px-2 md:px-3">
-                <Map className="h-3 w-3 md:h-3.5 md:w-3.5" />
-                <span className="hidden sm:inline">Mapa</span>
+          {/* Header: title hidden on mobile to save space; tabs full-width with labels */}
+          <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-2 md:mb-3 gap-2">
+            <h1 className="hidden md:block text-lg md:text-xl font-bold text-foreground truncate">Inteligência Territorial</h1>
+            <TabsList className="bg-muted w-full md:w-auto justify-between md:justify-start">
+              <TabsTrigger value="mapa" className="gap-1 text-xs px-2 md:px-3 flex-1 md:flex-initial">
+                <Map className="h-3.5 w-3.5" />
+                <span>Mapa</span>
               </TabsTrigger>
-              <TabsTrigger value="ranking" className="gap-1 text-[10px] md:text-xs px-2 md:px-3">
-                <BarChart3 className="h-3 w-3 md:h-3.5 md:w-3.5" />
-                <span className="hidden sm:inline">Ranking</span>
+              <TabsTrigger value="ranking" className="gap-1 text-xs px-2 md:px-3 flex-1 md:flex-initial">
+                <BarChart3 className="h-3.5 w-3.5" />
+                <span>Ranking</span>
               </TabsTrigger>
-              <TabsTrigger value="logradouros" className="gap-1 text-[10px] md:text-xs px-2 md:px-3">
-                <Building2 className="h-3 w-3 md:h-3.5 md:w-3.5" />
-                <span className="hidden sm:inline">Ruas</span>
+              <TabsTrigger value="logradouros" className="gap-1 text-xs px-2 md:px-3 flex-1 md:flex-initial">
+                <Building2 className="h-3.5 w-3.5" />
+                <span>Ruas</span>
               </TabsTrigger>
               {showAdmin && (
-                  <TabsTrigger value="admin" className="gap-1 text-[10px] md:text-xs px-2 md:px-3">
-                    <Settings className="h-3 w-3 md:h-3.5 md:w-3.5" />
-                    <span className="hidden sm:inline">Admin</span>
+                  <TabsTrigger value="admin" className="gap-1 text-xs px-2 md:px-3 flex-1 md:flex-initial">
+                    <Settings className="h-3.5 w-3.5" />
+                    <span>Admin</span>
                   </TabsTrigger>
               )}
             </TabsList>
@@ -134,11 +135,12 @@ export default function InteligenciaTerritorial() {
                 <Sheet open={mobileFiltersOpen} onOpenChange={setMobileFiltersOpen}>
                   <SheetTrigger asChild>
                     <Button
-                      size="icon"
-                      className="absolute top-14 left-2 z-[1001] h-10 w-10 rounded-full shadow-lg bg-background border border-border"
+                      size="sm"
+                      className="absolute top-2 left-2 z-[1001] h-9 px-3 rounded-full shadow-lg bg-background border border-border gap-1.5"
                       variant="outline"
                     >
                       <SlidersHorizontal className="h-4 w-4" />
+                      <span className="text-xs font-medium">Filtros</span>
                     </Button>
                   </SheetTrigger>
                   <SheetContent side="left" className="w-[85vw] max-w-[320px] p-3 flex flex-col">
@@ -201,8 +203,9 @@ export default function InteligenciaTerritorial() {
               {/* Mobile: Detail panel as bottom Sheet */}
               {isMobile && selectedCondo && (
                 <Sheet open={mobileDetailOpen} onOpenChange={(open) => { setMobileDetailOpen(open); if (!open) handleClosePanel(); }}>
-                  <SheetContent side="bottom" className="h-[75vh] rounded-t-xl p-0 overflow-hidden">
-                    <div className="h-full overflow-auto">
+                  <SheetContent side="bottom" className="h-[85vh] rounded-t-xl p-0 overflow-hidden flex flex-col">
+                    <div className="mx-auto mt-2 mb-1 h-1 w-10 rounded-full bg-muted-foreground/30 shrink-0" aria-hidden />
+                    <div className="flex-1 min-h-0 overflow-auto">
                       <CondominioDetailPanel condominio={selectedCondo} onClose={handleClosePanel} />
                     </div>
                   </SheetContent>
