@@ -3579,6 +3579,10 @@ export type Database = {
           total_transacoes: number
         }[]
       }
+      seed_proposta_compra_for_org: {
+        Args: { _org_id: string }
+        Returns: undefined
+      }
       show_limit: { Args: never; Returns: number }
       show_trgm: { Args: { "": string }; Returns: string[] }
       st_3dclosestpoint: {
