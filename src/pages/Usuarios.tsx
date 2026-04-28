@@ -194,17 +194,38 @@ export default function Usuarios() {
           </h1>
           <p className="text-muted-foreground mt-1">
             Gerencie permissões e convide novos membros
-            {limits && (
-              <span className="ml-2 text-xs">
-                ({limits.users.current}/{limits.users.max} usuários)
-              </span>
-            )}
           </p>
+          {limits && (
+            <div className="mt-2 flex items-center gap-2">
+              <Badge
+                variant="outline"
+                className={
+                  !limits.users.allowed
+                    ? "border-destructive/40 bg-destructive/10 text-destructive"
+                    : limits.users.current >= limits.users.max - 1
+                    ? "border-amber-400 bg-amber-50 text-amber-700"
+                    : "border-primary/30 bg-primary/5 text-primary"
+                }
+              >
+                {limits.users.current} de {limits.users.max} usuários
+                {organization?.plan ? ` • plano ${organization.plan}` : ""}
+              </Badge>
+              {!limits.users.allowed && (
+                <span className="text-xs text-destructive">
+                  Limite atingido — faça upgrade para adicionar mais corretores.
+                </span>
+              )}
+            </div>
+          )}
         </div>
 
         <Dialog open={inviteOpen} onOpenChange={setInviteOpen}>
           <DialogTrigger asChild>
-            <Button className="gap-2">
+            <Button
+              className="gap-2"
+              disabled={!!limits && !limits.users.allowed}
+              title={!!limits && !limits.users.allowed ? "Limite do plano atingido" : undefined}
+            >
               <UserPlus className="h-4 w-4" />
               <span className="hidden sm:inline">Convidar</span>
             </Button>
@@ -223,6 +244,12 @@ export default function Usuarios() {
               }}
               className="space-y-4"
             >
+              {limits && (
+                <div className="rounded-md border bg-muted/40 p-3 text-xs text-muted-foreground">
+                  Vagas em uso: <strong>{limits.users.current}</strong> de <strong>{limits.users.max}</strong>.
+                  Convites pendentes ocupam vaga até serem aceitos ou expirarem (7 dias).
+                </div>
+              )}
               <div className="space-y-2">
                 <Label>Email do Convidado</Label>
                 <Input
