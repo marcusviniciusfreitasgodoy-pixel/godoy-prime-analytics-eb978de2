@@ -49,11 +49,11 @@ export function CondominioDetailPanel({ condominio: c, onClose }: CondominioDeta
   const conf = c.confianca_identificacao ?? 0;
 
   return (
-    <div className="flex flex-col h-full border-l border-border bg-card">
+    <div className="flex flex-col h-full md:border-l border-border bg-card">
       {/* Header */}
-      <div className="flex items-start justify-between p-4 border-b border-border">
+      <div className="flex items-start justify-between p-3 md:p-4 border-b border-border">
         <div className="flex-1 min-w-0">
-          <h3 className="font-bold text-foreground truncate text-base">
+          <h3 className="font-bold text-foreground text-base leading-tight break-words">
             {getCondoDisplayName(c)}
           </h3>
           <p className="text-xs text-muted-foreground truncate mt-0.5">{c.logradouro_padrao}</p>
@@ -83,7 +83,7 @@ export function CondominioDetailPanel({ condominio: c, onClose }: CondominioDeta
       </div>
 
       <ScrollArea className="flex-1">
-        <div className="p-4 space-y-5">
+        <div className="p-3 md:p-4 space-y-4 md:space-y-5">
           {/* Dados físicos */}
           <section>
             <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2 flex items-center gap-1.5">
