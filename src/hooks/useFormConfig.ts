@@ -2,7 +2,11 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
-export type TipoFormulario = "ficha_visita" | "feedback_cliente" | "feedback_corretor";
+export type TipoFormulario =
+  | "ficha_visita"
+  | "feedback_cliente"
+  | "feedback_corretor"
+  | "proposta_compra";
 
 export interface FormConfigSection {
   id: string;
@@ -34,6 +38,7 @@ export interface FormConfigField {
   organization_id: string | null;
   created_at: string;
   updated_at: string;
+  modelos: string[] | null;
 }
 
 export function useFormConfig(tipoFormulario: TipoFormulario) {
