@@ -15,6 +15,26 @@ interface DynamicFieldRendererProps {
   disabled?: boolean;
 }
 
+type RawOption = string | { label?: string; value?: string };
+
+const normalizeOptions = (raw: any): { label: string; value: string }[] => {
+  if (!Array.isArray(raw)) return [];
+  return raw
+    .map((o: RawOption) => {
+      if (typeof o === "string" || typeof o === "number") {
+        const s = String(o);
+        return { label: s, value: s };
+      }
+      if (o && typeof o === "object") {
+        const label = String((o as any).label ?? (o as any).value ?? "");
+        const value = String((o as any).value ?? (o as any).label ?? "");
+        return { label, value };
+      }
+      return { label: "", value: "" };
+    })
+    .filter((o) => o.value !== "");
+};
+
 export function DynamicFieldRenderer({ field, value, onChange, disabled }: DynamicFieldRendererProps) {
   const labelEl = (
     <div className="flex items-center gap-2">
@@ -44,15 +64,15 @@ export function DynamicFieldRenderer({ field, value, onChange, disabled }: Dynam
       );
 
     case "select": {
-      const options = Array.isArray(field.options) ? field.options : [];
+      const options = normalizeOptions(field.options);
       return (
         <div className="space-y-1.5">
           {labelEl}
           <Select value={value || ""} onValueChange={onChange} disabled={disabled}>
             <SelectTrigger><SelectValue placeholder={field.placeholder || "Selecione..."} /></SelectTrigger>
             <SelectContent>
-              {options.map((opt: string) => (
-                <SelectItem key={opt} value={opt}>{opt}</SelectItem>
+              {options.map((opt) => (
+                <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
               ))}
             </SelectContent>
           </Select>
@@ -62,15 +82,15 @@ export function DynamicFieldRenderer({ field, value, onChange, disabled }: Dynam
     }
 
     case "radio": {
-      const options = Array.isArray(field.options) ? field.options : [];
+      const options = normalizeOptions(field.options);
       return (
         <div className="space-y-1.5">
           {labelEl}
           <RadioGroup value={value || ""} onValueChange={onChange} disabled={disabled} className="flex flex-col space-y-1">
-            {options.map((opt: string) => (
-              <div key={opt} className="flex items-center space-x-2">
-                <RadioGroupItem value={opt} id={`${field.field_id}-${opt}`} />
-                <label htmlFor={`${field.field_id}-${opt}`} className="text-sm cursor-pointer">{opt}</label>
+            {options.map((opt) => (
+              <div key={opt.value} className="flex items-center space-x-2">
+                <RadioGroupItem value={opt.value} id={`${field.field_id}-${opt.value}`} />
+                <label htmlFor={`${field.field_id}-${opt.value}`} className="text-sm cursor-pointer">{opt.label}</label>
               </div>
             ))}
           </RadioGroup>
