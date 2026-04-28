@@ -157,7 +157,15 @@ export default function Usuarios() {
       setInviteOpen(false);
     },
     onError: (error: any) => {
-      toast({ title: "Erro ao enviar convite", description: error.message, variant: "destructive" });
+      const msg = String(error?.message || "");
+      const isLimit = msg.includes("Limite de usuários") || msg.includes("limit");
+      toast({
+        title: isLimit ? "Limite do plano atingido" : "Erro ao enviar convite",
+        description: isLimit
+          ? "Você já atingiu o número máximo de usuários do seu plano. Faça upgrade para convidar mais corretores."
+          : msg,
+        variant: "destructive",
+      });
     },
   });
 
