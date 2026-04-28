@@ -406,6 +406,13 @@ export function DocumentAnalyzer({ onChecklistItemSuggested }: DocumentAnalyzerP
         {/* Aviso Legal */}
         <LegalDisclaimer variant="full" />
 
+        {/* Seletor de Agente de IA */}
+        <AgentSelector
+          value={selectedAgent}
+          onChange={setSelectedAgent}
+          disabled={isAnalyzingBatch}
+        />
+
         {/* Upload Area */}
         <div
           onDragOver={handleDragOver}
