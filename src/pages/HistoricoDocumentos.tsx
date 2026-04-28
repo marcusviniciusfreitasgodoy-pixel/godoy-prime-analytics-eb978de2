@@ -222,6 +222,12 @@ export default function HistoricoDocumentos() {
                 {selected.confianca && <Badge variant="outline">Confiança: {selected.confianca}</Badge>}
                 <span className="text-xs text-muted-foreground">{formatDate(selected.created_at)}</span>
                 <FileExpirationBadge record={selected} />
+                {selected.modelo_usado && getAgentById(selected.modelo_usado) && (
+                  <Badge variant="outline" className="text-xs bg-accent/10 text-accent border-accent/20">
+                    <Sparkles className="h-3 w-3 mr-1" />
+                    Agente: {getAgentById(selected.modelo_usado)!.name}
+                  </Badge>
+                )}
               </div>
 
               {/* Botão de exportação destacado */}
