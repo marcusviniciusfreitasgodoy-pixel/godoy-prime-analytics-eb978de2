@@ -64,7 +64,6 @@ import { supabase } from "@/integrations/supabase/client";
 import { GerarAutorizacaoButton } from "@/components/autorizacoes/GerarAutorizacaoButton";
 import { useAutorizacoesByValuationIds } from "@/hooks/useAutorizacoes";
 import { valuationRowToState } from "@/utils/autorizacaoMapper";
-import { FileSignature } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useAuth } from "@/hooks/useAuth";
 import { useDemo } from "@/contexts/DemoContext";
