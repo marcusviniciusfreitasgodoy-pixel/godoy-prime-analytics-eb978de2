@@ -1,5 +1,5 @@
 import { writeFileSync } from "node:fs";
-import jsPDF from "jspdf";
+import { jsPDF } from "jspdf";
 import QRCode from "qrcode";
 
 // Replica simplificada do util (espelho de src/utils/autorizacaoPdfExport.ts) para QA
