@@ -32,16 +32,22 @@ serve(async (req) => {
 
     // Mark as visualizada (only first time)
     if (aut.status === "enviada") {
+      const ipRaw = req.headers.get("x-forwarded-for") || "";
+      const ip = ipRaw.split(",")[0]?.trim() || null;
+      const nowIso = new Date().toISOString();
       await admin
         .from("autorizacoes_captacao")
-        .update({ status: "visualizada", data_visualizacao: new Date().toISOString() })
+        .update({ status: "visualizada", data_visualizacao: nowIso })
         .eq("id", aut.id);
       await admin.from("autorizacoes_captacao_eventos").insert({
         autorizacao_id: aut.id,
         tipo: "visualizada",
-        ip: req.headers.get("x-forwarded-for") || null,
+        ip,
         user_agent: req.headers.get("user-agent") || null,
       });
+      // Reflect updated status in response
+      (aut as any).status = "visualizada";
+      (aut as any).data_visualizacao = nowIso;
     }
 
     // Return safe subset (omit token to avoid echoing back)
