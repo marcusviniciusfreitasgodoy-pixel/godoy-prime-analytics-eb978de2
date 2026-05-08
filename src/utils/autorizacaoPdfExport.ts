@@ -28,6 +28,8 @@ const formatDateLong = (iso?: string | null): string => {
 
 export interface AutorizacaoPdfOptions {
   baseUrl?: string;
+  /** Quando definido, desenha texto diagonal cinza em todas as páginas (ex.: "PRÉ-VISUALIZAÇÃO"). */
+  watermark?: string;
 }
 
 export async function generateAutorizacaoPdf(
@@ -40,15 +42,25 @@ export async function generateAutorizacaoPdf(
   const margin = 15;
   let y = margin;
 
+  // Helpers de fonte:
+  // jsPDF (v2.5 / v4.0) tem bug nos AFM widths de helvetica-bold com algumas
+  // letras (notadamente "I"/"Í"/"M"), gerando gaps visíveis no PDF. Usamos
+  // sempre helvetica regular e simulamos peso via cor + tamanho.
+  const useFont = (weight: "normal" | "bold" = "normal") => {
+    doc.setFont("helvetica", "normal");
+    // mantemos a assinatura, mas não chamamos "bold" para evitar o bug
+    void weight;
+  };
+
   // ===== HEADER =====
   doc.setFillColor(...NAVY);
   doc.rect(0, 0, pageW, 22, "F");
   doc.setTextColor(...GOLD);
-  doc.setFont("helvetica", "bold");
+  useFont("bold");
   doc.setFontSize(13);
   doc.text("GODOY PRIME REALTY", margin, 10);
   doc.setTextColor(255, 255, 255);
-  doc.setFont("helvetica", "normal");
+  useFont("normal");
   doc.setFontSize(8);
   doc.text("Av. das Américas 10.101, Bloco 2 — Tel: (21) 96407-5124", margin, 15);
   doc.setFontSize(7);
@@ -59,8 +71,8 @@ export async function generateAutorizacaoPdf(
 
   // ===== TÍTULO =====
   doc.setTextColor(...NAVY);
-  doc.setFont("helvetica", "bold");
-  doc.setFontSize(12);
+  useFont("bold");
+  doc.setFontSize(13);
   doc.text("AUTORIZAÇÃO PARA DIVULGAÇÃO E VENDA DE IMÓVEL", pageW / 2, y, { align: "center" });
   y += 8;
 
@@ -70,39 +82,39 @@ export async function generateAutorizacaoPdf(
   y += 6;
 
   // ===== CONTRATANTES =====
-  doc.setFont("helvetica", "bold");
-  doc.setFontSize(9);
+  useFont("bold");
+  doc.setFontSize(9.5);
   doc.setTextColor(...NAVY);
   doc.text("CONTRATANTES", margin, y);
   y += 5;
-  doc.setFont("helvetica", "normal");
+  useFont("normal");
   doc.setTextColor(...TEXT);
   doc.setFontSize(8.5);
 
   const line = (label: string, val: string, yy: number) => {
-    doc.setFont("helvetica", "bold");
+    doc.setTextColor(...NAVY);
     doc.text(label, margin, yy);
     const w = doc.getTextWidth(label) + 1;
-    doc.setFont("helvetica", "normal");
+    doc.setTextColor(...TEXT);
     doc.text(val || "—", margin + w, yy);
   };
   line("NOME:", a.proprietario_nome, y); y += 4.5;
   line("IDENTIDADE:", `${a.proprietario_rg || "—"}  —  ÓRGÃO: ${a.proprietario_rg_orgao || "—"}  —  CPF: ${a.proprietario_cpf}`, y); y += 4.5;
   line("TELEFONE:", `${a.proprietario_telefone || "—"}     E-MAIL: ${a.proprietario_email}`, y); y += 6;
 
-  doc.setFont("helvetica", "bold");
+  doc.setTextColor(...NAVY);
   doc.text("CONTRATADO:", margin, y);
-  doc.setFont("helvetica", "normal");
+  doc.setTextColor(...TEXT);
   doc.text("MARCUS V F GODOY ASSESSORIA IMOBILIÁRIA — CNPJ: 58.409.058/0001-73", margin + 25, y);
   y += 7;
 
   // ===== IMÓVEL =====
-  doc.setFont("helvetica", "bold");
-  doc.setFontSize(9);
+  useFont("bold");
+  doc.setFontSize(9.5);
   doc.setTextColor(...NAVY);
   doc.text("DESCRIÇÃO DO IMÓVEL", margin, y);
   y += 5;
-  doc.setFont("helvetica", "normal");
+  useFont("normal");
   doc.setFontSize(8.5);
   doc.setTextColor(...TEXT);
   const enderecoFull = `${a.endereco}${a.numero ? `, nº ${a.numero}` : ""}${a.complemento ? ` — ${a.complemento}` : ""}`;
@@ -115,27 +127,26 @@ export async function generateAutorizacaoPdf(
   doc.setFillColor(248, 248, 250);
   doc.setDrawColor(...GOLD);
   doc.rect(margin, y, pageW - margin * 2, 12, "FD");
-  doc.setFont("helvetica", "bold");
   doc.setFontSize(9);
   doc.setTextColor(...NAVY);
   doc.text("VALOR DE AVALIAÇÃO:", margin + 3, y + 5);
   doc.text("VALOR DE VENDA AUTORIZADO:", margin + 3, y + 9.5);
   doc.setTextColor(...TEXT);
-  doc.setFont("helvetica", "normal");
   doc.text(formatBRL(a.valor_avaliacao), pageW - margin - 3, y + 5, { align: "right" });
-  doc.setFont("helvetica", "bold");
+  doc.setFontSize(10);
   doc.setTextColor(...GOLD);
   doc.text(formatBRL(a.valor_venda), pageW - margin - 3, y + 9.5, { align: "right" });
+  doc.setFontSize(9);
   y += 16;
 
   // ===== CLÁUSULAS =====
-  doc.setFont("helvetica", "bold");
-  doc.setFontSize(9);
+  useFont("bold");
+  doc.setFontSize(9.5);
   doc.setTextColor(...NAVY);
   doc.text("CONDIÇÕES", margin, y);
   y += 5;
 
-  doc.setFont("helvetica", "normal");
+  useFont("normal");
   doc.setFontSize(8);
   doc.setTextColor(...TEXT);
 
@@ -186,9 +197,9 @@ export async function generateAutorizacaoPdf(
   doc.setDrawColor(...NAVY);
   doc.line(margin, sigY + 19, margin + sigW, sigY + 19);
   doc.setFontSize(7.5);
-  doc.setFont("helvetica", "bold");
+  doc.setTextColor(...NAVY);
   doc.text("CONTRATANTE", margin, sigY + 23);
-  doc.setFont("helvetica", "normal");
+  doc.setTextColor(...TEXT);
   doc.text(a.proprietario_nome, margin, sigY + 27);
   doc.text(`CPF: ${a.proprietario_cpf}`, margin, sigY + 31);
 
@@ -200,9 +211,9 @@ export async function generateAutorizacaoPdf(
     } catch {}
   }
   doc.line(cx, sigY + 19, cx + sigW, sigY + 19);
-  doc.setFont("helvetica", "bold");
+  doc.setTextColor(...NAVY);
   doc.text("CONTRATADO", cx, sigY + 23);
-  doc.setFont("helvetica", "normal");
+  doc.setTextColor(...TEXT);
   doc.text(a.corretor_nome || "—", cx, sigY + 27);
   doc.text(`CRECI: ${a.corretor_creci || "—"}`, cx, sigY + 31);
 
@@ -210,7 +221,7 @@ export async function generateAutorizacaoPdf(
 
   // ===== AUDITORIA + QR =====
   if (a.data_assinatura_proprietario) {
-    if (y + 30 > pageH - 10) {
+    if (y + 30 > pageH - 8) {
       doc.addPage();
       y = margin;
     }
@@ -232,6 +243,17 @@ export async function generateAutorizacaoPdf(
     if (a.data_vencimento) {
       doc.setTextColor(...MUTED);
       doc.text(`Vigência até: ${new Date(a.data_vencimento).toLocaleDateString("pt-BR")}`, margin, y + 27);
+    }
+  }
+
+  // ===== WATERMARK (opcional) =====
+  if (opts.watermark) {
+    const totalP = (doc as any).internal.getNumberOfPages();
+    for (let i = 1; i <= totalP; i++) {
+      doc.setPage(i);
+      doc.setFontSize(70);
+      doc.setTextColor(225, 225, 230);
+      doc.text(opts.watermark, pageW / 2, pageH / 2, { align: "center", angle: 35 });
     }
   }
 
