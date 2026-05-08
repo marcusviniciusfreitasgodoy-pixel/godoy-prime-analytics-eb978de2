@@ -36,11 +36,12 @@ serve(async (req) => {
     if (findErr || !aut) {
       return new Response(JSON.stringify({ error: "Autorização não encontrada" }), { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
-    if (aut.status === "assinada") {
-      return new Response(JSON.stringify({ error: "Já assinada" }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    if (aut.status === "assinada" || aut.status === "recusada" || aut.status === "expirada") {
+      return new Response(JSON.stringify({ error: `Autorização já finalizada (${aut.status})` }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
-    const ip = req.headers.get("x-forwarded-for") || null;
+    const ipRaw = req.headers.get("x-forwarded-for") || "";
+    const ip = ipRaw.split(",")[0]?.trim() || null;
     const ua = req.headers.get("user-agent") || null;
 
     if (body.acao === "recusar") {
@@ -50,6 +51,7 @@ serve(async (req) => {
           status: "recusada",
           motivo_recusa: body.motivo_recusa || null,
           data_recusa: new Date().toISOString(),
+          token_acesso: null,
         })
         .eq("id", aut.id);
       await admin.from("autorizacoes_captacao_eventos").insert({
