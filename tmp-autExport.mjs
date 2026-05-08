@@ -1,5 +1,5 @@
 // src/utils/autorizacaoPdfExport.ts
-import jsPDF from "jspdf";
+import { jsPDF } from "jspdf";
 import QRCode from "qrcode";
 var NAVY = [12, 35, 64];
 var GOLD = [212, 175, 55];
