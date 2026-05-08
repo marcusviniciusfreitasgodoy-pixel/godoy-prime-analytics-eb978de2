@@ -171,21 +171,45 @@ serve(async (req) => {
     if (ZAPI_INSTANCE_ID && ZAPI_TOKEN && aut.proprietario_telefone) {
       try {
         const url = `https://api.z-api.io/instances/${ZAPI_INSTANCE_ID}/token/${ZAPI_TOKEN}/send-text`;
+        const phone = fmtPhone(aut.proprietario_telefone);
+        const message = whatsAppMsg(aut, link);
         const r = await fetch(url, {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
             ...(ZAPI_CLIENT_TOKEN ? { "Client-Token": ZAPI_CLIENT_TOKEN } : {}),
           },
-          body: JSON.stringify({
-            phone: fmtPhone(aut.proprietario_telefone),
-            message: whatsAppMsg(aut, link),
-          }),
+          body: JSON.stringify({ phone, message }),
         });
+        let respJson: any = null;
+        let respText: string | null = null;
+        try { respJson = await r.clone().json(); } catch { respText = await r.text(); }
         results.whatsapp = r.ok;
-        if (!r.ok) console.error("Z-API error:", await r.text());
-      } catch (e) {
+        if (!r.ok) console.error("Z-API error:", respText || JSON.stringify(respJson));
+        await admin.from("whatsapp_message_logs").insert({
+          telefone_destino: phone,
+          tipo_mensagem: "autorizacao_captacao",
+          mensagem_texto: message,
+          status_envio: r.ok ? "enviado" : "erro",
+          resposta_api: respJson,
+          message_id_externo: respJson?.messageId || respJson?.id || null,
+          organization_id: aut.organization_id,
+          dados_contexto: { autorizacao_id: aut.id, codigo: aut.codigo, link },
+          erro_mensagem: r.ok ? null : (respText || JSON.stringify(respJson)),
+        });
+      } catch (e: any) {
         console.error("WhatsApp exception:", e);
+        try {
+          await admin.from("whatsapp_message_logs").insert({
+            telefone_destino: fmtPhone(aut.proprietario_telefone),
+            tipo_mensagem: "autorizacao_captacao",
+            mensagem_texto: whatsAppMsg(aut, link),
+            status_envio: "erro",
+            organization_id: aut.organization_id,
+            dados_contexto: { autorizacao_id: aut.id, codigo: aut.codigo, link },
+            erro_mensagem: e?.message || String(e),
+          });
+        } catch (_) { /* ignore */ }
       }
     }
 
