@@ -145,9 +145,11 @@ async function handleProposta(
   requireString(payload, "telefone", "telefone");
   requireString(payload, "endereco_resumido", "endereco_resumido");
   requireString(payload, "modelo", "modelo");
+  // ficha_visita_id is required to ensure proposal is linked to an org (RLS visibility)
+  const fichaVisitaId = requireUUID(payload, "ficha_visita_id", "ficha_visita_id");
 
-  // Rate-limit — use ficha_visita_id if present, otherwise codigo
-  const identifier = (typeof payload.ficha_visita_id === "string" && payload.ficha_visita_id) || codigo;
+  // Rate-limit by ficha_visita_id
+  const identifier = fichaVisitaId;
   const { data: rl, error: rlErr } = await supabase.rpc("check_rate_limit", {
     p_identifier: identifier,
     p_function_name: "public-submit-proposta",
@@ -175,21 +177,45 @@ async function handleProposta(
   for (const f of allowedFields) {
     if (payload[f] !== undefined) insert[f] = payload[f];
   }
+  insert.ficha_visita_id = fichaVisitaId;
 
-  // Resolve organization_id server-side from ficha_visita
-  if (insert.ficha_visita_id) {
-    const { data: fichaOrg } = await supabase
-      .from("fichas_visita")
-      .select("organization_id")
-      .eq("id", insert.ficha_visita_id)
-      .single();
-    if (fichaOrg?.organization_id) {
-      insert.organization_id = fichaOrg.organization_id;
-    }
+  // Resolve organization_id and endereco_imovel server-side from ficha_visita
+  const { data: fichaData, error: fichaErr } = await supabase
+    .from("fichas_visita")
+    .select("organization_id, endereco_imovel")
+    .eq("id", fichaVisitaId)
+    .single();
+  if (fichaErr || !fichaData?.organization_id) {
+    return new Response(
+      JSON.stringify({ error: "Ficha de visita não encontrada ou inválida." }),
+      { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+    );
   }
+  insert.organization_id = fichaData.organization_id;
 
   const { data, error } = await supabase.from("propostas_compra").insert(insert).select().single();
   if (error) throw error;
+
+  // Notify broker (email + WhatsApp) — non-blocking
+  try {
+    await supabase.functions.invoke("notify-proposta", {
+      body: {
+        ficha_visita_id: fichaVisitaId,
+        nome_proponente: String(payload.nome_completo),
+        telefone_proponente: String(payload.telefone),
+        email_proponente: typeof payload.email === "string" ? payload.email : undefined,
+        endereco_imovel: fichaData.endereco_imovel || String(payload.endereco_resumido),
+        valor_ofertado: typeof payload.valor_ofertado === "number" ? payload.valor_ofertado : null,
+        codigo_proposta: codigo,
+        sinal_entrada: typeof payload.sinal_entrada === "string" ? payload.sinal_entrada : undefined,
+        parcelas: typeof payload.parcelas === "string" ? payload.parcelas : undefined,
+        financiamento: typeof payload.financiamento === "string" ? payload.financiamento : undefined,
+        outras_condicoes: typeof payload.outras_condicoes === "string" ? payload.outras_condicoes : undefined,
+      },
+    });
+  } catch (notifyErr) {
+    console.error("Erro ao notificar corretor sobre proposta:", notifyErr);
+  }
 
   return new Response(JSON.stringify({ success: true, data }), {
     status: 200,
