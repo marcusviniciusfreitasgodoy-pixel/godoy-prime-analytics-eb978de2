@@ -1,4 +1,5 @@
 import { Input } from "@/components/ui/input";
+import { CurrencyInput } from "@/components/ui/currency-input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -590,29 +591,21 @@ export function Step0Identification({ state, updateState, showValidation = false
             </div>
             <div>
               <Label htmlFor="valor_condominio" className="text-xs sm:text-sm">Valor do Condomínio (R$/mês)</Label>
-              <Input
+              <CurrencyInput
                 id="valor_condominio"
-                inputMode="numeric"
-                value={state.valor_condominio || ""}
-                onChange={(e) => {
-                  const v = e.target.value.replace(/[^\d]/g, "");
-                  updateState({ valor_condominio: Number(v) || 0 });
-                }}
-                placeholder="0"
+                value={state.valor_condominio ? String(state.valor_condominio) : ""}
+                onChange={(v) => updateState({ valor_condominio: Number(v) || 0 })}
+                placeholder="R$ 0"
                 className="h-10 sm:h-9"
               />
             </div>
             <div>
               <Label htmlFor="valor_iptu" className="text-xs sm:text-sm">Valor do IPTU (R$/ano)</Label>
-              <Input
+              <CurrencyInput
                 id="valor_iptu"
-                inputMode="numeric"
-                value={state.valor_iptu || ""}
-                onChange={(e) => {
-                  const v = e.target.value.replace(/[^\d]/g, "");
-                  updateState({ valor_iptu: Number(v) || 0 });
-                }}
-                placeholder="0"
+                value={state.valor_iptu ? String(state.valor_iptu) : ""}
+                onChange={(v) => updateState({ valor_iptu: Number(v) || 0 })}
+                placeholder="R$ 0"
                 className="h-10 sm:h-9"
               />
             </div>
