@@ -2,7 +2,7 @@ import {
   Home, ClipboardCheck, ClipboardList, FileText, MapPin, Users, UserCog, 
   Search, Calculator, Settings, History, Brain, CalendarCheck, Cog, BookOpen, 
   Rocket, Shield, Kanban, MessageSquare, Presentation, Map, ChevronDown,
-  BarChart3, Building2, HandshakeIcon, FolderOpen, SlidersHorizontal
+  BarChart3, Building2, HandshakeIcon, FolderOpen, SlidersHorizontal, FileSignature
 } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { useLocation } from "react-router-dom";
@@ -65,6 +65,7 @@ const menuGroups: NavGroup[] = [
       { title: "Hist. Avaliações", url: "/historico-avaliacoes", icon: History, tourId: "nav-historico" },
       { title: "Vistoria Digital", url: "/vistoria-digital", icon: ClipboardCheck, tourId: "nav-vistoria" },
       { title: "Hist. Vistorias", url: "/historico-vistorias", icon: ClipboardList, tourId: "nav-historico-vistorias" },
+      { title: "Autorizações", url: "/autorizacoes-captacao", icon: FileSignature, tourId: "nav-autorizacoes" },
     ],
   },
   {
