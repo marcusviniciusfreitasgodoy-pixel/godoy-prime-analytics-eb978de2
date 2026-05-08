@@ -270,6 +270,10 @@ export default function HistoricoAvaliacoes() {
     );
   });
 
+  // Indexar autorizações por valuation_id para mostrar "Ver Autorização" se já existir
+  const valuationIds = (filteredAvaliacoes || []).map((a) => a.id);
+  const { data: autorizacoesMap } = useAutorizacoesByValuationIds(valuationIds);
+
   // Funções de seleção
   const toggleSelection = (id: string) => {
     setSelectedIds(prev => {
