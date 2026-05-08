@@ -59,30 +59,6 @@ export default function AutorizacaoPublica() {
     if (!token || !aut) return;
     setSubmitting(true);
     try {
-      // Generate signed PDF
-      const formData: AutorizacaoFormData = {
-        proprietario_nome: aut.proprietario_nome,
-        proprietario_cpf: aut.proprietario_cpf,
-        proprietario_rg: aut.proprietario_rg || "",
-        proprietario_rg_orgao: aut.proprietario_rg_orgao || "",
-        proprietario_telefone: aut.proprietario_telefone || "",
-        proprietario_email: aut.proprietario_email,
-        endereco: aut.endereco,
-        numero: aut.numero || "",
-        complemento: aut.complemento || "",
-        bairro: aut.bairro,
-        cidade: aut.cidade,
-        cep: aut.cep || "",
-        valor_condominio: String(aut.valor_condominio ?? ""),
-        valor_iptu: String(aut.valor_iptu ?? ""),
-        vagas: aut.vagas ?? 0,
-        quartos: aut.quartos ?? 0,
-        valor_avaliacao: String(aut.valor_avaliacao),
-        valor_venda: String(aut.valor_venda),
-        tipo_gestao: aut.tipo_gestao,
-        prazo_dias: aut.prazo_dias,
-        percentual_honorarios: Number(aut.percentual_honorarios),
-      };
       const signedAut: Autorizacao = {
         ...aut,
         assinatura_proprietario: assinaturaB64,
