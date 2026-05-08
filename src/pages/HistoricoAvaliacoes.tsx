@@ -61,6 +61,9 @@ import { exportValuationEnginePDF } from "@/utils/valuationPdfExport";
 import type { ValuationState, HistoricalAnalysis, FutureProjection } from "@/types/valuation";
 import type { ValuationResult } from "@/utils/valuationCalculations";
 import { supabase } from "@/integrations/supabase/client";
+import { GerarAutorizacaoButton } from "@/components/autorizacoes/GerarAutorizacaoButton";
+import { useAutorizacoesByValuationIds } from "@/hooks/useAutorizacoes";
+import { valuationRowToState } from "@/utils/autorizacaoMapper";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useAuth } from "@/hooks/useAuth";
 import { useDemo } from "@/contexts/DemoContext";
@@ -265,6 +268,10 @@ export default function HistoricoAvaliacoes() {
       av.numero?.toLowerCase().includes(term)
     );
   });
+
+  // Indexar autorizações por valuation_id para mostrar "Ver Autorização" se já existir
+  const valuationIds = (filteredAvaliacoes || []).map((a) => a.id);
+  const { data: autorizacoesMap } = useAutorizacoesByValuationIds(valuationIds);
 
   // Funções de seleção
   const toggleSelection = (id: string) => {
@@ -715,6 +722,7 @@ export default function HistoricoAvaliacoes() {
                     <TableHead className="text-center hidden md:table-cell">Confiança</TableHead>
                     <TableHead className="text-center hidden lg:table-cell">Trend</TableHead>
                     <TableHead className="hidden sm:table-cell">Status</TableHead>
+                    <TableHead className="text-right">Autorização</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -775,6 +783,17 @@ export default function HistoricoAvaliacoes() {
                         <Badge variant="outline" className="text-xs">
                           {av.documentation_status}
                         </Badge>
+                      </TableCell>
+                      <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
+                        <GerarAutorizacaoButton
+                          state={valuationRowToState(av)}
+                          valuationId={av.id}
+                          defaultValorAvaliacao={av.final_value_med}
+                          existingAutorizacao={autorizacoesMap?.get(av.id) || null}
+                          variant="outline"
+                          size="sm"
+                          label="Gerar"
+                        />
                       </TableCell>
                     </TableRow>
                   ))}
