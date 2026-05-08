@@ -29,8 +29,11 @@ import {
 } from "@/components/ui/sheet";
 import { useAutorizacoes, useAutorizacao, useAutorizacaoEventos, useEnviarAutorizacao } from "@/hooks/useAutorizacoes";
 import { STATUS_LABEL, STATUS_BADGE_CLASS, type AutorizacaoStatus } from "@/types/autorizacao";
-import { Loader2, Send, FileSignature, Eye, Search, Plus } from "lucide-react";
+import { Loader2, Send, FileSignature, Eye, Search, Plus, Download } from "lucide-react";
 import { SelecionarAvaliacaoModal } from "@/components/autorizacoes/SelecionarAvaliacaoModal";
+import { generateAutorizacaoPdf, downloadBlob } from "@/utils/autorizacaoPdfExport";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 
 const formatBRL = (v: number | null | undefined) =>
   v == null ? "—" : new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(Number(v));
@@ -196,12 +199,52 @@ function DetalheAutorizacao({ id }: { id: string }) {
   const { data: aut, isLoading } = useAutorizacao(id);
   const { data: eventos = [] } = useAutorizacaoEventos(id);
   const enviar = useEnviarAutorizacao();
+  const [baixando, setBaixando] = useState(false);
 
   if (isLoading || !aut) {
     return <div className="flex justify-center py-12"><Loader2 className="h-6 w-6 animate-spin" /></div>;
   }
 
   const podeEnviar = aut.status === "rascunho" || aut.status === "enviada" || aut.status === "visualizada";
+  const podeBaixar = aut.status !== "recusada";
+
+  const handleDownload = async () => {
+    setBaixando(true);
+    try {
+      // Para autorização assinada, tenta primeiro buscar o PDF original do storage
+      if (aut.status === "assinada" && aut.pdf_url) {
+        const { data, error } = await supabase.storage
+          .from("autorizacoes-pdfs")
+          .createSignedUrl(aut.pdf_url, 60);
+        if (!error && data?.signedUrl) {
+          const r = await fetch(data.signedUrl);
+          if (r.ok) {
+            const blob = await r.blob();
+            downloadBlob(blob, `Autorizacao_${aut.codigo}.pdf`);
+            toast.success("PDF baixado");
+            return;
+          }
+        }
+        // fallback: regenera abaixo
+      }
+
+      const isPreview = aut.status !== "assinada";
+      const blob = await generateAutorizacaoPdf(aut, {
+        watermark: isPreview ? "PRÉ-VISUALIZAÇÃO" : undefined,
+      });
+      downloadBlob(
+        blob,
+        isPreview
+          ? `Autorizacao_${aut.codigo}_PREVIA.pdf`
+          : `Autorizacao_${aut.codigo}.pdf`
+      );
+      toast.success(isPreview ? "Pré-visualização baixada" : "PDF baixado");
+    } catch (e: any) {
+      toast.error("Erro ao baixar PDF", { description: e?.message });
+    } finally {
+      setBaixando(false);
+    }
+  };
 
   return (
     <>
@@ -242,6 +285,22 @@ function DetalheAutorizacao({ id }: { id: string }) {
           >
             {enviar.isPending ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Send className="h-4 w-4 mr-2" />}
             {aut.status === "rascunho" ? "Enviar para assinatura" : "Reenviar para assinatura"}
+          </Button>
+        )}
+
+        {podeBaixar && (
+          <Button
+            variant="outline"
+            onClick={handleDownload}
+            disabled={baixando}
+            className="w-full"
+          >
+            {baixando ? (
+              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+            ) : (
+              <Download className="h-4 w-4 mr-2" />
+            )}
+            {aut.status === "assinada" ? "Baixar PDF assinado" : "Baixar pré-visualização (PDF)"}
           </Button>
         )}
 
