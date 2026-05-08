@@ -29,7 +29,8 @@ import {
 } from "@/components/ui/sheet";
 import { useAutorizacoes, useAutorizacao, useAutorizacaoEventos, useEnviarAutorizacao } from "@/hooks/useAutorizacoes";
 import { STATUS_LABEL, STATUS_BADGE_CLASS, type AutorizacaoStatus } from "@/types/autorizacao";
-import { Loader2, Send, FileSignature, Eye, Search } from "lucide-react";
+import { Loader2, Send, FileSignature, Eye, Search, Plus } from "lucide-react";
+import { SelecionarAvaliacaoModal } from "@/components/autorizacoes/SelecionarAvaliacaoModal";
 
 const formatBRL = (v: number | null | undefined) =>
   v == null ? "—" : new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(Number(v));
@@ -42,6 +43,7 @@ export default function AutorizacoesCaptacao() {
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("todos");
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [novaOpen, setNovaOpen] = useState(false);
 
   const filtered = useMemo(() => {
     return list.filter((a) => {
@@ -72,14 +74,23 @@ export default function AutorizacoesCaptacao() {
       </Helmet>
 
       <div className="container mx-auto py-6 space-y-6">
-        <div>
-          <h1 className="text-3xl font-bold text-foreground flex items-center gap-2">
-            <FileSignature className="h-8 w-8 text-primary" />
-            Autorizações de Captação
-          </h1>
-          <p className="text-muted-foreground mt-1">
-            Documentos contratuais gerados a partir das avaliações imobiliárias.
-          </p>
+        <div className="flex items-start justify-between gap-4 flex-wrap">
+          <div>
+            <h1 className="text-3xl font-bold text-foreground flex items-center gap-2">
+              <FileSignature className="h-8 w-8 text-primary" />
+              Autorizações de Captação
+            </h1>
+            <p className="text-muted-foreground mt-1">
+              Documentos contratuais gerados a partir das avaliações imobiliárias.
+            </p>
+          </div>
+          <Button
+            onClick={() => setNovaOpen(true)}
+            className="bg-[#0C2340] hover:bg-[#0C2340]/90 text-white"
+          >
+            <Plus className="h-4 w-4 mr-2" />
+            Nova Autorização
+          </Button>
         </div>
 
         <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
@@ -175,6 +186,8 @@ export default function AutorizacoesCaptacao() {
           {selectedId && <DetalheAutorizacao id={selectedId} />}
         </SheetContent>
       </Sheet>
+
+      <SelecionarAvaliacaoModal open={novaOpen} onOpenChange={setNovaOpen} />
     </>
   );
 }
