@@ -109,6 +109,18 @@ serve(async (req) => {
       return new Response(JSON.stringify({ error: "Autorização já finalizada" }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
+    // Rate limit: bloquear reenvio em menos de 60s
+    if (aut.data_envio) {
+      const last = new Date(aut.data_envio).getTime();
+      const diff = Date.now() - last;
+      if (diff < 60_000) {
+        return new Response(
+          JSON.stringify({ error: `Aguarde ${Math.ceil((60_000 - diff) / 1000)}s antes de reenviar` }),
+          { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+    }
+
     const isResend = !!aut.token_acesso;
     const token = genToken();
     const link = `${APP_URL}/autorizacao/${token}`;
