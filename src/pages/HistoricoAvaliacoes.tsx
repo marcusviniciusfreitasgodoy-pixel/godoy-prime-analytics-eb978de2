@@ -723,6 +723,7 @@ export default function HistoricoAvaliacoes() {
                     <TableHead className="text-center hidden md:table-cell">Confiança</TableHead>
                     <TableHead className="text-center hidden lg:table-cell">Trend</TableHead>
                     <TableHead className="hidden sm:table-cell">Status</TableHead>
+                    <TableHead className="text-right">Autorização</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -783,6 +784,17 @@ export default function HistoricoAvaliacoes() {
                         <Badge variant="outline" className="text-xs">
                           {av.documentation_status}
                         </Badge>
+                      </TableCell>
+                      <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
+                        <GerarAutorizacaoButton
+                          state={valuationRowToState(av)}
+                          valuationId={av.id}
+                          defaultValorAvaliacao={av.final_value_med}
+                          existingAutorizacao={autorizacoesMap?.get(av.id) || null}
+                          variant="outline"
+                          size="sm"
+                          label="Gerar"
+                        />
                       </TableCell>
                     </TableRow>
                   ))}
