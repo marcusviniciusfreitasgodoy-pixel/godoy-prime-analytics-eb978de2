@@ -1,116 +1,118 @@
+## Objetivo
 
-# Autorização de Captação — Plano de Implementação
+Validar end-to-end o fluxo de Autorização de Captação (rascunho → enviar → visualizar → assinar/recusar) sem efeitos colaterais reais (sem disparar email/WhatsApp para destinatário externo) e produzir um relatório de falhas/observações de integração com Resend e Z-API.
 
-Fluxo end-to-end que parte da avaliação concluída, gera o documento de autorização (fiel ao `.docx` enviado), envia ao proprietário por e-mail/WhatsApp e finaliza com assinatura digital pública + PDF auditável.
+## Estratégia de teste
 
-## Decisões consolidadas
-- **MVP com 1 proprietário** (multi-contratante fica como evolução futura).
-- **Valor de Avaliação 100% manual** (em branco, preenchido pelo corretor).
-- **Visibilidade por organização** (qualquer corretor da imobiliária vê todas).
-- **Inclui fluxo de recusa + tabela de auditoria de eventos.**
-- **Documento segue versão limpa de 8 cláusulas** (página 2 do `.docx`).
+Como o fluxo dispara comunicações externas (Resend/Z-API) e grava no banco produtivo, o teste será feito em **3 camadas**, da mais segura para a mais real:
 
-## ETAPA 1 — Campos do proprietário no formulário de avaliação
+```text
+1. Camada de SMOKE TEST (sem efeitos)
+   └─ Valida deploy, CORS, autenticação e shape das respostas
+2. Camada de DRY-RUN (DB + edge, comms simuladas)
+   └─ Cria rascunho real, força envio com email do operador
+3. Camada de OBSERVABILIDADE (logs + DB)
+   └─ Lê edge_function_logs, whatsapp_message_logs, email_send_log
+```
 
-Adicionar bloco opcional "Dados do Proprietário (para captação)" na Etapa 0 (`Step0Identification.tsx`) com:
-- Nome completo, CPF (máscara + validação de dígitos), RG, Órgão emissor, Telefone (DDD), E-mail, CEP, Cidade (default Rio de Janeiro), valor_condominio, valor_iptu.
+## Etapa 1 — Smoke test das edge functions
 
-Migration adiciona à tabela `valuations` (já existente):
-- `proprietario_nome, proprietario_cpf, proprietario_rg, proprietario_rg_orgao, proprietario_email, cep, cidade, valor_condominio, valor_iptu` (telefone e proprietário já existem).
+Usando `supabase--curl_edge_functions` (sem efeitos):
 
-## ETAPA 2 — Botão na tela de resultado
+| # | Função | Método | Payload | Esperado |
+|---|--------|--------|---------|----------|
+| 1.1 | `enviar-autorizacao` | OPTIONS | — | 200 + CORS headers |
+| 1.2 | `enviar-autorizacao` | POST sem JWT | `{}` | 401 "Não autenticado" |
+| 1.3 | `enviar-autorizacao` | POST com JWT, sem id | `{}` | 400 "autorizacao_id obrigatório" |
+| 1.4 | `get-autorizacao-publica` | GET sem token | — | 400 "Token inválido" |
+| 1.5 | `get-autorizacao-publica` | GET token inexistente | `?token=fake_xxx` | 404 |
+| 1.6 | `assinar-autorizacao` | POST sem token | `{}` | 400 |
+| 1.7 | `assinar-autorizacao` | POST token inexistente, acao=assinar | — | 404 |
 
-Em `Step5Recommendation.tsx`, quando `recommendation_action === 'READY_TO_MARKET'`, exibir botão primário **"Gerar Autorização de Captação"**. Se faltar algum dado obrigatório do proprietário, abre modal de complemento antes de prosseguir para o drawer.
+## Etapa 2 — Dry-run do fluxo completo
 
-## ETAPA 3 — Migration `autorizacoes_captacao` + `autorizacoes_captacao_eventos`
+Pré-requisito: usuário logado no preview (já temos sessão) com `organization_id` válido.
 
-**Tabela principal** (colunas conforme prompt) com adições:
-- `numero, complemento` (do imóvel — fidelidade do endereço)
-- `data_vencimento` (calculada na assinatura: `data_assinatura + prazo_dias`)
-- `motivo_recusa text`
-- `data_recusa timestamptz`
-- Trigger: bloqueia UPDATE de campos contratuais quando `status IN ('assinada','recusada')` (permite só colunas de auditoria).
-- `codigo` gerado por trigger BEFORE INSERT: `'AUT-' || upper(substr(md5(gen_random_uuid()::text),1,6))`.
-- `token_acesso` gerado no momento do "Enviar para Assinatura" (nunca exposto antes).
+**2.1 Criar rascunho diretamente via insert SQL (bypassa Step5):**
+- INSERT em `autorizacoes_captacao` com dados sintéticos
+- `proprietario_email` apontando para email seguro (`teste@godoyprime.com.br` ou domínio do operador)
+- `proprietario_telefone = NULL` para evitar Z-API real
+- Verificar trigger `gerar_codigo_autorizacao` populou `codigo` (`AUT-XXXXXX`)
+- Verificar evento "criada" foi registrado
 
-**Tabela de eventos `autorizacoes_captacao_eventos`**:
-- `autorizacao_id, tipo` (`criada|enviada|reenviada|visualizada|assinada|recusada|pdf_gerado`), `ip`, `user_agent`, `metadata jsonb`, `created_at`.
+**2.2 Enviar (`enviar-autorizacao`):**
+- Chamar edge function com JWT do preview
+- Verificar resposta `{ success, link, results: { email, whatsapp } }`
+- Verificar no DB: `status='enviada'`, `token_acesso` preenchido (64 chars hex), `data_envio` setado
+- Verificar evento "enviada" registrado
 
-**RLS**:
-- `SELECT/INSERT/UPDATE/DELETE` autenticado: `organization_id = get_user_org_id(auth.uid())`.
-- Policy pública SELECT por token: `token_acesso IS NOT NULL AND token_acesso = current_setting('request.jwt.claims', true)::jsonb->>'token'` — na prática a leitura pública será via **edge function** `get-autorizacao-publica` (mais seguro que policy aberta), que valida o token e retorna apenas os campos necessários.
+**2.3 Visualizar (`get-autorizacao-publica`):**
+- Chamar GET com `?token=<token_gerado>`
+- Verificar response inclui dados completos SEM `token_acesso`
+- Verificar transição `enviada → visualizada`, `data_visualizacao` setado, evento "visualizada" registrado
+- Chamar GET segunda vez → status NÃO deve regredir nem duplicar evento "visualizada"
 
-**Storage**: bucket privado `autorizacoes-captacao`. PDF acessado via signed URL (válida por 7 dias).
+**2.4a Caminho assinar (`assinar-autorizacao`):**
+- POST `{ token, acao: "assinar", assinatura: "data:image/png;base64,iVBORw0KGgo..." }` (PNG 1x1 dummy, sem PDF para isolar)
+- Verificar `status='assinada'`, `data_assinatura_proprietario`, `data_vencimento` (= now + prazo_dias), `token_acesso=NULL`
+- Verificar evento "assinada" + IP capturado
+- Reenviar GET com mesmo token → 404 (token invalidado ✓)
+- Tentar segunda assinatura → 400 "Já assinada"
+- Validar trigger `bloquear_edicao_autorizacao_finalizada`: tentar UPDATE de `valor_venda` via SQL → deve falhar
 
-## ETAPA 4 — Drawer de geração
+**2.4b Caminho recusar (em segundo rascunho):**
+- Repetir 2.1–2.3 com novo registro
+- POST `{ token, acao: "recusar", motivo_recusa: "Valor abaixo do esperado" }`
+- Verificar `status='recusada'`, `motivo_recusa`, `data_recusa`, evento "recusada"
+- Validar bloqueio de edição idem 2.4a
 
-Componente `GerarAutorizacaoDrawer.tsx` com 4 seções:
-1. Dados pré-preenchidos da avaliação (todos editáveis).
-2. **Valor de Avaliação** + **Valor de Venda Autorizado** (ambos `CurrencyInput`, obrigatórios > 0). Nota explicativa abaixo.
-3. Tipo de Gestão (toggle), Prazo (30/60/90/120 — default 90), % Honorários (default 5).
-4. **Preview HTML em tempo real** do documento (mesmo HTML usado pelo PDF, garantindo paridade WYSIWYG).
+## Etapa 3 — Validar UI
 
-Footer: "Salvar Rascunho" e "Enviar para Assinatura" (com validação de obrigatórios).
+Browser test (sem disparos externos extras):
+- `/autorizacoes-captacao`: KPIs por status batem com DB, drawer abre, timeline lista eventos
+- `/autorizacao/<token_valido>` (criar 3º rascunho enviado): renderiza preview, botão Assinar bloqueado sem checkbox LGPD, fluxo de recusa abre textarea
+- Rota com token inválido: card "Link inválido ou expirado"
+- Rota com token de autorização já assinada: card "Autorização assinada com sucesso"
 
-## ETAPA 5 — Envio (edge function `enviar-autorizacao`)
+## Etapa 4 — Auditoria de integrações Resend & Z-API
 
-1. Gera `token_acesso` (`gen_random_uuid()`), atualiza `status='enviada'`, `data_envio`.
-2. Insere evento `enviada`.
-3. **E-mail (Resend)** ao proprietário: assunto + link `https://analytics.godoyprime.com.br/autorizacao/{token}` + dados do corretor.
-4. **WhatsApp (Z-API)** se houver telefone (E.164), com mensagem padronizada e log em `whatsapp_message_logs`.
-5. **Reenvio gera novo token** (invalida o anterior) — botão na listagem.
+### 4.1 Resend
+- Confirmar via `fetch_secrets` se `RESEND_API_KEY` está configurado
+- Ler `supabase--edge_function_logs` para `enviar-autorizacao` filtrando por `Resend`
+- Pontos a checar:
+  - `from: 'Godoy Prime <noreply@godoyprime.com.br>'` — domínio verificado? (memória menciona "Resend sandbox")
+  - Status code retornado pela API
+  - Mensagem de erro em caso de domínio não verificado
+- Se domínio não verificado: documentar como falha conhecida (sandbox limit a `delivered@resend.dev` ou ao próprio email do dono da conta)
 
-## ETAPA 6 — Rota pública `/autorizacao/:token`
+### 4.2 Z-API
+- Confirmar `ZAPI_INSTANCE_ID`, `ZAPI_TOKEN`, `ZAPI_CLIENT_TOKEN`
+- Comparar header usado (`Client-Token`) e endpoint (`/send-text`) com a função `send-whatsapp` e padrão `whatsapp-z-api` da memória
+- **Gap identificado**: `enviar-autorizacao` não grava em `whatsapp_message_logs` (auditoria manda registrar todos os disparos Z-API). Documentar como falha de integração.
+- Verificar formatação do telefone (DDI 55 + DDD + número, sem máscara)
 
-Página `AutorizacaoPublica.tsx` (sem login):
-1. Edge function `get-autorizacao-publica` retorna dados pelo token e registra evento `visualizada` (com IP via `x-forwarded-for` e user-agent). Atualiza `data_visualizacao` e `status='visualizada'` se primeira vez.
-2. Renderiza documento mobile-friendly (mesmo HTML do preview).
-3. **Checkbox LGPD obrigatório** ("Concordo com o tratamento dos meus dados conforme política de privacidade").
-4. Canvas (`react-signature-canvas`) + campo "Digite seu nome completo".
-5. Botão **"Assinar e Confirmar"** → edge function `assinar-autorizacao`:
-   - Valida token, nome digitado bate com `proprietario_nome` (normalizado), checkbox LGPD aceito.
-   - Salva `assinatura_proprietario`, `ip_assinatura_proprietario`, `data_assinatura_proprietario`, `data_vencimento`, `status='assinada'`.
-   - Gera PDF com **jsPDF manual render** (logo Godoy Prime + QR Code apontando para URL pública de verificação).
-   - Faz upload no bucket privado, salva `pdf_url` (path).
-   - Envia e-mail ao corretor: "Documento assinado por [nome]".
-   - Insere eventos `assinada` e `pdf_gerado`.
-6. Botão secundário **"Recusar"** → modal com motivo opcional → status `recusada`, evento registrado, e-mail ao corretor.
-7. Tela final de confirmação.
+### 4.3 Falhas conhecidas a verificar/registrar
+- `LOVABLE_API_KEY` não usada no `enviar-autorizacao` (padrão Resend novo via gateway) — função usa Resend direto, ok mas inconsistente com guia mais novo
+- Edge function não tem **rate limiting** (`check_rate_limit` RPC) como `notify-proposta` tem — risco de spam de envio
+- Bucket `autorizacoes-captacao` é privado: o painel interno **não exibe link para baixar o PDF assinado** (`pdf_url` salvo mas sem signed URL exposta)
+- `get-autorizacao-publica` invocado via `fetch` direto (passando publishable key) em vez de `supabase.functions.invoke` — funciona, mas não segue padrão dos demais módulos
+- Se `proprietario_telefone` for nulo (caso de teste): garantir que `results.whatsapp = false` sem erro
 
-## ETAPA 7 — Gestão interna `/autorizacoes-captacao`
+## Etapa 5 — Cleanup
 
-- Listagem em tabela: Código, Proprietário, Endereço, Valor Avaliação, Valor Venda, Status (badge colorido), Criação, Vencimento, Ações (Ver, Reenviar, Baixar PDF, Copiar Link).
-- Filtros: status, período (criação), busca por proprietário/endereço.
-- Modal de detalhes com timeline de eventos da auditoria.
-- Item "Autorizações" no `AppSidebar.tsx`, dentro do grupo onde está "Histórico de Avaliações".
+- DELETE dos 3 registros sintéticos em `autorizacoes_captacao` (cascateia eventos)
+- Remover qualquer arquivo subido em `storage.objects` bucket `autorizacoes-captacao` durante o teste
 
-## Detalhes técnicos
+## Entregáveis
 
-- **Logo + QR Code no PDF**: copiar `parsed-documents://...page_1_image_1_v2.jpg` e `page_2_image_3_v2.jpg` para `src/assets/`. QR aponta para `/autorizacao/verificar/{codigo}` (rota pública read-only de verificação de autenticidade).
-- **PDF**: `jsPDF` manual (regra do projeto — sem `html2canvas`). Cláusula 1 com checkbox visual marcado (☒/☐).
-- **Validações**: CPF com dígitos verificadores (`utils/cpfValidator.ts` — criar se não existir).
-- **CORS**: edge functions com `verify_jwt = false` para `get-autorizacao-publica` e `assinar-autorizacao`.
-- **Rate limit**: edge function `assinar-autorizacao` limita 3 tentativas/min por token.
-- **i18n**: tudo em pt-BR.
-- **Design tokens**: usar Navy/Gold do projeto; sem cores hardcoded fora do PDF.
+Relatório em chat contendo:
+1. Tabela de pass/fail das 7 chamadas do smoke test
+2. Tabela de transições de status validadas (rascunho → enviada → visualizada → assinada/recusada)
+3. Lista priorizada de falhas/gaps de integração encontrados (Resend, Z-API, auditoria, RLS, UX)
+4. Recomendações de correção (com escopo) — para serem implementadas em build mode posterior
 
-## Arquivos a criar/editar (resumo)
+## Observações
 
-**Novos:**
-- `supabase/migrations/<ts>_autorizacoes_captacao.sql`
-- `supabase/functions/enviar-autorizacao/index.ts`
-- `supabase/functions/get-autorizacao-publica/index.ts`
-- `supabase/functions/assinar-autorizacao/index.ts`
-- `src/components/autorizacoes/GerarAutorizacaoDrawer.tsx`
-- `src/components/autorizacoes/AutorizacaoDocumentoPreview.tsx`
-- `src/utils/autorizacaoPdfExport.ts`
-- `src/utils/cpfValidator.ts`
-- `src/hooks/useAutorizacoes.ts`
-- `src/pages/AutorizacoesCaptacao.tsx`
-- `src/pages/AutorizacaoPublica.tsx`
-
-**Editados:**
-- `src/components/valuation/Step0Identification.tsx` (campos proprietário)
-- `src/components/valuation/Step5Recommendation.tsx` (botão gerar)
-- `src/components/AppSidebar.tsx` (item "Autorizações")
-- `src/App.tsx` (rotas `/autorizacoes-captacao`, `/autorizacao/:token`, `/autorizacao/verificar/:codigo`)
+- Nenhum email/WhatsApp será enviado para terceiros: usaremos email controlado e telefone NULL.
+- Nenhuma migration nem mudança de schema será feita no teste.
+- Caso o usuário aprove o plano, executarei tudo automaticamente e devolverei o relatório consolidado.
