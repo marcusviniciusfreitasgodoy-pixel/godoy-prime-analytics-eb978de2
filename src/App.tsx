@@ -56,6 +56,8 @@ import ConfigurarFormularios from "./pages/ConfigurarFormularios";
 import InteligenciaTerritorial from "./pages/InteligenciaTerritorial";
 import FichaVisitaPublica from "./pages/FichaVisitaPublica";
 import WhatsAppLogs from "./pages/WhatsAppLogs";
+import AutorizacoesCaptacao from "./pages/AutorizacoesCaptacao";
+import AutorizacaoPublica from "./pages/AutorizacaoPublica";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -93,6 +95,7 @@ const App = () => (
                 <Route path="/visitas/assinatura/:codigo/:tipo" element={<AssinaturaVisita />} />
                 <Route path="/proposta/:codigo" element={<PropostaPublica />} />
                 <Route path="/visitas/ficha-publica/:codigo" element={<FichaVisitaPublica />} />
+                <Route path="/autorizacao/:token" element={<AutorizacaoPublica />} />
                 <Route path="/demo/*" element={<DemoLayout />} />
                 <Route
                   path="/*"
@@ -133,6 +136,7 @@ const App = () => (
                               <Route path="/visitas/ficha/:id" element={<FichaVisitaPage />} />
                               <Route path="/configuracoes" element={<Configuracoes />} />
                               <Route path="/whatsapp-logs" element={<ProtectedRoute requireAdminOrGerente={true}><WhatsAppLogs /></ProtectedRoute>} />
+                              <Route path="/autorizacoes-captacao" element={<AutorizacoesCaptacao />} />
                               <Route path="/apresentacao" element={<Apresentacao />} />
                                 <Route path="*" element={<NotFound />} />
                               </Routes>
