@@ -116,3 +116,12 @@ verify_jwt = false
 
 [functions.cleanup-document-analyses]
 verify_jwt = false
+
+[functions.enviar-autorizacao]
+verify_jwt = true
+
+[functions.get-autorizacao-publica]
+verify_jwt = false
+
+[functions.assinar-autorizacao]
+verify_jwt = false
