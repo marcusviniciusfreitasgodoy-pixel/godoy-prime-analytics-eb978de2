@@ -38,30 +38,17 @@ export default function AutorizacaoPublica() {
     if (!token) return;
     (async () => {
       try {
-        const { data, error } = await supabase.functions.invoke("get-autorizacao-publica", {
-          method: "GET" as any,
-          body: undefined,
-          // pass token via query string by constructing URL manually below
+        const url = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/get-autorizacao-publica?token=${encodeURIComponent(token)}`;
+        const r = await fetch(url, {
+          headers: { Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}` },
         });
-        // Fallback: invoke with query params via direct fetch
-        if (error || !data) {
-          const url = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/get-autorizacao-publica?token=${encodeURIComponent(token)}`;
-          const r = await fetch(url, {
-            headers: { Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}` },
-          });
-          const j = await r.json();
-          if (!r.ok) throw new Error(j.error || "Erro");
-          setAut(j.autorizacao);
-          if (j.autorizacao.status === "assinada") setStage("done");
-          else if (j.autorizacao.status === "recusada") setStage("refused");
-          else setStage("review");
-        } else {
-          setAut((data as any).autorizacao);
-          const status = (data as any).autorizacao.status;
-          if (status === "assinada") setStage("done");
-          else if (status === "recusada") setStage("refused");
-          else setStage("review");
-        }
+        const j = await r.json();
+        if (!r.ok) throw new Error(j.error || "Erro");
+        setAut(j.autorizacao);
+        const status = j.autorizacao.status;
+        if (status === "assinada") setStage("done");
+        else if (status === "recusada") setStage("refused");
+        else setStage("review");
       } catch (e: any) {
         setErrorMsg(e?.message || "Não foi possível carregar a autorização.");
         setStage("error");
