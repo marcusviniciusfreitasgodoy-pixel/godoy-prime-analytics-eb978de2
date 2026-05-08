@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet";
 import { Input } from "@/components/ui/input";
@@ -8,7 +8,19 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Loader2, Send, Save, FileSignature } from "lucide-react";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { Loader2, Send, Save, FileSignature, AlertTriangle } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useOrganization } from "@/contexts/OrganizationContext";
@@ -16,6 +28,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { AutorizacaoDocumentoPreview } from "./AutorizacaoDocumentoPreview";
 import { useCreateAutorizacao, useEnviarAutorizacao } from "@/hooks/useAutorizacoes";
 import { isValidCPF, maskCPF } from "@/utils/cpfValidator";
+import { formatBRLDisplay, parseBRLInput } from "@/utils/currencyMask";
 import type { AutorizacaoFormData, TipoGestao } from "@/types/autorizacao";
 import type { ValuationState } from "@/types/valuation";
 
@@ -35,6 +48,13 @@ export function GerarAutorizacaoDrawer({ open, onOpenChange, state, valuationId,
   const createMut = useCreateAutorizacao();
   const enviarMut = useEnviarAutorizacao();
   const [submitting, setSubmitting] = useState(false);
+  const [tabValue, setTabValue] = useState<"dados" | "preview">("dados");
+  const [attemptedSubmit, setAttemptedSubmit] = useState(false);
+  const [isentoCondominio, setIsentoCondominio] = useState(false);
+  const [isentoIptu, setIsentoIptu] = useState(false);
+  const [optionalDialogOpen, setOptionalDialogOpen] = useState(false);
+  const [pendingAction, setPendingAction] = useState<"rascunho" | "enviar" | null>(null);
+  const fieldRefs = useRef<Record<string, HTMLElement | null>>({});
 
   const [form, setForm] = useState<AutorizacaoFormData>(() => ({
     proprietario_nome: state.proprietario || "",
@@ -72,8 +92,48 @@ export function GerarAutorizacaoDrawer({ open, onOpenChange, state, valuationId,
     if (!form.bairro.trim()) e.bairro = "Obrigatório";
     if (!Number(form.valor_avaliacao)) e.valor_avaliacao = "Informe valor > 0";
     if (!Number(form.valor_venda)) e.valor_venda = "Informe valor > 0";
+    if (!isentoCondominio && !Number(form.valor_condominio)) e.valor_condominio = "Informe valor ou marque 'Isento'";
+    if (!isentoIptu && !Number(form.valor_iptu)) e.valor_iptu = "Informe valor ou marque 'Isento'";
+    if (!form.prazo_dias || form.prazo_dias <= 0) e.prazo_dias = "Selecione um prazo";
+    if (!form.percentual_honorarios || form.percentual_honorarios <= 0) e.percentual_honorarios = "Informe %";
     return e;
+  }, [form, isentoCondominio, isentoIptu]);
+
+  const fieldLabels: Record<string, string> = {
+    proprietario_nome: "Nome do proprietário",
+    proprietario_cpf: "CPF",
+    proprietario_email: "E-mail",
+    endereco: "Endereço",
+    bairro: "Bairro",
+    valor_avaliacao: "Valor de Avaliação",
+    valor_venda: "Valor de Venda Autorizado",
+    valor_condominio: "Condomínio",
+    valor_iptu: "IPTU",
+    prazo_dias: "Prazo",
+    percentual_honorarios: "Honorários",
+  };
+
+  const optionalEmpty = useMemo(() => {
+    const list: string[] = [];
+    if (!form.proprietario_telefone?.trim()) list.push("Telefone");
+    if (!form.proprietario_rg?.trim()) list.push("RG");
+    if (!form.cep?.trim()) list.push("CEP");
+    if (!form.numero?.trim()) list.push("Número");
+    return list;
   }, [form]);
+
+  const focusFirstError = () => {
+    const first = Object.keys(errors)[0];
+    if (!first) return;
+    setTabValue("dados");
+    setTimeout(() => {
+      const el = fieldRefs.current[first];
+      if (el) {
+        el.scrollIntoView({ behavior: "smooth", block: "center" });
+        (el as HTMLInputElement).focus?.();
+      }
+    }, 100);
+  };
 
   const buildPayload = () => ({
     organization_id: organization?.id,
@@ -91,8 +151,8 @@ export function GerarAutorizacaoDrawer({ open, onOpenChange, state, valuationId,
     bairro: form.bairro,
     cidade: form.cidade || "Rio de Janeiro",
     cep: form.cep || null,
-    valor_condominio: Number(form.valor_condominio) || null,
-    valor_iptu: Number(form.valor_iptu) || null,
+    valor_condominio: isentoCondominio ? 0 : (Number(form.valor_condominio) || null),
+    valor_iptu: isentoIptu ? 0 : (Number(form.valor_iptu) || null),
     vagas: form.vagas || null,
     quartos: form.quartos || null,
     valor_avaliacao: Number(form.valor_avaliacao),
@@ -105,19 +165,15 @@ export function GerarAutorizacaoDrawer({ open, onOpenChange, state, valuationId,
     status: "rascunho" as const,
   });
 
-  const handleSalvarRascunho = async () => {
-    if (!organization?.id) {
-      toast.error("Organização não identificada");
-      return;
-    }
-    if (Object.keys(errors).length > 0) {
-      toast.error("Preencha os campos obrigatórios", { description: Object.values(errors).join(", ") });
-      return;
-    }
+  const executeAction = async (action: "rascunho" | "enviar") => {
     setSubmitting(true);
     try {
-      await createMut.mutateAsync(buildPayload());
-      toast.success("Rascunho salvo");
+      const created = await createMut.mutateAsync(buildPayload());
+      if (action === "enviar") {
+        await enviarMut.mutateAsync(created.id);
+      } else {
+        toast.success("Rascunho salvo");
+      }
       onOpenChange(false);
       navigate("/autorizacoes-captacao");
     } finally {
@@ -125,25 +181,29 @@ export function GerarAutorizacaoDrawer({ open, onOpenChange, state, valuationId,
     }
   };
 
-  const handleEnviar = async () => {
+  const tryAction = (action: "rascunho" | "enviar") => {
     if (!organization?.id) {
       toast.error("Organização não identificada");
       return;
     }
+    setAttemptedSubmit(true);
     if (Object.keys(errors).length > 0) {
-      toast.error("Preencha os campos obrigatórios", { description: Object.values(errors).join(", ") });
+      toast.error("Há campos obrigatórios pendentes", {
+        description: "Confira os campos destacados em vermelho.",
+      });
+      focusFirstError();
       return;
     }
-    setSubmitting(true);
-    try {
-      const created = await createMut.mutateAsync(buildPayload());
-      await enviarMut.mutateAsync(created.id);
-      onOpenChange(false);
-      navigate("/autorizacoes-captacao");
-    } finally {
-      setSubmitting(false);
+    if (optionalEmpty.length > 0) {
+      setPendingAction(action);
+      setOptionalDialogOpen(true);
+      return;
     }
+    executeAction(action);
   };
+
+  const handleSalvarRascunho = () => tryAction("rascunho");
+  const handleEnviar = () => tryAction("enviar");
 
   const previewData: AutorizacaoFormData = form;
 
@@ -160,7 +220,7 @@ export function GerarAutorizacaoDrawer({ open, onOpenChange, state, valuationId,
           </SheetDescription>
         </SheetHeader>
 
-        <Tabs defaultValue="dados" className="flex-1 overflow-hidden flex flex-col mt-4">
+        <Tabs value={tabValue} onValueChange={(v) => setTabValue(v as "dados" | "preview")} className="flex-1 overflow-hidden flex flex-col mt-4">
           <TabsList className="grid w-full grid-cols-2">
             <TabsTrigger value="dados">Dados</TabsTrigger>
             <TabsTrigger value="preview">Pré-visualização</TabsTrigger>
@@ -168,21 +228,58 @@ export function GerarAutorizacaoDrawer({ open, onOpenChange, state, valuationId,
 
           <ScrollArea className="flex-1 mt-3">
             <TabsContent value="dados" className="space-y-4 pr-3">
+              {attemptedSubmit && Object.keys(errors).length > 0 && (
+                <Alert variant="destructive">
+                  <AlertTriangle className="h-4 w-4" />
+                  <AlertTitle>Preencha os campos obrigatórios</AlertTitle>
+                  <AlertDescription>
+                    <ul className="list-disc pl-5 mt-1 text-xs space-y-0.5">
+                      {Object.entries(errors).map(([k, v]) => (
+                        <li key={k}><strong>{fieldLabels[k] || k}:</strong> {v}</li>
+                      ))}
+                    </ul>
+                  </AlertDescription>
+                </Alert>
+              )}
+
               <Card>
                 <CardContent className="pt-4 space-y-3">
                   <h4 className="font-semibold text-sm">Proprietário</h4>
                   <div className="grid sm:grid-cols-2 gap-3">
                     <div>
                       <Label className="text-xs">Nome completo *</Label>
-                      <Input value={form.proprietario_nome} onChange={(e) => update("proprietario_nome", e.target.value)} />
+                      <Input
+                        ref={(el) => (fieldRefs.current.proprietario_nome = el)}
+                        value={form.proprietario_nome}
+                        onChange={(e) => update("proprietario_nome", e.target.value)}
+                        aria-invalid={!!errors.proprietario_nome}
+                        className={errors.proprietario_nome ? "border-destructive" : ""}
+                      />
+                      {errors.proprietario_nome && <p className="text-xs text-destructive mt-1">{errors.proprietario_nome}</p>}
                     </div>
                     <div>
                       <Label className="text-xs">E-mail *</Label>
-                      <Input type="email" value={form.proprietario_email} onChange={(e) => update("proprietario_email", e.target.value)} />
+                      <Input
+                        ref={(el) => (fieldRefs.current.proprietario_email = el)}
+                        type="email"
+                        value={form.proprietario_email}
+                        onChange={(e) => update("proprietario_email", e.target.value)}
+                        aria-invalid={!!errors.proprietario_email}
+                        className={errors.proprietario_email ? "border-destructive" : ""}
+                      />
+                      {errors.proprietario_email && <p className="text-xs text-destructive mt-1">{errors.proprietario_email}</p>}
                     </div>
                     <div>
                       <Label className="text-xs">CPF *</Label>
-                      <Input value={form.proprietario_cpf} onChange={(e) => update("proprietario_cpf", maskCPF(e.target.value))} placeholder="000.000.000-00" />
+                      <Input
+                        ref={(el) => (fieldRefs.current.proprietario_cpf = el)}
+                        value={form.proprietario_cpf}
+                        onChange={(e) => update("proprietario_cpf", maskCPF(e.target.value))}
+                        placeholder="000.000.000-00"
+                        aria-invalid={!!errors.proprietario_cpf}
+                        className={errors.proprietario_cpf ? "border-destructive" : ""}
+                      />
+                      {errors.proprietario_cpf && <p className="text-xs text-destructive mt-1">{errors.proprietario_cpf}</p>}
                     </div>
                     <div>
                       <Label className="text-xs">Telefone (WhatsApp)</Label>
@@ -206,7 +303,14 @@ export function GerarAutorizacaoDrawer({ open, onOpenChange, state, valuationId,
                   <div className="grid sm:grid-cols-3 gap-3">
                     <div className="sm:col-span-3">
                       <Label className="text-xs">Endereço *</Label>
-                      <Input value={form.endereco} onChange={(e) => update("endereco", e.target.value)} />
+                      <Input
+                        ref={(el) => (fieldRefs.current.endereco = el)}
+                        value={form.endereco}
+                        onChange={(e) => update("endereco", e.target.value)}
+                        aria-invalid={!!errors.endereco}
+                        className={errors.endereco ? "border-destructive" : ""}
+                      />
+                      {errors.endereco && <p className="text-xs text-destructive mt-1">{errors.endereco}</p>}
                     </div>
                     <div>
                       <Label className="text-xs">Número</Label>
@@ -222,7 +326,14 @@ export function GerarAutorizacaoDrawer({ open, onOpenChange, state, valuationId,
                     </div>
                     <div>
                       <Label className="text-xs">Bairro *</Label>
-                      <Input value={form.bairro} onChange={(e) => update("bairro", e.target.value)} />
+                      <Input
+                        ref={(el) => (fieldRefs.current.bairro = el)}
+                        value={form.bairro}
+                        onChange={(e) => update("bairro", e.target.value)}
+                        aria-invalid={!!errors.bairro}
+                        className={errors.bairro ? "border-destructive" : ""}
+                      />
+                      {errors.bairro && <p className="text-xs text-destructive mt-1">{errors.bairro}</p>}
                     </div>
                     <div>
                       <Label className="text-xs">Cidade</Label>
@@ -237,12 +348,40 @@ export function GerarAutorizacaoDrawer({ open, onOpenChange, state, valuationId,
                       <Input type="number" value={form.vagas || ""} onChange={(e) => update("vagas", Number(e.target.value) || 0)} />
                     </div>
                     <div>
-                      <Label className="text-xs">Condomínio (R$/mês)</Label>
-                      <Input inputMode="numeric" value={form.valor_condominio} onChange={(e) => update("valor_condominio", e.target.value.replace(/[^\d]/g, ""))} />
+                      <Label className="text-xs">Condomínio (R$/mês) *</Label>
+                      <Input
+                        ref={(el) => (fieldRefs.current.valor_condominio = el)}
+                        inputMode="numeric"
+                        disabled={isentoCondominio}
+                        value={isentoCondominio ? "" : formatBRLDisplay(form.valor_condominio)}
+                        onChange={(e) => update("valor_condominio", parseBRLInput(e.target.value))}
+                        placeholder="R$ 0"
+                        aria-invalid={!!errors.valor_condominio}
+                        className={errors.valor_condominio ? "border-destructive" : ""}
+                      />
+                      <label className="flex items-center gap-2 mt-1 text-xs text-muted-foreground cursor-pointer">
+                        <Checkbox checked={isentoCondominio} onCheckedChange={(v) => setIsentoCondominio(!!v)} />
+                        Isento
+                      </label>
+                      {errors.valor_condominio && <p className="text-xs text-destructive mt-1">{errors.valor_condominio}</p>}
                     </div>
                     <div>
-                      <Label className="text-xs">IPTU (R$/ano)</Label>
-                      <Input inputMode="numeric" value={form.valor_iptu} onChange={(e) => update("valor_iptu", e.target.value.replace(/[^\d]/g, ""))} />
+                      <Label className="text-xs">IPTU (R$/ano) *</Label>
+                      <Input
+                        ref={(el) => (fieldRefs.current.valor_iptu = el)}
+                        inputMode="numeric"
+                        disabled={isentoIptu}
+                        value={isentoIptu ? "" : formatBRLDisplay(form.valor_iptu)}
+                        onChange={(e) => update("valor_iptu", parseBRLInput(e.target.value))}
+                        placeholder="R$ 0"
+                        aria-invalid={!!errors.valor_iptu}
+                        className={errors.valor_iptu ? "border-destructive" : ""}
+                      />
+                      <label className="flex items-center gap-2 mt-1 text-xs text-muted-foreground cursor-pointer">
+                        <Checkbox checked={isentoIptu} onCheckedChange={(v) => setIsentoIptu(!!v)} />
+                        Isento
+                      </label>
+                      {errors.valor_iptu && <p className="text-xs text-destructive mt-1">{errors.valor_iptu}</p>}
                     </div>
                   </div>
                 </CardContent>
@@ -259,20 +398,28 @@ export function GerarAutorizacaoDrawer({ open, onOpenChange, state, valuationId,
                     <div>
                       <Label className="text-xs">Valor de Avaliação (R$) *</Label>
                       <Input
+                        ref={(el) => (fieldRefs.current.valor_avaliacao = el)}
                         inputMode="numeric"
-                        value={form.valor_avaliacao}
-                        onChange={(e) => update("valor_avaliacao", e.target.value.replace(/[^\d]/g, ""))}
-                        placeholder="0"
+                        value={formatBRLDisplay(form.valor_avaliacao)}
+                        onChange={(e) => update("valor_avaliacao", parseBRLInput(e.target.value))}
+                        placeholder="R$ 0"
+                        aria-invalid={!!errors.valor_avaliacao}
+                        className={errors.valor_avaliacao ? "border-destructive" : ""}
                       />
+                      {errors.valor_avaliacao && <p className="text-xs text-destructive mt-1">{errors.valor_avaliacao}</p>}
                     </div>
                     <div>
                       <Label className="text-xs">Valor de Venda Autorizado (R$) *</Label>
                       <Input
+                        ref={(el) => (fieldRefs.current.valor_venda = el)}
                         inputMode="numeric"
-                        value={form.valor_venda}
-                        onChange={(e) => update("valor_venda", e.target.value.replace(/[^\d]/g, ""))}
-                        placeholder="0"
+                        value={formatBRLDisplay(form.valor_venda)}
+                        onChange={(e) => update("valor_venda", parseBRLInput(e.target.value))}
+                        placeholder="R$ 0"
+                        aria-invalid={!!errors.valor_venda}
+                        className={errors.valor_venda ? "border-destructive" : ""}
                       />
+                      {errors.valor_venda && <p className="text-xs text-destructive mt-1">{errors.valor_venda}</p>}
                     </div>
                   </div>
                 </CardContent>
@@ -323,16 +470,53 @@ export function GerarAutorizacaoDrawer({ open, onOpenChange, state, valuationId,
           </ScrollArea>
         </Tabs>
 
-        <div className="border-t pt-3 mt-3 flex flex-col sm:flex-row gap-2 justify-end">
-          <Button variant="outline" onClick={handleSalvarRascunho} disabled={submitting}>
-            {submitting ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Save className="h-4 w-4 mr-2" />}
-            Salvar Rascunho
-          </Button>
-          <Button onClick={handleEnviar} disabled={submitting}>
-            {submitting ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Send className="h-4 w-4 mr-2" />}
-            Enviar para Assinatura
-          </Button>
+        <div className="border-t pt-3 mt-3 space-y-2">
+          {Object.keys(errors).length > 0 && (
+            <div className="flex items-center gap-2 text-xs text-destructive">
+              <AlertTriangle className="h-3.5 w-3.5" />
+              {Object.keys(errors).length} campo(s) obrigatório(s) pendente(s)
+            </div>
+          )}
+          <div className="flex flex-col sm:flex-row gap-2 justify-end">
+            <Button variant="outline" onClick={handleSalvarRascunho} disabled={submitting}>
+              {submitting ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Save className="h-4 w-4 mr-2" />}
+              Salvar Rascunho
+            </Button>
+            <Button onClick={handleEnviar} disabled={submitting}>
+              {submitting ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Send className="h-4 w-4 mr-2" />}
+              Enviar para Assinatura
+            </Button>
+          </div>
         </div>
+
+        <AlertDialog open={optionalDialogOpen} onOpenChange={setOptionalDialogOpen}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Alguns campos opcionais estão vazios</AlertDialogTitle>
+              <AlertDialogDescription asChild>
+                <div className="space-y-2">
+                  <div>Os seguintes campos não foram preenchidos:</div>
+                  <ul className="list-disc pl-5 text-xs">
+                    {optionalEmpty.map((c) => <li key={c}>{c}</li>)}
+                  </ul>
+                  <div>Deseja voltar e preencher antes de prosseguir?</div>
+                </div>
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel onClick={() => setPendingAction(null)}>Voltar e preencher</AlertDialogCancel>
+              <AlertDialogAction
+                onClick={() => {
+                  const action = pendingAction;
+                  setPendingAction(null);
+                  if (action) executeAction(action);
+                }}
+              >
+                Prosseguir mesmo assim
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </SheetContent>
     </Sheet>
   );
