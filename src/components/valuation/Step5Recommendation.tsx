@@ -624,6 +624,28 @@ export function Step5Recommendation({ result, state, combined, onReset, existing
               </p>
             </div>
           )}
+
+          {result.recommendation.status === "READY_TO_MARKET" && (
+            <div className="pt-2 border-t border-emerald-200 dark:border-emerald-800">
+              <Button
+                onClick={() => {
+                  if (!valuationId && !existingValuationId) {
+                    toast.message("Aguarde", { description: "Estamos salvando a avaliação para liberar a autorização." });
+                    return;
+                  }
+                  setShowAutorizacaoDrawer(true);
+                }}
+                className="w-full bg-[#0C2340] hover:bg-[#0C2340]/90 text-white"
+                size="lg"
+              >
+                <FileSignature className="h-4 w-4 mr-2" />
+                Gerar Autorização de Captação
+              </Button>
+              <p className="text-[10px] sm:text-xs text-muted-foreground mt-2 text-center">
+                Imóvel pronto para captação. Envie ao proprietário e colete a assinatura digital.
+              </p>
+            </div>
+          )}
         </CardContent>
       </Card>
 
