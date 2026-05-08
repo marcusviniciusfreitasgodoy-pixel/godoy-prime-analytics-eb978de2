@@ -30,6 +30,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { PricingStrategyModule } from "@/components/pricing/PricingStrategyModule";
 import { PricingStrategyState, StrategyType } from "@/types/pricingStrategy";
 import { SendPdfEmailDialog, ReportType } from "@/components/SendPdfEmailDialog";
+import { GerarAutorizacaoDrawer } from "@/components/autorizacoes/GerarAutorizacaoDrawer";
+import { FileSignature } from "lucide-react";
 
 interface Props {
   result: ValuationResult;
@@ -52,6 +54,7 @@ export function Step5Recommendation({ result, state, combined, onReset, existing
   const [pricingData, setPricingData] = useState<PricingStrategyPDFData | null>(null);
   const [showEmailDialog, setShowEmailDialog] = useState(false);
   const [observacoes, setObservacoes] = useState(state.observacoesImovel || "");
+  const [showAutorizacaoDrawer, setShowAutorizacaoDrawer] = useState(false);
 
   // Debounced save of observations to DB
   useEffect(() => {
@@ -824,6 +827,16 @@ export function Step5Recommendation({ result, state, combined, onReset, existing
         pdfFilename={getValuationPDFFilename({...state, tipoAvaliacao: "completa"})}
         showReportTypeSelector={true}
       />
+
+      {/* Drawer Autorização de Captação */}
+      {(valuationId || existingValuationId) && (
+        <GerarAutorizacaoDrawer
+          open={showAutorizacaoDrawer}
+          onOpenChange={setShowAutorizacaoDrawer}
+          state={{ ...state, observacoesImovel: observacoes }}
+          valuationId={(valuationId || existingValuationId) as string}
+        />
+      )}
     </div>
   );
 }
