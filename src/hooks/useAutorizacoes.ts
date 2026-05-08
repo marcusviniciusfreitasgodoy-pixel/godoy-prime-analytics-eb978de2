@@ -53,6 +53,33 @@ export function useAutorizacaoEventos(autorizacaoId: string | undefined) {
   });
 }
 
+/**
+ * Indexa as autorizações pelo valuation_id, retornando um Map para lookup rápido.
+ * Usado em telas que listam avaliações para mostrar "Ver Autorização" se já existir.
+ */
+export function useAutorizacoesByValuationIds(valuationIds: string[]) {
+  return useQuery({
+    queryKey: ["autorizacoes-by-valuation", [...valuationIds].sort().join(",")],
+    queryFn: async () => {
+      if (valuationIds.length === 0) return new Map<string, Autorizacao>();
+      const { data, error } = await supabase
+        .from("autorizacoes_captacao" as any)
+        .select("*")
+        .in("valuation_id", valuationIds)
+        .order("created_at", { ascending: false })
+        .limit(5000);
+      if (error) throw error;
+      const map = new Map<string, Autorizacao>();
+      ((data || []) as unknown as Autorizacao[]).forEach((a) => {
+        // Mantém a primeira (mais recente por ordem desc) por valuation
+        if (!map.has((a as any).valuation_id)) map.set((a as any).valuation_id, a);
+      });
+      return map;
+    },
+    enabled: valuationIds.length > 0,
+  });
+}
+
 export function useCreateAutorizacao() {
   const qc = useQueryClient();
   return useMutation({
