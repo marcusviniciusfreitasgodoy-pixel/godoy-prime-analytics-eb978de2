@@ -775,7 +775,7 @@ export function Step5Recommendation({ result, state, combined, onReset, existing
           </div>
 
           {decisionMade === null ? (
-            <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 sm:gap-3 pt-1 sm:pt-2">
+            <div className="grid grid-cols-1 gap-2 sm:grid-cols-3 sm:gap-3 pt-1 sm:pt-2">
               <Button 
                 onClick={handleGoToVistoria} 
                 className="flex items-center justify-center gap-2 h-11 sm:h-10 text-xs sm:text-sm"
@@ -783,6 +783,13 @@ export function Step5Recommendation({ result, state, combined, onReset, existing
                 <CheckCircle className="h-4 w-4" />
                 <span className="truncate">Sim, prosseguir</span>
               </Button>
+              <GerarAutorizacaoButton
+                state={{ ...state, observacoesImovel: observacoes }}
+                valuationId={valuationId || existingValuationId}
+                defaultValorAvaliacao={result.provavel}
+                label="Gerar Autorização"
+                fullWidth
+              />
               <Button 
                 onClick={handleGenerateSimpleReport} 
                 variant="outline"
@@ -840,15 +847,6 @@ export function Step5Recommendation({ result, state, combined, onReset, existing
         showReportTypeSelector={true}
       />
 
-      {/* Drawer Autorização de Captação */}
-      {(valuationId || existingValuationId) && (
-        <GerarAutorizacaoDrawer
-          open={showAutorizacaoDrawer}
-          onOpenChange={setShowAutorizacaoDrawer}
-          state={{ ...state, observacoesImovel: observacoes }}
-          valuationId={(valuationId || existingValuationId) as string}
-        />
-      )}
     </div>
   );
 }
