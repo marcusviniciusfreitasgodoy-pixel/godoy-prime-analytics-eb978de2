@@ -108,7 +108,6 @@ export default function AutorizacaoPublica() {
       });
       const j = await r.json();
       if (!r.ok) throw new Error(j.error || "Erro ao assinar");
-      void formData;
       setStage("done");
     } catch (e: any) {
       toast.error("Erro ao assinar", { description: e?.message });
