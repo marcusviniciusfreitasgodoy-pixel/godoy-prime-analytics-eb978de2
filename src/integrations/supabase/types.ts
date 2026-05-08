@@ -139,6 +139,187 @@ export type Database = {
           },
         ]
       }
+      autorizacoes_captacao: {
+        Row: {
+          assinatura_corretor: string | null
+          assinatura_proprietario: string | null
+          bairro: string
+          cep: string | null
+          cidade: string
+          codigo: string
+          complemento: string | null
+          corretor_creci: string | null
+          corretor_nome: string | null
+          created_at: string
+          created_by: string | null
+          data_assinatura_proprietario: string | null
+          data_envio: string | null
+          data_recusa: string | null
+          data_vencimento: string | null
+          data_visualizacao: string | null
+          endereco: string
+          id: string
+          ip_assinatura_proprietario: string | null
+          motivo_recusa: string | null
+          numero: string | null
+          organization_id: string
+          pdf_url: string | null
+          percentual_honorarios: number
+          prazo_dias: number
+          proprietario_cpf: string
+          proprietario_email: string
+          proprietario_nome: string
+          proprietario_rg: string | null
+          proprietario_rg_orgao: string | null
+          proprietario_telefone: string | null
+          quartos: number | null
+          status: string
+          tipo_gestao: string
+          token_acesso: string | null
+          updated_at: string
+          vagas: number | null
+          valor_avaliacao: number
+          valor_condominio: number | null
+          valor_iptu: number | null
+          valor_venda: number
+          valuation_id: string
+        }
+        Insert: {
+          assinatura_corretor?: string | null
+          assinatura_proprietario?: string | null
+          bairro: string
+          cep?: string | null
+          cidade?: string
+          codigo: string
+          complemento?: string | null
+          corretor_creci?: string | null
+          corretor_nome?: string | null
+          created_at?: string
+          created_by?: string | null
+          data_assinatura_proprietario?: string | null
+          data_envio?: string | null
+          data_recusa?: string | null
+          data_vencimento?: string | null
+          data_visualizacao?: string | null
+          endereco: string
+          id?: string
+          ip_assinatura_proprietario?: string | null
+          motivo_recusa?: string | null
+          numero?: string | null
+          organization_id: string
+          pdf_url?: string | null
+          percentual_honorarios?: number
+          prazo_dias?: number
+          proprietario_cpf: string
+          proprietario_email: string
+          proprietario_nome: string
+          proprietario_rg?: string | null
+          proprietario_rg_orgao?: string | null
+          proprietario_telefone?: string | null
+          quartos?: number | null
+          status?: string
+          tipo_gestao?: string
+          token_acesso?: string | null
+          updated_at?: string
+          vagas?: number | null
+          valor_avaliacao: number
+          valor_condominio?: number | null
+          valor_iptu?: number | null
+          valor_venda: number
+          valuation_id: string
+        }
+        Update: {
+          assinatura_corretor?: string | null
+          assinatura_proprietario?: string | null
+          bairro?: string
+          cep?: string | null
+          cidade?: string
+          codigo?: string
+          complemento?: string | null
+          corretor_creci?: string | null
+          corretor_nome?: string | null
+          created_at?: string
+          created_by?: string | null
+          data_assinatura_proprietario?: string | null
+          data_envio?: string | null
+          data_recusa?: string | null
+          data_vencimento?: string | null
+          data_visualizacao?: string | null
+          endereco?: string
+          id?: string
+          ip_assinatura_proprietario?: string | null
+          motivo_recusa?: string | null
+          numero?: string | null
+          organization_id?: string
+          pdf_url?: string | null
+          percentual_honorarios?: number
+          prazo_dias?: number
+          proprietario_cpf?: string
+          proprietario_email?: string
+          proprietario_nome?: string
+          proprietario_rg?: string | null
+          proprietario_rg_orgao?: string | null
+          proprietario_telefone?: string | null
+          quartos?: number | null
+          status?: string
+          tipo_gestao?: string
+          token_acesso?: string | null
+          updated_at?: string
+          vagas?: number | null
+          valor_avaliacao?: number
+          valor_condominio?: number | null
+          valor_iptu?: number | null
+          valor_venda?: number
+          valuation_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "autorizacoes_captacao_valuation_id_fkey"
+            columns: ["valuation_id"]
+            isOneToOne: false
+            referencedRelation: "valuations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      autorizacoes_captacao_eventos: {
+        Row: {
+          autorizacao_id: string
+          created_at: string
+          id: string
+          ip: string | null
+          metadata: Json | null
+          tipo: string
+          user_agent: string | null
+        }
+        Insert: {
+          autorizacao_id: string
+          created_at?: string
+          id?: string
+          ip?: string | null
+          metadata?: Json | null
+          tipo: string
+          user_agent?: string | null
+        }
+        Update: {
+          autorizacao_id?: string
+          created_at?: string
+          id?: string
+          ip?: string | null
+          metadata?: Json | null
+          tipo?: string
+          user_agent?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "autorizacoes_captacao_eventos_autorizacao_id_fkey"
+            columns: ["autorizacao_id"]
+            isOneToOne: false
+            referencedRelation: "autorizacoes_captacao"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       bairros_cache: {
         Row: {
           bairro: string
@@ -2560,6 +2741,8 @@ export type Database = {
           base_price_custom_m2: number | null
           base_price_selected: string | null
           bonus_terreno: number | null
+          cep: string | null
+          cidade: string | null
           combined_max_m2: number
           combined_med_m2: number
           combined_min_m2: number
@@ -2588,6 +2771,11 @@ export type Database = {
           property_type: string | null
           proporcao_terreno: number | null
           proprietario: string | null
+          proprietario_cpf: string | null
+          proprietario_email: string | null
+          proprietario_nome: string | null
+          proprietario_rg: string | null
+          proprietario_rg_orgao: string | null
           quartos: number | null
           recommendation_action: string | null
           recommendation_details: Json | null
@@ -2602,6 +2790,8 @@ export type Database = {
           updated_at: string | null
           user_id: string | null
           vagas: number | null
+          valor_condominio: number | null
+          valor_iptu: number | null
         }
         Insert: {
           andar?: string | null
@@ -2616,6 +2806,8 @@ export type Database = {
           base_price_custom_m2?: number | null
           base_price_selected?: string | null
           bonus_terreno?: number | null
+          cep?: string | null
+          cidade?: string | null
           combined_max_m2: number
           combined_med_m2: number
           combined_min_m2: number
@@ -2644,6 +2836,11 @@ export type Database = {
           property_type?: string | null
           proporcao_terreno?: number | null
           proprietario?: string | null
+          proprietario_cpf?: string | null
+          proprietario_email?: string | null
+          proprietario_nome?: string | null
+          proprietario_rg?: string | null
+          proprietario_rg_orgao?: string | null
           quartos?: number | null
           recommendation_action?: string | null
           recommendation_details?: Json | null
@@ -2658,6 +2855,8 @@ export type Database = {
           updated_at?: string | null
           user_id?: string | null
           vagas?: number | null
+          valor_condominio?: number | null
+          valor_iptu?: number | null
         }
         Update: {
           andar?: string | null
@@ -2672,6 +2871,8 @@ export type Database = {
           base_price_custom_m2?: number | null
           base_price_selected?: string | null
           bonus_terreno?: number | null
+          cep?: string | null
+          cidade?: string | null
           combined_max_m2?: number
           combined_med_m2?: number
           combined_min_m2?: number
@@ -2700,6 +2901,11 @@ export type Database = {
           property_type?: string | null
           proporcao_terreno?: number | null
           proprietario?: string | null
+          proprietario_cpf?: string | null
+          proprietario_email?: string | null
+          proprietario_nome?: string | null
+          proprietario_rg?: string | null
+          proprietario_rg_orgao?: string | null
           quartos?: number | null
           recommendation_action?: string | null
           recommendation_details?: Json | null
@@ -2714,6 +2920,8 @@ export type Database = {
           updated_at?: string | null
           user_id?: string | null
           vagas?: number | null
+          valor_condominio?: number | null
+          valor_iptu?: number | null
         }
         Relationships: [
           {
