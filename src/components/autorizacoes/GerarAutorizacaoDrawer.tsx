@@ -24,9 +24,11 @@ interface Props {
   onOpenChange: (open: boolean) => void;
   state: ValuationState;
   valuationId: string;
+  /** Valor de avaliação sugerido (ex.: result.provavel) — preenche o campo automaticamente */
+  defaultValorAvaliacao?: number;
 }
 
-export function GerarAutorizacaoDrawer({ open, onOpenChange, state, valuationId }: Props) {
+export function GerarAutorizacaoDrawer({ open, onOpenChange, state, valuationId, defaultValorAvaliacao }: Props) {
   const navigate = useNavigate();
   const { organization } = useOrganization();
   const { user } = useAuth();
@@ -51,8 +53,8 @@ export function GerarAutorizacaoDrawer({ open, onOpenChange, state, valuationId 
     valor_iptu: state.valor_iptu ? String(state.valor_iptu) : "",
     vagas: state.vagas || 0,
     quartos: state.quartos || 0,
-    valor_avaliacao: "",
-    valor_venda: "",
+    valor_avaliacao: defaultValorAvaliacao ? String(Math.round(defaultValorAvaliacao)) : "",
+    valor_venda: defaultValorAvaliacao ? String(Math.round(defaultValorAvaliacao)) : "",
     tipo_gestao: "com_exclusiva" as TipoGestao,
     prazo_dias: 90,
     percentual_honorarios: 5,
