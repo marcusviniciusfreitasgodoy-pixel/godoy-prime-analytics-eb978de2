@@ -110,6 +110,15 @@ export interface ValuationState {
   andar: string;
   proprietario: string;
   telefone: string;
+  // Dados do proprietário para emissão de Autorização de Captação
+  proprietario_cpf: string;
+  proprietario_rg: string;
+  proprietario_rg_orgao: string;
+  proprietario_email: string;
+  cep: string;
+  cidade: string;
+  valor_condominio: number;
+  valor_iptu: number;
   dataAvaliacao: string;
   observacoesImovel: string;
   
@@ -161,6 +170,14 @@ export const initialValuationState: ValuationState = {
   andar: "",
   proprietario: "",
   telefone: "",
+  proprietario_cpf: "",
+  proprietario_rg: "",
+  proprietario_rg_orgao: "",
+  proprietario_email: "",
+  cep: "",
+  cidade: "Rio de Janeiro",
+  valor_condominio: 0,
+  valor_iptu: 0,
   dataAvaliacao: new Date().toISOString().split('T')[0],
   observacoesImovel: "",
   

@@ -502,7 +502,7 @@ export function Step0Identification({ state, updateState, showValidation = false
         <CardContent className="pt-4 sm:pt-6 px-3 sm:px-6 space-y-3 sm:space-y-4">
           <h4 className="font-semibold flex items-center gap-2 text-sm">
             <User className="h-4 w-4 text-primary" />
-            Dados do Proprietário (opcional)
+            Dados do Proprietário (opcional — necessários para Autorização de Captação)
           </h4>
           
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
@@ -524,6 +524,95 @@ export function Step0Identification({ state, updateState, showValidation = false
                 value={state.telefone}
                 onChange={(e) => updateState({ telefone: e.target.value })}
                 placeholder="(21) 99999-9999"
+                className="h-10 sm:h-9"
+              />
+            </div>
+            <div>
+              <Label htmlFor="proprietario_email" className="text-xs sm:text-sm">E-mail</Label>
+              <Input
+                id="proprietario_email"
+                type="email"
+                value={state.proprietario_email}
+                onChange={(e) => updateState({ proprietario_email: e.target.value })}
+                placeholder="email@dominio.com"
+                className="h-10 sm:h-9"
+              />
+            </div>
+            <div>
+              <Label htmlFor="proprietario_cpf" className="text-xs sm:text-sm">CPF</Label>
+              <Input
+                id="proprietario_cpf"
+                value={state.proprietario_cpf}
+                onChange={(e) => updateState({ proprietario_cpf: e.target.value })}
+                placeholder="000.000.000-00"
+                className="h-10 sm:h-9"
+              />
+            </div>
+            <div>
+              <Label htmlFor="proprietario_rg" className="text-xs sm:text-sm">RG</Label>
+              <Input
+                id="proprietario_rg"
+                value={state.proprietario_rg}
+                onChange={(e) => updateState({ proprietario_rg: e.target.value })}
+                placeholder="00.000.000-0"
+                className="h-10 sm:h-9"
+              />
+            </div>
+            <div>
+              <Label htmlFor="proprietario_rg_orgao" className="text-xs sm:text-sm">Órgão Emissor</Label>
+              <Input
+                id="proprietario_rg_orgao"
+                value={state.proprietario_rg_orgao}
+                onChange={(e) => updateState({ proprietario_rg_orgao: e.target.value })}
+                placeholder="DETRAN/RJ"
+                className="h-10 sm:h-9"
+              />
+            </div>
+            <div>
+              <Label htmlFor="cep" className="text-xs sm:text-sm">CEP do Imóvel</Label>
+              <Input
+                id="cep"
+                value={state.cep}
+                onChange={(e) => updateState({ cep: e.target.value })}
+                placeholder="00000-000"
+                className="h-10 sm:h-9"
+              />
+            </div>
+            <div>
+              <Label htmlFor="cidade" className="text-xs sm:text-sm">Cidade</Label>
+              <Input
+                id="cidade"
+                value={state.cidade}
+                onChange={(e) => updateState({ cidade: e.target.value })}
+                placeholder="Rio de Janeiro"
+                className="h-10 sm:h-9"
+              />
+            </div>
+            <div>
+              <Label htmlFor="valor_condominio" className="text-xs sm:text-sm">Valor do Condomínio (R$/mês)</Label>
+              <Input
+                id="valor_condominio"
+                inputMode="numeric"
+                value={state.valor_condominio || ""}
+                onChange={(e) => {
+                  const v = e.target.value.replace(/[^\d]/g, "");
+                  updateState({ valor_condominio: Number(v) || 0 });
+                }}
+                placeholder="0"
+                className="h-10 sm:h-9"
+              />
+            </div>
+            <div>
+              <Label htmlFor="valor_iptu" className="text-xs sm:text-sm">Valor do IPTU (R$/ano)</Label>
+              <Input
+                id="valor_iptu"
+                inputMode="numeric"
+                value={state.valor_iptu || ""}
+                onChange={(e) => {
+                  const v = e.target.value.replace(/[^\d]/g, "");
+                  updateState({ valor_iptu: Number(v) || 0 });
+                }}
+                placeholder="0"
                 className="h-10 sm:h-9"
               />
             </div>
