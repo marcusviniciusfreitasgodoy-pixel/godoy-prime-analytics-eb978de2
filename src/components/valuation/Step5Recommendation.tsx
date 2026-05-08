@@ -30,7 +30,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { PricingStrategyModule } from "@/components/pricing/PricingStrategyModule";
 import { PricingStrategyState, StrategyType } from "@/types/pricingStrategy";
 import { SendPdfEmailDialog, ReportType } from "@/components/SendPdfEmailDialog";
-import { GerarAutorizacaoDrawer } from "@/components/autorizacoes/GerarAutorizacaoDrawer";
+import { GerarAutorizacaoButton } from "@/components/autorizacoes/GerarAutorizacaoButton";
 import { FileSignature } from "lucide-react";
 
 interface Props {
@@ -54,7 +54,6 @@ export function Step5Recommendation({ result, state, combined, onReset, existing
   const [pricingData, setPricingData] = useState<PricingStrategyPDFData | null>(null);
   const [showEmailDialog, setShowEmailDialog] = useState(false);
   const [observacoes, setObservacoes] = useState(state.observacoesImovel || "");
-  const [showAutorizacaoDrawer, setShowAutorizacaoDrawer] = useState(false);
 
   // Debounced save of observations to DB
   useEffect(() => {
@@ -625,27 +624,18 @@ export function Step5Recommendation({ result, state, combined, onReset, existing
             </div>
           )}
 
-          {result.recommendation.status === "READY_TO_MARKET" && (
-            <div className="pt-2 border-t border-emerald-200 dark:border-emerald-800">
-              <Button
-                onClick={() => {
-                  if (!valuationId && !existingValuationId) {
-                    toast.message("Aguarde", { description: "Estamos salvando a avaliação para liberar a autorização." });
-                    return;
-                  }
-                  setShowAutorizacaoDrawer(true);
-                }}
-                className="w-full bg-[#0C2340] hover:bg-[#0C2340]/90 text-white"
-                size="lg"
-              >
-                <FileSignature className="h-4 w-4 mr-2" />
-                Gerar Autorização de Captação
-              </Button>
-              <p className="text-[10px] sm:text-xs text-muted-foreground mt-2 text-center">
-                Imóvel pronto para captação. Envie ao proprietário e colete a assinatura digital.
-              </p>
-            </div>
-          )}
+          <div className="pt-2 border-t border-border/40">
+            <GerarAutorizacaoButton
+              state={{ ...state, observacoesImovel: observacoes }}
+              valuationId={valuationId || existingValuationId}
+              defaultValorAvaliacao={result.provavel}
+              size="lg"
+              fullWidth
+            />
+            <p className="text-[10px] sm:text-xs text-muted-foreground mt-2 text-center">
+              Envie a Autorização de Captação ao proprietário e colete a assinatura digital.
+            </p>
+          </div>
         </CardContent>
       </Card>
 
