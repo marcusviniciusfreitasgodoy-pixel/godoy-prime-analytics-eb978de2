@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { Separator } from '@/components/ui/separator';
-import { ArrowLeft, ArrowRight, Target, TrendingUp, AlertCircle } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Target, TrendingUp, AlertCircle, AlertTriangle, RotateCcw } from 'lucide-react';
 import { useAuthContext } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -32,6 +32,8 @@ import { Label } from '@/components/ui/label';
 interface PricingStrategyModuleProps {
   valuationId?: string;
   valorItbiInicial?: number;
+  /** Valor Justo de referência (saída do motor de avaliação) para alertar sobre desvios */
+  valorJustoReferencia?: number;
   /** Estratégia existente para edição */
   existingStrategy?: PricingStrategyState | null;
   onComplete?: (state: PricingStrategyState) => void;
@@ -41,6 +43,7 @@ interface PricingStrategyModuleProps {
 export function PricingStrategyModule({ 
   valuationId, 
   valorItbiInicial,
+  valorJustoReferencia,
   existingStrategy,
   onComplete,
   onBack
@@ -59,6 +62,66 @@ export function PricingStrategyModule({
   });
   const [saving, setSaving] = useState(false);
   const [isLoaded, setIsLoaded] = useState(!!existingStrategy);
+
+  // Valor Justo de referência (fallback para o valor inicial recebido)
+  const valorJusto = valorJustoReferencia ?? valorItbiInicial ?? 0;
+
+  // Calcula desvio percentual da base atual em relação ao Valor Justo
+  const desvioPercentual = valorJusto > 0
+    ? ((state.valor_itbi - valorJusto) / valorJusto) * 100
+    : 0;
+  const desvioAbs = Math.abs(desvioPercentual);
+  const nivelDesvio: 'ok' | 'atencao' | 'critico' =
+    desvioAbs > 10 ? 'critico' : desvioAbs > 5 ? 'atencao' : 'ok';
+
+  // Restaura a base ao Valor Justo de referência
+  const handleRestaurarValorJusto = () => {
+    if (valorJusto <= 0) return;
+    setState(prev => {
+      const calculos = (prev.status === 'analisado' || prev.status === 'selecionado')
+        ? calculateAllStrategies(valorJusto, prev.diagnostico)
+        : prev.calculos;
+      return { ...prev, valor_itbi: valorJusto, calculos };
+    });
+    toast.success('Base restaurada ao Valor Justo');
+  };
+
+  // Componente de alerta de desvio (compartilhado entre etapas)
+  const DesvioAlert = ({ compact = false }: { compact?: boolean }) => {
+    if (valorJusto <= 0 || nivelDesvio === 'ok') return null;
+    const isCritico = nivelDesvio === 'critico';
+    const Icon = isCritico ? AlertTriangle : AlertCircle;
+    const sinal = desvioPercentual > 0 ? 'acima' : 'abaixo';
+    const cor = isCritico
+      ? 'border-red-300 bg-red-50 text-red-800 dark:border-red-800 dark:bg-red-950/40 dark:text-red-200'
+      : 'border-amber-300 bg-amber-50 text-amber-800 dark:border-amber-800 dark:bg-amber-950/40 dark:text-amber-200';
+    return (
+      <div className={`rounded-md border ${cor} px-3 py-2 flex items-start gap-2 text-sm`}>
+        <Icon className="h-4 w-4 mt-0.5 shrink-0" />
+        <div className="flex-1 min-w-0">
+          <div className="font-medium">
+            Base {desvioAbs.toFixed(1)}% {sinal} do Valor Justo ({formatCurrencyBRL(valorJusto)})
+          </div>
+          {!compact && (
+            <div className="text-xs opacity-90 mt-0.5">
+              {isCritico
+                ? 'Desvio acentuado pode comprometer a credibilidade da estratégia.'
+                : 'Confirme se há justificativa de mercado para esta diferença.'}
+            </div>
+          )}
+        </div>
+        <Button
+          variant="outline"
+          size="sm"
+          className="h-7 px-2 text-xs shrink-0"
+          onClick={handleRestaurarValorJusto}
+        >
+          <RotateCcw className="h-3 w-3 mr-1" />
+          Restaurar
+        </Button>
+      </div>
+    );
+  };
 
   // Busca estratégia existente do banco quando valuationId é fornecido
   useEffect(() => {
@@ -296,6 +359,12 @@ export function PricingStrategyModule({
                   placeholder="R$ 0"
                   className="text-lg font-semibold"
                 />
+                {valorJusto > 0 && (
+                  <p className="text-xs text-muted-foreground">
+                    Valor Justo da avaliação: <span className="font-semibold text-foreground">{formatCurrencyBRL(valorJusto)}</span>
+                  </p>
+                )}
+                <DesvioAlert />
               </div>
             </CardContent>
           </Card>
@@ -338,6 +407,7 @@ export function PricingStrategyModule({
                   Alterar
                 </Button>
               </div>
+              <div className="mt-3"><DesvioAlert compact /></div>
             </CardContent>
           </Card>
 
@@ -406,6 +476,7 @@ export function PricingStrategyModule({
                   Refazer análise
                 </Button>
               </div>
+              <div className="mt-3"><DesvioAlert /></div>
             </CardContent>
           </Card>
 
@@ -439,10 +510,12 @@ export function PricingStrategyModule({
     if ((state.status === 'selecionado' || state.status === 'confirmado') && state.calculos && state.estrategia_selecionada) {
       return (
         <div className="space-y-6">
+          <DesvioAlert />
           <PostSelectionDetails
             estrategia={state.estrategia_selecionada}
             calculos={state.calculos}
             valorItbi={state.valor_itbi}
+            valorJusto={valorJusto}
             planoAjusteAtivo={state.plano_ajuste_ativo}
             onTogglePlanoAjuste={togglePlanoAjuste}
             isConfirmed={state.status === 'confirmado'}

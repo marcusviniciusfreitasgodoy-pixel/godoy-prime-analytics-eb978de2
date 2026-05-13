@@ -1,77 +1,55 @@
-# Plano de Teste E2E: Ficha de Visita → Proposta
+## Contexto importante (correção conceitual)
 
-Objetivo: validar todo o ciclo, do agendamento ao recebimento da proposta, identificando falhas de integração (WhatsApp, e-mail, links públicos, RLS, PDF).
-
-## Escopo do teste
+ATRAÇÃO **não é o valor mais barato** — é o **menor markup sobre o Valor Justo** (+4% por padrão), pensado para venda rápida. A relação correta é:
 
 ```
-Agendamento → Ficha criada → Status "realizada"
-   → WhatsApp pós-visita (visitante + corretor)
-   → E-mail de feedback
-   → Link público da ficha
-   → Link de assinatura (visitante e corretor)
-   → Link de feedback
-   → Link de proposta
-   → Submissão pública da proposta
-   → Visualização em /propostas e dentro da ficha
-   → Geração de PDF da proposta
+Valor Justo (R$ 3.735.095)  ──►  base de cálculo
+   ATRAÇÃO  = base × 1,04   (~ +4%, venda rápida)
+   MERCADO  = base × 1,08   (~ +8%, padrão)
+   PREMIUM  = base × 1,12   (~ +12%, sem pressa)
 ```
 
-## Etapas do teste
+No seu caso a base foi editada manualmente para ~R$ 4.386.565, então o ATRAÇÃO virou R$ 4.562.028 — bem acima do Valor Justo. É exatamente esse tipo de desvio que o aviso vai capturar.
 
-### 1. Pré-checagem de infraestrutura
-- `supabase--cloud_status` (backend ativo)
-- Verificar secrets: `ZAPI_INSTANCE_ID`, `ZAPI_TOKEN`, `ZAPI_CLIENT_TOKEN`, `RESEND_API_KEY`
-- `supabase--edge_function_logs` para `send-whatsapp`, `public-submit`, `send-visit-email`, `notify-proposta` (últimos erros)
+---
 
-### 2. Criar ficha de visita de teste
-- Inserir ficha via DB com `organization_id` válido (mesma org do usuário logado), telefone real do usuário, status `agendada`
-- Verificar visibilidade na lista `/visitas`
+## O que vou implementar
 
-### 3. Disparar mudança de status para "realizada"
-- Via UI (rota atual `/visitas/ficha/...`) ou simulação do `updateStatus`
-- Confirmar nos logs:
-  - `send-whatsapp` enviado para visitante (tipo `pos_visita`)
-  - `send-whatsapp` enviado para corretor
-  - `send-visit-email` (feedback) enviado
-  - Registros em `whatsapp_message_logs` com `status_envio = 'enviado'`
+### 1. Pré-preencher e "ancorar" a base no Valor Justo
+- Em `PricingStrategyModule`, quando `valorItbiInicial` (= `result.provavel`) chega do motor, ele já é a base padrão (já é hoje).
+- Guardar o valor justo de referência num estado interno `valorJustoReferencia` para comparar contra qualquer edição.
 
-### 4. Validar links gerados na mensagem WhatsApp
-- `link_ficha`: `/visitas/ficha-publica/:codigo` carrega
-- `link_assinatura`: `/visitas/assinatura/:codigo/visitante` carrega
-- `link_feedback`: `/visitas/feedback/:codigo` carrega
-- Verificar se há link para proposta nos templates (gap conhecido?)
+### 2. Aviso visual quando o usuário desviar do Valor Justo
+No `Card` "Valor da Avaliação" (logo abaixo do `CurrencyInput`), mostrar um alerta que aparece somente se `Math.abs(desvio%) > 5%`:
 
-### 5. Submissão pública de proposta
-- Acessar `/proposta/novo` com `ficha_visita_id` válido (via querystring/contexto)
-- `supabase--curl_edge_functions` em `public-submit` com action `proposta`:
-  - payload simplificado válido
-  - validar resposta, criação no DB com `organization_id` herdado da ficha
-- Testar caso de borda: payload **sem** `ficha_visita_id` → deve ser bloqueado (atual produz órfão invisível)
+| Desvio | Cor | Ícone | Mensagem |
+|--------|-----|-------|----------|
+| ±5% a ±10% | âmbar | `AlertCircle` | "Base **X% acima/abaixo** do Valor Justo (R$ 3.735.095). Confirme se há justificativa." |
+| > ±10% | vermelho | `AlertTriangle` | "Base **X% acima/abaixo** do Valor Justo. Pode comprometer a credibilidade da estratégia." |
 
-### 6. Visualização e PDF
-- Conferir proposta listada em `/propostas` (visível pela RLS da org)
-- Conferir aba "Propostas" dentro da ficha
-- Baixar PDF via `exportPropostaPdf` (validar layout)
+Botão secundário **"Restaurar Valor Justo"** que reseta `valor_itbi` para `valorJustoReferencia` e dispara `calculateAllStrategies` novamente.
 
-### 7. Notificação de proposta recebida
-- Verificar `notify-proposta` logs (e-mail + WhatsApp ao corretor)
+### 3. Esclarecer o significado de ATRAÇÃO no card
+No `PostSelectionDetails` / `StrategyCards`, ajustar o subtítulo do ATRAÇÃO de "Markup +4%" para algo mais claro:
+> "Venda rápida — Valor Justo + 4%"
 
-## Critérios de sucesso
-- Nenhum erro 4xx/5xx nas edge functions
-- `whatsapp_message_logs` com `enviado` para todos os disparos
-- Links públicos retornam 200 e exibem dados corretos
-- Proposta criada com `organization_id` e `ficha_visita_id` corretos
-- Proposta visível em `/propostas` e dentro da ficha
-- PDF gerado sem campos vazios críticos
+E adicionar uma linha curta abaixo do preço:
+> "Valor Justo: R$ 3.735.095 · Margem aplicada: +4%"
 
-## Entregável
-Relatório curto com:
-- ✅/❌ por etapa
-- IDs/códigos dos registros criados (para limpeza)
-- Lista priorizada de bugs encontrados + sugestão de correção (sem aplicar nesta fase)
+Assim o corretor entende que ATRAÇÃO é "o mais próximo do justo" (não "abaixo do justo").
 
-## Detalhes técnicos
-- Tudo será executado via tools MCP (read_query, curl_edge_functions, edge_function_logs); não criarei UI nem alterarei código
-- Ficha de teste será marcada com prefixo `TEST-` e listada para limpeza ao final
-- Telefone e e-mail usados serão informados pelo usuário antes de disparar (para não enviar para terceiros)
+---
+
+## Arquivos afetados
+
+- `src/components/pricing/PricingStrategyModule.tsx` — adicionar `valorJustoReferencia`, alerta e botão "Restaurar".
+- `src/components/pricing/PostSelectionDetails.tsx` — subtítulo + linha de referência ao Valor Justo.
+- `src/components/pricing/StrategyCards.tsx` — subtítulo do card ATRAÇÃO (e opcionalmente dos outros).
+
+Sem alterações em backend, banco ou tipos. Sem mudança nas fórmulas (apenas UI/UX).
+
+---
+
+## Confirmação
+
+Quer que eu use os limiares **±5% (atenção) e ±10% (crítico)**, ou prefere outros valores (ex.: ±3% / ±7%)?
