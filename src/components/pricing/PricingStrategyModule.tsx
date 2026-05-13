@@ -510,10 +510,12 @@ export function PricingStrategyModule({
     if ((state.status === 'selecionado' || state.status === 'confirmado') && state.calculos && state.estrategia_selecionada) {
       return (
         <div className="space-y-6">
+          <DesvioAlert />
           <PostSelectionDetails
             estrategia={state.estrategia_selecionada}
             calculos={state.calculos}
             valorItbi={state.valor_itbi}
+            valorJusto={valorJusto}
             planoAjusteAtivo={state.plano_ajuste_ativo}
             onTogglePlanoAjuste={togglePlanoAjuste}
             isConfirmed={state.status === 'confirmado'}
