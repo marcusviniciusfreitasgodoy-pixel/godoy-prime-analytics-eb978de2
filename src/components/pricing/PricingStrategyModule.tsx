@@ -86,6 +86,43 @@ export function PricingStrategyModule({
     toast.success('Base restaurada ao Valor Justo');
   };
 
+  // Componente de alerta de desvio (compartilhado entre etapas)
+  const DesvioAlert = ({ compact = false }: { compact?: boolean }) => {
+    if (valorJusto <= 0 || nivelDesvio === 'ok') return null;
+    const isCritico = nivelDesvio === 'critico';
+    const Icon = isCritico ? AlertTriangle : AlertCircle;
+    const sinal = desvioPercentual > 0 ? 'acima' : 'abaixo';
+    const cor = isCritico
+      ? 'border-red-300 bg-red-50 text-red-800 dark:border-red-800 dark:bg-red-950/40 dark:text-red-200'
+      : 'border-amber-300 bg-amber-50 text-amber-800 dark:border-amber-800 dark:bg-amber-950/40 dark:text-amber-200';
+    return (
+      <div className={`rounded-md border ${cor} px-3 py-2 flex items-start gap-2 text-sm`}>
+        <Icon className="h-4 w-4 mt-0.5 shrink-0" />
+        <div className="flex-1 min-w-0">
+          <div className="font-medium">
+            Base {desvioAbs.toFixed(1)}% {sinal} do Valor Justo ({formatCurrencyBRL(valorJusto)})
+          </div>
+          {!compact && (
+            <div className="text-xs opacity-90 mt-0.5">
+              {isCritico
+                ? 'Desvio acentuado pode comprometer a credibilidade da estratégia.'
+                : 'Confirme se há justificativa de mercado para esta diferença.'}
+            </div>
+          )}
+        </div>
+        <Button
+          variant="outline"
+          size="sm"
+          className="h-7 px-2 text-xs shrink-0"
+          onClick={handleRestaurarValorJusto}
+        >
+          <RotateCcw className="h-3 w-3 mr-1" />
+          Restaurar
+        </Button>
+      </div>
+    );
+  };
+
   // Busca estratégia existente do banco quando valuationId é fornecido
   useEffect(() => {
     const loadExistingStrategy = async () => {
