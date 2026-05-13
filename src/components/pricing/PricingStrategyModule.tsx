@@ -359,6 +359,12 @@ export function PricingStrategyModule({
                   placeholder="R$ 0"
                   className="text-lg font-semibold"
                 />
+                {valorJusto > 0 && (
+                  <p className="text-xs text-muted-foreground">
+                    Valor Justo da avaliação: <span className="font-semibold text-foreground">{formatCurrencyBRL(valorJusto)}</span>
+                  </p>
+                )}
+                <DesvioAlert />
               </div>
             </CardContent>
           </Card>
@@ -401,6 +407,7 @@ export function PricingStrategyModule({
                   Alterar
                 </Button>
               </div>
+              <div className="mt-3"><DesvioAlert compact /></div>
             </CardContent>
           </Card>
 
@@ -469,6 +476,7 @@ export function PricingStrategyModule({
                   Refazer análise
                 </Button>
               </div>
+              <div className="mt-3"><DesvioAlert /></div>
             </CardContent>
           </Card>
 
