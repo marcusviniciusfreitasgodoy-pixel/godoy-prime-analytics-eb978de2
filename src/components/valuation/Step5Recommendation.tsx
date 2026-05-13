@@ -509,6 +509,7 @@ export function Step5Recommendation({ result, state, combined, onReset, existing
         <PricingStrategyModule
           valuationId={valuationId || undefined}
           valorItbiInicial={result.provavel}
+          valorJustoReferencia={result.provavel}
           onComplete={handlePricingComplete}
           onBack={handleClosePricingModule}
         />
