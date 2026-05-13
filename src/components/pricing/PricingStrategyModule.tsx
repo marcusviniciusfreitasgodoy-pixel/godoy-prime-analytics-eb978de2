@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { Separator } from '@/components/ui/separator';
-import { ArrowLeft, ArrowRight, Target, TrendingUp, AlertCircle } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Target, TrendingUp, AlertCircle, AlertTriangle, RotateCcw } from 'lucide-react';
 import { useAuthContext } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -32,6 +32,8 @@ import { Label } from '@/components/ui/label';
 interface PricingStrategyModuleProps {
   valuationId?: string;
   valorItbiInicial?: number;
+  /** Valor Justo de referência (saída do motor de avaliação) para alertar sobre desvios */
+  valorJustoReferencia?: number;
   /** Estratégia existente para edição */
   existingStrategy?: PricingStrategyState | null;
   onComplete?: (state: PricingStrategyState) => void;
@@ -41,6 +43,7 @@ interface PricingStrategyModuleProps {
 export function PricingStrategyModule({ 
   valuationId, 
   valorItbiInicial,
+  valorJustoReferencia,
   existingStrategy,
   onComplete,
   onBack
@@ -59,6 +62,29 @@ export function PricingStrategyModule({
   });
   const [saving, setSaving] = useState(false);
   const [isLoaded, setIsLoaded] = useState(!!existingStrategy);
+
+  // Valor Justo de referência (fallback para o valor inicial recebido)
+  const valorJusto = valorJustoReferencia ?? valorItbiInicial ?? 0;
+
+  // Calcula desvio percentual da base atual em relação ao Valor Justo
+  const desvioPercentual = valorJusto > 0
+    ? ((state.valor_itbi - valorJusto) / valorJusto) * 100
+    : 0;
+  const desvioAbs = Math.abs(desvioPercentual);
+  const nivelDesvio: 'ok' | 'atencao' | 'critico' =
+    desvioAbs > 10 ? 'critico' : desvioAbs > 5 ? 'atencao' : 'ok';
+
+  // Restaura a base ao Valor Justo de referência
+  const handleRestaurarValorJusto = () => {
+    if (valorJusto <= 0) return;
+    setState(prev => {
+      const calculos = (prev.status === 'analisado' || prev.status === 'selecionado')
+        ? calculateAllStrategies(valorJusto, prev.diagnostico)
+        : prev.calculos;
+      return { ...prev, valor_itbi: valorJusto, calculos };
+    });
+    toast.success('Base restaurada ao Valor Justo');
+  };
 
   // Busca estratégia existente do banco quando valuationId é fornecido
   useEffect(() => {
