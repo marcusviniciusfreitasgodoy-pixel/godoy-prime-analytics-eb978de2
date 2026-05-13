@@ -45,6 +45,8 @@ interface PostSelectionDetailsProps {
     premium: StrategyCalculation;
   };
   valorItbi: number;
+  /** Valor Justo de referência (saída do motor de avaliação) — usado apenas para exibição */
+  valorJusto?: number;
   planoAjusteAtivo: boolean;
   onTogglePlanoAjuste: () => void;
   isConfirmed: boolean;
@@ -99,6 +101,7 @@ export function PostSelectionDetails({
   estrategia,
   calculos,
   valorItbi,
+  valorJusto,
   planoAjusteAtivo,
   onTogglePlanoAjuste,
   isConfirmed,
@@ -108,6 +111,12 @@ export function PostSelectionDetails({
   const checklist = estrategia === 'premium' 
     ? [...BASE_CHECKLIST, ...PREMIUM_CHECKLIST] 
     : BASE_CHECKLIST;
+
+  const subtituloEstrategia: Record<StrategyType, string> = {
+    atracao: 'Venda rápida — Valor Justo + margem mínima',
+    mercado: 'Equilíbrio — Valor Justo + margem padrão',
+    premium: 'Maximizar valor — Valor Justo + margem ampliada',
+  };
 
   return (
     <div className="space-y-4">
@@ -133,7 +142,7 @@ export function PostSelectionDetails({
                   )}
                 </div>
                 <p className="text-sm text-muted-foreground">
-                  Markup: {formatPercentage(calc.percentual)}
+                  {subtituloEstrategia[estrategia]} ({formatPercentage(calc.percentual)})
                 </p>
               </div>
             </div>
@@ -142,6 +151,11 @@ export function PostSelectionDetails({
               <div className="text-2xl font-bold text-primary">
                 {formatCurrencyBRL(calc.preco_anuncio)}
               </div>
+              {valorJusto && valorJusto > 0 && (
+                <div className="text-[11px] text-muted-foreground mt-1">
+                  Valor Justo: {formatCurrencyBRL(valorJusto)} · Margem: {formatPercentage(calc.percentual)}
+                </div>
+              )}
             </div>
           </div>
         </CardContent>
