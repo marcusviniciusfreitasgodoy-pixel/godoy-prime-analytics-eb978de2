@@ -1,55 +1,28 @@
-## Contexto importante (correção conceitual)
+## Problema
 
-ATRAÇÃO **não é o valor mais barato** — é o **menor markup sobre o Valor Justo** (+4% por padrão), pensado para venda rápida. A relação correta é:
+Ao excluir uma característica no Calibrador de Avaliação, o Postgres rejeita com:
 
 ```
-Valor Justo (R$ 3.735.095)  ──►  base de cálculo
-   ATRAÇÃO  = base × 1,04   (~ +4%, venda rápida)
-   MERCADO  = base × 1,08   (~ +8%, padrão)
-   PREMIUM  = base × 1,12   (~ +12%, sem pressa)
+update or delete on table "valuation_characteristics" violates foreign key
+constraint "valuation_responses_characteristic_id_fkey"
 ```
 
-No seu caso a base foi editada manualmente para ~R$ 4.386.565, então o ATRAÇÃO virou R$ 4.562.028 — bem acima do Valor Justo. É exatamente esse tipo de desvio que o aviso vai capturar.
+A característica está referenciada em `valuation_responses` (respostas de avaliações já feitas). Apagar fisicamente quebraria o histórico — não é o que queremos.
 
----
+## Solução: Soft delete
 
-## O que vou implementar
+Trocar o DELETE por um UPDATE que marca `is_active = false`. O hook `useValuationCharacteristics` já filtra por `is_active = true` (linha 81), então o item some das listas e do motor de avaliação imediatamente, mas as respostas históricas permanecem intactas.
 
-### 1. Pré-preencher e "ancorar" a base no Valor Justo
-- Em `PricingStrategyModule`, quando `valorItbiInicial` (= `result.provavel`) chega do motor, ele já é a base padrão (já é hoje).
-- Guardar o valor justo de referência num estado interno `valorJustoReferencia` para comparar contra qualquer edição.
+### Alterações
 
-### 2. Aviso visual quando o usuário desviar do Valor Justo
-No `Card` "Valor da Avaliação" (logo abaixo do `CurrencyInput`), mostrar um alerta que aparece somente se `Math.abs(desvio%) > 5%`:
+**`src/pages/CalibradorAvaliacao.tsx`** — função `handleDeleteCharacteristic` (linhas 241–263):
 
-| Desvio | Cor | Ícone | Mensagem |
-|--------|-----|-------|----------|
-| ±5% a ±10% | âmbar | `AlertCircle` | "Base **X% acima/abaixo** do Valor Justo (R$ 3.735.095). Confirme se há justificativa." |
-| > ±10% | vermelho | `AlertTriangle` | "Base **X% acima/abaixo** do Valor Justo. Pode comprometer a credibilidade da estratégia." |
+- Substituir `.delete().eq("id", selectedCharId)` por `.update({ is_active: false }).eq("id", selectedCharId)`.
+- Ajustar mensagem do toast para "Característica desativada com sucesso!" (mais honesta).
+- Atualizar o texto do modal de confirmação (`showDeleteModal`) para deixar claro que a característica será **desativada** (não aparecerá em novas avaliações), mas o histórico será preservado.
 
-Botão secundário **"Restaurar Valor Justo"** que reseta `valor_itbi` para `valorJustoReferencia` e dispara `calculateAllStrategies` novamente.
+### Não incluído (intencional)
 
-### 3. Esclarecer o significado de ATRAÇÃO no card
-No `PostSelectionDetails` / `StrategyCards`, ajustar o subtítulo do ATRAÇÃO de "Markup +4%" para algo mais claro:
-> "Venda rápida — Valor Justo + 4%"
-
-E adicionar uma linha curta abaixo do preço:
-> "Valor Justo: R$ 3.735.095 · Margem aplicada: +4%"
-
-Assim o corretor entende que ATRAÇÃO é "o mais próximo do justo" (não "abaixo do justo").
-
----
-
-## Arquivos afetados
-
-- `src/components/pricing/PricingStrategyModule.tsx` — adicionar `valorJustoReferencia`, alerta e botão "Restaurar".
-- `src/components/pricing/PostSelectionDetails.tsx` — subtítulo + linha de referência ao Valor Justo.
-- `src/components/pricing/StrategyCards.tsx` — subtítulo do card ATRAÇÃO (e opcionalmente dos outros).
-
-Sem alterações em backend, banco ou tipos. Sem mudança nas fórmulas (apenas UI/UX).
-
----
-
-## Confirmação
-
-Quer que eu use os limiares **±5% (atenção) e ±10% (crítico)**, ou prefere outros valores (ex.: ±3% / ±7%)?
+- **Sem alteração de schema/migration.** A FK fica como está para proteger o histórico.
+- **Sem CASCADE.** Apagar respostas históricas distorceria avaliações já emitidas.
+- Se no futuro for desejado um botão "reativar característica desativada", isso seria um trabalho separado (precisaria de uma tela listando inativos).

@@ -245,18 +245,18 @@ export default function CalibradorAvaliacao() {
     try {
       const { error } = await supabase
         .from("valuation_characteristics")
-        .delete()
+        .update({ is_active: false })
         .eq("id", selectedCharId);
 
       if (error) throw error;
 
-      toast.success("Característica excluída com sucesso!");
+      toast.success("Característica desativada com sucesso!");
       setShowDeleteModal(false);
       setSelectedCharId(null);
       refetchChars();
     } catch (error) {
       console.error("Erro ao excluir:", error);
-      toast.error("Erro ao excluir característica");
+      toast.error("Erro ao desativar característica");
     } finally {
       setIsSaving(false);
     }
@@ -625,12 +625,15 @@ export default function CalibradorAvaliacao() {
       <Dialog open={showDeleteModal} onOpenChange={setShowDeleteModal}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Confirmar Exclusão</DialogTitle>
-            <DialogDescription>Tem certeza que deseja excluir esta característica? Esta ação não pode ser desfeita.</DialogDescription>
+            <DialogTitle>Desativar característica</DialogTitle>
+            <DialogDescription>
+              A característica deixará de aparecer em novas avaliações, mas as avaliações já emitidas
+              que a utilizam serão preservadas (histórico intacto).
+            </DialogDescription>
           </DialogHeader>
           <DialogFooter>
             <Button variant="outline" onClick={() => setShowDeleteModal(false)}>Cancelar</Button>
-            <Button variant="destructive" onClick={handleDeleteCharacteristic} disabled={isSaving}>{isSaving ? "Excluindo..." : "Excluir"}</Button>
+            <Button variant="destructive" onClick={handleDeleteCharacteristic} disabled={isSaving}>{isSaving ? "Desativando..." : "Desativar"}</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
