@@ -84,7 +84,7 @@ export default function PropostaPublica() {
 
           <ProposalForm preFill={preFill} standalone />
         </div>
-      </div>
+      </main>
     </>
   );
 }
