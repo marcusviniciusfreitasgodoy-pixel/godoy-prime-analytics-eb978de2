@@ -227,7 +227,7 @@ export default function AvaliacaoPublica() {
         </script>
       </Helmet>
 
-      <div className="min-h-screen bg-background">
+      <main className="min-h-screen bg-background">
         {/* ============ SECTION 1: HERO (Navy with background image) ============ */}
         <section className="relative text-white overflow-hidden">
           {/* Background image with overlay */}
@@ -575,7 +575,7 @@ export default function AvaliacaoPublica() {
           <MessageCircle className="h-6 w-6" />
           <span className="font-medium text-sm hidden sm:inline group-hover:inline">Fale Conosco</span>
         </a>
-      </div>
+      </main>
     </>
   );
 }
