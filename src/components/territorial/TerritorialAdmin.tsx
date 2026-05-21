@@ -425,6 +425,11 @@ export function TerritorialAdmin() {
                     {isReversing ? "Processando..." : "Resolver Endereços Pendentes"}
                   </Button>
                 </div>
+
+                {/* Geocodificação Retroativa ITBI (lote por bairro) */}
+                <div className="border border-border rounded-lg p-4">
+                  <RetroGeocodingPanel />
+                </div>
               </div>
             </CollapsibleContent>
           </div>
