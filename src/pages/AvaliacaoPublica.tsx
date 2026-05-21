@@ -106,11 +106,11 @@ const PERSONAS = [
 
 // SEO meta tags otimizadas para conversão
 const SEO_CONFIG = {
-  title: "Avaliação Imobiliária Gratuita | Descubra o Valor Real do Seu Imóvel | Godoy Prime",
-  description: "Descubra o valor real do seu imóvel na Barra da Tijuca em 30 segundos. Avaliação baseada em +80.000 transações oficiais da Prefeitura do RJ. Gratuito e sem compromisso.",
+  title: "Avaliação Imóvel Grátis Barra da Tijuca | Godoy Prime",
+  description: "Avaliação gratuita do seu imóvel na Barra da Tijuca em 30s, baseada em +80.000 transações oficiais do Rio. Sem compromisso.",
   keywords: "avaliação imóvel gratuita, valor imóvel Barra da Tijuca, preço m2 Rio de Janeiro, quanto vale meu apartamento, transações oficiais, avaliação online, valor real imóvel",
-  canonical: "https://avaliacao.godoyprime.com.br",
-  ogImage: "https://avaliacao.godoyprime.com.br/og-image.jpg",
+  canonical: "https://analytics.godoyprime.com.br/avaliacao",
+  ogImage: "https://analytics.godoyprime.com.br/og-image.jpg",
 };
 
 export default function AvaliacaoPublica() {
@@ -227,7 +227,7 @@ export default function AvaliacaoPublica() {
         </script>
       </Helmet>
 
-      <div className="min-h-screen bg-background">
+      <main className="min-h-screen bg-background">
         {/* ============ SECTION 1: HERO (Navy with background image) ============ */}
         <section className="relative text-white overflow-hidden">
           {/* Background image with overlay */}
@@ -575,7 +575,7 @@ export default function AvaliacaoPublica() {
           <MessageCircle className="h-6 w-6" />
           <span className="font-medium text-sm hidden sm:inline group-hover:inline">Fale Conosco</span>
         </a>
-      </div>
+      </main>
     </>
   );
 }
