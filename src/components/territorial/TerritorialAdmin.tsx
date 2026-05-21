@@ -15,6 +15,7 @@ import { ImportarCondominios } from "./ImportarCondominios";
 import { EnriquecerCondominios } from "./EnriquecerCondominios";
 import { AtualizarLogradouros } from "./AtualizarLogradouros";
 import { MergeCondominiosButton } from "@/components/MergeCondominiosButton";
+import { RetroGeocodingPanel } from "./RetroGeocodingPanel";
 import { cn } from "@/lib/utils";
 
 const STATUS_COLORS: Record<string, string> = {
