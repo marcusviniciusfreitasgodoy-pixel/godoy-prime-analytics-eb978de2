@@ -1,0 +1,15 @@
+# Godoy Prime Realty
+
+> Plataforma de analytics imobiliário premium e avaliação gratuita de imóveis na Barra da Tijuca (Rio de Janeiro), baseada em mais de 80.000 transações oficiais da Prefeitura do RJ (ITBI).
+
+A Godoy Prime Realty oferece duas frentes: um painel analítico privado para corretores e imobiliárias e uma página pública gratuita de avaliação de imóveis para proprietários, compradores e investidores.
+
+## Pages
+
+- [Avaliação Imobiliária Gratuita](/avaliacao): Avaliação online gratuita do valor real de imóveis na Barra da Tijuca, baseada em transações oficiais.
+- [Política de Privacidade](/politica-privacidade): Como tratamos dados pessoais conforme a LGPD.
+- [Login / Cadastro](/auth): Acesso ao painel analítico para corretores e imobiliárias.
+
+## Optional
+
+- [Sitemap](/sitemap.xml): Lista completa de páginas públicas.
