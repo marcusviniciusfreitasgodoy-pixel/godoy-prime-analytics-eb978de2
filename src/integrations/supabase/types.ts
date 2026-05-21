@@ -1474,6 +1474,78 @@ export type Database = {
         }
         Relationships: []
       }
+      itbi_transactions_backup_pre_dedupe: {
+        Row: {
+          area_m2: number | null
+          bairro: string | null
+          complemento: string | null
+          created_at: string | null
+          data_transacao: string | null
+          geocodificado_via: string | null
+          geom: unknown
+          id: string | null
+          lat: number | null
+          lng: number | null
+          logradouro: string | null
+          logradouro_norm: string | null
+          microbairro: string | null
+          numero: string | null
+          percentual_transferido: number | null
+          tipologia: string | null
+          total_transacoes: number | null
+          updated_at: string | null
+          uso: Database["public"]["Enums"]["uso_imovel"] | null
+          valor_m2: number | null
+          valor_transacao: number | null
+        }
+        Insert: {
+          area_m2?: number | null
+          bairro?: string | null
+          complemento?: string | null
+          created_at?: string | null
+          data_transacao?: string | null
+          geocodificado_via?: string | null
+          geom?: unknown
+          id?: string | null
+          lat?: number | null
+          lng?: number | null
+          logradouro?: string | null
+          logradouro_norm?: string | null
+          microbairro?: string | null
+          numero?: string | null
+          percentual_transferido?: number | null
+          tipologia?: string | null
+          total_transacoes?: number | null
+          updated_at?: string | null
+          uso?: Database["public"]["Enums"]["uso_imovel"] | null
+          valor_m2?: number | null
+          valor_transacao?: number | null
+        }
+        Update: {
+          area_m2?: number | null
+          bairro?: string | null
+          complemento?: string | null
+          created_at?: string | null
+          data_transacao?: string | null
+          geocodificado_via?: string | null
+          geom?: unknown
+          id?: string | null
+          lat?: number | null
+          lng?: number | null
+          logradouro?: string | null
+          logradouro_norm?: string | null
+          microbairro?: string | null
+          numero?: string | null
+          percentual_transferido?: number | null
+          tipologia?: string | null
+          total_transacoes?: number | null
+          updated_at?: string | null
+          uso?: Database["public"]["Enums"]["uso_imovel"] | null
+          valor_m2?: number | null
+          valor_transacao?: number | null
+        }
+        Relationships: []
+      }
       leads: {
         Row: {
           aceita_marketing: boolean | null

@@ -396,7 +396,12 @@ serve(async (req) => {
 
     for (let i = 0; i < transacoes.length; i += batchSize) {
       const batch = transacoes.slice(i, i + batchSize);
-      const { error } = await supabase.from('itbi_transactions').insert(batch);
+      const { error } = await supabase
+        .from('itbi_transactions')
+        .upsert(batch, {
+          onConflict: 'logradouro,bairro,data_transacao,uso,tipologia',
+          ignoreDuplicates: false,
+        });
       
       if (error) {
         console.error(`Erro no lote ${i}-${i + batchSize}:`, error.message);

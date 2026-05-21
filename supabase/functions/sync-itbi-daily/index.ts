@@ -218,17 +218,17 @@ Deno.serve(async (req) => {
     for (let i = 0; i < validRecords.length; i += insertBatchSize) {
       const batch = validRecords.slice(i, i + insertBatchSize)
       
-      // Usar insert simples - duplicatas serão rejeitadas naturalmente
+      // Upsert idempotente: atualiza versão mais recente em vez de duplicar
       const { error } = await supabase
         .from('itbi_transactions')
-        .insert(batch)
+        .upsert(batch, {
+          onConflict: 'logradouro,bairro,data_transacao,uso,tipologia',
+          ignoreDuplicates: false,
+        })
 
       if (error) {
-        // Ignorar erros de duplicata, logar outros
-        if (!error.message.includes('duplicate')) {
-          console.error(`[CRON] Erro no lote: ${error.message}`)
-          errors++
-        }
+        console.error(`[CRON] Erro no lote: ${error.message}`)
+        errors++
       } else {
         totalInserted += batch.length
       }
