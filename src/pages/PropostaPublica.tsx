@@ -56,9 +56,17 @@ export default function PropostaPublica() {
     <>
       <Helmet>
         <title>Proposta de Compra | Godoy Prime</title>
+        <meta name="description" content="Visualize e assine sua proposta de compra de imóvel com a Godoy Prime Realty de forma segura e digital." />
+        <link rel="canonical" href="https://analytics.godoyprime.com.br/proposta" />
+        <meta property="og:type" content="website" />
+        <meta property="og:title" content="Proposta de Compra | Godoy Prime" />
+        <meta property="og:description" content="Visualize e assine sua proposta de compra de imóvel com a Godoy Prime Realty." />
+        <meta property="og:url" content="https://analytics.godoyprime.com.br/proposta" />
+        <meta property="og:site_name" content="Godoy Prime Realty" />
+        <meta name="robots" content="noindex, nofollow" />
       </Helmet>
 
-      <div className="min-h-screen bg-background p-4 sm:p-6">
+      <main className="min-h-screen bg-background p-4 sm:p-6">
         <div className="max-w-2xl mx-auto space-y-6">
           <Card>
             <CardHeader>
