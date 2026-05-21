@@ -1,80 +1,56 @@
+## Plano: Implementar recomendações 1–5 do diagnóstico ITBI
 
-# Plano de correção — duplicação ITBI
+### 1. Investigar Nov/2025 e Mar–Abr/2026 (auditoria de fonte)
+- Rodar queries comparando volume por `created_at` (data da carga) vs `data_transacao` para identificar se os picos são reprocessamento retroativo da Prefeitura ou cargas legítimas.
+- Gerar relatório em `/mnt/documents/itbi-auditoria-picos.md` com:
+  - Distribuição de `created_at` para transações de Nov/2025
+  - Distribuição de `created_at` para transações de Mar–Abr/2026
+  - Lista de bairros com variação >100% YoY no período
+- **Entrega**: relatório markdown — sem mudança de código.
 
-## Diagnóstico confirmado
-Conferindo `(logradouro, bairro, data_transacao, uso, tipologia)` como chave natural:
+### 2. Geocodificação retroativa (89% sem geom)
+- Criar componente admin `RetroGeocodingPanel` em `src/components/territorial/` com:
+  - Stats: total sem `geom`, agrupado por bairro (top 10)
+  - Botão "Geocodificar lote" que chama a edge function existente `geocodificar-itbi-transactions` com `{ bairro, limite: 500 }` em loop até `completo: true`
+  - Barra de progresso e log em tempo real via `etl_log`
+- Adicionar tab "Geocodificação ITBI" no `TerritorialAdmin.tsx`
+- Priorizar bairros: Copacabana, Recreio, Tijuca, Centro, Barra da Tijuca
+- A edge function já existe e está pronta — apenas UI nova.
 
-| Ano | Linhas | Duplicatas | Cargas distintas |
-|---|---|---|---|
-| 2020 | 2.538 | 24 | 2 |
-| 2021 | 3.479 | 37 | 2 |
-| 2022 | 3.540 | 43 | 2 |
-| 2023 | 5.413 | 42 | **1** |
-| 2024 | 4.044 | 69 | 2 |
-| 2025 | 6.628 | 48 | 2 |
-| **2026** | **5.948** | **2.275** | **3** |
+### 3. Badge "Dados em consolidação" (últimos 90 dias)
+- Criar `src/components/DadosConsolidacaoBadge.tsx` — badge amarelo com tooltip explicando que ITBI dos últimos 90 dias pode sofrer reprocessamento pela Prefeitura.
+- Renderizar nos seguintes pontos quando o período analisado intersecta `now() - 90 days`:
+  - `DashboardKPIs.tsx`
+  - `EvolutionChart.tsx`
+  - `MicrobairroEvolutionChart.tsx`
+  - Relatórios de avaliação (`valuationPdfExport.ts` — nota textual no rodapé)
 
-- **2026 está com ~38% de duplicação** (3 cargas sobrepostas em mar/abr/mai sem limpeza).
-- **2023 NÃO está duplicado** (1 carga única); o volume alto é real — provavelmente reflete revisão histórica da Prefeitura ou ano de fato aquecido. Mantemos como está.
-- Demais anos têm <2% de duplicatas (ruído tolerável, pode ser limpo na mesma operação).
+### 4. Auditoria do bairro "BARRA OLÍMPICA"
+- Query para listar as 171 transações de BARRA OLÍMPICA (logradouros, datas, valores).
+- Comparar com microbairros já mapeados ("Jacarepaguá / Curicica / Camorim / Recreio dos Bandeirantes").
+- Migration para reclassificar registros: `UPDATE itbi_transactions SET bairro = 'JACAREPAGUÁ' WHERE bairro = 'BARRA OLÍMPICA'` (ou outro bairro oficial após validação dos logradouros).
+- Adicionar entrada em `logradouros_normalizacao` para evitar reaparição em cargas futuras.
 
-## Etapas
+### 5. Manter backup 7 dias + agendar limpeza
+- Criar arquivo `.lovable/backup-itbi-cleanup.md` documentando:
+  - Data do backup: 21/05/2026
+  - Linhas no backup: 32.378 (pré-dedupe)
+  - Data sugerida para remoção: 28/05/2026
+  - Comando SQL: `DROP TABLE itbi_transactions_backup_pre_dedupe`
+- Sem ação automática — apenas registro para acompanhamento manual.
 
-### 1. Migration: deduplicar histórico
-Manter apenas a **carga mais recente** (maior `created_at`) por chave natural `(logradouro, bairro, data_transacao, uso, tipologia)`.
+### Ordem de execução
+1. Recomendação 1 (auditoria, read-only) → relatório
+2. Recomendação 4 (auditoria + migration BARRA OLÍMPICA)
+3. Recomendação 3 (badge "Dados em consolidação")
+4. Recomendação 2 (UI de geocodificação retroativa)
+5. Recomendação 5 (documentação de limpeza)
 
-```sql
-DELETE FROM itbi_transactions a
-USING itbi_transactions b
-WHERE a.ctid < b.ctid
-  AND a.logradouro = b.logradouro
-  AND a.bairro IS NOT DISTINCT FROM b.bairro
-  AND a.data_transacao = b.data_transacao
-  AND a.uso = b.uso
-  AND a.tipologia IS NOT DISTINCT FROM b.tipologia;
-```
-(Heurística com `ctid` mantém o registro inserido por último na ordem física, que corresponde à carga mais recente já que não houve UPDATEs.)
-
-### 2. Migration: constraint única + índice
-Garante que a próxima sincronização **não consiga** mais duplicar:
-
-```sql
-CREATE UNIQUE INDEX itbi_transactions_chave_natural_uniq
-ON itbi_transactions (logradouro, bairro, data_transacao, uso, tipologia);
-```
-
-(Usar índice único em vez de constraint para tolerar `NULL` em `tipologia`/`bairro` via `IS NOT DISTINCT FROM` semantics — alternativamente, normalizar nulos com `COALESCE` antes.)
-
-### 3. Edge function `sync-itbi-prefeitura`: trocar INSERT por UPSERT
-Substituir:
-```ts
-await supabase.from('itbi_transactions').insert(batch)
-```
-por:
-```ts
-await supabase.from('itbi_transactions').upsert(batch, {
-  onConflict: 'logradouro,bairro,data_transacao,uso,tipologia',
-  ignoreDuplicates: false, // atualiza com a versão mais recente
-})
-```
-- Remove a necessidade de `clearExisting` (passa a ser idempotente).
-- Cada nova sync **atualiza** os meses reprocessados em vez de duplicar.
-
-### 4. Edge function `sync-itbi-daily` (cron): mesma troca
-Aplicar o mesmo padrão upsert para a sincronização agendada.
-
-### 5. Validação pós-correção
-Rodar query de auditoria e confirmar 0 duplicatas em todos os anos. Recalcular KPIs de 2026 (esperado: ~1.800/mês em jan-mar, alinhado com baseline 2025).
-
-## Detalhes técnicos
-- **Reversibilidade**: A dedupe é destrutiva. Antes de executar, posso criar um `backup` materializado (`CREATE TABLE itbi_transactions_backup_pre_dedupe AS SELECT * FROM itbi_transactions`) — recomendado.
-- **Impacto em código existente**: nenhum (apenas remove linhas redundantes; a chave natural já era assumida implicitamente nos cálculos).
-- **Performance**: o índice único também acelera as queries por logradouro+data que já são comuns no app.
-
-## Ordem de execução
-1. Migration: backup + dedupe + índice único (1 migration única)
-2. Edit edge functions `sync-itbi-prefeitura` e `sync-itbi-daily` para usar `upsert`
-3. Deploy das edge functions
-4. Query de validação final
+### Detalhes técnicos
+- Nenhuma nova edge function — reaproveita `geocodificar-itbi-transactions`
+- 1 migration apenas (reclassificação BARRA OLÍMPICA)
+- 2 componentes novos: `RetroGeocodingPanel`, `DadosConsolidacaoBadge`
+- Sem mudança em RLS ou estrutura de tabelas
+- Custo Google Maps API: ~25k geocodificações × $5/1000 = ~$125 (uma vez)
 
 Confirma para eu prosseguir?
