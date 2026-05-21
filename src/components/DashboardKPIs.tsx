@@ -3,6 +3,7 @@ import { KPICard } from "./KPICard";
 import { useKPIStats } from "@/hooks/useKPIStats";
 import { Skeleton } from "./ui/skeleton";
 import { MethodologyDisclaimer } from "./MethodologyDisclaimer";
+import { DadosConsolidacaoBadge } from "./DadosConsolidacaoBadge";
 
 interface DashboardKPIsProps {
   bairro?: string;
@@ -43,7 +44,10 @@ export function DashboardKPIs({ bairro = "BARRA DA TIJUCA" }: DashboardKPIsProps
   return (
     <div className="space-y-1.5 sm:space-y-3">
       <div className="flex justify-end">
+        <div className="flex items-center gap-2">
+          <DadosConsolidacaoBadge />
         <MethodologyDisclaimer />
+        </div>
       </div>
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 xl:grid-cols-4 gap-2 sm:gap-4">
       <KPICard

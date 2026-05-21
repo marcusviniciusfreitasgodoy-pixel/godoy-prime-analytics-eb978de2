@@ -15,6 +15,7 @@ import { ImportarCondominios } from "./ImportarCondominios";
 import { EnriquecerCondominios } from "./EnriquecerCondominios";
 import { AtualizarLogradouros } from "./AtualizarLogradouros";
 import { MergeCondominiosButton } from "@/components/MergeCondominiosButton";
+import { RetroGeocodingPanel } from "./RetroGeocodingPanel";
 import { cn } from "@/lib/utils";
 
 const STATUS_COLORS: Record<string, string> = {
@@ -423,6 +424,11 @@ export function TerritorialAdmin() {
                     {isReversing ? <Loader2 className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />}
                     {isReversing ? "Processando..." : "Resolver Endereços Pendentes"}
                   </Button>
+                </div>
+
+                {/* Geocodificação Retroativa ITBI (lote por bairro) */}
+                <div className="border border-border rounded-lg p-4">
+                  <RetroGeocodingPanel />
                 </div>
               </div>
             </CollapsibleContent>
