@@ -161,9 +161,6 @@ export function AppSidebar() {
             <p className="text-sm font-semibold text-sidebar-foreground truncate">
               {organization.name}
             </p>
-            <Badge variant="outline" className="text-[10px] mt-1">
-              {organization.plan || "starter"}
-            </Badge>
           </div>
         )}
         
