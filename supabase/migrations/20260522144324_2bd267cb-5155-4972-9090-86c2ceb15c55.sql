@@ -1,0 +1,1 @@
+DELETE FROM public.organization_invites WHERE email = 'aranzatigestorimobiliario@gmail.com';
