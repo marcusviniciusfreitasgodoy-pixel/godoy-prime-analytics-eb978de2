@@ -580,7 +580,7 @@ export default function HistoricoAvaliacoes() {
     try {
       exportValuationEnginePDF(result, state, combined);
       if (trendWasCapped) {
-        toast.info(`Trend corrigido de ${selectedValuation.trend_percentage?.toFixed(1)}% para ${TREND_CAP}%`);
+        toast.info(`Trend corrigido de ${selectedValuation?.trend_percentage?.toFixed(1)}% para ±50%`);
       }
       toast.success("PDF gerado com sucesso!");
     } catch (error) {
