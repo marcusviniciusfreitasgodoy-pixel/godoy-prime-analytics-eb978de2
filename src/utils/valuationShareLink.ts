@@ -19,7 +19,7 @@ export async function uploadValuationPdfPublic(
     throw new Error("Usuário não autenticado.");
   }
 
-  const { data: profile, error: profileErr } = await supabase
+  const { data: profile, error: profileErr } = await (supabase as any)
     .from("profiles")
     .select("organization_id")
     .eq("user_id", authData.user.id)
