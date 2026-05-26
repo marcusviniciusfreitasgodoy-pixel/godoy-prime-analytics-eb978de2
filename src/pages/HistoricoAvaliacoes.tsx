@@ -49,7 +49,10 @@ import {
   HelpCircle,
   Trash2,
   CheckSquare,
-  Target
+  Target,
+  Share2,
+  Copy,
+  Loader2
 } from "lucide-react";
 import {
   Tooltip,
