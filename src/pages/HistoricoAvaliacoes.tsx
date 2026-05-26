@@ -1161,6 +1161,68 @@ export default function HistoricoAvaliacoes() {
                     PDF Simples
                   </Button>
                 </div>
+                {/* Link Público para Compartilhar */}
+                <div className="border rounded-lg p-3 bg-muted/30 space-y-2">
+                  <div className="flex items-start gap-2">
+                    <Share2 className="h-4 w-4 text-primary mt-0.5 shrink-0" />
+                    <div className="text-xs text-muted-foreground">
+                      <strong className="text-foreground">Compartilhar por WhatsApp/E-mail:</strong> gera um link público
+                      direto do PDF (sem login). Use este link em vez de compartilhar a aba do navegador.
+                    </div>
+                  </div>
+                  {!shareUrl ? (
+                    <Button
+                      variant="default"
+                      size="sm"
+                      className="w-full"
+                      onClick={() => handleShareLink("completa")}
+                      disabled={isSharing}
+                    >
+                      {isSharing ? (
+                        <>
+                          <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                          Gerando link…
+                        </>
+                      ) : (
+                        <>
+                          <Share2 className="h-4 w-4 mr-2" />
+                          Gerar Link Público do PDF
+                        </>
+                      )}
+                    </Button>
+                  ) : (
+                    <div className="space-y-2">
+                      <div className="flex items-center gap-2">
+                        <Input
+                          readOnly
+                          value={shareUrl}
+                          className="text-xs font-mono"
+                          onFocus={(e) => e.currentTarget.select()}
+                        />
+                        <Button size="sm" variant="outline" onClick={copyShareUrl}>
+                          <Copy className="h-4 w-4" />
+                        </Button>
+                      </div>
+                      <div className="grid grid-cols-2 gap-2">
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => window.open(`https://wa.me/?text=${encodeURIComponent(`Segue o relatório de avaliação: ${shareUrl}`)}`, "_blank")}
+                        >
+                          WhatsApp
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={() => handleShareLink("completa")}
+                          disabled={isSharing}
+                        >
+                          {isSharing ? <Loader2 className="h-4 w-4 animate-spin" /> : "Regenerar"}
+                        </Button>
+                      </div>
+                    </div>
+                  )}
+                </div>
                 <div className="flex gap-3">
                   <Button 
                     variant="ghost"
