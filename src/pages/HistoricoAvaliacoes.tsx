@@ -883,7 +883,10 @@ export default function HistoricoAvaliacoes() {
 
       {/* Dialog de Detalhes */}
       <Dialog open={!!selectedValuation} onOpenChange={(open) => {
-        if (!open) setSelectedValuation(null);
+        if (!open) {
+          setSelectedValuation(null);
+          setShareUrl(null);
+        }
       }}>
         <DialogContent className="max-w-lg">
           <DialogHeader>
