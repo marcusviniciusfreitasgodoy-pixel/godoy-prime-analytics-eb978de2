@@ -411,6 +411,7 @@ export default function HistoricoAvaliacoes() {
 
   const handleRowClick = (valuation: Valuation) => {
     setSelectedValuation(valuation);
+    setShareUrl((valuation as any).public_pdf_url || null);
   };
 
   const handleGoToVistoria = () => {
