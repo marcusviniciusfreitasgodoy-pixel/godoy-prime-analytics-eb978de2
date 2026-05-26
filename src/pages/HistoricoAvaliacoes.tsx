@@ -60,7 +60,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { exportValuationEnginePDF } from "@/utils/valuationPdfExport";
+import { exportValuationEnginePDF, generateValuationPDFForEmail, getValuationPDFFilename } from "@/utils/valuationPdfExport";
 import { uploadValuationPdfPublic } from "@/utils/valuationShareLink";
 import type { ValuationState, HistoricalAnalysis, FutureProjection } from "@/types/valuation";
 import type { ValuationResult } from "@/utils/valuationCalculations";
