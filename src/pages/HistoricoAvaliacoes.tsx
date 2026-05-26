@@ -452,8 +452,8 @@ export default function HistoricoAvaliacoes() {
     });
   };
 
-  const handleExportPDF = (tipoOverride?: "simples" | "completa") => {
-    if (!selectedValuation) return;
+  const buildPdfPayload = (tipoOverride?: "simples" | "completa") => {
+    if (!selectedValuation) return null;
 
     // Cap de trend para evitar distorções (valores antigos salvos sem cap)
     const TREND_CAP = 50;
@@ -570,6 +570,13 @@ export default function HistoricoAvaliacoes() {
                   'Anúncios acima das transações reais',
     };
 
+    return { state, result, combined, trendWasCapped };
+  };
+
+  const handleExportPDF = (tipoOverride?: "simples" | "completa") => {
+    const payload = buildPdfPayload(tipoOverride);
+    if (!payload) return;
+    const { state, result, combined, trendWasCapped } = payload;
     try {
       exportValuationEnginePDF(result, state, combined);
       if (trendWasCapped) {
@@ -579,6 +586,45 @@ export default function HistoricoAvaliacoes() {
     } catch (error) {
       console.error("Erro ao gerar PDF:", error);
       toast.error("Erro ao gerar o PDF");
+    }
+  };
+
+  const [isSharing, setIsSharing] = useState(false);
+  const [shareUrl, setShareUrl] = useState<string | null>(null);
+
+  const handleShareLink = async (tipoOverride: "simples" | "completa" = "completa") => {
+    if (!selectedValuation) return;
+    const payload = buildPdfPayload(tipoOverride);
+    if (!payload) return;
+
+    setIsSharing(true);
+    setShareUrl(null);
+    try {
+      const pdfDoc = generateValuationPDFForEmail(payload.result, payload.state, payload.combined);
+      const filename = getValuationPDFFilename(payload.state);
+      const url = await uploadValuationPdfPublic(pdfDoc, selectedValuation.id, filename);
+      setShareUrl(url);
+      try {
+        await navigator.clipboard.writeText(url);
+        toast.success("Link público copiado! Já pode compartilhar.");
+      } catch {
+        toast.success("Link público gerado.");
+      }
+    } catch (error: any) {
+      console.error("Erro ao gerar link público:", error);
+      toast.error(error?.message || "Erro ao gerar link público.");
+    } finally {
+      setIsSharing(false);
+    }
+  };
+
+  const copyShareUrl = async () => {
+    if (!shareUrl) return;
+    try {
+      await navigator.clipboard.writeText(shareUrl);
+      toast.success("Link copiado!");
+    } catch {
+      toast.error("Não foi possível copiar.");
     }
   };
 
