@@ -2848,6 +2848,7 @@ export type Database = {
           proprietario_nome: string | null
           proprietario_rg: string | null
           proprietario_rg_orgao: string | null
+          public_pdf_url: string | null
           quartos: number | null
           recommendation_action: string | null
           recommendation_details: Json | null
@@ -2913,6 +2914,7 @@ export type Database = {
           proprietario_nome?: string | null
           proprietario_rg?: string | null
           proprietario_rg_orgao?: string | null
+          public_pdf_url?: string | null
           quartos?: number | null
           recommendation_action?: string | null
           recommendation_details?: Json | null
@@ -2978,6 +2980,7 @@ export type Database = {
           proprietario_nome?: string | null
           proprietario_rg?: string | null
           proprietario_rg_orgao?: string | null
+          public_pdf_url?: string | null
           quartos?: number | null
           recommendation_action?: string | null
           recommendation_details?: Json | null
