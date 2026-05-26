@@ -490,9 +490,24 @@ export function useHistoricalTransactionAnalysis(logradouro: string, bairro: str
         currentYearCount,
         currentYearAvgM2,
       };
-      
-      // CACHE: Salvar resultado no cache persistente
-      setCachedAnalysis(normalizedBairro, normalizedLogradouro, result, ruasInternas);
+
+      // SALVAGUARDA: se houver anos zerados no meio de uma série com volume,
+      // não cachear — força refetch e loga aviso para investigação.
+      const totalAcrossYears = yearlyData.reduce((s, y) => s + y.transacoes, 0);
+      const zeroedRecentYears = yearlyData.filter(
+        (y) => y.ano >= currentYear - 3 && y.transacoes === 0
+      ).length;
+      const inconsistent = totalAcrossYears > 200 && zeroedRecentYears >= 2;
+      if (inconsistent) {
+        console.warn(
+          `[HistoricalAnalysis] Inconsistência detectada (${normalizedLogradouro}/${normalizedBairro}): ` +
+          `${zeroedRecentYears} anos recentes zerados com volume total de ${totalAcrossYears}. ` +
+          `Resultado NÃO será cacheado.`
+        );
+      } else {
+        // CACHE: Salvar resultado no cache persistente
+        setCachedAnalysis(normalizedBairro, normalizedLogradouro, result, ruasInternas);
+      }
 
       return result;
     },
