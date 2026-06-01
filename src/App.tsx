@@ -59,6 +59,7 @@ import WhatsAppLogs from "./pages/WhatsAppLogs";
 import AutorizacoesCaptacao from "./pages/AutorizacoesCaptacao";
 import AutorizacaoPublica from "./pages/AutorizacaoPublica";
 import PropostasRecebidas from "./pages/PropostasRecebidas";
+import ConfirmacaoVisita from "./pages/ConfirmacaoVisita";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -96,6 +97,7 @@ const App = () => (
                 <Route path="/visitas/assinatura/:codigo/:tipo" element={<AssinaturaVisita />} />
                 <Route path="/proposta/:codigo" element={<PropostaPublica />} />
                 <Route path="/visitas/ficha-publica/:codigo" element={<FichaVisitaPublica />} />
+                <Route path="/visitas/confirmar/:token" element={<ConfirmacaoVisita />} />
                 <Route path="/autorizacao/:token" element={<AutorizacaoPublica />} />
                 <Route path="/demo/*" element={<DemoLayout />} />
                 <Route
