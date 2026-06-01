@@ -83,9 +83,13 @@ export function useAgendamentos() {
 
       if (data.email_visitante) {
         try {
+          const linkConfirmacao = (data as any).token_confirmacao
+            ? `${window.location.origin}/visitas/confirmar/${(data as any).token_confirmacao}`
+            : undefined;
           await sendAgendamentoConfirmadoEmail(data.email_visitante, {
             nome_visitante: data.nome_visitante, telefone_visitante: data.telefone_visitante,
             endereco_imovel: data.endereco_imovel, data_hora: data.data_hora,
+            link_confirmacao: linkConfirmacao,
           });
           toast.success("Email de confirmação enviado!");
         } catch (err) { console.error("Erro ao enviar email:", err); }
@@ -107,9 +111,13 @@ export function useAgendamentos() {
 
       if (data.telefone_visitante) {
         try {
+          const linkConfirmacao = (data as any).token_confirmacao
+            ? `${window.location.origin}/visitas/confirmar/${(data as any).token_confirmacao}`
+            : undefined;
           const resultado = await enviarConfirmacaoAgendamento(data.telefone_visitante, {
             nome_visitante: data.nome_visitante, endereco_imovel: data.endereco_imovel,
             data_hora: data.data_hora, codigo_imovel: data.codigo_imovel, agendamentoId: data.id,
+            link_confirmacao: linkConfirmacao,
           });
           if (resultado.success) toast.success("WhatsApp de confirmação enviado!");
           else console.error("Erro ao enviar WhatsApp:", resultado.error);
