@@ -9,6 +9,7 @@ interface WhatsAppDados {
   codigo_imovel?: string;
   link_assinatura?: string;
   link_reagendamento?: string;
+  link_confirmacao?: string;
   valor_imovel?: string;
   condominio_edificio?: string;
   unidade_imovel?: string;
