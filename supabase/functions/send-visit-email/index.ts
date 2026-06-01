@@ -21,6 +21,7 @@ interface EmailRequest {
     codigo_visita?: string;
     feedback_url?: string;
     motivo_cancelamento?: string;
+    link_confirmacao?: string;
   };
   sendToAgency?: boolean;
 }
@@ -86,10 +87,21 @@ function getAgendamentoConfirmadoClienteHtml(data: EmailRequest["data"]): string
               ` : ""}
             </table>
           </div>
-          
+
+          ${data.link_confirmacao ? `
+          <div style="text-align: center; margin: 30px 0;">
+            <a href="${data.link_confirmacao}" style="background-color: #d4af37; color: #0C2340; padding: 15px 40px; text-decoration: none; border-radius: 8px; font-weight: bold; font-size: 16px; display: inline-block;">
+              Confirmar minha presença
+            </a>
+            <p style="color: #999; font-size: 12px; margin: 12px 0 0 0;">
+              Ao clicar você também poderá reagendar ou cancelar, se precisar.
+            </p>
+          </div>
+          ` : `
           <p style="color: #666; font-size: 14px; margin: 20px 0;">
             Em caso de dúvidas ou necessidade de reagendamento, entre em contato conosco.
           </p>
+          `}
           
           <p style="color: #333; font-size: 14px; margin: 20px 0 0 0;">
             Atenciosamente,<br>
