@@ -9,6 +9,7 @@ interface VisitEmailData {
   nome_corretor?: string;
   codigo_visita?: string;
   feedback_url?: string;
+  link_confirmacao?: string;
 }
 
 type EmailType = "agendamento_confirmado" | "visita_realizada" | "lembrete_visita";
@@ -50,6 +51,7 @@ export async function sendAgendamentoConfirmadoEmail(
     endereco_imovel: string;
     data_hora: string;
     nome_corretor?: string;
+    link_confirmacao?: string;
   }
 ): Promise<{ success: boolean; error?: string }> {
   return sendVisitEmail("agendamento_confirmado", email, {

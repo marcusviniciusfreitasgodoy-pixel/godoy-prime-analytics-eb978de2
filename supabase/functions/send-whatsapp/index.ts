@@ -16,6 +16,7 @@ interface WhatsAppRequest {
     codigo_imovel?: string;
     link_assinatura?: string;
     link_reagendamento?: string;
+    link_confirmacao?: string;
     valor_imovel?: string;
     condominio_edificio?: string;
     unidade_imovel?: string;
@@ -66,7 +67,7 @@ Sua visita foi agendada com sucesso!
 ${dados.codigo_imovel ? `🏠 *Código:* ${dados.codigo_imovel}` : ''}
 📅 *Data e Hora:* ${dataFormatada}
 
-${dados.link_reagendamento ? `🔄 *Precisa reagendar?*\n${dados.link_reagendamento}\n` : ''}
+${dados.link_confirmacao ? `✅ *Confirme, reagende ou cancele:*\n${dados.link_confirmacao}\n` : (dados.link_reagendamento ? `🔄 *Precisa reagendar?*\n${dados.link_reagendamento}\n` : '')}
 ⚠️ *Importante:* Caso precise cancelar ou reagendar, favor nos avisar com antecedência.
 
 _Godoy Prime Analytics_
@@ -83,7 +84,7 @@ Este é um lembrete da sua visita agendada:
 ${dados.codigo_imovel ? `🏠 *Código:* ${dados.codigo_imovel}` : ''}
 📅 *Data e Hora:* ${dataFormatada}
 
-${dados.link_reagendamento ? `🔄 *Precisa reagendar?*\n${dados.link_reagendamento}\n` : ''}
+${dados.link_confirmacao ? `✅ *Confirme sua presença:*\n${dados.link_confirmacao}\n` : (dados.link_reagendamento ? `🔄 *Precisa reagendar?*\n${dados.link_reagendamento}\n` : '')}
 Estamos aguardando você! 😊
 
 _Godoy Prime Analytics_

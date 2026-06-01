@@ -16,7 +16,10 @@ export type Database = {
     Tables: {
       agendamentos_visita: {
         Row: {
+          acao_cliente: string | null
           codigo_imovel: string | null
+          confirmada_pelo_cliente_at: string | null
+          confirmada_pelo_cliente_ip: string | null
           corretor_id: string | null
           created_at: string | null
           data_hora: string
@@ -27,17 +30,24 @@ export type Database = {
           lead_id: string | null
           lembrete_enviado: boolean | null
           lembrete_enviado_at: string | null
+          motivo_cancelamento_cliente: string | null
           nome_visitante: string
           notas: string | null
           organization_id: string | null
           origem: Database["public"]["Enums"]["origem_agendamento"] | null
+          reagendado_para_id: string | null
           status: Database["public"]["Enums"]["status_visita"]
           telefone_visitante: string
           tipo_servico: Database["public"]["Enums"]["tipo_servico_visita"]
+          token_confirmacao: string | null
+          token_expira_em: string | null
           updated_at: string | null
         }
         Insert: {
+          acao_cliente?: string | null
           codigo_imovel?: string | null
+          confirmada_pelo_cliente_at?: string | null
+          confirmada_pelo_cliente_ip?: string | null
           corretor_id?: string | null
           created_at?: string | null
           data_hora: string
@@ -48,17 +58,24 @@ export type Database = {
           lead_id?: string | null
           lembrete_enviado?: boolean | null
           lembrete_enviado_at?: string | null
+          motivo_cancelamento_cliente?: string | null
           nome_visitante: string
           notas?: string | null
           organization_id?: string | null
           origem?: Database["public"]["Enums"]["origem_agendamento"] | null
+          reagendado_para_id?: string | null
           status?: Database["public"]["Enums"]["status_visita"]
           telefone_visitante: string
           tipo_servico?: Database["public"]["Enums"]["tipo_servico_visita"]
+          token_confirmacao?: string | null
+          token_expira_em?: string | null
           updated_at?: string | null
         }
         Update: {
+          acao_cliente?: string | null
           codigo_imovel?: string | null
+          confirmada_pelo_cliente_at?: string | null
+          confirmada_pelo_cliente_ip?: string | null
           corretor_id?: string | null
           created_at?: string | null
           data_hora?: string
@@ -69,13 +86,17 @@ export type Database = {
           lead_id?: string | null
           lembrete_enviado?: boolean | null
           lembrete_enviado_at?: string | null
+          motivo_cancelamento_cliente?: string | null
           nome_visitante?: string
           notas?: string | null
           organization_id?: string | null
           origem?: Database["public"]["Enums"]["origem_agendamento"] | null
+          reagendado_para_id?: string | null
           status?: Database["public"]["Enums"]["status_visita"]
           telefone_visitante?: string
           tipo_servico?: Database["public"]["Enums"]["tipo_servico_visita"]
+          token_confirmacao?: string | null
+          token_expira_em?: string | null
           updated_at?: string | null
         }
         Relationships: [
@@ -91,6 +112,13 @@ export type Database = {
             columns: ["organization_id"]
             isOneToOne: false
             referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "agendamentos_visita_reagendado_para_id_fkey"
+            columns: ["reagendado_para_id"]
+            isOneToOne: false
+            referencedRelation: "agendamentos_visita"
             referencedColumns: ["id"]
           },
         ]
@@ -3004,6 +3032,44 @@ export type Database = {
             columns: ["organization_id"]
             isOneToOne: false
             referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      visita_confirmacao_eventos: {
+        Row: {
+          agendamento_id: string
+          created_at: string
+          id: string
+          ip: string | null
+          metadata: Json | null
+          tipo: string
+          user_agent: string | null
+        }
+        Insert: {
+          agendamento_id: string
+          created_at?: string
+          id?: string
+          ip?: string | null
+          metadata?: Json | null
+          tipo: string
+          user_agent?: string | null
+        }
+        Update: {
+          agendamento_id?: string
+          created_at?: string
+          id?: string
+          ip?: string | null
+          metadata?: Json | null
+          tipo?: string
+          user_agent?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "visita_confirmacao_eventos_agendamento_id_fkey"
+            columns: ["agendamento_id"]
+            isOneToOne: false
+            referencedRelation: "agendamentos_visita"
             referencedColumns: ["id"]
           },
         ]
