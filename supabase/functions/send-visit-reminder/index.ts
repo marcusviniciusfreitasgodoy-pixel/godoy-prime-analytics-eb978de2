@@ -79,6 +79,12 @@ const handler = async (req: Request): Promise<Response> => {
       };
       const tipoServico = tipoServicoMap[agendamento.tipo_servico as string] || "Visita";
 
+      const appBaseUrl =
+        Deno.env.get("APP_PUBLIC_URL") || "https://analytics.godoyprime.com.br";
+      const linkConfirmacao = agendamento.token_confirmacao
+        ? `${appBaseUrl}/visitas/confirmar/${agendamento.token_confirmacao}`
+        : null;
+
       const htmlContent = `
         <!DOCTYPE html>
         <html>
@@ -143,6 +149,16 @@ const handler = async (req: Request): Promise<Response> => {
               <p style="color: #64748b; font-size: 14px; margin-top: 24px;">
                 Em caso de imprevisto ou necessidade de reagendamento, entre em contato conosco o mais breve possível.
               </p>
+              ${linkConfirmacao ? `
+              <div style="text-align: center; margin: 28px 0 8px;">
+                <a href="${linkConfirmacao}" style="background:#d4af37;color:#0C2340;padding:14px 32px;text-decoration:none;border-radius:8px;font-weight:bold;font-size:15px;display:inline-block;">
+                  Confirmar, reagendar ou cancelar
+                </a>
+                <p style="color:#94a3b8;font-size:12px;margin:10px 0 0;">
+                  Toque no botão para confirmar sua presença ou ajustar a visita em segundos.
+                </p>
+              </div>
+              ` : ""}
             </div>
             <div class="footer">
               <p><strong>Godoy Prime Analytics</strong></p>
