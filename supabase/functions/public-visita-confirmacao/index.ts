@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { Resend } from "https://esm.sh/resend@2.0.0";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -9,6 +10,117 @@ const corsHeaders = {
 
 const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
 const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY");
+const AGENCY_EMAIL = "contato@godoyprime.com.br";
+const resend = RESEND_API_KEY ? new Resend(RESEND_API_KEY) : null;
+
+function fmtDataHora(iso: string | null | undefined): string {
+  if (!iso) return "—";
+  try {
+    return new Intl.DateTimeFormat("pt-BR", {
+      day: "2-digit",
+      month: "long",
+      year: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+      timeZone: "America/Sao_Paulo",
+    }).format(new Date(iso));
+  } catch {
+    return iso;
+  }
+}
+
+async function notificarCorretorAcao(
+  supabase: any,
+  agendamento: any,
+  acao: "confirmou" | "cancelou" | "reagendou",
+  extras: { motivo?: string | null; novaDataHora?: string | null } = {},
+) {
+  if (!resend) return;
+  try {
+    let corretorEmail: string | null = null;
+    let corretorNome: string | null = null;
+    if (agendamento.corretor_id) {
+      const { data } = await supabase
+        .from("profiles")
+        .select("email, full_name")
+        .eq("id", agendamento.corretor_id)
+        .maybeSingle();
+      corretorEmail = data?.email || null;
+      corretorNome = data?.full_name || null;
+    }
+
+    const destinos = Array.from(
+      new Set([corretorEmail, AGENCY_EMAIL].filter(Boolean) as string[]),
+    );
+    if (destinos.length === 0) return;
+
+    const titulos: Record<typeof acao, string> = {
+      confirmou: "✅ Cliente confirmou a visita",
+      cancelou: "❌ Cliente cancelou a visita",
+      reagendou: "🔄 Cliente reagendou a visita",
+    };
+    const cores: Record<typeof acao, string> = {
+      confirmou: "#16a34a",
+      cancelou: "#dc2626",
+      reagendou: "#d4af37",
+    };
+
+    const linhasExtras: string[] = [];
+    if (acao === "reagendou" && extras.novaDataHora) {
+      linhasExtras.push(
+        `<tr><td style="padding:6px 0;color:#666;font-size:14px;">📅 Nova data:</td><td style="padding:6px 0;color:#111;font-size:14px;font-weight:bold;">${fmtDataHora(extras.novaDataHora)}</td></tr>`,
+      );
+    }
+    if (acao === "cancelou" && extras.motivo) {
+      linhasExtras.push(
+        `<tr><td style="padding:6px 0;color:#666;font-size:14px;">📝 Motivo:</td><td style="padding:6px 0;color:#111;font-size:14px;">${extras.motivo}</td></tr>`,
+      );
+    }
+
+    const html = `
+      <!DOCTYPE html>
+      <html><head><meta charset="utf-8" /></head>
+      <body style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:#f5f5f5;margin:0;padding:20px;">
+        <div style="max-width:600px;margin:0 auto;background:#ffffff;border-radius:12px;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,0.08);">
+          <div style="background:#0C2340;padding:24px;text-align:center;border-top:4px solid ${cores[acao]};">
+            <h1 style="color:#d4af37;margin:0;font-size:20px;">${titulos[acao]}</h1>
+            <p style="color:#fff;margin:6px 0 0;font-size:13px;">Ação registrada pelo cliente no link de confirmação</p>
+          </div>
+          <div style="padding:24px 28px;">
+            ${corretorNome ? `<p style="margin:0 0 14px;color:#333;font-size:14px;">Olá <strong>${corretorNome.split(" ")[0]}</strong>,</p>` : ""}
+            <p style="margin:0 0 16px;color:#555;font-size:14px;">O cliente acessou o link público e <strong>${acao === "confirmou" ? "confirmou a presença" : acao === "cancelou" ? "cancelou o agendamento" : "solicitou um reagendamento"}</strong>.</p>
+            <div style="background:#f8f9fa;border-radius:8px;padding:16px;">
+              <table style="width:100%;border-collapse:collapse;">
+                <tr><td style="padding:6px 0;color:#666;font-size:14px;">👤 Cliente:</td><td style="padding:6px 0;color:#111;font-size:14px;font-weight:bold;">${agendamento.nome_visitante || "—"}</td></tr>
+                ${agendamento.telefone_visitante ? `<tr><td style="padding:6px 0;color:#666;font-size:14px;">📞 Telefone:</td><td style="padding:6px 0;color:#111;font-size:14px;">${agendamento.telefone_visitante}</td></tr>` : ""}
+                <tr><td style="padding:6px 0;color:#666;font-size:14px;">📍 Imóvel:</td><td style="padding:6px 0;color:#111;font-size:14px;">${agendamento.endereco_imovel || "—"}</td></tr>
+                <tr><td style="padding:6px 0;color:#666;font-size:14px;">🕒 Data original:</td><td style="padding:6px 0;color:#111;font-size:14px;">${fmtDataHora(agendamento.data_hora)}</td></tr>
+                ${linhasExtras.join("")}
+              </table>
+            </div>
+            <p style="margin:20px 0 0;color:#999;font-size:12px;">Notificação automática — Godoy Prime Analytics</p>
+          </div>
+        </div>
+      </body></html>
+    `;
+
+    const assuntoMap: Record<typeof acao, string> = {
+      confirmou: `✅ Visita confirmada pelo cliente - ${agendamento.nome_visitante || ""}`,
+      cancelou: `❌ Visita cancelada pelo cliente - ${agendamento.nome_visitante || ""}`,
+      reagendou: `🔄 Cliente solicitou reagendamento - ${agendamento.nome_visitante || ""}`,
+    };
+
+    await resend.emails.send({
+      from: "Godoy Prime <onboarding@resend.dev>",
+      to: destinos,
+      subject: assuntoMap[acao],
+      html,
+    });
+  } catch (err) {
+    console.error("notificarCorretorAcao error:", err);
+  }
+}
 
 function jsonRes(body: unknown, status = 200) {
   return new Response(JSON.stringify(body), {
@@ -192,6 +304,7 @@ serve(async (req: Request) => {
         .eq("id", ag.id);
       if (upErr) throw upErr;
       await logEvento(supabase, ag.id, "confirmou", req);
+      await notificarCorretorAcao(supabase, ag, "confirmou");
       return jsonRes({ ok: true, status: "confirmada" });
     }
 
@@ -207,6 +320,7 @@ serve(async (req: Request) => {
         .eq("id", ag.id);
       if (upErr) throw upErr;
       await logEvento(supabase, ag.id, "cancelou", req, { motivo });
+      await notificarCorretorAcao(supabase, ag, "cancelou", { motivo });
       return jsonRes({ ok: true, status: "cancelada" });
     }
 
@@ -294,6 +408,9 @@ serve(async (req: Request) => {
       await logEvento(supabase, ag.id, "reagendou", req, {
         novo_agendamento_id: novoAg.id,
         nova_data_hora: novoAg.data_hora,
+      });
+      await notificarCorretorAcao(supabase, ag, "reagendou", {
+        novaDataHora: novoAg.data_hora,
       });
 
       return jsonRes({
