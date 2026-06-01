@@ -125,3 +125,6 @@ verify_jwt = false
 
 [functions.assinar-autorizacao]
 verify_jwt = false
+
+[functions.public-visita-confirmacao]
+verify_jwt = false
