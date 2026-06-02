@@ -524,11 +524,22 @@ export function useHistoricalTransactionAnalysis(logradouro: string, bairro: str
         transactionGrowth: Math.round(transactionGrowth * 10) / 10,
         priceGrowth: Math.round(priceGrowth * 10) / 10,
         diagnostico,
-        alertas,
+        alertas: crossBairro
+          ? [
+              `ℹ️ Esta rua possui transações registradas no ITBI sob ${
+                bairrosEncontrados.length === 1
+                  ? `o bairro ${bairrosEncontrados[0]}`
+                  : `os bairros ${bairrosEncontrados.join(', ')}`
+              } (limite entre bairros). Os dados foram consolidados para refletir o histórico completo da via.`,
+              ...alertas,
+            ]
+          : alertas,
         futureProjection,
         dataSource,
         logradouroUsado: normalizedLogradouro,
         bairroUsado: normalizedBairro,
+        crossBairro,
+        bairrosEncontrados,
         hasCurrentYearData,
         currentYearCount,
         currentYearAvgM2,
