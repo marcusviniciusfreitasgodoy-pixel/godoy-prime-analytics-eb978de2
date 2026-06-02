@@ -6,7 +6,7 @@
 import type { HistoricalAnalysis } from '@/hooks/useHistoricalTransactionAnalysis';
 
 const CACHE_KEY_PREFIX = 'historical_analysis_';
-const CACHE_VERSION = 'v10'; // Invalidate cache - força refetch após importação ITBI 2023-2025 (2026-05)
+const CACHE_VERSION = 'v11'; // Invalidate cache - inclui fallback cross-bairro por logradouro (2026-06)
 const CACHE_DURATION_MS = 24 * 60 * 60 * 1000; // 24 horas
 const MAX_CACHE_ENTRIES = 50; // Limitar memória do localStorage
 

@@ -47,6 +47,8 @@ export function HistoricalAnalysisChart({ analysis }: Props) {
     dataSource,
     logradouroUsado,
     bairroUsado,
+    crossBairro,
+    bairrosEncontrados,
     hasCurrentYearData,
     currentYearCount,
     currentYearAvgM2
@@ -111,6 +113,18 @@ export function HistoricalAnalysisChart({ analysis }: Props) {
               )}
             </Badge>
           </div>
+          {crossBairro && bairrosEncontrados && bairrosEncontrados.length > 0 && (
+            <div className="mt-2 flex items-start gap-2 rounded-md border border-amber-300 bg-amber-50 dark:bg-amber-950/30 px-3 py-2 text-[11px] sm:text-xs text-amber-800 dark:text-amber-200">
+              <Info className="h-4 w-4 shrink-0 mt-0.5" />
+              <span>
+                Esta rua está cadastrada no ITBI da Prefeitura sob{' '}
+                {bairrosEncontrados.length === 1
+                  ? <>o bairro <strong>{bairrosEncontrados[0]}</strong></>
+                  : <>os bairros <strong>{bairrosEncontrados.join(', ')}</strong></>
+                }{' '}(limite entre bairros). Os dados foram consolidados para refletir o histórico completo da via.
+              </span>
+            </div>
+          )}
         </CardHeader>
         <CardContent className="space-y-4">
           {/* KPIs em linha */}

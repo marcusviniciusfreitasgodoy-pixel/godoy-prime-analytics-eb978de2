@@ -66,6 +66,9 @@ export interface HistoricalAnalysis {
   dataSource: 'logradouro' | 'bairro'; // Indica se usou logradouro específico ou bairro todo
   logradouroUsado: string; // Logradouro usado na busca
   bairroUsado: string; // Bairro usado na busca
+  // Fallback cross-bairro: quando a rua está cadastrada em outro(s) bairro(s) no ITBI
+  crossBairro?: boolean;
+  bairrosEncontrados?: string[];
   // Dados do ano corrente (fora da janela histórica)
   hasCurrentYearData?: boolean;
   currentYearCount?: number;
@@ -142,8 +145,10 @@ export function useHistoricalTransactionAnalysis(logradouro: string, bairro: str
       // IMPORTANTE (contagem): NÃO filtrar por valor_m2 aqui, pois muitos registros
       // podem não ter valor_m2 calculado. A filtragem por outliers é aplicada apenas
       // para estatísticas de preço.
-      let transactions: { data_transacao: string; valor_m2: number | null; total_transacoes: number | null }[] | null = null;
+      let transactions: { data_transacao: string; valor_m2: number | null; total_transacoes: number | null; bairro?: string | null }[] | null = null;
       let error: unknown = null;
+      let crossBairro = false;
+      let bairrosEncontrados: string[] = [];
 
       // Se temos ruas internas do condomínio, buscar em todas elas
       // IMPORTANTE: Normalizar acentos das ruas internas para match com banco (ex: "Nélson" → "Nelson")
@@ -197,6 +202,44 @@ export function useHistoricalTransactionAnalysis(logradouro: string, bairro: str
           if (data && data.length > 0) {
             transactions = data;
             break;
+          }
+        }
+
+        // FALLBACK CROSS-BAIRRO: se nada no bairro selecionado, tentar a mesma rua em qualquer bairro.
+        // Útil para ruas de fronteira que mudaram de cadastro entre bairros ao longo do tempo.
+        if (!error && (!transactions || transactions.length === 0)) {
+          for (const candidate of searchCandidates) {
+            const { data, error: e } = await supabase
+              .from('itbi_transactions')
+              .select('data_transacao, valor_m2, total_transacoes, bairro')
+              .ilike('logradouro', `%${candidate}%`)
+              .eq('uso', 'Residencial')
+              .gte('data_transacao', startDate)
+              .lte('data_transacao', endDate)
+              .order('data_transacao', { ascending: true })
+              .limit(5000);
+
+            if (e) {
+              error = e;
+              break;
+            }
+
+            if (data && data.length > 0) {
+              transactions = data;
+              crossBairro = true;
+              bairrosEncontrados = Array.from(
+                new Set(
+                  data
+                    .map((r) => (r.bairro || '').toUpperCase().trim())
+                    .filter((b) => b && b !== normalizedBairro)
+                )
+              );
+              console.log(
+                `[HistoricalAnalysis] Cross-bairro fallback acionado para ${normalizedLogradouro}: ` +
+                `encontrado em ${bairrosEncontrados.join(', ')}`
+              );
+              break;
+            }
           }
         }
       }
@@ -481,11 +524,22 @@ export function useHistoricalTransactionAnalysis(logradouro: string, bairro: str
         transactionGrowth: Math.round(transactionGrowth * 10) / 10,
         priceGrowth: Math.round(priceGrowth * 10) / 10,
         diagnostico,
-        alertas,
+        alertas: crossBairro
+          ? [
+              `ℹ️ Esta rua possui transações registradas no ITBI sob ${
+                bairrosEncontrados.length === 1
+                  ? `o bairro ${bairrosEncontrados[0]}`
+                  : `os bairros ${bairrosEncontrados.join(', ')}`
+              } (limite entre bairros). Os dados foram consolidados para refletir o histórico completo da via.`,
+              ...alertas,
+            ]
+          : alertas,
         futureProjection,
         dataSource,
         logradouroUsado: normalizedLogradouro,
         bairroUsado: normalizedBairro,
+        crossBairro,
+        bairrosEncontrados,
         hasCurrentYearData,
         currentYearCount,
         currentYearAvgM2,

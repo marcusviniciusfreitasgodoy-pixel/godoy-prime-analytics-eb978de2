@@ -94,44 +94,58 @@ export function Step1Location({ state, updateState, combined, onAutoValidated }:
     logradouro: string,
     ruasInternas?: string[]
   ): Promise<{ rows: { valor_m2: number | null; valor_transacao: number | null; total_transacoes: number | null }[]; source: "logradouro" | "bairro" }> => {
-    const createBaseQuery = () =>
-      supabase
+    const createBaseQuery = (withBairro: boolean) => {
+      let q = supabase
         .from("itbi_transactions")
         .select("valor_m2, valor_transacao, total_transacoes")
-        .ilike("bairro", bairro)
         .eq("uso", "Residencial")
         .gte("percentual_transferido", 90)
         .not("valor_m2", "is", null)
         .lte("valor_m2", 40000)
         .limit(500);
+      if (withBairro) q = q.ilike("bairro", bairro);
+      return q;
+    };
 
-    let streetQuery = createBaseQuery();
-
-    if (ruasInternas && ruasInternas.length > 0) {
-      const normalizedRuas = ruasInternas
-        .map((rua) => rua.normalize("NFD").replace(/[\u0300-\u036f]/g, ""))
-        .filter(Boolean);
-
-      if (normalizedRuas.length > 0) {
-        const orFilter = normalizedRuas.map((rua) => `logradouro.ilike.%${rua}%`).join(",");
-        streetQuery = streetQuery.or(orFilter);
+    const applyStreetFilter = (query: ReturnType<typeof createBaseQuery>) => {
+      if (ruasInternas && ruasInternas.length > 0) {
+        const normalizedRuas = ruasInternas
+          .map((rua) => rua.normalize("NFD").replace(/[\u0300-\u036f]/g, ""))
+          .filter(Boolean);
+        if (normalizedRuas.length > 0) {
+          const orFilter = normalizedRuas.map((rua) => `logradouro.ilike.%${rua}%`).join(",");
+          return query.or(orFilter);
+        }
+        return query;
       }
-    } else {
       const streetTerms = buildStreetSearchTerms(logradouro);
       if (streetTerms.length > 0) {
         const streetFilter = streetTerms.map((term) => `logradouro.ilike.%${term}%`).join(",");
-        streetQuery = streetQuery.or(streetFilter);
+        return query.or(streetFilter);
       }
-    }
+      return query;
+    };
 
-    const { data: streetRows, error: streetError } = await streetQuery;
+    // 1) Logradouro + bairro selecionado
+    const { data: streetRows, error: streetError } = await applyStreetFilter(createBaseQuery(true));
     if (streetError) throw streetError;
 
     if (streetRows && streetRows.length > 0) {
       return { rows: streetRows, source: "logradouro" };
     }
 
-    const { data: bairroRows, error: bairroError } = await createBaseQuery();
+    // 2) Cross-bairro: mesma rua em qualquer bairro (útil para ruas de fronteira)
+    if (!ruasInternas || ruasInternas.length === 0) {
+      const { data: crossRows, error: crossError } = await applyStreetFilter(createBaseQuery(false));
+      if (crossError) throw crossError;
+      if (crossRows && crossRows.length > 0) {
+        console.log(`[Step1] Cross-bairro fallback acionado para ${logradouro}: ${crossRows.length} registros`);
+        return { rows: crossRows, source: "logradouro" };
+      }
+    }
+
+    // 3) Último recurso: bairro inteiro
+    const { data: bairroRows, error: bairroError } = await createBaseQuery(true);
     if (bairroError) throw bairroError;
 
     return { rows: bairroRows || [], source: "bairro" };
