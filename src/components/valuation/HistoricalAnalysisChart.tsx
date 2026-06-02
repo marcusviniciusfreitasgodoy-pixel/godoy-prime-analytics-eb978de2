@@ -47,6 +47,8 @@ export function HistoricalAnalysisChart({ analysis }: Props) {
     dataSource,
     logradouroUsado,
     bairroUsado,
+    crossBairro,
+    bairrosEncontrados,
     hasCurrentYearData,
     currentYearCount,
     currentYearAvgM2
