@@ -66,6 +66,9 @@ export interface HistoricalAnalysis {
   dataSource: 'logradouro' | 'bairro'; // Indica se usou logradouro específico ou bairro todo
   logradouroUsado: string; // Logradouro usado na busca
   bairroUsado: string; // Bairro usado na busca
+  // Fallback cross-bairro: quando a rua está cadastrada em outro(s) bairro(s) no ITBI
+  crossBairro?: boolean;
+  bairrosEncontrados?: string[];
   // Dados do ano corrente (fora da janela histórica)
   hasCurrentYearData?: boolean;
   currentYearCount?: number;
