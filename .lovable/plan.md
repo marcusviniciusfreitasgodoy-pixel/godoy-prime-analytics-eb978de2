@@ -1,70 +1,48 @@
+## Problema
 
-# Confirmação de visita pelo cliente
+Ruas de fronteira (ex.: Rua Escritor Rodrigo Melo Franco) têm o cadastro de bairro alterado pela Prefeitura ao longo do tempo (Barra → Camorim a partir de 2022). Como as queries do motor de avaliação filtram estritamente por `bairro`, transações reais "somem" da análise quando o usuário avalia o imóvel na Barra da Tijuca.
 
-Habilitar que o visitante **confirme, reagende ou cancele** uma visita agendada através de um link único enviado por email e WhatsApp. O fluxo é totalmente público (sem login), validado por token, e válido até o horário da visita.
+## Solução: Fallback automático cross-bairro por logradouro
 
-## Comportamento
+Quando uma busca por logradouro dentro do bairro selecionado retorna 0 transações (ou número muito baixo), refazer a mesma busca **sem o filtro de bairro**, mantendo o filtro de logradouro. Se o resultado vier de bairros vizinhos, exibir um aviso de transparência.
 
-1. Quando um agendamento é criado:
-   - Sistema gera `token_confirmacao` único e seta `token_expira_em = data_hora` da visita.
-   - Email e WhatsApp passam a incluir CTA **"Confirmar minha presença"** apontando para `/visitas/confirmar/:token`.
-2. Lembrete de 24h passa a incluir o mesmo CTA (ainda válido).
-3. Página pública `/visitas/confirmar/:token`:
-   - Mostra resumo (imóvel, data, corretor).
-   - Três botões: **Confirmar** • **Reagendar** • **Cancelar**.
-   - **Confirmar** → status → `confirmada`, registra `confirmada_pelo_cliente_at` e IP. Tela de sucesso.
-   - **Cancelar** → pede motivo opcional → status → `cancelada` → **abre automaticamente o passo de reagendamento** (escolher nova data/horário disponível com o mesmo corretor). Se o cliente reagendar, cria novo `agendamentos_visita` com novo token e marca o anterior com link no novo (`reagendado_para_id`).
-   - **Reagendar** direto → mesmo seletor de nova data, marca atual como `cancelada` + cria novo agendamento.
-4. Token inválido/expirado → mensagem clara ("este link já não está mais ativo, entre em contato com o corretor").
-5. Notificações resultantes:
-   - Corretor recebe notificação interna (e WhatsApp opcional) quando cliente confirma, cancela ou reagenda.
-   - Cliente recebe email + WhatsApp de confirmação da ação realizada.
+Aplicar em dois pontos:
 
-## Detalhes técnicos
+### 1. `src/hooks/useHistoricalTransactionAnalysis.ts`
 
-### Banco (migration)
-Adicionar em `agendamentos_visita`:
-- `token_confirmacao` text unique
-- `token_expira_em` timestamptz
-- `confirmada_pelo_cliente_at` timestamptz
-- `confirmada_pelo_cliente_ip` text
-- `acao_cliente` text (`confirmou` | `cancelou` | `reagendou` | null)
-- `motivo_cancelamento_cliente` text
-- `reagendado_para_id` uuid (self-ref ao novo agendamento)
+- Após o loop que busca por `searchCandidates` filtrando `bairro = normalizedBairro`, se `transactions.length === 0` e **não houver `ruasInternas`** (condomínio já é específico), executar uma nova rodada do mesmo loop **sem** o `.ilike('bairro', ...)`.
+- Coletar os bairros distintos retornados (campo `bairro` em select expandido) para exibir no aviso.
+- Marcar `dataSource: 'logradouro'` (continua sendo dado do logradouro, só que cross-bairro).
+- Adicionar ao retorno: `crossBairro: boolean` e `bairrosEncontrados: string[]`.
+- Atualizar a chave do cache (`historicalAnalysisCache.ts`) bumping `CACHE_VERSION` para `'v11'` para invalidar entradas antigas.
+- Alerta automático: `"ℹ️ Esta rua possui transações registradas em bairros vizinhos (X). Os dados consolidados foram considerados."`
 
-Trigger `BEFORE INSERT` para gerar token automaticamente (`encode(gen_random_bytes(24), 'base64url')`) e setar `token_expira_em = data_hora`.
+### 2. `src/components/valuation/Step1Location.tsx` — `fetchMarketRows`
 
-### Edge functions (públicas, sem JWT)
-- `public-visita-info` — `GET ?token=` → retorna dados resumidos do agendamento (sem PII desnecessária).
-- `public-visita-confirmar` — `POST` → valida token, valida expiração, atualiza status, dispara notificações ao corretor.
-- `public-visita-cancelar` — `POST` → recebe motivo, marca cancelada.
-- `public-visita-reagendar` — `POST` → recebe nova data/hora (valida disponibilidade via `disponibilidade_corretor`), cria novo registro com novo token, atualiza o anterior.
-- `public-visita-horarios` — `GET ?corretor_id=&data=` → retorna slots disponíveis para o seletor.
+- Adicionar parâmetro `allowCrossBairro = true` (default).
+- Após a query `logradouro + bairro`, se `logradouroRows.length === 0`, executar nova query **sem** o filtro de bairro mantendo `ilike('logradouro', …)`.
+- Se essa segunda busca retornar dados, usar como fonte com `source: 'logradouro'` e propagar uma flag adicional (`crossBairro`) no retorno para o `state` da avaliação.
+- O fallback existente para "bairro inteiro" continua como último recurso.
 
-Rate limit simples por IP+token (in-memory) para evitar abuso.
+### 3. UI — aviso de transparência
 
-### Frontend
-- Nova rota pública em `src/App.tsx`: `/visitas/confirmar/:token` (fora do `RequireAuth`, igual às demais rotas públicas de visita).
-- Novo arquivo `src/pages/visitas/ConfirmacaoPublica.tsx` com 4 estados:
-  1. Resumo + 3 botões
-  2. Sucesso (confirmação)
-  3. Cancelamento (motivo) → encadeia para seletor de reagendamento
-  4. Reagendamento (calendário + horários)
-- Componente `SeletorNovaData` reutilizando lógica de `disponibilidade_corretor`.
-- Estética alinhada à marca (Navy/Gold, mobile-first — clientes abrirão pelo celular).
+- No componente que exibe a análise histórica (provavelmente `HistoricalTransactionChart` / card de "Histórico de Transações"), quando `crossBairro === true`, mostrar um banner discreto cor âmbar:
+  > "Esta rua está cadastrada no ITBI da Prefeitura sob o bairro **Camorim** a partir de 2022 (limite entre bairros). Os dados foram consolidados para refletir o histórico completo."
+- Texto genérico parametrizado por `bairrosEncontrados`.
 
-### Templates de comunicação
-- `src/utils/visitEmailService.ts` → template `agendamento_confirmado` ganha CTA principal `https://analytics.godoyprime.com.br/visitas/confirmar/{token}`.
-- `supabase/functions/send-visit-reminder/index.ts` → lembrete de 24h ganha o mesmo CTA.
-- `src/utils/whatsappService.ts` → mensagem de confirmação e lembrete incluem `link_confirmacao` (substitui ou complementa `link_reagendamento`).
+### 4. Sem alteração de schema
 
-### Segurança / LGPD
-- Token de 192 bits, indexado, único.
-- Página pública mostra apenas: nome do imóvel, endereço, data/hora, primeiro nome do corretor. Sem CPF/RG/telefone do visitante.
-- Logs em `whatsapp_message_logs` e nova tabela leve `visita_confirmacao_eventos` (tipo, IP, user-agent, timestamp) para auditoria.
+Nenhuma migration. Apenas mudanças em hooks/components e bump do cache version.
 
-## Fora do escopo
+## Critérios de aceite
 
-- Alterações no fluxo de assinatura pós-visita (`/visitas/assinatura/...`) e feedback — permanecem como hoje.
-- Botões interativos nativos do WhatsApp Business (mantemos link clicável, que funciona em qualquer Z-API plan).
-- Reconfirmação após reagendamento múltiplo (cada novo agendamento gera seu próprio token de forma automática via trigger, sem UI extra).
+- Avaliando "Rua Escritor Rodrigo Melo Franco" em Barra da Tijuca, o gráfico de histórico passa a mostrar transações de 2020 a 2026 (incluindo 2023/2024/2025 que estão sob Camorim).
+- Aviso de transparência aparece informando o cross-bairro.
+- Buscas em ruas estritamente de um único bairro continuam funcionando idênticas (zero regressão).
+- Cache antigo é invalidado automaticamente.
+
+## Fora de escopo
+
+- Tabela de overrides manuais por logradouro (opção 1 descartada).
+- Reclassificação retroativa de registros ITBI no banco.
+- Mudança em outras telas (Pesquisa de Mercado, Territorial, KPIs do Dashboard) — podem ser feitas em iteração futura se o usuário pedir.
