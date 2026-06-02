@@ -126,25 +126,23 @@ export function Step1Location({ state, updateState, combined, onAutoValidated }:
       return query;
     };
 
-    // 1) Logradouro + bairro selecionado
-    const { data: streetRows, error: streetError } = await applyStreetFilter(createBaseQuery(true));
-    if (streetError) throw streetError;
-
-    if (streetRows && streetRows.length > 0) {
-      return { rows: streetRows, source: "logradouro" };
-    }
-
-    // 2) Cross-bairro: mesma rua em qualquer bairro (útil para ruas de fronteira)
-    if (!ruasInternas || ruasInternas.length === 0) {
-      const { data: crossRows, error: crossError } = await applyStreetFilter(createBaseQuery(false));
-      if (crossError) throw crossError;
-      if (crossRows && crossRows.length > 0) {
-        console.log(`[Step1] Cross-bairro fallback acionado para ${logradouro}: ${crossRows.length} registros`);
-        return { rows: crossRows, source: "logradouro" };
+    // 1) Para condomínios, manter filtro de bairro (rua interna é genérica)
+    if (ruasInternas && ruasInternas.length > 0) {
+      const { data: streetRows, error: streetError } = await applyStreetFilter(createBaseQuery(true));
+      if (streetError) throw streetError;
+      if (streetRows && streetRows.length > 0) {
+        return { rows: streetRows, source: "logradouro" };
+      }
+    } else {
+      // 1) Para logradouros, buscar em todos os bairros (união cross-bairro automática)
+      const { data: streetRows, error: streetError } = await applyStreetFilter(createBaseQuery(false));
+      if (streetError) throw streetError;
+      if (streetRows && streetRows.length > 0) {
+        return { rows: streetRows, source: "logradouro" };
       }
     }
 
-    // 3) Último recurso: bairro inteiro
+    // 2) Último recurso: bairro inteiro
     const { data: bairroRows, error: bairroError } = await createBaseQuery(true);
     if (bairroError) throw bairroError;
 
