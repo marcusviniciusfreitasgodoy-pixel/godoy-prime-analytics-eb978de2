@@ -84,7 +84,7 @@ export function useAgendamentos() {
       if (data.email_visitante) {
         try {
           const linkConfirmacao = (data as any).token_confirmacao
-            ? `${window.location.origin}/visitas/confirmar/${(data as any).token_confirmacao}`
+            ? `${getPublicAppUrl()}/visitas/confirmar/${(data as any).token_confirmacao}`
             : undefined;
           await sendAgendamentoConfirmadoEmail(data.email_visitante, {
             nome_visitante: data.nome_visitante, telefone_visitante: data.telefone_visitante,
@@ -112,7 +112,7 @@ export function useAgendamentos() {
       if (data.telefone_visitante) {
         try {
           const linkConfirmacao = (data as any).token_confirmacao
-            ? `${window.location.origin}/visitas/confirmar/${(data as any).token_confirmacao}`
+            ? `${getPublicAppUrl()}/visitas/confirmar/${(data as any).token_confirmacao}`
             : undefined;
           const resultado = await enviarConfirmacaoAgendamento(data.telefone_visitante, {
             nome_visitante: data.nome_visitante, endereco_imovel: data.endereco_imovel,

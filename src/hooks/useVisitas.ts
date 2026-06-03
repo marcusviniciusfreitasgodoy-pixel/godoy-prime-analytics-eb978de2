@@ -110,7 +110,7 @@ export function useVisitas() {
       toast.success("Status atualizado!");
 
       if (data.status === "realizada") {
-        const baseUrl = window.location.origin;
+        const baseUrl = getPublicAppUrl();
         const signatureVisitanteUrl = `${baseUrl}/visitas/assinatura/${data.codigo}/visitante`;
         const signatureCorretorUrl = `${baseUrl}/visitas/assinatura/${data.codigo}/corretor`;
 

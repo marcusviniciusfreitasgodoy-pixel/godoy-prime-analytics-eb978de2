@@ -65,7 +65,7 @@ export async function enviarConfirmacaoAgendamento(
   telefone: string,
   dados: Omit<WhatsAppDados, 'link_reagendamento'> & { agendamentoId?: string }
 ): Promise<{ success: boolean; error?: string }> {
-  const baseUrl = window.location.origin;
+  const baseUrl = getPublicAppUrl();
   
   const { link_assinatura, ...dadosSemAssinatura } = dados;
   return enviarWhatsApp(telefone, 'confirmacao', {
@@ -80,7 +80,7 @@ export async function enviarLembreteVisita(
   telefone: string,
   dados: Omit<WhatsAppDados, 'link_assinatura'> & { agendamentoId?: string }
 ): Promise<{ success: boolean; error?: string }> {
-  const baseUrl = window.location.origin;
+  const baseUrl = getPublicAppUrl();
   
   return enviarWhatsApp(telefone, 'lembrete', {
     ...dados,
@@ -94,7 +94,7 @@ export async function enviarCancelamentoVisita(
   telefone: string,
   dados: Omit<WhatsAppDados, 'link_assinatura' | 'codigo_imovel'>
 ): Promise<{ success: boolean; error?: string }> {
-  const baseUrl = window.location.origin;
+  const baseUrl = getPublicAppUrl();
   
   return enviarWhatsApp(telefone, 'cancelamento', {
     ...dados,
@@ -106,7 +106,7 @@ export async function enviarReagendamentoVisita(
   telefone: string,
   dados: WhatsAppDados & { agendamentoId?: string }
 ): Promise<{ success: boolean; error?: string }> {
-  const baseUrl = window.location.origin;
+  const baseUrl = getPublicAppUrl();
   
   const { link_assinatura, ...dadosSemAssinatura } = dados;
   return enviarWhatsApp(telefone, 'reagendamento', {
@@ -122,7 +122,7 @@ export async function enviarSolicitacaoFeedback(
   telefone: string,
   dados: { nome_visitante: string; endereco_imovel: string; codigo_visita: string }
 ): Promise<{ success: boolean; error?: string }> {
-  const baseUrl = window.location.origin;
+  const baseUrl = getPublicAppUrl();
   const feedbackUrl = `${baseUrl}/visitas/feedback/${dados.codigo_visita}`;
   
   return enviarWhatsApp(telefone, 'confirmacao', {
@@ -138,7 +138,7 @@ export async function enviarFichaCompletaPosVisita(
   telefone: string,
   ficha: FichaVisita
 ): Promise<{ success: boolean; error?: string }> {
-  const baseUrl = window.location.origin;
+  const baseUrl = getPublicAppUrl();
 
   return enviarWhatsApp(telefone, 'pos_visita', {
     nome_visitante: ficha.nome_visitante,
