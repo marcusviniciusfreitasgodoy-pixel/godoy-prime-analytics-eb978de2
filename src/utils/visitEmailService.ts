@@ -1,4 +1,5 @@
 import { supabase } from "@/integrations/supabase/client";
+import { getPublicAppUrl } from "@/utils/publicUrl";
 
 interface VisitEmailData {
   nome_visitante: string;
@@ -69,7 +70,7 @@ export async function sendFeedbackRequestEmail(
     codigo_visita: string;
   }
 ): Promise<{ success: boolean; error?: string }> {
-  const feedbackUrl = `${window.location.origin}/visitas/feedback/${data.codigo_visita}`;
+  const feedbackUrl = `${getPublicAppUrl()}/visitas/feedback/${data.codigo_visita}`;
   
   return sendVisitEmail(
     "visita_realizada",
@@ -106,7 +107,7 @@ export async function sendFeedbackReceivedEmail(
 ): Promise<{ success: boolean; error?: string }> {
   return sendVisitEmail("feedback_recebido" as any, emailCorretor, {
     ...data,
-    feedback_url: `${window.location.origin}/visitas/feedback/${data.codigo_visita}`,
+    feedback_url: `${getPublicAppUrl()}/visitas/feedback/${data.codigo_visita}`,
   }, true);
 }
 

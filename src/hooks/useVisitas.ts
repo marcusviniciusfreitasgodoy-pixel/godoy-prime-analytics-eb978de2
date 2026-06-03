@@ -1,4 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { getPublicAppUrl } from "@/utils/publicUrl";
 import { supabase } from "@/integrations/supabase/client";
 import { FichaVisita, FichaVisitaInsert, StatusVisita } from "@/types/visitas";
 import { sendFeedbackRequestEmail } from "@/utils/visitEmailService";
@@ -110,7 +111,7 @@ export function useVisitas() {
       toast.success("Status atualizado!");
 
       if (data.status === "realizada") {
-        const baseUrl = window.location.origin;
+        const baseUrl = getPublicAppUrl();
         const signatureVisitanteUrl = `${baseUrl}/visitas/assinatura/${data.codigo}/visitante`;
         const signatureCorretorUrl = `${baseUrl}/visitas/assinatura/${data.codigo}/corretor`;
 
