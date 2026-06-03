@@ -1,4 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { getPublicAppUrl } from "@/utils/publicUrl";
 import { supabase } from "@/integrations/supabase/client";
 import { FichaVisita, FichaVisitaInsert, StatusVisita } from "@/types/visitas";
 import { sendFeedbackRequestEmail } from "@/utils/visitEmailService";

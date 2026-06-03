@@ -1,4 +1,5 @@
 import { supabase } from "@/integrations/supabase/client";
+import { getPublicAppUrl } from "@/utils/publicUrl";
 
 interface VisitEmailData {
   nome_visitante: string;
