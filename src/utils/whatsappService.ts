@@ -1,6 +1,7 @@
 import { supabase } from "@/integrations/supabase/client";
 import { fetchNotificationSettings } from "@/hooks/useNotificationSettings";
 import { FichaVisita } from "@/types/visitas";
+import { getPublicAppUrl } from "@/utils/publicUrl";
 
 interface WhatsAppDados {
   nome_visitante: string;
