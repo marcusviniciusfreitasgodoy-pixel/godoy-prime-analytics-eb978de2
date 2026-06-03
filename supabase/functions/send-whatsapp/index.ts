@@ -123,21 +123,16 @@ _Godoy Prime Analytics_
 📞 (21) 96407-5124`;
 
     case 'pos_visita':
-      return `📋 *Ficha de Visita Realizada*
+      return `👋 Olá *${dados.nome_visitante}*!
 
-Olá *${dados.nome_visitante}*! 👋
+Obrigado pela visita ao imóvel:
 
-Sua visita foi concluída com sucesso. Seguem os dados registrados:
+📍 *Endereço:* ${dados.endereco_imovel}${dados.condominio_edificio ? `\n🏢 *Condomínio:* ${dados.condominio_edificio}` : ''}${dados.unidade_imovel ? `\n🔢 *Unidade:* ${dados.unidade_imovel}` : ''}${dados.codigo_imovel ? `\n🔑 *Código:* ${dados.codigo_imovel}` : ''}
+📅 *Data:* ${dataFormatada}${dados.nome_corretor ? `\n👔 *Corretor:* ${dados.nome_corretor}` : ''}
 
-🏠 *Dados do Imóvel*
-📍 *Endereço:* ${dados.endereco_imovel}${dados.condominio_edificio ? `\n🏢 *Condomínio:* ${dados.condominio_edificio}` : ''}${dados.unidade_imovel ? `\n🔢 *Unidade:* ${dados.unidade_imovel}` : ''}${dados.codigo_imovel ? `\n🔑 *Código:* ${dados.codigo_imovel}` : ''}${dados.valor_imovel ? `\n💰 *Valor:* R$ ${dados.valor_imovel}` : ''}${dados.nome_proprietario ? `\n👤 *Proprietário:* ${dados.nome_proprietario}` : ''}
+Sempre que possível, nos ajude a registrar essa visita:
 
-📅 *Data da Visita:* ${dataFormatada}${dados.nome_corretor ? `\n👔 *Corretor:* ${dados.nome_corretor}` : ''}
-
-${dados.link_assinatura ? `📝 *Assinatura Digital:*\n${dados.link_assinatura}\n` : ''}
-${dados.link_feedback ? `⭐ *Feedback sobre o Imóvel:*\n${dados.link_feedback}\n` : ''}
-${dados.link_ficha ? `📋 *Ficha Completa:*\n${dados.link_ficha}\n` : ''}
-⚠️ *Importante:* Por favor, analise os dados acima e preencha qualquer informação que esteja faltando acessando os links acima.
+${dados.link_assinatura ? `📝 Confirmar presença (assinatura):\n${dados.link_assinatura}\n\n` : ''}${dados.link_feedback ? `⭐ Compartilhar sua opinião sobre o imóvel:\n${dados.link_feedback}\n\n` : ''}${dados.link_ficha ? `📋 Ver a ficha completa da visita:\n${dados.link_ficha}\n\n` : ''}Qualquer dúvida, estou à disposição.
 
 _Godoy Prime Analytics_
 📞 (21) 96407-5124`;
