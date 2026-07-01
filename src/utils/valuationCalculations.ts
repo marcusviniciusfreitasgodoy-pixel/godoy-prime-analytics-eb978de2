@@ -324,7 +324,7 @@ export const calculateConfidenceScore = (
   adjustment: number,
   spread: number,
   doc_factor: number,
-  marketGap: number, // Gap de Mercado (antigo trend)
+  marketGap: number | null, // Gap de Mercado; null indica ausência ou amostra insuficiente
   liquidityScore?: number // Score de liquidez 0-100 do histórico 5 anos
 ): number => {
   let score = 100;
@@ -379,20 +379,25 @@ export const calculateConfidenceScore = (
   }
 
   // Penalidade 5: Gap de Mercado (peso reduzido: ~5%)
-  // Gap indica discrepância entre anúncios e transações reais
-  // Não deveria penalizar fortemente a avaliação que usa dados reais (ITBI)
-  const absGap = Math.abs(marketGap);
-  if (absGap <= 15) {
-    // Mercado bem equilibrado: pequeno bônus
-    score += 3;
-  } else if (absGap <= 25) {
-    // Gap moderado: neutro
-  } else if (absGap <= 35) {
-    // Gap alto: penalidade leve
-    score -= 3;
+  // Gap indica discrepância entre anúncios e transações reais.
+  // Quando o gap é null (sem anúncios ou <3 anúncios), aplicamos penalidade fixa
+  // para refletir a incerteza de uma fonte ausente — teto de confiança cai para ~90.
+  if (marketGap === null) {
+    score -= 10;
   } else {
-    // Gap crítico: penalidade moderada
-    score -= 5;
+    const absGap = Math.abs(marketGap);
+    if (absGap <= 15) {
+      // Mercado bem equilibrado: pequeno bônus
+      score += 3;
+    } else if (absGap <= 25) {
+      // Gap moderado: neutro
+    } else if (absGap <= 35) {
+      // Gap alto: penalidade leve
+      score -= 3;
+    } else {
+      // Gap crítico: penalidade moderada
+      score -= 5;
+    }
   }
 
   return Math.max(0, Math.min(100, score));
