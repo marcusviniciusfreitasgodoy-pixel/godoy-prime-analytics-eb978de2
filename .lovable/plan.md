@@ -1,74 +1,40 @@
-# Corrigir 3 inconsistências do motor apontadas pelo Analista Imobiliário
+## Minha análise do parecer
 
-## Contexto
+**O parecer está tecnicamente correto** ao apontar a inconsistência (gap de 19,5% sem anúncios recebidos). Essa contradição do motor foi corrigida em turnos anteriores — se ainda aparece no seu laudo, é porque o resultado exibido veio do cache antes da correção. Ao gerar um novo laudo, o gap sai como `N/A` e o score cai 10 pontos, como deveria.
 
-O QA apanhou 3 bugs reais quando não há dados de anúncio (`anuncio_stats: null`):
-1. Motor calcula gap fake (33,4%) sem ter anúncios.
-2. Score de confiança 100 apesar da fonte ausente.
-3. Recomenda `READY_TO_MARKET` mesmo quando o próprio motor classifica como `DESALINHADO`.
+**Por que os campos "—" aparecem em Valor Venal, Tipologia, Microbairro e Condomínio?**
+Não é bug do painel — é limitação real do backend `/parecer-nucleo`:
 
-Regra de negócio confirmada: **anúncios continuam opcionais**, mas o motor deve declarar honestamente quando a fonte está ausente ou insuficiente (< 3 anúncios).
+1. **IPTU (`valor_venal` / `tipologia`)** — a query `iptu_logradouro_resumo` filtra por `logradouro_norm` **exato** e por `tipologia` (`Apartamento`), mas a tabela usa domínio próprio (`Residencial`, `Comercial`) e a normalização entre `itbi_transactions` e `iptu_logradouro_resumo` nem sempre bate. Resultado: zero linhas → o LLM devolve `null`.
+2. **Territorial · condomínio** — só é buscado se `input.nome_condominio` for enviado. Quando o corretor faz a avaliação por endereço puro, o painel não passa condomínio e a função nem tenta inferir.
+3. **Territorial · microbairro** — a heurística atual cruza `microbairros_geo.keywords` com o texto do logradouro; falha na maioria dos casos, apesar de o próprio ITBI já trazer `microbairro` nas linhas lidas.
 
-## Mudanças (todas em `src/utils/valuationCalculations.ts`)
+## Correções propostas
 
-### 1. `calculateCombinedPrices` — tratar "sem anúncios" e "amostra insuficiente"
+### 1. `supabase/functions/parecer-nucleo/index.ts`
+- **IPTU (fallback em cascata)**: tentar `logradouro_norm` + `tipologia`; se vazio, refazer sem `tipologia`; se ainda vazio, `ilike` sobre `logradouro`. Consolidar `valor_venal` (média ponderada de `valor_venal_medio` por `total_imoveis`) e `tipologia` predominante em campos rasos, além de manter `linhas`.
+- **Territorial · condomínio**: quando `nome_condominio` não vier no input, buscar em `condominios_mapeamento` pelo `logradouro_norm` — casando com `logradouro_itbi_normalizado` **ou** com qualquer item do array `ruas_internas` — filtrando `ativo = true`. Expor `territorial.condominio.nome_condominio` na raiz.
+- **Territorial · microbairro**: usar o microbairro mais frequente entre as linhas ITBI já carregadas (fonte confiável) como resposta primária; a busca por `microbairros_geo` fica só como enriquecimento. Expor `territorial.microbairro.nome` na raiz.
 
-Ampliar o tipo `MarketAlignment` para incluir `'SEM_DADOS'` e `'AMOSTRA_INSUFICIENTE'`.
+### 2. `supabase/functions/analista-imobiliario/index.ts` (system prompt)
+Ajustar a instrução de preenchimento do `nucleo` para o LLM ler os campos corretos:
+- `iptu.valor_venal` ← `iptu.valor_venal_agregado` (novo campo raso do parecer-nucleo).
+- `iptu.tipologia` ← `iptu.tipologia_predominante`.
+- `territorial.microbairro` ← `territorial.microbairro.nome`.
+- `territorial.condominio` ← `territorial.condominio.nome_condominio`.
+Manter a regra: se ausente, devolver `null` e listar em `lacunas`, nunca inferir.
 
-Aceitar um `AnuncioData` opcional com `count` (número de anúncios encontrados). Se o motor de coleta não passa isso hoje, tratar `count ?? 0`.
+### 3. `src/components/valuation/AnalistaImobiliarioPanel.tsx`
+Nenhuma alteração de layout. Apenas manter o comportamento atual de exibir "—" quando o valor for `null` (já funciona). Nenhuma mudança de UI.
 
-Fluxo:
-- **`!anuncio || !anuncio.med_m2` (0 anúncios)** → devolver ITBI puro + `market_gap_percentage: null`, `market_alignment: 'SEM_DADOS'`, `gap_impact: 'Sem dados de anúncio disponíveis — avaliação 100% baseada em transações reais (ITBI). Gap de mercado não aplicável.'`
-- **`anuncio.count < 3` (1-2 anúncios)** → devolver ITBI puro + `market_gap_percentage: null`, `market_alignment: 'AMOSTRA_INSUFICIENTE'`, `gap_impact: 'Apenas N anúncio(s) encontrado(s) — amostra insuficiente para calcular gap de mercado (mínimo recomendado: 3).'` (Não combinar com peso de 30% se a amostra é ruim.)
-- **`count ≥ 3`** → comportamento atual.
+## Fora de escopo
+- Não recalcular o motor.
+- Não mudar a experiência visual do painel (mesmo cartão, mesmas cores, mesmos rótulos).
+- Não tocar em RLS/permissões — as tabelas `iptu_logradouro_resumo`, `condominios_mapeamento`, `microbairros_geo` já são lidas hoje.
 
-Atualizar `trend_percentage` para espelhar `market_gap_percentage` (`null` inclusive) — os consumidores precisam saber que é `null`, não 0.
-
-### 2. `calculateConfidenceScore` — penalizar ausência de anúncios
-
-Assinatura atual recebe `marketGap: number`. Trocar para `marketGap: number | null`.
-- Se `marketGap === null` (sem dados ou amostra insuficiente): aplicar penalidade fixa de **-10 pontos** e pular o bloco existente de bônus/penalidade por gap. Documentar no comentário que essa penalidade reflete a incerteza de uma fonte ausente.
-- Comportamento atual permanece quando há gap real.
-
-Assim, um laudo sem anúncios não consegue mais atingir 100 — teto passa a ser ~90/93.
-
-### 3. `generateRecommendation` — bloquear `READY_TO_MARKET` quando desalinhado
-
-Antes da "Regra padrão: Pronto para vender", adicionar uma nova regra:
-- Se `market_alignment` é `'DESALINHADO'` ou `'CRITICO'` **e** nenhuma das regras anteriores casou, retornar um novo status `REVIEW_PRICING`:
-  - `title: 'Revisar Precificação'`
-  - `message: 'Gap de mercado alto entre anúncios e transações reais. Revisar posicionamento de preço antes de anunciar.'`
-  - `urgency: 'MEDIUM'`
-
-Isso elimina a contradição READY_TO_MARKET × DESALINHADO. `SEM_DADOS` e `AMOSTRA_INSUFICIENTE` continuam elegíveis para READY_TO_MARKET (é o caso saudável de laudo com ITBI robusto), mas com confiança reduzida por causa do item 2.
-
-### 4. UI — refletir os novos estados
-
-`src/components/valuation/Step5Recommendation.tsx` e o card de "Gap de mercado" (verificar em `Step4Results.tsx`):
-- Quando `market_gap_percentage === null`, mostrar badge **"Sem dados de anúncio"** ou **"Amostra insuficiente (N anúncios)"** em vez de "Gap: 0%".
-- Adicionar case para o novo status `REVIEW_PRICING` no `switch` de ícone/cor (linhas 323 e 343).
-
-Não vou mudar PDFs nem cálculos históricos — só os pontos onde o motor decide e a UI comunica.
-
-### 5. Ajustes de tipos
-
-`src/types/valuation.ts`:
-- `market_gap_percentage: number | null`
-- `market_alignment` inclui `'SEM_DADOS' | 'AMOSTRA_INSUFICIENTE'`
-- `RecommendationResult['status']` inclui `'REVIEW_PRICING'`
-
-Fazer TypeScript apontar todos os consumidores que precisam tratar `null` — corrigir cada um (formatação com `?.toFixed()` ou fallback para "N/A").
-
-## Validação
-
-- Rodar avaliação sem anúncios (caso do print) e conferir:
-  - Painel do motor mostra "Sem dados de anúncio" no lugar de "Gap 0%/EQUILIBRADO".
-  - Score de confiança cai para ~85-90.
-  - Recomendação continua consistente (READY_TO_MARKET permitido, mas com badge de fonte parcial).
-- Rodar avaliação simulando 2 anúncios: alignment vira `AMOSTRA_INSUFICIENTE`, gap null.
-- Rodar avaliação com gap real > 20% e ver `REVIEW_PRICING` em vez de READY_TO_MARKET.
-- Reexecutar o QA (`Rodar QA do laudo`) para confirmar que o parecer agora converge nesses cenários.
-
-## Escopo
-
-Frontend only. Sem migrações, sem mudanças em edge functions, sem alteração no fluxo de coleta de anúncios (que hoje já é opcional).
+## Como validar
+1. Gerar novo laudo em Rua Iposeira / Barra da Tijuca (endereço com condomínio conhecido e IPTU rico).
+2. Rodar QA e verificar:
+   - Bloco NÚCLEO mostra `Valor venal`, `Tipologia`, `Microbairro` e `Condomínio` preenchidos.
+   - `lacunas` deixa de listar IPTU/Territorial quando o dado existe.
+3. Testar caso sem condomínio (rua comercial) — campos continuam "—" e aparecem em `lacunas`, como esperado.
