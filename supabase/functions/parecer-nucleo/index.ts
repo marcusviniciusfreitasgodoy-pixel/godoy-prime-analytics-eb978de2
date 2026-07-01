@@ -20,7 +20,7 @@ const corsHeaders = {
   "Access-Control-Allow-Methods": "POST, OPTIONS",
 };
 
-const VERSAO = "parecer-nucleo/1.0.0";
+const VERSAO = "parecer-nucleo/1.1.0";
 const RATE_LIMIT_WINDOW_SEC = 60;
 const RATE_LIMIT_MAX = 30;
 
@@ -212,6 +212,8 @@ Deno.serve(async (req) => {
 
   const lacunas: string[] = [];
   const nucleo: Record<string, any> = {};
+  // Guardado fora do try do ITBI para reaproveitar na inferência de microbairro.
+  let itbiRowsCache: Array<Record<string, any>> = [];
 
   // ---- 5. Normaliza logradouro --------------------------------------------
   let logradouroNorm: string | null = null;
@@ -253,6 +255,7 @@ Deno.serve(async (req) => {
 
     const { data: itbiRows, error: itbiErr } = await q;
     if (itbiErr) throw itbiErr;
+    itbiRowsCache = itbiRows ?? [];
 
     const stats = weightedItbiStats(itbiRows ?? []);
     if (!stats) {
@@ -285,18 +288,33 @@ Deno.serve(async (req) => {
 
   // ---- 7. IPTU (resumo por logradouro + oficial 2025) ---------------------
   try {
-    let iptuQ = supaAsParecer
-      .from("iptu_logradouro_resumo")
-      .select(
-        "logradouro, logradouro_norm, bairro, tipologia, total_imoveis, total_area_construida, valor_venal_medio, preco_real_medio_itbi, total_transacoes_itbi, desconto_venal_percentual, area_media_unidade, tot_imoveis_oficial, nome_completo_oficial, cod_logradouro",
-      )
-      .limit(50);
-    if (logradouroNorm) iptuQ = iptuQ.eq("logradouro_norm", logradouroNorm);
-    else iptuQ = iptuQ.ilike("logradouro", `%${input.logradouro}%`);
-    if (input.tipologia) iptuQ = iptuQ.eq("tipologia", input.tipologia);
+    const iptuSelect =
+      "logradouro, logradouro_norm, bairro, tipologia, total_imoveis, total_area_construida, valor_venal_medio, preco_real_medio_itbi, total_transacoes_itbi, desconto_venal_percentual, area_media_unidade, tot_imoveis_oficial, nome_completo_oficial, cod_logradouro";
 
-    const { data: iptuRows, error: iptuErr } = await iptuQ;
-    if (iptuErr) throw iptuErr;
+    // Fallback em cascata: (norm + tipologia) → (norm) → (ilike logradouro)
+    async function runIptu(mode: "norm+tip" | "norm" | "ilike") {
+      let q = supaAsParecer.from("iptu_logradouro_resumo").select(iptuSelect).limit(50);
+      if (mode === "ilike" || !logradouroNorm) {
+        q = q.ilike("logradouro", `%${input.logradouro}%`);
+      } else {
+        q = q.eq("logradouro_norm", logradouroNorm);
+      }
+      if (mode === "norm+tip" && input.tipologia) q = q.eq("tipologia", input.tipologia);
+      const { data, error } = await q;
+      if (error) throw error;
+      return data ?? [];
+    }
+
+    let iptuRows = await runIptu("norm+tip");
+    let iptuEstrategia = "logradouro_norm + tipologia";
+    if (iptuRows.length === 0 && input.tipologia) {
+      iptuRows = await runIptu("norm");
+      iptuEstrategia = "logradouro_norm (sem filtro de tipologia)";
+    }
+    if (iptuRows.length === 0) {
+      iptuRows = await runIptu("ilike");
+      iptuEstrategia = "ilike logradouro";
+    }
 
     if (!iptuRows || iptuRows.length === 0) {
       lacunas.push("IPTU: sem resumo por logradouro para os filtros informados.");
@@ -306,9 +324,37 @@ Deno.serve(async (req) => {
           "Prefeitura RJ — IPTU (agregado por logradouro; imóvel-a-imóvel indisponível)",
       };
     } else {
+      // Média ponderada de valor_venal_medio pelo total_imoveis.
+      let somaPeso = 0;
+      let somaProd = 0;
+      const tipCount = new Map<string, number>();
+      for (const r of iptuRows as Array<Record<string, any>>) {
+        const peso = Number(r.total_imoveis) || 0;
+        const vv = Number(r.valor_venal_medio) || 0;
+        if (peso > 0 && vv > 0) {
+          somaPeso += peso;
+          somaProd += peso * vv;
+        }
+        const tip = (r.tipologia ?? "").toString().trim();
+        if (tip) tipCount.set(tip, (tipCount.get(tip) ?? 0) + peso);
+      }
+      const valorVenalAgregado = somaPeso > 0 ? somaProd / somaPeso : null;
+      let tipologiaPredominante: string | null = null;
+      let maxTip = 0;
+      for (const [t, w] of tipCount) {
+        if (w > maxTip) {
+          maxTip = w;
+          tipologiaPredominante = t;
+        }
+      }
+
       nucleo.iptu = {
         disponivel: true,
         agregacao: "logradouro",
+        estrategia_busca: iptuEstrategia,
+        valor_venal_agregado: valorVenalAgregado,
+        tipologia_predominante: tipologiaPredominante,
+        total_imoveis_considerados: somaPeso,
         linhas: iptuRows,
         observacao_lacuna:
           "IPTU imóvel-a-imóvel (`iptu_imoveis`) indisponível nesta base — análise por logradouro.",
@@ -329,18 +375,24 @@ Deno.serve(async (req) => {
         "Base territorial — condominios_mapeamento, microbairros_geo, edificacoes_geo, lotes_pal",
     };
 
+    const condoSelect =
+      "nome_condominio, logradouro_padrao, logradouro_itbi_normalizado, ruas_internas, microbairro, numero_torres, unidades_estimadas, area_media_unidade_logradouro, preco_medio_m2, total_transacoes_itbi, padrao_construtivo, tipologia_predominante, ativo";
+
+    let condoHit: Record<string, any> | null = null;
+    let condoCandidatos: Array<Record<string, any>> | null = null;
+    let condoEstrategia: string | null = null;
+
     if (input.nome_condominio) {
       const { data: condoRows } = await supaAsParecer
         .from("condominios_mapeamento")
-        .select(
-          "nome_condominio, logradouro_padrao, logradouro_itbi_normalizado, ruas_internas, microbairro, numero_torres, unidades_estimadas, area_media_unidade_logradouro, preco_medio_m2, total_transacoes_itbi, padrao_construtivo, tipologia_predominante, ativo",
-        )
+        .select(condoSelect)
         .ilike("nome_condominio", `%${input.nome_condominio}%`)
         .eq("ativo", true)
         .limit(10);
       if (condoRows && condoRows.length > 0) {
-        territorial.condominio = condoRows[0];
-        if (condoRows.length > 1) territorial.condominio_candidatos = condoRows;
+        condoHit = condoRows[0];
+        if (condoRows.length > 1) condoCandidatos = condoRows;
+        condoEstrategia = "nome_condominio (input)";
       } else {
         lacunas.push(
           `Condomínio "${input.nome_condominio}" não encontrado no mapeamento oficial.`,
@@ -348,21 +400,100 @@ Deno.serve(async (req) => {
       }
     }
 
-    // microbairro pelo bairro/logradouro (best-effort textual)
+    // Fallback: inferir condomínio pelo logradouro_norm (logradouro_itbi_normalizado ou ruas_internas)
+    if (!condoHit && logradouroNorm) {
+      const { data: byLog } = await supaAsParecer
+        .from("condominios_mapeamento")
+        .select(condoSelect)
+        .eq("ativo", true)
+        .or(
+          `logradouro_itbi_normalizado.eq.${logradouroNorm},ruas_internas.cs.{${logradouroNorm}}`,
+        )
+        .limit(10);
+      if (byLog && byLog.length > 0) {
+        condoHit = byLog[0];
+        if (byLog.length > 1) condoCandidatos = byLog;
+        condoEstrategia = "logradouro_norm (logradouro_itbi_normalizado / ruas_internas)";
+      }
+    }
+
+    if (condoHit) {
+      territorial.condominio = {
+        nome_condominio: condoHit.nome_condominio ?? null,
+        microbairro: condoHit.microbairro ?? null,
+        tipologia_predominante: condoHit.tipologia_predominante ?? null,
+        padrao_construtivo: condoHit.padrao_construtivo ?? null,
+        unidades_estimadas: condoHit.unidades_estimadas ?? null,
+        estrategia_busca: condoEstrategia,
+        detalhes: condoHit,
+      };
+      if (condoCandidatos) territorial.condominio_candidatos = condoCandidatos;
+    } else if (!input.nome_condominio) {
+      lacunas.push(
+        "Condomínio: nenhum registro em condominios_mapeamento casou com o logradouro informado.",
+      );
+    }
+
+    // Microbairro: prioriza (1) microbairro do condomínio; (2) mais frequente no ITBI já lido;
+    // (3) match por keywords em microbairros_geo (best-effort).
+    let microbairroNome: string | null = condoHit?.microbairro ?? null;
+    let microbairroFonte: string | null = microbairroNome ? "condominios_mapeamento" : null;
+
+    if (!microbairroNome && itbiRowsCache.length > 0) {
+      const mbCount = new Map<string, number>();
+      for (const r of itbiRowsCache) {
+        const mb = (r as any).microbairro;
+        const w = Number((r as any).total_transacoes) || 1;
+        if (mb && typeof mb === "string") {
+          mbCount.set(mb, (mbCount.get(mb) ?? 0) + w);
+        }
+      }
+      let best = 0;
+      for (const [mb, w] of mbCount) {
+        if (w > best) {
+          best = w;
+          microbairroNome = mb;
+        }
+      }
+      if (microbairroNome) microbairroFonte = "itbi_transactions (moda ponderada)";
+    }
+
+    let mbGeoHit: Record<string, any> | null = null;
     const { data: mbRows } = await supaAsParecer
       .from("microbairros_geo")
       .select("nome, bairro, keywords")
       .ilike("bairro", `%${input.bairro}%`)
       .limit(20);
     if (mbRows && mbRows.length > 0) {
-      const hit = mbRows.find((m: any) =>
-        (m.keywords ?? []).some((k: string) =>
-          input.logradouro.toLowerCase().includes(String(k).toLowerCase()),
-        ),
-      );
-      territorial.microbairro = hit ?? { candidatos: mbRows };
+      if (microbairroNome) {
+        mbGeoHit =
+          mbRows.find(
+            (m: any) =>
+              (m.nome ?? "").toLowerCase() === microbairroNome!.toLowerCase(),
+          ) ?? null;
+      }
+      if (!microbairroNome) {
+        const hit = mbRows.find((m: any) =>
+          (m.keywords ?? []).some((k: string) =>
+            input.logradouro.toLowerCase().includes(String(k).toLowerCase()),
+          ),
+        );
+        if (hit) {
+          microbairroNome = (hit as any).nome ?? null;
+          microbairroFonte = "microbairros_geo (keywords)";
+          mbGeoHit = hit as any;
+        }
+      }
+    }
+
+    if (microbairroNome) {
+      territorial.microbairro = {
+        nome: microbairroNome,
+        fonte: microbairroFonte,
+        geo: mbGeoHit,
+      };
     } else {
-      lacunas.push("Microbairro não localizado para o bairro informado.");
+      lacunas.push("Microbairro: não foi possível identificar com precisão.");
     }
 
     nucleo.territorial = territorial;

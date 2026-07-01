@@ -15,7 +15,7 @@ const corsHeaders = {
   "Access-Control-Allow-Methods": "POST, OPTIONS",
 };
 
-const VERSAO = "analista-imobiliario/1.0.2";
+const VERSAO = "analista-imobiliario/1.0.3";
 const RATE_LIMIT_WINDOW_SEC = 60;
 const RATE_LIMIT_MAX = 20;
 const LLM_MODEL = "google/gemini-2.5-pro";
@@ -144,6 +144,17 @@ Responda SEMPRE, e somente, com um objeto JSON válido nesta estrutura, sem text
 Regras do formato:
 
 - \`nucleo\` é preenchido apenas com os números que vieram do bloco NÚCLEO oficial, cada um com sua \`fonte\`. Nunca coloque aqui número que você inferiu.
+
+- Mapeamento OBRIGATÓRIO ao preencher \`nucleo\` a partir do bloco NÚCLEO recebido:
+  - \`nucleo.itbi.med_m2\` ← \`itbi.valor_m2_medio_ponderado\`
+  - \`nucleo.itbi.mediana_m2\` ← \`itbi.valor_m2_mediana_ponderada\`
+  - \`nucleo.itbi.total_transacoes\` ← \`itbi.n_transacoes\`
+  - \`nucleo.itbi.periodo\` ← "últimos \`itbi.janela_meses\` meses"
+  - \`nucleo.iptu.valor_venal\` ← \`iptu.valor_venal_agregado\` (é a média ponderada por total_imoveis; se ausente, use \`null\`)
+  - \`nucleo.iptu.tipologia\` ← \`iptu.tipologia_predominante\`
+  - \`nucleo.territorial.microbairro\` ← \`territorial.microbairro.nome\`
+  - \`nucleo.territorial.condominio\` ← \`territorial.condominio.nome_condominio\`
+  Se qualquer um desses campos vier ausente/vazio no NÚCLEO, devolva \`null\` e registre a ausência em \`lacunas\`. NUNCA infira valor a partir de outros campos.
 
 - \`contexto\` é um array que só existe se houver sinal de mercado ou web com fonte e data explícitas. Se não houver, devolva array vazio. Nunca misture sinal de contexto com dado do núcleo.
 
