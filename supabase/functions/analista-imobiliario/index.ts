@@ -145,6 +145,17 @@ Regras do formato:
 
 - \`nucleo\` é preenchido apenas com os números que vieram do bloco NÚCLEO oficial, cada um com sua \`fonte\`. Nunca coloque aqui número que você inferiu.
 
+- Mapeamento OBRIGATÓRIO ao preencher \`nucleo\` a partir do bloco NÚCLEO recebido:
+  - \`nucleo.itbi.med_m2\` ← \`itbi.valor_m2_medio_ponderado\`
+  - \`nucleo.itbi.mediana_m2\` ← \`itbi.valor_m2_mediana_ponderada\`
+  - \`nucleo.itbi.total_transacoes\` ← \`itbi.n_transacoes\`
+  - \`nucleo.itbi.periodo\` ← "últimos \`itbi.janela_meses\` meses"
+  - \`nucleo.iptu.valor_venal\` ← \`iptu.valor_venal_agregado\` (é a média ponderada por total_imoveis; se ausente, use \`null\`)
+  - \`nucleo.iptu.tipologia\` ← \`iptu.tipologia_predominante\`
+  - \`nucleo.territorial.microbairro\` ← \`territorial.microbairro.nome\`
+  - \`nucleo.territorial.condominio\` ← \`territorial.condominio.nome_condominio\`
+  Se qualquer um desses campos vier ausente/vazio no NÚCLEO, devolva \`null\` e registre a ausência em \`lacunas\`. NUNCA infira valor a partir de outros campos.
+
 - \`contexto\` é um array que só existe se houver sinal de mercado ou web com fonte e data explícitas. Se não houver, devolva array vazio. Nunca misture sinal de contexto com dado do núcleo.
 
 - \`parecer.justificativa\` é sempre numérica e ancorada no dado oficial. Exemplo: "O valor provável de R$ X/m2 do motor está 14% acima da mediana ITBI de R$ Y/m2 do logradouro no período 2023-01 a 2025-06 (NÚCLEO). Gap de mercado declarado de 8% classifica como Equilibrado, coerente com os anúncios recebidos."
