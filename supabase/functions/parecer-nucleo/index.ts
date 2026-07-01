@@ -396,9 +396,9 @@ Deno.serve(async (req) => {
       tipologia: input.tipologia ?? null,
       periodo_meses: input.periodo_meses,
     },
-    role_execucao: "parecer_nucleo_ro",
+    role_execucao: "authenticated",
     politica:
-      "Camada de QA — leitura APENAS de dados oficiais. Não recalcula, não substitui o motor de avaliação. Dados ausentes são declarados como lacuna, nunca estimados.",
+      "Camada de QA — leitura restrita às tabelas oficiais (itbi_transactions, iptu_logradouro_resumo, condominios_mapeamento, microbairros_geo) via RLS do usuário autenticado. Não recalcula, não substitui o motor de avaliação. Dados ausentes são declarados como lacuna, nunca estimados.",
   };
 
   return jsonResp({ nucleo, lacunas, meta }, status);
