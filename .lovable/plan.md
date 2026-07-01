@@ -1,42 +1,74 @@
-# Corrigir erro "Falha ao gerar parecer" no Analista Imobiliário
+# Corrigir 3 inconsistências do motor apontadas pelo Analista Imobiliário
 
-## Causa raiz (confirmada nos logs)
+## Contexto
 
-A edge function `parecer-nucleo` tenta assinar um JWT curto para assumir o role Postgres `parecer_nucleo_ro`, mas depende de `SUPABASE_JWT_SECRET`. **Na Lovable Cloud esse segredo não é acessível às edge functions** (mesma restrição do `SUPABASE_SERVICE_ROLE_KEY`). Resultado: toda chamada morre com 500 em `mintParecerJwt`, e o `analista-imobiliario` retorna "non-2xx status code" para a UI.
+O QA apanhou 3 bugs reais quando não há dados de anúncio (`anuncio_stats: null`):
+1. Motor calcula gap fake (33,4%) sem ter anúncios.
+2. Score de confiança 100 apesar da fonte ausente.
+3. Recomenda `READY_TO_MARKET` mesmo quando o próprio motor classifica como `DESALINHADO`.
 
-Log relevante:
-```
-[parecer-nucleo] jwt mint fail Error: SUPABASE_JWT_SECRET indisponível
-```
+Regra de negócio confirmada: **anúncios continuam opcionais**, mas o motor deve declarar honestamente quando a fonte está ausente ou insuficiente (< 3 anúncios).
 
-## Estratégia da correção
+## Mudanças (todas em `src/utils/valuationCalculations.ts`)
 
-Manter o princípio de segurança do Passo 2 (leitura restrita a um conjunto allow-list de tabelas oficiais, sem service_role), mas trocar o mecanismo: em vez de assumir um role Postgres via JWT assinado, **usar o próprio JWT do usuário autenticado** e garantir que as tabelas necessárias tenham SELECT liberado para `authenticated`. As tabelas em questão (`itbi_transactions`, `iptu_logradouro_resumo`, `condominios_mapeamento`, `microbairros_geo`) já são bases oficiais/agregadas e a maioria já é legível por autenticados — vou confirmar e ajustar via migração o que faltar.
+### 1. `calculateCombinedPrices` — tratar "sem anúncios" e "amostra insuficiente"
 
-## Mudanças
+Ampliar o tipo `MarketAlignment` para incluir `'SEM_DADOS'` e `'AMOSTRA_INSUFICIENTE'`.
 
-### 1. `supabase/functions/parecer-nucleo/index.ts`
-- Remover `mintParecerJwt`, `SignJWT`, dependência de `jose`, uso de `JWT_SECRET`.
-- Remover o segundo cliente `supaAsParecer`; passar a executar todas as queries com `supaAsUser` (JWT do usuário logado, respeitando RLS).
-- Manter tudo o resto: validação de JWT com `getClaims`, rate-limit por `user_id` (30/min), input Zod, cálculo ponderado com IQR, montagem do bloco `nucleo`/`lacunas`/`meta`.
-- Atualizar `meta.role_execucao` para `authenticated` e ajustar o texto de política.
+Aceitar um `AnuncioData` opcional com `count` (número de anúncios encontrados). Se o motor de coleta não passa isso hoje, tratar `count ?? 0`.
 
-### 2. Migração de RLS (apenas o que faltar)
-Verificar e, se necessário, adicionar policies `FOR SELECT TO authenticated USING (true)` nas tabelas de leitura oficial usadas pelo parecer:
-- `itbi_transactions`
-- `iptu_logradouro_resumo`
-- `condominios_mapeamento`
-- `microbairros_geo`
+Fluxo:
+- **`!anuncio || !anuncio.med_m2` (0 anúncios)** → devolver ITBI puro + `market_gap_percentage: null`, `market_alignment: 'SEM_DADOS'`, `gap_impact: 'Sem dados de anúncio disponíveis — avaliação 100% baseada em transações reais (ITBI). Gap de mercado não aplicável.'`
+- **`anuncio.count < 3` (1-2 anúncios)** → devolver ITBI puro + `market_gap_percentage: null`, `market_alignment: 'AMOSTRA_INSUFICIENTE'`, `gap_impact: 'Apenas N anúncio(s) encontrado(s) — amostra insuficiente para calcular gap de mercado (mínimo recomendado: 3).'` (Não combinar com peso de 30% se a amostra é ruim.)
+- **`count ≥ 3`** → comportamento atual.
 
-Também garantir GRANT SELECT ... TO authenticated nessas tabelas. Nenhuma delas contém PII — são dados oficiais agregados da Prefeitura ou dados de mapeamento territorial já usados em outros módulos autenticados.
+Atualizar `trend_percentage` para espelhar `market_gap_percentage` (`null` inclusive) — os consumidores precisam saber que é `null`, não 0.
 
-Como o role `parecer_nucleo_ro` deixa de ser usado no runtime, ele pode permanecer no banco sem impacto (é inofensivo). Não vou removê-lo nesta correção para manter o escopo mínimo.
+### 2. `calculateConfidenceScore` — penalizar ausência de anúncios
 
-### 3. Validação
-- Rechamar `analista-imobiliario` a partir da UI (botão "Rodar QA do laudo") em um endereço com dados conhecidos (Av. Olof Palme / Rua Escritor Rodrigo Melo Franco).
-- Conferir nos logs de `parecer-nucleo` que não há mais erro de JWT e que o bloco NÚCLEO retorna número de transações > 0.
-- Conferir `ai_gateway_logs` para ver a chamada ao Gemini 2.5 Pro concluir com sucesso.
+Assinatura atual recebe `marketGap: number`. Trocar para `marketGap: number | null`.
+- Se `marketGap === null` (sem dados ou amostra insuficiente): aplicar penalidade fixa de **-10 pontos** e pular o bloco existente de bônus/penalidade por gap. Documentar no comentário que essa penalidade reflete a incerteza de uma fonte ausente.
+- Comportamento atual permanece quando há gap real.
+
+Assim, um laudo sem anúncios não consegue mais atingir 100 — teto passa a ser ~90/93.
+
+### 3. `generateRecommendation` — bloquear `READY_TO_MARKET` quando desalinhado
+
+Antes da "Regra padrão: Pronto para vender", adicionar uma nova regra:
+- Se `market_alignment` é `'DESALINHADO'` ou `'CRITICO'` **e** nenhuma das regras anteriores casou, retornar um novo status `REVIEW_PRICING`:
+  - `title: 'Revisar Precificação'`
+  - `message: 'Gap de mercado alto entre anúncios e transações reais. Revisar posicionamento de preço antes de anunciar.'`
+  - `urgency: 'MEDIUM'`
+
+Isso elimina a contradição READY_TO_MARKET × DESALINHADO. `SEM_DADOS` e `AMOSTRA_INSUFICIENTE` continuam elegíveis para READY_TO_MARKET (é o caso saudável de laudo com ITBI robusto), mas com confiança reduzida por causa do item 2.
+
+### 4. UI — refletir os novos estados
+
+`src/components/valuation/Step5Recommendation.tsx` e o card de "Gap de mercado" (verificar em `Step4Results.tsx`):
+- Quando `market_gap_percentage === null`, mostrar badge **"Sem dados de anúncio"** ou **"Amostra insuficiente (N anúncios)"** em vez de "Gap: 0%".
+- Adicionar case para o novo status `REVIEW_PRICING` no `switch` de ícone/cor (linhas 323 e 343).
+
+Não vou mudar PDFs nem cálculos históricos — só os pontos onde o motor decide e a UI comunica.
+
+### 5. Ajustes de tipos
+
+`src/types/valuation.ts`:
+- `market_gap_percentage: number | null`
+- `market_alignment` inclui `'SEM_DADOS' | 'AMOSTRA_INSUFICIENTE'`
+- `RecommendationResult['status']` inclui `'REVIEW_PRICING'`
+
+Fazer TypeScript apontar todos os consumidores que precisam tratar `null` — corrigir cada um (formatação com `?.toFixed()` ou fallback para "N/A").
+
+## Validação
+
+- Rodar avaliação sem anúncios (caso do print) e conferir:
+  - Painel do motor mostra "Sem dados de anúncio" no lugar de "Gap 0%/EQUILIBRADO".
+  - Score de confiança cai para ~85-90.
+  - Recomendação continua consistente (READY_TO_MARKET permitido, mas com badge de fonte parcial).
+- Rodar avaliação simulando 2 anúncios: alignment vira `AMOSTRA_INSUFICIENTE`, gap null.
+- Rodar avaliação com gap real > 20% e ver `REVIEW_PRICING` em vez de READY_TO_MARKET.
+- Reexecutar o QA (`Rodar QA do laudo`) para confirmar que o parecer agora converge nesses cenários.
 
 ## Escopo
 
-Alteração pontual em 1 edge function + 1 migração de RLS/GRANT (se necessário). Sem mudanças de UI, sem mudanças no `analista-imobiliario`, sem tocar no motor de avaliação.
+Frontend only. Sem migrações, sem mudanças em edge functions, sem alteração no fluxo de coleta de anúncios (que hoje já é opcional).
