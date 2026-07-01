@@ -11,7 +11,6 @@
 //   5. Retorna { nucleo, lacunas, meta } — cada sub-bloco cita a fonte oficial.
 
 import { createClient } from "npm:@supabase/supabase-js@2";
-import { SignJWT } from "npm:jose@5";
 import { z } from "npm:zod@3";
 
 const corsHeaders = {
@@ -36,28 +35,12 @@ const InputSchema = z.object({
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SUPABASE_ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY")!;
-const JWT_SECRET = Deno.env.get("SUPABASE_JWT_SECRET");
 
 function jsonResp(body: unknown, status = 200) {
   return new Response(JSON.stringify(body), {
     status,
     headers: { ...corsHeaders, "Content-Type": "application/json" },
   });
-}
-
-async function mintParecerJwt(): Promise<string> {
-  if (!JWT_SECRET) {
-    throw new Error(
-      "SUPABASE_JWT_SECRET indisponível — não é possível assumir role parecer_nucleo_ro",
-    );
-  }
-  const key = new TextEncoder().encode(JWT_SECRET);
-  return await new SignJWT({ role: "parecer_nucleo_ro" })
-    .setProtectedHeader({ alg: "HS256", typ: "JWT" })
-    .setIssuedAt()
-    .setIssuer("parecer-nucleo")
-    .setExpirationTime("60s")
-    .sign(key);
 }
 
 // Percentil linear (0..1) sobre array numérico.
@@ -219,26 +202,13 @@ Deno.serve(async (req) => {
   }
   const input = parsed.data;
 
-  // ---- 4. Mint JWT parecer_nucleo_ro ---------------------------------------
-  let parecerJwt: string;
-  try {
-    parecerJwt = await mintParecerJwt();
-  } catch (e) {
-    console.error("[parecer-nucleo] jwt mint fail", e);
-    return jsonResp(
-      {
-        error: "Configuração indisponível",
-        detalhe:
-          "SUPABASE_JWT_SECRET não encontrado no ambiente da edge function.",
-      },
-      500,
-    );
-  }
-
-  const supaAsParecer = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
-    global: { headers: { Authorization: `Bearer ${parecerJwt}` } },
-    auth: { persistSession: false, autoRefreshToken: false },
-  });
+  // ---- 4. Cliente de leitura oficial (JWT do usuário autenticado) ----------
+  // Nota: Lovable Cloud não expõe SUPABASE_JWT_SECRET às edge functions, então
+  // não é possível assinar um JWT curto para assumir o role parecer_nucleo_ro.
+  // Em vez disso, usamos o próprio JWT do usuário — as tabelas oficiais
+  // (itbi_transactions, iptu_logradouro_resumo, condominios_mapeamento,
+  // microbairros_geo) já têm SELECT liberado para `authenticated` via RLS.
+  const supaAsParecer = supaAsUser;
 
   const lacunas: string[] = [];
   const nucleo: Record<string, any> = {};
@@ -426,9 +396,9 @@ Deno.serve(async (req) => {
       tipologia: input.tipologia ?? null,
       periodo_meses: input.periodo_meses,
     },
-    role_execucao: "parecer_nucleo_ro",
+    role_execucao: "authenticated",
     politica:
-      "Camada de QA — leitura APENAS de dados oficiais. Não recalcula, não substitui o motor de avaliação. Dados ausentes são declarados como lacuna, nunca estimados.",
+      "Camada de QA — leitura restrita às tabelas oficiais (itbi_transactions, iptu_logradouro_resumo, condominios_mapeamento, microbairros_geo) via RLS do usuário autenticado. Não recalcula, não substitui o motor de avaliação. Dados ausentes são declarados como lacuna, nunca estimados.",
   };
 
   return jsonResp({ nucleo, lacunas, meta }, status);
