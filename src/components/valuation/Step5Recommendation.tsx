@@ -641,6 +641,18 @@ export function Step5Recommendation({ result, state, combined, onReset, existing
         </CardContent>
       </Card>
 
+      {/* Analista Imobiliário — QA (rascunho, revisão humana antes do PDF) */}
+      <AnalistaImobiliarioPanel
+        avaliacaoId={valuationId || existingValuationId || null}
+        identificacao={{
+          logradouro: state.logradouro,
+          bairro: state.bairro,
+          numero: state.numero || undefined,
+          nome_condominio: state.nomeCondominio || undefined,
+          tipologia: state.tipoImovel || undefined,
+        }}
+      />
+
       {/* Estratégia de Preço - Novo Módulo */}
       <Card className={`border-2 ${pricingCompleted ? 'border-green-500 bg-green-50/50 dark:bg-green-950/20' : 'border-primary'}`}>
         <CardContent className="pt-4 sm:pt-6 px-3 sm:px-6 space-y-4">
