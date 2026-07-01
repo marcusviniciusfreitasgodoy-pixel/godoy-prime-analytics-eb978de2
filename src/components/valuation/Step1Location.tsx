@@ -834,14 +834,14 @@ export function Step1Location({ state, updateState, combined, onAutoValidated }:
             </div>
 
             {/* Trend indicator */}
-            {combined && combined.trend_percentage !== 0 && (
+            {combined && combined.trend_percentage !== null && combined.trend_percentage !== 0 && (
               <div className={`flex flex-col gap-1 p-2 sm:p-3 rounded-lg bg-background ${trendColor}`}>
                 <div className="flex items-center gap-2">
                   <TrendIcon className="h-4 w-4 sm:h-5 sm:w-5 shrink-0" />
                   <div className="min-w-0">
                     <span className="font-medium text-xs sm:text-sm">
-                      TREND: {combined.trend_percentage > 0 ? "+" : ""}
-                      {combined.trend_percentage.toFixed(1)}%
+                      TREND: {combined.trend_percentage! > 0 ? "+" : ""}
+                      {combined.trend_percentage!.toFixed(1)}%
                     </span>
                     <span className="text-[10px] sm:text-sm ml-1 sm:ml-2">
                       ({combined.trend_direction === "UP" ? "ALTA" : combined.trend_direction === "DOWN" ? "BAIXA" : "ESTÁVEL"})
