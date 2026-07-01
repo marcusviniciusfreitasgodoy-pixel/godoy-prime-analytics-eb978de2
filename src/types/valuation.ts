@@ -18,6 +18,7 @@ export interface AnuncioData {
   min_m2: number;
   med_m2: number;
   max_m2: number;
+  count?: number; // Nº de anúncios encontrados (mínimo recomendado: 3)
   fontes?: AnuncioFonte[]; // Fontes/links dos anúncios para rastreabilidade
 }
 

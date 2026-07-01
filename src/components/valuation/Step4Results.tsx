@@ -295,7 +295,13 @@ export function Step4Results({ result, state, combined }: Props) {
                   combined.market_alignment === 'DESALINHADO' ? "text-orange-500" :
                   "text-red-500"
                 }`} />
-                <span>Gap: {combined.market_gap_percentage.toFixed(1)}% ({combined.market_alignment})</span>
+                <span>
+                  {combined.market_gap_percentage === null
+                    ? combined.market_alignment === 'AMOSTRA_INSUFICIENTE'
+                      ? `Gap: amostra insuficiente (${combined.anuncios_count ?? 0} anúncio${(combined.anuncios_count ?? 0) === 1 ? '' : 's'})`
+                      : 'Gap: sem dados de anúncio'
+                    : `Gap: ${combined.market_gap_percentage.toFixed(1)}% (${combined.market_alignment})`}
+                </span>
               </div>
             )}
             {historicalAnalysis && (

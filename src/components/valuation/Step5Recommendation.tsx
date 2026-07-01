@@ -330,6 +330,8 @@ export function Step5Recommendation({ result, state, combined, onReset, existing
         return <AlertTriangle className="h-6 w-6 text-orange-600" />;
       case "MARKET_CAUTION":
         return <TrendingDown className="h-6 w-6 text-amber-600" />;
+      case "REVIEW_PRICING":
+        return <AlertTriangle className="h-6 w-6 text-orange-600" />;
       case "NEED_SPECIALIST_VALUATION":
       case "BLOCKED_EVALUATION":
         return <XCircle className="h-6 w-6 text-red-600" />;
@@ -348,6 +350,7 @@ export function Step5Recommendation({ result, state, combined, onReset, existing
         return "bg-amber-50 border-amber-200 dark:bg-amber-950/30";
       case "CONSULT_SPECIALIST":
       case "MARKET_CAUTION":
+      case "REVIEW_PRICING":
         return "bg-orange-50 border-orange-200 dark:bg-orange-950/30";
       case "NEED_SPECIALIST_VALUATION":
       case "BLOCKED_EVALUATION":
@@ -521,7 +524,7 @@ export function Step5Recommendation({ result, state, combined, onReset, existing
   return (
     <div className="space-y-4 sm:space-y-6">
       {/* Análise de Mercado */}
-      {combined && combined.trend_percentage !== 0 && (
+      {combined && combined.trend_percentage !== null && combined.trend_percentage !== 0 && (
         <Card className="bg-muted/30">
           <CardContent className="pt-4 sm:pt-6 px-3 sm:px-6">
             <h4 className="font-semibold mb-2 sm:mb-3 flex items-center gap-2 text-sm sm:text-base">
@@ -539,7 +542,7 @@ export function Step5Recommendation({ result, state, combined, onReset, existing
               }`} />
               <div className="min-w-0">
                 <p className="font-medium text-xs sm:text-sm">
-                  Trend: {combined.trend_percentage > 0 ? "+" : ""}{combined.trend_percentage.toFixed(1)}%
+                  Trend: {combined.trend_percentage! > 0 ? "+" : ""}{combined.trend_percentage!.toFixed(1)}%
                   <span className="ml-1 sm:ml-2 text-[10px] sm:text-sm font-normal text-muted-foreground">
                     ({combined.trend_direction === "UP" ? "ALTA" : combined.trend_direction === "DOWN" ? "BAIXA" : "ESTÁVEL"})
                   </span>

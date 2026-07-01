@@ -324,7 +324,9 @@ function createValuationPDF(
       ['Preço Mínimo/m²:', `R$ ${combined.min_m2.toLocaleString('pt-BR', { maximumFractionDigits: 0 })}`],
       ['Preço Médio/m²:', `R$ ${combined.med_m2.toLocaleString('pt-BR', { maximumFractionDigits: 0 })}`],
       ['Preço Máximo/m²:', `R$ ${combined.max_m2.toLocaleString('pt-BR', { maximumFractionDigits: 0 })}`],
-      ['Tendência:', `${combined.trend_percentage > 0 ? '+' : ''}${combined.trend_percentage.toFixed(1)}% (${combined.trend_direction === 'UP' ? 'Alta' : combined.trend_direction === 'DOWN' ? 'Baixa' : 'Estável'})`],
+      ['Tendência:', combined.trend_percentage === null
+        ? 'N/A (sem amostra suficiente de anúncios)'
+        : `${combined.trend_percentage > 0 ? '+' : ''}${combined.trend_percentage.toFixed(1)}% (${combined.trend_direction === 'UP' ? 'Alta' : combined.trend_direction === 'DOWN' ? 'Baixa' : 'Estável'})`],
     ];
 
     marketData.forEach((item) => {
@@ -1431,6 +1433,7 @@ function createValuationPDF(
       case "READY_TO_MARKET": return [240, 253, 244]; // Verde claro
       case "WAIT_30_DAYS": return [239, 246, 255]; // Azul claro
       case "REGULARIZE_FIRST": return [254, 249, 195]; // Amarelo claro
+      case "REVIEW_PRICING": return [255, 237, 213]; // Laranja claro
       case "CONSULT_SPECIALIST": 
       case "NEED_SPECIALIST_VALUATION":
       case "BLOCKED_EVALUATION": return [254, 226, 226]; // Vermelho claro
