@@ -20,7 +20,7 @@ const RATE_LIMIT_WINDOW_SEC = 60;
 const RATE_LIMIT_MAX = 20;
 const LLM_MODEL = "google/gemini-2.5-pro";
 const LLM_FALLBACK_MODEL = "google/gemini-2.5-flash";
-const LLM_TIMEOUT_MS = 85_000;
+const LLM_TIMEOUT_MS = 55_000;
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SUPABASE_ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY")!;
