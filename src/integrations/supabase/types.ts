@@ -2047,6 +2047,33 @@ export type Database = {
         }
         Relationships: []
       }
+      parecer_nucleo_rate_log: {
+        Row: {
+          created_at: string
+          endpoint: string
+          id: string
+          ip_hash: string | null
+          status: number
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          endpoint: string
+          id?: string
+          ip_hash?: string | null
+          status: number
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          endpoint?: string
+          id?: string
+          ip_hash?: string | null
+          status?: number
+          user_id?: string
+        }
+        Relationships: []
+      }
       pricing_strategies: {
         Row: {
           corretagem_atracao: number | null
