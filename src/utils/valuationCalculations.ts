@@ -428,8 +428,9 @@ export const generateRecommendation = (
   doc_factor: number,
   spread: number,
   score: number,
-  trend: number,
-  provavel: number
+  trend: number | null,
+  provavel: number,
+  market_alignment?: MarketAlignment
 ): RecommendationResult => {
   // Regra 1: Documentação incompleta
   if (doc_status === "incompleta") {
@@ -483,7 +484,7 @@ export const generateRecommendation = (
 
   // Regra 4: Gap significativo entre anúncios e ITBI + boa confiança
   // NOTA: Gap alto indica anúncios inflados, NÃO valorização real do mercado
-  if (trend > 5 && score >= 70) {
+  if (trend !== null && trend > 5 && score >= 70) {
     return {
       status: "WAIT_30_DAYS",
       title: "Anúncios Acima do Mercado",
@@ -518,12 +519,30 @@ export const generateRecommendation = (
   }
 
   // Regra 6: Mercado em queda
-  if (trend < -5) {
+  if (trend !== null && trend < -5) {
     return {
       status: "MARKET_CAUTION",
       title: "Mercado em Cautela",
       icon: PDF_ICONS.down,
       message: "Recomendação: anunciar 5% abaixo do valor provável para venda mais rápida.",
+      urgency: "MEDIUM",
+    };
+  }
+
+  // Regra 7: Alinhamento desalinhado/crítico não capturado acima → bloquear READY_TO_MARKET.
+  // Elimina contradição interna do motor (alinhamento ruim × recomendação "pronto para vender").
+  if (market_alignment === 'DESALINHADO' || market_alignment === 'CRITICO') {
+    return {
+      status: "REVIEW_PRICING",
+      title: "Revisar Precificação",
+      icon: PDF_ICONS.wait,
+      message:
+        "Gap de mercado alto entre anúncios e transações reais. Revisar posicionamento de preço antes de anunciar.",
+      details: [
+        "Comparar valor de anúncio com valor ITBI ajustado",
+        "Considerar anunciar próximo ao valor provável para preservar liquidez",
+        "Reavaliar se houver mudança nos anúncios de referência",
+      ],
       urgency: "MEDIUM",
     };
   }
