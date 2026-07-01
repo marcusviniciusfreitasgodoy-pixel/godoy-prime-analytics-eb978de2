@@ -397,6 +397,7 @@ export type Database = {
         Row: {
           created_at: string
           id: string
+          organization_id: string
           setting_key: string
           setting_value: string | null
           updated_at: string
@@ -404,6 +405,7 @@ export type Database = {
         Insert: {
           created_at?: string
           id?: string
+          organization_id: string
           setting_key: string
           setting_value?: string | null
           updated_at?: string
@@ -411,11 +413,20 @@ export type Database = {
         Update: {
           created_at?: string
           id?: string
+          organization_id?: string
           setting_key?: string
           setting_value?: string | null
           updated_at?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "company_settings_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       condominios_mapeamento: {
         Row: {
@@ -1229,6 +1240,7 @@ export type Database = {
           multiplier: number | null
           nome_variavel: string | null
           order_index: number | null
+          organization_id: string
           parametro: string | null
           peso_valor: number | null
           tipo_imovel: string | null
@@ -1245,6 +1257,7 @@ export type Database = {
           multiplier?: number | null
           nome_variavel?: string | null
           order_index?: number | null
+          organization_id: string
           parametro?: string | null
           peso_valor?: number | null
           tipo_imovel?: string | null
@@ -1261,12 +1274,21 @@ export type Database = {
           multiplier?: number | null
           nome_variavel?: string | null
           order_index?: number | null
+          organization_id?: string
           parametro?: string | null
           peso_valor?: number | null
           tipo_imovel?: string | null
           updated_at?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "ia_valuation_weights_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       iptu_2025_logradouro: {
         Row: {
