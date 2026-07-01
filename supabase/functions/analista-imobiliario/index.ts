@@ -15,7 +15,7 @@ const corsHeaders = {
   "Access-Control-Allow-Methods": "POST, OPTIONS",
 };
 
-const VERSAO = "analista-imobiliario/1.0.3";
+const VERSAO = "analista-imobiliario/1.1.0";
 const RATE_LIMIT_WINDOW_SEC = 60;
 const RATE_LIMIT_MAX = 20;
 const LLM_MODEL = "google/gemini-2.5-pro";
@@ -226,6 +226,75 @@ function jsonResp(body: unknown, status = 200) {
 }
 
 function montarResultadoMotor(row: any): Record<string, any> {
+  // ---------------------------------------------------------------------
+  // Deriva o gap de mercado real a partir das colunas persistidas.
+  //
+  // Observações importantes sobre o schema atual da tabela `valuations`:
+  //   - `row.spread_percentage`  => dispersão pessimista↔otimista (RANGE),
+  //                                  NADA A VER com "gap de mercado".
+  //   - `row.trend_percentage`   => alias persistido do market_gap_percentage
+  //                                  (diferença anúncios vs ITBI).
+  //   - `row.anuncio_med_m2`     => quando null/0, não houve anúncios usáveis.
+  //   - `row.anuncio_fontes`     => array/JSON com as fontes; usado para
+  //                                  inferir a contagem.
+  //
+  // Se rotularmos o spread como "gap_mercado.spread_percentage" (bug antigo),
+  // o LLM interpreta a dispersão do range como se fosse gap de anúncios,
+  // produzindo falsos "diverge". Aqui reconstruímos os campos corretos e
+  // sinalizamos SEM_DADOS / AMOSTRA_INSUFICIENTE quando aplicável.
+  // ---------------------------------------------------------------------
+  const ANUNCIOS_MINIMO_ESTATISTICO = 3;
+  const fontesRaw = row.anuncio_fontes;
+  const anunciosCount = Array.isArray(fontesRaw)
+    ? fontesRaw.length
+    : (fontesRaw && typeof fontesRaw === "object"
+        ? Object.keys(fontesRaw).length
+        : 0);
+  const temAnuncioMedio =
+    typeof row.anuncio_med_m2 === "number" && row.anuncio_med_m2 > 0;
+
+  let marketGapPercentage: number | null;
+  let marketAlignment:
+    | "EQUILIBRADO"
+    | "MODERADO"
+    | "DESALINHADO"
+    | "CRITICO"
+    | "SEM_DADOS"
+    | "AMOSTRA_INSUFICIENTE";
+  let gapMotivo: string;
+
+  if (!temAnuncioMedio) {
+    marketGapPercentage = null;
+    marketAlignment = "SEM_DADOS";
+    gapMotivo =
+      "Nenhum anúncio recebido no input — avaliação 100% ancorada em ITBI, penalidade -10 no score.";
+  } else if (anunciosCount > 0 && anunciosCount < ANUNCIOS_MINIMO_ESTATISTICO) {
+    marketGapPercentage = null;
+    marketAlignment = "AMOSTRA_INSUFICIENTE";
+    gapMotivo = `Apenas ${anunciosCount} anúncio(s) recebido(s), abaixo do mínimo estatístico de ${ANUNCIOS_MINIMO_ESTATISTICO} — avaliação 100% ancorada em ITBI, penalidade -10 no score.`;
+  } else {
+    marketGapPercentage =
+      typeof row.trend_percentage === "number" ? row.trend_percentage : null;
+    const abs = marketGapPercentage === null ? null : Math.abs(marketGapPercentage);
+    if (abs === null) {
+      marketAlignment = "SEM_DADOS";
+      gapMotivo =
+        "Anúncios presentes mas gap não persistido — tratar como SEM_DADOS.";
+    } else if (abs <= 10) {
+      marketAlignment = "EQUILIBRADO";
+      gapMotivo = "Gap dentro da faixa Equilibrado (≤10%).";
+    } else if (abs <= 20) {
+      marketAlignment = "MODERADO";
+      gapMotivo = "Gap na faixa Moderado (10–20%).";
+    } else if (abs <= 35) {
+      marketAlignment = "DESALINHADO";
+      gapMotivo = "Gap na faixa Desalinhado (20–35%).";
+    } else {
+      marketAlignment = "CRITICO";
+      gapMotivo = "Gap acima de 35% (Crítico) — cap aplicado.";
+    }
+  }
+
   return {
     valores_finais: {
       pessimista: row.final_value_min,
@@ -236,10 +305,20 @@ function montarResultadoMotor(row: any): Record<string, any> {
       score: row.confidence_score,
       faixa: row.confidence_level,
     },
+    // Gap de mercado (anúncios vs ITBI) — pode vir N/A quando sem dados.
     gap_mercado: {
-      spread_percentage: row.spread_percentage,
-      trend_percentage: row.trend_percentage,
+      market_gap_percentage: marketGapPercentage,
+      market_alignment: marketAlignment,
+      motivo: gapMotivo,
+      anuncios_count: anunciosCount,
+      // aliases legados para compatibilidade com prompts antigos
+      trend_percentage: marketGapPercentage,
       trend_direction: row.trend_direction,
+    },
+    // Dispersão do RANGE (pessimista↔otimista) — NÃO é gap de mercado.
+    dispersao_valores: {
+      spread_percentage: row.spread_percentage,
+      nota: "Dispersão pess↔otim do range final; não confundir com gap_mercado.",
     },
     ajustes: {
       total_adjustment: row.total_adjustment,
@@ -284,6 +363,7 @@ function montarResultadoMotor(row: any): Record<string, any> {
         med_m2: row.anuncio_med_m2,
         max_m2: row.anuncio_max_m2,
         fontes: row.anuncio_fontes ?? null,
+        count: anunciosCount,
       },
       base_price: {
         selected: row.base_price_selected,
@@ -293,6 +373,7 @@ function montarResultadoMotor(row: any): Record<string, any> {
     meta: {
       avaliacao_id: row.id,
       created_at: row.created_at,
+      versao_mapeamento: VERSAO,
     },
   };
 }
