@@ -15,10 +15,12 @@ const corsHeaders = {
   "Access-Control-Allow-Methods": "POST, OPTIONS",
 };
 
-const VERSAO = "analista-imobiliario/1.0.0";
+const VERSAO = "analista-imobiliario/1.0.1";
 const RATE_LIMIT_WINDOW_SEC = 60;
 const RATE_LIMIT_MAX = 20;
 const LLM_MODEL = "google/gemini-2.5-pro";
+const LLM_FALLBACK_MODEL = "google/gemini-2.5-flash";
+const LLM_TIMEOUT_MS = 85_000;
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SUPABASE_ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY")!;
@@ -288,16 +290,23 @@ async function callLlm(
   motor: Record<string, any>,
   nucleo: Record<string, any>,
   attempt: number,
+  model = LLM_MODEL,
 ): Promise<Record<string, any>> {
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), LLM_TIMEOUT_MS);
+
   const resp = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
     method: "POST",
+    signal: controller.signal,
     headers: {
       "Content-Type": "application/json",
       "Lovable-API-Key": LOVABLE_API_KEY!,
       "X-Lovable-AIG-SDK": "raw-fetch",
     },
     body: JSON.stringify({
-      model: LLM_MODEL,
+      model,
+      temperature: 0,
+      max_tokens: 1200,
       response_format: { type: "json_object" },
       messages: [
         { role: "system", content: SYSTEM_PROMPT },
@@ -312,7 +321,7 @@ async function callLlm(
         },
       ],
     }),
-  });
+  }).finally(() => clearTimeout(timeoutId));
 
   if (resp.status === 429) {
     throw Object.assign(new Error("Rate limit no gateway de IA"), {
@@ -334,9 +343,27 @@ async function callLlm(
   } catch (e) {
     if (attempt === 1) {
       // 1 retry apenas
-      return await callLlm(motor, nucleo, attempt + 1);
+      return await callLlm(motor, nucleo, attempt + 1, model);
     }
     throw new Error("Modelo devolveu resposta não JSON após retry");
+  }
+}
+
+async function gerarParecerComFallback(
+  motor: Record<string, any>,
+  nucleo: Record<string, any>,
+): Promise<{ parecer: Record<string, any>; modelo: string }> {
+  try {
+    return { parecer: await callLlm(motor, nucleo, 1, LLM_MODEL), modelo: LLM_MODEL };
+  } catch (e: any) {
+    if (e?.name !== "AbortError") throw e;
+    console.warn(
+      `[analista-imobiliario] ${LLM_MODEL} excedeu ${LLM_TIMEOUT_MS}ms; usando fallback ${LLM_FALLBACK_MODEL}`,
+    );
+    return {
+      parecer: await callLlm(motor, nucleo, 1, LLM_FALLBACK_MODEL),
+      modelo: LLM_FALLBACK_MODEL,
+    };
   }
 }
 
@@ -470,8 +497,11 @@ Deno.serve(async (req) => {
 
   // ---- 6. LLM -------------------------------------------------------------
   let parecer: Record<string, any>;
+  let modeloUsado = LLM_MODEL;
   try {
-    parecer = await callLlm(resultadoMotor, nucleoPayload, 1);
+    const llm = await gerarParecerComFallback(resultadoMotor, nucleoPayload);
+    parecer = llm.parecer;
+    modeloUsado = llm.modelo;
   } catch (e: any) {
     const status = e?.status ?? 502;
     await supaAsUser.from("analista_imobiliario_rate_log").insert({
@@ -502,7 +532,7 @@ Deno.serve(async (req) => {
       ...corsHeaders,
       "Content-Type": "application/json",
       "X-Analista-Versao": VERSAO,
-      "X-Analista-Modelo": LLM_MODEL,
+      "X-Analista-Modelo": modeloUsado,
       "X-Analista-Duracao-Ms": String(Date.now() - started),
     },
   });
