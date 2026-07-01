@@ -652,7 +652,8 @@ export const calculateValuation = (
     spread,
     confidence_score,
     combined.trend_percentage,
-    provavel
+    provavel,
+    combined.market_alignment
   );
 
   return {
