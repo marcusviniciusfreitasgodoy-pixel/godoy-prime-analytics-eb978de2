@@ -58,33 +58,33 @@ const handler = async (req: Request): Promise<Response> => {
     return new Response(null, { headers: corsHeaders });
   }
 
-  // Require authenticated caller — prevents open email relay abuse
-  const authHeader = req.headers.get("Authorization");
-  if (!authHeader?.startsWith("Bearer ")) {
-    return new Response(
-      JSON.stringify({ error: "Unauthorized" }),
-      { status: 401, headers: { "Content-Type": "application/json", ...corsHeaders } }
-    );
-  }
+  // DB-backed IP rate limit to prevent open email relay abuse
   try {
-    const supabaseAuth = createClient(
+    const supabaseAdmin = createClient(
       Deno.env.get("SUPABASE_URL")!,
-      Deno.env.get("SUPABASE_ANON_KEY")!,
-      { global: { headers: { Authorization: authHeader } } }
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
     );
-    const token = authHeader.replace("Bearer ", "");
-    const { data: claimsData, error: claimsErr } = await supabaseAuth.auth.getClaims(token);
-    if (claimsErr || !claimsData?.claims) {
+    const ip =
+      req.headers.get("cf-connecting-ip") ||
+      req.headers.get("x-real-ip") ||
+      req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ||
+      "unknown";
+    const { data: allowed, error: rlError } = await supabaseAdmin.rpc("check_rate_limit", {
+      p_identifier: ip,
+      p_function_name: "send-lead-notification",
+      p_window_seconds: 60,
+      p_max_requests: 3,
+    });
+    if (rlError) {
+      console.error("Rate limit RPC error:", rlError);
+    } else if (allowed === false) {
       return new Response(
-        JSON.stringify({ error: "Unauthorized" }),
-        { status: 401, headers: { "Content-Type": "application/json", ...corsHeaders } }
+        JSON.stringify({ error: "Too many requests. Please try again later." }),
+        { status: 429, headers: { "Content-Type": "application/json", ...corsHeaders } }
       );
     }
-  } catch {
-    return new Response(
-      JSON.stringify({ error: "Unauthorized" }),
-      { status: 401, headers: { "Content-Type": "application/json", ...corsHeaders } }
-    );
+  } catch (rlErr) {
+    console.error("Rate limit check failed (non-blocking):", rlErr);
   }
 
   // Request size limit (100KB)
