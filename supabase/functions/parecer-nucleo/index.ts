@@ -20,7 +20,7 @@ const corsHeaders = {
   "Access-Control-Allow-Methods": "POST, OPTIONS",
 };
 
-const VERSAO = "parecer-nucleo/1.0.0";
+const VERSAO = "parecer-nucleo/1.1.0";
 const RATE_LIMIT_WINDOW_SEC = 60;
 const RATE_LIMIT_MAX = 30;
 
