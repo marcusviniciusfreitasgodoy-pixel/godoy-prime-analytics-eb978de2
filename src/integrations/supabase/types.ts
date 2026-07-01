@@ -123,6 +123,33 @@ export type Database = {
           },
         ]
       }
+      analista_imobiliario_rate_log: {
+        Row: {
+          created_at: string
+          endpoint: string
+          id: string
+          ip_hash: string | null
+          status: number
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          endpoint: string
+          id?: string
+          ip_hash?: string | null
+          status: number
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          endpoint?: string
+          id?: string
+          ip_hash?: string | null
+          status?: number
+          user_id?: string
+        }
+        Relationships: []
+      }
       atividades_lead: {
         Row: {
           created_at: string | null
