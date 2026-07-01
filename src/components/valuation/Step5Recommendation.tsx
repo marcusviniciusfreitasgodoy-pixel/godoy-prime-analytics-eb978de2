@@ -32,6 +32,7 @@ import { PricingStrategyState, StrategyType } from "@/types/pricingStrategy";
 import { SendPdfEmailDialog, ReportType } from "@/components/SendPdfEmailDialog";
 import { GerarAutorizacaoButton } from "@/components/autorizacoes/GerarAutorizacaoButton";
 import { FileSignature } from "lucide-react";
+import { AnalistaImobiliarioPanel } from "@/components/valuation/AnalistaImobiliarioPanel";
 
 interface Props {
   result: ValuationResult;
@@ -639,6 +640,18 @@ export function Step5Recommendation({ result, state, combined, onReset, existing
           </div>
         </CardContent>
       </Card>
+
+      {/* Analista Imobiliário — QA (rascunho, revisão humana antes do PDF) */}
+      <AnalistaImobiliarioPanel
+        avaliacaoId={valuationId || existingValuationId || null}
+        identificacao={{
+          logradouro: state.logradouro,
+          bairro: state.bairro,
+          numero: state.numero || undefined,
+          nome_condominio: state.nomeCondominio || undefined,
+          tipologia: state.tipoImovel || undefined,
+        }}
+      />
 
       {/* Estratégia de Preço - Novo Módulo */}
       <Card className={`border-2 ${pricingCompleted ? 'border-green-500 bg-green-50/50 dark:bg-green-950/20' : 'border-primary'}`}>
