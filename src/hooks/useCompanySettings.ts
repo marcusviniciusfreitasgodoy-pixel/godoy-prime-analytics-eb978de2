@@ -58,6 +58,17 @@ export function useCompanySettings() {
     }
   };
 
+  const getOrgId = async (): Promise<string | null> => {
+    const { data: userData } = await supabase.auth.getUser();
+    if (!userData.user) return null;
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('organization_id')
+      .eq('id', userData.user.id)
+      .maybeSingle();
+    return (profile?.organization_id as string) ?? null;
+  };
+
   const uploadLogo = async (file: File): Promise<string | null> => {
     try {
       const fileExt = file.name.split('.').pop();
@@ -76,14 +87,16 @@ export function useCompanySettings() {
 
       const logoUrl = urlData.publicUrl;
 
-      // Save URL to settings
+      const organization_id = await getOrgId();
+      if (!organization_id) throw new Error('Organização não encontrada');
       const { error: settingsError } = await supabase
         .from('company_settings')
         .upsert({
+          organization_id,
           setting_key: 'custom_logo_url',
           setting_value: logoUrl,
           updated_at: new Date().toISOString(),
-        }, { onConflict: 'setting_key' });
+        }, { onConflict: 'organization_id,setting_key' });
 
       if (settingsError) throw settingsError;
 
@@ -108,13 +121,16 @@ export function useCompanySettings() {
 
   const removeLogo = async () => {
     try {
+      const organization_id = await getOrgId();
+      if (!organization_id) throw new Error('Organização não encontrada');
       const { error } = await supabase
         .from('company_settings')
         .upsert({
+          organization_id,
           setting_key: 'custom_logo_url',
           setting_value: null,
           updated_at: new Date().toISOString(),
-        }, { onConflict: 'setting_key' });
+        }, { onConflict: 'organization_id,setting_key' });
 
       if (error) throw error;
 
@@ -136,13 +152,16 @@ export function useCompanySettings() {
 
   const updateSetting = async (key: keyof CompanySettings, value: string) => {
     try {
+      const organization_id = await getOrgId();
+      if (!organization_id) throw new Error('Organização não encontrada');
       const { error } = await supabase
         .from('company_settings')
         .upsert({
+          organization_id,
           setting_key: key,
           setting_value: value,
           updated_at: new Date().toISOString(),
-        }, { onConflict: 'setting_key' });
+        }, { onConflict: 'organization_id,setting_key' });
 
       if (error) throw error;
 
