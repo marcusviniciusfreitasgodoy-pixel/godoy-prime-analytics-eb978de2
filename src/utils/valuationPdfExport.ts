@@ -1433,6 +1433,7 @@ function createValuationPDF(
       case "READY_TO_MARKET": return [240, 253, 244]; // Verde claro
       case "WAIT_30_DAYS": return [239, 246, 255]; // Azul claro
       case "REGULARIZE_FIRST": return [254, 249, 195]; // Amarelo claro
+      case "REVIEW_PRICING": return [255, 237, 213]; // Laranja claro
       case "CONSULT_SPECIALIST": 
       case "NEED_SPECIALIST_VALUATION":
       case "BLOCKED_EVALUATION": return [254, 226, 226]; // Vermelho claro
