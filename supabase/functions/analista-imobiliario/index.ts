@@ -81,11 +81,13 @@ Use estes parâmetros para julgar se a saída do motor é coerente. Você não r
 
 - Gap de mercado: diferença percentual entre anúncios e ITBI. Classificação: Equilibrado até 10%, Moderado até 20%, Desalinhado até 35%, Crítico acima de 35%. Cap de ±35%.
 
+- Gap N/A (sem cálculo): o motor emite \`gap = null\` com alinhamento \`SEM_DADOS\` quando não há nenhum anúncio disponível e \`AMOSTRA_INSUFICIENTE\` quando existem 1 ou 2 anúncios (mínimo estatístico é 3). Nesses dois casos a avaliação usa 100% ITBI e o score de confiança recebe uma penalidade fixa de -10 pontos. Nunca trate \`gap = null\` como zero, como "equilibrado" ou como sinal favorável: é ausência de leitura, não convergência.
+
 - Ajuste por características (caps): Apartamento — A (posição/vista/luz) ±12%, B (conservação) ±8%, C (conforto) ±6%, D (segurança) ±6%, E (funcionalidade) ±6%. Casa e Cobertura — A +15%/-12%, B +10%/-8%, C +10%/-6%, D ±6%, E +8%/-4%. Cap global ±35% para ambos. Um ajuste total fora desses limites é incoerência a sinalizar.
 
 - Score de confiança (0 a 100): faixas Verde/Alta 85+, Amarelo Alto 70 a 84, Amarelo Médio 55 a 69, Vermelho/Baixa abaixo de 55. Verifique se a faixa declarada bate com o número.
 
-- Sete cenários de recomendação do motor: BLOCKED (documentação incompleta), SPECIALIST (problemas legais, doc_factor abaixo de 0,80), NEED_SPECIALIST (spread acima de 40% e confiança abaixo de 55), WAIT_30_DAYS (gap acima de 5% e confiança acima de 70, anúncios inflados), REGULARIZE (doc_factor entre 0,90 e 1,00), MARKET_CAUTION (gap abaixo de -5%, mercado em queda), READY_TO_MARKET (padrão, tudo dentro dos limites). Verifique se o cenário retornado é consistente com os inputs (doc_factor, gap, confiança, spread) que você recebeu.
+- Oito cenários de recomendação do motor: BLOCKED (documentação incompleta), SPECIALIST (problemas legais, doc_factor abaixo de 0,80), NEED_SPECIALIST (spread acima de 40% e confiança abaixo de 55), WAIT_30_DAYS (gap acima de 5% e confiança acima de 70, anúncios inflados), REGULARIZE (doc_factor entre 0,90 e 1,00), MARKET_CAUTION (gap abaixo de -5%, mercado em queda), REVIEW_PRICING (alinhamento Desalinhado ou Crítico não capturado pelos anteriores), READY_TO_MARKET (padrão, tudo dentro dos limites). Verifique se o cenário retornado é consistente com os inputs (doc_factor, gap, confiança, spread, alinhamento) que você recebeu. É incoerência READY_TO_MARKET com alinhamento Desalinhado/Crítico, ou qualquer cenário que dependa de \`gap\` numérico quando o gap está N/A.
 
 
 
@@ -146,6 +148,8 @@ Regras do formato:
 - \`parecer.justificativa\` é sempre numérica e ancorada no dado oficial. Exemplo: "O valor provável de R$ X/m2 do motor está 14% acima da mediana ITBI de R$ Y/m2 do logradouro no período 2023-01 a 2025-06 (NÚCLEO). Gap de mercado declarado de 8% classifica como Equilibrado, coerente com os anúncios recebidos."
 
 - \`parecer.lacunas\` lista explicitamente cada dado ausente. Se o NÚCLEO trouxe lacunas, replique-as e some as que você identificar.
+
+- Quando o gap vier N/A (\`gap = null\`, alinhamento \`SEM_DADOS\` ou \`AMOSTRA_INSUFICIENTE\`), a \`justificativa\` DEVE conter uma frase objetiva explicando (a) que o gap não foi calculado, (b) o motivo — nenhum anúncio recebido no input OU menos de 3 anúncios (cite a contagem quando informada) —, e (c) que a avaliação está ancorada 100% em ITBI com penalidade fixa de -10 no score de confiança. Além disso, cada fonte ausente no momento do cálculo — anúncios, IPTU do logradouro, base territorial/condomínio — deve aparecer como item individual em \`lacunas\` (ex.: "Anúncios: nenhum recebido no input", "Anúncios: apenas 2 recebidos, abaixo do mínimo estatístico de 3", "IPTU: sem resumo por logradouro para os filtros informados", "Territorial: condomínio não identificado"). Nunca omita a fonte ausente e nunca finja que o gap N/A é neutro.
 
 - \`status\` é sempre "rascunho".
 
