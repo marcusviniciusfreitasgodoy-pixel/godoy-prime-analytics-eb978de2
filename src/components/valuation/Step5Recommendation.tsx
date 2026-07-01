@@ -32,6 +32,7 @@ import { PricingStrategyState, StrategyType } from "@/types/pricingStrategy";
 import { SendPdfEmailDialog, ReportType } from "@/components/SendPdfEmailDialog";
 import { GerarAutorizacaoButton } from "@/components/autorizacoes/GerarAutorizacaoButton";
 import { FileSignature } from "lucide-react";
+import { AnalistaImobiliarioPanel } from "@/components/valuation/AnalistaImobiliarioPanel";
 
 interface Props {
   result: ValuationResult;
