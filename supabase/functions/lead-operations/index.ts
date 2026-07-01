@@ -180,32 +180,6 @@ serve(async (req: Request) => {
       console.error("DB rate limit failed (non-blocking):", e);
     }
 
-    // Require authenticated caller for the `update` operation — prevents unauthenticated
-    // overwriting of arbitrary lead records by email.
-    if (data.operation === "update") {
-      const authHeader = req.headers.get("Authorization");
-      const token = authHeader?.startsWith("Bearer ") ? authHeader.slice(7) : "";
-      const anonKey = Deno.env.get("SUPABASE_ANON_KEY") ?? "";
-      let authorized = false;
-      if (token && token !== anonKey) {
-        try {
-          const authClient = createClient(supabaseUrl, anonKey, {
-            global: { headers: { Authorization: `Bearer ${token}` } },
-          });
-          const { data: claims, error: claimsErr } = await authClient.auth.getClaims(token);
-          if (!claimsErr && claims?.claims?.sub) authorized = true;
-        } catch (_e) {
-          authorized = false;
-        }
-      }
-      if (!authorized) {
-        return new Response(
-          JSON.stringify({ error: "Unauthorized" }),
-          { status: 401, headers: { "Content-Type": "application/json", ...corsHeaders, ...rateLimitHeaders } }
-        );
-      }
-    }
-
     if (data.operation === "check") {
       console.log(`Checking if lead exists (rate-limited): ${data.email.substring(0, 3)}***`);
       
