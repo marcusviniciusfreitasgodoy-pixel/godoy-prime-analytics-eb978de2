@@ -99,7 +99,7 @@ serve(async (req: Request) => {
     return new Response(null, { headers: corsHeaders });
   }
 
-  // Rate limiting
+  // In-memory rate limiting (best-effort; augmented by DB-backed check below)
   const clientIp = getRateLimitKey(req);
   const rateLimit = checkRateLimit(clientIp);
   
@@ -159,6 +159,52 @@ serve(async (req: Request) => {
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
+
+    // DB-backed rate limit (persistent across cold starts) — per IP + operation
+    try {
+      const { data: allowed, error: rlErr } = await supabase.rpc("check_rate_limit", {
+        p_identifier: clientIp,
+        p_function_name: `lead-operations:${data.operation}`,
+        p_window_seconds: 60,
+        p_max_requests: data.operation === "update" ? 3 : 10,
+      });
+      if (rlErr) {
+        console.error("DB rate limit error:", rlErr);
+      } else if (allowed === false) {
+        return new Response(
+          JSON.stringify({ error: "Too many requests. Please try again later." }),
+          { status: 429, headers: { "Content-Type": "application/json", ...corsHeaders, ...rateLimitHeaders } }
+        );
+      }
+    } catch (e) {
+      console.error("DB rate limit failed (non-blocking):", e);
+    }
+
+    // Require authenticated caller for the `update` operation — prevents unauthenticated
+    // overwriting of arbitrary lead records by email.
+    if (data.operation === "update") {
+      const authHeader = req.headers.get("Authorization");
+      const token = authHeader?.startsWith("Bearer ") ? authHeader.slice(7) : "";
+      const anonKey = Deno.env.get("SUPABASE_ANON_KEY") ?? "";
+      let authorized = false;
+      if (token && token !== anonKey) {
+        try {
+          const authClient = createClient(supabaseUrl, anonKey, {
+            global: { headers: { Authorization: `Bearer ${token}` } },
+          });
+          const { data: claims, error: claimsErr } = await authClient.auth.getClaims(token);
+          if (!claimsErr && claims?.claims?.sub) authorized = true;
+        } catch (_e) {
+          authorized = false;
+        }
+      }
+      if (!authorized) {
+        return new Response(
+          JSON.stringify({ error: "Unauthorized" }),
+          { status: 401, headers: { "Content-Type": "application/json", ...corsHeaders, ...rateLimitHeaders } }
+        );
+      }
+    }
 
     if (data.operation === "check") {
       console.log(`Checking if lead exists (rate-limited): ${data.email.substring(0, 3)}***`);
