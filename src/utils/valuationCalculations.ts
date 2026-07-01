@@ -10,18 +10,29 @@ import type {
 // Re-export types for convenience
 export type { ITBIData, AnuncioData, CharacteristicResponse, ValuationResult, RecommendationResult };
 
-export type MarketAlignment = 'EQUILIBRADO' | 'MODERADO' | 'DESALINHADO' | 'CRITICO';
+export type MarketAlignment =
+  | 'EQUILIBRADO'
+  | 'MODERADO'
+  | 'DESALINHADO'
+  | 'CRITICO'
+  | 'SEM_DADOS'
+  | 'AMOSTRA_INSUFICIENTE';
+
+// Mínimo de anúncios para gerar gap de mercado estatisticamente relevante.
+// Abaixo disso, um único outlier domina a mediana e distorce o alinhamento.
+export const ANUNCIOS_MINIMO_ESTATISTICO = 3;
 
 export interface CombinedPrices {
   min_m2: number;
   med_m2: number;
   max_m2: number;
   // Gap de Mercado (reformulado do antigo "Trend")
-  market_gap_percentage: number;       // Discrepância anúncios vs ITBI
+  market_gap_percentage: number | null; // Discrepância anúncios vs ITBI; null quando sem dados ou <3 anúncios
   market_alignment: MarketAlignment;   // Classificação do alinhamento
   gap_impact: string;                  // Texto explicativo do impacto
+  anuncios_count?: number;             // Nº de anúncios usados no cálculo (0 se ausente)
   // Compatibilidade com código existente
-  trend_percentage: number;            // Alias para market_gap_percentage
+  trend_percentage: number | null;     // Alias para market_gap_percentage
   trend_direction: "UP" | "STABLE" | "DOWN";
   trend_capped?: boolean;
   trend_original?: number;
@@ -59,6 +70,9 @@ const getGapImpact = (gap: number, alignment: MarketAlignment): string => {
       return 'Anúncios acima das transações reais - pode impactar tempo de venda';
     case 'CRITICO':
       return 'Grande discrepância - precificação competitiva recomendada para garantir liquidez';
+    case 'SEM_DADOS':
+    case 'AMOSTRA_INSUFICIENTE':
+      return 'Gap não aplicável — sem amostra suficiente de anúncios';
   }
 };
 
@@ -66,16 +80,36 @@ export const calculateCombinedPrices = (
   itbi: ITBIData,
   anuncio?: AnuncioData
 ): CombinedPrices => {
-  // Se não há dados de anúncios, usa 100% ITBI
+  const anunciosCount = anuncio?.count ?? anuncio?.fontes?.length ?? 0;
+
+  // Caso 1: nenhum anúncio disponível → 100% ITBI, gap não aplicável
   if (!anuncio || !anuncio.med_m2) {
     return {
       min_m2: itbi.min_m2,
       med_m2: itbi.med_m2,
       max_m2: itbi.max_m2,
-      market_gap_percentage: 0,
-      market_alignment: 'EQUILIBRADO',
-      gap_impact: 'Avaliação baseada 100% em transações reais (ITBI)',
-      trend_percentage: 0,
+      market_gap_percentage: null,
+      market_alignment: 'SEM_DADOS',
+      gap_impact:
+        'Sem dados de anúncio disponíveis — avaliação 100% baseada em transações reais (ITBI). Gap de mercado não aplicável.',
+      anuncios_count: 0,
+      trend_percentage: null,
+      trend_direction: "STABLE",
+      trend_capped: false,
+    };
+  }
+
+  // Caso 2: amostra insuficiente (1-2 anúncios) → 100% ITBI, gap declarado como incalculável
+  if (anunciosCount > 0 && anunciosCount < ANUNCIOS_MINIMO_ESTATISTICO) {
+    return {
+      min_m2: itbi.min_m2,
+      med_m2: itbi.med_m2,
+      max_m2: itbi.max_m2,
+      market_gap_percentage: null,
+      market_alignment: 'AMOSTRA_INSUFICIENTE',
+      gap_impact: `Apenas ${anunciosCount} anúncio(s) encontrado(s) — amostra insuficiente para calcular gap de mercado (mínimo recomendado: ${ANUNCIOS_MINIMO_ESTATISTICO}). Avaliação usa 100% ITBI.`,
+      anuncios_count: anunciosCount,
+      trend_percentage: null,
       trend_direction: "STABLE",
       trend_capped: false,
     };
@@ -115,6 +149,7 @@ export const calculateCombinedPrices = (
     market_gap_percentage: Math.round(market_gap_percentage * 100) / 100,
     market_alignment,
     gap_impact,
+    anuncios_count: anunciosCount,
     trend_percentage: Math.round(market_gap_percentage * 100) / 100, // Alias
     trend_direction,
     trend_capped,
