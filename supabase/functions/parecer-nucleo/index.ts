@@ -11,7 +11,6 @@
 //   5. Retorna { nucleo, lacunas, meta } — cada sub-bloco cita a fonte oficial.
 
 import { createClient } from "npm:@supabase/supabase-js@2";
-import { SignJWT } from "npm:jose@5";
 import { z } from "npm:zod@3";
 
 const corsHeaders = {
@@ -36,28 +35,12 @@ const InputSchema = z.object({
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SUPABASE_ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY")!;
-const JWT_SECRET = Deno.env.get("SUPABASE_JWT_SECRET");
 
 function jsonResp(body: unknown, status = 200) {
   return new Response(JSON.stringify(body), {
     status,
     headers: { ...corsHeaders, "Content-Type": "application/json" },
   });
-}
-
-async function mintParecerJwt(): Promise<string> {
-  if (!JWT_SECRET) {
-    throw new Error(
-      "SUPABASE_JWT_SECRET indisponível — não é possível assumir role parecer_nucleo_ro",
-    );
-  }
-  const key = new TextEncoder().encode(JWT_SECRET);
-  return await new SignJWT({ role: "parecer_nucleo_ro" })
-    .setProtectedHeader({ alg: "HS256", typ: "JWT" })
-    .setIssuedAt()
-    .setIssuer("parecer-nucleo")
-    .setExpirationTime("60s")
-    .sign(key);
 }
 
 // Percentil linear (0..1) sobre array numérico.
