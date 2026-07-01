@@ -202,26 +202,13 @@ Deno.serve(async (req) => {
   }
   const input = parsed.data;
 
-  // ---- 4. Mint JWT parecer_nucleo_ro ---------------------------------------
-  let parecerJwt: string;
-  try {
-    parecerJwt = await mintParecerJwt();
-  } catch (e) {
-    console.error("[parecer-nucleo] jwt mint fail", e);
-    return jsonResp(
-      {
-        error: "Configuração indisponível",
-        detalhe:
-          "SUPABASE_JWT_SECRET não encontrado no ambiente da edge function.",
-      },
-      500,
-    );
-  }
-
-  const supaAsParecer = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
-    global: { headers: { Authorization: `Bearer ${parecerJwt}` } },
-    auth: { persistSession: false, autoRefreshToken: false },
-  });
+  // ---- 4. Cliente de leitura oficial (JWT do usuário autenticado) ----------
+  // Nota: Lovable Cloud não expõe SUPABASE_JWT_SECRET às edge functions, então
+  // não é possível assinar um JWT curto para assumir o role parecer_nucleo_ro.
+  // Em vez disso, usamos o próprio JWT do usuário — as tabelas oficiais
+  // (itbi_transactions, iptu_logradouro_resumo, condominios_mapeamento,
+  // microbairros_geo) já têm SELECT liberado para `authenticated` via RLS.
+  const supaAsParecer = supaAsUser;
 
   const lacunas: string[] = [];
   const nucleo: Record<string, any> = {};
