@@ -15,7 +15,7 @@ const corsHeaders = {
   "Access-Control-Allow-Methods": "POST, OPTIONS",
 };
 
-const VERSAO = "analista-imobiliario/1.0.1";
+const VERSAO = "analista-imobiliario/1.0.2";
 const RATE_LIMIT_WINDOW_SEC = 60;
 const RATE_LIMIT_MAX = 20;
 const LLM_MODEL = "google/gemini-2.5-pro";
@@ -306,7 +306,7 @@ async function callLlm(
     body: JSON.stringify({
       model,
       temperature: 0,
-      max_tokens: 1200,
+      max_tokens: 4000,
       response_format: { type: "json_object" },
       messages: [
         { role: "system", content: SYSTEM_PROMPT },
@@ -318,6 +318,11 @@ async function callLlm(
         {
           role: "user",
           content: "=== NUCLEO ===\n" + JSON.stringify(nucleo, null, 2),
+        },
+        {
+          role: "user",
+          content:
+            "Retorne apenas o JSON final válido. Seja conciso: justificativa com no máximo 900 caracteres, contexto vazio quando não houver fonte explícita, e lacunas objetivas sem repetir a mesma ausência.",
         },
       ],
     }),
