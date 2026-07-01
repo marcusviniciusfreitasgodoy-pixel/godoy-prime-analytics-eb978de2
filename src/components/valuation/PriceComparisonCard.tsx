@@ -58,10 +58,12 @@ export function PriceComparisonCard({
 
   // Gap de Mercado: diferença percentual (anúncios vs ITBI em R$/m²)
   const marketGap = combined.market_gap_percentage;
+  const gapDisponivel = marketGap !== null;
   const marketAlignment = combined.market_alignment;
 
   // Estimativa de prazo baseada no gap e liquidez
   const getPrazoAnuncio = () => {
+    if (!gapDisponivel) return "60-120 dias";
     if (marketGap <= 10) return "60-90 dias";
     if (marketGap <= 20) return "90-150 dias";
     if (marketGap <= 35) return "120-180 dias";
@@ -110,6 +112,24 @@ export function PriceComparisonCard({
           icon: AlertTriangle,
           label: 'Crítico',
           description: 'Grande discrepância - precificação competitiva recomendada'
+        };
+      case 'SEM_DADOS':
+        return {
+          color: 'text-slate-600',
+          bg: 'bg-slate-50 dark:bg-slate-900/40',
+          border: 'border-slate-200 dark:border-slate-700',
+          icon: AlertTriangle,
+          label: 'Sem dados de anúncio',
+          description: 'Nenhum anúncio disponível — avaliação 100% baseada em ITBI.'
+        };
+      case 'AMOSTRA_INSUFICIENTE':
+        return {
+          color: 'text-slate-600',
+          bg: 'bg-slate-50 dark:bg-slate-900/40',
+          border: 'border-slate-200 dark:border-slate-700',
+          icon: AlertTriangle,
+          label: `Amostra insuficiente (${combined.anuncios_count ?? 0})`,
+          description: 'Menos de 3 anúncios — gap de mercado não calculado. Avaliação usa 100% ITBI.'
         };
     }
   };
@@ -217,9 +237,9 @@ export function PriceComparisonCard({
           
           <div className="flex items-baseline gap-2 mb-2">
             <span className={`text-2xl font-bold ${alignmentConfig.color}`}>
-              {marketGap.toFixed(1)}%
+              {gapDisponivel ? `${marketGap!.toFixed(1)}%` : 'N/A'}
             </span>
-            {combined.trend_capped && (
+            {gapDisponivel && combined.trend_capped && (
               <Badge variant="secondary" className="text-[10px]">
                 Capped (original: {combined.trend_original?.toFixed(1)}%)
               </Badge>
@@ -230,7 +250,8 @@ export function PriceComparisonCard({
             {alignmentConfig.description}
           </p>
 
-          {/* Barra visual do gap */}
+          {/* Barra visual do gap (oculta quando não há gap) */}
+          {gapDisponivel && (
           <div className="mt-3">
             <div className="flex justify-between text-[10px] text-muted-foreground mb-1">
               <span>0%</span>
@@ -241,10 +262,11 @@ export function PriceComparisonCard({
             <div className="h-2 rounded-full bg-gradient-to-r from-emerald-200 via-amber-200 to-red-200 dark:from-emerald-900 dark:via-amber-900 dark:to-red-900">
               <div 
                 className="h-full w-1 bg-slate-900 dark:bg-white rounded-full transition-all duration-500"
-                style={{ marginLeft: `${Math.min(marketGap / 35 * 100, 100)}%` }}
+                style={{ marginLeft: `${Math.min((marketGap! / 35) * 100, 100)}%` }}
               />
             </div>
           </div>
+          )}
         </div>
 
         {/* Recomendação */}
@@ -253,10 +275,11 @@ export function PriceComparisonCard({
             <TrendingDown className="h-4 w-4 text-primary mt-0.5 shrink-0" />
             <div className="text-xs text-muted-foreground">
               <span className="font-medium text-foreground">Recomendação: </span>
-              {marketGap <= 10 && "Mercado equilibrado. Anuncie próximo ao valor médio combinado para venda em prazo normal."}
-              {marketGap > 10 && marketGap <= 20 && "Gap moderado. Considere precificar entre os dois valores para equilibrar velocidade e retorno."}
-              {marketGap > 20 && marketGap <= 35 && "Gap alto. Precifique competitivamente (próximo ao valor de avaliação) para garantir liquidez."}
-              {marketGap > 35 && "Gap crítico. Priorize o valor de avaliação para venda no curto prazo. Anúncios na região estão muito inflados."}
+              {!gapDisponivel && "Sem gap de mercado calculado. Use o valor da avaliação (ancorado em ITBI) como referência principal e complemente com anúncios do portal quando disponíveis."}
+              {gapDisponivel && marketGap! <= 10 && "Mercado equilibrado. Anuncie próximo ao valor médio combinado para venda em prazo normal."}
+              {gapDisponivel && marketGap! > 10 && marketGap! <= 20 && "Gap moderado. Considere precificar entre os dois valores para equilibrar velocidade e retorno."}
+              {gapDisponivel && marketGap! > 20 && marketGap! <= 35 && "Gap alto. Precifique competitivamente (próximo ao valor de avaliação) para garantir liquidez."}
+              {gapDisponivel && marketGap! > 35 && "Gap crítico. Priorize o valor de avaliação para venda no curto prazo. Anúncios na região estão muito inflados."}
             </div>
           </div>
         </div>
