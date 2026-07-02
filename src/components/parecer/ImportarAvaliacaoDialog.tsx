@@ -13,11 +13,12 @@ import { Search, FileCheck2 } from "lucide-react";
 
 interface AvaliacaoRow {
   id: string;
-  endereco: string | null;
+  logradouro: string | null;
+  numero: string | null;
   bairro: string | null;
-  cliente_nome: string | null;
-  area_privativa: number | null;
-  valor_estimado: number | null;
+  proprietario_nome: string | null;
+  property_area_m2: number | null;
+  final_value_med: number | null;
   created_at: string;
 }
 
@@ -38,10 +39,10 @@ export function ImportarAvaliacaoDialog({ open, onOpenChange, onSelect }: Props)
       setLoading(true);
       const { data } = await supabase
         .from("valuations")
-        .select("id, endereco, bairro, cliente_nome, area_privativa, valor_estimado, created_at")
+        .select("id, logradouro, numero, bairro, proprietario_nome, property_area_m2, final_value_med, created_at")
         .order("created_at", { ascending: false })
         .limit(5000);
-      setRows((data as AvaliacaoRow[]) || []);
+      setRows(((data as unknown) as AvaliacaoRow[]) || []);
       setLoading(false);
     })();
   }, [open]);
@@ -50,7 +51,7 @@ export function ImportarAvaliacaoDialog({ open, onOpenChange, onSelect }: Props)
     const t = term.trim().toLowerCase();
     if (!t) return rows;
     return rows.filter((r) =>
-      [r.endereco, r.bairro, r.cliente_nome]
+      [r.logradouro, r.bairro, r.proprietario_nome]
         .filter(Boolean)
         .some((v) => String(v).toLowerCase().includes(t)),
     );
@@ -93,13 +94,13 @@ export function ImportarAvaliacaoDialog({ open, onOpenChange, onSelect }: Props)
                 <li key={r.id} className="p-3 flex items-center gap-3 hover:bg-muted/40">
                   <div className="flex-1 min-w-0">
                     <div className="font-medium truncate">
-                      {r.endereco || "Sem endereço"}
+                      {[r.logradouro, r.numero].filter(Boolean).join(", ") || "Sem endereço"}
                     </div>
                     <div className="text-xs text-muted-foreground flex flex-wrap gap-2">
                       <span>{r.bairro || "-"}</span>
-                      {r.cliente_nome && <span>• {r.cliente_nome}</span>}
-                      {r.area_privativa && <span>• {r.area_privativa} m²</span>}
-                      <span>• {fmtBRL(r.valor_estimado)}</span>
+                      {r.proprietario_nome && <span>• {r.proprietario_nome}</span>}
+                      {r.property_area_m2 && <span>• {r.property_area_m2} m²</span>}
+                      <span>• {fmtBRL(r.final_value_med)}</span>
                       <span>• {fmtDate(r.created_at)}</span>
                     </div>
                   </div>
