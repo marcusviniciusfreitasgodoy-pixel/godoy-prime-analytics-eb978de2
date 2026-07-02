@@ -1,10 +1,11 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useParams, useSearchParams, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { FileText, Save, Printer, ArrowLeft } from "lucide-react";
+import { FileText, Save, Printer, ArrowLeft, Download } from "lucide-react";
 import { useParecerTecnico } from "@/hooks/useParecerTecnico";
 import { ParecerForm } from "@/components/parecer/ParecerForm";
 import { ParecerPreview } from "@/components/parecer/ParecerPreview";
+import { ImportarAvaliacaoDialog } from "@/components/parecer/ImportarAvaliacaoDialog";
 import { prefillFromAvaliacao } from "@/lib/parecer/prefillFromAvaliacao";
 import { findForbidden } from "@/lib/parecer/types";
 import { toast } from "@/hooks/use-toast";
@@ -16,6 +17,7 @@ export default function ParecerTecnicoEditor() {
   const navigate = useNavigate();
   const avaliacaoId = search.get("avaliacaoId") || undefined;
   const { parecer, setParecer, update, save, saving, currentId, loading } = useParecerTecnico(id);
+  const [importOpen, setImportOpen] = useState(false);
 
   useEffect(() => {
     if (id || !avaliacaoId) return;
@@ -60,6 +62,37 @@ export default function ParecerTecnicoEditor() {
 
   const handlePrint = () => window.print();
 
+  const handleImport = async (avaliacaoId: string) => {
+    const patch = await prefillFromAvaliacao(avaliacaoId);
+    if (!Object.keys(patch).length) {
+      toast({ title: "Não foi possível carregar a avaliação", variant: "destructive" });
+      return;
+    }
+    const hasContent = !!(parecer.endereco_imovel || parecer.bairro || parecer.valor_mercado);
+    if (hasContent) {
+      const ok = window.confirm(
+        "Já existem dados preenchidos. Deseja sobrescrever com os dados desta avaliação?",
+      );
+      if (!ok) {
+        // merge só nos campos vazios
+        setParecer((prev) => {
+          const merged: any = { ...prev };
+          for (const [k, v] of Object.entries(patch)) {
+            const cur = (prev as any)[k];
+            if (cur === undefined || cur === null || cur === "" || (Array.isArray(cur) && cur.length === 0)) {
+              merged[k] = v;
+            }
+          }
+          return merged;
+        });
+        toast({ title: "Campos vazios preenchidos a partir da avaliação" });
+        return;
+      }
+    }
+    setParecer((prev) => ({ ...prev, ...patch }));
+    toast({ title: "Dados da avaliação importados" });
+  };
+
   if (loading) return <div className="p-6">Carregando parecer...</div>;
 
   return (
@@ -76,6 +109,9 @@ export default function ParecerTecnicoEditor() {
           </div>
         </div>
         <div className="flex gap-2">
+          <Button variant="outline" size="sm" onClick={() => setImportOpen(true)}>
+            <Download className="h-4 w-4 mr-1" /> Importar de avaliação
+          </Button>
           <Button variant="outline" size="sm" onClick={handleSave} disabled={saving}>
             <Save className="h-4 w-4 mr-1" /> {saving ? "Salvando..." : "Salvar"}
           </Button>
@@ -84,6 +120,12 @@ export default function ParecerTecnicoEditor() {
           </Button>
         </div>
       </div>
+
+      <ImportarAvaliacaoDialog
+        open={importOpen}
+        onOpenChange={setImportOpen}
+        onSelect={handleImport}
+      />
 
       <div className="parecer-editor-shell">
         <div className="parecer-editor-form">
