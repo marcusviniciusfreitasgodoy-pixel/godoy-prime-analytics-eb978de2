@@ -1,40 +1,96 @@
-## Minha análise do parecer
 
-**O parecer está tecnicamente correto** ao apontar a inconsistência (gap de 19,5% sem anúncios recebidos). Essa contradição do motor foi corrigida em turnos anteriores — se ainda aparece no seu laudo, é porque o resultado exibido veio do cache antes da correção. Ao gerar um novo laudo, o gap sai como `N/A` e o score cai 10 pontos, como deveria.
+# Gerador de Parecer Técnico Godoy Prime (PTAM)
 
-**Por que os campos "—" aparecem em Valor Venal, Tipologia, Microbairro e Condomínio?**
-Não é bug do painel — é limitação real do backend `/parecer-nucleo`:
+Novo módulo que permite ao perito emitir um Parecer Técnico de Avaliação Mercadológica editorial (mínimo 15 páginas A4), exportável em PDF via print, com dois pontos de entrada, persistência em banco, storage de fotos e integração à base ITBI e ao Motor de Avaliação já existentes. A palavra "laudo" nunca aparece. Autoridade técnica: Marcus Godoy, Perito TJRJ, CRECI PJ 11.841, ABNT NBR 14.653.
 
-1. **IPTU (`valor_venal` / `tipologia`)** — a query `iptu_logradouro_resumo` filtra por `logradouro_norm` **exato** e por `tipologia` (`Apartamento`), mas a tabela usa domínio próprio (`Residencial`, `Comercial`) e a normalização entre `itbi_transactions` e `iptu_logradouro_resumo` nem sempre bate. Resultado: zero linhas → o LLM devolve `null`.
-2. **Territorial · condomínio** — só é buscado se `input.nome_condominio` for enviado. Quando o corretor faz a avaliação por endereço puro, o painel não passa condomínio e a função nem tenta inferir.
-3. **Territorial · microbairro** — a heurística atual cruza `microbairros_geo.keywords` com o texto do logradouro; falha na maioria dos casos, apesar de o próprio ITBI já trazer `microbairro` nas linhas lidas.
+## Arquitetura
 
-## Correções propostas
+- **Rotas novas**
+  - `/parecer-tecnico/novo` — parecer em branco
+  - `/parecer-tecnico/novo?avaliacaoId=UUID` — pré-preenchido a partir de avaliação existente
+  - `/parecer-tecnico/:id` — edição/reemissão de parecer salvo
+  - `/pareceres-tecnicos` — histórico (lista)
+- **Entrada dupla**
+  - Botão "Gerar Parecer Técnico" em `HistoricoAvaliacoes.tsx` e no resultado do `ValuationEngine`
+  - Item "Parecer Técnico" na sidebar dentro do grupo Avaliação
+- **Layout**: duas colunas (form rolável à esquerda, preview A4 ao vivo à direita), botão fixo "Exportar PDF" → `window.print()`
 
-### 1. `supabase/functions/parecer-nucleo/index.ts`
-- **IPTU (fallback em cascata)**: tentar `logradouro_norm` + `tipologia`; se vazio, refazer sem `tipologia`; se ainda vazio, `ilike` sobre `logradouro`. Consolidar `valor_venal` (média ponderada de `valor_venal_medio` por `total_imoveis`) e `tipologia` predominante em campos rasos, além de manter `linhas`.
-- **Territorial · condomínio**: quando `nome_condominio` não vier no input, buscar em `condominios_mapeamento` pelo `logradouro_norm` — casando com `logradouro_itbi_normalizado` **ou** com qualquer item do array `ruas_internas` — filtrando `ativo = true`. Expor `territorial.condominio.nome_condominio` na raiz.
-- **Territorial · microbairro**: usar o microbairro mais frequente entre as linhas ITBI já carregadas (fonte confiável) como resposta primária; a busca por `microbairros_geo` fica só como enriquecimento. Expor `territorial.microbairro.nome` na raiz.
+## Backend (Lovable Cloud)
 
-### 2. `supabase/functions/analista-imobiliario/index.ts` (system prompt)
-Ajustar a instrução de preenchimento do `nucleo` para o LLM ler os campos corretos:
-- `iptu.valor_venal` ← `iptu.valor_venal_agregado` (novo campo raso do parecer-nucleo).
-- `iptu.tipologia` ← `iptu.tipologia_predominante`.
-- `territorial.microbairro` ← `territorial.microbairro.nome`.
-- `territorial.condominio` ← `territorial.condominio.nome_condominio`.
-Manter a regra: se ausente, devolver `null` e listar em `lacunas`, nunca inferir.
+### Nova tabela `pareceres_tecnicos`
 
-### 3. `src/components/valuation/AnalistaImobiliarioPanel.tsx`
-Nenhuma alteração de layout. Apenas manter o comportamento atual de exibir "—" quando o valor for `null` (já funciona). Nenhuma mudança de UI.
+Campos principais (além de `id`, `created_at`, `updated_at`, `organization_id`, `created_by`):
 
-## Fora de escopo
-- Não recalcular o motor.
-- Não mudar a experiência visual do painel (mesmo cartão, mesmas cores, mesmos rótulos).
-- Não tocar em RLS/permissões — as tabelas `iptu_logradouro_resumo`, `condominios_mapeamento`, `microbairros_geo` já são lidas hoje.
+- Vínculos: `avaliacao_id` (nullable, FK para `valuations`)
+- Documento: `referencia_documento`, `data_emissao`, `data_referencia`, `status` (rascunho/emitido)
+- Sumário: `objetivo`, `finalidade`, `pressupostos`
+- Imóvel: `endereco_imovel`, `bairro`, `tipologia`, `area_privativa`, `area_total`, `quartos`, `suites`, `vagas`, `ano_construcao`, `condominio`, `matricula`
+- Diagnóstico: `diagnostico_regiao`
+- Metodologia: `tipo_tratamento`, `fundamentacao_metodologica`
+- Amostra: `comparativos` (jsonb array), `tratamento_amostra`
+- Vistoria: `estado_conservacao`, `padrao_acabamento`, `vista`, `posicao_solar`, `reformas`, `observacoes_perito`, `fotos` (jsonb array `{url, legenda}`)
+- Riscos: `riscos_estruturais`, `nivel_estrutural`, `riscos_documentais`, `nivel_documental`, `riscos_condominiais`, `nivel_condominial`
+- Resultado: `valor_mercado`, `valor_m2_apurado`, `intervalo_valor`, `grau_fundamentacao` (I/II/III), `grau_precisao` (I/II/III)
+- Negociação: `faixa_abertura`, `valor_alvo`, `piso_negociacao`, `argumentos` (jsonb array), `alavancagem`
+- Conclusão: `conclusao`
 
-## Como validar
-1. Gerar novo laudo em Rua Iposeira / Barra da Tijuca (endereço com condomínio conhecido e IPTU rico).
-2. Rodar QA e verificar:
-   - Bloco NÚCLEO mostra `Valor venal`, `Tipologia`, `Microbairro` e `Condomínio` preenchidos.
-   - `lacunas` deixa de listar IPTU/Territorial quando o dado existe.
-3. Testar caso sem condomínio (rua comercial) — campos continuam "—" e aparecem em `lacunas`, como esperado.
+RLS org-scoped (`organization_id = get_user_org_id(auth.uid())`), GRANTs para `authenticated` e `service_role`, trigger `updated_at`.
+
+### Bucket de storage `pareceres-fotos`
+
+- Privado, RLS por organização (path prefix `{organization_id}/{parecer_id}/...`)
+- Policies: authenticated pode select/insert/update/delete apenas em seu prefixo
+- Signed URLs para renderizar fotos no preview e no PDF
+
+## Frontend
+
+### Estrutura de arquivos
+- `src/pages/ParecerTecnicoEditor.tsx` — layout 2 colunas
+- `src/pages/HistoricoPareceresTecnicos.tsx` — lista
+- `src/components/parecer/ParecerForm.tsx` — formulário completo por seções (accordion)
+- `src/components/parecer/ParecerPreview.tsx` — documento A4 editorial ao vivo
+- `src/components/parecer/sections/` — uma sub-componente por seção (Capa, 01_SumarioExecutivo, 02_Identificacao, ..., 11_Ressalvas)
+- `src/components/parecer/PhotoUploader.tsx` — upload múltiplo + legenda + reorder
+- `src/hooks/useParecerTecnico.ts` — CRUD + auto-save debounced
+- `src/lib/parecer/prefillFromAvaliacao.ts` — mapeia `valuations` + comparativos ITBI para inputs do parecer
+- `src/lib/parecer/forbiddenPhrases.ts` — validador que bloqueia "laudo", "valorização garantida", "cheque", "ITBI", "cartório" etc. e alerta no form
+- `src/styles/parecer-print.css` — regras `@media print`, footer fixo com contador de página, quebras `break-inside: avoid`
+
+### Identidade visual (escopo local ao módulo)
+- Fontes carregadas via `@fontsource/cormorant-garamond`, `@fontsource/lato`, `@fontsource/jetbrains-mono` (Montserrat já existe)
+- Tokens do parecer isolados em classes `.parecer-*` no `parecer-print.css` (não altera design system global)
+- Paleta navy/gold/off-white/cream/parchment/warm-gray como CSS vars locais
+- Radius 1px padrão, fotos 8px, sombras raras, corpo Lato 300 alinhado à esquerda, dados técnicos em JetBrains Mono ALL CAPS
+- Logos consumidas das URLs oficiais fornecidas
+
+### Impressão
+- `@page { size: A4; margin: 18mm }`
+- Form oculto (`display: none`) e preview em largura A4 fluida
+- Footer fixo com `position: fixed; bottom: 0` + contador `counter(page)` / `counter(pages)`
+- Cada seção com `page-break-before: always` a partir do Sumário; galeria de fotos com `break-inside: avoid` por item
+- Dimensionamento (leading, spacing entre seções, tamanho da capa dedicada) calibrado para garantir ≥ 15 páginas com conteúdo padrão
+
+### Integração ITBI + Motor
+- Ao abrir com `?avaliacaoId`, `prefillFromAvaliacao` puxa: endereço, bairro, tipologia, áreas, `valor_mercado`, `valor_m2_apurado`, `intervalo_valor`, `grau_fundamentacao/precisao` (herdando da avaliação quando existir), comparativos ITBI reais do payload da valuation, e sugere textos de `diagnostico_regiao` e `fundamentacao_metodologica` (templates editáveis)
+- Botão "Buscar comparativos ITBI" dentro da seção 5 reutiliza `useITBITransactions` para adicionar linhas ao array `comparativos`
+- Nenhuma alteração no Motor de Avaliação nem em edge functions existentes
+
+### Validações
+- Zod schema por seção; auto-save por debounce (2s) no rascunho
+- Bloqueio das frases proibidas em tempo real (toast + destaque no campo)
+- "Emitir" só habilita quando campos obrigatórios preenchidos e nenhuma frase proibida presente
+
+## Fora de escopo (não faremos agora)
+- Assinatura digital criptográfica; a assinatura é o bloco visual editorial já descrito
+- Envio por e-mail/WhatsApp do PDF (reaproveitável em iteração futura)
+- Edição de PDF pós-geração fora do fluxo de reemissão via editor
+
+## Ordem de implementação
+1. Migration: tabela + bucket + RLS + GRANTs
+2. Types regenerados; hook CRUD + prefill
+3. Editor (form + preview) e componentes de seção
+4. CSS de impressão calibrado para ≥ 15 páginas
+5. PhotoUploader com storage
+6. Botões de entrada (Histórico de Avaliações + Resultado do Motor) e item na sidebar
+7. Página de histórico de pareceres
+8. QA visual (print preview) e validação das frases proibidas
