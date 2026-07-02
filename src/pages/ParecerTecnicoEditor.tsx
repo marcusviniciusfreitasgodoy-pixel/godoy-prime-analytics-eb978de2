@@ -16,8 +16,17 @@ export default function ParecerTecnicoEditor() {
   const [search] = useSearchParams();
   const navigate = useNavigate();
   const avaliacaoId = search.get("avaliacaoId") || undefined;
-  const { parecer, setParecer, update, save, saving, currentId, loading } = useParecerTecnico(id);
+  const { parecer, setParecer, update, save, saving, currentId, loading, lastSavedAt } =
+    useParecerTecnico(id);
   const [importOpen, setImportOpen] = useState(false);
+
+  // Ao criar um novo parecer, o auto-save gera o id; refletir na URL para
+  // que reload/refresh continue apontando para o mesmo registro.
+  useEffect(() => {
+    if (!id && currentId) {
+      navigate(`/parecer-tecnico/${currentId}`, { replace: true });
+    }
+  }, [id, currentId, navigate]);
 
   useEffect(() => {
     if (id || !avaliacaoId) return;
@@ -112,6 +121,13 @@ export default function ParecerTecnicoEditor() {
           <Button variant="outline" size="sm" onClick={() => setImportOpen(true)}>
             <Download className="h-4 w-4 mr-1" /> Importar de avaliação
           </Button>
+          <span className="text-xs text-muted-foreground self-center">
+            {saving
+              ? "Salvando..."
+              : lastSavedAt
+                ? `Salvo automaticamente ${lastSavedAt.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}`
+                : "Alterações são salvas automaticamente"}
+          </span>
           <Button variant="outline" size="sm" onClick={handleSave} disabled={saving}>
             <Save className="h-4 w-4 mr-1" /> {saving ? "Salvando..." : "Salvar"}
           </Button>
