@@ -2127,6 +2127,7 @@ export type Database = {
         Row: {
           alavancagem: string | null
           ano_construcao: number | null
+          anuncios: Json
           area_privativa: number | null
           area_total: number | null
           argumentos: Json
@@ -2182,6 +2183,7 @@ export type Database = {
         Insert: {
           alavancagem?: string | null
           ano_construcao?: number | null
+          anuncios?: Json
           area_privativa?: number | null
           area_total?: number | null
           argumentos?: Json
@@ -2237,6 +2239,7 @@ export type Database = {
         Update: {
           alavancagem?: string | null
           ano_construcao?: number | null
+          anuncios?: Json
           area_privativa?: number | null
           area_total?: number | null
           argumentos?: Json

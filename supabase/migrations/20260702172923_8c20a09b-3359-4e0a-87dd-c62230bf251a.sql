@@ -1,0 +1,1 @@
+ALTER TABLE public.pareceres_tecnicos ADD COLUMN IF NOT EXISTS anuncios jsonb NOT NULL DEFAULT '[]'::jsonb;
