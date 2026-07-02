@@ -6,7 +6,10 @@ import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { PhotoUploader } from "./PhotoUploader";
-import { Plus, Trash2, AlertTriangle } from "lucide-react";
+import { Plus, Trash2, AlertTriangle, Sparkles, Loader2 } from "lucide-react";
+import { useState } from "react";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "@/hooks/use-toast";
 
 interface Props {
   data: ParecerTecnico;
@@ -35,6 +38,36 @@ function checkText(v: string) {
 
 export function ParecerForm({ data, onChange, parecerId }: Props) {
   const set = <K extends keyof ParecerTecnico>(k: K, v: ParecerTecnico[K]) => onChange({ [k]: v } as any);
+  const [gerandoDiag, setGerandoDiag] = useState(false);
+
+  const gerarDiagnosticoRegiao = async () => {
+    if (!data.endereco_imovel || !data.bairro) {
+      toast({ title: "Preencha endereco e bairro antes de gerar", variant: "destructive" });
+      return;
+    }
+    if (data.diagnostico_regiao?.trim()) {
+      const ok = window.confirm("Ja existe um diagnostico preenchido. Sobrescrever com o texto gerado pela IA?");
+      if (!ok) return;
+    }
+    setGerandoDiag(true);
+    try {
+      const { data: resp, error } = await supabase.functions.invoke("parecer-diagnostico-regiao", {
+        body: { endereco: data.endereco_imovel, bairro: data.bairro },
+      });
+      if (error) throw error;
+      const texto = (resp as any)?.texto?.trim();
+      if (!texto) throw new Error("Resposta vazia");
+      set("diagnostico_regiao", texto);
+      toast({ title: "Diagnostico gerado pela IA" });
+    } catch (err: any) {
+      const msg = err?.message || String(err);
+      if (msg.includes("429")) toast({ title: "Muitas requisicoes. Tente em instantes.", variant: "destructive" });
+      else if (msg.includes("402")) toast({ title: "Creditos de IA esgotados", variant: "destructive" });
+      else toast({ title: "Falha ao gerar diagnostico", description: msg, variant: "destructive" });
+    } finally {
+      setGerandoDiag(false);
+    }
+  };
 
   const addComparativo = () =>
     set("comparativos", [
@@ -93,6 +126,21 @@ export function ParecerForm({ data, onChange, parecerId }: Props) {
       <AccordionItem value="regiao">
         <AccordionTrigger className="text-sm">3. Diagnostico da Regiao</AccordionTrigger>
         <AccordionContent className="pt-2">
+          <div className="flex justify-end mb-2">
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={gerarDiagnosticoRegiao}
+              disabled={gerandoDiag || !data.endereco_imovel || !data.bairro}
+            >
+              {gerandoDiag ? (
+                <Loader2 className="h-3 w-3 mr-1 animate-spin" />
+              ) : (
+                <Sparkles className="h-3 w-3 mr-1" />
+              )}
+              {gerandoDiag ? "Gerando..." : "Gerar com IA (raio 1 km)"}
+            </Button>
+          </div>
           <Field label="Diagnostico" warning={checkText(data.diagnostico_regiao)}>
             <Textarea rows={8} value={data.diagnostico_regiao} onChange={(e) => set("diagnostico_regiao", e.target.value)} />
           </Field>
