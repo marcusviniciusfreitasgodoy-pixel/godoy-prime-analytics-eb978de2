@@ -1,5 +1,5 @@
 import { supabase } from "@/integrations/supabase/client";
-import { ParecerTecnico, Comparativo, GrauNBR } from "./types";
+import { ParecerTecnico, Comparativo, GrauNBR, AnuncioParecer } from "./types";
 
 function toStr(v: unknown): string {
   if (v === null || v === undefined) return "";
@@ -91,6 +91,15 @@ export async function prefillFromAvaliacao(avaliacaoId: string): Promise<Partial
     fonte: toStr(c.fonte || c.source || "Transacao real e oficial"),
     ajuste: toStr(c.ajuste || ""),
   }));
+
+  // Amostra de anúncios analisados (ofertas ativas) — vem de valuations.anuncio_fontes
+  const anuncios: AnuncioParecer[] = (anuncioFontes || [])
+    .map((a: any) => ({
+      valor: Number(a?.valor ?? a?.preco ?? a?.valor_total ?? 0) || 0,
+      area: Number(a?.area ?? a?.area_m2 ?? a?.area_privativa ?? 0) || 0,
+      fonte: toStr(a?.fonte ?? a?.link ?? a?.url ?? ""),
+    }))
+    .filter((a: AnuncioParecer) => a.valor > 0 || a.area > 0 || !!a.fonte);
 
   // Observações do perito: condomínio / IPTU quando disponíveis
   const obsExtras: string[] = [];
@@ -202,6 +211,7 @@ export async function prefillFromAvaliacao(avaliacaoId: string): Promise<Partial
     grau_fundamentacao: grauFromConfidence(v.confidence_level),
     grau_precisao: grauFromConfidence(v.confidence_level),
     comparativos,
+    anuncios,
     estado_conservacao: estadoConservacao,
     padrao_acabamento: padraoAcabamento,
     vista,
