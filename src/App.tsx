@@ -60,6 +60,8 @@ import AutorizacoesCaptacao from "./pages/AutorizacoesCaptacao";
 import AutorizacaoPublica from "./pages/AutorizacaoPublica";
 import PropostasRecebidas from "./pages/PropostasRecebidas";
 import ConfirmacaoVisita from "./pages/ConfirmacaoVisita";
+import ParecerTecnicoEditor from "./pages/ParecerTecnicoEditor";
+import HistoricoPareceresTecnicos from "./pages/HistoricoPareceresTecnicos";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -142,6 +144,9 @@ const App = () => (
                               <Route path="/whatsapp-logs" element={<ProtectedRoute requireAdminOrGerente={true}><WhatsAppLogs /></ProtectedRoute>} />
                               <Route path="/autorizacoes-captacao" element={<AutorizacoesCaptacao />} />
                               <Route path="/apresentacao" element={<Apresentacao />} />
+                              <Route path="/pareceres-tecnicos" element={<HistoricoPareceresTecnicos />} />
+                              <Route path="/parecer-tecnico/novo" element={<ParecerTecnicoEditor />} />
+                              <Route path="/parecer-tecnico/:id" element={<ParecerTecnicoEditor />} />
                                 <Route path="*" element={<NotFound />} />
                               </Routes>
                             </main>

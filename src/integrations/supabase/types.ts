@@ -2123,6 +2123,182 @@ export type Database = {
         }
         Relationships: []
       }
+      pareceres_tecnicos: {
+        Row: {
+          alavancagem: string | null
+          ano_construcao: number | null
+          area_privativa: number | null
+          area_total: number | null
+          argumentos: Json
+          avaliacao_id: string | null
+          bairro: string | null
+          comparativos: Json
+          conclusao: string | null
+          condominio: string | null
+          created_at: string
+          created_by: string
+          data_emissao: string | null
+          data_referencia: string | null
+          diagnostico_regiao: string | null
+          endereco_imovel: string | null
+          estado_conservacao: string | null
+          faixa_abertura: string | null
+          finalidade: string | null
+          fotos: Json
+          fundamentacao_metodologica: string | null
+          grau_fundamentacao: string | null
+          grau_precisao: string | null
+          id: string
+          intervalo_valor: string | null
+          matricula: string | null
+          nivel_condominial: string | null
+          nivel_documental: string | null
+          nivel_estrutural: string | null
+          objetivo: string | null
+          observacoes_perito: string | null
+          organization_id: string
+          padrao_acabamento: string | null
+          piso_negociacao: string | null
+          posicao_solar: string | null
+          pressupostos: string | null
+          quartos: number | null
+          referencia_documento: string | null
+          reformas: string | null
+          riscos_condominiais: string | null
+          riscos_documentais: string | null
+          riscos_estruturais: string | null
+          status: string
+          suites: number | null
+          tipo_tratamento: string | null
+          tipologia: string | null
+          tratamento_amostra: string | null
+          updated_at: string
+          vagas: number | null
+          valor_alvo: string | null
+          valor_m2_apurado: number | null
+          valor_mercado: number | null
+          vista: string | null
+        }
+        Insert: {
+          alavancagem?: string | null
+          ano_construcao?: number | null
+          area_privativa?: number | null
+          area_total?: number | null
+          argumentos?: Json
+          avaliacao_id?: string | null
+          bairro?: string | null
+          comparativos?: Json
+          conclusao?: string | null
+          condominio?: string | null
+          created_at?: string
+          created_by?: string
+          data_emissao?: string | null
+          data_referencia?: string | null
+          diagnostico_regiao?: string | null
+          endereco_imovel?: string | null
+          estado_conservacao?: string | null
+          faixa_abertura?: string | null
+          finalidade?: string | null
+          fotos?: Json
+          fundamentacao_metodologica?: string | null
+          grau_fundamentacao?: string | null
+          grau_precisao?: string | null
+          id?: string
+          intervalo_valor?: string | null
+          matricula?: string | null
+          nivel_condominial?: string | null
+          nivel_documental?: string | null
+          nivel_estrutural?: string | null
+          objetivo?: string | null
+          observacoes_perito?: string | null
+          organization_id: string
+          padrao_acabamento?: string | null
+          piso_negociacao?: string | null
+          posicao_solar?: string | null
+          pressupostos?: string | null
+          quartos?: number | null
+          referencia_documento?: string | null
+          reformas?: string | null
+          riscos_condominiais?: string | null
+          riscos_documentais?: string | null
+          riscos_estruturais?: string | null
+          status?: string
+          suites?: number | null
+          tipo_tratamento?: string | null
+          tipologia?: string | null
+          tratamento_amostra?: string | null
+          updated_at?: string
+          vagas?: number | null
+          valor_alvo?: string | null
+          valor_m2_apurado?: number | null
+          valor_mercado?: number | null
+          vista?: string | null
+        }
+        Update: {
+          alavancagem?: string | null
+          ano_construcao?: number | null
+          area_privativa?: number | null
+          area_total?: number | null
+          argumentos?: Json
+          avaliacao_id?: string | null
+          bairro?: string | null
+          comparativos?: Json
+          conclusao?: string | null
+          condominio?: string | null
+          created_at?: string
+          created_by?: string
+          data_emissao?: string | null
+          data_referencia?: string | null
+          diagnostico_regiao?: string | null
+          endereco_imovel?: string | null
+          estado_conservacao?: string | null
+          faixa_abertura?: string | null
+          finalidade?: string | null
+          fotos?: Json
+          fundamentacao_metodologica?: string | null
+          grau_fundamentacao?: string | null
+          grau_precisao?: string | null
+          id?: string
+          intervalo_valor?: string | null
+          matricula?: string | null
+          nivel_condominial?: string | null
+          nivel_documental?: string | null
+          nivel_estrutural?: string | null
+          objetivo?: string | null
+          observacoes_perito?: string | null
+          organization_id?: string
+          padrao_acabamento?: string | null
+          piso_negociacao?: string | null
+          posicao_solar?: string | null
+          pressupostos?: string | null
+          quartos?: number | null
+          referencia_documento?: string | null
+          reformas?: string | null
+          riscos_condominiais?: string | null
+          riscos_documentais?: string | null
+          riscos_estruturais?: string | null
+          status?: string
+          suites?: number | null
+          tipo_tratamento?: string | null
+          tipologia?: string | null
+          tratamento_amostra?: string | null
+          updated_at?: string
+          vagas?: number | null
+          valor_alvo?: string | null
+          valor_m2_apurado?: number | null
+          valor_mercado?: number | null
+          vista?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pareceres_tecnicos_avaliacao_id_fkey"
+            columns: ["avaliacao_id"]
+            isOneToOne: false
+            referencedRelation: "valuations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       pricing_strategies: {
         Row: {
           corretagem_atracao: number | null

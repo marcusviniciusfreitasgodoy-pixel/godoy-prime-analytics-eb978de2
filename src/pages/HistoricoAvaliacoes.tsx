@@ -836,6 +836,15 @@ export default function HistoricoAvaliacoes() {
                         </Badge>
                       </TableCell>
                       <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="mr-2"
+                          onClick={() => navigate(`/parecer-tecnico/novo?avaliacaoId=${av.id}`)}
+                          title="Gerar Parecer Tecnico"
+                        >
+                          Parecer
+                        </Button>
                         <GerarAutorizacaoButton
                           state={valuationRowToState(av)}
                           valuationId={av.id}
