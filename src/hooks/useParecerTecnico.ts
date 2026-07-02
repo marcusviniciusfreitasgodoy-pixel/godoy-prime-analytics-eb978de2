@@ -10,7 +10,11 @@ export function useParecerTecnico(id?: string) {
   const [loading, setLoading] = useState(!!id);
   const [saving, setSaving] = useState(false);
   const [currentId, setCurrentId] = useState<string | undefined>(id);
+  const [lastSavedAt, setLastSavedAt] = useState<Date | null>(null);
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const savingRef = useRef(false);
+  const dirtyRef = useRef(false);
+  const hydratedRef = useRef(false);
 
   useEffect(() => {
     if (!id) return;
@@ -24,9 +28,16 @@ export function useParecerTecnico(id?: string) {
       if (!error && data) {
         setParecer({ ...defaultParecer(), ...(data as any) });
         setCurrentId(data.id);
+        setLastSavedAt(new Date());
       }
       setLoading(false);
+      hydratedRef.current = true;
     })();
+  }, [id]);
+
+  // Marca como hidratado também no fluxo "novo" (sem id)
+  useEffect(() => {
+    if (!id) hydratedRef.current = true;
   }, [id]);
 
   const update = useCallback((patch: Partial<ParecerTecnico>) => {
@@ -35,9 +46,10 @@ export function useParecerTecnico(id?: string) {
 
   const save = useCallback(async (): Promise<string | null> => {
     if (!organization?.id) {
-      toast({ title: "Organizacao nao carregada", variant: "destructive" });
       return null;
     }
+    if (savingRef.current) return currentId || null;
+    savingRef.current = true;
     setSaving(true);
     const payload: any = {
       ...parecer,
@@ -62,6 +74,7 @@ export function useParecerTecnico(id?: string) {
       if (error) {
         toast({ title: "Erro ao salvar", description: error.message, variant: "destructive" });
         setSaving(false);
+        savingRef.current = false;
         return null;
       }
     } else {
@@ -73,27 +86,57 @@ export function useParecerTecnico(id?: string) {
       if (error || !data) {
         toast({ title: "Erro ao salvar", description: error?.message, variant: "destructive" });
         setSaving(false);
+        savingRef.current = false;
         return null;
       }
       savedId = data.id;
       setCurrentId(data.id);
     }
     setSaving(false);
+    savingRef.current = false;
+    dirtyRef.current = false;
+    setLastSavedAt(new Date());
     return savedId || null;
   }, [parecer, organization?.id, currentId]);
 
-  // Auto save (debounced) when a parecer already exists
+  // Auto-save (debounced). Cria o registro no primeiro conteudo relevante e
+  // continua salvando a cada mudanca. Nao dispara enquanto carrega, sem
+  // organizacao, ou sem qualquer conteudo minimo.
   useEffect(() => {
-    if (!currentId) return;
+    if (!hydratedRef.current || loading) return;
+    if (!organization?.id) return;
+
+    const hasContent = !!(
+      parecer.endereco_imovel?.trim() ||
+      parecer.bairro?.trim() ||
+      parecer.diagnostico_regiao?.trim() ||
+      parecer.observacoes_perito?.trim() ||
+      parecer.conclusao?.trim() ||
+      parecer.valor_mercado?.trim() ||
+      (parecer.comparativos && parecer.comparativos.length > 0) ||
+      parecer.avaliacao_id
+    );
+    if (!currentId && !hasContent) return;
+
+    dirtyRef.current = true;
     if (saveTimer.current) clearTimeout(saveTimer.current);
     saveTimer.current = setTimeout(() => {
-      save();
-    }, 2000);
+      if (dirtyRef.current) save();
+    }, 1500);
     return () => {
       if (saveTimer.current) clearTimeout(saveTimer.current);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [parecer]);
+  }, [parecer, organization?.id, loading]);
 
-  return { parecer, setParecer, update, loading, save, saving, currentId };
+  // Salva imediatamente ao sair da pagina se houver alteracoes pendentes
+  useEffect(() => {
+    const handler = () => {
+      if (dirtyRef.current) save();
+    };
+    window.addEventListener("beforeunload", handler);
+    return () => window.removeEventListener("beforeunload", handler);
+  }, [save]);
+
+  return { parecer, setParecer, update, loading, save, saving, currentId, lastSavedAt };
 }
