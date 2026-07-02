@@ -15,6 +15,12 @@ export interface FotoParecer {
   legenda: string;
 }
 
+export interface AnuncioParecer {
+  valor: number;
+  area: number;
+  fonte: string;
+}
+
 export interface ParecerTecnico {
   id?: string;
   organization_id?: string;
@@ -48,6 +54,8 @@ export interface ParecerTecnico {
 
   comparativos: Comparativo[];
   tratamento_amostra: string;
+
+  anuncios: AnuncioParecer[];
 
   estado_conservacao: string;
   padrao_acabamento: string;
@@ -107,6 +115,7 @@ export const defaultParecer = (): ParecerTecnico => ({
   comparativos: [],
   tratamento_amostra:
     "A amostra foi saneada por criterios de homogeneidade (tipologia, area, padrao, localizacao) e ponderada conforme aderencia ao imovel-referencia.",
+  anuncios: [],
   estado_conservacao: "",
   padrao_acabamento: "",
   vista: "",

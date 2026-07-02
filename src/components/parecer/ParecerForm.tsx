@@ -1,4 +1,4 @@
-import { ParecerTecnico, findForbidden, NivelRisco, GrauNBR, Comparativo } from "@/lib/parecer/types";
+import { ParecerTecnico, findForbidden, NivelRisco, GrauNBR, Comparativo, AnuncioParecer } from "@/lib/parecer/types";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -6,10 +6,12 @@ import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { PhotoUploader } from "./PhotoUploader";
-import { Plus, Trash2, AlertTriangle, Sparkles, Loader2 } from "lucide-react";
+import { Plus, Trash2, AlertTriangle, Sparkles, Loader2, ExternalLink, Info } from "lucide-react";
 import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
+import { CurrencyInput } from "@/components/ui/currency-input";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 
 interface Props {
   data: ParecerTecnico;
@@ -77,6 +79,26 @@ export function ParecerForm({ data, onChange, parecerId }: Props) {
   const updateComparativo = (i: number, patch: Partial<Comparativo>) =>
     set("comparativos", data.comparativos.map((c, idx) => (idx === i ? { ...c, ...patch } : c)));
   const removeComparativo = (i: number) => set("comparativos", data.comparativos.filter((_, idx) => idx !== i));
+
+  const anuncios = data.anuncios || [];
+  const addAnuncio = () =>
+    set("anuncios", [...anuncios, { valor: 0, area: 0, fonte: "" } as AnuncioParecer]);
+  const updateAnuncio = (i: number, patch: Partial<AnuncioParecer>) =>
+    set("anuncios", anuncios.map((a, idx) => (idx === i ? { ...a, ...patch } : a)));
+  const removeAnuncio = (i: number) =>
+    set("anuncios", anuncios.filter((_, idx) => idx !== i));
+
+  const validAnuncios = anuncios.filter((a) => a.valor > 0 && a.area > 0);
+  const m2Values = validAnuncios.map((a) => a.valor / a.area);
+  const anunciosStats = m2Values.length
+    ? {
+        min: Math.min(...m2Values),
+        med: m2Values.reduce((s, v) => s + v, 0) / m2Values.length,
+        max: Math.max(...m2Values),
+      }
+    : null;
+  const fmtMoney = (n: number) =>
+    n.toLocaleString("pt-BR", { style: "currency", currency: "BRL", maximumFractionDigits: 0 });
 
   const addArg = () => set("argumentos", [...data.argumentos, ""]);
   const updateArg = (i: number, v: string) => set("argumentos", data.argumentos.map((a, idx) => (idx === i ? v : a)));
@@ -187,6 +209,98 @@ export function ParecerForm({ data, onChange, parecerId }: Props) {
           ))}
           <Button size="sm" variant="outline" onClick={addComparativo}><Plus className="h-3 w-3 mr-1" />Adicionar comparativo</Button>
           <Field label="Tratamento da amostra"><Textarea rows={4} value={data.tratamento_amostra} onChange={(e) => set("tratamento_amostra", e.target.value)} /></Field>
+
+          <div className="pt-3 border-t space-y-2">
+            <div className="flex items-center justify-between">
+              <Label className="text-xs font-semibold">Amostra de anuncios analisados</Label>
+              <span className="text-[10px] text-muted-foreground">{validAnuncios.length} anuncio(s) valido(s)</span>
+            </div>
+            {anuncios.map((a, i) => {
+              const m2 = a.valor > 0 && a.area > 0 ? a.valor / a.area : 0;
+              return (
+                <div key={i} className="border rounded p-2 space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-semibold">Anuncio {i + 1}</span>
+                    <div className="flex items-center gap-2">
+                      {m2 > 0 && (
+                        <span className="text-[10px] font-semibold text-primary">{fmtMoney(m2)}/m²</span>
+                      )}
+                      <Button size="icon" variant="ghost" onClick={() => removeAnuncio(i)}>
+                        <Trash2 className="h-3 w-3" />
+                      </Button>
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-2 gap-2">
+                    <div>
+                      <Label className="text-[10px] mb-1 block">Valor</Label>
+                      <CurrencyInput
+                        placeholder="R$ 1.500.000"
+                        value={a.valor ? String(a.valor) : ""}
+                        onChange={(value) => updateAnuncio(i, { valor: Number(value) || 0 })}
+                        className="h-8 text-sm"
+                      />
+                    </div>
+                    <div>
+                      <Label className="text-[10px] mb-1 block">Area (m²)</Label>
+                      <Input
+                        type="number"
+                        placeholder="100"
+                        value={a.area || ""}
+                        onChange={(e) => updateAnuncio(i, { area: Number(e.target.value) || 0 })}
+                        className="h-8 text-sm"
+                      />
+                    </div>
+                  </div>
+                  <div>
+                    <Label className="text-[10px] mb-1 flex items-center gap-1">
+                      <ExternalLink className="h-3 w-3" /> Fonte/Link
+                    </Label>
+                    <Input
+                      type="url"
+                      placeholder="https://..."
+                      value={a.fonte || ""}
+                      onChange={(e) => updateAnuncio(i, { fonte: e.target.value })}
+                      className="h-8 text-sm"
+                    />
+                  </div>
+                </div>
+              );
+            })}
+            <Button size="sm" variant="outline" onClick={addAnuncio}>
+              <Plus className="h-3 w-3 mr-1" />Adicionar anuncio
+            </Button>
+
+            {anunciosStats && (
+              <div className="mt-2 p-2 bg-amber-50 dark:bg-amber-950/30 rounded border border-amber-200 dark:border-amber-800">
+                <p className="text-[10px] font-medium text-amber-800 dark:text-amber-200 mb-1">
+                  Valores calculados por m²
+                </p>
+                <div className="grid grid-cols-3 gap-2 text-center">
+                  <div>
+                    <p className="text-[10px] text-muted-foreground">Min</p>
+                    <p className="text-xs font-semibold">{fmtMoney(anunciosStats.min)}</p>
+                  </div>
+                  <div>
+                    <p className="text-[10px] text-muted-foreground">Med</p>
+                    <p className="text-xs font-semibold text-primary">{fmtMoney(anunciosStats.med)}</p>
+                  </div>
+                  <div>
+                    <p className="text-[10px] text-muted-foreground">Max</p>
+                    <p className="text-xs font-semibold">{fmtMoney(anunciosStats.max)}</p>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {validAnuncios.length > 0 && validAnuncios.length < 3 && (
+              <Alert className="py-2">
+                <Info className="h-4 w-4" />
+                <AlertDescription className="text-xs">
+                  Recomendamos ao menos 3 anuncios para melhor representatividade da amostra.
+                </AlertDescription>
+              </Alert>
+            )}
+          </div>
         </AccordionContent>
       </AccordionItem>
 
