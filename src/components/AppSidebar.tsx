@@ -63,6 +63,7 @@ const menuGroups: NavGroup[] = [
     items: [
       { title: "Avaliação Imobiliária", url: "/avaliacao-imobiliaria", icon: Calculator, tourId: "nav-avaliacao" },
       { title: "Hist. Avaliações", url: "/historico-avaliacoes", icon: History, tourId: "nav-historico" },
+      { title: "Parecer Técnico", url: "/pareceres-tecnicos", icon: FileSignature, tourId: "nav-parecer" },
       { title: "Vistoria Digital", url: "/vistoria-digital", icon: ClipboardCheck, tourId: "nav-vistoria" },
       { title: "Hist. Vistorias", url: "/historico-vistorias", icon: ClipboardList, tourId: "nav-historico-vistorias" },
       { title: "Autorizações", url: "/autorizacoes-captacao", icon: FileSignature, tourId: "nav-autorizacoes" },
