@@ -1,0 +1,274 @@
+/* Editorial PTAM styles - scoped under .parecer-doc */
+.parecer-doc {
+  --p-navy: #0C2340;
+  --p-deep-navy: #071829;
+  --p-gold: #D4AF37;
+  --p-off-white: #F8F6F1;
+  --p-cream: #F0EBE1;
+  --p-warm-gray: #8C8278;
+  --p-parchment: #DDD5C7;
+
+  background: var(--p-off-white);
+  color: var(--p-navy);
+  font-family: "Lato", sans-serif;
+  font-weight: 300;
+  line-height: 1.8;
+  font-size: 11pt;
+  width: 210mm;
+  min-height: 297mm;
+  margin: 0 auto;
+  box-shadow: 0 2px 12px rgba(0,0,0,0.08);
+}
+
+.parecer-doc * {
+  box-sizing: border-box;
+}
+
+.parecer-doc h1,
+.parecer-doc h2,
+.parecer-doc .p-editorial {
+  font-family: "Cormorant Garamond", serif;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  line-height: 1.07;
+  color: var(--p-navy);
+}
+
+.parecer-doc h1 { font-size: 42pt; }
+.parecer-doc h2 { font-size: 26pt; margin: 0 0 14pt; }
+.parecer-doc h3 { font-size: 16pt; font-family: "Cormorant Garamond", serif; font-weight: 600; margin: 12pt 0 8pt; }
+
+.parecer-doc .p-eyebrow {
+  font-family: "Montserrat", sans-serif;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.28em;
+  font-size: 9pt;
+  color: var(--p-warm-gray);
+  margin-bottom: 14pt;
+  display: block;
+}
+
+.parecer-doc .p-mono {
+  font-family: "JetBrains Mono", monospace;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  font-size: 9pt;
+}
+
+.parecer-doc p {
+  text-align: left;
+  margin: 0 0 10pt;
+  font-weight: 300;
+}
+
+.parecer-doc .parecer-section {
+  padding: 22mm 18mm;
+  min-height: 297mm;
+  page-break-after: always;
+  break-after: page;
+  border-bottom: 1px dashed var(--p-parchment);
+  position: relative;
+}
+
+.parecer-doc .parecer-section:last-child {
+  page-break-after: auto;
+  break-after: auto;
+  border-bottom: none;
+}
+
+/* Capa */
+.parecer-doc .parecer-cover {
+  background: var(--p-navy);
+  color: var(--p-off-white);
+  padding: 30mm 20mm;
+  min-height: 297mm;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  page-break-after: always;
+  break-after: page;
+}
+
+.parecer-doc .parecer-cover h1,
+.parecer-doc .parecer-cover h2 { color: var(--p-off-white); }
+.parecer-doc .parecer-cover .p-eyebrow { color: var(--p-gold); }
+.parecer-doc .parecer-cover .p-mono { color: var(--p-parchment); }
+
+.parecer-doc .parecer-cover .p-gold-line {
+  width: 60px; height: 1px; background: var(--p-gold); margin: 20pt 0;
+}
+
+.parecer-doc .parecer-logo-cover { max-width: 200px; }
+.parecer-doc .parecer-logo-nav { max-width: 130px; }
+
+.parecer-doc .p-card {
+  background: var(--p-cream);
+  border: 1px solid var(--p-parchment);
+  border-radius: 1px;
+  padding: 14pt 16pt;
+  margin: 10pt 0;
+}
+
+.parecer-doc .p-navy-card {
+  background: var(--p-navy);
+  color: var(--p-off-white);
+  border-radius: 1px;
+  padding: 20pt;
+  margin: 12pt 0;
+}
+.parecer-doc .p-navy-card h3 { color: var(--p-off-white); }
+.parecer-doc .p-navy-card .p-mono { color: var(--p-gold); }
+
+/* Selo NBR / risco */
+.parecer-doc .p-selo {
+  display: inline-block;
+  border-radius: 1px;
+  padding: 4pt 10pt;
+  font-family: "JetBrains Mono", monospace;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  font-size: 8pt;
+  margin-right: 6pt;
+}
+.parecer-doc .p-selo-baixo { background: var(--p-cream); color: var(--p-navy); border: 1px solid var(--p-parchment); }
+.parecer-doc .p-selo-medio { background: transparent; color: var(--p-navy); border: 1px solid var(--p-gold); }
+.parecer-doc .p-selo-alto { background: var(--p-navy); color: var(--p-off-white); border: 1px solid var(--p-navy); }
+
+/* Tabela comparativos */
+.parecer-doc .p-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 12pt 0;
+  font-size: 9pt;
+}
+.parecer-doc .p-table thead th {
+  background: var(--p-navy);
+  color: var(--p-off-white);
+  text-align: left;
+  padding: 8pt;
+  font-family: "Montserrat", sans-serif;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.15em;
+  font-size: 8pt;
+}
+.parecer-doc .p-table tbody td {
+  padding: 7pt 8pt;
+  border-bottom: 1px solid var(--p-parchment);
+  font-family: "JetBrains Mono", monospace;
+  font-size: 8.5pt;
+  color: var(--p-navy);
+}
+.parecer-doc .p-table tbody tr:nth-child(even) td { background: var(--p-cream); }
+
+/* Galeria fotos */
+.parecer-doc .p-gallery {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12pt;
+  margin: 12pt 0;
+}
+.parecer-doc .p-gallery-item {
+  break-inside: avoid;
+  page-break-inside: avoid;
+}
+.parecer-doc .p-gallery-item img {
+  width: 100%;
+  height: 200pt;
+  object-fit: cover;
+  border-radius: 8px;
+  border: 1px solid var(--p-parchment);
+  display: block;
+}
+.parecer-doc .p-gallery-item .legend {
+  font-style: italic;
+  color: var(--p-warm-gray);
+  font-size: 9pt;
+  margin-top: 4pt;
+}
+
+.parecer-doc .p-nbr-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10pt;
+  margin: 12pt 0;
+}
+
+.parecer-doc .p-divider {
+  border-top: 1px solid var(--p-parchment);
+  margin: 18pt 0;
+}
+
+.parecer-doc .p-sign-line {
+  border-top: 1px solid var(--p-navy);
+  width: 260pt;
+  margin: 40pt 0 4pt;
+}
+
+.parecer-doc .p-big-value {
+  font-family: "Cormorant Garamond", serif;
+  font-weight: 700;
+  font-size: 44pt;
+  color: var(--p-navy);
+  line-height: 1.1;
+  margin: 8pt 0;
+}
+
+/* Editor layout */
+.parecer-editor-shell {
+  display: grid;
+  grid-template-columns: 380px 1fr;
+  gap: 16px;
+  height: calc(100vh - 120px);
+}
+.parecer-editor-form {
+  overflow: auto;
+  padding-right: 8px;
+}
+.parecer-editor-preview {
+  overflow: auto;
+  background: #e5e3de;
+  padding: 24px 8px;
+  border-radius: 6px;
+}
+
+/* PRINT */
+@media print {
+  @page {
+    size: A4;
+    margin: 18mm;
+  }
+  body * { visibility: hidden !important; }
+  .parecer-print-root, .parecer-print-root * { visibility: visible !important; }
+  .parecer-print-root {
+    position: absolute; inset: 0; margin: 0; padding: 0;
+  }
+  .parecer-doc {
+    box-shadow: none;
+    width: 100%;
+    margin: 0;
+  }
+  .parecer-doc .parecer-section,
+  .parecer-doc .parecer-cover {
+    padding: 6mm 4mm;
+    min-height: auto;
+  }
+  .parecer-print-footer {
+    position: fixed;
+    left: 0; right: 0; bottom: 0;
+    font-family: "JetBrains Mono", monospace;
+    font-size: 7pt;
+    color: #0C2340;
+    text-align: center;
+    padding: 4pt 0;
+    border-top: 1px solid #DDD5C7;
+    background: #F8F6F1;
+  }
+  .parecer-print-footer::after {
+    content: " | Pag. " counter(page) " / " counter(pages);
+  }
+  .parecer-editor-form, .parecer-editor-actions { display: none !important; }
+}
