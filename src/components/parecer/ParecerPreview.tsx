@@ -192,6 +192,36 @@ export function ParecerPreview({ data }: { data: ParecerTecnico }) {
             <span className="p-eyebrow">Saneamento e tratamento da amostra</span>
             <p>{data.tratamento_amostra}</p>
           </div>
+
+          {data.anuncios && data.anuncios.length > 0 && (
+            <>
+              <h3>Amostra de anuncios analisados</h3>
+              <p>
+                Conjunto de ofertas ativas coletadas para triangulacao de referencia mercadologica, complementar aos comparativos oficiais.
+              </p>
+              <table className="p-table">
+                <thead>
+                  <tr>
+                    <th>Anuncio</th><th>Valor</th><th>Area (m²)</th><th>Valor/m²</th><th>Fonte</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {data.anuncios.map((a, i) => {
+                    const m2 = a.valor > 0 && a.area > 0 ? a.valor / a.area : 0;
+                    return (
+                      <tr key={i}>
+                        <td>{i + 1}</td>
+                        <td>{a.valor ? fmtBRL(a.valor) : "___"}</td>
+                        <td>{a.area || "___"}</td>
+                        <td>{m2 ? fmtBRL(m2) : "___"}</td>
+                        <td style={{ wordBreak: "break-all" }}>{a.fonte || "___"}</td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </>
+          )}
         </section>
 
         {/* 6 VISTORIA */}
