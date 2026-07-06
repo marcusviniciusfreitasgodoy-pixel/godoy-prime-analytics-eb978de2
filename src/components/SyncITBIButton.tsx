@@ -20,6 +20,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useQueryClient } from "@tanstack/react-query";
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Tooltip,
   TooltipContent,
@@ -85,10 +86,19 @@ export const SyncITBIButton = () => {
     registros_inseridos?: number;
     total_transacoes_reais?: number;
   } | null>(null);
+  const [mode, setMode] = useState<'ano' | 'backfill' | 'ultimo'>('ano');
+  const [batchProgress, setBatchProgress] = useState<{
+    currentYear: number;
+    totalYears: number;
+    yearLabel: string;
+    accumInseridos: number;
+    accumTransacoes: number;
+  } | null>(null);
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
   const currentYear = new Date().getFullYear();
+  const currentMonth = new Date().getMonth() + 1;
   const years = Array.from({ length: currentYear - 2019 }, (_, i) => (currentYear - i).toString());
 
   // Verificar meses existentes quando ano mudar
@@ -246,9 +256,158 @@ export const SyncITBIButton = () => {
     }
   };
 
+  const invalidateAll = async () => {
+    await queryClient.invalidateQueries({ predicate: (query) => {
+      const key = query.queryKey[0] as string;
+      return key?.includes('itbi') ||
+             key?.includes('kpi') ||
+             key?.includes('microbairro') ||
+             key?.includes('evolution') ||
+             key?.includes('transaction') ||
+             key?.includes('ranking');
+    }});
+    await queryClient.refetchQueries({ queryKey: ['kpi-stats-detailed-v5'] });
+  };
+
+  const syncSingleYear = async (
+    year: number,
+    minM: number,
+    maxM: number,
+    clear: boolean,
+    accessToken: string,
+  ) => {
+    const { data, error } = await supabase.functions.invoke("sync-itbi-prefeitura", {
+      body: {
+        clearExisting: clear,
+        minYear: year,
+        maxYear: year,
+        minMonth: minM,
+        maxMonth: maxM,
+        onlyResidencial: false,
+      },
+      headers: { Authorization: `Bearer ${accessToken}` },
+    });
+    if (error) throw error;
+    if (!data?.success) throw new Error(data?.error || `Falha em ${year}`);
+    return {
+      inseridos: Number(data.registros_inseridos || 0),
+      transacoes: Number(data.total_transacoes_reais || 0),
+    };
+  };
+
+  const handleBackfill = async () => {
+    setIsLoading(true);
+    setStage('fetching');
+    setSyncResult(null);
+
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.access_token) throw new Error('Você precisa estar logado');
+
+      const startYear = 2020;
+      const endYear = currentYear;
+      const totalYears = endYear - startYear + 1;
+      let accumInseridos = 0;
+      let accumTransacoes = 0;
+
+      for (let i = 0; i < totalYears; i++) {
+        const year = startYear + i;
+        setBatchProgress({
+          currentYear: i + 1,
+          totalYears,
+          yearLabel: String(year),
+          accumInseridos,
+          accumTransacoes,
+        });
+        console.log(`[Backfill] Sincronizando ${year} (${i + 1}/${totalYears})...`);
+        const result = await syncSingleYear(year, 1, 12, clearExisting, session.access_token);
+        accumInseridos += result.inseridos;
+        accumTransacoes += result.transacoes;
+      }
+
+      setStage('complete');
+      setSyncResult({
+        registros_inseridos: accumInseridos,
+        total_transacoes_reais: accumTransacoes,
+      });
+      setBatchProgress(null);
+      await invalidateAll();
+
+      toast({
+        title: 'Backfill concluído',
+        description: `${accumInseridos.toLocaleString('pt-BR')} registros (${accumTransacoes.toLocaleString('pt-BR')} transações) importados de ${startYear} a ${endYear}.`,
+      });
+    } catch (error) {
+      console.error('Erro no backfill:', error);
+      setStage('error');
+      toast({
+        title: 'Erro no backfill',
+        description: error instanceof Error ? error.message : 'Falha ao sincronizar múltiplos anos.',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleUltimoMes = async () => {
+    setIsLoading(true);
+    setStage('fetching');
+    setSyncResult(null);
+
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.access_token) throw new Error('Você precisa estar logado');
+
+      // Sincroniza o mês corrente E o mês anterior (para pegar dados
+      // publicados com atraso pela Prefeitura). Sempre com clearExisting=true
+      // no período para garantir dados atualizados.
+      const prevMonth = currentMonth === 1 ? 12 : currentMonth - 1;
+      const prevYear = currentMonth === 1 ? currentYear - 1 : currentYear;
+
+      let accumInseridos = 0;
+      let accumTransacoes = 0;
+
+      // Se mês anterior está em outro ano, faz duas chamadas separadas
+      if (prevYear !== currentYear) {
+        const r1 = await syncSingleYear(prevYear, prevMonth, 12, true, session.access_token);
+        const r2 = await syncSingleYear(currentYear, 1, currentMonth, true, session.access_token);
+        accumInseridos = r1.inseridos + r2.inseridos;
+        accumTransacoes = r1.transacoes + r2.transacoes;
+      } else {
+        const r = await syncSingleYear(currentYear, prevMonth, currentMonth, true, session.access_token);
+        accumInseridos = r.inseridos;
+        accumTransacoes = r.transacoes;
+      }
+
+      setStage('complete');
+      setSyncResult({
+        registros_inseridos: accumInseridos,
+        total_transacoes_reais: accumTransacoes,
+      });
+      await invalidateAll();
+
+      toast({
+        title: 'Último mês atualizado',
+        description: `${accumInseridos.toLocaleString('pt-BR')} registros (${accumTransacoes.toLocaleString('pt-BR')} transações) do período recente.`,
+      });
+    } catch (error) {
+      console.error('Erro ao atualizar último mês:', error);
+      setStage('error');
+      toast({
+        title: 'Erro na atualização',
+        description: error instanceof Error ? error.message : 'Falha ao atualizar o mês corrente.',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   const resetState = () => {
     setStage('idle');
     setSyncResult(null);
+    setBatchProgress(null);
   };
 
   const missingMonths = getMissingMonths();
@@ -306,12 +465,29 @@ export const SyncITBIButton = () => {
                   <div className="flex items-center gap-3">
                     <Loader2 className="h-5 w-5 animate-spin text-primary" />
                     <span className="text-sm font-medium text-foreground">
-                      {STAGE_LABELS[stage]}
+                      {batchProgress
+                        ? `Sincronizando ${batchProgress.yearLabel} (${batchProgress.currentYear}/${batchProgress.totalYears})...`
+                        : STAGE_LABELS[stage]}
                     </span>
                   </div>
-                  <Progress value={STAGE_PROGRESS[stage]} className="h-2" />
+                  <Progress
+                    value={
+                      batchProgress
+                        ? Math.round(((batchProgress.currentYear - 1) / batchProgress.totalYears) * 100)
+                        : STAGE_PROGRESS[stage]
+                    }
+                    className="h-2"
+                  />
+                  {batchProgress && (
+                    <p className="text-xs text-muted-foreground">
+                      Acumulado: {batchProgress.accumInseridos.toLocaleString('pt-BR')} registros •{' '}
+                      {batchProgress.accumTransacoes.toLocaleString('pt-BR')} transações
+                    </p>
+                  )}
                   <p className="text-xs text-muted-foreground">
-                    Isso pode levar alguns minutos dependendo do volume de dados...
+                    {batchProgress
+                      ? 'O backfill roda ano a ano. Não feche esta janela.'
+                      : 'Isso pode levar alguns minutos dependendo do volume de dados...'}
                   </p>
                 </div>
               )}
@@ -341,7 +517,14 @@ export const SyncITBIButton = () => {
 
               {/* Formulário inicial */}
               {stage === 'idle' && (
-                <>
+                <Tabs value={mode} onValueChange={(v) => setMode(v as typeof mode)} className="w-full">
+                  <TabsList className="grid w-full grid-cols-3">
+                    <TabsTrigger value="ano" className="text-xs">Ano específico</TabsTrigger>
+                    <TabsTrigger value="backfill" className="text-xs">Backfill completo</TabsTrigger>
+                    <TabsTrigger value="ultimo" className="text-xs">Último mês</TabsTrigger>
+                  </TabsList>
+
+                  <TabsContent value="ano" className="space-y-4 mt-4">
                   {/* Status do ano selecionado */}
                   <div className="bg-muted/50 rounded-lg p-3 space-y-2">
                     <div className="flex items-center justify-between">
@@ -452,7 +635,55 @@ export const SyncITBIButton = () => {
                   <p className="text-xs text-muted-foreground">
                     Fonte: pgeo3.rio.rj.gov.br/arcgis - API Oficial Prefeitura RJ
                   </p>
-                </>
+                  </TabsContent>
+
+                  <TabsContent value="backfill" className="space-y-4 mt-4">
+                    <div className="bg-muted/50 rounded-lg p-3 space-y-2">
+                      <div className="flex items-center gap-2 text-sm font-medium text-foreground">
+                        <Database className="h-4 w-4 text-accent" />
+                        Backfill completo: 2020 até {currentYear}
+                      </div>
+                      <p className="text-xs text-muted-foreground">
+                        Sincroniza {currentYear - 2019} anos sequencialmente, um por vez, evitando estourar o limite de 50 mil registros por execução. Use esta opção apenas na primeira carga ou quando precisar refazer todo o histórico.
+                      </p>
+                    </div>
+
+                    <div className="flex items-center space-x-2 p-3 bg-muted rounded-md">
+                      <Checkbox
+                        id="clearExistingBackfill"
+                        checked={clearExisting}
+                        onCheckedChange={(checked) => setClearExisting(!!checked)}
+                      />
+                      <Label htmlFor="clearExistingBackfill" className="text-sm text-foreground cursor-pointer">
+                        Limpar dados existentes de cada ano antes de importar
+                      </Label>
+                    </div>
+
+                    <ul className="list-disc list-inside space-y-1 text-xs text-muted-foreground">
+                      <li>Duração estimada: 5 a 15 minutos</li>
+                      <li>Não feche esta janela durante a execução</li>
+                      <li>Ao final, KPIs e rankings são atualizados automaticamente</li>
+                    </ul>
+                  </TabsContent>
+
+                  <TabsContent value="ultimo" className="space-y-4 mt-4">
+                    <div className="bg-muted/50 rounded-lg p-3 space-y-2">
+                      <div className="flex items-center gap-2 text-sm font-medium text-foreground">
+                        <Calendar className="h-4 w-4 text-accent" />
+                        Atualização incremental
+                      </div>
+                      <p className="text-xs text-muted-foreground">
+                        Sincroniza apenas o mês corrente ({MONTHS[currentMonth - 1]?.label} {currentYear}) e o mês anterior, para capturar registros publicados com atraso pela Prefeitura. Ideal para rodar todo mês após o backfill inicial.
+                      </p>
+                    </div>
+
+                    <ul className="list-disc list-inside space-y-1 text-xs text-muted-foreground">
+                      <li>Duração estimada: 30 a 90 segundos</li>
+                      <li>Sobrescreve o período recente com os dados mais atuais</li>
+                      <li>Não afeta anos anteriores</li>
+                    </ul>
+                  </TabsContent>
+                </Tabs>
               )}
             </div>
           </AlertDialogDescription>
@@ -470,10 +701,24 @@ export const SyncITBIButton = () => {
           ) : !isLoading ? (
             <>
               <AlertDialogCancel>Cancelar</AlertDialogCancel>
-              <AlertDialogAction onClick={handleSync} className="bg-primary">
-                <CheckCircle2 className="mr-2 h-4 w-4" />
-                Sincronizar {monthRangeLabel} {selectedYear}
-              </AlertDialogAction>
+              {mode === 'ano' && (
+                <AlertDialogAction onClick={handleSync} className="bg-primary">
+                  <CheckCircle2 className="mr-2 h-4 w-4" />
+                  Sincronizar {monthRangeLabel} {selectedYear}
+                </AlertDialogAction>
+              )}
+              {mode === 'backfill' && (
+                <AlertDialogAction onClick={handleBackfill} className="bg-primary">
+                  <Database className="mr-2 h-4 w-4" />
+                  Rodar backfill 2020 – {currentYear}
+                </AlertDialogAction>
+              )}
+              {mode === 'ultimo' && (
+                <AlertDialogAction onClick={handleUltimoMes} className="bg-primary">
+                  <RefreshCw className="mr-2 h-4 w-4" />
+                  Atualizar último mês
+                </AlertDialogAction>
+              )}
             </>
           ) : (
             <AlertDialogCancel disabled>Aguarde...</AlertDialogCancel>
