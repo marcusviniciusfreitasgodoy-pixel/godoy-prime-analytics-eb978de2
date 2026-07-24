@@ -442,7 +442,10 @@ export const SyncITBIButton = () => {
     : `${MONTHS[parseInt(minMonth) - 1]?.label} a ${MONTHS[parseInt(maxMonth) - 1]?.label}`;
 
   return (
-    <AlertDialog onOpenChange={(open) => !open && resetState()}>
+    <AlertDialog onOpenChange={(open) => {
+      if (!open) resetState();
+      else detectLatest();
+    }}>
       <TooltipProvider>
         <Tooltip>
           <TooltipTrigger asChild>
