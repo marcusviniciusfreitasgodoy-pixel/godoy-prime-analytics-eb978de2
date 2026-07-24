@@ -87,6 +87,12 @@ export const SyncITBIButton = () => {
     total_transacoes_reais?: number;
   } | null>(null);
   const [mode, setMode] = useState<'ano' | 'backfill' | 'ultimo'>('ano');
+  const [latestInfo, setLatestInfo] = useState<{
+    api: { year: number | null; month: number | null };
+    db: { year: number | null; month: number | null };
+    isOutdated: boolean;
+  } | null>(null);
+  const [isDetectingLatest, setIsDetectingLatest] = useState(false);
   const [batchProgress, setBatchProgress] = useState<{
     currentYear: number;
     totalYears: number;
@@ -100,6 +106,26 @@ export const SyncITBIButton = () => {
   const currentYear = new Date().getFullYear();
   const currentMonth = new Date().getMonth() + 1;
   const years = Array.from({ length: currentYear - 2019 }, (_, i) => (currentYear - i).toString());
+
+  // Detecta o último mês publicado na API da Prefeitura ao abrir o diálogo
+  const detectLatest = async () => {
+    setIsDetectingLatest(true);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.access_token) return;
+      const { data, error } = await supabase.functions.invoke('detect-latest-itbi-month', {
+        headers: { Authorization: `Bearer ${session.access_token}` },
+      });
+      if (error) throw error;
+      if (data?.success) {
+        setLatestInfo({ api: data.api, db: data.db, isOutdated: data.isOutdated });
+      }
+    } catch (e) {
+      console.error('[detect-latest-itbi-month]', e);
+    } finally {
+      setIsDetectingLatest(false);
+    }
+  };
 
   // Verificar meses existentes quando ano mudar
   useEffect(() => {
