@@ -87,6 +87,12 @@ export const SyncITBIButton = () => {
     total_transacoes_reais?: number;
   } | null>(null);
   const [mode, setMode] = useState<'ano' | 'backfill' | 'ultimo'>('ano');
+  const [latestInfo, setLatestInfo] = useState<{
+    api: { year: number | null; month: number | null };
+    db: { year: number | null; month: number | null };
+    isOutdated: boolean;
+  } | null>(null);
+  const [isDetectingLatest, setIsDetectingLatest] = useState(false);
   const [batchProgress, setBatchProgress] = useState<{
     currentYear: number;
     totalYears: number;
@@ -100,6 +106,26 @@ export const SyncITBIButton = () => {
   const currentYear = new Date().getFullYear();
   const currentMonth = new Date().getMonth() + 1;
   const years = Array.from({ length: currentYear - 2019 }, (_, i) => (currentYear - i).toString());
+
+  // Detecta o último mês publicado na API da Prefeitura ao abrir o diálogo
+  const detectLatest = async () => {
+    setIsDetectingLatest(true);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.access_token) return;
+      const { data, error } = await supabase.functions.invoke('detect-latest-itbi-month', {
+        headers: { Authorization: `Bearer ${session.access_token}` },
+      });
+      if (error) throw error;
+      if (data?.success) {
+        setLatestInfo({ api: data.api, db: data.db, isOutdated: data.isOutdated });
+      }
+    } catch (e) {
+      console.error('[detect-latest-itbi-month]', e);
+    } finally {
+      setIsDetectingLatest(false);
+    }
+  };
 
   // Verificar meses existentes quando ano mudar
   useEffect(() => {
@@ -416,7 +442,10 @@ export const SyncITBIButton = () => {
     : `${MONTHS[parseInt(minMonth) - 1]?.label} a ${MONTHS[parseInt(maxMonth) - 1]?.label}`;
 
   return (
-    <AlertDialog onOpenChange={(open) => !open && resetState()}>
+    <AlertDialog onOpenChange={(open) => {
+      if (!open) resetState();
+      else detectLatest();
+    }}>
       <TooltipProvider>
         <Tooltip>
           <TooltipTrigger asChild>
@@ -518,6 +547,60 @@ export const SyncITBIButton = () => {
               {/* Formulário inicial */}
               {stage === 'idle' && (
                 <Tabs value={mode} onValueChange={(v) => setMode(v as typeof mode)} className="w-full">
+                  {/* Detecção automática do último mês publicado */}
+                  <div className={`rounded-lg border p-3 mb-3 ${
+                    isDetectingLatest
+                      ? 'bg-muted/50 border-border'
+                      : latestInfo?.isOutdated
+                        ? 'bg-amber-500/10 border-amber-500/30'
+                        : 'bg-green-500/10 border-green-500/30'
+                  }`}>
+                    <div className="flex items-start gap-2">
+                      {isDetectingLatest ? (
+                        <Loader2 className="h-4 w-4 mt-0.5 animate-spin text-muted-foreground shrink-0" />
+                      ) : latestInfo?.isOutdated ? (
+                        <AlertCircle className="h-4 w-4 mt-0.5 text-amber-600 shrink-0" />
+                      ) : (
+                        <CheckCircle2 className="h-4 w-4 mt-0.5 text-green-600 shrink-0" />
+                      )}
+                      <div className="flex-1 text-xs space-y-0.5">
+                        {isDetectingLatest && (
+                          <p className="text-muted-foreground">Consultando API da Prefeitura...</p>
+                        )}
+                        {!isDetectingLatest && latestInfo && (
+                          <>
+                            <p className="font-medium text-foreground">
+                              Último mês publicado na Prefeitura:{' '}
+                              {latestInfo.api.month && latestInfo.api.year
+                                ? `${MONTHS[latestInfo.api.month - 1]?.label} / ${latestInfo.api.year}`
+                                : 'indisponível'}
+                            </p>
+                            <p className="text-muted-foreground">
+                              Base local:{' '}
+                              {latestInfo.db.month && latestInfo.db.year
+                                ? `${MONTHS[latestInfo.db.month - 1]?.label} / ${latestInfo.db.year}`
+                                : 'vazia'}
+                            </p>
+                            {latestInfo.isOutdated ? (
+                              <p className="text-amber-700 font-medium pt-1">
+                                Há dados novos disponíveis. Recomendamos rodar "Último mês".
+                              </p>
+                            ) : (
+                              <p className="text-green-700 font-medium pt-1">
+                                Base local está atualizada com a Prefeitura.
+                              </p>
+                            )}
+                          </>
+                        )}
+                        {!isDetectingLatest && !latestInfo && (
+                          <p className="text-muted-foreground">
+                            Não foi possível consultar a API agora.
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+
                   <TabsList className="grid w-full grid-cols-3">
                     <TabsTrigger value="ano" className="text-xs">Ano específico</TabsTrigger>
                     <TabsTrigger value="backfill" className="text-xs">Backfill completo</TabsTrigger>
