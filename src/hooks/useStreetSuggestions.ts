@@ -42,9 +42,11 @@ export function useStreetSuggestions(query: string, bairro: string = 'BARRA DA T
       if (!debouncedQuery || debouncedQuery.length < 2) return [];
 
       const searchTerm = debouncedQuery.toUpperCase().trim();
-      
+        // remove numero do imovel no final ("... PILLAR 355")
+      const searchTermNoNumber = searchTerm.replace(/[\s,]+N?[ºO°]?\.?\s*\d+[A-Z]?$/i, '').trim() || searchTerm;
+
       // Remove prefixos comuns para buscar pelo nome
-      const cleanedSearchRaw = searchTerm
+      const cleanedSearchRaw = searchTermNoNumber
         .replace(/^(AVENIDA|AVN|AV|AV\.|AVENUE)\s*/i, '')
         .replace(/^(RUA|R|R\.)\s*/i, '')
         .replace(/^(PRAÇA|PRC|PRACA)\s*/i, '')
@@ -54,7 +56,7 @@ export function useStreetSuggestions(query: string, bairro: string = 'BARRA DA T
         .trim();
 
       // Evita busca ampla (%%) quando o termo fica vazio após remover prefixo
-      const cleanedSearch = cleanedSearchRaw || searchTerm;
+      const cleanedSearch = cleanedSearchRaw || searchTermNoNumber;
       const normalizedSearch = cleanedSearch.normalize('NFD').replace(/[\u0300-\u036f]/g, '');
       const normalizationTerms = Array.from(new Set([cleanedSearch, normalizedSearch].filter(Boolean)));
 
@@ -80,14 +82,32 @@ export function useStreetSuggestions(query: string, bairro: string = 'BARRA DA T
         'ENG': ['ENG', 'ENGENHEIRO'],
         'PROFESSOR': ['PROF', 'PROFESSOR'],
         'PROF': ['PROF', 'PROFESSOR'],
-        'GENERAL': ['GEN', 'GENERAL'],
-        'GEN': ['GEN', 'GENERAL'],
+        'GENERAL': ['GEN', 'GAL', 'GENERAL'],
+        'GEN': ['GEN', 'GAL', 'GENERAL'],
+        'GAL': ['GEN', 'GAL', 'GENERAL'],
         'CORONEL': ['CEL', 'CORONEL'],
         'CEL': ['CEL', 'CORONEL'],
         'TENENTE': ['TEN', 'TENENTE'],
         'TEN': ['TEN', 'TENENTE'],
         'CAPITAO': ['CAP', 'CAPITAO'],
         'CAP': ['CAP', 'CAPITAO'],
+        'MAJOR': ['MAJ', 'MAJOR'],
+        'MAJ': ['MAJ', 'MAJOR'],
+        'SARGENTO': ['SGT', 'SARGENTO'],
+        'SGT': ['SGT', 'SARGENTO'],
+        'BRIGADEIRO': ['BRIG', 'BRIGADEIRO'],
+        'BRIG': ['BRIG', 'BRIGADEIRO'],
+        'MARQUES': ['MARQ', 'MARQUES'],
+        'MARQ': ['MARQ', 'MARQUES'],
+        'BARAO': ['BAR', 'BARAO'],
+        'VISCONDE': ['VISC', 'VISCONDE'],
+        'MONSENHOR': ['MONS', 'MONSENHOR'],
+        'DESEMBARGADOR': ['DES', 'DESEMBARGADOR'],
+        'EMBAIXADOR': ['EMBAIX', 'EMB', 'EMBAIXADOR'],
+        'MINISTRO': ['MIN', 'MINISTRO'],
+        'PRESIDENTE': ['PRES', 'PRESIDENTE'],
+        'GOVERNADOR': ['GOV', 'GOVERNADOR'],
+        'VEREADOR': ['VER', 'VEREADOR'],
         'DEPUTADO': ['DEP', 'DEPUTADO'],
         'DEP': ['DEP', 'DEPUTADO'],
         'SENADOR': ['SEN', 'SENADOR'],
@@ -119,6 +139,10 @@ export function useStreetSuggestions(query: string, bairro: string = 'BARRA DA T
         'AIRTON': 'AYRTON',
         'SENNA': 'SENNA',
         'SENA': 'SENNA',
+        'OLINTO': 'OLYNTHO',
+        'OLYNTO': 'OLYNTHO',
+        'OLINTHO': 'OLYNTHO',
+        'PILAR': 'PILLAR',
       };
 
       // Aplicar correções
