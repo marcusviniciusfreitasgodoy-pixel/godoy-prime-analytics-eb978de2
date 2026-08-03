@@ -4,6 +4,7 @@ import {
   getCachedAnalysis, 
   setCachedAnalysis 
 } from '@/utils/historicalAnalysisCache';
+import { buildLogradouroOrConditions } from '@/lib/logradouroSearch';
 
 // Limites de outliers por bairro
 const OUTLIER_LIMITS: Record<string, number> = {
@@ -102,19 +103,8 @@ export function useHistoricalTransactionAnalysis(logradouro: string, bairro: str
   const normalizedBairro = (bairro || '').toUpperCase().trim();
   const normalizedLogradouro = (logradouro || '').trim();
 
-  // Normaliza para aumentar taxa de match com abreviações (ex.: "AVN" vs "Avenida") e acentos
-  const normalizeForSearch = (s: string) =>
-    s
-      .normalize('NFD')
-      .replace(/[\u0300-\u036f]/g, '')
-      .toUpperCase()
-      .replace(/\bAVENIDA\b|\bRUA\b|\bESTRADA\b|\bAV\b|\bAV\.\b|\bAVN\b|\bAVN\.\b/gi, '')
-      .replace(/[^A-Z0-9\s]/g, ' ')
-      .replace(/\s+/g, ' ')
-      .trim();
-
   return useQuery<HistoricalAnalysis | null>({
-    queryKey: ['historical-analysis-5y', normalizedLogradouro.toUpperCase(), normalizedBairro, ruasInternas?.join(',') || ''],
+    queryKey: ['historical-analysis-5y-v6', normalizedLogradouro.toUpperCase(), normalizedBairro, ruasInternas?.join(',') || ''],
     queryFn: async () => {
       if (!normalizedLogradouro || !normalizedBairro) return null;
 
@@ -173,60 +163,41 @@ export function useHistoricalTransactionAnalysis(logradouro: string, bairro: str
         if (e) throw e;
         transactions = data || [];
       } else {
-        // Busca padrão por logradouro com fallback de normalização
-        const searchCandidates = Array.from(
-          new Set([
-            normalizedLogradouro,
-            normalizeForSearch(normalizedLogradouro),
-            normalizedLogradouro.replace(/^\s*(Avenida|Av\.?|AVN\.?|Rua|Estrada)\s+/i, ''),
-          ])
-        ).filter(Boolean);
+        // Usa a normalização centralizada, incluindo número do imóvel, prefixos,
+        // patentes abreviadas e grafias conhecidas da base oficial.
+        const streetFilter = buildLogradouroOrConditions([normalizedLogradouro]);
+        const { data, error: e } = await supabase
+          .from('itbi_transactions')
+          .select('data_transacao, valor_m2, total_transacoes, bairro')
+          .or(streetFilter)
+          .eq('uso', 'Residencial')
+          .gte('data_transacao', startDate)
+          .lte('data_transacao', endDate)
+          .order('data_transacao', { ascending: true })
+          .limit(5000);
 
-        for (const candidate of searchCandidates) {
-          const { data, error: e } = await supabase
-            .from('itbi_transactions')
-            .select('data_transacao, valor_m2, total_transacoes, bairro')
-            .ilike('logradouro', `%${candidate}%`)
-            .eq('uso', 'Residencial')
-            .gte('data_transacao', startDate)
-            .lte('data_transacao', endDate)
-             .order('data_transacao', { ascending: true })
-             .limit(5000);
-
-          if (e) {
-            error = e;
-            break;
-          }
-
-          if (data && data.length > 0) {
-            transactions = data;
-            bairrosEncontrados = Array.from(
-              new Set(
-                data
-                  .map((r) => (r.bairro || '').toUpperCase().trim())
-                  .filter((b) => b && b !== normalizedBairro)
-              )
+        if (e) {
+          error = e;
+        } else if (data && data.length > 0) {
+          transactions = data;
+          bairrosEncontrados = Array.from(
+            new Set(
+              data
+                .map((r) => (r.bairro || '').toUpperCase().trim())
+                .filter((b) => b && b !== normalizedBairro)
+            )
+          );
+          crossBairro = bairrosEncontrados.length > 0;
+          if (crossBairro) {
+            console.log(
+              `[HistoricalAnalysis] União cross-bairro para ${normalizedLogradouro}: ` +
+              `também encontrado em ${bairrosEncontrados.join(', ')}`
             );
-            crossBairro = bairrosEncontrados.length > 0;
-            if (crossBairro) {
-              console.log(
-                `[HistoricalAnalysis] União cross-bairro para ${normalizedLogradouro}: ` +
-                `também encontrado em ${bairrosEncontrados.join(', ')}`
-              );
-            }
-            break;
           }
         }
       }
 
-      // Build searchCandidates for current-year check (used later)
-      const searchCandidates = Array.from(
-        new Set([
-          normalizedLogradouro,
-          normalizeForSearch(normalizedLogradouro),
-          normalizedLogradouro.replace(/^\s*(Avenida|Av\.?|AVN\.?|Rua|Estrada)\s+/i, ''),
-        ])
-      ).filter(Boolean);
+      const streetFilter = buildLogradouroOrConditions([normalizedLogradouro]);
 
       if (error) throw error;
 
@@ -239,10 +210,11 @@ export function useHistoricalTransactionAnalysis(logradouro: string, bairro: str
       let dataSource: 'logradouro' | 'bairro' = 'logradouro';
       const logradouroTransactionCount = transactions?.length || 0;
 
-      // Se poucos dados do logradouro, buscar do bairro todo
-      // Para condomínios com ruas internas, threshold menor (3) pois dados são mais específicos
-      const fallbackThreshold = (ruasInternas && ruasInternas.length > 0) ? 3 : 15;
-      if (!transactions || transactions.length < fallbackThreshold) {
+      // O bairro só pode substituir a rua quando não existe nenhuma ocorrência.
+      // Uma amostra pequena da rua continua sendo informação real e não deve ser
+      // mascarada pelo volume agregado de todo o bairro.
+      const shouldFallbackToBairro = !transactions || transactions.length === 0;
+      if (shouldFallbackToBairro) {
         const { data: bairroTransactions, error: bairroError } = await supabase
           .from('itbi_transactions')
           .select('data_transacao, valor_m2, total_transacoes')
@@ -461,31 +433,28 @@ export function useHistoricalTransactionAnalysis(logradouro: string, bairro: str
       let currentYearCount = 0;
       let currentYearAvgM2 = 0;
 
-      if (dataSource === 'bairro' && logradouroTransactionCount < fallbackThreshold) {
+      if (dataSource === 'bairro' && logradouroTransactionCount === 0) {
         const currentYearStart = `${currentYear}-01-01`;
         const currentYearEnd = `${currentYear}-12-31`;
 
-        for (const candidate of searchCandidates) {
-          const { data: cyData } = await supabase
-            .from('itbi_transactions')
-            .select('valor_m2, total_transacoes')
-            .ilike('logradouro', `%${candidate}%`)
-            .ilike('bairro', normalizedBairro)
-            .eq('uso', 'Residencial')
-            .gte('data_transacao', currentYearStart)
-            .lte('data_transacao', currentYearEnd)
-            .limit(2000);
+        const { data: cyData } = await supabase
+          .from('itbi_transactions')
+          .select('valor_m2, total_transacoes')
+          .or(streetFilter)
+          .ilike('bairro', normalizedBairro)
+          .eq('uso', 'Residencial')
+          .gte('data_transacao', currentYearStart)
+          .lte('data_transacao', currentYearEnd)
+          .limit(2000);
 
-          if (cyData && cyData.length > 0) {
-            hasCurrentYearData = true;
-            currentYearCount = cyData.reduce((sum, r) => sum + (r.total_transacoes || 1), 0);
-            const validValues = cyData
-              .filter(r => typeof r.valor_m2 === 'number' && r.valor_m2 >= outlierMinLimit && r.valor_m2 <= outlierLimit)
-              .map(r => r.valor_m2 as number);
-            if (validValues.length > 0) {
-              currentYearAvgM2 = Math.round(validValues.reduce((a, b) => a + b, 0) / validValues.length);
-            }
-            break;
+        if (cyData && cyData.length > 0) {
+          hasCurrentYearData = true;
+          currentYearCount = cyData.reduce((sum, r) => sum + (r.total_transacoes || 1), 0);
+          const validValues = cyData
+            .filter(r => typeof r.valor_m2 === 'number' && r.valor_m2 >= outlierMinLimit && r.valor_m2 <= outlierLimit)
+            .map(r => r.valor_m2 as number);
+          if (validValues.length > 0) {
+            currentYearAvgM2 = Math.round(validValues.reduce((a, b) => a + b, 0) / validValues.length);
           }
         }
       }

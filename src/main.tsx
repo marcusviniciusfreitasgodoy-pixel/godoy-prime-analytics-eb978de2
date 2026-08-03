@@ -52,12 +52,16 @@ const updateSW = registerSW({
   onRegisteredSW(swUrl, registration) {
     if (registration) {
       // Check immediately on registration
-      registration.update();
+      void registration.update().catch((error) => {
+        console.warn('[PWA] Não foi possível verificar atualização:', error);
+      });
       
       // Check for updates every 5 minutes
       setInterval(() => {
         console.log('[PWA] Verificando atualizações...');
-        registration.update();
+        void registration.update().catch((error) => {
+          console.warn('[PWA] Não foi possível verificar atualização:', error);
+        });
       }, 5 * 60 * 1000);
     }
   },
