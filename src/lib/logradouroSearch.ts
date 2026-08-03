@@ -80,6 +80,43 @@ const TITLE_VARIANTS: Record<string, string[]> = TITLE_VARIANT_GROUPS.reduce(
   {} as Record<string, string[]>
 );
 
+// Variantes de grafia de nomes proprios usadas pela base oficial (ITBI/Prefeitura)
+const SPELLING_VARIANT_GROUPS: string[][] = [
+  ["OLYNTHO", "OLINTO", "OLYNTO", "OLINTHO"],
+  ["PILLAR", "PILAR"],
+  ["ESTELLITA", "ESTELITA"],
+  ["LUIZ", "LUIS"],
+];
+
+const SPELLING_VARIANTS: Record<string, string[]> = SPELLING_VARIANT_GROUPS.reduce(
+  (acc, group) => {
+    group.forEach((item) => {
+      acc[item] = Array.from(new Set([...(acc[item] ?? []), ...group]));
+    });
+    return acc;
+  },
+  {} as Record<string, string[]>
+);
+
+// Gera variantes de grafia palavra a palavra, limitando a explosao combinatoria
+function expandSpellingVariants(value: string): string[] {
+  const words = normalizeAccents(value).toUpperCase().split(/\s+/).filter(Boolean);
+  let combos: string[][] = [[]];
+
+  words.forEach((word) => {
+    const options = SPELLING_VARIANTS[word] ?? [word];
+    const next: string[][] = [];
+    combos.forEach((combo) => {
+      options.forEach((option) => {
+        if (next.length < 24) next.push([...combo, option]);
+      });
+    });
+    combos = next;
+  });
+
+  return Array.from(new Set([value, ...combos.map((combo) => combo.join(" "))]));
+}
+
 // Remove numero do imovel no final ("GENERAL OLYNTHO PILLAR 355" -> "GENERAL OLYNTHO PILLAR")
 function stripHouseNumber(value: string): string {
   return value.replace(/[\s,]+n?[ºo°]?\.?\s*\d+[A-Za-z]?$/i, "").trim();
@@ -126,7 +163,9 @@ export function expandLogradouroSearchTerms(logradouro: string): string[] {
 
   const match = original.match(STREET_TYPE_REGEX);
   if (!match) {
-    expandTitleVariants(original).forEach((variant) => addTerm(terms, variant));
+    expandTitleVariants(original).forEach((variant) =>
+      expandSpellingVariants(variant).forEach((spelling) => addTerm(terms, spelling))
+    );
     return Array.from(terms);
   }
 
@@ -136,8 +175,11 @@ export function expandLogradouroSearchTerms(logradouro: string): string[] {
   const prefixKey = normalizeAccents(rawPrefix).replace(/\./g, "").toUpperCase();
   const variants = STREET_TYPE_VARIANTS[prefixKey] ?? [rawPrefix.toUpperCase()];
 
-  const coreVariants = Array.from(
+  const baseCoreVariants = Array.from(
     new Set([...expandTitleVariants(coreOriginal), ...expandTitleVariants(coreNormalized)])
+  );
+  const coreVariants = Array.from(
+    new Set(baseCoreVariants.flatMap((core) => expandSpellingVariants(core)))
   );
 
   coreVariants.forEach((core) => {
