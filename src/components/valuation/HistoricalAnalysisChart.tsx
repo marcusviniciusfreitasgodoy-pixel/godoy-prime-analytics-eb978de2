@@ -145,6 +145,35 @@ export function HistoricalAnalysisChart({ analysis, amostraModo = 'auto', onAmos
               )}
             </Badge>
           </div>
+          {onAmostraModoChange && (
+            <div className="mt-2 flex flex-wrap items-center gap-2">
+              <span className="text-[11px] text-muted-foreground">Amostra:</span>
+              <ToggleGroup
+                type="single"
+                size="sm"
+                value={amostraModo}
+                onValueChange={(v) => v && onAmostraModoChange(v as AmostraModo)}
+                className="flex-wrap"
+              >
+                <ToggleGroupItem value="auto" className="h-7 px-2 text-[11px]">
+                  Automática
+                </ToggleGroupItem>
+                <ToggleGroupItem value="logradouro" className="h-7 px-2 text-[11px]">
+                  Somente a rua
+                </ToggleGroupItem>
+                <ToggleGroupItem value="raio_500m" className="h-7 px-2 text-[11px]">
+                  Entorno 500 m
+                </ToggleGroupItem>
+              </ToggleGroup>
+              <span className="text-[10px] text-muted-foreground">
+                {amostraModo === 'logradouro'
+                  ? 'Usa apenas as transações registradas no logradouro pesquisado.'
+                  : amostraModo === 'raio_500m'
+                    ? 'Usa todas as transações num raio de 500 m do logradouro.'
+                    : 'Usa a rua e amplia para o entorno quando a amostra é pequena.'}
+              </span>
+            </div>
+          )}
           {crossBairro && bairrosEncontrados && bairrosEncontrados.length > 0 && (
             <div className="mt-2 flex items-start gap-2 rounded-md border border-amber-300 bg-amber-50 dark:bg-amber-950/30 px-3 py-2 text-[11px] sm:text-xs text-amber-800 dark:text-amber-200">
               <Info className="h-4 w-4 shrink-0 mt-0.5" />
