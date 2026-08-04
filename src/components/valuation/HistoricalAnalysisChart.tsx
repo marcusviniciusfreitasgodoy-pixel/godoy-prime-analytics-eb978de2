@@ -383,7 +383,7 @@ export function HistoricalAnalysisChart({ analysis }: Props) {
                   <th className="text-center py-2 px-2 font-medium">
                     <div className="flex flex-col items-center">
                       <span>Var. Trans.</span>
-                      <span className="text-[10px] text-muted-foreground font-normal">vs ano ant.</span>
+                      <span className="text-[10px] text-muted-foreground font-normal">vs período equiv.</span>
                     </div>
                   </th>
                   <th className="text-right py-2 px-2 font-medium">
@@ -403,7 +403,14 @@ export function HistoricalAnalysisChart({ analysis }: Props) {
               <tbody>
                 {yearlyData.map((y) => (
                   <tr key={y.ano} className="border-b last:border-0 hover:bg-muted/50">
-                    <td className="py-2.5 px-2 font-medium">{y.ano}</td>
+                    <td className="py-2.5 px-2 font-medium">
+                      {y.ano}
+                      {y.parcial && (
+                        <span className="block text-[10px] font-normal text-muted-foreground">
+                          parcial · {y.mesesCobertos} {y.mesesCobertos === 1 ? 'mês' : 'meses'}
+                        </span>
+                      )}
+                    </td>
                     <td className="py-2.5 px-2 text-center">
                       <Badge 
                         variant={y.transacoes >= 10 ? "default" : y.transacoes >= 5 ? "secondary" : "outline"}
@@ -411,6 +418,11 @@ export function HistoricalAnalysisChart({ analysis }: Props) {
                       >
                         {y.transacoes}
                       </Badge>
+                      {y.parcial && y.transacoesProjetadas ? (
+                        <span className="block text-[10px] text-muted-foreground mt-0.5">
+                          proj. {y.transacoesProjetadas}/ano
+                        </span>
+                      ) : null}
                     </td>
                     <td className="py-2.5 px-2 text-center">
                       {y.variacaoTransacoes !== null ? (
@@ -430,6 +442,11 @@ export function HistoricalAnalysisChart({ analysis }: Props) {
                         </span>
                       ) : (
                         <span className="text-muted-foreground text-[10px]">—</span>
+                      )}
+                      {y.parcial && y.variacaoTransacoes !== null && (
+                        <span className="block text-[10px] text-muted-foreground mt-0.5">
+                          vs Jan–{y.mesesCobertos && y.mesesCobertos < 12 ? y.mesesCobertos : 12}º mês de {y.ano - 1}
+                        </span>
                       )}
                     </td>
                     <td className="py-2.5 px-2 text-right font-medium">

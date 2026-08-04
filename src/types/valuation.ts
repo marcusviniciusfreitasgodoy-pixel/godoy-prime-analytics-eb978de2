@@ -57,6 +57,12 @@ export interface YearlyData {
   valorMedioM2: number;
   valorMinM2: number;
   valorMaxM2: number;
+  variacaoTransacoes?: number | null;
+  variacaoPrecoM2?: number | null;
+  parcial?: boolean;
+  mesesCobertos?: number;
+  transacoesProjetadas?: number | null;
+  baseComparacao?: 'ano_completo' | 'periodo_equivalente';
 }
 
 export interface FutureProjection {

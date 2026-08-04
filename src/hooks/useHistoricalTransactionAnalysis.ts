@@ -38,6 +38,11 @@ export interface YearlyData {
   // Variações ano a ano
   variacaoTransacoes: number | null; // % variação transações vs ano anterior
   variacaoPrecoM2: number | null;    // % variação preço/m² vs ano anterior
+  // Ano corrente/incompleto: comparação por período equivalente
+  parcial?: boolean;                 // true quando o ano não está fechado
+  mesesCobertos?: number;            // meses com dados considerados no ano
+  transacoesProjetadas?: number | null; // projeção anualizada (média mensal x 12)
+  baseComparacao?: 'ano_completo' | 'periodo_equivalente';
 }
 
 // Projeção de Valor Futuro
@@ -341,20 +346,22 @@ export function useHistoricalTransactionAnalysis(logradouro: string, bairro: str
 
       // Agrupar por ano (de startYear até endYear, incluindo ano corrente se condomínio)
       const effectiveEndYear = (ruasInternas && ruasInternas.length > 0) ? currentYear : endYear;
-      const yearlyMap: Record<number, { valores: number[]; totalTransacoes: number }> = {};
+      const yearlyMap: Record<number, { valores: number[]; totalTransacoes: number; porMes: number[] }> = {};
 
       for (let year = startYear; year <= effectiveEndYear; year++) {
-        yearlyMap[year] = { valores: [], totalTransacoes: 0 };
+        yearlyMap[year] = { valores: [], totalTransacoes: 0, porMes: new Array(12).fill(0) };
       }
 
       transactions.forEach((t) => {
-        const year = new Date(t.data_transacao).getFullYear();
+        const dt = new Date(t.data_transacao);
+        const year = dt.getFullYear();
         if (!yearlyMap[year]) return;
 
         const peso = t.total_transacoes || 1;
 
         // Contagem: sempre soma total_transacoes (mesmo se valor_m2 estiver ausente)
         yearlyMap[year].totalTransacoes += peso;
+        yearlyMap[year].porMes[dt.getMonth()] += peso;
 
         // Preço: só entra nas estatísticas se houver valor_m2 e estiver dentro dos limites
         // Expandir pelo peso para mediana/média ponderada
@@ -394,29 +401,62 @@ export function useHistoricalTransactionAnalysis(logradouro: string, bairro: str
             valorMedioM2: Math.round(valorMedioM2),
             valorMinM2: Math.round(valorMinM2),
             valorMaxM2: Math.round(valorMaxM2),
+            porMes: data.porMes,
           };
         })
         .filter((y) => y.ano <= effectiveEndYear)
         .sort((a, b) => a.ano - b.ano);
 
+      // Meses cobertos do ano corrente (base para comparação justa de período)
+      // Usa o último mês com dados registrados, evitando penalizar o defasamento do ITBI.
+      const anoCorrenteRow = yearlyDataRaw.find((y) => y.ano === currentYear);
+      let mesesCorrente = 0;
+      if (anoCorrenteRow) {
+        for (let m = 11; m >= 0; m--) {
+          if (anoCorrenteRow.porMes[m] > 0) { mesesCorrente = m + 1; break; }
+        }
+      }
+
       // Calcular variações ano a ano
       const yearlyData: YearlyData[] = yearlyDataRaw.map((y, index) => {
         const prevYear = index > 0 ? yearlyDataRaw[index - 1] : null;
-        
+
+        const parcial = y.ano === currentYear && mesesCorrente > 0 && mesesCorrente < 12;
+        const mesesCobertos = parcial ? mesesCorrente : 12;
+
         // Variação de transações
+        // Ano parcial: compara com o MESMO período (Jan..N) do ano anterior,
+        // evitando falsa queda ao confrontar ano incompleto com ano fechado.
         let variacaoTransacoes: number | null = null;
-        if (prevYear && prevYear.transacoes > 0) {
+        let baseComparacao: 'ano_completo' | 'periodo_equivalente' = 'ano_completo';
+        if (prevYear && parcial) {
+          const prevMesmoPeriodo = prevYear.porMes
+            .slice(0, mesesCobertos)
+            .reduce((a: number, b: number) => a + b, 0);
+          baseComparacao = 'periodo_equivalente';
+          if (prevMesmoPeriodo > 0) {
+            variacaoTransacoes = ((y.transacoes - prevMesmoPeriodo) / prevMesmoPeriodo) * 100;
+          }
+        } else if (prevYear && prevYear.transacoes > 0) {
           variacaoTransacoes = ((y.transacoes - prevYear.transacoes) / prevYear.transacoes) * 100;
         }
-        
+
         // Variação de preço/m²
         let variacaoPrecoM2: number | null = null;
         if (prevYear && prevYear.valorMedioM2 > 0 && y.valorMedioM2 > 0) {
           variacaoPrecoM2 = ((y.valorMedioM2 - prevYear.valorMedioM2) / prevYear.valorMedioM2) * 100;
         }
-        
+
+        const { porMes: _porMes, ...rest } = y;
+
         return {
-          ...y,
+          ...rest,
+          parcial,
+          mesesCobertos,
+          transacoesProjetadas: parcial
+            ? Math.round((y.transacoes / mesesCobertos) * 12)
+            : null,
+          baseComparacao,
           variacaoTransacoes: variacaoTransacoes !== null ? Math.round(variacaoTransacoes * 10) / 10 : null,
           variacaoPrecoM2: variacaoPrecoM2 !== null ? Math.round(variacaoPrecoM2 * 10) / 10 : null,
         };
@@ -448,6 +488,10 @@ export function useHistoricalTransactionAnalysis(logradouro: string, bairro: str
       const firstYear = yearsWithData[0];
       const lastYear = yearsWithData[yearsWithData.length - 1];
       const yearDiff = lastYear.ano - firstYear.ano;
+      // Ano parcial entra no crescimento com volume anualizado (média mensal x 12)
+      const lastYearTransacoes = lastYear.parcial && lastYear.transacoesProjetadas
+        ? lastYear.transacoesProjetadas
+        : lastYear.transacoes;
 
       // Total de transações e média por ano
       const totalTransactions = yearsWithData.reduce((sum, y) => sum + y.transacoes, 0);
@@ -457,12 +501,12 @@ export function useHistoricalTransactionAnalysis(logradouro: string, bairro: str
       let transactionGrowth = 0;
       let transactionGrowthReliable = false;
       if (yearDiff > 0 && firstYear.transacoes >= 3) {
-        const totalGrowth = ((lastYear.transacoes - firstYear.transacoes) / firstYear.transacoes) * 100;
+        const totalGrowth = ((lastYearTransacoes - firstYear.transacoes) / firstYear.transacoes) * 100;
         transactionGrowth = totalGrowth / yearDiff;
         transactionGrowthReliable = true;
       } else if (yearDiff > 0 && firstYear.transacoes > 0) {
         // Calcula mas marca como não confiável (base muito pequena)
-        const totalGrowth = ((lastYear.transacoes - firstYear.transacoes) / firstYear.transacoes) * 100;
+        const totalGrowth = ((lastYearTransacoes - firstYear.transacoes) / firstYear.transacoes) * 100;
         transactionGrowth = totalGrowth / yearDiff;
         transactionGrowthReliable = false;
       }
