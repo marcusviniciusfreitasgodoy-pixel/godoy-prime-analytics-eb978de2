@@ -215,8 +215,50 @@ export function HistoricalAnalysisChart({ analysis }: Props) {
             </div>
           </div>
 
+          {/* Composição da amostra quando a análise usa raio */}
+          {isRaio && amostraComposicao && amostraComposicao.length > 0 && (
+            <div className={`rounded-lg p-3 border ${
+              dataSource === 'raio_1km'
+                ? 'bg-amber-50 dark:bg-amber-950/30 border-amber-200 dark:border-amber-800'
+                : 'bg-emerald-50 dark:bg-emerald-950/30 border-emerald-200 dark:border-emerald-800'
+            }`}>
+              <div className="flex items-start gap-2">
+                <Info className={`h-4 w-4 mt-0.5 shrink-0 ${dataSource === 'raio_1km' ? 'text-amber-600' : 'text-emerald-600'}`} />
+                <div className="space-y-2 w-full">
+                  <p className={`text-xs ${dataSource === 'raio_1km' ? 'text-amber-800 dark:text-amber-200' : 'text-emerald-800 dark:text-emerald-200'}`}>
+                    {dataSource === 'raio_1km' ? (
+                      <>
+                        O logradouro não possui amostra própria nem no entorno de 500 m. A análise foi
+                        ampliada para <strong>1 km</strong>, o que mistura vias com perfis diferentes.
+                        Confira a composição da amostra antes de usar estes valores como referência.
+                      </>
+                    ) : (
+                      <>
+                        O logradouro não possui transações registradas no período. A análise usa o
+                        <strong> entorno de 500 m</strong>, composto pelas vias abaixo.
+                      </>
+                    )}
+                  </p>
+                  <ul className="space-y-1">
+                    {amostraComposicao.slice(0, 5).map((item) => (
+                      <li key={item.logradouro} className="flex items-center justify-between gap-2 text-[11px]">
+                        <span className="truncate">{item.logradouro} <span className="text-muted-foreground">({item.distanciaM} m)</span></span>
+                        <span className="font-medium whitespace-nowrap">{item.transacoes} transações · {item.percentual}%</span>
+                      </li>
+                    ))}
+                  </ul>
+                  {amostraComposicao.length > 5 && (
+                    <p className="text-[10px] text-muted-foreground">
+                      + {amostraComposicao.length - 5} outras vias na amostra
+                    </p>
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
+
           {/* Alerta de dados do ano corrente */}
-          {dataSource === 'bairro' && hasCurrentYearData && (
+          {(dataSource === 'bairro' || isRaio) && hasCurrentYearData && (
             <div className="bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 rounded-lg p-3">
               <div className="flex items-start gap-2">
                 <Info className="h-4 w-4 text-amber-600 mt-0.5 shrink-0" />
