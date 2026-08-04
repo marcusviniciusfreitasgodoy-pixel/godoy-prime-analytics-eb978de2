@@ -108,7 +108,7 @@ export function HistoricalAnalysisChart({ analysis }: Props) {
               }`}
             >
               {dataSource === 'raio500' ? (
-                <>🎯 Raio de {raioMetros ?? 500} m em torno de {logradouroUsado}</>
+                <>🎯 Raio de {raioMetros ?? 100} m em torno de {logradouroUsado}</>
               ) : dataSource === 'logradouro' ? (
                 <>📍 Dados do logradouro: {logradouroUsado}</>
               ) : (

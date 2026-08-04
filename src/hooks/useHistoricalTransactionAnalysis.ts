@@ -66,7 +66,7 @@ export interface HistoricalAnalysis {
   alertas: string[];
   futureProjection?: FutureProjection;
   // Fonte dos dados
-  dataSource: 'logradouro' | 'bairro' | 'raio500'; // logradouro específico, raio de 500 m ou bairro todo
+  dataSource: 'logradouro' | 'bairro' | 'raio500'; // logradouro específico, raio de 100 m ou bairro todo
   logradouroUsado: string; // Logradouro usado na busca
   bairroUsado: string; // Bairro usado na busca
   raioMetros?: number; // Raio usado quando dataSource = 'raio500'
@@ -113,7 +113,7 @@ export function useHistoricalTransactionAnalysis(
   const normalizedLogradouro = (logradouro || '').trim();
 
   return useQuery<HistoricalAnalysis | null>({
-    queryKey: ['historical-analysis-5y-v7', normalizedLogradouro.toUpperCase(), normalizedBairro, ruasInternas?.join(',') || '', escopo],
+    queryKey: ['historical-analysis-5y-v8', normalizedLogradouro.toUpperCase(), normalizedBairro, ruasInternas?.join(',') || '', escopo],
     queryFn: async () => {
       if (!normalizedLogradouro || !normalizedBairro) return null;
 
@@ -156,7 +156,7 @@ export function useHistoricalTransactionAnalysis(
       // Se temos ruas internas do condomínio, buscar em todas elas
       // IMPORTANTE: Normalizar acentos das ruas internas para match com banco (ex: "Nélson" → "Nelson")
       if (isRaio) {
-        // Escopo por raio de 500 m a partir do ponto geocodificado do logradouro
+        // Escopo por raio de 100 m a partir do ponto geocodificado do logradouro
         const { data: ponto, error: pontoError } = await supabase.rpc('itbi_ponto_logradouro', {
           p_logradouro: normalizedLogradouro,
           p_bairro: normalizedBairro,
@@ -172,7 +172,7 @@ export function useHistoricalTransactionAnalysis(
         const { data: raioData, error: raioError } = await supabase.rpc('itbi_transacoes_raio', {
           p_lat: coord.lat,
           p_lng: coord.lng,
-          p_raio_m: 500,
+          p_raio_m: 100,
           p_inicio: startDate,
           p_fim: endDate,
         });
@@ -525,7 +525,7 @@ export function useHistoricalTransactionAnalysis(
         dataSource,
         logradouroUsado: normalizedLogradouro,
         bairroUsado: normalizedBairro,
-        raioMetros: isRaio ? 500 : undefined,
+        raioMetros: isRaio ? 100 : undefined,
         crossBairro,
         bairrosEncontrados,
         hasCurrentYearData,
