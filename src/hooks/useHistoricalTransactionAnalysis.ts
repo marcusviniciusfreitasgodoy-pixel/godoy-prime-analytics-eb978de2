@@ -157,17 +157,25 @@ function buildAmostraComposicao(
     .sort((a, b) => b.transacoes - a.transacoes);
 }
 
-export function useHistoricalTransactionAnalysis(logradouro: string, bairro: string, enabled: boolean = true, ruasInternas?: string[]) {
+export type AmostraModo = 'auto' | 'logradouro' | 'raio_500m';
+
+export function useHistoricalTransactionAnalysis(
+  logradouro: string,
+  bairro: string,
+  enabled: boolean = true,
+  ruasInternas?: string[],
+  amostraModo: AmostraModo = 'auto'
+) {
   const normalizedBairro = (bairro || '').toUpperCase().trim();
   const normalizedLogradouro = (logradouro || '').trim();
 
   return useQuery<HistoricalAnalysis | null>({
-    queryKey: ['historical-analysis-5y-v7', normalizedLogradouro.toUpperCase(), normalizedBairro, ruasInternas?.join(',') || ''],
+    queryKey: ['historical-analysis-5y-v8', normalizedLogradouro.toUpperCase(), normalizedBairro, ruasInternas?.join(',') || '', amostraModo],
     queryFn: async () => {
       if (!normalizedLogradouro || !normalizedBairro) return null;
 
       // CACHE: Verificar se há dados em cache válidos
-      const cachedData = getCachedAnalysis(normalizedBairro, normalizedLogradouro, ruasInternas);
+      const cachedData = getCachedAnalysis(normalizedBairro, normalizedLogradouro, ruasInternas, amostraModo);
       if (cachedData) {
         return cachedData;
       }
