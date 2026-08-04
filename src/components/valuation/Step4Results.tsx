@@ -358,7 +358,11 @@ export function Step4Results({ result, state, combined }: Props) {
         </Card>
       ) : historicalAnalysis ? (
         <>
-          <HistoricalAnalysisChart analysis={historicalAnalysis} />
+          <HistoricalAnalysisChart
+            analysis={historicalAnalysis}
+            amostraModo={amostraModo}
+            onAmostraModoChange={setAmostraModo}
+          />
           
           {/* Projeção de Valor Futuro */}
           {historicalAnalysis.futureProjection && (
