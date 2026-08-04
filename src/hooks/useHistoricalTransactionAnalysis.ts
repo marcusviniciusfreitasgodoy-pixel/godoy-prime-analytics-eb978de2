@@ -546,7 +546,7 @@ export function useHistoricalTransactionAnalysis(
           `${zeroedRecentYears} anos recentes zerados com volume total de ${totalAcrossYears}. ` +
           `Resultado NÃO será cacheado.`
         );
-      } else {
+      } else if (!isRaio) {
         // CACHE: Salvar resultado no cache persistente
         setCachedAnalysis(normalizedBairro, normalizedLogradouro, result, ruasInternas);
       }
