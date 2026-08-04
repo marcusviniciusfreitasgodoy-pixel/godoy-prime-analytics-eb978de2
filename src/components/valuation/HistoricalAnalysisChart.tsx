@@ -14,7 +14,7 @@ import {
   Line
 } from "recharts";
 import { TrendingUp, TrendingDown, Minus, Activity, Info } from "lucide-react";
-import type { HistoricalAnalysis } from "@/hooks/useHistoricalTransactionAnalysis";
+import type { HistoricalAnalysis, AmostraModo } from "@/hooks/useHistoricalTransactionAnalysis";
 import { 
   StandardChartTooltip, 
   StandardChartLegend,
@@ -23,6 +23,8 @@ import {
 
 interface Props {
   analysis: HistoricalAnalysis;
+  amostraModo?: AmostraModo;
+  onAmostraModoChange?: (modo: AmostraModo) => void;
 }
 
 const HISTORICAL_LABELS: Record<string, string> = {
@@ -43,7 +45,7 @@ const VARIATION_MODES: { value: VariationMode; label: string; header: string; hi
   { value: 'bruta', label: 'Total bruto', header: 'vs total do ano ant.', hint: 'Compara totais absolutos. Em anos parciais tende a exagerar quedas.' },
 ];
 
-export function HistoricalAnalysisChart({ analysis }: Props) {
+export function HistoricalAnalysisChart({ analysis, amostraModo = 'auto', onAmostraModoChange }: Props) {
   const [variationMode, setVariationMode] = useState<VariationMode>('periodo');
   const modeConfig = VARIATION_MODES.find((m) => m.value === variationMode)!;
 
