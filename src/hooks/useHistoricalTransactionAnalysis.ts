@@ -115,6 +115,39 @@ const getOutlierMinLimit = (bairro: string): number => {
   return OUTLIER_MIN_LIMITS[normalizedBairro] || OUTLIER_MIN_LIMITS['DEFAULT'];
 };
 
+// Composição da amostra por logradouro: essencial para o usuário entender que
+// uma análise por raio mistura vias diferentes (ex.: uma avenida de orla pode
+// dominar o entorno e puxar o preço médio para cima).
+function buildAmostraComposicao(
+  rows: { logradouro: string | null; total_transacoes: number | null; distancia_m: number | null }[]
+): AmostraComposicaoItem[] {
+  const mapa = new Map<string, { transacoes: number; distanciaM: number }>();
+
+  rows.forEach((r) => {
+    const nome = (r.logradouro || 'Não informado').trim();
+    const peso = r.total_transacoes || 1;
+    const dist = Math.round(r.distancia_m || 0);
+    const atual = mapa.get(nome);
+    if (atual) {
+      atual.transacoes += peso;
+      atual.distanciaM = Math.min(atual.distanciaM, dist);
+    } else {
+      mapa.set(nome, { transacoes: peso, distanciaM: dist });
+    }
+  });
+
+  const total = Array.from(mapa.values()).reduce((s, v) => s + v.transacoes, 0) || 1;
+
+  return Array.from(mapa.entries())
+    .map(([logradouro, v]) => ({
+      logradouro,
+      transacoes: v.transacoes,
+      percentual: Math.round((v.transacoes / total) * 1000) / 10,
+      distanciaM: v.distanciaM,
+    }))
+    .sort((a, b) => b.transacoes - a.transacoes);
+}
+
 export function useHistoricalTransactionAnalysis(logradouro: string, bairro: string, enabled: boolean = true, ruasInternas?: string[]) {
   const normalizedBairro = (bairro || '').toUpperCase().trim();
   const normalizedLogradouro = (logradouro || '').trim();
