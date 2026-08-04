@@ -4,7 +4,7 @@ import {
   getCachedAnalysis, 
   setCachedAnalysis 
 } from '@/utils/historicalAnalysisCache';
-import { buildLogradouroOrConditions } from '@/lib/logradouroSearch';
+import { buildLogradouroOrConditions, expandLogradouroSearchTerms } from '@/lib/logradouroSearch';
 
 // Limites de outliers por bairro
 const OUTLIER_LIMITS: Record<string, number> = {
@@ -272,12 +272,21 @@ export function useHistoricalTransactionAnalysis(logradouro: string, bairro: str
           ? ruasInternas[0]
           : normalizedLogradouro;
 
-        const { data: pontoData } = await supabase.rpc('itbi_ponto_logradouro', {
-          p_logradouro: referencia,
-          p_bairro: normalizedBairro,
-        });
-
-        const ponto = Array.isArray(pontoData) ? pontoData[0] : pontoData;
+        // Testa as variantes conhecidas do nome (abreviações e grafias oficiais)
+        // até encontrar uma coordenada de referência para o raio.
+        let ponto: { lat: number | null; lng: number | null } | null = null;
+        const termos = [referencia, ...expandLogradouroSearchTerms(referencia)];
+        for (const termo of Array.from(new Set(termos))) {
+          const { data: pontoData } = await supabase.rpc('itbi_ponto_logradouro', {
+            p_logradouro: termo,
+            p_bairro: normalizedBairro,
+          });
+          const candidato = Array.isArray(pontoData) ? pontoData[0] : pontoData;
+          if (candidato?.lat && candidato?.lng) {
+            ponto = candidato;
+            break;
+          }
+        }
 
         if (ponto?.lat && ponto?.lng) {
           for (const raio of [RAIO_FALLBACK_PADRAO_M, RAIO_FALLBACK_AMPLIADO_M]) {
