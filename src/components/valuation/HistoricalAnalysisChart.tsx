@@ -1,6 +1,8 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
+import { useState } from "react";
+import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { 
   XAxis, 
   YAxis, 
@@ -33,7 +35,24 @@ const HISTORICAL_LEGEND_ITEMS: LegendItem[] = [
   { dataKey: "valorM2", iconType: "line", color: "#10b981" },
 ];
 
+type VariationMode = 'periodo' | 'anualizada' | 'bruta';
+
+const VARIATION_MODES: { value: VariationMode; label: string; header: string; hint: string }[] = [
+  { value: 'periodo', label: 'Média mensal', header: 'vs período equiv.', hint: 'Compara o mesmo intervalo de meses (Jan–Nº) do ano anterior.' },
+  { value: 'anualizada', label: 'Anualizada', header: 'vs ano ant. (anualizado)', hint: 'Projeta o ano parcial (média mensal x 12) e compara com o ano anterior fechado.' },
+  { value: 'bruta', label: 'Total bruto', header: 'vs total do ano ant.', hint: 'Compara totais absolutos. Em anos parciais tende a exagerar quedas.' },
+];
+
 export function HistoricalAnalysisChart({ analysis }: Props) {
+  const [variationMode, setVariationMode] = useState<VariationMode>('periodo');
+  const modeConfig = VARIATION_MODES.find((m) => m.value === variationMode)!;
+
+  const getVariation = (y: (typeof analysis.yearlyData)[number]): number | null => {
+    if (variationMode === 'anualizada') return y.variacaoAnualizada ?? null;
+    if (variationMode === 'bruta') return y.variacaoBruta ?? null;
+    return y.variacaoPeriodoEquivalente ?? y.variacaoTransacoes ?? null;
+  };
+
   const { 
     yearlyData, 
     transactionTrend, 
