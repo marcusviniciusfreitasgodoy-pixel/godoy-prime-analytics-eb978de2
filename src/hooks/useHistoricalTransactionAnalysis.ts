@@ -52,6 +52,8 @@ export interface FutureProjection {
   disclaimer: string;
 }
 
+export type EscopoAnalise = 'rua' | 'raio500';
+
 export interface HistoricalAnalysis {
   yearlyData: YearlyData[];
   transactionTrend: 'crescente' | 'estavel' | 'decrescente';
@@ -64,9 +66,10 @@ export interface HistoricalAnalysis {
   alertas: string[];
   futureProjection?: FutureProjection;
   // Fonte dos dados
-  dataSource: 'logradouro' | 'bairro'; // Indica se usou logradouro específico ou bairro todo
+  dataSource: 'logradouro' | 'bairro' | 'raio500'; // logradouro específico, raio de 500 m ou bairro todo
   logradouroUsado: string; // Logradouro usado na busca
   bairroUsado: string; // Bairro usado na busca
+  raioMetros?: number; // Raio usado quando dataSource = 'raio500'
   // Fallback cross-bairro: quando a rua está cadastrada em outro(s) bairro(s) no ITBI
   crossBairro?: boolean;
   bairrosEncontrados?: string[];
