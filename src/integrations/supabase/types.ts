@@ -3802,6 +3802,7 @@ export type Database = {
             Returns: string
           }
       atualizar_resumo_logradouros: { Args: never; Returns: Json }
+      backfill_itbi_geom_from_logradouros: { Args: never; Returns: Json }
       calcular_area_edificacoes_pendentes: { Args: never; Returns: number }
       calcular_centroids_edificacoes_pendentes: { Args: never; Returns: number }
       calculate_footprint_areas: { Args: never; Returns: number }
@@ -4119,6 +4120,15 @@ export type Database = {
       increment_lead_evaluation: {
         Args: { lead_email: string }
         Returns: undefined
+      }
+      itbi_geocoding_status: { Args: never; Returns: Json }
+      itbi_logradouros_pendentes: {
+        Args: { p_bairro?: string; p_limite?: number }
+        Returns: {
+          bairro: string
+          logradouro: string
+          registros: number
+        }[]
       }
       limpar_torres_algoritmo: { Args: never; Returns: undefined }
       longtransactionsenabled: { Args: never; Returns: boolean }
@@ -4779,6 +4789,16 @@ export type Database = {
       update_itbi_geom: {
         Args: { p_id: string; p_lat: number; p_lng: number }
         Returns: undefined
+      }
+      update_itbi_geom_por_logradouro: {
+        Args: {
+          p_bairro: string
+          p_lat: number
+          p_lng: number
+          p_logradouro: string
+          p_via?: string
+        }
+        Returns: number
       }
       update_lead_by_email: {
         Args: {
