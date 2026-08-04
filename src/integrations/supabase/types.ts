@@ -4130,6 +4130,31 @@ export type Database = {
           registros: number
         }[]
       }
+      itbi_ponto_logradouro: {
+        Args: { p_bairro?: string; p_logradouro: string }
+        Returns: {
+          fonte: string
+          lat: number
+          lng: number
+        }[]
+      }
+      itbi_transacoes_raio: {
+        Args: {
+          p_fim?: string
+          p_inicio?: string
+          p_lat: number
+          p_lng: number
+          p_raio_m?: number
+        }
+        Returns: {
+          bairro: string
+          data_transacao: string
+          distancia_m: number
+          logradouro: string
+          total_transacoes: number
+          valor_m2: number
+        }[]
+      }
       limpar_torres_algoritmo: { Args: never; Returns: undefined }
       longtransactionsenabled: { Args: never; Returns: boolean }
       lookup_invite_by_token: {
