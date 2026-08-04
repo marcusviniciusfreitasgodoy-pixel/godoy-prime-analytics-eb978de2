@@ -43,6 +43,10 @@ export interface YearlyData {
   mesesCobertos?: number;            // meses com dados considerados no ano
   transacoesProjetadas?: number | null; // projeção anualizada (média mensal x 12)
   baseComparacao?: 'ano_completo' | 'periodo_equivalente';
+  // Variações alternativas para auditoria
+  variacaoPeriodoEquivalente?: number | null; // média mensal / mesmo período do ano anterior
+  variacaoAnualizada?: number | null;         // volume anualizado vs ano anterior fechado
+  variacaoBruta?: number | null;              // total bruto vs total bruto (pode ser injusto)
 }
 
 // Projeção de Valor Futuro
@@ -429,6 +433,25 @@ export function useHistoricalTransactionAnalysis(logradouro: string, bairro: str
         // evitando falsa queda ao confrontar ano incompleto com ano fechado.
         let variacaoTransacoes: number | null = null;
         let baseComparacao: 'ano_completo' | 'periodo_equivalente' = 'ano_completo';
+        let variacaoPeriodoEquivalente: number | null = null;
+        let variacaoAnualizada: number | null = null;
+        let variacaoBruta: number | null = null;
+
+        const projetadas = parcial ? (y.transacoes / mesesCobertos) * 12 : y.transacoes;
+
+        if (prevYear) {
+          const prevMesmoPeriodo = prevYear.porMes
+            .slice(0, mesesCobertos)
+            .reduce((a: number, b: number) => a + b, 0);
+          if (prevMesmoPeriodo > 0) {
+            variacaoPeriodoEquivalente = ((y.transacoes - prevMesmoPeriodo) / prevMesmoPeriodo) * 100;
+          }
+          if (prevYear.transacoes > 0) {
+            variacaoAnualizada = ((projetadas - prevYear.transacoes) / prevYear.transacoes) * 100;
+            variacaoBruta = ((y.transacoes - prevYear.transacoes) / prevYear.transacoes) * 100;
+          }
+        }
+
         if (prevYear && parcial) {
           const prevMesmoPeriodo = prevYear.porMes
             .slice(0, mesesCobertos)
@@ -457,6 +480,9 @@ export function useHistoricalTransactionAnalysis(logradouro: string, bairro: str
             ? Math.round((y.transacoes / mesesCobertos) * 12)
             : null,
           baseComparacao,
+          variacaoPeriodoEquivalente: variacaoPeriodoEquivalente !== null ? Math.round(variacaoPeriodoEquivalente * 10) / 10 : null,
+          variacaoAnualizada: variacaoAnualizada !== null ? Math.round(variacaoAnualizada * 10) / 10 : null,
+          variacaoBruta: variacaoBruta !== null ? Math.round(variacaoBruta * 10) / 10 : null,
           variacaoTransacoes: variacaoTransacoes !== null ? Math.round(variacaoTransacoes * 10) / 10 : null,
           variacaoPrecoM2: variacaoPrecoM2 !== null ? Math.round(variacaoPrecoM2 * 10) / 10 : null,
         };

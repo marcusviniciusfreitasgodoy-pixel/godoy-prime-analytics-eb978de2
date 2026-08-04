@@ -63,6 +63,9 @@ export interface YearlyData {
   mesesCobertos?: number;
   transacoesProjetadas?: number | null;
   baseComparacao?: 'ano_completo' | 'periodo_equivalente';
+  variacaoPeriodoEquivalente?: number | null;
+  variacaoAnualizada?: number | null;
+  variacaoBruta?: number | null;
 }
 
 export interface FutureProjection {
