@@ -186,7 +186,9 @@ export function useHistoricalTransactionAnalysis(logradouro: string, bairro: str
       const endYear = currentYear - 1;
       const startYear = endYear - 4;
       const startDate = `${startYear}-01-01`;
-      const endDate = `${endYear}-12-31`;
+      // O ano corrente (parcial) continua sendo exibido: a comparação por período
+      // equivalente já garante que ele não distorça as variações.
+      const endDate = `${currentYear}-12-31`;
 
       // Primeiro buscar por logradouro específico (com fallback de normalização)
       // IMPORTANTE: Usar total_transacoes para contagem correta (cada registro pode representar múltiplas transações)
@@ -206,7 +208,7 @@ export function useHistoricalTransactionAnalysis(logradouro: string, bairro: str
         );
         const orFilter = normalizedRuas.map(rua => `logradouro.ilike.%${rua}%`).join(',');
         // Para condomínios, incluir ano corrente na busca (dados parciais são valiosos)
-        const condoEndDate = `${currentYear}-12-31`;
+        const condoEndDate = endDate;
         const { data, error: e } = await supabase
           .from('itbi_transactions')
           .select('data_transacao, valor_m2, total_transacoes')
@@ -270,11 +272,20 @@ export function useHistoricalTransactionAnalysis(logradouro: string, bairro: str
       let raioMetros: number | undefined;
       let amostraComposicao: AmostraComposicaoItem[] | undefined;
 
-      // O bairro só pode substituir a rua quando não existe nenhuma ocorrência.
-      // Uma amostra pequena da rua continua sendo informação real e não deve ser
-      // mascarada pelo volume agregado de todo o bairro.
-      const shouldFallbackToBairro = !transactions || transactions.length === 0;
-      if (shouldFallbackToBairro) {
+      // Amostra mínima da rua para sustentar uma série histórica de 5 anos.
+      // Abaixo disso a série fica cheia de anos zerados e as variações perdem
+      // sentido, então enriquecemos com o entorno (500 m e, se preciso, 1 km).
+      const MIN_TRANSACOES_LOGRADOURO = 12;
+      const totalTransacoesLogradouro = (transactions || []).reduce(
+        (s, t) => s + (t.total_transacoes || 1),
+        0
+      );
+      const amostraInsuficiente =
+        !transactions ||
+        transactions.length === 0 ||
+        totalTransacoesLogradouro < MIN_TRANSACOES_LOGRADOURO;
+
+      if (amostraInsuficiente) {
         // 1) Fallback padrão: entorno de 500 m do logradouro pesquisado.
         //    O bairro inteiro só é usado quando nem o raio ampliado (1 km) retorna amostra.
         const referencia = ruasInternas && ruasInternas.length > 0
