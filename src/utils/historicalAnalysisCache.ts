@@ -6,7 +6,7 @@
 import type { HistoricalAnalysis } from '@/hooks/useHistoricalTransactionAnalysis';
 
 const CACHE_KEY_PREFIX = 'historical_analysis_';
-const CACHE_VERSION = 'v17'; // Invalidate cache - ano corrente reincluido + enriquecimento por entorno em amostra pequena
+const CACHE_VERSION = 'v18'; // Invalidate cache - seletor de amostra (auto / logradouro / raio 500 m)
 const CACHE_DURATION_MS = 24 * 60 * 60 * 1000; // 24 horas
 const MAX_CACHE_ENTRIES = 50; // Limitar memória do localStorage
 
@@ -21,25 +21,26 @@ interface CacheEntry {
 /**
  * Gera chave única para cache baseada em bairro, logradouro e ruas internas
  */
-function generateCacheKey(bairro: string, logradouro: string, ruasInternas?: string[]): string {
+function generateCacheKey(bairro: string, logradouro: string, ruasInternas?: string[], amostraModo?: string): string {
   const normalizedBairro = bairro.toUpperCase().trim();
   const normalizedLogradouro = logradouro.toUpperCase().trim();
   // Incluir ruas internas na chave para distinguir busca simples de busca por condomínio
   const ruasHash = ruasInternas && ruasInternas.length > 0
     ? '_RI' + ruasInternas.length
     : '';
-  const hash = `${normalizedBairro}_${normalizedLogradouro}${ruasHash}`.replace(/\s+/g, '_').substring(0, 60);
+  const modoHash = amostraModo && amostraModo !== 'auto' ? `_M${amostraModo}` : '';
+  const hash = `${normalizedBairro}_${normalizedLogradouro}${ruasHash}${modoHash}`.replace(/\s+/g, '_').substring(0, 70);
   return `${CACHE_KEY_PREFIX}${hash}`;
 }
 
 /**
  * Recupera análise do cache se válida
  */
-export function getCachedAnalysis(bairro: string, logradouro: string, ruasInternas?: string[]): HistoricalAnalysis | null {
+export function getCachedAnalysis(bairro: string, logradouro: string, ruasInternas?: string[], amostraModo?: string): HistoricalAnalysis | null {
   try {
     const normalizedBairro = bairro.toUpperCase().trim();
     const normalizedLogradouro = logradouro.toUpperCase().trim();
-    const key = generateCacheKey(bairro, logradouro, ruasInternas);
+    const key = generateCacheKey(bairro, logradouro, ruasInternas, amostraModo);
     const cached = localStorage.getItem(key);
     
     if (!cached) return null;
@@ -89,10 +90,11 @@ export function setCachedAnalysis(
   bairro: string, 
   logradouro: string, 
   data: HistoricalAnalysis,
-  ruasInternas?: string[]
+  ruasInternas?: string[],
+  amostraModo?: string
 ): void {
   try {
-    const key = generateCacheKey(bairro, logradouro, ruasInternas);
+    const key = generateCacheKey(bairro, logradouro, ruasInternas, amostraModo);
     
     const entry: CacheEntry = {
       version: CACHE_VERSION,
