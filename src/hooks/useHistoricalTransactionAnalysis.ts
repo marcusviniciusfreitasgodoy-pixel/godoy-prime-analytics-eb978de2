@@ -401,29 +401,62 @@ export function useHistoricalTransactionAnalysis(logradouro: string, bairro: str
             valorMedioM2: Math.round(valorMedioM2),
             valorMinM2: Math.round(valorMinM2),
             valorMaxM2: Math.round(valorMaxM2),
+            porMes: data.porMes,
           };
         })
         .filter((y) => y.ano <= effectiveEndYear)
         .sort((a, b) => a.ano - b.ano);
 
+      // Meses cobertos do ano corrente (base para comparação justa de período)
+      // Usa o último mês com dados registrados, evitando penalizar o defasamento do ITBI.
+      const anoCorrenteRow = yearlyDataRaw.find((y) => y.ano === currentYear);
+      let mesesCorrente = 0;
+      if (anoCorrenteRow) {
+        for (let m = 11; m >= 0; m--) {
+          if (anoCorrenteRow.porMes[m] > 0) { mesesCorrente = m + 1; break; }
+        }
+      }
+
       // Calcular variações ano a ano
       const yearlyData: YearlyData[] = yearlyDataRaw.map((y, index) => {
         const prevYear = index > 0 ? yearlyDataRaw[index - 1] : null;
-        
+
+        const parcial = y.ano === currentYear && mesesCorrente > 0 && mesesCorrente < 12;
+        const mesesCobertos = parcial ? mesesCorrente : 12;
+
         // Variação de transações
+        // Ano parcial: compara com o MESMO período (Jan..N) do ano anterior,
+        // evitando falsa queda ao confrontar ano incompleto com ano fechado.
         let variacaoTransacoes: number | null = null;
-        if (prevYear && prevYear.transacoes > 0) {
+        let baseComparacao: 'ano_completo' | 'periodo_equivalente' = 'ano_completo';
+        if (prevYear && parcial) {
+          const prevMesmoPeriodo = prevYear.porMes
+            .slice(0, mesesCobertos)
+            .reduce((a: number, b: number) => a + b, 0);
+          baseComparacao = 'periodo_equivalente';
+          if (prevMesmoPeriodo > 0) {
+            variacaoTransacoes = ((y.transacoes - prevMesmoPeriodo) / prevMesmoPeriodo) * 100;
+          }
+        } else if (prevYear && prevYear.transacoes > 0) {
           variacaoTransacoes = ((y.transacoes - prevYear.transacoes) / prevYear.transacoes) * 100;
         }
-        
+
         // Variação de preço/m²
         let variacaoPrecoM2: number | null = null;
         if (prevYear && prevYear.valorMedioM2 > 0 && y.valorMedioM2 > 0) {
           variacaoPrecoM2 = ((y.valorMedioM2 - prevYear.valorMedioM2) / prevYear.valorMedioM2) * 100;
         }
-        
+
+        const { porMes: _porMes, ...rest } = y;
+
         return {
-          ...y,
+          ...rest,
+          parcial,
+          mesesCobertos,
+          transacoesProjetadas: parcial
+            ? Math.round((y.transacoes / mesesCobertos) * 12)
+            : null,
+          baseComparacao,
           variacaoTransacoes: variacaoTransacoes !== null ? Math.round(variacaoTransacoes * 10) / 10 : null,
           variacaoPrecoM2: variacaoPrecoM2 !== null ? Math.round(variacaoPrecoM2 * 10) / 10 : null,
         };
