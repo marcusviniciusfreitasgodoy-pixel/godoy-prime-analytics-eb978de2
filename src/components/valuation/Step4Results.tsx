@@ -6,7 +6,8 @@ import { CheckCircle, AlertTriangle, XCircle, TrendingUp, TrendingDown, Minus, H
 import type { ValuationResult, CombinedPrices } from "@/utils/valuationCalculations";
 import type { ValuationState } from "@/types/valuation";
 import { isCasaType, calculateTerrainBonus } from "@/hooks/useValuationCharacteristics";
-import { useHistoricalTransactionAnalysis } from "@/hooks/useHistoricalTransactionAnalysis";
+import { useState } from "react";
+import { useHistoricalTransactionAnalysis, type AmostraModo } from "@/hooks/useHistoricalTransactionAnalysis";
 import { HistoricalAnalysisChart } from "./HistoricalAnalysisChart";
 import { PriceComparisonCard } from "./PriceComparisonCard";
 import { FutureProjectionChart } from "./FutureProjectionChart";
@@ -24,12 +25,15 @@ export function Step4Results({ result, state, combined }: Props) {
     ? calculateTerrainBonus(state.area_m2, state.area_terreno_m2)
     : null;
 
+  const [amostraModo, setAmostraModo] = useState<AmostraModo>('auto');
+
   // Buscar análise histórica de 5 anos (com ruas internas do condomínio quando disponível)
   const { data: historicalAnalysis, isLoading: loadingHistorical } = useHistoricalTransactionAnalysis(
     state.logradouro,
     state.bairro,
     !!state.logradouro && !!state.bairro,
-    state.condominioSelecionado?.ruas_internas
+    state.condominioSelecionado?.ruas_internas,
+    amostraModo
   );
 
   const formatCurrency = (value: number) => {
@@ -354,7 +358,11 @@ export function Step4Results({ result, state, combined }: Props) {
         </Card>
       ) : historicalAnalysis ? (
         <>
-          <HistoricalAnalysisChart analysis={historicalAnalysis} />
+          <HistoricalAnalysisChart
+            analysis={historicalAnalysis}
+            amostraModo={amostraModo}
+            onAmostraModoChange={setAmostraModo}
+          />
           
           {/* Projeção de Valor Futuro */}
           {historicalAnalysis.futureProjection && (

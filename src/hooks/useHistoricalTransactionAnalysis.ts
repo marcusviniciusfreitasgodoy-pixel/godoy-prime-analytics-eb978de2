@@ -157,17 +157,25 @@ function buildAmostraComposicao(
     .sort((a, b) => b.transacoes - a.transacoes);
 }
 
-export function useHistoricalTransactionAnalysis(logradouro: string, bairro: string, enabled: boolean = true, ruasInternas?: string[]) {
+export type AmostraModo = 'auto' | 'logradouro' | 'raio_500m';
+
+export function useHistoricalTransactionAnalysis(
+  logradouro: string,
+  bairro: string,
+  enabled: boolean = true,
+  ruasInternas?: string[],
+  amostraModo: AmostraModo = 'auto'
+) {
   const normalizedBairro = (bairro || '').toUpperCase().trim();
   const normalizedLogradouro = (logradouro || '').trim();
 
   return useQuery<HistoricalAnalysis | null>({
-    queryKey: ['historical-analysis-5y-v7', normalizedLogradouro.toUpperCase(), normalizedBairro, ruasInternas?.join(',') || ''],
+    queryKey: ['historical-analysis-5y-v8', normalizedLogradouro.toUpperCase(), normalizedBairro, ruasInternas?.join(',') || '', amostraModo],
     queryFn: async () => {
       if (!normalizedLogradouro || !normalizedBairro) return null;
 
       // CACHE: Verificar se há dados em cache válidos
-      const cachedData = getCachedAnalysis(normalizedBairro, normalizedLogradouro, ruasInternas);
+      const cachedData = getCachedAnalysis(normalizedBairro, normalizedLogradouro, ruasInternas, amostraModo);
       if (cachedData) {
         return cachedData;
       }
@@ -285,7 +293,18 @@ export function useHistoricalTransactionAnalysis(logradouro: string, bairro: str
         transactions.length === 0 ||
         totalTransacoesLogradouro < MIN_TRANSACOES_LOGRADOURO;
 
-      if (amostraInsuficiente) {
+      // Modo escolhido pelo usuário:
+      // - 'logradouro': usa somente a rua (sem enriquecer pelo entorno)
+      // - 'raio_500m': sempre usa o entorno de 500 m
+      // - 'auto': enriquece pelo entorno apenas quando a amostra da rua é pequena
+      const usarRaio =
+        amostraModo === 'raio_500m' || (amostraModo === 'auto' && amostraInsuficiente);
+      const raiosParaTentar =
+        amostraModo === 'raio_500m'
+          ? [RAIO_FALLBACK_PADRAO_M]
+          : [RAIO_FALLBACK_PADRAO_M, RAIO_FALLBACK_AMPLIADO_M];
+
+      if (usarRaio) {
         // 1) Fallback padrão: entorno de 500 m do logradouro pesquisado.
         //    O bairro inteiro só é usado quando nem o raio ampliado (1 km) retorna amostra.
         const referencia = ruasInternas && ruasInternas.length > 0
@@ -309,7 +328,7 @@ export function useHistoricalTransactionAnalysis(logradouro: string, bairro: str
         }
 
         if (ponto?.lat && ponto?.lng) {
-          for (const raio of [RAIO_FALLBACK_PADRAO_M, RAIO_FALLBACK_AMPLIADO_M]) {
+          for (const raio of raiosParaTentar) {
             const { data: raioData, error: raioError } = await supabase.rpc('itbi_transacoes_raio', {
               p_lat: ponto.lat,
               p_lng: ponto.lng,
@@ -328,8 +347,12 @@ export function useHistoricalTransactionAnalysis(logradouro: string, bairro: str
               0
             );
 
-            // Só substitui a amostra da rua se o entorno for de fato mais rico.
-            if (raioData && raioData.length > 0 && totalRaio > totalTransacoesLogradouro) {
+            // No modo automático, só substitui a amostra da rua se o entorno for
+            // de fato mais rico. No modo 500 m forçado, sempre usa o entorno.
+            const aceitaRaio =
+              raioData && raioData.length > 0 &&
+              (amostraModo === 'raio_500m' || totalRaio > totalTransacoesLogradouro);
+            if (aceitaRaio) {
               transactions = raioData.map((r) => ({
                 data_transacao: r.data_transacao as string,
                 valor_m2: r.valor_m2 !== null ? Number(r.valor_m2) : null,
@@ -717,7 +740,7 @@ export function useHistoricalTransactionAnalysis(logradouro: string, bairro: str
         );
       } else {
         // CACHE: Salvar resultado no cache persistente
-        setCachedAnalysis(normalizedBairro, normalizedLogradouro, result, ruasInternas);
+        setCachedAnalysis(normalizedBairro, normalizedLogradouro, result, ruasInternas, amostraModo);
       }
 
       return result;
