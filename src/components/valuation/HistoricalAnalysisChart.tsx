@@ -386,6 +386,25 @@ export function HistoricalAnalysisChart({ analysis }: Props) {
           <p className="text-xs text-muted-foreground mt-1">
             Análise de liquidez (transações) e valorização (preço/m²) por período
           </p>
+          <div className="mt-3 flex flex-col gap-1">
+            <span className="text-[10px] uppercase tracking-wide text-muted-foreground">
+              Base da variação de transações
+            </span>
+            <ToggleGroup
+              type="single"
+              size="sm"
+              value={variationMode}
+              onValueChange={(v) => v && setVariationMode(v as VariationMode)}
+              className="justify-start flex-wrap"
+            >
+              {VARIATION_MODES.map((m) => (
+                <ToggleGroupItem key={m.value} value={m.value} className="text-[11px] px-2 h-7">
+                  {m.label}
+                </ToggleGroupItem>
+              ))}
+            </ToggleGroup>
+            <span className="text-[10px] text-muted-foreground">{modeConfig.hint}</span>
+          </div>
         </CardHeader>
         <CardContent>
           <div className="overflow-x-auto">
@@ -402,7 +421,7 @@ export function HistoricalAnalysisChart({ analysis }: Props) {
                   <th className="text-center py-2 px-2 font-medium">
                     <div className="flex flex-col items-center">
                       <span>Var. Trans.</span>
-                      <span className="text-[10px] text-muted-foreground font-normal">vs período equiv.</span>
+                      <span className="text-[10px] text-muted-foreground font-normal">{modeConfig.header}</span>
                     </div>
                   </th>
                   <th className="text-right py-2 px-2 font-medium">
@@ -444,27 +463,34 @@ export function HistoricalAnalysisChart({ analysis }: Props) {
                       ) : null}
                     </td>
                     <td className="py-2.5 px-2 text-center">
-                      {y.variacaoTransacoes !== null ? (
-                        <span className={`inline-flex items-center gap-0.5 text-xs font-medium px-1.5 py-0.5 rounded ${
-                          y.variacaoTransacoes > 10 ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400' : 
-                          y.variacaoTransacoes < -10 ? 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400' : 
-                          'bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400'
-                        }`}>
-                          {y.variacaoTransacoes > 0 ? (
-                            <TrendingUp className="h-3 w-3" />
-                          ) : y.variacaoTransacoes < 0 ? (
-                            <TrendingDown className="h-3 w-3" />
-                          ) : (
-                            <Minus className="h-3 w-3" />
-                          )}
-                          {y.variacaoTransacoes > 0 ? '+' : ''}{y.variacaoTransacoes}%
-                        </span>
-                      ) : (
-                        <span className="text-muted-foreground text-[10px]">—</span>
-                      )}
-                      {y.parcial && y.variacaoTransacoes !== null && (
+                      {(() => {
+                        const varTrans = getVariation(y);
+                        return varTrans !== null ? (
+                          <span className={`inline-flex items-center gap-0.5 text-xs font-medium px-1.5 py-0.5 rounded ${
+                            varTrans > 10 ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400' :
+                            varTrans < -10 ? 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400' :
+                            'bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400'
+                          }`}>
+                            {varTrans > 0 ? (
+                              <TrendingUp className="h-3 w-3" />
+                            ) : varTrans < 0 ? (
+                              <TrendingDown className="h-3 w-3" />
+                            ) : (
+                              <Minus className="h-3 w-3" />
+                            )}
+                            {varTrans > 0 ? '+' : ''}{varTrans}%
+                          </span>
+                        ) : (
+                          <span className="text-muted-foreground text-[10px]">—</span>
+                        );
+                      })()}
+                      {y.parcial && getVariation(y) !== null && (
                         <span className="block text-[10px] text-muted-foreground mt-0.5">
-                          vs Jan–{y.mesesCobertos && y.mesesCobertos < 12 ? y.mesesCobertos : 12}º mês de {y.ano - 1}
+                          {variationMode === 'periodo'
+                            ? `vs Jan–${y.mesesCobertos && y.mesesCobertos < 12 ? y.mesesCobertos : 12}º mês de ${y.ano - 1}`
+                            : variationMode === 'anualizada'
+                              ? `proj. ${y.transacoesProjetadas ?? '—'} vs total de ${y.ano - 1}`
+                              : `parcial (${y.mesesCobertos} meses) vs total de ${y.ano - 1}`}
                         </span>
                       )}
                     </td>
