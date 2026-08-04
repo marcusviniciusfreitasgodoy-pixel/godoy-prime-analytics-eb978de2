@@ -26,7 +26,7 @@ export function Step4Results({ result, state, combined }: Props) {
     ? calculateTerrainBonus(state.area_m2, state.area_terreno_m2)
     : null;
 
-  // Escopo da amostra histórica: somente a rua ou raio de 500 m
+  // Escopo da amostra histórica: somente a rua ou raio de 100 m
   const [escopoHistorico, setEscopoHistorico] = useState<EscopoAnalise>("raio500");
 
   // Buscar análise histórica de 5 anos (com ruas internas do condomínio quando disponível)
@@ -356,7 +356,7 @@ export function Step4Results({ result, state, combined }: Props) {
               Somente a rua
             </ToggleGroupItem>
             <ToggleGroupItem value="raio500" className="text-xs px-3">
-              Raio de 500 m
+              Raio de 100 m
             </ToggleGroupItem>
           </ToggleGroup>
         </div>
