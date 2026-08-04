@@ -38,6 +38,11 @@ export interface YearlyData {
   // Variações ano a ano
   variacaoTransacoes: number | null; // % variação transações vs ano anterior
   variacaoPrecoM2: number | null;    // % variação preço/m² vs ano anterior
+  // Ano corrente/incompleto: comparação por período equivalente
+  parcial?: boolean;                 // true quando o ano não está fechado
+  mesesCobertos?: number;            // meses com dados considerados no ano
+  transacoesProjetadas?: number | null; // projeção anualizada (média mensal x 12)
+  baseComparacao?: 'ano_completo' | 'periodo_equivalente';
 }
 
 // Projeção de Valor Futuro
