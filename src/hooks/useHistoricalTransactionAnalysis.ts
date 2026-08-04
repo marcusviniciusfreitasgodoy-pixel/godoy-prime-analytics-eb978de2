@@ -52,7 +52,7 @@ export interface FutureProjection {
   disclaimer: string;
 }
 
-export type EscopoAnalise = 'rua' | 'raio500' | 'raio200';
+export type EscopoAnalise = 'rua' | 'raio500' | 'raio200' | 'raio300';
 
 export interface HistoricalAnalysis {
   yearlyData: YearlyData[];
@@ -113,12 +113,12 @@ export function useHistoricalTransactionAnalysis(
   const normalizedLogradouro = (logradouro || '').trim();
 
   return useQuery<HistoricalAnalysis | null>({
-    queryKey: ['historical-analysis-5y-v10', normalizedLogradouro.toUpperCase(), normalizedBairro, ruasInternas?.join(',') || '', escopo],
+    queryKey: ['historical-analysis-5y-v11', normalizedLogradouro.toUpperCase(), normalizedBairro, ruasInternas?.join(',') || '', escopo],
     queryFn: async () => {
       if (!normalizedLogradouro || !normalizedBairro) return null;
 
-      const isRaio = escopo === 'raio500' || escopo === 'raio200';
-      const raioSelecionado = escopo === 'raio200' ? 200 : 100;
+      const isRaio = escopo === 'raio500' || escopo === 'raio200' || escopo === 'raio300';
+      const raioSelecionado = escopo === 'raio300' ? 300 : escopo === 'raio200' ? 200 : 100;
 
       // CACHE: Verificar se há dados em cache válidos (apenas no escopo de rua)
       if (!isRaio) {
