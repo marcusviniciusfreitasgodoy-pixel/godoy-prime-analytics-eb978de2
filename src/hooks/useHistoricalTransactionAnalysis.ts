@@ -4,7 +4,7 @@ import {
   getCachedAnalysis, 
   setCachedAnalysis 
 } from '@/utils/historicalAnalysisCache';
-import { buildLogradouroOrConditions } from '@/lib/logradouroSearch';
+import { buildLogradouroOrConditions, expandLogradouroSearchTerms } from '@/lib/logradouroSearch';
 
 // Limites de outliers por bairro
 const OUTLIER_LIMITS: Record<string, number> = {
@@ -52,6 +52,18 @@ export interface FutureProjection {
   disclaimer: string;
 }
 
+// Raio padrão de fallback (em metros). O raio de 1 km só é usado quando o de
+// 500 m não retorna amostra e, nesse caso, a composição da amostra é exposta.
+export const RAIO_FALLBACK_PADRAO_M = 500;
+export const RAIO_FALLBACK_AMPLIADO_M = 1000;
+
+export interface AmostraComposicaoItem {
+  logradouro: string;
+  transacoes: number;
+  percentual: number;
+  distanciaM: number;
+}
+
 export interface HistoricalAnalysis {
   yearlyData: YearlyData[];
   transactionTrend: 'crescente' | 'estavel' | 'decrescente';
@@ -64,9 +76,13 @@ export interface HistoricalAnalysis {
   alertas: string[];
   futureProjection?: FutureProjection;
   // Fonte dos dados
-  dataSource: 'logradouro' | 'bairro'; // Indica se usou logradouro específico ou bairro todo
+  dataSource: 'logradouro' | 'raio_500m' | 'raio_1km' | 'bairro';
   logradouroUsado: string; // Logradouro usado na busca
   bairroUsado: string; // Bairro usado na busca
+  // Fallback por raio
+  raioMetros?: number;
+  amostraComposicao?: AmostraComposicaoItem[];
+  amostraLogradouroDominante?: AmostraComposicaoItem;
   // Fallback cross-bairro: quando a rua está cadastrada em outro(s) bairro(s) no ITBI
   crossBairro?: boolean;
   bairrosEncontrados?: string[];
@@ -98,6 +114,39 @@ const getOutlierMinLimit = (bairro: string): number => {
   const normalizedBairro = bairro.toUpperCase();
   return OUTLIER_MIN_LIMITS[normalizedBairro] || OUTLIER_MIN_LIMITS['DEFAULT'];
 };
+
+// Composição da amostra por logradouro: essencial para o usuário entender que
+// uma análise por raio mistura vias diferentes (ex.: uma avenida de orla pode
+// dominar o entorno e puxar o preço médio para cima).
+function buildAmostraComposicao(
+  rows: { logradouro: string | null; total_transacoes: number | null; distancia_m: number | null }[]
+): AmostraComposicaoItem[] {
+  const mapa = new Map<string, { transacoes: number; distanciaM: number }>();
+
+  rows.forEach((r) => {
+    const nome = (r.logradouro || 'Não informado').trim();
+    const peso = r.total_transacoes || 1;
+    const dist = Math.round(r.distancia_m || 0);
+    const atual = mapa.get(nome);
+    if (atual) {
+      atual.transacoes += peso;
+      atual.distanciaM = Math.min(atual.distanciaM, dist);
+    } else {
+      mapa.set(nome, { transacoes: peso, distanciaM: dist });
+    }
+  });
+
+  const total = Array.from(mapa.values()).reduce((s, v) => s + v.transacoes, 0) || 1;
+
+  return Array.from(mapa.entries())
+    .map(([logradouro, v]) => ({
+      logradouro,
+      transacoes: v.transacoes,
+      percentual: Math.round((v.transacoes / total) * 1000) / 10,
+      distanciaM: v.distanciaM,
+    }))
+    .sort((a, b) => b.transacoes - a.transacoes);
+}
 
 export function useHistoricalTransactionAnalysis(logradouro: string, bairro: string, enabled: boolean = true, ruasInternas?: string[]) {
   const normalizedBairro = (bairro || '').toUpperCase().trim();
@@ -207,14 +256,70 @@ export function useHistoricalTransactionAnalysis(logradouro: string, bairro: str
       }
 
       // Rastrear fonte dos dados e quantidade encontrada
-      let dataSource: 'logradouro' | 'bairro' = 'logradouro';
+      let dataSource: 'logradouro' | 'raio_500m' | 'raio_1km' | 'bairro' = 'logradouro';
       const logradouroTransactionCount = transactions?.length || 0;
+      let raioMetros: number | undefined;
+      let amostraComposicao: AmostraComposicaoItem[] | undefined;
 
       // O bairro só pode substituir a rua quando não existe nenhuma ocorrência.
       // Uma amostra pequena da rua continua sendo informação real e não deve ser
       // mascarada pelo volume agregado de todo o bairro.
       const shouldFallbackToBairro = !transactions || transactions.length === 0;
       if (shouldFallbackToBairro) {
+        // 1) Fallback padrão: entorno de 500 m do logradouro pesquisado.
+        //    O bairro inteiro só é usado quando nem o raio ampliado (1 km) retorna amostra.
+        const referencia = ruasInternas && ruasInternas.length > 0
+          ? ruasInternas[0]
+          : normalizedLogradouro;
+
+        // Testa as variantes conhecidas do nome (abreviações e grafias oficiais)
+        // até encontrar uma coordenada de referência para o raio.
+        let ponto: { lat: number | null; lng: number | null } | null = null;
+        const termos = [referencia, ...expandLogradouroSearchTerms(referencia)];
+        for (const termo of Array.from(new Set(termos))) {
+          const { data: pontoData } = await supabase.rpc('itbi_ponto_logradouro', {
+            p_logradouro: termo,
+            p_bairro: normalizedBairro,
+          });
+          const candidato = Array.isArray(pontoData) ? pontoData[0] : pontoData;
+          if (candidato?.lat && candidato?.lng) {
+            ponto = candidato;
+            break;
+          }
+        }
+
+        if (ponto?.lat && ponto?.lng) {
+          for (const raio of [RAIO_FALLBACK_PADRAO_M, RAIO_FALLBACK_AMPLIADO_M]) {
+            const { data: raioData, error: raioError } = await supabase.rpc('itbi_transacoes_raio', {
+              p_lat: ponto.lat,
+              p_lng: ponto.lng,
+              p_raio_m: raio,
+              p_inicio: startDate,
+              p_fim: endDate,
+            });
+
+            if (raioError) {
+              console.warn('[HistoricalAnalysis] Falha na análise por raio:', raioError.message);
+              break;
+            }
+
+            if (raioData && raioData.length > 0) {
+              transactions = raioData.map((r) => ({
+                data_transacao: r.data_transacao as string,
+                valor_m2: r.valor_m2 !== null ? Number(r.valor_m2) : null,
+                total_transacoes: r.total_transacoes ?? 1,
+                bairro: r.bairro,
+              }));
+              raioMetros = raio;
+              dataSource = raio === RAIO_FALLBACK_PADRAO_M ? 'raio_500m' : 'raio_1km';
+              amostraComposicao = buildAmostraComposicao(raioData);
+              break;
+            }
+          }
+        }
+      }
+
+      if (!transactions || transactions.length === 0) {
         const { data: bairroTransactions, error: bairroError } = await supabase
           .from('itbi_transactions')
           .select('data_transacao, valor_m2, total_transacoes')
@@ -228,6 +333,8 @@ export function useHistoricalTransactionAnalysis(logradouro: string, bairro: str
         if (bairroError) throw bairroError;
         transactions = bairroTransactions;
         dataSource = 'bairro'; // Mudou para bairro
+        raioMetros = undefined;
+        amostraComposicao = undefined;
       }
 
       if (!transactions || transactions.length === 0) return null;
@@ -330,6 +437,8 @@ export function useHistoricalTransactionAnalysis(logradouro: string, bairro: str
           diagnostico: 'Dados insuficientes para análise de tendência. Região com poucas transações registradas.',
           alertas: ['⚠️ Poucos dados históricos disponíveis'],
           dataSource,
+          raioMetros,
+          amostraComposicao,
           logradouroUsado: normalizedLogradouro,
           bairroUsado: normalizedBairro,
         };
@@ -433,7 +542,7 @@ export function useHistoricalTransactionAnalysis(logradouro: string, bairro: str
       let currentYearCount = 0;
       let currentYearAvgM2 = 0;
 
-      if (dataSource === 'bairro' && logradouroTransactionCount === 0) {
+      if (dataSource !== 'logradouro' && logradouroTransactionCount === 0) {
         const currentYearStart = `${currentYear}-01-01`;
         const currentYearEnd = `${currentYear}-12-31`;
 
@@ -468,18 +577,23 @@ export function useHistoricalTransactionAnalysis(logradouro: string, bairro: str
         transactionGrowth: Math.round(transactionGrowth * 10) / 10,
         priceGrowth: Math.round(priceGrowth * 10) / 10,
         diagnostico,
-        alertas: crossBairro
-          ? [
-              `ℹ️ Esta rua possui transações registradas no ITBI sob ${
-                bairrosEncontrados.length === 1
-                  ? `o bairro ${bairrosEncontrados[0]}`
-                  : `os bairros ${bairrosEncontrados.join(', ')}`
-              } (limite entre bairros). Os dados foram consolidados para refletir o histórico completo da via.`,
-              ...alertas,
-            ]
-          : alertas,
+        alertas: (() => {
+          const base = [...alertas];
+          if (dataSource === 'raio_500m') {
+            base.unshift('📍 Amostra do entorno (500 m)');
+          }
+          if (dataSource === 'raio_1km' && amostraComposicao?.length) {
+            const dominante = amostraComposicao[0];
+            base.unshift(
+              `⚠️ Amostra ampliada para 1 km: ${dominante.percentual}% das transações vêm de ${dominante.logradouro}`
+            );
+          }
+          return base;
+        })(),
         futureProjection,
         dataSource,
+        raioMetros,
+        amostraComposicao,
         logradouroUsado: normalizedLogradouro,
         bairroUsado: normalizedBairro,
         crossBairro,
@@ -488,6 +602,18 @@ export function useHistoricalTransactionAnalysis(logradouro: string, bairro: str
         currentYearCount,
         currentYearAvgM2,
       };
+
+      const alertasCrossBairro = crossBairro
+          ? [
+              `ℹ️ Esta rua possui transações registradas no ITBI sob ${
+                bairrosEncontrados.length === 1
+                  ? `o bairro ${bairrosEncontrados[0]}`
+                  : `os bairros ${bairrosEncontrados.join(', ')}`
+              } (limite entre bairros). Os dados foram consolidados para refletir o histórico completo da via.`,
+              ...result.alertas,
+            ]
+        : result.alertas;
+      result.alertas = alertasCrossBairro;
 
       // SALVAGUARDA: se houver anos zerados no meio de uma série com volume,
       // não cachear — força refetch e loga aviso para investigação.

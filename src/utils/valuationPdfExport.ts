@@ -599,12 +599,35 @@ function createValuationPDF(
     }
     
     yPos += 4;
-    const historicalTitle = state.historicalAnalysis.dataSource === 'bairro' 
-      ? `Análise Histórica (5 Anos) — Dados do Bairro: ${state.historicalAnalysis.bairroUsado || state.bairro}`
-      : 'Análise Histórica (5 Anos)';
+    const historicalSource = state.historicalAnalysis.dataSource;
+    const historicalTitle =
+      historicalSource === 'bairro'
+        ? `Análise Histórica (5 Anos), Dados do Bairro: ${state.historicalAnalysis.bairroUsado || state.bairro}`
+        : historicalSource === 'raio_500m'
+          ? 'Análise Histórica (5 Anos), Entorno de 500 m'
+          : historicalSource === 'raio_1km'
+            ? 'Análise Histórica (5 Anos), Entorno Ampliado de 1 km'
+            : 'Análise Histórica (5 Anos)';
     yPos = drawSectionTitle(doc, historicalTitle, yPos, marginLeft);
     
     const historical = state.historicalAnalysis;
+
+    // Transparência: quando a amostra vem de um raio, informar a composição por via.
+    if ((historicalSource === 'raio_500m' || historicalSource === 'raio_1km') && historical.amostraComposicao?.length) {
+      const composicao = historical.amostraComposicao
+        .slice(0, 4)
+        .map((c) => `${c.logradouro} (${c.percentual}%)`)
+        .join('; ');
+      doc.setFontSize(8);
+      doc.setTextColor(120, 120, 120);
+      const linhas = doc.splitTextToSize(
+        `Composição da amostra por logradouro: ${composicao}.`,
+        contentWidth
+      );
+      doc.text(linhas, marginLeft, yPos);
+      yPos += linhas.length * 4 + 2;
+      doc.setTextColor(0, 0, 0);
+    }
     
     // KPIs em cards padronizados (mesmo estilo das Métricas de Confiança)
     const kpiHeight = 50;

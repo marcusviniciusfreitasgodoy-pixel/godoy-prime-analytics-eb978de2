@@ -81,9 +81,16 @@ export interface HistoricalAnalysis {
   diagnostico: string;
   alertas: string[];
   futureProjection?: FutureProjection;
-  dataSource?: 'logradouro' | 'bairro';
+  dataSource?: 'logradouro' | 'raio_500m' | 'raio_1km' | 'bairro';
   logradouroUsado?: string;
   bairroUsado?: string;
+  raioMetros?: number;
+  amostraComposicao?: {
+    logradouro: string;
+    transacoes: number;
+    percentual: number;
+    distanciaM: number;
+  }[];
   hasCurrentYearData?: boolean;
   currentYearCount?: number;
   currentYearAvgM2?: number;

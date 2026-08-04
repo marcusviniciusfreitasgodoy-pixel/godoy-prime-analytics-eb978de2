@@ -47,6 +47,8 @@ export function HistoricalAnalysisChart({ analysis }: Props) {
     dataSource,
     logradouroUsado,
     bairroUsado,
+    raioMetros,
+    amostraComposicao,
     crossBairro,
     bairrosEncontrados,
     hasCurrentYearData,
@@ -87,6 +89,15 @@ export function HistoricalAnalysisChart({ analysis }: Props) {
     varPreco: y.variacaoPrecoM2,
   }));
 
+  const isRaio = dataSource === 'raio_500m' || dataSource === 'raio_1km';
+
+  const sourceBadgeClass =
+    dataSource === 'logradouro'
+      ? 'border-blue-500 text-blue-700 bg-blue-50 dark:bg-blue-950/30'
+      : dataSource === 'raio_500m'
+        ? 'border-emerald-500 text-emerald-700 bg-emerald-50 dark:bg-emerald-950/30'
+        : 'border-amber-500 text-amber-700 bg-amber-50 dark:bg-amber-950/30';
+
   return (
     <div className="space-y-4">
       {/* Header com diagnóstico */}
@@ -100,14 +111,14 @@ export function HistoricalAnalysisChart({ analysis }: Props) {
             {/* Indicador da fonte dos dados */}
             <Badge 
               variant="outline" 
-              className={`text-[10px] ${
-                dataSource === 'logradouro' 
-                  ? 'border-blue-500 text-blue-700 bg-blue-50 dark:bg-blue-950/30' 
-                  : 'border-amber-500 text-amber-700 bg-amber-50 dark:bg-amber-950/30'
-              }`}
+              className={`text-[10px] ${sourceBadgeClass}`}
             >
               {dataSource === 'logradouro' ? (
                 <>📍 Dados do logradouro: {logradouroUsado}</>
+              ) : dataSource === 'raio_500m' ? (
+                <>🎯 Entorno de 500 m de {logradouroUsado}</>
+              ) : dataSource === 'raio_1km' ? (
+                <>🔎 Entorno ampliado de 1 km de {logradouroUsado}</>
               ) : (
                 <>🏘️ Dados do bairro: {bairroUsado} (logradouro com {'<'}20 transações)</>
               )}
@@ -204,8 +215,50 @@ export function HistoricalAnalysisChart({ analysis }: Props) {
             </div>
           </div>
 
+          {/* Composição da amostra quando a análise usa raio */}
+          {isRaio && amostraComposicao && amostraComposicao.length > 0 && (
+            <div className={`rounded-lg p-3 border ${
+              dataSource === 'raio_1km'
+                ? 'bg-amber-50 dark:bg-amber-950/30 border-amber-200 dark:border-amber-800'
+                : 'bg-emerald-50 dark:bg-emerald-950/30 border-emerald-200 dark:border-emerald-800'
+            }`}>
+              <div className="flex items-start gap-2">
+                <Info className={`h-4 w-4 mt-0.5 shrink-0 ${dataSource === 'raio_1km' ? 'text-amber-600' : 'text-emerald-600'}`} />
+                <div className="space-y-2 w-full">
+                  <p className={`text-xs ${dataSource === 'raio_1km' ? 'text-amber-800 dark:text-amber-200' : 'text-emerald-800 dark:text-emerald-200'}`}>
+                    {dataSource === 'raio_1km' ? (
+                      <>
+                        O logradouro não possui amostra própria nem no entorno de 500 m. A análise foi
+                        ampliada para <strong>1 km</strong>, o que mistura vias com perfis diferentes.
+                        Confira a composição da amostra antes de usar estes valores como referência.
+                      </>
+                    ) : (
+                      <>
+                        O logradouro não possui transações registradas no período. A análise usa o
+                        <strong> entorno de 500 m</strong>, composto pelas vias abaixo.
+                      </>
+                    )}
+                  </p>
+                  <ul className="space-y-1">
+                    {amostraComposicao.slice(0, 5).map((item) => (
+                      <li key={item.logradouro} className="flex items-center justify-between gap-2 text-[11px]">
+                        <span className="truncate">{item.logradouro} <span className="text-muted-foreground">({item.distanciaM} m)</span></span>
+                        <span className="font-medium whitespace-nowrap">{item.transacoes} transações · {item.percentual}%</span>
+                      </li>
+                    ))}
+                  </ul>
+                  {amostraComposicao.length > 5 && (
+                    <p className="text-[10px] text-muted-foreground">
+                      + {amostraComposicao.length - 5} outras vias na amostra
+                    </p>
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
+
           {/* Alerta de dados do ano corrente */}
-          {dataSource === 'bairro' && hasCurrentYearData && (
+          {(dataSource === 'bairro' || isRaio) && hasCurrentYearData && (
             <div className="bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 rounded-lg p-3">
               <div className="flex items-start gap-2">
                 <Info className="h-4 w-4 text-amber-600 mt-0.5 shrink-0" />
