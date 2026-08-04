@@ -346,20 +346,22 @@ export function useHistoricalTransactionAnalysis(logradouro: string, bairro: str
 
       // Agrupar por ano (de startYear até endYear, incluindo ano corrente se condomínio)
       const effectiveEndYear = (ruasInternas && ruasInternas.length > 0) ? currentYear : endYear;
-      const yearlyMap: Record<number, { valores: number[]; totalTransacoes: number }> = {};
+      const yearlyMap: Record<number, { valores: number[]; totalTransacoes: number; porMes: number[] }> = {};
 
       for (let year = startYear; year <= effectiveEndYear; year++) {
-        yearlyMap[year] = { valores: [], totalTransacoes: 0 };
+        yearlyMap[year] = { valores: [], totalTransacoes: 0, porMes: new Array(12).fill(0) };
       }
 
       transactions.forEach((t) => {
-        const year = new Date(t.data_transacao).getFullYear();
+        const dt = new Date(t.data_transacao);
+        const year = dt.getFullYear();
         if (!yearlyMap[year]) return;
 
         const peso = t.total_transacoes || 1;
 
         // Contagem: sempre soma total_transacoes (mesmo se valor_m2 estiver ausente)
         yearlyMap[year].totalTransacoes += peso;
+        yearlyMap[year].porMes[dt.getMonth()] += peso;
 
         // Preço: só entra nas estatísticas se houver valor_m2 e estiver dentro dos limites
         // Expandir pelo peso para mediana/média ponderada
