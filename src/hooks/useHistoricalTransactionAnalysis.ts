@@ -52,6 +52,18 @@ export interface FutureProjection {
   disclaimer: string;
 }
 
+// Raio padrão de fallback (em metros). O raio de 1 km só é usado quando o de
+// 500 m não retorna amostra e, nesse caso, a composição da amostra é exposta.
+export const RAIO_FALLBACK_PADRAO_M = 500;
+export const RAIO_FALLBACK_AMPLIADO_M = 1000;
+
+export interface AmostraComposicaoItem {
+  logradouro: string;
+  transacoes: number;
+  percentual: number;
+  distanciaM: number;
+}
+
 export interface HistoricalAnalysis {
   yearlyData: YearlyData[];
   transactionTrend: 'crescente' | 'estavel' | 'decrescente';
@@ -64,9 +76,13 @@ export interface HistoricalAnalysis {
   alertas: string[];
   futureProjection?: FutureProjection;
   // Fonte dos dados
-  dataSource: 'logradouro' | 'bairro'; // Indica se usou logradouro específico ou bairro todo
+  dataSource: 'logradouro' | 'raio_500m' | 'raio_1km' | 'bairro';
   logradouroUsado: string; // Logradouro usado na busca
   bairroUsado: string; // Bairro usado na busca
+  // Fallback por raio
+  raioMetros?: number;
+  amostraComposicao?: AmostraComposicaoItem[];
+  amostraLogradouroDominante?: AmostraComposicaoItem;
   // Fallback cross-bairro: quando a rua está cadastrada em outro(s) bairro(s) no ITBI
   crossBairro?: boolean;
   bairrosEncontrados?: string[];
