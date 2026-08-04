@@ -158,17 +158,20 @@ export function useStreetSuggestions(query: string, bairro: string = 'BARRA DA T
         if (!searchVariations.includes(l)) searchVariations.push(l);
       });
       
-      const words = cleanedSearch.split(/\s+/);
-      words.forEach(word => {
-        const variations = abbreviationMap[word];
-        if (variations) {
+      // Aplicar abreviaturas de titulo/patente sobre TODAS as bases (inclusive a grafia corrigida),
+      // para cobrir combinacoes como "GENERAL OLINTO PILAR" -> "GAL OLYNTHO PILLAR"
+      const abbreviationBases = Array.from(new Set([cleanedSearch, normalizedSearch, correctedSearch].filter(Boolean)));
+      abbreviationBases.forEach(base => {
+        base.split(/\s+/).forEach(word => {
+          const variations = abbreviationMap[word.toUpperCase()];
+          if (!variations) return;
           variations.forEach(variation => {
-            const newSearch = cleanedSearch.replace(new RegExp(`\\b${word}\\b`, 'gi'), variation);
+            const newSearch = base.replace(new RegExp(`\\b${word}\\b`, 'gi'), variation);
             if (!searchVariations.includes(newSearch)) {
               searchVariations.push(newSearch);
             }
           });
-        }
+        });
       });
 
       // 1. Buscar condomínios (incluindo ruas internas)
