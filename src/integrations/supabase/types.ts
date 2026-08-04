@@ -4169,6 +4169,7 @@ export type Database = {
         }[]
       }
       normalizar_logradouro: { Args: { texto: string }; Returns: string }
+      normalizar_logradouro_busca: { Args: { texto: string }; Returns: string }
       populate_geometry_columns:
         | { Args: { tbl_oid: unknown; use_typmod?: boolean }; Returns: number }
         | { Args: { use_typmod?: boolean }; Returns: string }
