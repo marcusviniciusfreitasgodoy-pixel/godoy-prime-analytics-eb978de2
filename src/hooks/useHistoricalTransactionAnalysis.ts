@@ -525,6 +525,7 @@ export function useHistoricalTransactionAnalysis(
         dataSource,
         logradouroUsado: normalizedLogradouro,
         bairroUsado: normalizedBairro,
+        raioMetros: isRaio ? 500 : undefined,
         crossBairro,
         bairrosEncontrados,
         hasCurrentYearData,
