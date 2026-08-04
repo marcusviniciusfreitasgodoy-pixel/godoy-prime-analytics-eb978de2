@@ -323,7 +323,13 @@ export function useHistoricalTransactionAnalysis(logradouro: string, bairro: str
               break;
             }
 
-            if (raioData && raioData.length > 0) {
+            const totalRaio = (raioData || []).reduce(
+              (s: number, r: { total_transacoes: number | null }) => s + (r.total_transacoes || 1),
+              0
+            );
+
+            // Só substitui a amostra da rua se o entorno for de fato mais rico.
+            if (raioData && raioData.length > 0 && totalRaio > totalTransacoesLogradouro) {
               transactions = raioData.map((r) => ({
                 data_transacao: r.data_transacao as string,
                 valor_m2: r.valor_m2 !== null ? Number(r.valor_m2) : null,
