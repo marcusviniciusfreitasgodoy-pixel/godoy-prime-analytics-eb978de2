@@ -47,6 +47,8 @@ export function HistoricalAnalysisChart({ analysis }: Props) {
     dataSource,
     logradouroUsado,
     bairroUsado,
+    raioMetros,
+    amostraComposicao,
     crossBairro,
     bairrosEncontrados,
     hasCurrentYearData,
@@ -87,6 +89,15 @@ export function HistoricalAnalysisChart({ analysis }: Props) {
     varPreco: y.variacaoPrecoM2,
   }));
 
+  const isRaio = dataSource === 'raio_500m' || dataSource === 'raio_1km';
+
+  const sourceBadgeClass =
+    dataSource === 'logradouro'
+      ? 'border-blue-500 text-blue-700 bg-blue-50 dark:bg-blue-950/30'
+      : dataSource === 'raio_500m'
+        ? 'border-emerald-500 text-emerald-700 bg-emerald-50 dark:bg-emerald-950/30'
+        : 'border-amber-500 text-amber-700 bg-amber-50 dark:bg-amber-950/30';
+
   return (
     <div className="space-y-4">
       {/* Header com diagnóstico */}
@@ -100,14 +111,14 @@ export function HistoricalAnalysisChart({ analysis }: Props) {
             {/* Indicador da fonte dos dados */}
             <Badge 
               variant="outline" 
-              className={`text-[10px] ${
-                dataSource === 'logradouro' 
-                  ? 'border-blue-500 text-blue-700 bg-blue-50 dark:bg-blue-950/30' 
-                  : 'border-amber-500 text-amber-700 bg-amber-50 dark:bg-amber-950/30'
-              }`}
+              className={`text-[10px] ${sourceBadgeClass}`}
             >
               {dataSource === 'logradouro' ? (
                 <>📍 Dados do logradouro: {logradouroUsado}</>
+              ) : dataSource === 'raio_500m' ? (
+                <>🎯 Entorno de 500 m de {logradouroUsado}</>
+              ) : dataSource === 'raio_1km' ? (
+                <>🔎 Entorno ampliado de 1 km de {logradouroUsado}</>
               ) : (
                 <>🏘️ Dados do bairro: {bairroUsado} (logradouro com {'<'}20 transações)</>
               )}
