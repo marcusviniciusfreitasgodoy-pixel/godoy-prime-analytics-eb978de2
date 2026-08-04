@@ -358,6 +358,9 @@ export function Step4Results({ result, state, combined }: Props) {
             <ToggleGroupItem value="raio500" className="text-xs px-3">
               Raio de 100 m
             </ToggleGroupItem>
+            <ToggleGroupItem value="raio200" className="text-xs px-3">
+              Raio de 200 m
+            </ToggleGroupItem>
           </ToggleGroup>
         </div>
       )}

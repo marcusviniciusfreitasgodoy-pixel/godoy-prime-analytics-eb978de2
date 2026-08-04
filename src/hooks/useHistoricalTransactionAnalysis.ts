@@ -52,7 +52,7 @@ export interface FutureProjection {
   disclaimer: string;
 }
 
-export type EscopoAnalise = 'rua' | 'raio500';
+export type EscopoAnalise = 'rua' | 'raio500' | 'raio200';
 
 export interface HistoricalAnalysis {
   yearlyData: YearlyData[];
@@ -113,11 +113,12 @@ export function useHistoricalTransactionAnalysis(
   const normalizedLogradouro = (logradouro || '').trim();
 
   return useQuery<HistoricalAnalysis | null>({
-    queryKey: ['historical-analysis-5y-v9', normalizedLogradouro.toUpperCase(), normalizedBairro, ruasInternas?.join(',') || '', escopo],
+    queryKey: ['historical-analysis-5y-v10', normalizedLogradouro.toUpperCase(), normalizedBairro, ruasInternas?.join(',') || '', escopo],
     queryFn: async () => {
       if (!normalizedLogradouro || !normalizedBairro) return null;
 
-      const isRaio = escopo === 'raio500';
+      const isRaio = escopo === 'raio500' || escopo === 'raio200';
+      const raioSelecionado = escopo === 'raio200' ? 200 : 100;
 
       // CACHE: Verificar se há dados em cache válidos (apenas no escopo de rua)
       if (!isRaio) {
@@ -172,7 +173,7 @@ export function useHistoricalTransactionAnalysis(
         const { data: raioData, error: raioError } = await supabase.rpc('itbi_transacoes_raio', {
           p_lat: coord.lat,
           p_lng: coord.lng,
-          p_raio_m: 100,
+          p_raio_m: raioSelecionado,
           p_inicio: startDate,
           p_fim: endDate,
         });
@@ -525,7 +526,7 @@ export function useHistoricalTransactionAnalysis(
         dataSource,
         logradouroUsado: normalizedLogradouro,
         bairroUsado: normalizedBairro,
-        raioMetros: isRaio ? 100 : undefined,
+        raioMetros: isRaio ? raioSelecionado : undefined,
         crossBairro,
         bairrosEncontrados,
         hasCurrentYearData,
