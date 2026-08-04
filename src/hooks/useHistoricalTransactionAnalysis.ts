@@ -488,6 +488,10 @@ export function useHistoricalTransactionAnalysis(logradouro: string, bairro: str
       const firstYear = yearsWithData[0];
       const lastYear = yearsWithData[yearsWithData.length - 1];
       const yearDiff = lastYear.ano - firstYear.ano;
+      // Ano parcial entra no crescimento com volume anualizado (média mensal x 12)
+      const lastYearTransacoes = lastYear.parcial && lastYear.transacoesProjetadas
+        ? lastYear.transacoesProjetadas
+        : lastYear.transacoes;
 
       // Total de transações e média por ano
       const totalTransactions = yearsWithData.reduce((sum, y) => sum + y.transacoes, 0);
@@ -497,12 +501,12 @@ export function useHistoricalTransactionAnalysis(logradouro: string, bairro: str
       let transactionGrowth = 0;
       let transactionGrowthReliable = false;
       if (yearDiff > 0 && firstYear.transacoes >= 3) {
-        const totalGrowth = ((lastYear.transacoes - firstYear.transacoes) / firstYear.transacoes) * 100;
+        const totalGrowth = ((lastYearTransacoes - firstYear.transacoes) / firstYear.transacoes) * 100;
         transactionGrowth = totalGrowth / yearDiff;
         transactionGrowthReliable = true;
       } else if (yearDiff > 0 && firstYear.transacoes > 0) {
         // Calcula mas marca como não confiável (base muito pequena)
-        const totalGrowth = ((lastYear.transacoes - firstYear.transacoes) / firstYear.transacoes) * 100;
+        const totalGrowth = ((lastYearTransacoes - firstYear.transacoes) / firstYear.transacoes) * 100;
         transactionGrowth = totalGrowth / yearDiff;
         transactionGrowthReliable = false;
       }
