@@ -428,6 +428,8 @@ export function useHistoricalTransactionAnalysis(logradouro: string, bairro: str
           diagnostico: 'Dados insuficientes para análise de tendência. Região com poucas transações registradas.',
           alertas: ['⚠️ Poucos dados históricos disponíveis'],
           dataSource,
+          raioMetros,
+          amostraComposicao,
           logradouroUsado: normalizedLogradouro,
           bairroUsado: normalizedBairro,
         };
