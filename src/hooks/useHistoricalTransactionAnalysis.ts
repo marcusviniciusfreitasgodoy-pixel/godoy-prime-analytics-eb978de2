@@ -740,7 +740,7 @@ export function useHistoricalTransactionAnalysis(
         );
       } else {
         // CACHE: Salvar resultado no cache persistente
-        setCachedAnalysis(normalizedBairro, normalizedLogradouro, result, ruasInternas);
+        setCachedAnalysis(normalizedBairro, normalizedLogradouro, result, ruasInternas, amostraModo);
       }
 
       return result;
