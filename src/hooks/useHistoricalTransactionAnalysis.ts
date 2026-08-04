@@ -531,7 +531,7 @@ export function useHistoricalTransactionAnalysis(logradouro: string, bairro: str
       let currentYearCount = 0;
       let currentYearAvgM2 = 0;
 
-      if (dataSource === 'bairro' && logradouroTransactionCount === 0) {
+      if (dataSource !== 'logradouro' && logradouroTransactionCount === 0) {
         const currentYearStart = `${currentYear}-01-01`;
         const currentYearEnd = `${currentYear}-12-31`;
 
@@ -566,18 +566,23 @@ export function useHistoricalTransactionAnalysis(logradouro: string, bairro: str
         transactionGrowth: Math.round(transactionGrowth * 10) / 10,
         priceGrowth: Math.round(priceGrowth * 10) / 10,
         diagnostico,
-        alertas: crossBairro
-          ? [
-              `ℹ️ Esta rua possui transações registradas no ITBI sob ${
-                bairrosEncontrados.length === 1
-                  ? `o bairro ${bairrosEncontrados[0]}`
-                  : `os bairros ${bairrosEncontrados.join(', ')}`
-              } (limite entre bairros). Os dados foram consolidados para refletir o histórico completo da via.`,
-              ...alertas,
-            ]
-          : alertas,
+        alertas: (() => {
+          const base = [...alertas];
+          if (dataSource === 'raio_500m') {
+            base.unshift('📍 Amostra do entorno (500 m)');
+          }
+          if (dataSource === 'raio_1km' && amostraComposicao?.length) {
+            const dominante = amostraComposicao[0];
+            base.unshift(
+              `⚠️ Amostra ampliada para 1 km: ${dominante.percentual}% das transações vêm de ${dominante.logradouro}`
+            );
+          }
+          return base;
+        })(),
         futureProjection,
         dataSource,
+        raioMetros,
+        amostraComposicao,
         logradouroUsado: normalizedLogradouro,
         bairroUsado: normalizedBairro,
         crossBairro,
@@ -586,6 +591,18 @@ export function useHistoricalTransactionAnalysis(logradouro: string, bairro: str
         currentYearCount,
         currentYearAvgM2,
       };
+
+      const alertasCrossBairro = crossBairro
+          ? [
+              `ℹ️ Esta rua possui transações registradas no ITBI sob ${
+                bairrosEncontrados.length === 1
+                  ? `o bairro ${bairrosEncontrados[0]}`
+                  : `os bairros ${bairrosEncontrados.join(', ')}`
+              } (limite entre bairros). Os dados foram consolidados para refletir o histórico completo da via.`,
+              ...result.alertas,
+            ]
+        : result.alertas;
+      result.alertas = alertasCrossBairro;
 
       // SALVAGUARDA: se houver anos zerados no meio de uma série com volume,
       // não cachear — força refetch e loga aviso para investigação.
