@@ -223,14 +223,61 @@ export function useHistoricalTransactionAnalysis(logradouro: string, bairro: str
       }
 
       // Rastrear fonte dos dados e quantidade encontrada
-      let dataSource: 'logradouro' | 'bairro' = 'logradouro';
+      let dataSource: 'logradouro' | 'raio_500m' | 'raio_1km' | 'bairro' = 'logradouro';
       const logradouroTransactionCount = transactions?.length || 0;
+      let raioMetros: number | undefined;
+      let amostraComposicao: AmostraComposicaoItem[] | undefined;
 
       // O bairro só pode substituir a rua quando não existe nenhuma ocorrência.
       // Uma amostra pequena da rua continua sendo informação real e não deve ser
       // mascarada pelo volume agregado de todo o bairro.
       const shouldFallbackToBairro = !transactions || transactions.length === 0;
       if (shouldFallbackToBairro) {
+        // 1) Fallback padrão: entorno de 500 m do logradouro pesquisado.
+        //    O bairro inteiro só é usado quando nem o raio ampliado (1 km) retorna amostra.
+        const referencia = ruasInternas && ruasInternas.length > 0
+          ? ruasInternas[0]
+          : normalizedLogradouro;
+
+        const { data: pontoData } = await supabase.rpc('itbi_ponto_logradouro', {
+          p_logradouro: referencia,
+          p_bairro: normalizedBairro,
+        });
+
+        const ponto = Array.isArray(pontoData) ? pontoData[0] : pontoData;
+
+        if (ponto?.lat && ponto?.lng) {
+          for (const raio of [RAIO_FALLBACK_PADRAO_M, RAIO_FALLBACK_AMPLIADO_M]) {
+            const { data: raioData, error: raioError } = await supabase.rpc('itbi_transacoes_raio', {
+              p_lat: ponto.lat,
+              p_lng: ponto.lng,
+              p_raio_m: raio,
+              p_inicio: startDate,
+              p_fim: endDate,
+            });
+
+            if (raioError) {
+              console.warn('[HistoricalAnalysis] Falha na análise por raio:', raioError.message);
+              break;
+            }
+
+            if (raioData && raioData.length > 0) {
+              transactions = raioData.map((r) => ({
+                data_transacao: r.data_transacao as string,
+                valor_m2: r.valor_m2 !== null ? Number(r.valor_m2) : null,
+                total_transacoes: r.total_transacoes ?? 1,
+                bairro: r.bairro,
+              }));
+              raioMetros = raio;
+              dataSource = raio === RAIO_FALLBACK_PADRAO_M ? 'raio_500m' : 'raio_1km';
+              amostraComposicao = buildAmostraComposicao(raioData);
+              break;
+            }
+          }
+        }
+      }
+
+      if (!transactions || transactions.length === 0) {
         const { data: bairroTransactions, error: bairroError } = await supabase
           .from('itbi_transactions')
           .select('data_transacao, valor_m2, total_transacoes')
@@ -244,6 +291,8 @@ export function useHistoricalTransactionAnalysis(logradouro: string, bairro: str
         if (bairroError) throw bairroError;
         transactions = bairroTransactions;
         dataSource = 'bairro'; // Mudou para bairro
+        raioMetros = undefined;
+        amostraComposicao = undefined;
       }
 
       if (!transactions || transactions.length === 0) return null;
