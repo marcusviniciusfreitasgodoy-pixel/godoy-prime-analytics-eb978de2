@@ -6,7 +6,9 @@ import { CheckCircle, AlertTriangle, XCircle, TrendingUp, TrendingDown, Minus, H
 import type { ValuationResult, CombinedPrices } from "@/utils/valuationCalculations";
 import type { ValuationState } from "@/types/valuation";
 import { isCasaType, calculateTerrainBonus } from "@/hooks/useValuationCharacteristics";
-import { useHistoricalTransactionAnalysis } from "@/hooks/useHistoricalTransactionAnalysis";
+import { useState } from "react";
+import { useHistoricalTransactionAnalysis, type EscopoAnalise } from "@/hooks/useHistoricalTransactionAnalysis";
+import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { HistoricalAnalysisChart } from "./HistoricalAnalysisChart";
 import { PriceComparisonCard } from "./PriceComparisonCard";
 import { FutureProjectionChart } from "./FutureProjectionChart";
@@ -24,12 +26,16 @@ export function Step4Results({ result, state, combined }: Props) {
     ? calculateTerrainBonus(state.area_m2, state.area_terreno_m2)
     : null;
 
+  // Escopo da amostra histórica: somente a rua ou raio de 500 m
+  const [escopoHistorico, setEscopoHistorico] = useState<EscopoAnalise>("raio500");
+
   // Buscar análise histórica de 5 anos (com ruas internas do condomínio quando disponível)
   const { data: historicalAnalysis, isLoading: loadingHistorical } = useHistoricalTransactionAnalysis(
     state.logradouro,
     state.bairro,
     !!state.logradouro && !!state.bairro,
-    state.condominioSelecionado?.ruas_internas
+    state.condominioSelecionado?.ruas_internas,
+    escopoHistorico
   );
 
   const formatCurrency = (value: number) => {
@@ -337,6 +343,25 @@ export function Step4Results({ result, state, combined }: Props) {
       )}
 
       {/* Análise Histórica 5 Anos */}
+      {(loadingHistorical || historicalAnalysis) && (
+        <div className="flex items-center justify-end gap-2 flex-wrap">
+          <span className="text-xs text-muted-foreground">Amostra histórica:</span>
+          <ToggleGroup
+            type="single"
+            size="sm"
+            value={escopoHistorico}
+            onValueChange={(v) => v && setEscopoHistorico(v as EscopoAnalise)}
+          >
+            <ToggleGroupItem value="rua" className="text-xs px-3">
+              Somente a rua
+            </ToggleGroupItem>
+            <ToggleGroupItem value="raio500" className="text-xs px-3">
+              Raio de 500 m
+            </ToggleGroupItem>
+          </ToggleGroup>
+        </div>
+      )}
+
       {loadingHistorical ? (
         <Card>
           <CardHeader className="pb-2">
