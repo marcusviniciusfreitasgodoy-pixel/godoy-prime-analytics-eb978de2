@@ -52,6 +52,8 @@ export interface FutureProjection {
   disclaimer: string;
 }
 
+export type EscopoAnalise = 'rua' | 'raio500';
+
 export interface HistoricalAnalysis {
   yearlyData: YearlyData[];
   transactionTrend: 'crescente' | 'estavel' | 'decrescente';
@@ -64,9 +66,10 @@ export interface HistoricalAnalysis {
   alertas: string[];
   futureProjection?: FutureProjection;
   // Fonte dos dados
-  dataSource: 'logradouro' | 'bairro'; // Indica se usou logradouro específico ou bairro todo
+  dataSource: 'logradouro' | 'bairro' | 'raio500'; // logradouro específico, raio de 500 m ou bairro todo
   logradouroUsado: string; // Logradouro usado na busca
   bairroUsado: string; // Bairro usado na busca
+  raioMetros?: number; // Raio usado quando dataSource = 'raio500'
   // Fallback cross-bairro: quando a rua está cadastrada em outro(s) bairro(s) no ITBI
   crossBairro?: boolean;
   bairrosEncontrados?: string[];
@@ -99,19 +102,29 @@ const getOutlierMinLimit = (bairro: string): number => {
   return OUTLIER_MIN_LIMITS[normalizedBairro] || OUTLIER_MIN_LIMITS['DEFAULT'];
 };
 
-export function useHistoricalTransactionAnalysis(logradouro: string, bairro: string, enabled: boolean = true, ruasInternas?: string[]) {
+export function useHistoricalTransactionAnalysis(
+  logradouro: string,
+  bairro: string,
+  enabled: boolean = true,
+  ruasInternas?: string[],
+  escopo: EscopoAnalise = 'rua'
+) {
   const normalizedBairro = (bairro || '').toUpperCase().trim();
   const normalizedLogradouro = (logradouro || '').trim();
 
   return useQuery<HistoricalAnalysis | null>({
-    queryKey: ['historical-analysis-5y-v6', normalizedLogradouro.toUpperCase(), normalizedBairro, ruasInternas?.join(',') || ''],
+    queryKey: ['historical-analysis-5y-v7', normalizedLogradouro.toUpperCase(), normalizedBairro, ruasInternas?.join(',') || '', escopo],
     queryFn: async () => {
       if (!normalizedLogradouro || !normalizedBairro) return null;
 
-      // CACHE: Verificar se há dados em cache válidos
-      const cachedData = getCachedAnalysis(normalizedBairro, normalizedLogradouro, ruasInternas);
-      if (cachedData) {
-        return cachedData;
+      const isRaio = escopo === 'raio500';
+
+      // CACHE: Verificar se há dados em cache válidos (apenas no escopo de rua)
+      if (!isRaio) {
+        const cachedData = getCachedAnalysis(normalizedBairro, normalizedLogradouro, ruasInternas);
+        if (cachedData) {
+          return cachedData;
+        }
       }
 
       const outlierLimit = getOutlierLimit(normalizedBairro);
@@ -142,7 +155,37 @@ export function useHistoricalTransactionAnalysis(logradouro: string, bairro: str
 
       // Se temos ruas internas do condomínio, buscar em todas elas
       // IMPORTANTE: Normalizar acentos das ruas internas para match com banco (ex: "Nélson" → "Nelson")
-      if (ruasInternas && ruasInternas.length > 0) {
+      if (isRaio) {
+        // Escopo por raio de 500 m a partir do ponto geocodificado do logradouro
+        const { data: ponto, error: pontoError } = await supabase.rpc('itbi_ponto_logradouro', {
+          p_logradouro: normalizedLogradouro,
+          p_bairro: normalizedBairro,
+        });
+
+        if (pontoError) throw pontoError;
+
+        const coord = Array.isArray(ponto) ? ponto[0] : ponto;
+        if (!coord?.lat || !coord?.lng) {
+          return null;
+        }
+
+        const { data: raioData, error: raioError } = await supabase.rpc('itbi_transacoes_raio', {
+          p_lat: coord.lat,
+          p_lng: coord.lng,
+          p_raio_m: 500,
+          p_inicio: startDate,
+          p_fim: endDate,
+        });
+
+        if (raioError) throw raioError;
+
+        transactions = (raioData || []).map((r: { data_transacao: string; valor_m2: number | string | null; total_transacoes: number | null; bairro?: string | null }) => ({
+          data_transacao: r.data_transacao,
+          valor_m2: r.valor_m2 === null ? null : Number(r.valor_m2),
+          total_transacoes: r.total_transacoes,
+          bairro: r.bairro ?? null,
+        }));
+      } else if (ruasInternas && ruasInternas.length > 0) {
         const normalizedRuas = ruasInternas.map(rua => 
           rua.normalize('NFD').replace(/[\u0300-\u036f]/g, '')
         );
@@ -207,13 +250,13 @@ export function useHistoricalTransactionAnalysis(logradouro: string, bairro: str
       }
 
       // Rastrear fonte dos dados e quantidade encontrada
-      let dataSource: 'logradouro' | 'bairro' = 'logradouro';
+      let dataSource: 'logradouro' | 'bairro' | 'raio500' = isRaio ? 'raio500' : 'logradouro';
       const logradouroTransactionCount = transactions?.length || 0;
 
       // O bairro só pode substituir a rua quando não existe nenhuma ocorrência.
       // Uma amostra pequena da rua continua sendo informação real e não deve ser
       // mascarada pelo volume agregado de todo o bairro.
-      const shouldFallbackToBairro = !transactions || transactions.length === 0;
+      const shouldFallbackToBairro = !isRaio && (!transactions || transactions.length === 0);
       if (shouldFallbackToBairro) {
         const { data: bairroTransactions, error: bairroError } = await supabase
           .from('itbi_transactions')
@@ -482,6 +525,7 @@ export function useHistoricalTransactionAnalysis(logradouro: string, bairro: str
         dataSource,
         logradouroUsado: normalizedLogradouro,
         bairroUsado: normalizedBairro,
+        raioMetros: isRaio ? 500 : undefined,
         crossBairro,
         bairrosEncontrados,
         hasCurrentYearData,
@@ -502,7 +546,7 @@ export function useHistoricalTransactionAnalysis(logradouro: string, bairro: str
           `${zeroedRecentYears} anos recentes zerados com volume total de ${totalAcrossYears}. ` +
           `Resultado NÃO será cacheado.`
         );
-      } else {
+      } else if (!isRaio) {
         // CACHE: Salvar resultado no cache persistente
         setCachedAnalysis(normalizedBairro, normalizedLogradouro, result, ruasInternas);
       }
