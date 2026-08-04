@@ -4,7 +4,7 @@ import {
   getCachedAnalysis, 
   setCachedAnalysis 
 } from '@/utils/historicalAnalysisCache';
-import { buildLogradouroOrConditions, expandLogradouroSearchTerms } from '@/lib/logradouroSearch';
+import { buildLogradouroOrConditions } from '@/lib/logradouroSearch';
 
 // Limites de outliers por bairro
 const OUTLIER_LIMITS: Record<string, number> = {
@@ -38,15 +38,6 @@ export interface YearlyData {
   // Variações ano a ano
   variacaoTransacoes: number | null; // % variação transações vs ano anterior
   variacaoPrecoM2: number | null;    // % variação preço/m² vs ano anterior
-  // Ano corrente/incompleto: comparação por período equivalente
-  parcial?: boolean;                 // true quando o ano não está fechado
-  mesesCobertos?: number;            // meses com dados considerados no ano
-  transacoesProjetadas?: number | null; // projeção anualizada (média mensal x 12)
-  baseComparacao?: 'ano_completo' | 'periodo_equivalente';
-  // Variações alternativas para auditoria
-  variacaoPeriodoEquivalente?: number | null; // média mensal / mesmo período do ano anterior
-  variacaoAnualizada?: number | null;         // volume anualizado vs ano anterior fechado
-  variacaoBruta?: number | null;              // total bruto vs total bruto (pode ser injusto)
 }
 
 // Projeção de Valor Futuro
@@ -61,18 +52,6 @@ export interface FutureProjection {
   disclaimer: string;
 }
 
-// Raio padrão de fallback (em metros). O raio de 1 km só é usado quando o de
-// 500 m não retorna amostra e, nesse caso, a composição da amostra é exposta.
-export const RAIO_FALLBACK_PADRAO_M = 500;
-export const RAIO_FALLBACK_AMPLIADO_M = 1000;
-
-export interface AmostraComposicaoItem {
-  logradouro: string;
-  transacoes: number;
-  percentual: number;
-  distanciaM: number;
-}
-
 export interface HistoricalAnalysis {
   yearlyData: YearlyData[];
   transactionTrend: 'crescente' | 'estavel' | 'decrescente';
@@ -85,13 +64,9 @@ export interface HistoricalAnalysis {
   alertas: string[];
   futureProjection?: FutureProjection;
   // Fonte dos dados
-  dataSource: 'logradouro' | 'raio_500m' | 'raio_1km' | 'bairro';
+  dataSource: 'logradouro' | 'bairro'; // Indica se usou logradouro específico ou bairro todo
   logradouroUsado: string; // Logradouro usado na busca
   bairroUsado: string; // Bairro usado na busca
-  // Fallback por raio
-  raioMetros?: number;
-  amostraComposicao?: AmostraComposicaoItem[];
-  amostraLogradouroDominante?: AmostraComposicaoItem;
   // Fallback cross-bairro: quando a rua está cadastrada em outro(s) bairro(s) no ITBI
   crossBairro?: boolean;
   bairrosEncontrados?: string[];
@@ -124,58 +99,17 @@ const getOutlierMinLimit = (bairro: string): number => {
   return OUTLIER_MIN_LIMITS[normalizedBairro] || OUTLIER_MIN_LIMITS['DEFAULT'];
 };
 
-// Composição da amostra por logradouro: essencial para o usuário entender que
-// uma análise por raio mistura vias diferentes (ex.: uma avenida de orla pode
-// dominar o entorno e puxar o preço médio para cima).
-function buildAmostraComposicao(
-  rows: { logradouro: string | null; total_transacoes: number | null; distancia_m: number | null }[]
-): AmostraComposicaoItem[] {
-  const mapa = new Map<string, { transacoes: number; distanciaM: number }>();
-
-  rows.forEach((r) => {
-    const nome = (r.logradouro || 'Não informado').trim();
-    const peso = r.total_transacoes || 1;
-    const dist = Math.round(r.distancia_m || 0);
-    const atual = mapa.get(nome);
-    if (atual) {
-      atual.transacoes += peso;
-      atual.distanciaM = Math.min(atual.distanciaM, dist);
-    } else {
-      mapa.set(nome, { transacoes: peso, distanciaM: dist });
-    }
-  });
-
-  const total = Array.from(mapa.values()).reduce((s, v) => s + v.transacoes, 0) || 1;
-
-  return Array.from(mapa.entries())
-    .map(([logradouro, v]) => ({
-      logradouro,
-      transacoes: v.transacoes,
-      percentual: Math.round((v.transacoes / total) * 1000) / 10,
-      distanciaM: v.distanciaM,
-    }))
-    .sort((a, b) => b.transacoes - a.transacoes);
-}
-
-export type AmostraModo = 'auto' | 'logradouro' | 'raio_500m';
-
-export function useHistoricalTransactionAnalysis(
-  logradouro: string,
-  bairro: string,
-  enabled: boolean = true,
-  ruasInternas?: string[],
-  amostraModo: AmostraModo = 'auto'
-) {
+export function useHistoricalTransactionAnalysis(logradouro: string, bairro: string, enabled: boolean = true, ruasInternas?: string[]) {
   const normalizedBairro = (bairro || '').toUpperCase().trim();
   const normalizedLogradouro = (logradouro || '').trim();
 
   return useQuery<HistoricalAnalysis | null>({
-    queryKey: ['historical-analysis-5y-v8', normalizedLogradouro.toUpperCase(), normalizedBairro, ruasInternas?.join(',') || '', amostraModo],
+    queryKey: ['historical-analysis-5y-v6', normalizedLogradouro.toUpperCase(), normalizedBairro, ruasInternas?.join(',') || ''],
     queryFn: async () => {
       if (!normalizedLogradouro || !normalizedBairro) return null;
 
       // CACHE: Verificar se há dados em cache válidos
-      const cachedData = getCachedAnalysis(normalizedBairro, normalizedLogradouro, ruasInternas, amostraModo);
+      const cachedData = getCachedAnalysis(normalizedBairro, normalizedLogradouro, ruasInternas);
       if (cachedData) {
         return cachedData;
       }
@@ -194,9 +128,7 @@ export function useHistoricalTransactionAnalysis(
       const endYear = currentYear - 1;
       const startYear = endYear - 4;
       const startDate = `${startYear}-01-01`;
-      // O ano corrente (parcial) continua sendo exibido: a comparação por período
-      // equivalente já garante que ele não distorça as variações.
-      const endDate = `${currentYear}-12-31`;
+      const endDate = `${endYear}-12-31`;
 
       // Primeiro buscar por logradouro específico (com fallback de normalização)
       // IMPORTANTE: Usar total_transacoes para contagem correta (cada registro pode representar múltiplas transações)
@@ -216,7 +148,7 @@ export function useHistoricalTransactionAnalysis(
         );
         const orFilter = normalizedRuas.map(rua => `logradouro.ilike.%${rua}%`).join(',');
         // Para condomínios, incluir ano corrente na busca (dados parciais são valiosos)
-        const condoEndDate = endDate;
+        const condoEndDate = `${currentYear}-12-31`;
         const { data, error: e } = await supabase
           .from('itbi_transactions')
           .select('data_transacao, valor_m2, total_transacoes')
@@ -275,100 +207,14 @@ export function useHistoricalTransactionAnalysis(
       }
 
       // Rastrear fonte dos dados e quantidade encontrada
-      let dataSource: 'logradouro' | 'raio_500m' | 'raio_1km' | 'bairro' = 'logradouro';
+      let dataSource: 'logradouro' | 'bairro' = 'logradouro';
       const logradouroTransactionCount = transactions?.length || 0;
-      let raioMetros: number | undefined;
-      let amostraComposicao: AmostraComposicaoItem[] | undefined;
 
-      // Amostra mínima da rua para sustentar uma série histórica de 5 anos.
-      // Abaixo disso a série fica cheia de anos zerados e as variações perdem
-      // sentido, então enriquecemos com o entorno (500 m e, se preciso, 1 km).
-      const MIN_TRANSACOES_LOGRADOURO = 12;
-      const totalTransacoesLogradouro = (transactions || []).reduce(
-        (s, t) => s + (t.total_transacoes || 1),
-        0
-      );
-      const amostraInsuficiente =
-        !transactions ||
-        transactions.length === 0 ||
-        totalTransacoesLogradouro < MIN_TRANSACOES_LOGRADOURO;
-
-      // Modo escolhido pelo usuário:
-      // - 'logradouro': usa somente a rua (sem enriquecer pelo entorno)
-      // - 'raio_500m': sempre usa o entorno de 500 m
-      // - 'auto': enriquece pelo entorno apenas quando a amostra da rua é pequena
-      const usarRaio =
-        amostraModo === 'raio_500m' || (amostraModo === 'auto' && amostraInsuficiente);
-      const raiosParaTentar =
-        amostraModo === 'raio_500m'
-          ? [RAIO_FALLBACK_PADRAO_M]
-          : [RAIO_FALLBACK_PADRAO_M, RAIO_FALLBACK_AMPLIADO_M];
-
-      if (usarRaio) {
-        // 1) Fallback padrão: entorno de 500 m do logradouro pesquisado.
-        //    O bairro inteiro só é usado quando nem o raio ampliado (1 km) retorna amostra.
-        const referencia = ruasInternas && ruasInternas.length > 0
-          ? ruasInternas[0]
-          : normalizedLogradouro;
-
-        // Testa as variantes conhecidas do nome (abreviações e grafias oficiais)
-        // até encontrar uma coordenada de referência para o raio.
-        let ponto: { lat: number | null; lng: number | null } | null = null;
-        const termos = [referencia, ...expandLogradouroSearchTerms(referencia)];
-        for (const termo of Array.from(new Set(termos))) {
-          const { data: pontoData } = await supabase.rpc('itbi_ponto_logradouro', {
-            p_logradouro: termo,
-            p_bairro: normalizedBairro,
-          });
-          const candidato = Array.isArray(pontoData) ? pontoData[0] : pontoData;
-          if (candidato?.lat && candidato?.lng) {
-            ponto = candidato;
-            break;
-          }
-        }
-
-        if (ponto?.lat && ponto?.lng) {
-          for (const raio of raiosParaTentar) {
-            const { data: raioData, error: raioError } = await supabase.rpc('itbi_transacoes_raio', {
-              p_lat: ponto.lat,
-              p_lng: ponto.lng,
-              p_raio_m: raio,
-              p_inicio: startDate,
-              p_fim: endDate,
-            });
-
-            if (raioError) {
-              console.warn('[HistoricalAnalysis] Falha na análise por raio:', raioError.message);
-              break;
-            }
-
-            const totalRaio = (raioData || []).reduce(
-              (s: number, r: { total_transacoes: number | null }) => s + (r.total_transacoes || 1),
-              0
-            );
-
-            // No modo automático, só substitui a amostra da rua se o entorno for
-            // de fato mais rico. No modo 500 m forçado, sempre usa o entorno.
-            const aceitaRaio =
-              raioData && raioData.length > 0 &&
-              (amostraModo === 'raio_500m' || totalRaio > totalTransacoesLogradouro);
-            if (aceitaRaio) {
-              transactions = raioData.map((r) => ({
-                data_transacao: r.data_transacao as string,
-                valor_m2: r.valor_m2 !== null ? Number(r.valor_m2) : null,
-                total_transacoes: r.total_transacoes ?? 1,
-                bairro: r.bairro,
-              }));
-              raioMetros = raio;
-              dataSource = raio === RAIO_FALLBACK_PADRAO_M ? 'raio_500m' : 'raio_1km';
-              amostraComposicao = buildAmostraComposicao(raioData);
-              break;
-            }
-          }
-        }
-      }
-
-      if (!transactions || transactions.length === 0) {
+      // O bairro só pode substituir a rua quando não existe nenhuma ocorrência.
+      // Uma amostra pequena da rua continua sendo informação real e não deve ser
+      // mascarada pelo volume agregado de todo o bairro.
+      const shouldFallbackToBairro = !transactions || transactions.length === 0;
+      if (shouldFallbackToBairro) {
         const { data: bairroTransactions, error: bairroError } = await supabase
           .from('itbi_transactions')
           .select('data_transacao, valor_m2, total_transacoes')
@@ -382,30 +228,26 @@ export function useHistoricalTransactionAnalysis(
         if (bairroError) throw bairroError;
         transactions = bairroTransactions;
         dataSource = 'bairro'; // Mudou para bairro
-        raioMetros = undefined;
-        amostraComposicao = undefined;
       }
 
       if (!transactions || transactions.length === 0) return null;
 
       // Agrupar por ano (de startYear até endYear, incluindo ano corrente se condomínio)
-      const effectiveEndYear = currentYear;
-      const yearlyMap: Record<number, { valores: number[]; totalTransacoes: number; porMes: number[] }> = {};
+      const effectiveEndYear = (ruasInternas && ruasInternas.length > 0) ? currentYear : endYear;
+      const yearlyMap: Record<number, { valores: number[]; totalTransacoes: number }> = {};
 
       for (let year = startYear; year <= effectiveEndYear; year++) {
-        yearlyMap[year] = { valores: [], totalTransacoes: 0, porMes: new Array(12).fill(0) };
+        yearlyMap[year] = { valores: [], totalTransacoes: 0 };
       }
 
       transactions.forEach((t) => {
-        const dt = new Date(t.data_transacao);
-        const year = dt.getFullYear();
+        const year = new Date(t.data_transacao).getFullYear();
         if (!yearlyMap[year]) return;
 
         const peso = t.total_transacoes || 1;
 
         // Contagem: sempre soma total_transacoes (mesmo se valor_m2 estiver ausente)
         yearlyMap[year].totalTransacoes += peso;
-        yearlyMap[year].porMes[dt.getMonth()] += peso;
 
         // Preço: só entra nas estatísticas se houver valor_m2 e estiver dentro dos limites
         // Expandir pelo peso para mediana/média ponderada
@@ -445,84 +287,29 @@ export function useHistoricalTransactionAnalysis(
             valorMedioM2: Math.round(valorMedioM2),
             valorMinM2: Math.round(valorMinM2),
             valorMaxM2: Math.round(valorMaxM2),
-            porMes: data.porMes,
           };
         })
         .filter((y) => y.ano <= effectiveEndYear)
         .sort((a, b) => a.ano - b.ano);
 
-      // Meses cobertos do ano corrente (base para comparação justa de período)
-      // Usa o último mês com dados registrados, evitando penalizar o defasamento do ITBI.
-      const anoCorrenteRow = yearlyDataRaw.find((y) => y.ano === currentYear);
-      let mesesCorrente = 0;
-      if (anoCorrenteRow) {
-        for (let m = 11; m >= 0; m--) {
-          if (anoCorrenteRow.porMes[m] > 0) { mesesCorrente = m + 1; break; }
-        }
-      }
-
       // Calcular variações ano a ano
       const yearlyData: YearlyData[] = yearlyDataRaw.map((y, index) => {
         const prevYear = index > 0 ? yearlyDataRaw[index - 1] : null;
-
-        const parcial = y.ano === currentYear && mesesCorrente > 0 && mesesCorrente < 12;
-        const mesesCobertos = parcial ? mesesCorrente : 12;
-
+        
         // Variação de transações
-        // Ano parcial: compara com o MESMO período (Jan..N) do ano anterior,
-        // evitando falsa queda ao confrontar ano incompleto com ano fechado.
         let variacaoTransacoes: number | null = null;
-        let baseComparacao: 'ano_completo' | 'periodo_equivalente' = 'ano_completo';
-        let variacaoPeriodoEquivalente: number | null = null;
-        let variacaoAnualizada: number | null = null;
-        let variacaoBruta: number | null = null;
-
-        const projetadas = parcial ? (y.transacoes / mesesCobertos) * 12 : y.transacoes;
-
-        if (prevYear) {
-          const prevMesmoPeriodo = prevYear.porMes
-            .slice(0, mesesCobertos)
-            .reduce((a: number, b: number) => a + b, 0);
-          if (prevMesmoPeriodo > 0) {
-            variacaoPeriodoEquivalente = ((y.transacoes - prevMesmoPeriodo) / prevMesmoPeriodo) * 100;
-          }
-          if (prevYear.transacoes > 0) {
-            variacaoAnualizada = ((projetadas - prevYear.transacoes) / prevYear.transacoes) * 100;
-            variacaoBruta = ((y.transacoes - prevYear.transacoes) / prevYear.transacoes) * 100;
-          }
-        }
-
-        if (prevYear && parcial) {
-          const prevMesmoPeriodo = prevYear.porMes
-            .slice(0, mesesCobertos)
-            .reduce((a: number, b: number) => a + b, 0);
-          baseComparacao = 'periodo_equivalente';
-          if (prevMesmoPeriodo > 0) {
-            variacaoTransacoes = ((y.transacoes - prevMesmoPeriodo) / prevMesmoPeriodo) * 100;
-          }
-        } else if (prevYear && prevYear.transacoes > 0) {
+        if (prevYear && prevYear.transacoes > 0) {
           variacaoTransacoes = ((y.transacoes - prevYear.transacoes) / prevYear.transacoes) * 100;
         }
-
+        
         // Variação de preço/m²
         let variacaoPrecoM2: number | null = null;
         if (prevYear && prevYear.valorMedioM2 > 0 && y.valorMedioM2 > 0) {
           variacaoPrecoM2 = ((y.valorMedioM2 - prevYear.valorMedioM2) / prevYear.valorMedioM2) * 100;
         }
-
-        const { porMes: _porMes, ...rest } = y;
-
+        
         return {
-          ...rest,
-          parcial,
-          mesesCobertos,
-          transacoesProjetadas: parcial
-            ? Math.round((y.transacoes / mesesCobertos) * 12)
-            : null,
-          baseComparacao,
-          variacaoPeriodoEquivalente: variacaoPeriodoEquivalente !== null ? Math.round(variacaoPeriodoEquivalente * 10) / 10 : null,
-          variacaoAnualizada: variacaoAnualizada !== null ? Math.round(variacaoAnualizada * 10) / 10 : null,
-          variacaoBruta: variacaoBruta !== null ? Math.round(variacaoBruta * 10) / 10 : null,
+          ...y,
           variacaoTransacoes: variacaoTransacoes !== null ? Math.round(variacaoTransacoes * 10) / 10 : null,
           variacaoPrecoM2: variacaoPrecoM2 !== null ? Math.round(variacaoPrecoM2 * 10) / 10 : null,
         };
@@ -543,8 +330,6 @@ export function useHistoricalTransactionAnalysis(
           diagnostico: 'Dados insuficientes para análise de tendência. Região com poucas transações registradas.',
           alertas: ['⚠️ Poucos dados históricos disponíveis'],
           dataSource,
-          raioMetros,
-          amostraComposicao,
           logradouroUsado: normalizedLogradouro,
           bairroUsado: normalizedBairro,
         };
@@ -554,10 +339,6 @@ export function useHistoricalTransactionAnalysis(
       const firstYear = yearsWithData[0];
       const lastYear = yearsWithData[yearsWithData.length - 1];
       const yearDiff = lastYear.ano - firstYear.ano;
-      // Ano parcial entra no crescimento com volume anualizado (média mensal x 12)
-      const lastYearTransacoes = lastYear.parcial && lastYear.transacoesProjetadas
-        ? lastYear.transacoesProjetadas
-        : lastYear.transacoes;
 
       // Total de transações e média por ano
       const totalTransactions = yearsWithData.reduce((sum, y) => sum + y.transacoes, 0);
@@ -567,12 +348,12 @@ export function useHistoricalTransactionAnalysis(
       let transactionGrowth = 0;
       let transactionGrowthReliable = false;
       if (yearDiff > 0 && firstYear.transacoes >= 3) {
-        const totalGrowth = ((lastYearTransacoes - firstYear.transacoes) / firstYear.transacoes) * 100;
+        const totalGrowth = ((lastYear.transacoes - firstYear.transacoes) / firstYear.transacoes) * 100;
         transactionGrowth = totalGrowth / yearDiff;
         transactionGrowthReliable = true;
       } else if (yearDiff > 0 && firstYear.transacoes > 0) {
         // Calcula mas marca como não confiável (base muito pequena)
-        const totalGrowth = ((lastYearTransacoes - firstYear.transacoes) / firstYear.transacoes) * 100;
+        const totalGrowth = ((lastYear.transacoes - firstYear.transacoes) / firstYear.transacoes) * 100;
         transactionGrowth = totalGrowth / yearDiff;
         transactionGrowthReliable = false;
       }
@@ -652,7 +433,7 @@ export function useHistoricalTransactionAnalysis(
       let currentYearCount = 0;
       let currentYearAvgM2 = 0;
 
-      if (dataSource !== 'logradouro' && logradouroTransactionCount === 0) {
+      if (dataSource === 'bairro' && logradouroTransactionCount === 0) {
         const currentYearStart = `${currentYear}-01-01`;
         const currentYearEnd = `${currentYear}-12-31`;
 
@@ -687,23 +468,18 @@ export function useHistoricalTransactionAnalysis(
         transactionGrowth: Math.round(transactionGrowth * 10) / 10,
         priceGrowth: Math.round(priceGrowth * 10) / 10,
         diagnostico,
-        alertas: (() => {
-          const base = [...alertas];
-          if (dataSource === 'raio_500m') {
-            base.unshift('📍 Amostra do entorno (500 m)');
-          }
-          if (dataSource === 'raio_1km' && amostraComposicao?.length) {
-            const dominante = amostraComposicao[0];
-            base.unshift(
-              `⚠️ Amostra ampliada para 1 km: ${dominante.percentual}% das transações vêm de ${dominante.logradouro}`
-            );
-          }
-          return base;
-        })(),
+        alertas: crossBairro
+          ? [
+              `ℹ️ Esta rua possui transações registradas no ITBI sob ${
+                bairrosEncontrados.length === 1
+                  ? `o bairro ${bairrosEncontrados[0]}`
+                  : `os bairros ${bairrosEncontrados.join(', ')}`
+              } (limite entre bairros). Os dados foram consolidados para refletir o histórico completo da via.`,
+              ...alertas,
+            ]
+          : alertas,
         futureProjection,
         dataSource,
-        raioMetros,
-        amostraComposicao,
         logradouroUsado: normalizedLogradouro,
         bairroUsado: normalizedBairro,
         crossBairro,
@@ -712,18 +488,6 @@ export function useHistoricalTransactionAnalysis(
         currentYearCount,
         currentYearAvgM2,
       };
-
-      const alertasCrossBairro = crossBairro
-          ? [
-              `ℹ️ Esta rua possui transações registradas no ITBI sob ${
-                bairrosEncontrados.length === 1
-                  ? `o bairro ${bairrosEncontrados[0]}`
-                  : `os bairros ${bairrosEncontrados.join(', ')}`
-              } (limite entre bairros). Os dados foram consolidados para refletir o histórico completo da via.`,
-              ...result.alertas,
-            ]
-        : result.alertas;
-      result.alertas = alertasCrossBairro;
 
       // SALVAGUARDA: se houver anos zerados no meio de uma série com volume,
       // não cachear — força refetch e loga aviso para investigação.
@@ -740,7 +504,7 @@ export function useHistoricalTransactionAnalysis(
         );
       } else {
         // CACHE: Salvar resultado no cache persistente
-        setCachedAnalysis(normalizedBairro, normalizedLogradouro, result, ruasInternas, amostraModo);
+        setCachedAnalysis(normalizedBairro, normalizedLogradouro, result, ruasInternas);
       }
 
       return result;

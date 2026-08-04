@@ -1,8 +1,6 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
-import { useState } from "react";
-import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { 
   XAxis, 
   YAxis, 
@@ -14,7 +12,7 @@ import {
   Line
 } from "recharts";
 import { TrendingUp, TrendingDown, Minus, Activity, Info } from "lucide-react";
-import type { HistoricalAnalysis, AmostraModo } from "@/hooks/useHistoricalTransactionAnalysis";
+import type { HistoricalAnalysis } from "@/hooks/useHistoricalTransactionAnalysis";
 import { 
   StandardChartTooltip, 
   StandardChartLegend,
@@ -23,8 +21,6 @@ import {
 
 interface Props {
   analysis: HistoricalAnalysis;
-  amostraModo?: AmostraModo;
-  onAmostraModoChange?: (modo: AmostraModo) => void;
 }
 
 const HISTORICAL_LABELS: Record<string, string> = {
@@ -37,24 +33,7 @@ const HISTORICAL_LEGEND_ITEMS: LegendItem[] = [
   { dataKey: "valorM2", iconType: "line", color: "#10b981" },
 ];
 
-type VariationMode = 'periodo' | 'anualizada' | 'bruta';
-
-const VARIATION_MODES: { value: VariationMode; label: string; header: string; hint: string }[] = [
-  { value: 'periodo', label: 'Média mensal', header: 'vs período equiv.', hint: 'Compara o mesmo intervalo de meses (Jan–Nº) do ano anterior.' },
-  { value: 'anualizada', label: 'Anualizada', header: 'vs ano ant. (anualizado)', hint: 'Projeta o ano parcial (média mensal x 12) e compara com o ano anterior fechado.' },
-  { value: 'bruta', label: 'Total bruto', header: 'vs total do ano ant.', hint: 'Compara totais absolutos. Em anos parciais tende a exagerar quedas.' },
-];
-
-export function HistoricalAnalysisChart({ analysis, amostraModo = 'auto', onAmostraModoChange }: Props) {
-  const [variationMode, setVariationMode] = useState<VariationMode>('periodo');
-  const modeConfig = VARIATION_MODES.find((m) => m.value === variationMode)!;
-
-  const getVariation = (y: (typeof analysis.yearlyData)[number]): number | null => {
-    if (variationMode === 'anualizada') return y.variacaoAnualizada ?? null;
-    if (variationMode === 'bruta') return y.variacaoBruta ?? null;
-    return y.variacaoPeriodoEquivalente ?? y.variacaoTransacoes ?? null;
-  };
-
+export function HistoricalAnalysisChart({ analysis }: Props) {
   const { 
     yearlyData, 
     transactionTrend, 
@@ -68,8 +47,6 @@ export function HistoricalAnalysisChart({ analysis, amostraModo = 'auto', onAmos
     dataSource,
     logradouroUsado,
     bairroUsado,
-    raioMetros,
-    amostraComposicao,
     crossBairro,
     bairrosEncontrados,
     hasCurrentYearData,
@@ -110,15 +87,6 @@ export function HistoricalAnalysisChart({ analysis, amostraModo = 'auto', onAmos
     varPreco: y.variacaoPrecoM2,
   }));
 
-  const isRaio = dataSource === 'raio_500m' || dataSource === 'raio_1km';
-
-  const sourceBadgeClass =
-    dataSource === 'logradouro'
-      ? 'border-blue-500 text-blue-700 bg-blue-50 dark:bg-blue-950/30'
-      : dataSource === 'raio_500m'
-        ? 'border-emerald-500 text-emerald-700 bg-emerald-50 dark:bg-emerald-950/30'
-        : 'border-amber-500 text-amber-700 bg-amber-50 dark:bg-amber-950/30';
-
   return (
     <div className="space-y-4">
       {/* Header com diagnóstico */}
@@ -132,48 +100,19 @@ export function HistoricalAnalysisChart({ analysis, amostraModo = 'auto', onAmos
             {/* Indicador da fonte dos dados */}
             <Badge 
               variant="outline" 
-              className={`text-[10px] ${sourceBadgeClass}`}
+              className={`text-[10px] ${
+                dataSource === 'logradouro' 
+                  ? 'border-blue-500 text-blue-700 bg-blue-50 dark:bg-blue-950/30' 
+                  : 'border-amber-500 text-amber-700 bg-amber-50 dark:bg-amber-950/30'
+              }`}
             >
               {dataSource === 'logradouro' ? (
                 <>📍 Dados do logradouro: {logradouroUsado}</>
-              ) : dataSource === 'raio_500m' ? (
-                <>🎯 Entorno de 500 m de {logradouroUsado}</>
-              ) : dataSource === 'raio_1km' ? (
-                <>🔎 Entorno ampliado de 1 km de {logradouroUsado}</>
               ) : (
                 <>🏘️ Dados do bairro: {bairroUsado} (logradouro com {'<'}20 transações)</>
               )}
             </Badge>
           </div>
-          {onAmostraModoChange && (
-            <div className="mt-2 flex flex-wrap items-center gap-2">
-              <span className="text-[11px] text-muted-foreground">Amostra:</span>
-              <ToggleGroup
-                type="single"
-                size="sm"
-                value={amostraModo}
-                onValueChange={(v) => v && onAmostraModoChange(v as AmostraModo)}
-                className="flex-wrap"
-              >
-                <ToggleGroupItem value="auto" className="h-7 px-2 text-[11px]">
-                  Automática
-                </ToggleGroupItem>
-                <ToggleGroupItem value="logradouro" className="h-7 px-2 text-[11px]">
-                  Somente a rua
-                </ToggleGroupItem>
-                <ToggleGroupItem value="raio_500m" className="h-7 px-2 text-[11px]">
-                  Entorno 500 m
-                </ToggleGroupItem>
-              </ToggleGroup>
-              <span className="text-[10px] text-muted-foreground">
-                {amostraModo === 'logradouro'
-                  ? 'Usa apenas as transações registradas no logradouro pesquisado.'
-                  : amostraModo === 'raio_500m'
-                    ? 'Usa todas as transações num raio de 500 m do logradouro.'
-                    : 'Usa a rua e amplia para o entorno quando a amostra é pequena.'}
-              </span>
-            </div>
-          )}
           {crossBairro && bairrosEncontrados && bairrosEncontrados.length > 0 && (
             <div className="mt-2 flex items-start gap-2 rounded-md border border-amber-300 bg-amber-50 dark:bg-amber-950/30 px-3 py-2 text-[11px] sm:text-xs text-amber-800 dark:text-amber-200">
               <Info className="h-4 w-4 shrink-0 mt-0.5" />
@@ -265,50 +204,8 @@ export function HistoricalAnalysisChart({ analysis, amostraModo = 'auto', onAmos
             </div>
           </div>
 
-          {/* Composição da amostra quando a análise usa raio */}
-          {isRaio && amostraComposicao && amostraComposicao.length > 0 && (
-            <div className={`rounded-lg p-3 border ${
-              dataSource === 'raio_1km'
-                ? 'bg-amber-50 dark:bg-amber-950/30 border-amber-200 dark:border-amber-800'
-                : 'bg-emerald-50 dark:bg-emerald-950/30 border-emerald-200 dark:border-emerald-800'
-            }`}>
-              <div className="flex items-start gap-2">
-                <Info className={`h-4 w-4 mt-0.5 shrink-0 ${dataSource === 'raio_1km' ? 'text-amber-600' : 'text-emerald-600'}`} />
-                <div className="space-y-2 w-full">
-                  <p className={`text-xs ${dataSource === 'raio_1km' ? 'text-amber-800 dark:text-amber-200' : 'text-emerald-800 dark:text-emerald-200'}`}>
-                    {dataSource === 'raio_1km' ? (
-                      <>
-                        O logradouro não possui amostra própria nem no entorno de 500 m. A análise foi
-                        ampliada para <strong>1 km</strong>, o que mistura vias com perfis diferentes.
-                        Confira a composição da amostra antes de usar estes valores como referência.
-                      </>
-                    ) : (
-                      <>
-                        O logradouro não possui transações registradas no período. A análise usa o
-                        <strong> entorno de 500 m</strong>, composto pelas vias abaixo.
-                      </>
-                    )}
-                  </p>
-                  <ul className="space-y-1">
-                    {amostraComposicao.slice(0, 5).map((item) => (
-                      <li key={item.logradouro} className="flex items-center justify-between gap-2 text-[11px]">
-                        <span className="truncate">{item.logradouro} <span className="text-muted-foreground">({item.distanciaM} m)</span></span>
-                        <span className="font-medium whitespace-nowrap">{item.transacoes} transações · {item.percentual}%</span>
-                      </li>
-                    ))}
-                  </ul>
-                  {amostraComposicao.length > 5 && (
-                    <p className="text-[10px] text-muted-foreground">
-                      + {amostraComposicao.length - 5} outras vias na amostra
-                    </p>
-                  )}
-                </div>
-              </div>
-            </div>
-          )}
-
           {/* Alerta de dados do ano corrente */}
-          {(dataSource === 'bairro' || isRaio) && hasCurrentYearData && (
+          {dataSource === 'bairro' && hasCurrentYearData && (
             <div className="bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 rounded-lg p-3">
               <div className="flex items-start gap-2">
                 <Info className="h-4 w-4 text-amber-600 mt-0.5 shrink-0" />
@@ -417,25 +314,6 @@ export function HistoricalAnalysisChart({ analysis, amostraModo = 'auto', onAmos
           <p className="text-xs text-muted-foreground mt-1">
             Análise de liquidez (transações) e valorização (preço/m²) por período
           </p>
-          <div className="mt-3 flex flex-col gap-1">
-            <span className="text-[10px] uppercase tracking-wide text-muted-foreground">
-              Base da variação de transações
-            </span>
-            <ToggleGroup
-              type="single"
-              size="sm"
-              value={variationMode}
-              onValueChange={(v) => v && setVariationMode(v as VariationMode)}
-              className="justify-start flex-wrap"
-            >
-              {VARIATION_MODES.map((m) => (
-                <ToggleGroupItem key={m.value} value={m.value} className="text-[11px] px-2 h-7">
-                  {m.label}
-                </ToggleGroupItem>
-              ))}
-            </ToggleGroup>
-            <span className="text-[10px] text-muted-foreground">{modeConfig.hint}</span>
-          </div>
         </CardHeader>
         <CardContent>
           <div className="overflow-x-auto">
@@ -452,7 +330,7 @@ export function HistoricalAnalysisChart({ analysis, amostraModo = 'auto', onAmos
                   <th className="text-center py-2 px-2 font-medium">
                     <div className="flex flex-col items-center">
                       <span>Var. Trans.</span>
-                      <span className="text-[10px] text-muted-foreground font-normal">{modeConfig.header}</span>
+                      <span className="text-[10px] text-muted-foreground font-normal">vs ano ant.</span>
                     </div>
                   </th>
                   <th className="text-right py-2 px-2 font-medium">
@@ -472,14 +350,7 @@ export function HistoricalAnalysisChart({ analysis, amostraModo = 'auto', onAmos
               <tbody>
                 {yearlyData.map((y) => (
                   <tr key={y.ano} className="border-b last:border-0 hover:bg-muted/50">
-                    <td className="py-2.5 px-2 font-medium">
-                      {y.ano}
-                      {y.parcial && (
-                        <span className="block text-[10px] font-normal text-muted-foreground">
-                          parcial · {y.mesesCobertos} {y.mesesCobertos === 1 ? 'mês' : 'meses'}
-                        </span>
-                      )}
-                    </td>
+                    <td className="py-2.5 px-2 font-medium">{y.ano}</td>
                     <td className="py-2.5 px-2 text-center">
                       <Badge 
                         variant={y.transacoes >= 10 ? "default" : y.transacoes >= 5 ? "secondary" : "outline"}
@@ -487,42 +358,25 @@ export function HistoricalAnalysisChart({ analysis, amostraModo = 'auto', onAmos
                       >
                         {y.transacoes}
                       </Badge>
-                      {y.parcial && y.transacoesProjetadas ? (
-                        <span className="block text-[10px] text-muted-foreground mt-0.5">
-                          proj. {y.transacoesProjetadas}/ano
-                        </span>
-                      ) : null}
                     </td>
                     <td className="py-2.5 px-2 text-center">
-                      {(() => {
-                        const varTrans = getVariation(y);
-                        return varTrans !== null ? (
-                          <span className={`inline-flex items-center gap-0.5 text-xs font-medium px-1.5 py-0.5 rounded ${
-                            varTrans > 10 ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400' :
-                            varTrans < -10 ? 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400' :
-                            'bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400'
-                          }`}>
-                            {varTrans > 0 ? (
-                              <TrendingUp className="h-3 w-3" />
-                            ) : varTrans < 0 ? (
-                              <TrendingDown className="h-3 w-3" />
-                            ) : (
-                              <Minus className="h-3 w-3" />
-                            )}
-                            {varTrans > 0 ? '+' : ''}{varTrans}%
-                          </span>
-                        ) : (
-                          <span className="text-muted-foreground text-[10px]">—</span>
-                        );
-                      })()}
-                      {y.parcial && getVariation(y) !== null && (
-                        <span className="block text-[10px] text-muted-foreground mt-0.5">
-                          {variationMode === 'periodo'
-                            ? `vs Jan–${y.mesesCobertos && y.mesesCobertos < 12 ? y.mesesCobertos : 12}º mês de ${y.ano - 1}`
-                            : variationMode === 'anualizada'
-                              ? `proj. ${y.transacoesProjetadas ?? '—'} vs total de ${y.ano - 1}`
-                              : `parcial (${y.mesesCobertos} meses) vs total de ${y.ano - 1}`}
+                      {y.variacaoTransacoes !== null ? (
+                        <span className={`inline-flex items-center gap-0.5 text-xs font-medium px-1.5 py-0.5 rounded ${
+                          y.variacaoTransacoes > 10 ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400' : 
+                          y.variacaoTransacoes < -10 ? 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400' : 
+                          'bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400'
+                        }`}>
+                          {y.variacaoTransacoes > 0 ? (
+                            <TrendingUp className="h-3 w-3" />
+                          ) : y.variacaoTransacoes < 0 ? (
+                            <TrendingDown className="h-3 w-3" />
+                          ) : (
+                            <Minus className="h-3 w-3" />
+                          )}
+                          {y.variacaoTransacoes > 0 ? '+' : ''}{y.variacaoTransacoes}%
                         </span>
+                      ) : (
+                        <span className="text-muted-foreground text-[10px]">—</span>
                       )}
                     </td>
                     <td className="py-2.5 px-2 text-right font-medium">

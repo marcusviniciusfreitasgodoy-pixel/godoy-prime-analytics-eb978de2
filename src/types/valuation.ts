@@ -57,15 +57,6 @@ export interface YearlyData {
   valorMedioM2: number;
   valorMinM2: number;
   valorMaxM2: number;
-  variacaoTransacoes?: number | null;
-  variacaoPrecoM2?: number | null;
-  parcial?: boolean;
-  mesesCobertos?: number;
-  transacoesProjetadas?: number | null;
-  baseComparacao?: 'ano_completo' | 'periodo_equivalente';
-  variacaoPeriodoEquivalente?: number | null;
-  variacaoAnualizada?: number | null;
-  variacaoBruta?: number | null;
 }
 
 export interface FutureProjection {
@@ -90,16 +81,9 @@ export interface HistoricalAnalysis {
   diagnostico: string;
   alertas: string[];
   futureProjection?: FutureProjection;
-  dataSource?: 'logradouro' | 'raio_500m' | 'raio_1km' | 'bairro';
+  dataSource?: 'logradouro' | 'bairro';
   logradouroUsado?: string;
   bairroUsado?: string;
-  raioMetros?: number;
-  amostraComposicao?: {
-    logradouro: string;
-    transacoes: number;
-    percentual: number;
-    distanciaM: number;
-  }[];
   hasCurrentYearData?: boolean;
   currentYearCount?: number;
   currentYearAvgM2?: number;
