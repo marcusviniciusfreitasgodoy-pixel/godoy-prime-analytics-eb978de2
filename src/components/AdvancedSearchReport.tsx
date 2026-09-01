@@ -296,8 +296,9 @@ export function AdvancedSearchReport() {
 
   const totalValue = results?.reduce((sum, r) => sum + r.valor_transacao, 0) || 0;
   const totalTransacoes = results?.reduce((sum, r) => sum + (r.total_transacoes || 1), 0) || 0;
-  const avgValueM2 = results?.length 
-    ? results.reduce((sum, r) => sum + (r.valor_m2 || 0), 0) / results.length 
+  // Média ponderada por total_transacoes (cada registro agrega várias escrituras)
+  const avgValueM2 = totalTransacoes > 0
+    ? (results || []).reduce((sum, r) => sum + (r.valor_m2 || 0) * (r.total_transacoes || 1), 0) / totalTransacoes
     : 0;
 
   return (
