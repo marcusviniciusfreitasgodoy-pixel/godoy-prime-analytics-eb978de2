@@ -110,7 +110,11 @@ export default function Dashboard() {
 
       if (data && data.length > 0) {
         const totalValue = data.reduce((sum, r) => sum + r.valor_transacao, 0);
-        const avgValueM2 = data.reduce((sum, r) => sum + (r.valor_m2 || 0), 0) / data.length;
+        // Média ponderada por total_transacoes (cada linha é um agregado de escrituras)
+        const pesoTotal = data.reduce((sum, r) => sum + (r.total_transacoes || 1), 0);
+        const avgValueM2 = pesoTotal > 0
+          ? data.reduce((sum, r) => sum + (r.valor_m2 || 0) * (r.total_transacoes || 1), 0) / pesoTotal
+          : 0;
 
         exportToXLSX({
           filename: `transacoes_oficiais_${selectedBairro.toLowerCase().replace(/\s+/g, '_')}`,
