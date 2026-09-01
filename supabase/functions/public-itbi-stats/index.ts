@@ -144,19 +144,40 @@ serve(async (req) => {
       );
     }
     
-    const valores = data.map((d) => d.valor_m2 as number).sort((a, b) => a - b);
-    const totalTransacoes = data.reduce((sum, d) => sum + (d.total_transacoes || 1), 0);
-    
-    const min_m2 = valores[Math.floor(valores.length * 0.1)] || valores[0];
-    const max_m2 = valores[Math.floor(valores.length * 0.9)] || valores[valores.length - 1];
-    const med_m2 = valores.reduce((a, b) => a + b, 0) / valores.length;
-    
+    // Cada linha é um agregado de escrituras -> ponderar por total_transacoes
+    const registros = data
+      .map((d) => ({ valor: d.valor_m2 as number, peso: (d.total_transacoes as number) || 1 }))
+      .sort((a, b) => a.valor - b.valor);
+
+    const totalTransacoes = registros.reduce((sum, r) => sum + r.peso, 0);
+
+    // Percentis ponderados
+    const percentilPonderado = (p: number) => {
+      const alvo = totalTransacoes * p;
+      let acumulado = 0;
+      for (const r of registros) {
+        acumulado += r.peso;
+        if (acumulado >= alvo) return r.valor;
+      }
+      return registros[registros.length - 1].valor;
+    };
+
+    const min_m2 = percentilPonderado(0.1);
+    const max_m2 = percentilPonderado(0.9);
+    // Média ponderada pelo nº de escrituras (antes era média aritmética simples)
+    const media_ponderada_m2 =
+      registros.reduce((sum, r) => sum + r.valor * r.peso, 0) / totalTransacoes;
+    const mediana_ponderada_m2 = percentilPonderado(0.5);
+
     return new Response(
       JSON.stringify({
         success: true,
         stats: {
           min_m2: Math.round(min_m2),
-          med_m2: Math.round(med_m2),
+          // med_m2 mantido por compatibilidade: representa a MÉDIA ponderada
+          med_m2: Math.round(media_ponderada_m2),
+          media_ponderada_m2: Math.round(media_ponderada_m2),
+          mediana_ponderada_m2: Math.round(mediana_ponderada_m2),
           max_m2: Math.round(max_m2),
           transaction_count: totalTransacoes,
         }
