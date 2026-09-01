@@ -194,7 +194,7 @@ export function AdvancedSearchReport() {
         { label: 'Total de Registros (Agregações)', value: results.length },
         { label: 'Total de Transações Reais', value: totalTransacoes },
         { label: 'Valor Médio Total', value: totalValue },
-        { label: 'Média R$/m²', value: avgValueM2 },
+        { label: 'Média Ponderada R$/m²', value: avgValueM2 },
       ],
     });
 
@@ -275,7 +275,7 @@ export function AdvancedSearchReport() {
         { label: 'Total de Registros (Agregações)', value: results.length, format: 'number' },
         { label: 'Total de Transações Reais', value: totalTransacoes, format: 'number' },
         { label: 'Valor Médio Total', value: totalValue, format: 'currency' },
-        { label: 'Média R$/m²', value: avgValueM2, format: 'currency' },
+        { label: 'Média Ponderada R$/m²', value: avgValueM2, format: 'currency' },
       ],
     });
 
@@ -595,11 +595,11 @@ export function AdvancedSearchReport() {
               <Tooltip>
                 <TooltipTrigger asChild>
                   <Badge variant="outline" className="text-xs cursor-help">
-                    Média R$/m²: {formatCurrency(avgValueM2)}
+                    Média Ponderada R$/m²: {formatCurrency(avgValueM2)}
                   </Badge>
                 </TooltipTrigger>
                 <TooltipContent className="max-w-[280px]">
-                  <p className="text-xs">Média aritmética do valor por metro quadrado entre todos os registros.</p>
+                  <p className="text-xs">Média do valor por metro quadrado ponderada pelo número de escrituras (total_transacoes) de cada registro agregado.</p>
                 </TooltipContent>
               </Tooltip>
             </div>
