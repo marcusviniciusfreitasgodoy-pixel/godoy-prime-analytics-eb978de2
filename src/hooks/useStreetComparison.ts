@@ -80,20 +80,28 @@ export function useStreetComparison(logradouros: string[], periodoMeses: number 
 
         let somaValoresPonderados = 0;
         let somaPesos = 0;
-        const valores: number[] = [];
+        const registros: { valor: number; peso: number }[] = [];
 
         for (const t of currentData) {
           const peso = t.total_transacoes || 1;
           somaValoresPonderados += (t.valor_m2 || 0) * peso;
           somaPesos += peso;
-          valores.push(t.valor_m2!);
+          registros.push({ valor: t.valor_m2!, peso });
         }
 
         const media_m2 = somaPesos > 0 ? Math.round(somaValoresPonderados / somaPesos) : 0;
-        valores.sort((a, b) => a - b);
-        const mediana_m2 = valores.length % 2 === 0
-          ? Math.round((valores[valores.length / 2 - 1] + valores[valores.length / 2]) / 2)
-          : Math.round(valores[Math.floor(valores.length / 2)]);
+
+        // Mediana ponderada pelo nº de escrituras (total_transacoes)
+        registros.sort((a, b) => a.valor - b.valor);
+        let acumulado = 0;
+        let mediana_m2 = 0;
+        for (const r of registros) {
+          acumulado += r.peso;
+          if (acumulado >= somaPesos / 2) {
+            mediana_m2 = Math.round(r.valor);
+            break;
+          }
+        }
 
         const { data: previousData } = await supabase
           .from('itbi_transactions')
