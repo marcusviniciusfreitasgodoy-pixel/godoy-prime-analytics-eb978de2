@@ -139,8 +139,9 @@ export default function Dashboard() {
           ],
           summary: [
             { label: 'Total de Registros', value: data.length },
+            { label: 'Total de Escrituras', value: data.reduce((s, r) => s + (r.total_transacoes || 1), 0) },
             { label: 'Valor Total', value: totalValue },
-            { label: 'Média R$/m²', value: avgValueM2 },
+            { label: 'Média Ponderada R$/m²', value: avgValueM2 },
           ],
         });
         trackExport('dashboard_xlsx');
