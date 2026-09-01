@@ -116,7 +116,7 @@ export function useHistoricalTransactionAnalysis(
   const normalizedLogradouro = (logradouro || '').trim();
 
   return useQuery<HistoricalAnalysis | null>({
-    queryKey: ['historical-analysis-5y-v11', normalizedLogradouro.toUpperCase(), normalizedBairro, ruasInternas?.join(',') || '', escopo],
+    queryKey: ['historical-analysis-5y-v12', normalizedLogradouro.toUpperCase(), normalizedBairro, ruasInternas?.join(',') || '', escopo],
     queryFn: async () => {
       if (!normalizedLogradouro || !normalizedBairro) return null;
 
