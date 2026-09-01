@@ -80,22 +80,25 @@ export interface HistoricalAnalysis {
 }
 
 // Limites MÍNIMOS de outliers por bairro (valores muito abaixo são suspeitos)
+// Calibrados ~20% abaixo do percentil 5 real de cada bairro na base ITBI,
+// para não descartar anos inteiros de bairros de ticket menor (ex.: Tijuca).
 const OUTLIER_MIN_LIMITS: Record<string, number> = {
-  'BARRA DA TIJUCA': 8000,
-  'RECREIO DOS BANDEIRANTES': 6000,
-  'LEBLON': 20000,
-  'IPANEMA': 18000,
-  'LAGOA': 15000,
-  'JARDIM BOTANICO': 12000,
-  'GAVEA': 12000,
-  'COPACABANA': 10000,
-  'BOTAFOGO': 10000,
-  'FLAMENGO': 8000,
-  'LARANJEIRAS': 8000,
-  'HUMAITA': 10000,
-  'TIJUCA': 6000,
-  'DEFAULT': 5000,
+  'BARRA DA TIJUCA': 5000,
+  'RECREIO DOS BANDEIRANTES': 3800,
+  'LEBLON': 10000,
+  'IPANEMA': 7500,
+  'LAGOA': 8000,
+  'JARDIM BOTANICO': 7000,
+  'GAVEA': 7000,
+  'COPACABANA': 5500,
+  'BOTAFOGO': 5500,
+  'FLAMENGO': 5500,
+  'LARANJEIRAS': 5000,
+  'HUMAITA': 5500,
+  'TIJUCA': 3000,
+  'DEFAULT': 2500,
 };
+
 
 const getOutlierMinLimit = (bairro: string): number => {
   const normalizedBairro = bairro.toUpperCase();
@@ -113,7 +116,7 @@ export function useHistoricalTransactionAnalysis(
   const normalizedLogradouro = (logradouro || '').trim();
 
   return useQuery<HistoricalAnalysis | null>({
-    queryKey: ['historical-analysis-5y-v11', normalizedLogradouro.toUpperCase(), normalizedBairro, ruasInternas?.join(',') || '', escopo],
+    queryKey: ['historical-analysis-5y-v12', normalizedLogradouro.toUpperCase(), normalizedBairro, ruasInternas?.join(',') || '', escopo],
     queryFn: async () => {
       if (!normalizedLogradouro || !normalizedBairro) return null;
 
