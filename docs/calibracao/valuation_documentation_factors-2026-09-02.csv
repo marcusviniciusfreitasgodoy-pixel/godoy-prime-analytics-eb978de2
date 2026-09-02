@@ -1,0 +1,8 @@
+id,status_code,status_name,factor,adjustment,severity,action_required,description,display_order,is_active,created_at,organization_id
+08db3014-5efe-4c4c-93d4-d47b68c61f30,pendente_avaliacao,Documentação Pendente de Avaliação,1.0000,0.0000,yellow,proceed_with_caution,Documentação ainda não foi analisada completamente,0,t,2025-12-07 16:45:01.838646+00,a0000000-0000-0000-0000-000000000001
+5a10c376-2598-45ec-86cc-ae6c87a3475e,ok,Documentação Regular (OK),1.0000,0.0000,green,proceed,Todos os documentos em ordem,1,t,2025-12-04 16:20:53.753478+00,a0000000-0000-0000-0000-000000000001
+0db9470f-a98a-45d0-83e7-34d79d2e0f4a,pequena_pendencia_iptu,Pequena Pendência IPTU,0.9900,-0.0500,yellow,alert,Débito de IPTU que pode ser negociado,2,t,2025-12-04 16:20:53.753478+00,a0000000-0000-0000-0000-000000000001
+014c35bc-7a7f-416d-968c-48d16f1f5f11,pendencia_condominio,Débito Condomínio,0.9900,-0.1000,yellow_high,recommend_regularize,Cotas condominiais em atraso,3,t,2025-12-04 16:20:53.753478+00,a0000000-0000-0000-0000-000000000001
+0bc02184-1df5-440f-abc5-82eaa9ab3c28,restricao_usufruto,Restrição Usufruto,0.8500,-0.1500,red,legal_analysis,Usufruto ou outra restrição registrada,4,t,2025-12-04 16:20:53.753478+00,a0000000-0000-0000-0000-000000000001
+bd05b794-6c3c-4829-89db-e562587e9964,grave_penhora,Grave (Penhora/Inventário),0.7500,-0.2500,red_critical,block_with_warning,Penhora judicial ou inventário pendente,5,t,2025-12-04 16:20:53.753478+00,a0000000-0000-0000-0000-000000000001
+2743d7f7-5cb8-4a76-a1f5-c438e12fd005,incompleta,Documentação Incompleta,,,blocked,block_evaluation,Faltam documentos essenciais para avaliação,6,t,2025-12-04 16:20:53.753478+00,a0000000-0000-0000-0000-000000000001

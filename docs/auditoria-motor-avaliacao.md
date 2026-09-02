@@ -15,7 +15,7 @@ Limitação declarada: **não tive acesso de leitura ao banco de produção** (a
 | 1 | 1–5 | **Aplicada** | PR #2, merge `f148c02` |
 | 2 | 6–13 | **Aplicada** | PR #3, merge `bf813c5` |
 | 3 | 14, 15 (como opção), 16, 18 | **Aplicada** | PR #4 |
-| 3 | 17 (seeds e RPC nas migrations) | **Pendente: exige acesso ao banco** | ver seção 8 |
+| 3 | 17 (seeds e RPC nas migrations) | **Aplicada** (2026-09-02, via export do banco) | migrations `20260902160000` e `20260902170000` |
 
 O que ainda depende de decisão ou de dados, mesmo com as três fases aplicadas:
 
@@ -374,11 +374,10 @@ Spread = (P90 − P10) / mediana do R$/m² por rua, 5 anos. Decisão: `SPREAD_NO
 
 - `itbi_transacoes_raio`: definição exportada e versionada em `supabase/migrations/20260902160000_itbi_transacoes_raio.sql`.
 - `get_user_activity_summary`: **não existe no banco**. O hook `useUserActivityStats` a chama e cai no fallback pela view `view_user_activity_summary`, usando a chave publicável sem o token do usuário. A tela funciona só se a view for legível sem sessão. Remover a chamada à RPC inexistente e usar o cliente autenticado na view é uma correção pequena, pendente.
-- Tabelas `valuation_characteristics` (49 linhas) e `valuation_documentation_factors` (7 linhas): CSVs não recebidos; seed continua pendente.
+- Tabelas `valuation_characteristics` (49 linhas, 44 ativas) e `valuation_documentation_factors` (7 linhas): exportadas e versionadas em `supabase/migrations/20260902170000_seed_valuation_config.sql` (upsert por chave primária, idempotente). CSVs em `docs/calibracao/`. Duas observações sobre o conteúdo: `category_cap_max/min` variam entre linhas da mesma categoria (A tem 0,12/−0,08, 0,15/−0,15 e 0,15/−0,12), o que confirma a decisão de manter os caps no código (achado A8); e `display_order` repete valores, sem efeito porque a UI ordena por nome dentro da categoria. Os pesos foram editados em produção em 2026-05-20 (por exemplo, elétrica nova caiu para 0,5%); o motor lê esses pesos do banco, então já estão em uso.
 
 ### 10.9 Pendentes desta rodada
 
 - Consulta 7.6 (gap de anúncios nas avaliações salvas): executada em 2026-09-02, apenas **4 avaliações** com gap registrado (P25 −35,0%, mediana −19,6%, P75 +5,6%). Amostra insuficiente para calibrar; `ANUNCIO_GAP_ALERT_PCT` segue em 15 até haver pelo menos 30 avaliações com 3 ou mais anúncios. Observação: a mediana negativa indica que, nos poucos casos registrados, os anúncios estavam **abaixo** do ITBI, o oposto da premissa de "anúncio inflado"; vale acompanhar quando a amostra crescer.
-- CSVs de `valuation_characteristics` e `valuation_documentation_factors` para a migration de seed.
 - Correção de `useUserActivityStats` (item 10.8).
 - Aviso do linter do Supabase "Materialized View in API" para `itbi_price_index`: aceito. A view expõe apenas medianas trimestrais da cidade inteira, sem dado individual, e precisa ser legível pelo app autenticado.
