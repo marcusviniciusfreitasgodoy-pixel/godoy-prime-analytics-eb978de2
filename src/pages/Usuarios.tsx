@@ -95,7 +95,7 @@ export default function Usuarios() {
     },
   });
 
-  const { data: activityStats, isLoading: activityLoading } = useUserActivityStats();
+  const { data: activityStats, isLoading: activityLoading, isError: activityError } = useUserActivityStats();
 
   const updateRoleMutation = useMutation({
     mutationFn: async ({ userId, newRole }: { userId: string; newRole: AppRole }) => {
@@ -421,13 +421,18 @@ export default function Usuarios() {
             <CardContent>
               {activityLoading ? (
                 <div className="flex items-center justify-center py-8"><Loader2 className="h-8 w-8 animate-spin text-accent" /></div>
+              ) : activityError ? (
+                <div className="text-center py-8 text-muted-foreground">
+                  <Activity className="h-12 w-12 mx-auto mb-3 opacity-30" />
+                  <p>Não foi possível carregar a atividade dos usuários. Tente novamente mais tarde.</p>
+                </div>
               ) : activityStats && activityStats.length > 0 ? (
                 <div className="overflow-x-auto">
                   <Table>
                     <TableHeader><TableRow><TableHead>Usuário</TableHead><TableHead className="text-center">Logins</TableHead><TableHead className="text-center">Avaliações</TableHead><TableHead className="text-center">Vistorias</TableHead><TableHead className="text-center hidden md:table-cell">Buscas</TableHead><TableHead className="text-center hidden md:table-cell">Exports</TableHead><TableHead className="text-center">Total</TableHead><TableHead className="hidden lg:table-cell">Última Atividade</TableHead></TableRow></TableHeader>
                     <TableBody>
-                      {activityStats.map((a) => (
-                        <TableRow key={a.user_id}>
+                      {activityStats.map((a, i) => (
+                        <TableRow key={a.user_id ?? `sem-id-${i}`}>
                           <TableCell><div><p className="font-medium">{a.full_name || "Sem nome"}</p><p className="text-xs text-muted-foreground">{a.active_days} dias ativos</p></div></TableCell>
                           <TableCell className="text-center"><Badge variant="outline">{a.logins}</Badge></TableCell>
                           <TableCell className="text-center"><Badge variant="outline" className="bg-blue-500/10 text-blue-600 border-blue-500/20">{a.valuations}</Badge></TableCell>
