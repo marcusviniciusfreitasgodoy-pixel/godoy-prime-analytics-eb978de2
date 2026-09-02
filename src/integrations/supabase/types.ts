@@ -3114,6 +3114,7 @@ export type Database = {
           id: string
           itbi_max_m2: number
           itbi_med_m2: number
+          itbi_metadata: Json | null
           itbi_min_m2: number
           itbi_transaction_count: number | null
           logradouro: string
@@ -3180,6 +3181,7 @@ export type Database = {
           id?: string
           itbi_max_m2: number
           itbi_med_m2: number
+          itbi_metadata?: Json | null
           itbi_min_m2: number
           itbi_transaction_count?: number | null
           logradouro: string
@@ -3246,6 +3248,7 @@ export type Database = {
           id?: string
           itbi_max_m2?: number
           itbi_med_m2?: number
+          itbi_metadata?: Json | null
           itbi_min_m2?: number
           itbi_transaction_count?: number | null
           logradouro?: string
@@ -3641,6 +3644,14 @@ export type Database = {
           f_table_schema?: unknown
           srid?: number | null
           type?: string | null
+        }
+        Relationships: []
+      }
+      itbi_price_index: {
+        Row: {
+          escrituras: number | null
+          ln_mediana: number | null
+          trimestre: string | null
         }
         Relationships: []
       }
@@ -4212,6 +4223,7 @@ export type Database = {
       postgis_wagyu_version: { Args: never; Returns: string }
       processar_iptu_2025: { Args: never; Returns: Json }
       recalcular_unidades_estimadas: { Args: never; Returns: Json }
+      refresh_itbi_price_index: { Args: never; Returns: undefined }
       search_bairros_fuzzy: {
         Args: { result_limit?: number; search_term: string }
         Returns: {
