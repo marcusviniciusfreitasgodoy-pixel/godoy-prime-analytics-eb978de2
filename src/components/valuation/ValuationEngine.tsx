@@ -218,10 +218,11 @@ export function ValuationEngine({ bairro = "BARRA DA TIJUCA", vistoriaData, edit
         return state.itbiData !== null;
       case 2:
         return state.area_m2 > 0;
-      case 3:
+      case 3: {
         // Exige apenas status de documentação (respostas não preenchidas são tratadas como "nao")
         const hasDocStatus = state.docStatus && state.docStatus.trim() !== "";
         return hasDocStatus;
+      }
       case 4:
         return state.result !== null;
       default:

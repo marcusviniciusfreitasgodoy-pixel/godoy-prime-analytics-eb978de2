@@ -18,7 +18,7 @@ Changes made via Lovable will be committed automatically to this repo.
 
 If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
 
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
+The only requirement is having [Bun](https://bun.sh) installed. Bun is the project's package manager: `bun.lock` is the single lockfile (kept in sync by Lovable), so do not commit `package-lock.json` or `yarn.lock`.
 
 Follow these steps:
 
@@ -29,12 +29,20 @@ git clone <YOUR_GIT_URL>
 # Step 2: Navigate to the project directory.
 cd <YOUR_PROJECT_NAME>
 
-# Step 3: Install the necessary dependencies.
-npm i
+# Step 3: Install the necessary dependencies (frozen lockfile, same as CI).
+bun install --frozen-lockfile
 
-# Step 4: Start the development server with auto-reloading and an instant preview.
-npm run dev
+# Step 4: Create your local environment file and fill in the Supabase values
+# (Supabase Dashboard > Project Settings > API). .env is git-ignored.
+cp .env.example .env
+
+# Step 5: Start the development server with auto-reloading and an instant preview.
+bun run dev
 ```
+
+## Continuous integration
+
+Every push to `main` and every pull request runs `.github/workflows/ci.yml`, which installs dependencies with the frozen lockfile, runs `bun run typecheck`, `bun run lint` and `bun run build`. Run the same three commands locally before pushing.
 
 **Edit a file directly in GitHub**
 

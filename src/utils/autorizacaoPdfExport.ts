@@ -46,7 +46,7 @@ export async function generateAutorizacaoPdf(
   // jsPDF (v2.5 / v4.0) tem bug nos AFM widths de helvetica-bold com algumas
   // letras (notadamente "I"/"Í"/"M"), gerando gaps visíveis no PDF. Usamos
   // sempre helvetica regular e simulamos peso via cor + tamanho.
-  const useFont = (weight: "normal" | "bold" = "normal") => {
+  const applyFont = (weight: "normal" | "bold" = "normal") => {
     doc.setFont("helvetica", "normal");
     // mantemos a assinatura, mas não chamamos "bold" para evitar o bug
     void weight;
@@ -56,11 +56,11 @@ export async function generateAutorizacaoPdf(
   doc.setFillColor(...NAVY);
   doc.rect(0, 0, pageW, 22, "F");
   doc.setTextColor(...GOLD);
-  useFont("bold");
+  applyFont("bold");
   doc.setFontSize(13);
   doc.text("GODOY PRIME REALTY", margin, 10);
   doc.setTextColor(255, 255, 255);
-  useFont("normal");
+  applyFont("normal");
   doc.setFontSize(8);
   doc.text("Av. das Américas 10.101, Bloco 2 — Tel: (21) 96407-5124", margin, 15);
   doc.setFontSize(7);
@@ -71,7 +71,7 @@ export async function generateAutorizacaoPdf(
 
   // ===== TÍTULO =====
   doc.setTextColor(...NAVY);
-  useFont("bold");
+  applyFont("bold");
   doc.setFontSize(13);
   doc.text("AUTORIZAÇÃO PARA DIVULGAÇÃO E VENDA DE IMÓVEL", pageW / 2, y, { align: "center" });
   y += 8;
@@ -82,12 +82,12 @@ export async function generateAutorizacaoPdf(
   y += 6;
 
   // ===== CONTRATANTES =====
-  useFont("bold");
+  applyFont("bold");
   doc.setFontSize(9.5);
   doc.setTextColor(...NAVY);
   doc.text("CONTRATANTES", margin, y);
   y += 5;
-  useFont("normal");
+  applyFont("normal");
   doc.setTextColor(...TEXT);
   doc.setFontSize(8.5);
 
@@ -109,12 +109,12 @@ export async function generateAutorizacaoPdf(
   y += 7;
 
   // ===== IMÓVEL =====
-  useFont("bold");
+  applyFont("bold");
   doc.setFontSize(9.5);
   doc.setTextColor(...NAVY);
   doc.text("DESCRIÇÃO DO IMÓVEL", margin, y);
   y += 5;
-  useFont("normal");
+  applyFont("normal");
   doc.setFontSize(8.5);
   doc.setTextColor(...TEXT);
   const enderecoFull = `${a.endereco}${a.numero ? `, nº ${a.numero}` : ""}${a.complemento ? ` — ${a.complemento}` : ""}`;
@@ -140,13 +140,13 @@ export async function generateAutorizacaoPdf(
   y += 16;
 
   // ===== CLÁUSULAS =====
-  useFont("bold");
+  applyFont("bold");
   doc.setFontSize(9.5);
   doc.setTextColor(...NAVY);
   doc.text("CONDIÇÕES", margin, y);
   y += 5;
 
-  useFont("normal");
+  applyFont("normal");
   doc.setFontSize(8);
   doc.setTextColor(...TEXT);
 
@@ -192,7 +192,7 @@ export async function generateAutorizacaoPdf(
   if (a.assinatura_proprietario) {
     try {
       doc.addImage(a.assinatura_proprietario, "PNG", margin, sigY, sigW, 18);
-    } catch {}
+    } catch { /* imagem inválida: segue sem ela */ }
   }
   doc.setDrawColor(...NAVY);
   doc.line(margin, sigY + 19, margin + sigW, sigY + 19);
@@ -208,7 +208,7 @@ export async function generateAutorizacaoPdf(
   if (a.assinatura_corretor) {
     try {
       doc.addImage(a.assinatura_corretor, "PNG", cx, sigY, sigW, 18);
-    } catch {}
+    } catch { /* imagem inválida: segue sem ela */ }
   }
   doc.line(cx, sigY + 19, cx + sigW, sigY + 19);
   doc.setTextColor(...NAVY);
@@ -230,7 +230,7 @@ export async function generateAutorizacaoPdf(
     try {
       const qrDataUrl = await QRCode.toDataURL(verifyUrl, { width: 200, margin: 1 });
       doc.addImage(qrDataUrl, "PNG", pageW - margin - 22, y, 22, 22);
-    } catch {}
+    } catch { /* imagem inválida: segue sem ela */ }
     doc.setFontSize(7);
     doc.setTextColor(...MUTED);
     doc.text("AUDITORIA DA ASSINATURA DIGITAL", margin, y + 3);

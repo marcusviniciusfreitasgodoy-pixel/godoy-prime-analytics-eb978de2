@@ -21,7 +21,7 @@ const leadSchema = z.object({
   telefone: z.string()
     .min(10, "Telefone deve ter pelo menos 10 dígitos")
     .max(15, "Telefone inválido")
-    .regex(/^[\d\s\-\(\)]+$/, "Formato de telefone inválido"),
+    .regex(/^[\d\s\-()]+$/, "Formato de telefone inválido"),
   endereco_imovel: z.string().optional(),
   valor_pedido: z.string().optional(),
   objetivo: z.string().min(1, "Selecione seu objetivo"),

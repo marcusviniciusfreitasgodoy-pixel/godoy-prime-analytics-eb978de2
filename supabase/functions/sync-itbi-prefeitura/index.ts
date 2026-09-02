@@ -391,7 +391,7 @@ serve(async (req) => {
 
     // Inserir em lotes
     let totalInseridas = 0;
-    let erros: string[] = [];
+    const erros: string[] = [];
     const batchSize = 500;
 
     for (let i = 0; i < transacoes.length; i += batchSize) {
