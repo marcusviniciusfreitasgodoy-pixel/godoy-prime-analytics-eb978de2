@@ -1,66 +1,41 @@
+# Acesso completo do Claude ao projeto (código no GitHub + backend no Lovable Cloud)
 
-## Objetivo
+Objetivo escolhido: trabalhar com o Claude no código, mantendo o backend atual no Lovable Cloud. Nada de banco precisa ser migrado.
 
-Adicionar à seção "Amostra e Comparativos" do Parecer Técnico um bloco de **Amostra de Anúncios Analisados**, com o mesmo formato usado no módulo de Avaliação (Step 1 Location): pares Valor + Área + Fonte/Link por anúncio, cálculo automático de mín/méd/máx por m² e alertas de qualidade da amostra. Os dados vêm da avaliação importada (`valuations.anuncio_fontes`) quando disponíveis, e podem ser editados/adicionados manualmente pelo perito. Aparecem também no preview/PDF.
+## O que será feito
 
-Escopo restrito ao módulo Parecer Técnico. Sem alterar o módulo de Avaliação.
+### 1. Conectar o repositório ao GitHub
+Ligação bidirecional entre este projeto e um repositório da sua conta. A partir daí, tudo que o Claude commitar no GitHub aparece aqui, e tudo que fizermos aqui vai para lá.
 
-## Persistência
+Passos (feitos por você na interface): topo direito → GitHub → Connect to GitHub → autorizar a conta → escolher a organização e criar o repositório.
 
-Migration em `pareceres_tecnicos` adicionando:
+### 2. Arquivo de contexto para o Claude
+Criar/atualizar um `CLAUDE.md` na raiz, derivado do `CONTEXT.md` já existente e das regras do projeto, cobrindo:
+- stack (React 18 + Vite + Tailwind + TypeScript, shadcn);
+- idioma pt-BR e paleta Navy #0C2340 / Gold #D4AF37;
+- regras críticas de dados: ponderação por `total_transacoes`, `.limit(5000)` em todas as queries, PDFs só com jsPDF manual, `inputMode="numeric"` para moeda;
+- arquitetura multi-tenant com `organization_id` + RLS (`get_user_org_id`);
+- o que o Claude NÃO deve editar: `src/integrations/supabase/client.ts`, `previewAuthStorage.ts`, `types.ts`, `.env`, `supabase/config.toml`.
 
-- `anuncios jsonb NOT NULL DEFAULT '[]'::jsonb` — array de `{ valor: number, area: number, fonte: string }`.
+### 3. Guia de trabalho local
+Adicionar uma seção no `README.md` com:
+- `npm install` e `npm run dev` (porta 8080);
+- as variáveis do `.env` necessárias (URL e chave publicável, que já são públicas);
+- como rodar os testes (`vitest`) e o typecheck;
+- aviso de que migrations de banco e deploy de edge functions continuam sendo feitos por aqui, não pelo Claude local.
 
-Sem GRANT novos (a tabela já tem RLS e grants).
-
-## Tipos
-
-Em `src/lib/parecer/types.ts`:
-
-- Novo `AnuncioParecer = { valor: number; area: number; fonte: string }`.
-- Novo campo `anuncios: AnuncioParecer[]` em `ParecerTecnico`, default `[]` em `defaultParecer()`.
-
-## Prefill
-
-Em `src/lib/parecer/prefillFromAvaliacao.ts`:
-
-- Mapear `v.anuncio_fontes` (formato `{ valor, area, fonte? }`) para `anuncios` do parecer, coagindo tipos numéricos.
-- Manter a lógica atual dos `comparativos` intacta (comparativos e anúncios são coisas distintas: comparativos são transações reais / ofertas saneadas, anúncios são a amostra bruta de ofertas ativas).
-
-## Formulário
-
-Em `src/components/parecer/ParecerForm.tsx`, dentro do `AccordionItem value="amostra"`, adicionar bloco **"Amostra de anúncios analisados"** abaixo dos comparativos, com o mesmo layout do `Step1Location`:
-
-- Lista de anúncios com, por linha:
-  - Título "Anúncio N" + valor calculado em `R$ /m²` (badge) + botão remover.
-  - Grid 2 colunas: `Valor` (CurrencyInput) e `Área (m²)` (Input numérico).
-  - `Fonte/Link` (Input url) com ícone `ExternalLink`.
-- Botão "Adicionar anúncio".
-- Painel resumo (aparece quando há pelo menos 1 anúncio válido): Mín, Méd, Máx por m² calculados a partir dos itens preenchidos.
-- Alertas de amostra: menos de 3 anúncios (info), variação grande vs. valor de mercado do parecer (opcional, versão simplificada, sem depender de dados de ITBI).
-
-Usar `CurrencyInput` já existente no projeto (usado no `Step1Location`), sem `<input type="number">` para valores em Real. Área continua como Input numérico simples, como no formulário original.
-
-## Preview
-
-Em `src/components/parecer/ParecerPreview.tsx`, na seção 5 (Amostra), acrescentar após a tabela de comparativos uma tabela **"Amostra de anúncios analisados"** com colunas Anúncio, Valor, Área, Valor/m², Fonte. Renderiza apenas se `anuncios.length > 0`. Mesmos estilos das tabelas existentes para manter o padrão do PDF impresso.
-
-## Editor
-
-Nenhuma mudança em `ParecerTecnicoEditor` além da que o auto-save já cobre. A lista de anúncios já é persistida pelo save existente porque será apenas mais um campo do objeto `parecer`.
+### 4. Acesso do Claude a dados (leitura)
+Como o Lovable Cloud não expõe dashboard nem service role key, o Claude não terá conexão SQL direta. Duas alternativas documentadas no `CLAUDE.md`:
+- **Recomendada:** o Claude lê o schema completo em `src/integrations/supabase/types.ts` (gerado e sempre atualizado) e as migrations em `supabase/migrations/`. Isso cobre estrutura de tabelas, enums e funções.
+- **Consultas de dados reais:** feitas por aqui, no chat da Lovable, e o resultado passado ao Claude.
 
 ## Detalhes técnicos
 
-- `useParecerTecnico.save()`: adicionar `anuncios` ao payload (jsonb) para inserção/update. Nenhuma coerção adicional além de manter o array.
-- Sem alteração no `ParecerPreview` para PDF externo (jsPDF) — o preview é a fonte da impressão via CSS `parecer-print.css`, então adicionar a tabela lá basta.
-- Sem chamadas de IA.
-- Sem alterações em: sidebar, roteamento, RLS, edge functions, avaliação.
+- A conexão GitHub não altera o backend: o app continua apontando para o mesmo projeto Cloud em preview e em produção.
+- Edge functions em `supabase/functions/` podem ser editadas pelo Claude no repositório; o deploy acontece automaticamente quando as mudanças chegam aqui.
+- Mudanças de schema escritas pelo Claude devem vir como arquivos SQL novos em `supabase/migrations/`; eu as aplico depois via ferramenta de migração (o conteúdo é aplicado byte a byte).
+- Secrets (Z-API, Google Maps, Resend, LOVABLE_API_KEY) permanecem apenas no Cloud e não vão para o repositório.
 
-## Arquivos afetados
+## Fora de escopo
 
-- migration nova em `supabase/migrations/*` (add coluna `anuncios` em `pareceres_tecnicos`).
-- `src/lib/parecer/types.ts`
-- `src/lib/parecer/prefillFromAvaliacao.ts`
-- `src/hooks/useParecerTecnico.ts` (garantir `anuncios` no payload)
-- `src/components/parecer/ParecerForm.tsx`
-- `src/components/parecer/ParecerPreview.tsx`
+Migração do banco para uma conta Supabase própria. Se quiser isso depois, é um projeto separado (schema, ~57 tabelas incluindo PostGIS/ITBI, buckets, ~60 edge functions, secrets e reset de senha de todos os usuários).
