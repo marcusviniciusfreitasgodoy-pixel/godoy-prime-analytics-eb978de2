@@ -94,7 +94,7 @@ export async function exportFichaVisitaPdf({ ficha, feedback, customLogoBase64, 
   doc.rect(0, 0, pageWidth, headerH, "F");
 
   if (logoToUse) {
-    try { doc.addImage(logoToUse, "PNG", M, 2, 18, 18); } catch {}
+    try { doc.addImage(logoToUse, "PNG", M, 2, 18, 18); } catch { /* imagem inválida: segue sem ela */ }
   }
 
   doc.setTextColor(...COLORS.gold);
@@ -241,7 +241,7 @@ export async function exportFichaVisitaPdf({ ficha, feedback, customLogoBase64, 
   doc.setLineWidth(0.3);
   doc.rect(M, y, sigW, sigH);
   if (ficha.assinatura_visitante) {
-    try { doc.addImage(ficha.assinatura_visitante, "PNG", M + 1, y + 1, sigW - 2, sigH - 2); } catch {}
+    try { doc.addImage(ficha.assinatura_visitante, "PNG", M + 1, y + 1, sigW - 2, sigH - 2); } catch { /* imagem inválida: segue sem ela */ }
   }
   doc.setFontSize(6.5);
   doc.setTextColor(...COLORS.navy);
@@ -251,7 +251,7 @@ export async function exportFichaVisitaPdf({ ficha, feedback, customLogoBase64, 
   const sigX2 = pageWidth / 2 + 8;
   doc.rect(sigX2, y, sigW, sigH);
   if (ficha.assinatura_corretor) {
-    try { doc.addImage(ficha.assinatura_corretor, "PNG", sigX2 + 1, y + 1, sigW - 2, sigH - 2); } catch {}
+    try { doc.addImage(ficha.assinatura_corretor, "PNG", sigX2 + 1, y + 1, sigW - 2, sigH - 2); } catch { /* imagem inválida: segue sem ela */ }
   }
   doc.text(`Corretor(a) — ${ficha.nome_corretor} | CRECI: ${corretorCreci}`, sigX2, y + sigH + 3);
 

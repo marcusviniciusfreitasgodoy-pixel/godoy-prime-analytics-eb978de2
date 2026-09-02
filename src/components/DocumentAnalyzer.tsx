@@ -59,7 +59,7 @@ export function DocumentAnalyzer({ onChecklistItemSuggested }: DocumentAnalyzerP
     return AGENTS.some((a) => a.id === saved) ? (saved as AgentId) : DEFAULT_AGENT;
   });
   useEffect(() => {
-    try { localStorage.setItem("documentAnalyzer.agent", selectedAgent); } catch {}
+    try { localStorage.setItem("documentAnalyzer.agent", selectedAgent); } catch { /* localStorage indisponível */ }
   }, [selectedAgent]);
   const { toast } = useToast();
   const queryClient = useQueryClient();

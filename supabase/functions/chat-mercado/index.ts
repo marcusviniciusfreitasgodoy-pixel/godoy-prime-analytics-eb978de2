@@ -303,7 +303,7 @@ serve(async (req) => {
       /(?:alameda|al\.?)\s+([a-záéíóúâêîôûãõç\s]+)/gi,
     ];
     
-    let mentionedLogradouros: string[] = [];
+    const mentionedLogradouros: string[] = [];
     for (const pattern of logradouroPatterns) {
       const matches = lastUserMessage.matchAll(pattern);
       for (const match of matches) {
@@ -330,7 +330,7 @@ serve(async (req) => {
       'WIND', 'ART LIFE', 'JARDINS DA BARRA', 'SAINT MICHEL',
     ];
     
-    let mentionedCondominios: string[] = [];
+    const mentionedCondominios: string[] = [];
     const upperMessage = lastUserMessage.toUpperCase();
     for (const cond of condominiosConhecidos) {
       if (upperMessage.includes(cond)) {
@@ -371,7 +371,7 @@ serve(async (req) => {
       .not('valor_m2', 'is', null);
 
     // Calculate global stats using WEIGHTED AVERAGES
-    let globalStats = {
+    const globalStats = {
       totalTransacoes: 0,
       avgValorM2: 0,
       totalBairros: 0
@@ -475,7 +475,7 @@ serve(async (req) => {
     const { data: specificData } = await specificQuery.limit(5000);
 
     // 6. Get data for mentioned bairros (if any)
-    let mentionedBairrosData: Record<string, { avgM2: number; transacoes: number }> = {};
+    const mentionedBairrosData: Record<string, { avgM2: number; transacoes: number }> = {};
     
     if (mentionedBairros.length > 0) {
       for (const mb of mentionedBairros) {
@@ -490,7 +490,7 @@ serve(async (req) => {
     }
 
     // 7. Get data for mentioned logradouros (streets)
-    let logradourosData: Record<string, { avgM2: number; transacoes: number; valorMedio: number }> = {};
+    const logradourosData: Record<string, { avgM2: number; transacoes: number; valorMedio: number }> = {};
     
     if (mentionedLogradouros.length > 0) {
       for (const logradouro of mentionedLogradouros) {
@@ -522,7 +522,7 @@ serve(async (req) => {
     }
 
     // 8. Get data for mentioned condominios
-    let condominiosData: Record<string, { avgM2: number; transacoes: number; valorMedio: number; microbairro: string; padrao: string }> = {};
+    const condominiosData: Record<string, { avgM2: number; transacoes: number; valorMedio: number; microbairro: string; padrao: string }> = {};
     
     if (mentionedCondominios.length > 0) {
       for (const cond of mentionedCondominios) {
@@ -605,7 +605,7 @@ ${bairroRanking.slice(0, 10).map((r, i) => `${i + 1}. ${r.bairro}: ${r.transacoe
       const totalCasas = casas.reduce((sum, r) => sum + (r.total_transacoes || 1), 0);
       const totalAptos = aptos.reduce((sum, r) => sum + (r.total_transacoes || 1), 0);
       
-      let filterDesc = [];
+      const filterDesc = [];
       if (requestedYear) filterDesc.push(`ano ${requestedYear}`);
       if (valorMinimo > 0) filterDesc.push(`valor > R$ ${valorMinimo.toLocaleString('pt-BR')}`);
       if (areaMinimo > 0) filterDesc.push(`área > ${areaMinimo}m²`);

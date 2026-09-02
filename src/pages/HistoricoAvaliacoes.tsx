@@ -76,6 +76,10 @@ import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { toast } from "sonner";
 
+// Remove caracteres não-ASCII (emojis corrompidos) de títulos vindos do banco
+// eslint-disable-next-line no-control-regex
+const NON_ASCII_RE = /[^\x00-\x7F]/g;
+
 interface PricingStrategy {
   id: string;
   valor_itbi: number;
@@ -524,7 +528,7 @@ export default function HistoricoAvaliacoes() {
     const cleanTitle = (title: string | null) => {
       if (!title) return "Avaliação Concluída";
       // Remove caracteres não-ASCII (emojis corrompidos)
-      return title.replace(/[^\x00-\x7F]/g, '').trim() || "Avaliação Concluída";
+      return title.replace(NON_ASCII_RE, '').trim() || "Avaliação Concluída";
     };
 
     // Determina o ícone correto baseado no status/trend
@@ -993,7 +997,7 @@ export default function HistoricoAvaliacoes() {
                 <div className="bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800 rounded-lg p-3">
                   <p className="text-sm font-medium text-blue-800 dark:text-blue-200">
                     {/* Remove emojis corrompidos do título */}
-                    {selectedValuation.recommendation_title.replace(/[^\x00-\x7F]/g, '').trim() || "Avaliação Concluída"}
+                    {selectedValuation.recommendation_title.replace(NON_ASCII_RE, '').trim() || "Avaliação Concluída"}
                   </p>
                 </div>
               )}

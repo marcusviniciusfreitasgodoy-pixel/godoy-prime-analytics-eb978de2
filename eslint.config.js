@@ -21,6 +21,11 @@ export default tseslint.config(
       ...reactHooks.configs.recommended.rules,
       "react-refresh/only-export-components": ["warn", { allowConstantExport: true }],
       "@typescript-eslint/no-unused-vars": "off",
+      // O projeto roda com strict: false / noImplicitAny: false, então `any` explícito
+      // fica como aviso (visível, não bloqueia o CI). Endurecer quando a tipagem evoluir.
+      "@typescript-eslint/no-explicit-any": "warn",
+      // Permite `let x;` lido em closure antes da atribuição (ex.: timers cancelados em callbacks).
+      "prefer-const": ["error", { ignoreReadBeforeAssign: true }],
     },
   },
 );

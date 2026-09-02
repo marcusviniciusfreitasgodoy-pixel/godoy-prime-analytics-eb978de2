@@ -285,8 +285,8 @@ export const calculateFinalValues = (
   const base_max = combined.max_m2 * area_m2;
 
   // Aplica compressão: aproxima min/max em direção à mediana
-  let compressed_min = base_min + (base_med - base_min) * SPREAD_COMPRESSION;
-  let compressed_max = base_max - (base_max - base_med) * SPREAD_COMPRESSION;
+  const compressed_min = base_min + (base_med - base_min) * SPREAD_COMPRESSION;
+  const compressed_max = base_max - (base_max - base_med) * SPREAD_COMPRESSION;
 
   // Valor provável ajustado (referência)
   const adjusted_med = base_med * multiplier * doc_factor;
