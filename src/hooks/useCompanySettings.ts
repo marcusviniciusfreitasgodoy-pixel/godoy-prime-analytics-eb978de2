@@ -26,7 +26,9 @@ const DEFAULT_SETTINGS: CompanySettings = {
   company_address: 'Av. das Américas 10101 Bloco 2, Sala 316, Barra da Tijuca, RJ',
   company_creci: 'CRECI 11841-PJ',
   company_website: 'www.godoyprime.com.br',
-  outlier_filter_method: 'iqr',
+  // Padrão calibrado com a base em 2026-09-02 (docs/auditoria-motor-avaliacao.md, seção 10):
+  // mediana de 3 escrituras por linha agregada torna as cercas de Tukey apertadas demais.
+  outlier_filter_method: 'mad',
 };
 
 export function useCompanySettings() {

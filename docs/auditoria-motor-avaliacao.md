@@ -22,8 +22,9 @@ O que ainda depende de decisão ou de dados, mesmo com as três fases aplicadas:
 - **Migrations a aplicar no Lovable Cloud**: `20260902140000_valuations_itbi_metadata.sql` (coluna de rastreabilidade) e `20260902150000_itbi_price_index.sql` (índice de preços materializado + função de refresh). Até lá o motor funciona sem metadados persistidos e sem correção temporal, e registra isso.
 - **Edge functions a reimplantar**: `public-itbi-stats`, `parecer-nucleo`, `sync-itbi-daily` (todas passam a importar de `supabase/functions/_shared/`).
 - **Calibrações com a base** (seção 7): `k` do método MAD, limiares de spread (`SPREAD_*` em `valuationCalculations.ts`), limiar de gap de anúncios (`ANUNCIO_GAP_ALERT_PCT`) e piso/teto por bairro × tipologia. Os valores atuais são pontos de partida documentados, não resultados.
-- **Método de corte padrão** continua IQR; o MAD em log está disponível em Configurações e deve virar padrão só após a calibração.
+- **Método de corte padrão passou a ser MAD em log** (k = 2,5 / 3,0) após a calibração da seção 10. Organizações que já salvaram `outlier_filter_method` mantêm a escolha; selecionar MAD em Configurações.
 - **Caps do questionário** seguem no código (`CATEGORY_CAPS`/`GLOBAL_CAPS`); mover para o banco exige versionar o seed (item 17).
+- **Migrations aplicadas e edge functions reimplantadas** em 2026-09-02 (via Lovable): `itbi_price_index` com 26 trimestres, `valuations.itbi_metadata` presente, `public-itbi-stats` respondendo com `engine_version: 3` e `deflacionado: true`.
 
 ---
 
@@ -296,3 +297,68 @@ Gravar os resultados como migration de seed no repositório.
 - **O repositório está público.** O `.env` saiu do versionamento no commit `dde349d`, mas o histórico ainda contém a URL e a chave publicável (públicas por desenho; a RLS está bloqueando leitura anônima, confirmado). Ainda assim, todo o código do motor, os prompts das edge functions e o `CONTEXT.md` estão expostos. Tornar privado em Settings → General → Danger Zone.
 - **Pareceres já emitidos vão mudar de valor** após a Fase 1, provavelmente para cima no Leblon e Ipanema e em ambas as direções onde há mistura casa/apartamento. Decida a política (reemitir, marcar como "versão 1", ou congelar) antes do deploy, e use `engine_version` para distinguir.
 - **Lovable e a outra base.** Cada correção feita fora do Lovable precisa voltar para este repositório, senão o próximo push do Lovable sobrescreve. Combine um único fluxo (por exemplo, PRs para `main` com o CI verde) antes de começar a Fase 1.
+
+---
+
+## 10. Resultados da calibração (base de produção, 2026-09-02)
+
+Consultas 7.1 a 7.5 executadas pelo Lovable sobre a base real. Números arredondados como recebidos.
+
+### 10.1 Magnitude do agregado (7.1)
+
+| média por linha | mediana por linha | P90 por linha | linhas | escrituras |
+|---|---|---|---|---|
+| 4,19 | 3 | 8 | 30.011 | 125.867 |
+
+Leitura: a linha típica representa 3 escrituras e uma em dez representa 8 ou mais. Cercas de Tukey calculadas sobre esses agregados são apertadas demais (a dispersão entre médias de grupo é menor que a dispersão entre escrituras). Decisão: **MAD em escala log vira o método padrão**.
+
+### 10.2 Impacto retroativo do teto fixo de 40.000 (7.2)
+
+| bairro | escrituras acima de 40.000 | total (5 anos) | % |
+|---|---|---|---|
+| Leblon | 32 | 2.213 | 1,4 |
+| Ipanema | 20 | 3.062 | 0,7 |
+| Barra da Tijuca | 27 | 10.175 | 0,3 |
+
+Todos os demais bairros: zero. Leitura: o defeito era real, mas a magnitude é pequena. A afirmação recebida no chat de que este era "o bug mais caro do repositório" está corrigida por este dado: os itens que mais movem o valor são a janela temporal, a tipologia e a compressão da faixa, não o teto.
+
+### 10.3 Calibração de k para o MAD (7.3, k = 2,5 / 3,0)
+
+| bairro | tipologia | escrituras | corte baixo % | corte alto % | mediana R$/m² | cerca inf. | cerca sup. |
+|---|---|---|---|---|---|---|---|
+| Copacabana | Apartamento | 9.914 | 3,34 | 4,93 | 10.208 | 7.607 | 14.528 |
+| Barra da Tijuca | Apartamento | 9.881 | 0,21 | 3,59 | 9.164 | 5.689 | 16.237 |
+| Recreio | Apartamento | 7.526 | 0,90 | 1,86 | 5.971 | 4.365 | 8.696 |
+| Jacarepaguá | Apartamento | 6.872 | 0,65 | 0 | 6.231 | 4.002 | 10.600 |
+| Tijuca | Apartamento | 6.039 | 1,41 | 0 | 5.669 | 3.399 | 10.473 |
+| Botafogo | Apartamento | 4.178 | 0,10 | 2,97 | 10.702 | 6.447 | 19.660 |
+| Ipanema | Apartamento | 3.057 | 1,54 | 2,49 | 16.748 | 9.151 | 34.587 |
+| Freguesia | Apartamento | 2.650 | 1,21 | 0 | 4.812 | 3.430 | 7.226 |
+| Camorim | Apartamento | 2.612 | 0 | 0 | 6.428 | 3.565 | 13.042 |
+| Leblon | Apartamento | 2.213 | 0 | 1,04 | 19.577 | 10.135 | 43.138 |
+
+Nenhum par bairro × tipologia com mais de 10% de corte; máximo 8,3% (Copacabana). Dentro do alvo da seção 5. Decisão: **k = 2,5 (inferior) e 3,0 (superior) confirmados**. Observação: Copacabana corta mais nas duas pontas porque mistura orla e miolo na mesma tipologia; um refinamento futuro é calibrar por microbairro.
+
+### 10.4 Piso e teto por bairro × tipologia (7.4, 78 linhas; 10 recebidas)
+
+| bairro | tipologia | P1 | P99 | escrituras |
+|---|---|---|---|---|
+| Barra da Tijuca | Apartamento | 6.086 | 17.688 | 9.881 |
+| Barra da Tijuca | Casa | 4.728 | 10.897 | 294 |
+| Botafogo | Apartamento | 6.909 | 18.345 | 4.178 |
+| Barra Olímpica | Apartamento | 5.708 | 9.535 | 411 |
+| Andaraí | Apartamento | 2.471 | 6.867 | 825 |
+| Cachambi | Apartamento | 2.473 | 6.746 | 1.754 |
+
+Leitura: os tetos hardcoded estão cerca de 2× acima do P99 real (Barra 40.000 contra 17.688; Botafogo 40.000 contra 18.345). Como o corte fino é feito pelo MAD, o teto largo não distorce o resultado, mas a tabela deve migrar para P1/P99 por bairro × tipologia assim que as 78 linhas completas estiverem disponíveis (pendente: o CSV não foi entregue).
+
+### 10.5 Reprodutibilidade (7.5)
+
+Catorze bairros tinham mais de 500 linhas elegíveis (Barra 2.814, Recreio 2.679, Copacabana 2.424, Tijuca 1.954, entre outros). Toda avaliação com fallback para bairro nesses casos era não determinística antes da Fase 1. Com ordenação explícita e limite de 5.000, nenhum bairro trunca: o maior tem 2.814 linhas.
+
+### 10.6 Pendentes desta rodada
+
+- CSV completo de 7.3 (106 linhas) e 7.4 (78 linhas), para gerar a tabela de piso/teto por bairro × tipologia.
+- Consultas 7.5 a 7.8 de `docs/calibracao-consultas.sql` (spread real por rua, gap de anúncios nas avaliações salvas, conferência do índice, seeds e RPCs): o arquivo só entrou na `main` depois desta rodada.
+- Aviso do linter do Supabase "Materialized View in API" para `itbi_price_index`: aceito. A view expõe apenas medianas trimestrais da cidade inteira, sem dado individual, e precisa ser legível pelo app autenticado.
+
