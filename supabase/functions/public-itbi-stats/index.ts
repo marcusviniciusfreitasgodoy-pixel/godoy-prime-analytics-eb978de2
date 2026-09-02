@@ -218,7 +218,10 @@ serve(async (req) => {
         tipologia_fallback: false,
         piso_m2: piso,
         teto_m2: teto,
-        truncado: rows.length >= MAX_ROWS,
+        limites_escopo: limites.escopo,
+        limites_bairro: { piso: limitesBairro.piso, teto: limitesBairro.teto },
+        truncado: rowsBrutas.length >= MAX_ROWS,
+
         deflacionado: deflation.aplicado,
         trimestre_referencia: deflation.trimestreReferencia,
       },
