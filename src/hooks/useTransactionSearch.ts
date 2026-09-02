@@ -1,29 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { buildLogradouroOrConditions } from '@/lib/logradouroSearch';
-
-// Limites de outliers por bairro
-const OUTLIER_LIMITS: Record<string, number> = {
-  'BARRA DA TIJUCA': 40000,
-  'RECREIO DOS BANDEIRANTES': 35000,
-  'LEBLON': 80000,
-  'IPANEMA': 70000,
-  'LAGOA': 50000,
-  'JARDIM BOTANICO': 50000,
-  'GAVEA': 50000,
-  'COPACABANA': 40000,
-  'BOTAFOGO': 40000,
-  'FLAMENGO': 35000,
-  'LARANJEIRAS': 35000,
-  'HUMAITA': 40000,
-  'TIJUCA': 30000,
-  'DEFAULT': 60000,
-};
-
-const getOutlierLimit = (bairro: string): number => {
-  const normalizedBairro = bairro.toUpperCase();
-  return OUTLIER_LIMITS[normalizedBairro] || OUTLIER_LIMITS['DEFAULT'];
-};
+import { getOutlierLimit, DEFAULT_OUTLIER_MAX } from '@/lib/outlierLimits';
 
 export interface TransactionSearchParams {
   valorMin?: number;
@@ -54,7 +32,7 @@ export function useTransactionSearch(params: TransactionSearchParams, enabled: b
       startDateCalc.setMonth(startDateCalc.getMonth() - meses);
       const startDate = startDateCalc.toISOString().split('T')[0];
       
-      const outlierLimit = params.bairro ? getOutlierLimit(params.bairro) : OUTLIER_LIMITS['DEFAULT'];
+      const outlierLimit = params.bairro ? getOutlierLimit(params.bairro) : DEFAULT_OUTLIER_MAX;
 
       // Determina o uso baseado na tipologia selecionada
       const isComercial = params.tipologia?.toLowerCase() === 'comercial';

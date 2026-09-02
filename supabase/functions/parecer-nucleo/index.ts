@@ -12,6 +12,12 @@
 
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { z } from "npm:zod@3";
+import {
+  calculateITBIData,
+  toWeightedItems,
+  weightedQuantile,
+  type MarketRow,
+} from "../_shared/itbiMarketStats.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -43,22 +49,13 @@ function jsonResp(body: unknown, status = 200) {
   });
 }
 
-// Percentil linear (0..1) sobre array numérico.
-function quantile(sorted: number[], q: number): number {
-  if (sorted.length === 0) return NaN;
-  const pos = (sorted.length - 1) * q;
-  const base = Math.floor(pos);
-  const rest = pos - base;
-  return sorted[base + 1] !== undefined
-    ? sorted[base] + rest * (sorted[base + 1] - sorted[base])
-    : sorted[base];
-}
-
-// Média/mediana ponderadas por total_transacoes, com corte IQR (1.5×) sobre valor_m2.
+// Estatística ITBI: implementação compartilhada com o motor de avaliação e o site
+// público (supabase/functions/_shared/itbiMarketStats.ts). Mantém o formato de
+// saída que o prompt do parecer consome.
 function weightedItbiStats(
-  rows: Array<{ valor_m2: number; total_transacoes: number }>,
+  rows: Array<{ valor_m2: number; total_transacoes: number; data_transacao?: string }>,
 ) {
-  const clean = rows
+  const clean: MarketRow[] = rows
     .filter(
       (r) =>
         Number.isFinite(r.valor_m2) &&
@@ -66,63 +63,54 @@ function weightedItbiStats(
         Number.isFinite(r.total_transacoes) &&
         r.total_transacoes > 0,
     )
-    .sort((a, b) => a.valor_m2 - b.valor_m2);
+    .map((r) => ({
+      valor_m2: r.valor_m2,
+      total_transacoes: r.total_transacoes,
+      data_transacao: r.data_transacao ?? "",
+    }));
 
   if (clean.length === 0) {
     return null;
   }
 
-  const values = clean.map((r) => r.valor_m2);
-  const q1 = quantile(values, 0.25);
-  const q3 = quantile(values, 0.75);
+  const stats = calculateITBIData(clean, {
+    method: "iqr",
+    meta: {
+      data_source: "logradouro",
+      bairros_incluidos: [],
+      janela_inicio: "",
+      janela_fim: "",
+      ano_corrente_incluido: false,
+      tipologia_filtro: null,
+      tipologia_fallback: false,
+      piso_m2: 0,
+      teto_m2: 0,
+      truncado: false,
+    },
+  });
+  if (!stats) return null;
+
+  const items = toWeightedItems(clean);
+  const q1 = weightedQuantile(items, 0.25);
+  const q3 = weightedQuantile(items, 0.75);
   const iqr = q3 - q1;
-  const lower = q1 - 1.5 * iqr;
-  const upper = q3 + 1.5 * iqr;
-
-  const kept = clean.filter((r) => r.valor_m2 >= lower && r.valor_m2 <= upper);
-  const removed = clean.length - kept.length;
-
-  const somaPeso = kept.reduce((s, r) => s + r.total_transacoes, 0);
-  const somaProd = kept.reduce(
-    (s, r) => s + r.valor_m2 * r.total_transacoes,
-    0,
-  );
-  const mediaPonderada = somaPeso > 0 ? somaProd / somaPeso : null;
-
-  // mediana ponderada
-  const acc: Array<{ v: number; w: number }> = kept.map((r) => ({
-    v: r.valor_m2,
-    w: r.total_transacoes,
-  }));
-  acc.sort((a, b) => a.v - b.v);
-  const halfWeight = somaPeso / 2;
-  let cum = 0;
-  let medianaPonderada: number | null = null;
-  for (const p of acc) {
-    cum += p.w;
-    if (cum >= halfWeight) {
-      medianaPonderada = p.v;
-      break;
-    }
-  }
-
-  const min = kept[0]?.valor_m2 ?? null;
-  const max = kept[kept.length - 1]?.valor_m2 ?? null;
   const spread_pct =
-    min && max && mediaPonderada ? ((max - min) / mediaPonderada) * 100 : null;
+    stats.min_m2 && stats.max_m2 && stats.media_m2
+      ? ((stats.max_m2 - stats.min_m2) / stats.media_m2) * 100
+      : null;
 
   return {
-    valor_m2_medio_ponderado: mediaPonderada,
-    valor_m2_mediana_ponderada: medianaPonderada,
-    valor_m2_min: min,
-    valor_m2_max: max,
+    valor_m2_medio_ponderado: stats.media_m2,
+    valor_m2_mediana_ponderada: stats.med_m2,
+    valor_m2_min: stats.min_m2, // P10 ponderado dos sobreviventes
+    valor_m2_max: stats.max_m2, // P90 ponderado dos sobreviventes
     q1,
     q3,
     iqr,
     spread_pct,
-    n_transacoes: somaPeso,
-    n_linhas_agregadas: kept.length,
-    linhas_descartadas_iqr: removed,
+    n_transacoes: stats.meta.escrituras_validas,
+    n_linhas_agregadas: stats.meta.linhas_agregadas - stats.meta.linhas_descartadas,
+    linhas_descartadas_iqr: stats.meta.linhas_descartadas,
   };
 }
 
@@ -275,7 +263,7 @@ Deno.serve(async (req) => {
         tipologia_filtro: input.tipologia ?? null,
         ...stats,
         metodo:
-          "Média/mediana ponderadas por total_transacoes com corte IQR 1.5× sobre valor_m2",
+          "Mediana/média ponderadas por total_transacoes com corte IQR 1.5× (implementação compartilhada com o motor); mín/máx = P10/P90",
         fonte:
           "Prefeitura RJ — ITBI (base agregada mensal por logradouro/tipologia)",
       };

@@ -3,7 +3,7 @@ import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Skeleton } from "@/components/ui/skeleton";
 import { CheckCircle, AlertTriangle, XCircle, TrendingUp, TrendingDown, Minus, Home, Building2 } from "lucide-react";
-import type { ValuationResult, CombinedPrices } from "@/utils/valuationCalculations";
+import { GLOBAL_CAPS, type ValuationResult, type CombinedPrices } from "@/utils/valuationCalculations";
 import type { ValuationState } from "@/types/valuation";
 import { isCasaType, calculateTerrainBonus } from "@/hooks/useValuationCharacteristics";
 import { useState } from "react";
@@ -21,13 +21,13 @@ interface Props {
 
 export function Step4Results({ result, state, combined }: Props) {
   const isCasa = isCasaType(state.tipoImovel);
-  const globalCap = isCasa ? 35 : 30;
+  const globalCap = Math.round(GLOBAL_CAPS[isCasa ? "casa" : "apartamento"].max * 100);
   const terrainInfo = isCasa && state.area_m2 > 0 && state.area_terreno_m2 > 0 
     ? calculateTerrainBonus(state.area_m2, state.area_terreno_m2)
     : null;
 
   // Escopo da amostra histórica: somente a rua ou raio de 100 m
-  const [escopoHistorico, setEscopoHistorico] = useState<EscopoAnalise>("raio500");
+  const [escopoHistorico, setEscopoHistorico] = useState<EscopoAnalise>("raio100");
 
   // Buscar análise histórica de 5 anos (com ruas internas do condomínio quando disponível)
   const { data: historicalAnalysis, isLoading: loadingHistorical } = useHistoricalTransactionAnalysis(
@@ -150,8 +150,10 @@ export function Step4Results({ result, state, combined }: Props) {
             <div className="text-[10px] sm:text-xs text-muted-foreground mt-1 sm:mt-2 space-y-0.5 sm:space-y-1">
               <p>Baseado em:</p>
               <ul className="list-disc list-inside ml-1 sm:ml-2">
-                <li>Dados oficiais ({state.anuncioData?.med_m2 ? "70%" : "100%"})</li>
-                {state.anuncioData?.med_m2 && <li>Anúncios (30%)</li>}
+                <li>Transações reais ITBI (100%)</li>
+                {combined?.market_gap_percentage !== null && combined?.market_gap_percentage !== undefined && (
+                  <li>Anúncios como sinal: gap de {combined.market_gap_percentage.toFixed(0)}%</li>
+                )}
                 <li>Características ({formatPercent(result.total_adjustment)})</li>
                 {terrainInfo && terrainInfo.bonus !== 0 && (
                   <li>Bônus Terreno ({terrainInfo.bonus > 0 ? '+' : ''}{(terrainInfo.bonus * 100).toFixed(0)}%)</li>
@@ -355,7 +357,7 @@ export function Step4Results({ result, state, combined }: Props) {
             <ToggleGroupItem value="rua" className="text-xs px-3">
               Somente a rua
             </ToggleGroupItem>
-            <ToggleGroupItem value="raio500" className="text-xs px-3">
+            <ToggleGroupItem value="raio100" className="text-xs px-3">
               Raio de 100 m
             </ToggleGroupItem>
             <ToggleGroupItem value="raio200" className="text-xs px-3">

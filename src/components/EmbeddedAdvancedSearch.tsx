@@ -20,6 +20,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "./ui/t
 import { useStreetSuggestions } from "@/hooks/useStreetSuggestions";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "./ui/dialog";
 import { getCompactReportYearOptions } from "@/lib/reportYearOptions";
+import { getOutlierLimit, DEFAULT_OUTLIER_MAX } from '@/lib/outlierLimits';
 
 interface AdvancedSearchResult {
   id: string;
@@ -67,39 +68,6 @@ const USO_OPTIONS = [
 ];
 
 const ANO_OPTIONS = getCompactReportYearOptions();
-
-// Limites de outliers por bairro (consistente com useTransactionSearch, useITBITransactions, etc.)
-const OUTLIER_LIMITS: Record<string, number> = {
-  'BARRA DA TIJUCA': 40000,
-  'RECREIO DOS BANDEIRANTES': 35000,
-  'LEBLON': 80000,
-  'IPANEMA': 70000,
-  'LAGOA': 50000,
-  'JARDIM BOTANICO': 50000,
-  'GAVEA': 50000,
-  'COPACABANA': 40000,
-  'BOTAFOGO': 40000,
-  'FLAMENGO': 35000,
-  'LARANJEIRAS': 35000,
-  'HUMAITA': 40000,
-  'TIJUCA': 30000,
-  'VILA ISABEL': 25000,
-  'GRAJAU': 20000,
-  'GRAJAÚ': 20000,
-  'MEIER': 20000,
-  'MÉIER': 20000,
-  'JACAREPAGUA': 25000,
-  'JACAREPAGUÁ': 25000,
-  'FREGUESIA (JACAREPAGUÁ)': 25000,
-  'TAQUARA': 20000,
-  'PECHINCHA': 20000,
-  'DEFAULT': 60000,
-};
-
-const getOutlierLimit = (bairro: string): number => {
-  const normalizedBairro = bairro.toUpperCase();
-  return OUTLIER_LIMITS[normalizedBairro] || OUTLIER_LIMITS['DEFAULT'];
-};
 
 interface EmbeddedAdvancedSearchProps {
   defaultBairro?: string;
@@ -168,7 +136,7 @@ export function EmbeddedAdvancedSearch({ defaultBairro = "" }: EmbeddedAdvancedS
           .not('valor_m2', 'is', null);
 
         // Filtro de outliers por bairro (consistente com todos os outros módulos)
-        const outlierLimit = searchParams.bairro ? getOutlierLimit(searchParams.bairro) : OUTLIER_LIMITS['DEFAULT'];
+        const outlierLimit = searchParams.bairro ? getOutlierLimit(searchParams.bairro) : DEFAULT_OUTLIER_MAX;
         q = q.lte('valor_m2', outlierLimit);
 
         // Apply uso filter - defaults to Residencial if not specified
@@ -331,7 +299,7 @@ export function EmbeddedAdvancedSearch({ defaultBairro = "" }: EmbeddedAdvancedS
         .not('valor_m2', 'is', null);
 
       // Filtro de outliers por bairro (consistente com todos os outros módulos)
-      const historyOutlierLimit = selectedTransaction.bairro ? getOutlierLimit(selectedTransaction.bairro) : OUTLIER_LIMITS['DEFAULT'];
+      const historyOutlierLimit = selectedTransaction.bairro ? getOutlierLimit(selectedTransaction.bairro) : DEFAULT_OUTLIER_MAX;
       query = query.lte('valor_m2', historyOutlierLimit);
       
       // Filtrar pelo período de anos selecionado

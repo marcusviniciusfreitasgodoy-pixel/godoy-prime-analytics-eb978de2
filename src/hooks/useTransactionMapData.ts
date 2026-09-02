@@ -3,6 +3,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useDemo } from '@/contexts/DemoContext';
 import { DEMO_MAP_DATA } from '@/data/demoData';
 import { buildLogradouroOrConditions } from '@/lib/logradouroSearch';
+import { getOutlierLimit } from '@/lib/outlierLimits';
 
 interface TransactionMapData {
   microbairro: string;
@@ -23,29 +24,6 @@ interface UseTransactionMapDataParams {
   tipologia?: string;
   logradouros?: string[];
 }
-
-// Limites de outlier por bairro
-const OUTLIER_LIMITS: Record<string, number> = {
-  'BARRA DA TIJUCA': 50000,
-  'RECREIO DOS BANDEIRANTES': 40000,
-  'JACAREPAGUA': 30000,
-  'COPACABANA': 60000,
-  'IPANEMA': 80000,
-  'LEBLON': 100000,
-  'BOTAFOGO': 50000,
-  'TIJUCA': 35000,
-  'FLAMENGO': 45000,
-  'LARANJEIRAS': 40000,
-  'GAVEA': 60000,
-  'JARDIM BOTANICO': 55000,
-  'LAGOA': 70000,
-  'SAO CONRADO': 50000,
-  'HUMAITA': 45000,
-  'URCA': 60000,
-  'CENTRO': 25000,
-  'VILA ISABEL': 30000,
-  'MEIER': 25000,
-};
 
 export function useTransactionMapData(params: UseTransactionMapDataParams, enabled: boolean = true) {
   const { bairro, periodoMeses = 12, valorMin, valorMax, areaMin, areaMax, tipologia, logradouros } = params;
@@ -71,7 +49,7 @@ export function useTransactionMapData(params: UseTransactionMapDataParams, enabl
         .eq('uso', isComercial ? 'Comercial' : 'Residencial')
         .not('valor_m2', 'is', null)
         .gte('percentual_transferido', 90)
-        .lte('valor_m2', OUTLIER_LIMITS[bairro.toUpperCase()] || 50000);
+        .lte('valor_m2', getOutlierLimit(bairro));
 
       if (logradouros && logradouros.length > 0) {
         query = query.or(buildLogradouroOrConditions(logradouros));

@@ -38,14 +38,14 @@ export interface CombinedPrices {
   trend_original?: number;
 }
 
-// Combina ITBI (70%) + Anúncios (30%)
-// ITBI = transações reais, Anúncios = sinal de mercado
-// Cap para evitar distorções extremas
-const MARKET_GAP_CAP = 35; // Cap máximo para o gap
+// Valor de referência = 100% transações reais (ITBI).
+// Anúncios são preço PEDIDO; ITBI é preço FECHADO. Misturá-los na base inflava o
+// valor provável (auditoria, achado A3). Os anúncios continuam entrando como SINAL:
+// gap de mercado, alinhamento, recomendação e confiança.
+const MARKET_GAP_CAP = 35; // Cap máximo para o gap exibido
 
-// Pesos: ITBI como âncora principal
-const ITBI_WEIGHT = 0.70;
-const ANUNCIO_WEIGHT = 0.30;
+/** Gap anúncios × ITBI acima do qual a recomendação alerta (calibrar com a base; ver auditoria §7). */
+export const ANUNCIO_GAP_ALERT_PCT = 15;
 
 // Classifica o alinhamento de mercado baseado no gap
 const classifyMarketAlignment = (gap: number): MarketAlignment => {
@@ -115,9 +115,10 @@ export const calculateCombinedPrices = (
     };
   }
 
-  const combined_min = itbi.min_m2 * ITBI_WEIGHT + anuncio.min_m2 * ANUNCIO_WEIGHT;
-  const combined_med = itbi.med_m2 * ITBI_WEIGHT + anuncio.med_m2 * ANUNCIO_WEIGHT;
-  const combined_max = itbi.max_m2 * ITBI_WEIGHT + anuncio.max_m2 * ANUNCIO_WEIGHT;
+  // Base de referência: 100% ITBI. Os anúncios só alimentam o gap abaixo.
+  const combined_min = itbi.min_m2;
+  const combined_med = itbi.med_m2;
+  const combined_max = itbi.max_m2;
 
   // Calcula Gap de Mercado: diferença entre anúncios e ITBI
   const gap_original = ((anuncio.med_m2 - itbi.med_m2) / itbi.med_m2) * 100;
@@ -158,7 +159,7 @@ export const calculateCombinedPrices = (
 };
 
 // Caps diferenciados por tipo de imóvel e categoria
-const CATEGORY_CAPS = {
+export const CATEGORY_CAPS = {
   casa: {
     A: { max: 0.15, min: -0.12 },  // Posição/Vista/Luz
     B: { max: 0.10, min: -0.08 },  // Conservação
@@ -175,8 +176,8 @@ const CATEGORY_CAPS = {
   },
 };
 
-// Cap global por tipo de imóvel
-const GLOBAL_CAPS = {
+// Cap global por tipo de imóvel (fonte única: a UI lê daqui)
+export const GLOBAL_CAPS = {
   casa: { max: 0.35, min: -0.35 },
   apartamento: { max: 0.35, min: -0.35 },
 };
@@ -252,7 +253,7 @@ export const calculateTotalAdjustment = (
   
   let auto_capped = false;
 
-  // Cap global diferenciado por tipo (Casa: ±35%, Apartamento: ±30%)
+  // Cap global por tipo (ver GLOBAL_CAPS)
   if (total > globalCap.max) {
     total = globalCap.max;
     auto_capped = true;
@@ -264,52 +265,22 @@ export const calculateTotalAdjustment = (
   return { total, auto_capped, by_category: cappedByCategory, global_cap: globalCap.max };
 };
 
-// Calcula os 3 valores finais com compressão de spread AGRESSIVA
-// O valor pessimista não pode estar muito distante do provável (máximo -20%)
-// O valor otimista não pode estar muito distante do provável (máximo +15%)
-const SPREAD_COMPRESSION = 0.50; // 50% de compressão do spread original
-const MAX_PESSIMIST_DISCOUNT = 0.20; // Máximo 20% abaixo do provável
-const MAX_OPTIMIST_PREMIUM = 0.15;   // Máximo 15% acima do provável
-
+// Calcula os 3 valores finais.
+// A faixa é a que os dados sustentam: P10 (pessimista), mediana (provável) e P90
+// (otimista) de R$/m² × área × ajuste × documentação. Sem compressão de spread e
+// sem clamps: a versão anterior limitava o spread a 35% por construção, o que
+// tornava a Regra 3 (avaliação formal) inalcançável (auditoria, achado A1).
 export const calculateFinalValues = (
   area_m2: number,
   combined: CombinedPrices,
   adjustment: number,
   doc_factor: number
 ): { pessimista: number; provavel: number; otimista: number } => {
-  const multiplier = 1 + adjustment;
-
-  // Valores base antes de compressão
-  const base_min = combined.min_m2 * area_m2;
-  const base_med = combined.med_m2 * area_m2;
-  const base_max = combined.max_m2 * area_m2;
-
-  // Aplica compressão: aproxima min/max em direção à mediana
-  const compressed_min = base_min + (base_med - base_min) * SPREAD_COMPRESSION;
-  const compressed_max = base_max - (base_max - base_med) * SPREAD_COMPRESSION;
-
-  // Valor provável ajustado (referência)
-  const adjusted_med = base_med * multiplier * doc_factor;
-
-  // Aplica limites de spread: pessimista não pode ser mais de 20% abaixo
-  let adjusted_min = compressed_min * multiplier * doc_factor;
-  const min_floor = adjusted_med * (1 - MAX_PESSIMIST_DISCOUNT);
-  if (adjusted_min < min_floor) {
-    adjusted_min = min_floor;
-  }
-
-  // Otimista não pode ser mais de 15% acima
-  let adjusted_max = compressed_max * multiplier * doc_factor;
-  const max_ceiling = adjusted_med * (1 + MAX_OPTIMIST_PREMIUM);
-  if (adjusted_max > max_ceiling) {
-    adjusted_max = max_ceiling;
-  }
-
-  return {
-    pessimista: Math.round(adjusted_min),
-    provavel: Math.round(adjusted_med),
-    otimista: Math.round(adjusted_max),
-  };
+  const factor = area_m2 * (1 + adjustment) * doc_factor;
+  const values = [combined.min_m2 * factor, combined.med_m2 * factor, combined.max_m2 * factor]
+    .map((v) => Math.round(v))
+    .sort((a, b) => a - b);
+  return { pessimista: values[0], provavel: Math.round(combined.med_m2 * factor), otimista: values[2] };
 };
 
 // Calcula spread
@@ -317,90 +288,130 @@ export const calculateSpread = (pessimista: number, otimista: number, provavel: 
   return ((otimista - pessimista) / provavel) * 100;
 };
 
-// Calcula score de confiança (0-100) com foco na qualidade dos dados de entrada
-// PREMISSA: O valor "provável" já é considerado REAL e FACTÍVEL
-// A confiança mede: qualidade dos dados, consistência do mercado, documentação
+/** Informações da amostra ITBI usadas por confiança e recomendação. */
+export interface SampleInfo {
+  /** escrituras válidas após o corte de outliers */
+  escrituras: number;
+  linhas: number;
+  dataSource: "logradouro" | "bairro";
+  tipologiaFallback: boolean;
+  truncado: boolean;
+}
+
+/** Deriva SampleInfo do ITBIData (usa os metadados quando existem; avaliações antigas caem no total). */
+export const sampleFromITBI = (itbi: ITBIData): SampleInfo | undefined => {
+  if (itbi.meta) {
+    return {
+      escrituras: itbi.meta.escrituras_validas,
+      linhas: itbi.meta.linhas_agregadas,
+      dataSource: itbi.meta.data_source,
+      tipologiaFallback: itbi.meta.tipologia_fallback,
+      truncado: itbi.meta.truncado,
+    };
+  }
+  if (itbi.transaction_count > 0) {
+    return { escrituras: itbi.transaction_count, linhas: 0, dataSource: "logradouro", tipologiaFallback: false, truncado: false };
+  }
+  return undefined;
+};
+
+// Abaixo deste número de escrituras o parecer é emitido, mas marcado como indicativo.
+export const MIN_ESCRITURAS_PARECER = 3;
+// Tetos de confiança por tamanho de amostra (escrituras válidas).
+export const SAMPLE_SCORE_CAPS: ReadonlyArray<{ maxEscrituras: number; cap: number }> = [
+  { maxEscrituras: 2, cap: 40 },
+  { maxEscrituras: 9, cap: 55 },
+  { maxEscrituras: 29, cap: 75 },
+];
+export const BAIRRO_FALLBACK_PENALTY = 15;
+export const TIPOLOGIA_FALLBACK_PENALTY = 5;
+// Limiares de spread (faixa P10–P90 sem compressão). Calibrar com a base (auditoria §7).
+export const SPREAD_NORMAL_PCT = 35;
+export const SPREAD_WIDE_PCT = 50;
+export const SPREAD_VERY_WIDE_PCT = 65;
+
+// Calcula score de confiança (0-100) com foco na qualidade dos dados de entrada.
+// A confiança mede: tamanho e origem da amostra, dispersão do mercado, documentação,
+// liquidez e coerência com anúncios. Não mede se o valor provável está "certo".
 export const calculateConfidenceScore = (
   adjustment: number,
   spread: number,
   doc_factor: number,
   marketGap: number | null, // Gap de Mercado; null indica ausência ou amostra insuficiente
-  liquidityScore?: number // Score de liquidez 0-100 do histórico 5 anos
+  liquidityScore?: number, // Score de liquidez 0-100 do histórico 5 anos
+  sample?: SampleInfo
 ): number => {
   let score = 100;
 
-  // Penalidade 1: Magnitude do ajuste (peso reduzido: ~15%)
-  // Ajustes altos são normais quando o imóvel tem diferenciais reais
-  // Penalizamos apenas ajustes extremos (>40%)
+  // Penalidade 1: Magnitude do ajuste
+  // Ajustes altos são normais quando o imóvel tem diferenciais reais; penaliza só extremos.
   const adjMag = Math.abs(adjustment) * 100;
   if (adjMag > 40) {
-    score -= 15; // Reduzido de 40 para 15
+    score -= 15;
   } else if (adjMag > 35) {
-    score -= 8;  // Reduzido de 25 para 8
+    score -= 8;
   } else if (adjMag > 25) {
-    score -= 4;  // Reduzido de 10 para 4
+    score -= 4;
   }
-  // Ajustes até 25% são considerados normais (sem penalidade)
 
-  // Penalidade 2: Spread amplo (peso: ~15%)
-  // Spreads de 20-30% são normais no mercado imobiliário
-  if (spread > 40) {
-    score -= 15; // Reduzido de 30 para 15
-  } else if (spread > 35) {
-    score -= 8;  // Reduzido de 15 para 8
-  } else if (spread > 30) {
-    score -= 4;  // Ajustado
+  // Penalidade 2: Spread da faixa P10–P90
+  if (spread > SPREAD_VERY_WIDE_PCT) {
+    score -= 18;
+  } else if (spread > SPREAD_WIDE_PCT) {
+    score -= 10;
+  } else if (spread > SPREAD_NORMAL_PCT) {
+    score -= 4;
   }
-  // Spreads até 30% são considerados normais (sem penalidade)
 
-  // Penalidade 3: Documentação (peso mantido: ~15%)
-  // Documentação é crítica - mantém penalidades
+  // Penalidade 3: Documentação
   if (doc_factor < 0.85) {
     score -= 20;
   } else if (doc_factor < 0.95) {
     score -= 8;
   }
 
-  // Bônus/Penalidade 4: Liquidez do mercado (peso: ~15%)
-  // Foco em dar bônus para alta liquidez, penalidade leve para baixa
+  // Bônus/Penalidade 4: Liquidez do mercado
   if (liquidityScore !== undefined) {
     if (liquidityScore >= 70) {
-      // Alta liquidez: bônus significativo
       score += 10;
     } else if (liquidityScore >= 50) {
-      // Liquidez média-alta: bônus moderado
       score += 5;
-    } else if (liquidityScore >= 30) {
-      // Liquidez média: neutro
-    } else {
-      // Liquidez baixa: penalidade leve
+    } else if (liquidityScore < 30) {
       score -= 5;
     }
   }
 
-  // Penalidade 5: Gap de Mercado (peso reduzido: ~5%)
-  // Gap indica discrepância entre anúncios e transações reais.
-  // Quando o gap é null (sem anúncios ou <3 anúncios), aplicamos penalidade fixa
-  // para refletir a incerteza de uma fonte ausente — teto de confiança cai para ~90.
+  // Penalidade 5: Gap de Mercado (anúncios × ITBI). Sem anúncios, fonte ausente: -10.
   if (marketGap === null) {
     score -= 10;
   } else {
     const absGap = Math.abs(marketGap);
     if (absGap <= 15) {
-      // Mercado bem equilibrado: pequeno bônus
       score += 3;
     } else if (absGap <= 25) {
-      // Gap moderado: neutro
+      // neutro
     } else if (absGap <= 35) {
-      // Gap alto: penalidade leve
       score -= 3;
     } else {
-      // Gap crítico: penalidade moderada
       score -= 5;
     }
   }
 
-  return Math.max(0, Math.min(100, score));
+  // Penalidade 6: origem da amostra (auditoria, achado A2)
+  if (sample) {
+    if (sample.dataSource === "bairro") score -= BAIRRO_FALLBACK_PENALTY;
+    if (sample.tipologiaFallback) score -= TIPOLOGIA_FALLBACK_PENALTY;
+  }
+
+  score = Math.max(0, Math.min(100, score));
+
+  // Teto por tamanho da amostra: uma rua com uma escritura nunca é "Alta Confiança".
+  if (sample) {
+    const cap = SAMPLE_SCORE_CAPS.find((c) => sample.escrituras <= c.maxEscrituras)?.cap;
+    if (cap !== undefined) score = Math.min(score, cap);
+  }
+
+  return score;
 };
 
 // Mapeia score para nível de confiança
@@ -430,7 +441,8 @@ export const generateRecommendation = (
   score: number,
   trend: number | null,
   provavel: number,
-  market_alignment?: MarketAlignment
+  market_alignment?: MarketAlignment,
+  sample?: SampleInfo
 ): RecommendationResult => {
   // Regra 1: Documentação incompleta
   if (doc_status === "incompleta") {
@@ -444,6 +456,22 @@ export const generateRecommendation = (
         "Matrícula do imóvel",
         "Certidão de ônus e encargos",
         "Comprovante IPTU recente",
+      ],
+      urgency: "HIGH",
+    };
+  }
+
+  // Regra 1b: Amostra insuficiente (auditoria, achado A2)
+  if (sample && sample.escrituras < MIN_ESCRITURAS_PARECER) {
+    return {
+      status: "INSUFFICIENT_SAMPLE",
+      title: "Amostra Insuficiente",
+      icon: PDF_ICONS.specialist,
+      message: `Apenas ${sample.escrituras} escritura(s) na referência de mercado. O valor é indicativo e não sustenta decisão de preço.`,
+      details: [
+        "Ampliar a amostra: raio de 100–300 m ou bairro (Etapa 4)",
+        "Confrontar com anúncios comparáveis (mínimo 3)",
+        "Para decisão formal, contratar avaliação por perito CREA (NBR 14653-2)",
       ],
       urgency: "HIGH",
     };
@@ -466,8 +494,8 @@ export const generateRecommendation = (
     };
   }
 
-  // Regra 3: Confiança baixa + spread alto
-  if (spread > 40 && score < 55) {
+  // Regra 3: Confiança baixa + faixa larga (a faixa não é mais comprimida; ver calculateFinalValues)
+  if (spread > SPREAD_WIDE_PCT && score < 55) {
     return {
       status: "NEED_SPECIALIST_VALUATION",
       title: "Requerer Avaliação Técnica Formal",
@@ -482,20 +510,20 @@ export const generateRecommendation = (
     };
   }
 
-  // Regra 4: Gap significativo entre anúncios e ITBI + boa confiança
-  // NOTA: Gap alto indica anúncios inflados, NÃO valorização real do mercado
-  if (trend !== null && trend > 5 && score >= 70) {
+  // Regra 4: Anúncios bem acima das transações reais + boa confiança
+  // NOTA: o valor provável usa só ITBI; o gap mede margem de negociação e tempo de venda.
+  if (trend !== null && trend > ANUNCIO_GAP_ALERT_PCT && score >= 70) {
     return {
       status: "WAIT_30_DAYS",
       title: "Anúncios Acima do Mercado",
       icon: PDF_ICONS.wait,
-      message: `Gap de ${trend.toFixed(0)}% entre anúncios e transações reais (ITBI). Anúncios estão inflados.`,
+      message: `Anúncios de referência ${trend.toFixed(0)}% acima das transações reais (ITBI). O valor provável usa apenas transações reais.`,
       details: [
-        `⚠️ Anúncios ${trend.toFixed(0)}% acima das vendas reais`,
+        `Anúncios ${trend.toFixed(0)}% acima das vendas registradas`,
         "Isso NÃO significa valorização real",
-        "Use o valor ITBI (provável) como referência",
+        "Use o valor provável (ITBI) como referência de fechamento",
         "Anúncios inflados demoram mais para vender",
-        "Negociar com margem de 5-10% sobre valor provável",
+        "Negociar com margem de 5-10% sobre o valor provável",
       ],
       urgency: "MEDIUM",
     };
@@ -635,13 +663,15 @@ export const calculateValuation = (
   // 4. Calcula spread
   const spread = calculateSpread(pessimista, otimista, provavel);
 
-  // 5. Calcula confiança (agora inclui liquidez)
+  // 5. Calcula confiança (liquidez + tamanho e origem da amostra)
+  const sample = sampleFromITBI(itbi);
   const confidence_score = calculateConfidenceScore(
     adjustment,
     spread,
     doc_factor,
     combined.trend_percentage,
-    liquidityScore // Novo parâmetro de liquidez
+    liquidityScore,
+    sample
   );
   const confidence_level = mapScoreToLevel(confidence_score);
 
@@ -653,7 +683,8 @@ export const calculateValuation = (
     confidence_score,
     combined.trend_percentage,
     provavel,
-    combined.market_alignment
+    combined.market_alignment,
+    sample
   );
 
   return {

@@ -137,7 +137,7 @@ const faqCategories: FAQCategory[] = [
       { pergunta: "Como é calculado o nível de confiança?", resposta: "Baseado na quantidade de vendas disponíveis na região e na consistência das características avaliadas. Verde (alto), Amarelo (médio), Vermelho (baixo)." },
       { pergunta: "Posso gerar um relatório para impressão?", resposta: "Sim, ao final da avaliação você pode gerar um relatório profissional de 5 a 7 páginas com gráficos e análises." },
       { pergunta: "As avaliações ficam salvas?", resposta: "Sim, todas as avaliações são salvas no histórico e podem ser consultadas ou atualizadas depois." },
-      { pergunta: "O que é a base de preço combinada?", resposta: "É a mistura de 70% de dados oficiais de vendas com 30% de preços de anúncios para uma estimativa mais equilibrada." }
+      { pergunta: "Os anúncios entram no valor de referência?", resposta: "Não. O valor de referência usa 100% transações reais (ITBI). Os anúncios que você informa medem o gap entre preço pedido e preço fechado, que alimenta a recomendação e a confiança." }
     ]
   },
   {

@@ -82,7 +82,7 @@ export function Step2BasicData({ state, updateState, combined }: Props) {
             <SimpleRadioItem value="min" id="min" className="mt-0.5 sm:mt-1 h-5 w-5 sm:h-4 sm:w-4" />
             <div className="flex-1 min-w-0">
               <Label htmlFor="min" className="cursor-pointer text-xs sm:text-sm">
-                <span className="font-medium text-red-600">Preço Mínimo</span>
+                <span className="font-medium text-red-600">Preço Mínimo (P10)</span>
                 <span className="ml-1 sm:ml-2 text-muted-foreground text-xs sm:text-sm">
                   {formatCurrency(prices.min_m2)}/m²
                 </span>
@@ -97,7 +97,7 @@ export function Step2BasicData({ state, updateState, combined }: Props) {
             <SimpleRadioItem value="med" id="med" className="mt-0.5 sm:mt-1 h-5 w-5 sm:h-4 sm:w-4" />
             <div className="flex-1 min-w-0">
               <Label htmlFor="med" className="cursor-pointer text-xs sm:text-sm flex flex-wrap items-center gap-1">
-                <span className="font-medium text-primary">Preço Médio</span>
+                <span className="font-medium text-primary">Mediana</span>
                 <span className="text-muted-foreground text-xs sm:text-sm">
                   {formatCurrency(prices.med_m2)}/m²
                 </span>
@@ -115,7 +115,7 @@ export function Step2BasicData({ state, updateState, combined }: Props) {
             <SimpleRadioItem value="max" id="max" className="mt-0.5 sm:mt-1 h-5 w-5 sm:h-4 sm:w-4" />
             <div className="flex-1 min-w-0">
               <Label htmlFor="max" className="cursor-pointer text-xs sm:text-sm">
-                <span className="font-medium text-emerald-600">Preço Máximo</span>
+                <span className="font-medium text-emerald-600">Preço Máximo (P90)</span>
                 <span className="ml-1 sm:ml-2 text-muted-foreground text-xs sm:text-sm">
                   {formatCurrency(prices.max_m2)}/m²
                 </span>
