@@ -1,6 +1,11 @@
 import { describe, expect, test } from "bun:test";
 import {
+  MIN_ROWS_SCOPE,
+  SOURCE_PENALTY,
   buildMarketWindow,
+  isScopeSufficient,
+  pickFallbackSample,
+  radiusSource,
   calculateITBIData,
   collectBairros,
   computeIQRBounds,
@@ -293,5 +298,49 @@ describe("deflateRows (índice de preços)", () => {
     ];
     const d = deflateRows([row(1000, 1, "2024-02-15")], extremo, new Date("2025-09-02T00:00:00Z"));
     expect(Number(d.rows[0].valor_m2)).toBe(2000);
+  });
+});
+
+describe("fallback por raio (seção 11)", () => {
+  const rowsOf = (n: number) =>
+    Array.from({ length: n }, (_, i) => ({ valor_m2: 10000 + i, total_transacoes: 1, data_transacao: "2024-03-01" }));
+  const cand = (source: string, n: number) => ({ source, rows: rowsOf(n) });
+
+  test("escopo é suficiente a partir de MIN_ROWS_SCOPE linhas", () => {
+    expect(isScopeSufficient(rowsOf(MIN_ROWS_SCOPE - 1))).toBe(false);
+    expect(isScopeSufficient(rowsOf(MIN_ROWS_SCOPE))).toBe(true);
+  });
+
+  test("prefere o primeiro candidato suficiente na ordem de proximidade", () => {
+    const best = pickFallbackSample([cand("logradouro", 3), cand("raio100", 9), cand("raio300", 40)]);
+    expect(best?.source).toBe("raio100");
+  });
+
+  test("rua suficiente vence mesmo com raios maiores", () => {
+    const best = pickFallbackSample([cand("logradouro", 8), cand("raio100", 50)]);
+    expect(best?.source).toBe("logradouro");
+  });
+
+  test("sem candidato suficiente, escolhe o de maior amostra", () => {
+    const best = pickFallbackSample([cand("logradouro", 2), cand("raio100", 5), cand("raio300", 6)]);
+    expect(best?.source).toBe("raio300");
+  });
+
+  test("empate favorece o mais próximo", () => {
+    const best = pickFallbackSample([cand("logradouro", 4), cand("raio100", 4)]);
+    expect(best?.source).toBe("logradouro");
+  });
+
+  test("candidatos vazios ou nulos são ignorados; tudo vazio devolve null", () => {
+    expect(pickFallbackSample([null, cand("raio100", 0), undefined])).toBeNull();
+    expect(pickFallbackSample([null, cand("raio300", 2)])?.source).toBe("raio300");
+  });
+
+  test("penalidades crescem com a distância e mapeamento de raio para fonte", () => {
+    expect(SOURCE_PENALTY.logradouro).toBe(0);
+    expect(SOURCE_PENALTY.raio100).toBeLessThan(SOURCE_PENALTY.raio300);
+    expect(SOURCE_PENALTY.raio300).toBeLessThan(SOURCE_PENALTY.bairro);
+    expect(radiusSource(100)).toBe("raio100");
+    expect(radiusSource(300)).toBe("raio300");
   });
 });

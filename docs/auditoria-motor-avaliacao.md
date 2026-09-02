@@ -384,3 +384,38 @@ Em 2026-09-02, após o merge dos PRs #6 a #8, `public-itbi-stats` e `parecer-nuc
 
 - Consulta 7.6 (gap de anúncios nas avaliações salvas): executada em 2026-09-02, apenas **4 avaliações** com gap registrado (P25 −35,0%, mediana −19,6%, P75 +5,6%). Amostra insuficiente para calibrar; `ANUNCIO_GAP_ALERT_PCT` segue em 15 até haver pelo menos 30 avaliações com 3 ou mais anúncios. Observação: a mediana negativa indica que, nos poucos casos registrados, os anúncios estavam **abaixo** do ITBI, o oposto da premissa de "anúncio inflado"; vale acompanhar quando a amostra crescer.
 - Aviso do linter do Supabase "Materialized View in API" para `itbi_price_index`: aceito. A view expõe apenas medianas trimestrais da cidade inteira, sem dado individual, e precisa ser legível pelo app autenticado.
+
+## 11. Fallback por raio (rua → 100 m → 300 m → bairro)
+
+**Motivação.** O pulo mais grosseiro do motor era passar de uma rua com 2 ou 3 linhas para o bairro inteiro, com −15 na confiança. Os raios de 100 m e 300 m em torno do logradouro entram como degraus intermediários **da amostra**. Piso e teto (portão de dados) não mudam: o corte fino continua sendo o MAD sobre a amostra escolhida.
+
+**Regra implementada** (`fetchMarketRows` em `Step1Location.tsx`; política em `pickFallbackSample`, `_shared/itbiMarketStats.ts`):
+
+1. Rua (ou ruas internas do condomínio). Se tiver `MIN_ROWS_SCOPE` = 8 linhas ou mais, encerra.
+2. Com a configuração **Amostra por Raio** ligada: ponto de referência = média das coordenadas do logradouro (`itbi_ponto_logradouro`, fonte ITBI ou `logradouros_geo`); amostra por `itbi_amostra_raio` a 100 m; se suficiente, encerra; senão 300 m.
+3. Entre rua, raio 100 e raio 300: o primeiro suficiente; se nenhum for, o de maior amostra (empate favorece o mais próximo).
+4. Bairro inteiro só quando rua e raios não têm nenhuma ocorrência (mesma regra de antes).
+5. Dentro de cada degrau, a tipologia é preferida e relaxada abaixo de 8 linhas, como na Fase 1.
+
+| Origem | Penalidade de confiança | `data_source` |
+|--------|------------------------|---------------|
+| Rua | 0 | `logradouro` |
+| Raio 100 m | −5 | `raio100` |
+| Raio 300 m | −10 | `raio300` |
+| Bairro | −15 | `bairro` |
+
+Metadados novos em `valuations.itbi_metadata`: `raio_m` e `ponto_referencia` (lat, lng, fonte). A linha de rastreabilidade na tela mostra a origem e o raio.
+
+**Estado: implementado, desligado por padrão.** A configuração `radius_fallback_enabled` (Configurações → Amostra por Raio) nasce em `false`. Com ela desligada, o comportamento é idêntico ao anterior. Com ela ligada mas sem a RPC no banco, o código registra `console.warn` e segue rua → bairro.
+
+**Pré-condições para ligar:**
+
+1. Aplicar `supabase/migrations/20260902180000_itbi_amostra_raio.sql` (função `SECURITY INVOKER`, respeita a RLS de `itbi_transactions`; devolve `valor_transacao` e `tipologia`, que a RPC antiga não devolve).
+2. Cobertura de geocodificação (consulta 7.9). Critério: **≥ 80 % das escrituras residenciais com `geom`**. Abaixo disso o raio é uma amostra viesada para o que foi geocodificado, e é melhor ficar em rua → bairro.
+3. Recomendado antes de confiar nos degraus: consulta 7.10, spread P10–P90 por rua × raio 100 × raio 300 × bairro para 30 ruas. Se o spread do raio 300 for parecido com o do bairro, o degrau de 300 m não acrescenta nada e deve sair.
+
+**Limitações conhecidas:**
+
+- O ponto de referência é a **média das coordenadas da rua**, não o número do imóvel. Em ruas longas isso é impreciso; na prática, ruas longas têm amostra própria e nunca chegam ao raio. Ruas curtas, que são as que caem no raio, têm centroide próximo do imóvel. Usar o número do imóvel (geocodificação do endereço completo) é a evolução natural.
+- Raio mede proximidade, não homogeneidade: em orla, 300 m atravessa da frente para o interior. O experimento 7.10 é o que decide se o degrau de 300 m fica.
+- As edge functions `public-itbi-stats` e `parecer-nucleo` não recebem coordenadas e continuam em rua → bairro.

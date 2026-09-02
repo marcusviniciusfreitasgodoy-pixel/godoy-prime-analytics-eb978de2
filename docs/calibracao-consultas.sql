@@ -126,3 +126,70 @@ select * from valuation_characteristics order by display_order;
 select * from valuation_documentation_factors order by display_order;
 select pg_get_functiondef('public.itbi_transacoes_raio'::regproc);
 select pg_get_functiondef('public.get_user_activity_summary'::regproc);
+
+-- 7.9 Cobertura de geocodificação (seção 11): pré-condição para ligar o
+-- fallback por raio. Critério: pct_escrituras_com_geom >= 0.80.
+select count(*) as linhas,
+       count(*) filter (where geom is not null) as linhas_com_geom,
+       round(sum(total_transacoes) filter (where geom is not null)::numeric
+             / nullif(sum(total_transacoes), 0), 3) as pct_escrituras_com_geom
+from itbi_transactions
+where uso = 'Residencial';
+
+-- 7.9b Cobertura por bairro (os 20 piores): onde o raio seria viesado.
+select bairro,
+       sum(total_transacoes) as escrituras,
+       round(sum(total_transacoes) filter (where geom is not null)::numeric
+             / nullif(sum(total_transacoes), 0), 3) as pct_com_geom
+from itbi_transactions
+where uso = 'Residencial'
+group by bairro
+having sum(total_transacoes) >= 200
+order by pct_com_geom asc
+limit 20;
+
+-- 7.10 Spread P10-P90 por escopo (rua x raio 100 x raio 300 x bairro) para
+-- 30 ruas com poucas linhas (as que de fato caem no fallback). Exige a
+-- migration 20260902180000 aplicada. Se o spread do raio 300 for parecido
+-- com o do bairro, o degrau de 300 m nao acrescenta nada.
+with ruas as (
+  select logradouro, bairro,
+         avg(lat) as lat, avg(lng) as lng,
+         count(*) as linhas, sum(total_transacoes) as escrituras
+  from itbi_transactions
+  where uso = 'Residencial' and lat is not null and tipologia = 'Apartamento'
+    and data_transacao >= '2021-01-01' and data_transacao <= '2025-12-31'
+  group by logradouro, bairro
+  having count(*) between 3 and 7
+  order by random()
+  limit 30
+),
+escopos as (
+  select r.logradouro, r.bairro, 'raio100' as escopo, a.valor_m2, a.total_transacoes
+  from ruas r cross join lateral itbi_amostra_raio(r.lat, r.lng, 100, '2021-01-01', '2025-12-31', 'Apartamento') a
+  union all
+  select r.logradouro, r.bairro, 'raio300', a.valor_m2, a.total_transacoes
+  from ruas r cross join lateral itbi_amostra_raio(r.lat, r.lng, 300, '2021-01-01', '2025-12-31', 'Apartamento') a
+  union all
+  select r.logradouro, r.bairro, 'bairro', t.valor_m2, t.total_transacoes
+  from ruas r join itbi_transactions t on t.bairro = r.bairro
+  where t.uso = 'Residencial' and t.tipologia = 'Apartamento' and t.valor_m2 is not null
+    and t.data_transacao >= '2021-01-01' and t.data_transacao <= '2025-12-31'
+),
+expandido as (
+  select logradouro, bairro, escopo, valor_m2
+  from escopos, generate_series(1, greatest(total_transacoes, 1))
+),
+q as (
+  select logradouro, bairro, escopo, count(*) as escrituras,
+         percentile_cont(0.1) within group (order by valor_m2) as p10,
+         percentile_cont(0.5) within group (order by valor_m2) as med,
+         percentile_cont(0.9) within group (order by valor_m2) as p90
+  from expandido group by logradouro, bairro, escopo
+)
+select escopo,
+       count(*) as ruas,
+       round(percentile_cont(0.5) within group (order by escrituras)) as escrituras_mediana,
+       round(percentile_cont(0.5) within group (order by (p90 - p10) / med) * 100, 1) as spread_mediano_pct,
+       round(percentile_cont(0.75) within group (order by (p90 - p10) / med) * 100, 1) as spread_p75_pct
+from q group by escopo order by escopo;

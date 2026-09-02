@@ -568,6 +568,38 @@ export default function Configuracoes() {
           </CardContent>
         </Card>
 
+        {/* Fallback por raio (auditoria, seção 11) */}
+        <Card>
+          <CardHeader className="p-4 sm:p-6">
+            <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
+              <MapPin className="h-4 w-4 sm:h-5 sm:w-5" />
+              Amostra por Raio
+            </CardTitle>
+            <CardDescription className="text-xs sm:text-sm">
+              Quando a rua tem menos de 8 registros, busca transações num raio de 100 m e depois 300 m antes de usar o bairro inteiro
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="p-4 sm:p-6 pt-0 space-y-4">
+            <div className="flex items-center justify-between gap-4 p-3 rounded-lg border">
+              <div className="space-y-1">
+                <Label htmlFor="radius-fallback" className="text-sm font-medium cursor-pointer">
+                  Ativar fallback por raio
+                </Label>
+                <p className="text-xs text-muted-foreground">
+                  Ordem: rua → raio 100 m → raio 300 m → bairro. A confiança cai 5 pontos no raio de 100 m,
+                  10 no de 300 m e 15 no bairro. Exige a função <code>itbi_amostra_raio</code> no banco e
+                  cobertura de geocodificação confirmada; sem elas, o motor volta ao comportamento anterior.
+                </p>
+              </div>
+              <Switch
+                id="radius-fallback"
+                checked={settings.radius_fallback_enabled}
+                onCheckedChange={(checked) => updateSetting('radius_fallback_enabled', checked ? 'true' : 'false')}
+              />
+            </div>
+          </CardContent>
+        </Card>
+
         {/* Cache de Análise Histórica */}
         <Card>
           <CardHeader className="p-4 sm:p-6">

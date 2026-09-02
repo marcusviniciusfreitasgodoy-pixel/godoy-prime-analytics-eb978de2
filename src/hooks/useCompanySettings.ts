@@ -15,7 +15,19 @@ export interface CompanySettings {
   company_creci: string;
   company_website: string;
   outlier_filter_method: OutlierFilterMethod;
+  /**
+   * Fallback por raio (100 m e 300 m) entre a rua e o bairro na amostra ITBI.
+   * Desligado por padrão: exige a RPC itbi_amostra_raio aplicada e cobertura de
+   * geocodificação confirmada (docs/auditoria-motor-avaliacao.md, seção 11).
+   */
+  radius_fallback_enabled: boolean;
 }
+
+/** Chaves gravadas como 'true' / 'false' em company_settings.setting_value. */
+const BOOLEAN_KEYS: (keyof CompanySettings)[] = ['radius_fallback_enabled'];
+
+const parseSettingValue = (key: keyof CompanySettings, value: string): CompanySettings[keyof CompanySettings] =>
+  BOOLEAN_KEYS.includes(key) ? value === 'true' : value;
 
 const DEFAULT_SETTINGS: CompanySettings = {
   custom_logo_url: null,
@@ -29,6 +41,7 @@ const DEFAULT_SETTINGS: CompanySettings = {
   // Padrão calibrado com a base em 2026-09-02 (docs/auditoria-motor-avaliacao.md, seção 10):
   // mediana de 3 escrituras por linha agregada torna as cercas de Tukey apertadas demais.
   outlier_filter_method: 'mad',
+  radius_fallback_enabled: false,
 };
 
 export function useCompanySettings() {
@@ -48,7 +61,7 @@ export function useCompanySettings() {
       data?.forEach((row) => {
         const key = row.setting_key as keyof CompanySettings;
         if (key in newSettings && row.setting_value !== null) {
-          (newSettings as any)[key] = row.setting_value;
+          (newSettings as Record<string, unknown>)[key] = parseSettingValue(key, row.setting_value);
         }
       });
 
@@ -167,7 +180,7 @@ export function useCompanySettings() {
 
       if (error) throw error;
 
-      setSettings((prev) => ({ ...prev, [key]: value }));
+      setSettings((prev) => ({ ...prev, [key]: parseSettingValue(key, value) }));
 
       toast({
         title: 'Configuração salva',

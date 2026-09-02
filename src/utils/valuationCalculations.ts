@@ -7,6 +7,8 @@ import type {
   RecommendationResult 
 } from "@/types/valuation";
 
+import { SOURCE_PENALTY, type DataSource } from "@/utils/itbiMarketStats";
+
 // Re-export types for convenience
 export type { ITBIData, AnuncioData, CharacteristicResponse, ValuationResult, RecommendationResult };
 
@@ -293,7 +295,7 @@ export interface SampleInfo {
   /** escrituras válidas após o corte de outliers */
   escrituras: number;
   linhas: number;
-  dataSource: "logradouro" | "bairro";
+  dataSource: DataSource;
   tipologiaFallback: boolean;
   truncado: boolean;
 }
@@ -323,7 +325,7 @@ export const SAMPLE_SCORE_CAPS: ReadonlyArray<{ maxEscrituras: number; cap: numb
   { maxEscrituras: 9, cap: 55 },
   { maxEscrituras: 29, cap: 75 },
 ];
-export const BAIRRO_FALLBACK_PENALTY = 15;
+export const BAIRRO_FALLBACK_PENALTY = SOURCE_PENALTY.bairro;
 export const TIPOLOGIA_FALLBACK_PENALTY = 5;
 // Limiares de spread (faixa P10–P90 sem compressão), calibrados com a base em
 // 2026-09-02 (docs/calibracao/bloco75-spread-2026-09-02.csv): entre 1.106 ruas com
@@ -402,7 +404,7 @@ export const calculateConfidenceScore = (
 
   // Penalidade 6: origem da amostra (auditoria, achado A2)
   if (sample) {
-    if (sample.dataSource === "bairro") score -= BAIRRO_FALLBACK_PENALTY;
+    score -= SOURCE_PENALTY[sample.dataSource] ?? BAIRRO_FALLBACK_PENALTY;
     if (sample.tipologiaFallback) score -= TIPOLOGIA_FALLBACK_PENALTY;
   }
 
