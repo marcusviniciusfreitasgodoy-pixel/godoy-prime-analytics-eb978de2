@@ -3647,6 +3647,14 @@ export type Database = {
         }
         Relationships: []
       }
+      itbi_price_index: {
+        Row: {
+          escrituras: number | null
+          ln_mediana: number | null
+          trimestre: string | null
+        }
+        Relationships: []
+      }
       view_ranking_microbairros: {
         Row: {
           mediana_m2: number | null
@@ -3677,6 +3685,10 @@ export type Database = {
       }
     }
     Functions: {
+      refresh_itbi_price_index: {
+        Args: Record<PropertyKey, never>
+        Returns: undefined
+      }
       _postgis_deprecate: {
         Args: { newname: string; oldname: string; version: string }
         Returns: undefined

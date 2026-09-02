@@ -236,6 +236,13 @@ Deno.serve(async (req) => {
 
     console.log(`[CRON] Total inserido: ${totalInserted}`)
 
+    // Atualiza o índice de preços (materialized view itbi_price_index). Best effort:
+    // uma falha aqui não invalida a sincronização.
+    const { error: indexError } = await supabase.rpc('refresh_itbi_price_index')
+    if (indexError) {
+      console.warn(`[CRON] refresh_itbi_price_index: ${indexError.message}`)
+    }
+
     return new Response(JSON.stringify({
       success: true,
       found: allRecords.length,
@@ -243,6 +250,7 @@ Deno.serve(async (req) => {
       valid: validRecords.length,
       inserted: totalInserted,
       errors,
+      price_index_refreshed: !indexError,
       timestamp: new Date().toISOString()
     }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
 

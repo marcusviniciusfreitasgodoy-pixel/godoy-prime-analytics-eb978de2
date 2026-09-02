@@ -26,10 +26,13 @@ import {
   buildMarketWindow,
   calculateITBIData as computeITBIData,
   collectBairros,
+  deflateRows,
   mapTipoImovelToTipologia,
   selectWindowRows,
   type MarketRow,
+  type PriceIndexPoint,
 } from "@/utils/itbiMarketStats";
+import { fetchPriceIndex } from "@/utils/priceIndex";
 
 interface Props {
   state: ValuationState;
@@ -224,7 +227,10 @@ export function Step1Location({ state, updateState, combined, onAutoValidated }:
       setAutoFetchLoading(true);
       try {
         const ruasInternas = state.condominioSelecionado?.ruas_internas;
-        const market = await fetchMarketRows(state.bairro, state.logradouro, state.tipoImovel, ruasInternas);
+        const [market, priceIndex] = await Promise.all([
+          fetchMarketRows(state.bairro, state.logradouro, state.tipoImovel, ruasInternas),
+          fetchPriceIndex(),
+        ]);
 
         console.log(
           "[Step1] Auto-fetch ITBI para:",
@@ -239,7 +245,7 @@ export function Step1Location({ state, updateState, combined, onAutoValidated }:
           market.tipologiaFiltro
         );
 
-        const itbiData = calculateITBIData(market);
+        const itbiData = calculateITBIData(market, priceIndex);
         if (itbiData) {
           updateState({ itbiData });
           onAutoValidated?.();
@@ -316,10 +322,13 @@ export function Step1Location({ state, updateState, combined, onAutoValidated }:
    * amostra é fina) e calcula a estatística ponderada com os metadados de rastreabilidade.
    * A matemática vive em src/utils/itbiMarketStats.ts, coberta por testes.
    */
-  const calculateITBIData = (market: MarketFetchResult): ITBIData | null => {
+  const calculateITBIData = (market: MarketFetchResult, priceIndex: PriceIndexPoint[] | null): ITBIData | null => {
     if (!market.rows || market.rows.length === 0) return null;
     const selection = selectWindowRows(market.rows, buildMarketWindow());
-    return computeITBIData(selection.rows, {
+    // Correção temporal: cada linha é trazida ao trimestre de referência pelo índice próprio
+    // (Fase 3). Sem índice disponível, calcula sem correção e registra nos metadados.
+    const deflation = deflateRows(selection.rows, priceIndex);
+    return computeITBIData(deflation.rows, {
       method: settings.outlier_filter_method,
       meta: {
         data_source: market.source,
@@ -332,6 +341,8 @@ export function Step1Location({ state, updateState, combined, onAutoValidated }:
         piso_m2: market.piso,
         teto_m2: market.teto,
         truncado: market.rows.length >= MAX_ROWS,
+        deflacionado: deflation.aplicado,
+        trimestre_referencia: deflation.trimestreReferencia,
       },
     });
   };
@@ -348,7 +359,10 @@ export function Step1Location({ state, updateState, combined, onAutoValidated }:
     
     // Buscar dados ITBI para o logradouro selecionado (com fallback automático para dados do bairro)
     try {
-      const market = await fetchMarketRows(targetBairro, logradouroParaBusca, state.tipoImovel);
+      const [market, priceIndex] = await Promise.all([
+        fetchMarketRows(targetBairro, logradouroParaBusca, state.tipoImovel),
+        fetchPriceIndex(),
+      ]);
 
       console.log(
         "[Step1] handleSelectStreet ITBI para:",
@@ -365,7 +379,7 @@ export function Step1Location({ state, updateState, combined, onAutoValidated }:
 
       updateState({
         logradouro: suggestion.logradouro,
-        itbiData: calculateITBIData(market),
+        itbiData: calculateITBIData(market, priceIndex),
       });
     } catch (error) {
       console.error("Erro ao buscar dados ITBI:", error);
@@ -660,6 +674,7 @@ export function Step1Location({ state, updateState, combined, onAutoValidated }:
                     {m.linhas_descartadas > 0 ? `, ${m.linhas_descartadas} descartados` : ""}
                     {" · "}Corte: {corte}
                     {" · "}Faixa aceita: {formatCurrency(m.piso_m2)} a {formatCurrency(m.teto_m2)}/m²
+                    {" · "}{m.deflacionado && m.trimestre_referencia ? `Corrigido pelo índice para ${fmtData(m.trimestre_referencia).slice(3)}` : "Sem correção temporal"}
                   </p>
                   {avisos.length > 0 && (
                     <p className="text-amber-600">{avisos.join(" ")}</p>

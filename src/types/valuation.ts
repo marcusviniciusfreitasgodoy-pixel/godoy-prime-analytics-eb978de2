@@ -60,6 +60,7 @@ export interface YearlyData {
   ano: number;
   transacoes: number;
   valorMedioM2: number;
+  valorMedianoM2?: number;
   valorMinM2: number;
   valorMaxM2: number;
 }
@@ -73,6 +74,7 @@ export interface FutureProjection {
   probableRate: number;
   confidence: 'alta' | 'media' | 'baixa';
   disclaimer: string;
+  intervalMethod?: 'regressao_log' | 'dois_pontos' | 'insuficiente';
 }
 
 export interface HistoricalAnalysis {

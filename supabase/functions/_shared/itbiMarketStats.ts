@@ -65,6 +65,10 @@ export interface ITBIMarketMeta {
   escrituras_validas: number;
   /** true quando a consulta bateu no limite de linhas e a amostra é parcial */
   truncado: boolean;
+  /** true quando as linhas foram corrigidas pelo índice de preços para o trimestre de referência */
+  deflacionado?: boolean;
+  /** trimestre de referência do índice (YYYY-MM-01) ou null */
+  trimestre_referencia?: string | null;
   calculado_em: string;
 }
 
@@ -311,6 +315,67 @@ export const calculateITBIData = (rows: MarketRow[], options: CalculateOptions):
     avg_valor_transacao: Math.round(avgValorTransacao),
     meta,
   };
+};
+
+// ---------------------------------------------------------------------------
+// Correção temporal pelo índice de preços (materialized view itbi_price_index)
+// ---------------------------------------------------------------------------
+
+export interface PriceIndexPoint {
+  /** primeiro dia do trimestre (YYYY-MM-DD) */
+  trimestre: string;
+  /** mediana ponderada de ln(valor_m2) no trimestre */
+  ln_mediana: number;
+  escrituras: number;
+}
+
+/** Trimestres com menos escrituras que isto não corrigem nem servem de referência. */
+export const MIN_ESCRITURAS_INDEX_QUARTER = 30;
+/** Fator de correção limitado a [1/2, 2] por segurança. */
+export const MAX_DEFLATION_FACTOR = 2;
+
+/** Primeiro dia do trimestre de uma data ISO (YYYY-MM-DD). */
+export const quarterOf = (isoDate: string): string => {
+  const year = isoDate.slice(0, 4);
+  const month = Number(isoDate.slice(5, 7));
+  const qMonth = Math.floor((month - 1) / 3) * 3 + 1;
+  return `${year}-${String(qMonth).padStart(2, "0")}-01`;
+};
+
+export interface DeflationResult {
+  rows: MarketRow[];
+  aplicado: boolean;
+  trimestreReferencia: string | null;
+  linhasCorrigidas: number;
+}
+
+/**
+ * Corrige valor_m2 (e valor_transacao) de cada linha para o trimestre de
+ * referência: fator = exp(ln_mediana_ref - ln_mediana_trimestre_da_linha).
+ * Referência = trimestre mais recente até `today` com escrituras suficientes.
+ * Linhas de trimestres sem índice (ou com índice fino) ficam como estão.
+ */
+export const deflateRows = (rows: MarketRow[], index: PriceIndexPoint[] | null | undefined, today: Date = new Date()): DeflationResult => {
+  const usable = (index || []).filter((p) => p.escrituras >= MIN_ESCRITURAS_INDEX_QUARTER && Number.isFinite(p.ln_mediana));
+  const todayQuarter = quarterOf(toIsoDate(today));
+  const reference = usable.filter((p) => p.trimestre <= todayQuarter).sort((a, b) => (a.trimestre < b.trimestre ? 1 : -1))[0];
+  if (!reference) {
+    return { rows, aplicado: false, trimestreReferencia: null, linhasCorrigidas: 0 };
+  }
+  const byQuarter = new Map(usable.map((p) => [p.trimestre, p.ln_mediana]));
+  let corrigidas = 0;
+  const out = rows.map((r) => {
+    const ln = byQuarter.get(quarterOf(r.data_transacao));
+    if (ln === undefined || !Number.isFinite(Number(r.valor_m2))) return r;
+    const factor = Math.min(MAX_DEFLATION_FACTOR, Math.max(1 / MAX_DEFLATION_FACTOR, Math.exp(reference.ln_mediana - ln)));
+    if (factor !== 1) corrigidas++;
+    return {
+      ...r,
+      valor_m2: Number(r.valor_m2) * factor,
+      valor_transacao: r.valor_transacao == null ? r.valor_transacao : Number(r.valor_transacao) * factor,
+    };
+  });
+  return { rows: out, aplicado: true, trimestreReferencia: reference.trimestre, linhasCorrigidas: corrigidas };
 };
 
 /** Bairros distintos presentes na amostra, normalizados. */

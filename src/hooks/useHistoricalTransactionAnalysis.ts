@@ -6,11 +6,13 @@ import {
 } from '@/utils/historicalAnalysisCache';
 import { buildLogradouroOrConditions } from '@/lib/logradouroSearch';
 import { getOutlierLimit, getOutlierMinLimit } from '@/lib/outlierLimits';
+import { fitLogGrowth, type GrowthFit } from '@/utils/priceTrend';
 
 export interface YearlyData {
   ano: number;
   transacoes: number;
   valorMedioM2: number;
+  valorMedianoM2: number; // mediana ponderada do ano (base da tendência e da projeção)
   valorMinM2: number;
   valorMaxM2: number;
   // Variações ano a ano
@@ -28,6 +30,7 @@ export interface FutureProjection {
   probableRate: number;    // taxa provável (% a.a.)
   confidence: 'alta' | 'media' | 'baixa';
   disclaimer: string;
+  intervalMethod?: 'regressao_log' | 'dois_pontos' | 'insuficiente';
 }
 
 export type EscopoAnalise = 'rua' | 'raio100' | 'raio200' | 'raio300';
@@ -68,7 +71,7 @@ export function useHistoricalTransactionAnalysis(
   const normalizedLogradouro = (logradouro || '').trim();
 
   return useQuery<HistoricalAnalysis | null>({
-    queryKey: ['historical-analysis-5y-v13', normalizedLogradouro.toUpperCase(), normalizedBairro, ruasInternas?.join(',') || '', escopo],
+    queryKey: ['historical-analysis-5y-v14', normalizedLogradouro.toUpperCase(), normalizedBairro, ruasInternas?.join(',') || '', escopo],
     queryFn: async () => {
       if (!normalizedLogradouro || !normalizedBairro) return null;
 
@@ -279,11 +282,18 @@ export function useHistoricalTransactionAnalysis(
             : 0;
           const valorMinM2 = valores.length > 0 ? Math.min(...valores) : 0;
           const valorMaxM2 = valores.length > 0 ? Math.max(...valores) : 0;
+          // Mediana ponderada (valores já expandidos pelo peso): menos sensível a extremos que a média
+          const ordenados = [...valores].sort((a, b) => a - b);
+          const meio = Math.floor(ordenados.length / 2);
+          const valorMedianoM2 = ordenados.length === 0
+            ? 0
+            : ordenados.length % 2 ? ordenados[meio] : (ordenados[meio - 1] + ordenados[meio]) / 2;
           
           return {
             ano: parseInt(ano),
             transacoes: data.totalTransacoes,
             valorMedioM2: Math.round(valorMedioM2),
+            valorMedianoM2: Math.round(valorMedianoM2),
             valorMinM2: Math.round(valorMinM2),
             valorMaxM2: Math.round(valorMaxM2),
           };
@@ -357,12 +367,13 @@ export function useHistoricalTransactionAnalysis(
         transactionGrowthReliable = false;
       }
 
-      // Calcular crescimento médio de preços
-      let priceGrowth = 0;
-      if (yearDiff > 0 && firstYear.valorMedioM2 > 0) {
-        const totalPriceGrowth = ((lastYear.valorMedioM2 - firstYear.valorMedioM2) / firstYear.valorMedioM2) * 100;
-        priceGrowth = totalPriceGrowth / yearDiff;
-      }
+      // Crescimento de preços: regressão de ln(mediana anual) sobre o ano, com intervalo
+      // derivado do erro padrão (Fase 3 da auditoria, item 16). Substitui a reta entre o
+      // primeiro e o último ano, que um único ano atípico nas pontas distorcia.
+      const growthFit: GrowthFit = fitLogGrowth(
+        yearsWithData.map((y) => ({ ano: y.ano, valor: y.valorMedianoM2 }))
+      );
+      const priceGrowth = growthFit.rate * 100;
 
       // Determinar tendência de transações
       // CORREÇÃO: Só classifica como "crescente" se volume absoluto também for razoável
@@ -422,7 +433,7 @@ export function useHistoricalTransactionAnalysis(
       
       // Calcular projeção de valor futuro
       const futureProjection = calculateFutureProjection(
-        priceGrowth,
+        growthFit,
         liquidityScore,
         yearsWithData.length
       );
@@ -515,28 +526,21 @@ export function useHistoricalTransactionAnalysis(
   });
 }
 
-// Calcula projeção de valor futuro baseada na tendência histórica
+// Calcula projeção de valor futuro a partir do ajuste de tendência.
+// Otimista/pessimista vêm do intervalo do erro padrão da regressão (ou ±3 p.p.
+// quando só há dois anos), não de uma constante fixa.
 function calculateFutureProjection(
-  priceGrowth: number,
+  fit: GrowthFit,
   liquidityScore: number,
   yearsWithData: number
 ): FutureProjection {
-  // Taxa provável: usa a tendência histórica
-  const probableRate = priceGrowth;
+  const probableRate = fit.rate * 100;
+  const optimisticRate = fit.rateHigh * 100;
+  const pessimisticRate = fit.rateLow * 100;
   
-  // Taxa otimista: adiciona 3% ao cenário provável
-  const optimisticRate = priceGrowth + 3;
+  // Multiplicador a aplicar sobre o valor atual
+  const projectValue = (rate: number, years: number): number => Math.pow(1 + rate / 100, years);
   
-  // Taxa pessimista: subtrai 3% ou usa metade (o que for menor)
-  const pessimisticRate = Math.min(priceGrowth - 3, priceGrowth * 0.5);
-  
-  // Função para calcular valor projetado
-  const projectValue = (rate: number, years: number): number => {
-    // Retorna o multiplicador para aplicar sobre o valor atual
-    return Math.pow(1 + rate / 100, years);
-  };
-  
-  // Projeções para 1, 2 e 3 anos (multiplicadores)
   const oneYear = {
     optimistic: projectValue(optimisticRate, 1),
     pessimistic: projectValue(pessimisticRate, 1),
@@ -555,19 +559,19 @@ function calculateFutureProjection(
     probable: projectValue(probableRate, 3),
   };
   
-  // Confiança da projeção baseada em liquidez e quantidade de dados
+  // Confiança da projeção: liquidez, quantidade de anos e método do intervalo
   let confidence: 'alta' | 'media' | 'baixa';
-  if (liquidityScore >= 70 && yearsWithData >= 4) {
+  if (fit.method === 'regressao_log' && liquidityScore >= 70 && yearsWithData >= 4) {
     confidence = 'alta';
-  } else if (liquidityScore >= 40 && yearsWithData >= 3) {
+  } else if (fit.method === 'regressao_log' && liquidityScore >= 40 && yearsWithData >= 3) {
     confidence = 'media';
   } else {
     confidence = 'baixa';
   }
   
-  // Disclaimer
   const disclaimer = 
-    'Projeção baseada na tendência histórica de 5 anos. ' +
+    'Projeção baseada na tendência das medianas anuais de R$/m² dos últimos 5 anos ' +
+    '(regressão em escala logarítmica; os cenários otimista e pessimista refletem a incerteza estatística da tendência). ' +
     'Valores futuros são estimativas e podem variar conforme condições de mercado, ' +
     'políticas econômicas e fatores locais. Esta projeção não constitui garantia de valorização.';
   
@@ -580,6 +584,7 @@ function calculateFutureProjection(
     probableRate: Math.round(probableRate * 10) / 10,
     confidence,
     disclaimer,
+    intervalMethod: fit.method,
   };
 }
 

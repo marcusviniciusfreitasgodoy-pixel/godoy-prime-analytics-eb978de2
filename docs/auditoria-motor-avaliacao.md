@@ -8,6 +8,25 @@ Limitação declarada: **não tive acesso de leitura ao banco de produção** (a
 
 ---
 
+## Status de aplicação (atualizado em 2026-09-02)
+
+| Fase | Itens | Estado | Onde |
+|---|---|---|---|
+| 1 | 1–5 | **Aplicada** | PR #2, merge `f148c02` |
+| 2 | 6–13 | **Aplicada** | PR #3, merge `bf813c5` |
+| 3 | 14, 15 (como opção), 16, 18 | **Aplicada** | PR #4 |
+| 3 | 17 (seeds e RPC nas migrations) | **Pendente: exige acesso ao banco** | ver seção 8 |
+
+O que ainda depende de decisão ou de dados, mesmo com as três fases aplicadas:
+
+- **Migrations a aplicar no Lovable Cloud**: `20260902140000_valuations_itbi_metadata.sql` (coluna de rastreabilidade) e `20260902150000_itbi_price_index.sql` (índice de preços materializado + função de refresh). Até lá o motor funciona sem metadados persistidos e sem correção temporal, e registra isso.
+- **Edge functions a reimplantar**: `public-itbi-stats`, `parecer-nucleo`, `sync-itbi-daily` (todas passam a importar de `supabase/functions/_shared/`).
+- **Calibrações com a base** (seção 7): `k` do método MAD, limiares de spread (`SPREAD_*` em `valuationCalculations.ts`), limiar de gap de anúncios (`ANUNCIO_GAP_ALERT_PCT`) e piso/teto por bairro × tipologia. Os valores atuais são pontos de partida documentados, não resultados.
+- **Método de corte padrão** continua IQR; o MAD em log está disponível em Configurações e deve virar padrão só após a calibração.
+- **Caps do questionário** seguem no código (`CATEGORY_CAPS`/`GLOBAL_CAPS`); mover para o banco exige versionar o seed (item 17).
+
+---
+
 ## 1. Veredito
 
 O motor **não é seguro para decisão de preço no estado atual**, por três motivos independentes:
