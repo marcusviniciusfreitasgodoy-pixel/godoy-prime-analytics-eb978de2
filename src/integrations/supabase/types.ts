@@ -4132,6 +4132,29 @@ export type Database = {
         Args: { lead_email: string }
         Returns: undefined
       }
+      itbi_amostra_raio: {
+        Args: {
+          p_fim?: string
+          p_inicio?: string
+          p_lat: number
+          p_limite?: number
+          p_lng: number
+          p_piso?: number
+          p_raio_m?: number
+          p_teto?: number
+          p_tipologia?: string
+        }
+        Returns: {
+          bairro: string
+          data_transacao: string
+          distancia_m: number
+          logradouro: string
+          tipologia: string
+          total_transacoes: number
+          valor_m2: number
+          valor_transacao: number
+        }[]
+      }
       itbi_geocoding_status: { Args: never; Returns: Json }
       itbi_logradouros_pendentes: {
         Args: { p_bairro?: string; p_limite?: number }
