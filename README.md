@@ -44,6 +44,17 @@ bun run dev
 
 Every push to `main` and every pull request runs `.github/workflows/ci.yml`, which installs dependencies with the frozen lockfile, runs `bun run typecheck`, `bun run lint`, `bun run test` and `bun run build`. Run the same four commands locally before pushing.
 
+## Trabalhando com agentes de código (Claude Code, etc.)
+
+Leia `CLAUDE.md` na raiz — ele resume as regras operacionais (idioma pt-BR, paleta, ponderação por `total_transacoes`, `.limit(5000)` obrigatório, PDFs só com jsPDF, arquivos gerados que não devem ser editados).
+
+Pontos importantes do fluxo local:
+
+- Variáveis de ambiente ficam em `.env` (copie de `.env.example`). São valores públicos (URL e chave publicável); nenhum secret de servidor vive no repositório.
+- O schema do banco pode ser lido em `src/integrations/supabase/types.ts` e em `supabase/migrations/`.
+- **Migrations de banco e deploy de edge functions não são executados localmente**: escreva o SQL em `supabase/migrations/` e a aplicação acontece pelo chat da Lovable.
+
+
 **Edit a file directly in GitHub**
 
 - Navigate to the desired file(s).
