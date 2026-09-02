@@ -162,3 +162,60 @@ export const getOutlierLimit = (bairro: string | null | undefined): number => ge
 
 /** Piso de R$/m² do bairro (menor entre as tipologias calibradas). */
 export const getOutlierMinLimit = (bairro: string | null | undefined): number => getOutlierLimits(bairro).piso;
+
+/** Amostra mínima (escrituras) para calibrar piso e teto por logradouro. */
+export const STREET_CALIBRATION_MIN_ESCRITURAS = 40;
+export const STREET_CALIBRATION_MIN_LINHAS = 8;
+
+interface WeightedValue { valor_m2: number | null; total_transacoes?: number | null }
+
+/** Percentil ponderado por total_transacoes (escrituras). */
+const weightedPercentile = (
+  pairs: { valor: number; peso: number }[],
+  p: number
+): number => {
+  const total = pairs.reduce((s, x) => s + x.peso, 0);
+  if (total <= 0) return pairs[0]?.valor ?? 0;
+  const alvo = total * p;
+  let acc = 0;
+  for (const x of pairs) {
+    acc += x.peso;
+    if (acc >= alvo) return x.valor;
+  }
+  return pairs[pairs.length - 1].valor;
+};
+
+/**
+ * Piso e teto calibrados com a própria amostra do logradouro (P1 e P99
+ * ponderados por escrituras, com as mesmas margens do bairro). Ruas com preço
+ * fora da faixa típica do bairro — José Higino, por exemplo — deixam de perder
+ * transações para o cinto de segurança do bairro.
+ *
+ * Sem amostra suficiente, devolve o fallback (limites do bairro).
+ */
+export const getStreetOutlierLimits = (
+  rows: WeightedValue[],
+  fallback: { piso: number; teto: number }
+): { piso: number; teto: number; escopo: "logradouro" | "bairro"; escrituras: number } => {
+  const pairs = rows
+    .filter((r) => typeof r.valor_m2 === "number" && (r.valor_m2 as number) > 0)
+    .map((r) => ({ valor: r.valor_m2 as number, peso: Number(r.total_transacoes) || 1 }))
+    .sort((a, b) => a.valor - b.valor);
+
+  const escrituras = pairs.reduce((s, x) => s + x.peso, 0);
+  if (pairs.length < STREET_CALIBRATION_MIN_LINHAS || escrituras < STREET_CALIBRATION_MIN_ESCRITURAS) {
+    return { ...fallback, escopo: "bairro", escrituras };
+  }
+
+  const piso = Math.max(
+    DEFAULT_OUTLIER_MIN,
+    Math.round(weightedPercentile(pairs, 0.01) * PISO_MARGIN)
+  );
+  const teto = Math.min(
+    DEFAULT_OUTLIER_MAX,
+    Math.round(weightedPercentile(pairs, 0.99) * TETO_MARGIN)
+  );
+  if (!(teto > piso)) return { ...fallback, escopo: "bairro", escrituras };
+
+  return { piso, teto, escopo: "logradouro", escrituras };
+};
