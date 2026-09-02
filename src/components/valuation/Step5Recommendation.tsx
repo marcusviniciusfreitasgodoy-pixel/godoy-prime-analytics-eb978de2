@@ -264,7 +264,7 @@ export function Step5Recommendation({ result, state, combined, onReset, existing
         if (state.itbiData?.meta) {
           const { error: metaError } = await supabase
             .from("valuations")
-            .update({ itbi_metadata: JSON.parse(JSON.stringify(state.itbiData.meta)) })
+            .update({ itbi_metadata: JSON.parse(JSON.stringify(state.itbiData.meta)) } as never)
             .eq("id", finalValuationId);
           if (metaError) {
             console.warn("Não foi possível gravar itbi_metadata (migration aplicada?):", metaError.message);
