@@ -19,6 +19,17 @@ import { useLogradouroInteligencia } from "@/hooks/useLogradouroInteligencia";
 import type { ValuationState } from "@/types/valuation";
 import type { CombinedPrices, ITBIData, AnuncioData } from "@/utils/valuationCalculations";
 import { supabase } from "@/integrations/supabase/client";
+import { getOutlierLimits } from "@/lib/outlierLimits";
+import {
+  MAX_ROWS,
+  MIN_ROWS_FOR_TIPOLOGIA,
+  buildMarketWindow,
+  calculateITBIData as computeITBIData,
+  collectBairros,
+  mapTipoImovelToTipologia,
+  selectWindowRows,
+  type MarketRow,
+} from "@/utils/itbiMarketStats";
 
 interface Props {
   state: ValuationState;
@@ -89,27 +100,60 @@ export function Step1Location({ state, updateState, combined, onAutoValidated }:
     );
   };
 
+  interface MarketFetchResult {
+    rows: MarketRow[];
+    source: "logradouro" | "bairro";
+    tipologiaFiltro: string | null;
+    tipologiaFallback: boolean;
+    piso: number;
+    teto: number;
+  }
+
+  /**
+   * Busca a amostra de mercado ITBI para o imóvel.
+   *
+   * Regras (docs/auditoria-motor-avaliacao.md, Fase 1):
+   * - janela de 5 anos fechados + ano corrente (a seleção final é feita em calculateITBIData);
+   * - piso e teto de R$/m² do bairro do imóvel (src/lib/outlierLimits.ts), nunca um valor fixo;
+   * - ordenação explícita e limite de 5000 linhas, para o resultado ser reprodutível;
+   * - tipologia compatível com o tipo do imóvel; relaxa para "Residencial" quando a amostra
+   *   tem menos de MIN_ROWS_FOR_TIPOLOGIA linhas, registrando o fallback;
+   * - o bairro inteiro só substitui a rua quando a rua não tem nenhuma ocorrência.
+   */
   const fetchMarketRows = async (
     bairro: string,
     logradouro: string,
+    tipoImovel: string,
     ruasInternas?: string[]
-  ): Promise<{ rows: { valor_m2: number | null; valor_transacao: number | null; total_transacoes: number | null }[]; source: "logradouro" | "bairro" }> => {
-    const createBaseQuery = (withBairro: boolean) => {
+  ): Promise<MarketFetchResult> => {
+    const window = buildMarketWindow();
+    const { piso, teto } = getOutlierLimits(bairro);
+    const tipologiaDesejada = mapTipoImovelToTipologia(tipoImovel);
+    const isCondominio = !!(ruasInternas && ruasInternas.length > 0);
+
+    const createBaseQuery = (withBairro: boolean, tipologia: string | null) => {
       let q = supabase
         .from("itbi_transactions")
-        .select("valor_m2, valor_transacao, total_transacoes")
+        .select("valor_m2, valor_transacao, total_transacoes, data_transacao, bairro, tipologia")
         .eq("uso", "Residencial")
         .gte("percentual_transferido", 90)
         .not("valor_m2", "is", null)
-        .lte("valor_m2", 40000)
-        .limit(500);
+        .gte("valor_m2", piso)
+        .lte("valor_m2", teto)
+        .gte("data_transacao", window.start)
+        .lte("data_transacao", window.end)
+        .order("data_transacao", { ascending: false })
+        .order("logradouro", { ascending: true })
+        .order("tipologia", { ascending: true })
+        .limit(MAX_ROWS);
       if (withBairro) q = q.ilike("bairro", bairro);
+      if (tipologia) q = q.eq("tipologia", tipologia);
       return q;
     };
 
     const applyStreetFilter = (query: ReturnType<typeof createBaseQuery>) => {
-      if (ruasInternas && ruasInternas.length > 0) {
-        const normalizedRuas = ruasInternas
+      if (isCondominio) {
+        const normalizedRuas = ruasInternas!
           .map((rua) => rua.normalize("NFD").replace(/[\u0300-\u036f]/g, ""))
           .filter(Boolean);
         if (normalizedRuas.length > 0) {
@@ -126,27 +170,42 @@ export function Step1Location({ state, updateState, combined, onAutoValidated }:
       return query;
     };
 
-    // 1) Para condomínios, manter filtro de bairro (rua interna é genérica)
-    if (ruasInternas && ruasInternas.length > 0) {
-      const { data: streetRows, error: streetError } = await applyStreetFilter(createBaseQuery(true));
-      if (streetError) throw streetError;
-      if (streetRows && streetRows.length > 0) {
-        return { rows: streetRows, source: "logradouro" };
-      }
-    } else {
-      // 1) Para logradouros, buscar em todos os bairros (união cross-bairro automática)
-      const { data: streetRows, error: streetError } = await applyStreetFilter(createBaseQuery(false));
-      if (streetError) throw streetError;
-      if (streetRows && streetRows.length > 0) {
-        return { rows: streetRows, source: "logradouro" };
-      }
-    }
+    const tipologias: (string | null)[] = tipologiaDesejada ? [tipologiaDesejada, null] : [null];
 
-    // 2) Último recurso: bairro inteiro
-    const { data: bairroRows, error: bairroError } = await createBaseQuery(true);
-    if (bairroError) throw bairroError;
+    // Dentro de um escopo, prefere a amostra com tipologia; relaxa só se ela for pequena.
+    const searchScope = async (scope: "logradouro" | "bairro"): Promise<MarketFetchResult | null> => {
+      let smallest: MarketFetchResult | null = null;
+      for (const tipologia of tipologias) {
+        // Condomínio mantém o filtro de bairro (rua interna é genérica); logradouro busca cross-bairro.
+        const query =
+          scope === "logradouro"
+            ? applyStreetFilter(createBaseQuery(isCondominio, tipologia))
+            : createBaseQuery(true, tipologia);
+        const { data, error } = await query;
+        if (error) throw error;
+        const rows = (data || []) as MarketRow[];
+        if (rows.length === 0) continue;
+        const result: MarketFetchResult = {
+          rows,
+          source: scope,
+          tipologiaFiltro: tipologia,
+          tipologiaFallback: tipologiaDesejada !== null && tipologia === null,
+          piso,
+          teto,
+        };
+        if (rows.length >= MIN_ROWS_FOR_TIPOLOGIA) return result;
+        if (!smallest) smallest = result;
+      }
+      return smallest;
+    };
 
-    return { rows: bairroRows || [], source: "bairro" };
+    const streetResult = await searchScope("logradouro");
+    if (streetResult) return streetResult;
+
+    const bairroResult = await searchScope("bairro");
+    if (bairroResult) return bairroResult;
+
+    return { rows: [], source: "bairro", tipologiaFiltro: tipologiaDesejada, tipologiaFallback: false, piso, teto };
   };
 
   // Sincroniza searchTerm quando logradouro muda
@@ -165,7 +224,7 @@ export function Step1Location({ state, updateState, combined, onAutoValidated }:
       setAutoFetchLoading(true);
       try {
         const ruasInternas = state.condominioSelecionado?.ruas_internas;
-        const { rows, source } = await fetchMarketRows(state.bairro, state.logradouro, ruasInternas);
+        const market = await fetchMarketRows(state.bairro, state.logradouro, state.tipoImovel, ruasInternas);
 
         console.log(
           "[Step1] Auto-fetch ITBI para:",
@@ -173,12 +232,14 @@ export function Step1Location({ state, updateState, combined, onAutoValidated }:
           "bairro:",
           state.bairro,
           "resultados:",
-          rows?.length,
+          market.rows.length,
           "fonte:",
-          source
+          market.source,
+          "tipologia:",
+          market.tipologiaFiltro
         );
 
-        const itbiData = calculateITBIData(rows);
+        const itbiData = calculateITBIData(market);
         if (itbiData) {
           updateState({ itbiData });
           onAutoValidated?.();
@@ -197,6 +258,7 @@ export function Step1Location({ state, updateState, combined, onAutoValidated }:
     state.itbiData,
     state.condominioSelecionado?.nome,
     state.condominioSelecionado?.ruas_internas,
+    state.tipoImovel,
     settings.outlier_filter_method,
     updateState,
     onAutoValidated,
@@ -249,119 +311,29 @@ export function Step1Location({ state, updateState, combined, onAutoValidated }:
     });
   }, [anuncios]);
 
-  // Função para filtrar outliers usando IQR (Intervalo Interquartil)
-  const filterOutliersIQR = (values: number[]): number[] => {
-    if (values.length < 4) return values; // Precisa de pelo menos 4 valores para IQR
-    
-    const sorted = [...values].sort((a, b) => a - b);
-    const n = sorted.length;
-    
-    // Calcula Q1 (percentil 25) e Q3 (percentil 75)
-    const q1Index = Math.floor(n * 0.25);
-    const q3Index = Math.floor(n * 0.75);
-    const q1 = sorted[q1Index];
-    const q3 = sorted[q3Index];
-    
-    // IQR = Q3 - Q1
-    const iqr = q3 - q1;
-    
-    const median = sorted[Math.floor(n / 2)];
-    
-    // Banda mínima de segurança: se IQR < 15% da mediana, usar ±20% da mediana
-    // Evita descartar valores legítimos em datasets pequenos com baixa variância
-    const minBand = median * 0.20;
-    const effectiveIQR = Math.max(iqr, minBand);
-    
-    // Limites: Q1 - 1.5*effectiveIQR e Q3 + 1.5*effectiveIQR
-    const lowerBound = q1 - 1.5 * effectiveIQR;
-    const upperBound = q3 + 1.5 * effectiveIQR;
-    
-    // Filtra valores dentro do intervalo
-    return sorted.filter(v => v >= lowerBound && v <= upperBound);
-  };
-
-  // Função para filtrar outliers usando Percentis P10/P90
-  const filterOutliersPercentile = (values: number[]): { values: number[]; min: number; max: number } => {
-    const sorted = [...values].sort((a, b) => a - b);
-    const n = sorted.length;
-    
-    const p10Index = Math.max(0, Math.floor(n * 0.10));
-    const p90Index = Math.min(n - 1, Math.floor(n * 0.90));
-    
-    return {
-      values: sorted,
-      min: sorted[p10Index],
-      max: sorted[p90Index],
-    };
-  };
-
-  const calculateITBIData = (
-    rows: { valor_m2: number | null; valor_transacao: number | null; total_transacoes: number | null }[]
-  ): ITBIData | null => {
-    if (!rows || rows.length === 0) return null;
-
-    // Expandir valores pelo peso de total_transacoes para mediana ponderada
-    // Cada linha do banco é um agregado mensal — uma linha com total_transacoes=37 
-    // representa 37 escrituras reais e deve ter 37x mais peso que uma com total_transacoes=1
-    const weightedValues: number[] = [];
-    let totalRealTransactions = 0;
-
-    rows.forEach((d) => {
-      const v = Number(d.valor_m2);
-      if (!Number.isFinite(v)) return;
-      const weight = Math.max(1, d.total_transacoes || 1);
-      totalRealTransactions += weight;
-      // Expandir: repetir o valor conforme o peso
-      for (let i = 0; i < weight; i++) {
-        weightedValues.push(v);
-      }
+  /**
+   * Aplica a regra de janela (anos fechados, expandindo para o ano corrente quando a
+   * amostra é fina) e calcula a estatística ponderada com os metadados de rastreabilidade.
+   * A matemática vive em src/utils/itbiMarketStats.ts, coberta por testes.
+   */
+  const calculateITBIData = (market: MarketFetchResult): ITBIData | null => {
+    if (!market.rows || market.rows.length === 0) return null;
+    const selection = selectWindowRows(market.rows, buildMarketWindow());
+    return computeITBIData(selection.rows, {
+      method: settings.outlier_filter_method,
+      meta: {
+        data_source: market.source,
+        bairros_incluidos: collectBairros(selection.rows),
+        janela_inicio: selection.janelaInicio,
+        janela_fim: selection.janelaFim,
+        ano_corrente_incluido: selection.anoCorrenteIncluido,
+        tipologia_filtro: market.tipologiaFiltro,
+        tipologia_fallback: market.tipologiaFallback,
+        piso_m2: market.piso,
+        teto_m2: market.teto,
+        truncado: market.rows.length >= MAX_ROWS,
+      },
     });
-
-    if (weightedValues.length === 0) return null;
-
-    let minValue: number;
-    let maxValue: number;
-    let medValue: number;
-
-    if (weightedValues.length >= 4 && settings.outlier_filter_method === "percentile") {
-      const { values, min, max } = filterOutliersPercentile(weightedValues);
-      const mid = Math.floor(values.length / 2);
-      minValue = min;
-      maxValue = max;
-      medValue = values.length % 2 ? values[mid] : (values[mid - 1] + values[mid]) / 2;
-    } else if (weightedValues.length >= 4) {
-      const filteredValues = filterOutliersIQR(weightedValues);
-      const values = filteredValues.sort((a, b) => a - b);
-      const finalValues = values.length >= 3 ? values : weightedValues.sort((a, b) => a - b);
-      const mid = Math.floor(finalValues.length / 2);
-      minValue = finalValues[0];
-      maxValue = finalValues[finalValues.length - 1];
-      medValue = finalValues.length % 2 ? finalValues[mid] : (finalValues[mid - 1] + finalValues[mid]) / 2;
-    } else {
-      const sorted = weightedValues.sort((a, b) => a - b);
-      minValue = sorted[0];
-      maxValue = sorted[sorted.length - 1];
-      const mid = Math.floor(sorted.length / 2);
-      medValue = sorted.length % 2 ? sorted[mid] : (sorted[mid - 1] + sorted[mid]) / 2;
-    }
-
-    // Média ponderada do valor de transação
-    let somaValorPonderado = 0;
-    let somaPesos = 0;
-    rows.forEach((d) => {
-      const peso = Math.max(1, d.total_transacoes || 1);
-      somaValorPonderado += (Number(d.valor_transacao) || 0) * peso;
-      somaPesos += peso;
-    });
-    const avgValorTransacao = somaPesos > 0 ? somaValorPonderado / somaPesos : 0;
-
-    return {
-      min_m2: Math.round(minValue),
-      med_m2: Math.round(medValue),
-      max_m2: Math.round(maxValue),
-      transaction_count: totalRealTransactions,
-      avg_valor_transacao: Math.round(avgValorTransacao),
-    };
   };
 
   const handleSelectStreet = async (suggestion: OfficialStreetSuggestion) => {
@@ -376,7 +348,7 @@ export function Step1Location({ state, updateState, combined, onAutoValidated }:
     
     // Buscar dados ITBI para o logradouro selecionado (com fallback automático para dados do bairro)
     try {
-      const { rows, source } = await fetchMarketRows(targetBairro, logradouroParaBusca);
+      const market = await fetchMarketRows(targetBairro, logradouroParaBusca, state.tipoImovel);
 
       console.log(
         "[Step1] handleSelectStreet ITBI para:",
@@ -384,14 +356,16 @@ export function Step1Location({ state, updateState, combined, onAutoValidated }:
         "bairro:",
         targetBairro,
         "resultados:",
-        rows?.length,
+        market.rows.length,
         "fonte:",
-        source
+        market.source,
+        "tipologia:",
+        market.tipologiaFiltro
       );
 
       updateState({
         logradouro: suggestion.logradouro,
-        itbiData: calculateITBIData(rows),
+        itbiData: calculateITBIData(market),
       });
     } catch (error) {
       console.error("Erro ao buscar dados ITBI:", error);
@@ -664,6 +638,35 @@ export function Step1Location({ state, updateState, combined, onAutoValidated }:
                 <p className="text-[10px] text-muted-foreground hidden sm:block">/m²</p>
               </div>
             </div>
+
+            {/* Rastreabilidade da amostra (Fase 1 da auditoria) */}
+            {state.itbiData.meta && (() => {
+              const m = state.itbiData.meta;
+              const fmtData = (iso: string) => iso.split("-").reverse().join("/");
+              const corte = m.outlier_method === "iqr" ? "IQR (1,5×)" : m.outlier_method === "percentile" ? "percentis P10/P90" : "sem corte (amostra < 4)";
+              const avisos: string[] = [];
+              if (m.data_source === "bairro") avisos.push("Sem transações na rua: amostra do bairro inteiro.");
+              if (m.tipologia_fallback) avisos.push("Poucas transações da tipologia do imóvel: amostra inclui casas e apartamentos.");
+              if (m.truncado) avisos.push("Amostra parcial: a consulta atingiu o limite de registros e considerou os mais recentes.");
+              return (
+                <div className="text-[10px] sm:text-xs text-muted-foreground space-y-1">
+                  <p>
+                    Fonte: {m.data_source === "logradouro" ? "logradouro" : "bairro inteiro"}
+                    {m.bairros_incluidos.length > 1 ? ` (${m.bairros_incluidos.join(", ")})` : ""}
+                    {" · "}Tipologia: {m.tipologia_filtro || "todas (residencial)"}
+                    {" · "}Janela: {fmtData(m.janela_inicio)} a {fmtData(m.janela_fim)}
+                    {m.ano_corrente_incluido ? " (inclui ano corrente)" : ""}
+                    {" · "}{m.linhas_agregadas} registros agregados
+                    {m.linhas_descartadas > 0 ? `, ${m.linhas_descartadas} descartados` : ""}
+                    {" · "}Corte: {corte}
+                    {" · "}Faixa aceita: {formatCurrency(m.piso_m2)} a {formatCurrency(m.teto_m2)}/m²
+                  </p>
+                  {avisos.length > 0 && (
+                    <p className="text-amber-600">{avisos.join(" ")}</p>
+                  )}
+                </div>
+              );
+            })()}
 
             {/* Anúncios de Referência */}
             <div className="pt-3 sm:pt-4 border-t">
