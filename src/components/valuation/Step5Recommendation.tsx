@@ -344,6 +344,7 @@ export function Step5Recommendation({ result, state, combined, onReset, existing
       case "REVIEW_PRICING":
         return <AlertTriangle className="h-6 w-6 text-orange-600" />;
       case "NEED_SPECIALIST_VALUATION":
+      case "INSUFFICIENT_SAMPLE":
       case "BLOCKED_EVALUATION":
         return <XCircle className="h-6 w-6 text-red-600" />;
       default:
@@ -364,6 +365,7 @@ export function Step5Recommendation({ result, state, combined, onReset, existing
       case "REVIEW_PRICING":
         return "bg-orange-50 border-orange-200 dark:bg-orange-950/30";
       case "NEED_SPECIALIST_VALUATION":
+      case "INSUFFICIENT_SAMPLE":
       case "BLOCKED_EVALUATION":
         return "bg-red-50 border-red-200 dark:bg-red-950/30";
       default:

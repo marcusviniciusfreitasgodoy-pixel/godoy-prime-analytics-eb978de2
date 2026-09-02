@@ -292,8 +292,8 @@ function createValuationPDF(
     doc.setTextColor(...BRAND_COLORS.gray);
     
     const metodologiaTexto = temAnuncios
-      ? 'Metodologia: Os valores de referência são calculados com ponderação de 70% dados oficiais de transações e 30% anúncios de mercado, garantindo equilíbrio entre transações reais e preços praticados atualmente.'
-      : 'Metodologia: Os valores de referência são calculados exclusivamente com base em dados oficiais de transações (100%), garantindo máxima objetividade baseada em negócios efetivamente realizados.';
+      ? 'Metodologia: Os valores de referência (P10, mediana e P90 do R$/m², ponderados pelo número de escrituras) são calculados exclusivamente com dados oficiais de transações. Os anúncios de mercado informados não entram na base: eles medem o gap entre preço pedido e preço fechado, usado na recomendação.'
+      : 'Metodologia: Os valores de referência (P10, mediana e P90 do R$/m², ponderados pelo número de escrituras) são calculados exclusivamente com base em dados oficiais de transações (100%), garantindo máxima objetividade baseada em negócios efetivamente realizados.';
     
     const splitMetodologia = doc.splitTextToSize(metodologiaTexto, contentWidth);
     doc.text(splitMetodologia, marginLeft, yPos);
@@ -410,9 +410,10 @@ function createValuationPDF(
                                                      result.confidence_level === 'yellow_medium' ? [234, 88, 12] : [220, 38, 38];
   
   // Determine quality indicators for each metric
-  const spreadQuality = result.spread_percentage <= 20 ? 'excellent' : 
-                        result.spread_percentage <= 35 ? 'good' : 
-                        result.spread_percentage <= 50 ? 'moderate' : 'poor';
+  // Faixa P10–P90 sem compressão: limiares alinhados a valuationCalculations (SPREAD_*).
+  const spreadQuality = result.spread_percentage <= 35 ? 'excellent' : 
+                        result.spread_percentage <= 50 ? 'good' : 
+                        result.spread_percentage <= 65 ? 'moderate' : 'poor';
   
   const scoreQuality = result.confidence_score >= 80 ? 'excellent' : 
                        result.confidence_score >= 60 ? 'good' : 
@@ -1436,6 +1437,7 @@ function createValuationPDF(
       case "REVIEW_PRICING": return [255, 237, 213]; // Laranja claro
       case "CONSULT_SPECIALIST": 
       case "NEED_SPECIALIST_VALUATION":
+      case "INSUFFICIENT_SAMPLE":
       case "BLOCKED_EVALUATION": return [254, 226, 226]; // Vermelho claro
       default: return [...BRAND_COLORS.lightGray] as [number, number, number];
     }
@@ -1564,7 +1566,7 @@ function createValuationPDF(
   const glossaryItems = [
     {
       term: 'Valor Provável',
-      definition: 'Valor mais provável de venda do imóvel, calculado como média ponderada entre dados de transações oficiais e anúncios de mercado.'
+      definition: 'Valor mais provável de venda do imóvel: mediana do R$/m² das transações oficiais da região, ponderada pelo número de escrituras, aplicada à área e ajustada pelas características e documentação.'
     },
     {
       term: 'Valor Pessimista',
@@ -1584,7 +1586,7 @@ function createValuationPDF(
     },
     {
       term: 'Spread',
-      definition: 'Diferença percentual entre o valor mínimo e máximo estimados. Quanto menor o spread, maior a precisão e confiabilidade da avaliação.'
+      definition: 'Diferença percentual entre o valor pessimista (P10) e o otimista (P90), relativa ao provável. Mede a dispersão real dos preços na região; quanto menor, mais homogêneo o mercado.'
     },
     {
       term: 'Score de Confiança (0-100)',

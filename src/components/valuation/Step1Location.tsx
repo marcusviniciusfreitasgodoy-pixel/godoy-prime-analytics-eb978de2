@@ -617,21 +617,21 @@ export function Step1Location({ state, updateState, combined, onAutoValidated }:
             {/* Grid de preços - responsivo */}
             <div className="grid grid-cols-3 gap-1.5 sm:gap-4">
               <div className="text-center p-2 sm:p-3 bg-background rounded-lg">
-                <p className="text-[10px] sm:text-xs text-muted-foreground mb-0.5 sm:mb-1">Mín</p>
+                <p className="text-[10px] sm:text-xs text-muted-foreground mb-0.5 sm:mb-1">P10</p>
                 <p className="font-semibold text-red-600 text-xs sm:text-sm">
                   {formatCurrency(state.itbiData.min_m2)}
                 </p>
                 <p className="text-[10px] text-muted-foreground hidden sm:block">/m²</p>
               </div>
               <div className="text-center p-2 sm:p-3 bg-primary/10 rounded-lg border-2 border-primary/30">
-                <p className="text-[10px] sm:text-xs text-muted-foreground mb-0.5 sm:mb-1">Méd</p>
+                <p className="text-[10px] sm:text-xs text-muted-foreground mb-0.5 sm:mb-1">Mediana</p>
                 <p className="font-bold text-primary text-xs sm:text-base">
                   {formatCurrency(state.itbiData.med_m2)}
                 </p>
                 <p className="text-[10px] text-muted-foreground hidden sm:block">RECOMENDADO</p>
               </div>
               <div className="text-center p-2 sm:p-3 bg-background rounded-lg">
-                <p className="text-[10px] sm:text-xs text-muted-foreground mb-0.5 sm:mb-1">Máx</p>
+                <p className="text-[10px] sm:text-xs text-muted-foreground mb-0.5 sm:mb-1">P90</p>
                 <p className="font-semibold text-emerald-600 text-xs sm:text-sm">
                   {formatCurrency(state.itbiData.max_m2)}
                 </p>
@@ -643,7 +643,7 @@ export function Step1Location({ state, updateState, combined, onAutoValidated }:
             {state.itbiData.meta && (() => {
               const m = state.itbiData.meta;
               const fmtData = (iso: string) => iso.split("-").reverse().join("/");
-              const corte = m.outlier_method === "iqr" ? "IQR (1,5×)" : m.outlier_method === "percentile" ? "percentis P10/P90" : "sem corte (amostra < 4)";
+              const corte = m.outlier_method === "iqr" ? "IQR (1,5×)" : m.outlier_method === "mad" ? "MAD em log (2,5× / 3×)" : m.outlier_method === "percentile" ? "sem corte, faixa P10/P90" : "sem corte (amostra pequena)";
               const avisos: string[] = [];
               if (m.data_source === "bairro") avisos.push("Sem transações na rua: amostra do bairro inteiro.");
               if (m.tipologia_fallback) avisos.push("Poucas transações da tipologia do imóvel: amostra inclui casas e apartamentos.");
@@ -672,7 +672,7 @@ export function Step1Location({ state, updateState, combined, onAutoValidated }:
             <div className="pt-3 sm:pt-4 border-t">
               <div className="flex items-center justify-between mb-2 sm:mb-3 gap-2">
                 <Label className="text-xs sm:text-sm">
-                  Anúncios de Referência <span className="hidden sm:inline">(opcional - 30%)</span>
+                  Anúncios de Referência <span className="hidden sm:inline">(opcional, sinal de mercado)</span>
                 </Label>
                 {anuncios.length < 5 && (
                   <Button 
@@ -832,7 +832,7 @@ export function Step1Location({ state, updateState, combined, onAutoValidated }:
               )}
 
               <p className="text-[10px] sm:text-xs text-muted-foreground mt-2">
-                70% Dados Oficiais + 30% Anúncios
+                Os anúncios não entram no valor de referência (100% transações reais). Eles medem o gap entre preço pedido e preço fechado.
               </p>
             </div>
 

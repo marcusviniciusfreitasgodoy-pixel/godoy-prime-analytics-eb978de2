@@ -1,34 +1,13 @@
 // Types for Ferramenta de Avaliação - defined inline to avoid circular dependencies
 
-/**
- * Metadados que tornam o cálculo ITBI reprodutível (persistidos em
- * valuations.itbi_metadata). Ver docs/auditoria-motor-avaliacao.md, Fase 1.
- */
-export interface ITBIMarketMeta {
-  engine_version: number;
-  data_source: "logradouro" | "bairro";
-  bairros_incluidos: string[];
-  janela_inicio: string;
-  janela_fim: string;
-  ano_corrente_incluido: boolean;
-  tipologia_filtro: string | null;
-  /** true quando a tipologia do imóvel era conhecida mas a amostra exigiu relaxar o filtro */
-  tipologia_fallback: boolean;
-  outlier_method: "iqr" | "percentile" | "none";
-  piso_m2: number;
-  teto_m2: number;
-  linhas_agregadas: number;
-  linhas_descartadas: number;
-  escrituras_validas: number;
-  /** true quando a consulta bateu no limite de linhas e a amostra é parcial */
-  truncado: boolean;
-  calculado_em: string;
-}
+import type { ITBIMarketMeta } from "../../supabase/functions/_shared/itbiMarketStats.ts";
+export type { ITBIMarketMeta };
 
 export interface ITBIData {
-  min_m2: number;
-  med_m2: number;
-  max_m2: number;
+  min_m2: number; // P10 ponderado (R$/m²)
+  med_m2: number; // mediana ponderada (R$/m²)
+  max_m2: number; // P90 ponderado (R$/m²)
+  media_m2?: number; // média ponderada, só para exibição
   transaction_count: number;
   avg_valor_transacao?: number; // Preço médio das transações na região
   meta?: ITBIMarketMeta;
@@ -107,7 +86,7 @@ export interface HistoricalAnalysis {
   diagnostico: string;
   alertas: string[];
   futureProjection?: FutureProjection;
-  dataSource?: 'logradouro' | 'bairro' | 'raio500';
+  dataSource?: 'logradouro' | 'bairro' | 'raio';
   logradouroUsado?: string;
   bairroUsado?: string;
   raioMetros?: number;

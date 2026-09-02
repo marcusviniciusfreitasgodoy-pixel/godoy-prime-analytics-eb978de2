@@ -124,11 +124,14 @@ export function ValuationEngine({ bairro = "BARRA DA TIJUCA", vistoriaData, edit
   const { data: docFactors, isLoading: loadingDocs } = useDocumentationFactors();
   
   // Buscar análise histórica para calcular score de liquidez
+  // Mesmo escopo que a Etapa 4 exibe por padrão (raio de 100 m), para que a liquidez
+  // que entra no score seja a que o corretor vê (auditoria, achado A9).
   const { data: historicalAnalysis } = useHistoricalTransactionAnalysis(
     state.logradouro,
     state.bairro,
     !!state.logradouro && !!state.bairro && state.itbiData !== null,
-    state.condominioSelecionado?.ruas_internas
+    state.condominioSelecionado?.ruas_internas,
+    "raio100"
   );
 
   // Check for editar data from props (priority over vistoria)
@@ -403,8 +406,8 @@ export function ValuationEngine({ bairro = "BARRA DA TIJUCA", vistoriaData, edit
                         <ul className="space-y-1 list-disc list-inside">
                           <li><strong>Fonte:</strong> Transações oficiais da Prefeitura do Rio</li>
                           <li><strong>Filtro:</strong> Apenas imóveis com ≥90% de transferência</li>
-                          <li><strong>Mínimo:</strong> 3 transações para garantir precisão estatística</li>
-                          <li><strong>Faixa:</strong> Calculada com base em mín, mediana e máx do m²</li>
+                          <li><strong>Amostra:</strong> 5 anos fechados, tipologia do imóvel, piso e teto por bairro; abaixo de 3 escrituras a confiança é limitada</li>
+                          <li><strong>Faixa:</strong> P10, mediana e P90 do R$/m² ponderados por escrituras, sem compressão</li>
                           <li><strong>Atualização:</strong> Diária automática às 02:00</li>
                         </ul>
                         <p className="text-muted-foreground italic pt-1 border-t border-border">
@@ -435,8 +438,8 @@ export function ValuationEngine({ bairro = "BARRA DA TIJUCA", vistoriaData, edit
                           <Badge variant="outline" className="text-[10px] sm:text-xs bg-emerald-500/10 text-emerald-600 border-emerald-500/20 cursor-help">
                             <Database className="h-3 w-3 mr-1" />
                             <Megaphone className="h-3 w-3 mr-1" />
-                            <span className="hidden sm:inline">Dados Combinados</span>
-                            <span className="sm:hidden">Combinado</span>
+                            <span className="hidden sm:inline">Oficial + Anúncios</span>
+                            <span className="sm:hidden">Oficial+</span>
                           </Badge>
                         ) : (
                           <Badge variant="outline" className="text-[10px] sm:text-xs bg-blue-500/10 text-blue-600 border-blue-500/20 cursor-help">
@@ -449,7 +452,7 @@ export function ValuationEngine({ bairro = "BARRA DA TIJUCA", vistoriaData, edit
                       <TooltipContent side="bottom" className="max-w-xs">
                         {state.anuncioData ? (
                           <p className="text-xs">
-                            <strong>Avaliação combinada:</strong> Utilizando 70% dados oficiais + 30% anúncios de mercado para maior precisão.
+                            <strong>Oficial + anúncios:</strong> o valor de referência usa 100% transações reais; os anúncios medem o gap entre preço pedido e preço fechado e alimentam a recomendação.
                           </p>
                         ) : (
                           <p className="text-xs">

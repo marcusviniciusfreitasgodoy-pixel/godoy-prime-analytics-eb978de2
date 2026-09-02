@@ -4,8 +4,12 @@ import {
   calculateITBIData,
   collectBairros,
   computeIQRBounds,
+  computeMADBounds,
   mapTipoImovelToTipologia,
   selectWindowRows,
+  toWeightedItems,
+  weightedMedian,
+  weightedQuantile,
   type MarketRow,
 } from "../itbiMarketStats";
 import { getOutlierLimit, getOutlierMinLimit, normalizeBairro } from "../../lib/outlierLimits";
@@ -80,20 +84,56 @@ describe("selectWindowRows", () => {
   });
 
   test("não marca expansão quando não há linhas do ano corrente", () => {
-    const closed = [row(10000, 2, "2024-03-15")];
-    const sel = selectWindowRows(closed, w);
+    const sel = selectWindowRows([row(10000, 2, "2024-03-15")], w);
     expect(sel.anoCorrenteIncluido).toBe(false);
   });
 });
 
+describe("quantis ponderados", () => {
+  test("equivalem a expandir cada linha pelo peso", () => {
+    // expandido: [10, 20, 20, 20, 30] → mediana 20, P10 idx0 = 10, P90 idx4 = 30
+    const items = toWeightedItems([row(20, 3), row(10, 1), row(30, 1)]);
+    expect(weightedMedian(items)).toBe(20);
+    expect(weightedQuantile(items, 0.1)).toBe(10);
+    expect(weightedQuantile(items, 0.9)).toBe(30);
+  });
+  test("mediana de n par é a média dos dois centrais", () => {
+    // expandido: [10, 10, 20, 20] → (10+20)/2
+    const items = toWeightedItems([row(10, 2), row(20, 2)]);
+    expect(weightedMedian(items)).toBe(15);
+  });
+});
+
 describe("computeIQRBounds", () => {
-  test("precisa de quatro valores", () => {
-    expect(computeIQRBounds([1, 2, 3])).toBeNull();
+  test("precisa de quatro escrituras", () => {
+    expect(computeIQRBounds([row(1), row(2), row(3)])).toBeNull();
+    expect(computeIQRBounds([row(1, 4)])).not.toBeNull();
   });
   test("aplica a banda mínima de 20% quando o IQR colapsa", () => {
-    const b = computeIQRBounds([10000, 10000, 10000, 10000])!;
+    const b = computeIQRBounds([row(10000, 4)])!;
     expect(b.lower).toBeCloseTo(10000 - 1.5 * 2000);
     expect(b.upper).toBeCloseTo(10000 + 1.5 * 2000);
+  });
+});
+
+describe("computeMADBounds", () => {
+  test("precisa de oito linhas agregadas", () => {
+    expect(computeMADBounds(Array.from({ length: 7 }, (_, i) => row(10000 + i * 500)))).toBeNull();
+  });
+  test("dispersão zero não corta", () => {
+    expect(computeMADBounds(Array.from({ length: 8 }, () => row(10000)))).toBeNull();
+  });
+  test("cercas assimétricas em torno da mediana em log", () => {
+    const rows = [9000, 9500, 10000, 10000, 10500, 11000, 11500, 12000].map((v) => row(v));
+    const b = computeMADBounds(rows)!;
+    const med = 10000;
+    // cerca superior mais distante da mediana (em razão) do que a inferior
+    expect(b.upper / med).toBeGreaterThan(med / b.lower);
+    expect(b.lower).toBeLessThan(9000);
+    expect(b.upper).toBeGreaterThan(12000);
+    // um valor 3× a mediana é descartado; um valor 20% acima, mantido
+    expect(30000 > b.upper).toBe(true);
+    expect(12000 <= b.upper).toBe(true);
   });
 });
 
@@ -110,38 +150,43 @@ describe("calculateITBIData", () => {
     expect(r.transaction_count).toBe(10);
   });
 
-  test("IQR descarta um agregado extremo e registra nos metadados", () => {
-    const rows = [
-      row(10000, 5),
-      row(10500, 5),
-      row(11000, 5),
-      row(11500, 5),
-      row(60000, 1), // outlier
-    ];
+  test("IQR descarta um agregado extremo, reporta P10/P90 dos sobreviventes e registra nos metadados", () => {
+    const rows = [row(10000, 5), row(10500, 5), row(11000, 5), row(11500, 5), row(60000, 1)];
     const r = calculateITBIData(rows, { method: "iqr", meta: baseMeta, now: new Date("2026-09-02T00:00:00Z") })!;
-    expect(r.max_m2).toBe(11500);
-    expect(r.meta?.linhas_agregadas).toBe(5);
-    expect(r.meta?.linhas_descartadas).toBe(1);
-    expect(r.meta?.escrituras_validas).toBe(20);
-    expect(r.meta?.outlier_method).toBe("iqr");
-    expect(r.meta?.engine_version).toBe(2);
-    expect(r.meta?.calculado_em).toBe("2026-09-02T00:00:00.000Z");
+    expect(r.min_m2).toBe(10000); // P10 dos 20 sobreviventes
+    expect(r.max_m2).toBe(11500); // P90 dos 20 sobreviventes
+    expect(r.media_m2).toBe(10750);
+    expect(r.meta.linhas_agregadas).toBe(5);
+    expect(r.meta.linhas_descartadas).toBe(1);
+    expect(r.meta.escrituras_validas).toBe(20);
+    expect(r.meta.outlier_method).toBe("iqr");
+    expect(r.meta.engine_version).toBe(3);
+    expect(r.meta.calculado_em).toBe("2026-09-02T00:00:00.000Z");
   });
 
-  test("percentil usa P10/P90 como mínimo e máximo e mantém a mediana", () => {
+  test("percentil não descarta e usa P10/P90 como mínimo e máximo", () => {
     const rows = Array.from({ length: 10 }, (_, i) => row(10000 + i * 1000, 1));
     const r = calculateITBIData(rows, { method: "percentile", meta: baseMeta })!;
     expect(r.min_m2).toBe(11000);
     expect(r.max_m2).toBe(19000);
     expect(r.med_m2).toBe(14500);
-    expect(r.meta?.linhas_descartadas).toBe(0);
+    expect(r.meta.linhas_descartadas).toBe(0);
+    expect(r.meta.outlier_method).toBe("percentile");
   });
 
-  test("amostra menor que quatro não aplica corte", () => {
+  test("MAD descarta o extremo e mantém a faixa P10/P90", () => {
+    const rows = [...[9000, 9500, 10000, 10000, 10500, 11000, 11500, 12000].map((v) => row(v, 2)), row(45000, 1)];
+    const r = calculateITBIData(rows, { method: "mad", meta: baseMeta })!;
+    expect(r.meta.outlier_method).toBe("mad");
+    expect(r.meta.linhas_descartadas).toBe(1);
+    expect(r.max_m2).toBeLessThanOrEqual(12000);
+  });
+
+  test("amostra pequena não aplica corte e registra 'none'", () => {
     const r = calculateITBIData([row(9000, 1), row(30000, 1)], { method: "iqr", meta: baseMeta })!;
     expect(r.min_m2).toBe(9000);
     expect(r.max_m2).toBe(30000);
-    expect(r.meta?.outlier_method).toBe("none");
+    expect(r.meta.outlier_method).toBe("none");
   });
 
   test("é determinístico para a mesma entrada", () => {

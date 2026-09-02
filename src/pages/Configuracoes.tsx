@@ -505,9 +505,9 @@ export default function Configuracoes() {
                 a precisão da sua avaliação. O filtro remove automaticamente essas anomalias para dar resultados mais confiáveis.
               </p>
               <p className="text-xs sm:text-sm text-muted-foreground leading-relaxed mt-2">
-                <strong className="text-foreground">Qual escolher?</strong> Na dúvida, mantenha o <span className="font-medium text-primary">IQR</span> — 
-                ele é mais preciso e usado por estatísticos profissionais. O método <span className="font-medium">Percentis</span> é uma opção 
-                mais simples se você preferir um corte fixo.
+                <strong className="text-foreground">Qual escolher?</strong> Na dúvida, mantenha o <span className="font-medium text-primary">IQR</span>. 
+                O método <span className="font-medium">MAD em escala log</span> é mais estável em amostras pequenas e mais tolerante com o topo do mercado. 
+                Em qualquer método, a faixa exibida é sempre P10, mediana e P90 dos valores que sobreviveram ao corte.
               </p>
             </div>
 
@@ -545,7 +545,22 @@ export default function Configuracoes() {
                     <strong>Melhor para:</strong> Bases de dados menores ou quando você quer um corte mais previsível.
                   </p>
                   <p className="text-xs text-muted-foreground mt-0.5">
-                    Descarta os 10% mais baratos e os 10% mais caros, mantendo sempre os 80% centrais das transações.
+                    Não descarta nada; a faixa P10/P90 já ignora os 10% mais baratos e os 10% mais caros.
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex items-start space-x-3 p-3 rounded-lg border hover:bg-muted/30 transition-colors">
+                <SimpleRadioItem value="mad" id="mad" className="mt-1" />
+                <div className="flex-1">
+                  <Label htmlFor="mad" className="cursor-pointer text-sm font-medium">
+                    MAD em escala log (assimétrico)
+                  </Label>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    <strong>Melhor para:</strong> Ruas com poucas transações ou bairros com imóveis de padrão muito variado.
+                  </p>
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    Mede a dispersão em torno da mediana (em log) e corta mais rigorosamente abaixo do que acima. Precisa de pelo menos 8 registros.
                   </p>
                 </div>
               </div>

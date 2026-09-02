@@ -5,29 +5,7 @@ import {
   setCachedAnalysis 
 } from '@/utils/historicalAnalysisCache';
 import { buildLogradouroOrConditions } from '@/lib/logradouroSearch';
-
-// Limites de outliers por bairro
-const OUTLIER_LIMITS: Record<string, number> = {
-  'BARRA DA TIJUCA': 40000,
-  'RECREIO DOS BANDEIRANTES': 35000,
-  'LEBLON': 80000,
-  'IPANEMA': 70000,
-  'LAGOA': 50000,
-  'JARDIM BOTANICO': 50000,
-  'GAVEA': 50000,
-  'COPACABANA': 40000,
-  'BOTAFOGO': 40000,
-  'FLAMENGO': 35000,
-  'LARANJEIRAS': 35000,
-  'HUMAITA': 40000,
-  'TIJUCA': 30000,
-  'DEFAULT': 60000,
-};
-
-const getOutlierLimit = (bairro: string): number => {
-  const normalizedBairro = bairro.toUpperCase();
-  return OUTLIER_LIMITS[normalizedBairro] || OUTLIER_LIMITS['DEFAULT'];
-};
+import { getOutlierLimit, getOutlierMinLimit } from '@/lib/outlierLimits';
 
 export interface YearlyData {
   ano: number;
@@ -52,7 +30,7 @@ export interface FutureProjection {
   disclaimer: string;
 }
 
-export type EscopoAnalise = 'rua' | 'raio500' | 'raio200' | 'raio300';
+export type EscopoAnalise = 'rua' | 'raio100' | 'raio200' | 'raio300';
 
 export interface HistoricalAnalysis {
   yearlyData: YearlyData[];
@@ -66,10 +44,10 @@ export interface HistoricalAnalysis {
   alertas: string[];
   futureProjection?: FutureProjection;
   // Fonte dos dados
-  dataSource: 'logradouro' | 'bairro' | 'raio500'; // logradouro específico, raio de 100 m ou bairro todo
+  dataSource: 'logradouro' | 'bairro' | 'raio'; // logradouro específico, raio geográfico ou bairro todo
   logradouroUsado: string; // Logradouro usado na busca
   bairroUsado: string; // Bairro usado na busca
-  raioMetros?: number; // Raio usado quando dataSource = 'raio500'
+  raioMetros?: number; // Raio usado quando dataSource = 'raio'
   // Fallback cross-bairro: quando a rua está cadastrada em outro(s) bairro(s) no ITBI
   crossBairro?: boolean;
   bairrosEncontrados?: string[];
@@ -78,32 +56,6 @@ export interface HistoricalAnalysis {
   currentYearCount?: number;
   currentYearAvgM2?: number;
 }
-
-// Limites MÍNIMOS de outliers por bairro (valores muito abaixo são suspeitos)
-// Calibrados ~20% abaixo do percentil 5 real de cada bairro na base ITBI,
-// para não descartar anos inteiros de bairros de ticket menor (ex.: Tijuca).
-const OUTLIER_MIN_LIMITS: Record<string, number> = {
-  'BARRA DA TIJUCA': 5000,
-  'RECREIO DOS BANDEIRANTES': 3800,
-  'LEBLON': 10000,
-  'IPANEMA': 7500,
-  'LAGOA': 8000,
-  'JARDIM BOTANICO': 7000,
-  'GAVEA': 7000,
-  'COPACABANA': 5500,
-  'BOTAFOGO': 5500,
-  'FLAMENGO': 5500,
-  'LARANJEIRAS': 5000,
-  'HUMAITA': 5500,
-  'TIJUCA': 3000,
-  'DEFAULT': 2500,
-};
-
-
-const getOutlierMinLimit = (bairro: string): number => {
-  const normalizedBairro = bairro.toUpperCase();
-  return OUTLIER_MIN_LIMITS[normalizedBairro] || OUTLIER_MIN_LIMITS['DEFAULT'];
-};
 
 export function useHistoricalTransactionAnalysis(
   logradouro: string,
@@ -116,11 +68,11 @@ export function useHistoricalTransactionAnalysis(
   const normalizedLogradouro = (logradouro || '').trim();
 
   return useQuery<HistoricalAnalysis | null>({
-    queryKey: ['historical-analysis-5y-v12', normalizedLogradouro.toUpperCase(), normalizedBairro, ruasInternas?.join(',') || '', escopo],
+    queryKey: ['historical-analysis-5y-v13', normalizedLogradouro.toUpperCase(), normalizedBairro, ruasInternas?.join(',') || '', escopo],
     queryFn: async () => {
       if (!normalizedLogradouro || !normalizedBairro) return null;
 
-      const isRaio = escopo === 'raio500' || escopo === 'raio200' || escopo === 'raio300';
+      const isRaio = escopo === 'raio100' || escopo === 'raio200' || escopo === 'raio300';
       const raioSelecionado = escopo === 'raio300' ? 300 : escopo === 'raio200' ? 200 : 100;
 
       // CACHE: Verificar se há dados em cache válidos (apenas no escopo de rua)
@@ -254,7 +206,7 @@ export function useHistoricalTransactionAnalysis(
       }
 
       // Rastrear fonte dos dados e quantidade encontrada
-      let dataSource: 'logradouro' | 'bairro' | 'raio500' = isRaio ? 'raio500' : 'logradouro';
+      let dataSource: 'logradouro' | 'bairro' | 'raio' = isRaio ? 'raio' : 'logradouro';
       const logradouroTransactionCount = transactions?.length || 0;
 
       // O bairro só pode substituir a rua quando não existe nenhuma ocorrência.

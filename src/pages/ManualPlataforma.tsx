@@ -943,7 +943,7 @@ export default function ManualPlataforma() {
                   </AccordionTrigger>
                   <AccordionContent>
                     <p className="text-sm text-muted-foreground">
-                      O valor oficial representa transações reais efetivadas. Porém, em alguns casos, pode haver subdeclaração. Por isso, nosso motor combina 70% dados oficiais + 30% dados de anúncios quando disponíveis, para uma estimativa mais precisa do valor de mercado atual.
+                      O valor oficial representa transações reais efetivadas e é a única base do valor de referência. Os anúncios informados não entram na base: eles medem o gap entre preço pedido e preço fechado, que aparece na recomendação e no score de confiança.
                     </p>
                   </AccordionContent>
                 </AccordionItem>

@@ -102,12 +102,12 @@ export function HistoricalAnalysisChart({ analysis }: Props) {
             <Badge 
               variant="outline" 
               className={`text-[10px] ${
-                dataSource === 'logradouro' || dataSource === 'raio500'
+                dataSource === 'logradouro' || dataSource === 'raio'
                   ? 'border-blue-500 text-blue-700 bg-blue-50 dark:bg-blue-950/30' 
                   : 'border-amber-500 text-amber-700 bg-amber-50 dark:bg-amber-950/30'
               }`}
             >
-              {dataSource === 'raio500' ? (
+              {dataSource === 'raio' ? (
                 <>🎯 Raio de {raioMetros ?? 100} m em torno de {logradouroUsado}</>
               ) : dataSource === 'logradouro' ? (
                 <>📍 Dados do logradouro: {logradouroUsado}</>

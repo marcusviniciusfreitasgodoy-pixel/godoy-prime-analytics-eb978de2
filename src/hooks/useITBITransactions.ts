@@ -3,39 +3,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { isTechnicalCode } from '@/lib/utils';
 import { useDemo } from '@/contexts/DemoContext';
 import { DEMO_MICROBAIRRO_RANKING } from '@/data/demoData';
-
-// Limites de outliers por bairro
-const OUTLIER_LIMITS: Record<string, number> = {
-  'BARRA DA TIJUCA': 40000,
-  'RECREIO DOS BANDEIRANTES': 35000,
-  'LEBLON': 80000,
-  'IPANEMA': 70000,
-  'LAGOA': 50000,
-  'JARDIM BOTANICO': 50000,
-  'GAVEA': 50000,
-  'COPACABANA': 40000,
-  'BOTAFOGO': 40000,
-  'FLAMENGO': 35000,
-  'LARANJEIRAS': 35000,
-  'HUMAITA': 40000,
-  'TIJUCA': 30000,
-  'VILA ISABEL': 25000,
-  'GRAJAU': 20000,
-  'GRAJAÚ': 20000,
-  'MEIER': 20000,
-  'MÉIER': 20000,
-  'JACAREPAGUA': 25000,
-  'JACAREPAGUÁ': 25000,
-  'FREGUESIA (JACAREPAGUÁ)': 25000,
-  'TAQUARA': 20000,
-  'PECHINCHA': 20000,
-  'DEFAULT': 60000,
-};
-
-const getOutlierLimit = (bairro: string): number => {
-  const normalizedBairro = bairro.toUpperCase();
-  return OUTLIER_LIMITS[normalizedBairro] || OUTLIER_LIMITS['DEFAULT'];
-};
+import { getOutlierLimit } from '@/lib/outlierLimits';
 
 export interface ITBITransaction {
   id: string;
