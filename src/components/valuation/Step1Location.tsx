@@ -130,8 +130,9 @@ export function Step1Location({ state, updateState, combined, onAutoValidated }:
     ruasInternas?: string[]
   ): Promise<MarketFetchResult> => {
     const window = buildMarketWindow();
-    const { piso, teto } = getOutlierLimits(bairro);
     const tipologiaDesejada = mapTipoImovelToTipologia(tipoImovel);
+    // Piso e teto calibrados por bairro × tipologia (P1/P99 da base, com margem).
+    const { piso, teto } = getOutlierLimits(bairro, tipologiaDesejada);
     const isCondominio = !!(ruasInternas && ruasInternas.length > 0);
 
     const createBaseQuery = (withBairro: boolean, tipologia: string | null) => {

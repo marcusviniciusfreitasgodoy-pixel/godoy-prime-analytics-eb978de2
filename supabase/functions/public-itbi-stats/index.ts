@@ -118,7 +118,8 @@ serve(async (req) => {
     // ordenação explícita e limite de linhas, corte MAD em log e faixa P10 / mediana / P90.
     const window = buildMarketWindow();
     const bairroNormalizado = bairro.toUpperCase().trim();
-    const { piso, teto } = getOutlierLimits(bairroNormalizado);
+    const tipologiaFiltro = tipologia && typeof tipologia === 'string' && tipologia !== "Todos" ? tipologia : null;
+    const { piso, teto } = getOutlierLimits(bairroNormalizado, tipologiaFiltro);
 
     let statsQuery = supabase
       .from("itbi_transactions")
@@ -140,7 +141,6 @@ serve(async (req) => {
       statsQuery = statsQuery.ilike("logradouro", `%${logradouro.trim()}%`);
     }
 
-    const tipologiaFiltro = tipologia && typeof tipologia === 'string' && tipologia !== "Todos" ? tipologia : null;
     if (tipologiaFiltro) {
       statsQuery = statsQuery.ilike("tipologia", `%${tipologiaFiltro}%`);
     }
