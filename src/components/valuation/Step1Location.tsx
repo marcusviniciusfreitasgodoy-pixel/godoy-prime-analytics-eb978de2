@@ -23,14 +23,21 @@ import { getOutlierLimits } from "@/lib/outlierLimits";
 import {
   MAX_ROWS,
   MIN_ROWS_FOR_TIPOLOGIA,
+  MIN_ROWS_SCOPE,
+  RADIUS_STEPS_M,
   buildMarketWindow,
   calculateITBIData as computeITBIData,
   collectBairros,
   deflateRows,
+  isScopeSufficient,
   mapTipoImovelToTipologia,
+  pickFallbackSample,
+  radiusSource,
   selectWindowRows,
+  type DataSource,
   type MarketRow,
   type PriceIndexPoint,
+  type RadiusStep,
 } from "@/utils/itbiMarketStats";
 import { fetchPriceIndex } from "@/utils/priceIndex";
 
@@ -103,25 +110,61 @@ export function Step1Location({ state, updateState, combined, onAutoValidated }:
     );
   };
 
+  interface PontoReferencia {
+    lat: number;
+    lng: number;
+    fonte: string;
+  }
+
   interface MarketFetchResult {
     rows: MarketRow[];
-    source: "logradouro" | "bairro";
+    source: DataSource;
     tipologiaFiltro: string | null;
     tipologiaFallback: boolean;
     piso: number;
     teto: number;
+    raioM?: number | null;
+    ponto?: PontoReferencia | null;
   }
+
+  /** Linha devolvida pela RPC itbi_amostra_raio (ainda fora de types.ts; ver CLAUDE.md §7). */
+  interface RadiusRow extends MarketRow {
+    logradouro?: string | null;
+    distancia_m?: number | null;
+  }
+
+  /**
+   * Ponto de referência do imóvel para o raio: média das coordenadas do
+   * logradouro (RPC itbi_ponto_logradouro, fonte ITBI ou logradouros_geo).
+   * Para condomínio usa o logradouro padrão. Devolve null sem coordenadas.
+   */
+  const fetchPontoReferencia = async (logradouro: string, bairro: string): Promise<PontoReferencia | null> => {
+    const { data, error } = await supabase.rpc("itbi_ponto_logradouro", {
+      p_logradouro: logradouro,
+      p_bairro: bairro,
+    });
+    if (error) {
+      console.warn("[Step1] itbi_ponto_logradouro indisponível:", error.message);
+      return null;
+    }
+    const ponto = Array.isArray(data) ? data[0] : data;
+    if (!ponto || !Number.isFinite(Number(ponto.lat)) || !Number.isFinite(Number(ponto.lng))) return null;
+    return { lat: Number(ponto.lat), lng: Number(ponto.lng), fonte: String(ponto.fonte ?? "") };
+  };
 
   /**
    * Busca a amostra de mercado ITBI para o imóvel.
    *
-   * Regras (docs/auditoria-motor-avaliacao.md, Fase 1):
+   * Regras (docs/auditoria-motor-avaliacao.md, Fase 1 e seção 11):
    * - janela de 5 anos fechados + ano corrente (a seleção final é feita em calculateITBIData);
    * - piso e teto de R$/m² do bairro do imóvel (src/lib/outlierLimits.ts), nunca um valor fixo;
    * - ordenação explícita e limite de 5000 linhas, para o resultado ser reprodutível;
    * - tipologia compatível com o tipo do imóvel; relaxa para "Residencial" quando a amostra
    *   tem menos de MIN_ROWS_FOR_TIPOLOGIA linhas, registrando o fallback;
-   * - o bairro inteiro só substitui a rua quando a rua não tem nenhuma ocorrência.
+   * - com o fallback por raio ativado, uma rua com menos de MIN_ROWS_SCOPE linhas é
+   *   complementada pelos raios de 100 m e 300 m em torno do ponto do logradouro; entre
+   *   rua e raios, vale o primeiro suficiente ou, se nenhum for, o de maior amostra;
+   * - o bairro inteiro só substitui quando rua e raios não têm nenhuma ocorrência.
    */
   const fetchMarketRows = async (
     bairro: string,
@@ -174,28 +217,59 @@ export function Step1Location({ state, updateState, combined, onAutoValidated }:
       return query;
     };
 
+    // A RPC de raio ainda não está em types.ts (CLAUDE.md §7): cast localizado.
+    const rpcRaio = supabase.rpc as unknown as (
+      fn: string,
+      args: Record<string, unknown>
+    ) => PromiseLike<{ data: RadiusRow[] | null; error: { message: string } | null }>;
+
+    const queryRadius = async (ponto: PontoReferencia, raio: RadiusStep, tipologia: string | null): Promise<MarketRow[]> => {
+      const { data, error } = await rpcRaio("itbi_amostra_raio", {
+        p_lat: ponto.lat,
+        p_lng: ponto.lng,
+        p_raio_m: raio,
+        p_inicio: window.start,
+        p_fim: window.end,
+        p_tipologia: tipologia,
+        p_piso: piso,
+        p_teto: teto,
+        p_limite: MAX_ROWS,
+      });
+      if (error) {
+        // Função ainda não aplicada no banco: o fluxo segue sem o degrau de raio.
+        console.warn(`[Step1] itbi_amostra_raio indisponível (raio ${raio} m):`, error.message);
+        return [];
+      }
+      return (data || []).map((r) => ({
+        valor_m2: r.valor_m2 === null ? null : Number(r.valor_m2),
+        valor_transacao: r.valor_transacao == null ? null : Number(r.valor_transacao),
+        total_transacoes: r.total_transacoes,
+        data_transacao: r.data_transacao,
+        bairro: r.bairro ?? null,
+        tipologia: r.tipologia ?? null,
+      }));
+    };
+
     const tipologias: (string | null)[] = tipologiaDesejada ? [tipologiaDesejada, null] : [null];
 
     // Dentro de um escopo, prefere a amostra com tipologia; relaxa só se ela for pequena.
-    const searchScope = async (scope: "logradouro" | "bairro"): Promise<MarketFetchResult | null> => {
+    const searchWith = async (
+      source: DataSource,
+      run: (tipologia: string | null) => Promise<MarketRow[]>,
+      extra: Pick<MarketFetchResult, "raioM" | "ponto"> = {}
+    ): Promise<MarketFetchResult | null> => {
       let smallest: MarketFetchResult | null = null;
       for (const tipologia of tipologias) {
-        // Condomínio mantém o filtro de bairro (rua interna é genérica); logradouro busca cross-bairro.
-        const query =
-          scope === "logradouro"
-            ? applyStreetFilter(createBaseQuery(isCondominio, tipologia))
-            : createBaseQuery(true, tipologia);
-        const { data, error } = await query;
-        if (error) throw error;
-        const rows = (data || []) as MarketRow[];
+        const rows = await run(tipologia);
         if (rows.length === 0) continue;
         const result: MarketFetchResult = {
           rows,
-          source: scope,
+          source,
           tipologiaFiltro: tipologia,
           tipologiaFallback: tipologiaDesejada !== null && tipologia === null,
           piso,
           teto,
+          ...extra,
         };
         if (rows.length >= MIN_ROWS_FOR_TIPOLOGIA) return result;
         if (!smallest) smallest = result;
@@ -203,10 +277,41 @@ export function Step1Location({ state, updateState, combined, onAutoValidated }:
       return smallest;
     };
 
-    const streetResult = await searchScope("logradouro");
-    if (streetResult) return streetResult;
+    const runTable = (scope: "logradouro" | "bairro") => async (tipologia: string | null): Promise<MarketRow[]> => {
+      // Condomínio mantém o filtro de bairro (rua interna é genérica); logradouro busca cross-bairro.
+      const query =
+        scope === "logradouro"
+          ? applyStreetFilter(createBaseQuery(isCondominio, tipologia))
+          : createBaseQuery(true, tipologia);
+      const { data, error } = await query;
+      if (error) throw error;
+      return (data || []) as MarketRow[];
+    };
 
-    const bairroResult = await searchScope("bairro");
+    const streetResult = await searchWith("logradouro", runTable("logradouro"));
+    if (streetResult && isScopeSufficient(streetResult.rows)) return streetResult;
+
+    // Degraus intermediários por raio (seção 11): só com a configuração ligada.
+    const candidates: (MarketFetchResult | null)[] = [streetResult];
+    if (settings.radius_fallback_enabled) {
+      const pontoLogradouro = isCondominio ? state.condominioSelecionado?.logradouro_padrao || logradouro : logradouro;
+      const ponto = await fetchPontoReferencia(pontoLogradouro, bairro);
+      if (ponto) {
+        for (const raio of RADIUS_STEPS_M) {
+          const radiusResult = await searchWith(radiusSource(raio), (t) => queryRadius(ponto, raio, t), { raioM: raio, ponto });
+          candidates.push(radiusResult);
+          if (radiusResult && isScopeSufficient(radiusResult.rows)) break;
+        }
+      } else {
+        console.warn("[Step1] Sem ponto de referência para", pontoLogradouro, "- fallback por raio ignorado.");
+      }
+    }
+
+    // Entre rua e raios: o primeiro com MIN_ROWS_SCOPE linhas ou, se nenhum, o maior.
+    const best = pickFallbackSample(candidates);
+    if (best) return best;
+
+    const bairroResult = await searchWith("bairro", runTable("bairro"));
     if (bairroResult) return bairroResult;
 
     return { rows: [], source: "bairro", tipologiaFiltro: tipologiaDesejada, tipologiaFallback: false, piso, teto };
@@ -333,6 +438,8 @@ export function Step1Location({ state, updateState, combined, onAutoValidated }:
       method: settings.outlier_filter_method,
       meta: {
         data_source: market.source,
+        raio_m: market.raioM ?? null,
+        ponto_referencia: market.ponto ?? null,
         bairros_incluidos: collectBairros(selection.rows),
         janela_inicio: selection.janelaInicio,
         janela_fim: selection.janelaFim,
@@ -659,14 +766,21 @@ export function Step1Location({ state, updateState, combined, onAutoValidated }:
               const m = state.itbiData.meta;
               const fmtData = (iso: string) => iso.split("-").reverse().join("/");
               const corte = m.outlier_method === "iqr" ? "IQR (1,5×)" : m.outlier_method === "mad" ? "MAD em log (2,5× / 3×)" : m.outlier_method === "percentile" ? "sem corte, faixa P10/P90" : "sem corte (amostra pequena)";
+              const fonteLabel: Record<DataSource, string> = {
+                logradouro: "logradouro",
+                raio100: "raio de 100 m em torno do logradouro",
+                raio300: "raio de 300 m em torno do logradouro",
+                bairro: "bairro inteiro",
+              };
               const avisos: string[] = [];
-              if (m.data_source === "bairro") avisos.push("Sem transações na rua: amostra do bairro inteiro.");
+              if (m.data_source === "bairro") avisos.push("Sem transações na rua nem nas proximidades: amostra do bairro inteiro.");
+              if (m.data_source === "raio100" || m.data_source === "raio300") avisos.push(`Rua com menos de ${MIN_ROWS_SCOPE} registros: amostra ampliada para ${m.raio_m} m em torno do logradouro.`);
               if (m.tipologia_fallback) avisos.push("Poucas transações da tipologia do imóvel: amostra inclui casas e apartamentos.");
               if (m.truncado) avisos.push("Amostra parcial: a consulta atingiu o limite de registros e considerou os mais recentes.");
               return (
                 <div className="text-[10px] sm:text-xs text-muted-foreground space-y-1">
                   <p>
-                    Fonte: {m.data_source === "logradouro" ? "logradouro" : "bairro inteiro"}
+                    Fonte: {fonteLabel[m.data_source] ?? m.data_source}
                     {m.bairros_incluidos.length > 1 ? ` (${m.bairros_incluidos.join(", ")})` : ""}
                     {" · "}Tipologia: {m.tipologia_filtro || "todas (residencial)"}
                     {" · "}Janela: {fmtData(m.janela_inicio)} a {fmtData(m.janela_fim)}

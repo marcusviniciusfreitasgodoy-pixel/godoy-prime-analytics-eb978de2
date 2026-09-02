@@ -34,6 +34,51 @@ export const RANGE_HIGH_P = 0.9;
 
 export type OutlierMethod = "iqr" | "percentile" | "mad";
 
+/**
+ * Origem da amostra, em ordem de proximidade. `raio100` e `raio300` são os
+ * degraus intermediários do fallback por raio (ativados por configuração);
+ * `bairro` continua sendo o último recurso.
+ */
+export type DataSource = "logradouro" | "raio100" | "raio300" | "bairro";
+
+/** Degraus do fallback por raio, em metros, do mais próximo ao mais largo. */
+export const RADIUS_STEPS_M = [100, 300] as const;
+export type RadiusStep = (typeof RADIUS_STEPS_M)[number];
+export const radiusSource = (raio: RadiusStep): DataSource => (raio === 100 ? "raio100" : "raio300");
+
+/**
+ * Linhas agregadas a partir das quais um escopo (rua, raio) é considerado
+ * suficiente e o fallback para. Igual ao mínimo do MAD: abaixo disso não há
+ * corte de outlier nem mediana estável.
+ */
+export const MIN_ROWS_SCOPE = 8;
+export const isScopeSufficient = (rows: MarketRow[]): boolean => rows.length >= MIN_ROWS_SCOPE;
+
+/**
+ * Penalidade de confiança por origem da amostra (auditoria, achado A2 e
+ * seção 11): quanto mais longe do imóvel, menor a confiança.
+ */
+export const SOURCE_PENALTY: Record<DataSource, number> = {
+  logradouro: 0,
+  raio100: 5,
+  raio300: 10,
+  bairro: 15,
+};
+
+/**
+ * Escolhe a amostra entre candidatos ordenados por proximidade (rua, raio
+ * 100 m, raio 300 m): o primeiro suficiente; se nenhum for, o que tiver mais
+ * linhas (empate favorece o mais próximo); null se todos estiverem vazios.
+ * O bairro não entra aqui: ele só substitui quando esta função devolve null.
+ */
+export const pickFallbackSample = <T extends { rows: MarketRow[] }>(candidates: (T | null | undefined)[]): T | null => {
+  const present = candidates.filter((c): c is T => !!c && c.rows.length > 0);
+  if (present.length === 0) return null;
+  const sufficient = present.find((c) => isScopeSufficient(c.rows));
+  if (sufficient) return sufficient;
+  return present.reduce((best, c) => (c.rows.length > best.rows.length ? c : best));
+};
+
 export interface MarketRow {
   valor_m2: number | null;
   valor_transacao?: number | null;
@@ -49,7 +94,11 @@ export interface MarketRow {
  */
 export interface ITBIMarketMeta {
   engine_version: number;
-  data_source: "logradouro" | "bairro";
+  data_source: DataSource;
+  /** raio em metros quando data_source é raio100/raio300 */
+  raio_m?: number | null;
+  /** ponto usado como centro do raio (média das coordenadas do logradouro) */
+  ponto_referencia?: { lat: number; lng: number; fonte: string } | null;
   bairros_incluidos: string[];
   janela_inicio: string;
   janela_fim: string;

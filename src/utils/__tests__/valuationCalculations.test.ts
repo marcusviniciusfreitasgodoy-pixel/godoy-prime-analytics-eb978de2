@@ -97,6 +97,18 @@ describe("calculateConfidenceScore", () => {
   });
 });
 
+describe("penalidade por origem da amostra (raio)", () => {
+  test("raio 100 m e 300 m penalizam menos que o bairro", () => {
+    const rua = calculateConfidenceScore(0, 30, 1, null, 50, bigSample);
+    const r100 = calculateConfidenceScore(0, 30, 1, null, 50, { ...bigSample, dataSource: "raio100" });
+    const r300 = calculateConfidenceScore(0, 30, 1, null, 50, { ...bigSample, dataSource: "raio300" });
+    const bairro = calculateConfidenceScore(0, 30, 1, null, 50, { ...bigSample, dataSource: "bairro" });
+    expect(rua - r100).toBe(5);
+    expect(rua - r300).toBe(10);
+    expect(rua - bairro).toBe(15);
+  });
+});
+
 describe("generateRecommendation", () => {
   test("amostra insuficiente vem antes de qualquer outra regra que não bloqueie", () => {
     const r = generateRecommendation("ok", 1, 20, 90, null, 1_000_000, "SEM_DADOS", { ...bigSample, escrituras: 2 });
