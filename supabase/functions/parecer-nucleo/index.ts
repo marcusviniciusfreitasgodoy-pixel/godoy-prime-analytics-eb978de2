@@ -74,7 +74,7 @@ function weightedItbiStats(
   }
 
   const stats = calculateITBIData(clean, {
-    method: "iqr",
+    method: "mad", // mesmo padrão do motor interno (calibrado em 2026-09-02)
     meta: {
       data_source: "logradouro",
       bairros_incluidos: [],
@@ -263,7 +263,7 @@ Deno.serve(async (req) => {
         tipologia_filtro: input.tipologia ?? null,
         ...stats,
         metodo:
-          "Mediana/média ponderadas por total_transacoes com corte IQR 1.5× (implementação compartilhada com o motor); mín/máx = P10/P90",
+          "Mediana/média ponderadas por total_transacoes com corte MAD em log (2,5×/3×, implementação compartilhada com o motor); mín/máx = P10/P90; q1/q3/iqr informativos",
         fonte:
           "Prefeitura RJ — ITBI (base agregada mensal por logradouro/tipologia)",
       };

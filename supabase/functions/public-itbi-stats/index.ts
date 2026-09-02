@@ -115,7 +115,7 @@ serve(async (req) => {
     // Handle stats request.
     // Mesma amostra e mesma estatística do motor interno (supabase/functions/_shared):
     // 5 anos fechados (ano corrente só quando a amostra é fina), piso e teto por bairro,
-    // ordenação explícita e limite de linhas, corte IQR e faixa P10 / mediana / P90.
+    // ordenação explícita e limite de linhas, corte MAD em log e faixa P10 / mediana / P90.
     const window = buildMarketWindow();
     const bairroNormalizado = bairro.toUpperCase().trim();
     const { piso, teto } = getOutlierLimits(bairroNormalizado);
@@ -187,7 +187,7 @@ serve(async (req) => {
     const deflation = deflateRows(selection.rows, priceIndex);
 
     const stats = calculateITBIData(deflation.rows, {
-      method: "iqr",
+      method: "mad", // mesmo padrão do motor interno (calibrado em 2026-09-02)
       meta: {
         data_source: logradouro ? "logradouro" : "bairro",
         bairros_incluidos: collectBairros(selection.rows),
