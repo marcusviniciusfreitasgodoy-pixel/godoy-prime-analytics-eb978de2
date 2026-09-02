@@ -239,7 +239,6 @@ export function Step5Recommendation({ result, state, combined, onReset, existing
 
           finalValuationId = existingValuationId;
         } else {
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
           const { data: insertedValuation, error: insertError } = await supabase
             .from("valuations")
             .insert(payload as any)
