@@ -14,7 +14,19 @@ let cache: { at: number; data: PriceIndexPoint[] | null } | null = null;
 export const fetchPriceIndex = async (): Promise<PriceIndexPoint[] | null> => {
   if (cache && Date.now() - cache.at < TTL_MS) return cache.data;
 
-  const { data, error } = await supabase
+  // A materialized view ainda não consta nos tipos gerados; acesso via cast.
+  const client = supabase as unknown as {
+    from: (t: string) => {
+      select: (c: string) => {
+        order: (c: string, o: { ascending: boolean }) => Promise<{
+          data: Array<Record<string, unknown>> | null;
+          error: { message: string } | null;
+        }>;
+      };
+    };
+  };
+
+  const { data, error } = await client
     .from("itbi_price_index")
     .select("trimestre, ln_mediana, escrituras")
     .order("trimestre", { ascending: true });
@@ -25,7 +37,11 @@ export const fetchPriceIndex = async (): Promise<PriceIndexPoint[] | null> => {
   } else {
     points = (data || [])
       .filter((r) => r.trimestre && typeof r.ln_mediana === "number")
-      .map((r) => ({ trimestre: r.trimestre as string, ln_mediana: Number(r.ln_mediana), escrituras: Number(r.escrituras) || 0 }));
+      .map((r) => ({
+        trimestre: String(r.trimestre),
+        ln_mediana: Number(r.ln_mediana),
+        escrituras: Number(r.escrituras) || 0,
+      }));
   }
 
   cache = { at: Date.now(), data: points };
