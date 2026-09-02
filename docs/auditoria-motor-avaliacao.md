@@ -378,7 +378,7 @@ Spread = (P90 − P10) / mediana do R$/m² por rua, 5 anos. Decisão: `SPREAD_NO
 
 ### 10.9 Pendentes desta rodada
 
-- Consulta 7.6 (gap de anúncios nas avaliações salvas): não executada. `ANUNCIO_GAP_ALERT_PCT` segue em 15.
+- Consulta 7.6 (gap de anúncios nas avaliações salvas): executada em 2026-09-02, apenas **4 avaliações** com gap registrado (P25 −35,0%, mediana −19,6%, P75 +5,6%). Amostra insuficiente para calibrar; `ANUNCIO_GAP_ALERT_PCT` segue em 15 até haver pelo menos 30 avaliações com 3 ou mais anúncios. Observação: a mediana negativa indica que, nos poucos casos registrados, os anúncios estavam **abaixo** do ITBI, o oposto da premissa de "anúncio inflado"; vale acompanhar quando a amostra crescer.
 - CSVs de `valuation_characteristics` e `valuation_documentation_factors` para a migration de seed.
 - Correção de `useUserActivityStats` (item 10.8).
 - Aviso do linter do Supabase "Materialized View in API" para `itbi_price_index`: aceito. A view expõe apenas medianas trimestrais da cidade inteira, sem dado individual, e precisa ser legível pelo app autenticado.
