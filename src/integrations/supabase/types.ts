@@ -3114,6 +3114,7 @@ export type Database = {
           id: string
           itbi_max_m2: number
           itbi_med_m2: number
+          itbi_metadata: Json | null
           itbi_min_m2: number
           itbi_transaction_count: number | null
           logradouro: string
@@ -3180,6 +3181,7 @@ export type Database = {
           id?: string
           itbi_max_m2: number
           itbi_med_m2: number
+          itbi_metadata?: Json | null
           itbi_min_m2: number
           itbi_transaction_count?: number | null
           logradouro: string
@@ -3246,6 +3248,7 @@ export type Database = {
           id?: string
           itbi_max_m2?: number
           itbi_med_m2?: number
+          itbi_metadata?: Json | null
           itbi_min_m2?: number
           itbi_transaction_count?: number | null
           logradouro?: string
