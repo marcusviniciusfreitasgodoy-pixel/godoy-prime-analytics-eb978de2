@@ -10,7 +10,12 @@ import {
   type MarketRow,
   type PriceIndexPoint,
 } from "../_shared/itbiMarketStats.ts";
-import { getOutlierLimits } from "../_shared/outlierLimits.ts";
+import {
+  DEFAULT_OUTLIER_MAX,
+  DEFAULT_OUTLIER_MIN,
+  getOutlierLimits,
+  getStreetOutlierLimits,
+} from "../_shared/outlierLimits.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -114,36 +119,43 @@ serve(async (req) => {
 
     // Handle stats request.
     // Mesma amostra e mesma estatística do motor interno (supabase/functions/_shared):
-    // 5 anos fechados (ano corrente só quando a amostra é fina), piso e teto por bairro,
-    // ordenação explícita e limite de linhas, corte MAD em log e faixa P10 / mediana / P90.
+    // 5 anos fechados (ano corrente só quando a amostra é fina), ordenação
+    // explícita e limite de linhas, corte MAD em log e faixa P10 / mediana / P90.
+    // Piso e teto: por bairro × tipologia; com logradouro informado, calibrados
+    // pela própria amostra da rua quando ela tem escrituras suficientes.
     const window = buildMarketWindow();
     const bairroNormalizado = bairro.toUpperCase().trim();
     const tipologiaFiltro = tipologia && typeof tipologia === 'string' && tipologia !== "Todos" ? tipologia : null;
-    const { piso, teto } = getOutlierLimits(bairroNormalizado, tipologiaFiltro);
+    const limitesBairro = getOutlierLimits(bairroNormalizado, tipologiaFiltro);
+    const logradouroFiltro =
+      logradouro && typeof logradouro === 'string' && logradouro.trim().length > 0 && logradouro.length <= 200
+        ? logradouro.trim()
+        : null;
 
-    let statsQuery = supabase
-      .from("itbi_transactions")
-      .select("valor_m2, valor_transacao, total_transacoes, data_transacao, bairro, tipologia")
-      .eq("bairro", bairroNormalizado)
-      .eq("uso", "Residencial")
-      .gte("percentual_transferido", 90)
-      .not("valor_m2", "is", null)
-      .gte("valor_m2", piso)
-      .lte("valor_m2", teto)
-      .gte("data_transacao", window.start)
-      .lte("data_transacao", window.end)
-      .order("data_transacao", { ascending: false })
-      .order("logradouro", { ascending: true })
-      .order("tipologia", { ascending: true })
-      .limit(MAX_ROWS);
+    const baseQuery = () => {
+      let q = supabase
+        .from("itbi_transactions")
+        .select("valor_m2, valor_transacao, total_transacoes, data_transacao, bairro, tipologia")
+        .eq("bairro", bairroNormalizado)
+        .eq("uso", "Residencial")
+        .gte("percentual_transferido", 90)
+        .not("valor_m2", "is", null)
+        .gte("data_transacao", window.start)
+        .lte("data_transacao", window.end)
+        .order("data_transacao", { ascending: false })
+        .order("logradouro", { ascending: true })
+        .order("tipologia", { ascending: true })
+        .limit(MAX_ROWS);
+      if (logradouroFiltro) q = q.ilike("logradouro", `%${logradouroFiltro}%`);
+      if (tipologiaFiltro) q = q.ilike("tipologia", `%${tipologiaFiltro}%`);
+      return q;
+    };
 
-    if (logradouro && typeof logradouro === 'string' && logradouro.length <= 200) {
-      statsQuery = statsQuery.ilike("logradouro", `%${logradouro.trim()}%`);
-    }
-
-    if (tipologiaFiltro) {
-      statsQuery = statsQuery.ilike("tipologia", `%${tipologiaFiltro}%`);
-    }
+    // Sem logradouro: corte direto no banco pelos limites do bairro.
+    // Com logradouro: busca na faixa ampla e recorta com os limites da rua.
+    const statsQuery = logradouroFiltro
+      ? baseQuery().gte("valor_m2", DEFAULT_OUTLIER_MIN).lte("valor_m2", DEFAULT_OUTLIER_MAX)
+      : baseQuery().gte("valor_m2", limitesBairro.piso).lte("valor_m2", limitesBairro.teto);
 
     const { data, error } = await statsQuery;
 
@@ -155,7 +167,20 @@ serve(async (req) => {
       );
     }
 
-    const rows = (data || []) as MarketRow[];
+    const rowsBrutas = (data || []) as MarketRow[];
+    const limites = logradouroFiltro
+      ? getStreetOutlierLimits(rowsBrutas, limitesBairro)
+      : { ...limitesBairro, escopo: "bairro" as const, escrituras: 0 };
+    const piso = limites.piso;
+    const teto = limites.teto;
+
+    const rows = logradouroFiltro
+      ? rowsBrutas.filter((r) => {
+          const v = Number(r.valor_m2);
+          return Number.isFinite(v) && v >= piso && v <= teto;
+        })
+      : rowsBrutas;
+
     if (rows.length === 0) {
       return new Response(
         JSON.stringify({
@@ -198,7 +223,10 @@ serve(async (req) => {
         tipologia_fallback: false,
         piso_m2: piso,
         teto_m2: teto,
-        truncado: rows.length >= MAX_ROWS,
+        limites_escopo: limites.escopo,
+        limites_bairro: { piso: limitesBairro.piso, teto: limitesBairro.teto },
+        truncado: rowsBrutas.length >= MAX_ROWS,
+
         deflacionado: deflation.aplicado,
         trimestre_referencia: deflation.trimestreReferencia,
       },
