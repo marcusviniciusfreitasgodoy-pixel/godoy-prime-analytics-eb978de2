@@ -10,7 +10,12 @@ import {
   type MarketRow,
   type PriceIndexPoint,
 } from "../_shared/itbiMarketStats.ts";
-import { getOutlierLimits } from "../_shared/outlierLimits.ts";
+import {
+  DEFAULT_OUTLIER_MAX,
+  DEFAULT_OUTLIER_MIN,
+  getOutlierLimits,
+  getStreetOutlierLimits,
+} from "../_shared/outlierLimits.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
