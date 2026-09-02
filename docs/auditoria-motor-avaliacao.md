@@ -339,26 +339,46 @@ Todos os demais bairros: zero. Leitura: o defeito era real, mas a magnitude é p
 
 Nenhum par bairro × tipologia com mais de 10% de corte; máximo 8,3% (Copacabana). Dentro do alvo da seção 5. Decisão: **k = 2,5 (inferior) e 3,0 (superior) confirmados**. Observação: Copacabana corta mais nas duas pontas porque mistura orla e miolo na mesma tipologia; um refinamento futuro é calibrar por microbairro.
 
-### 10.4 Piso e teto por bairro × tipologia (7.4, 78 linhas; 10 recebidas)
+### 10.4 Piso e teto por bairro × tipologia (7.4, 78 pares) — APLICADO
 
-| bairro | tipologia | P1 | P99 | escrituras |
-|---|---|---|---|---|
-| Barra da Tijuca | Apartamento | 6.086 | 17.688 | 9.881 |
-| Barra da Tijuca | Casa | 4.728 | 10.897 | 294 |
-| Botafogo | Apartamento | 6.909 | 18.345 | 4.178 |
-| Barra Olímpica | Apartamento | 5.708 | 9.535 | 411 |
-| Andaraí | Apartamento | 2.471 | 6.867 | 825 |
-| Cachambi | Apartamento | 2.473 | 6.746 | 1.754 |
+Tabela completa em `docs/calibracao/bloco74-piso-teto-2026-09-02.csv`. Os limites hardcoded foram substituídos por `piso = P1 × 0,85` e `teto = P99 × 1,15` para cada par bairro × tipologia com 100 ou mais escrituras (`supabase/functions/_shared/outlierLimits.ts`, gerado a partir do CSV). Regras de fallback: tipologia sem calibração no bairro usa a faixa mais larga do bairro; bairro sem calibração usa 1.000 e 60.000 e marca `calibrado = false`.
 
-Leitura: os tetos hardcoded estão cerca de 2× acima do P99 real (Barra 40.000 contra 17.688; Botafogo 40.000 contra 18.345). Como o corte fino é feito pelo MAD, o teto largo não distorce o resultado, mas a tabela deve migrar para P1/P99 por bairro × tipologia assim que as 78 linhas completas estiverem disponíveis (pendente: o CSV não foi entregue).
+| bairro | tipologia | P1 | P99 | piso aplicado | teto aplicado | teto antigo |
+|---|---|---|---|---|---|---|
+| Barra da Tijuca | Apartamento | 6.086 | 17.688 | 5.173 | 20.341 | 40.000 |
+| Barra da Tijuca | Casa | 4.728 | 10.897 | 4.019 | 12.532 | 40.000 |
+| Leblon | Apartamento | 12.793 | 45.590 | 10.874 | 52.429 | 80.000 |
+| Ipanema | Apartamento | 8.258 | 41.333 | 7.019 | 47.533 | 70.000 |
+| Copacabana | Apartamento | 5.573 | 17.183 | 4.737 | 19.760 | 40.000 |
+| Tijuca | Apartamento | 2.979 | 9.499 | 2.532 | 10.924 | 30.000 |
+
+Leitura: casas e apartamentos passam a ter limites próprios (na Barra, o teto de casa é 40% menor que o de apartamento). Bairros da Zona Norte e Oeste, que antes caíam no padrão de 60.000, ganham limites reais (Campo Grande apartamento 4.757 × 1,15 = 5.471).
 
 ### 10.5 Reprodutibilidade (7.5)
 
 Catorze bairros tinham mais de 500 linhas elegíveis (Barra 2.814, Recreio 2.679, Copacabana 2.424, Tijuca 1.954, entre outros). Toda avaliação com fallback para bairro nesses casos era não determinística antes da Fase 1. Com ordenação explícita e limite de 5.000, nenhum bairro trunca: o maior tem 2.814 linhas.
 
-### 10.6 Pendentes desta rodada
+### 10.6 Spread real por rua (7.5) — APLICADO
 
-- CSV completo de 7.3 (106 linhas) e 7.4 (78 linhas), para gerar a tabela de piso/teto por bairro × tipologia.
-- Consultas 7.5 a 7.8 de `docs/calibracao-consultas.sql` (spread real por rua, gap de anúncios nas avaliações salvas, conferência do índice, seeds e RPCs): o arquivo só entrou na `main` depois desta rodada.
+| ruas com amostra | spread P25 | spread mediano | spread P75 | spread P90 |
+|---|---|---|---|---|
+| 1.106 | 15,9% | 22,4% | 30,9% | 40,5% |
+
+Spread = (P90 − P10) / mediana do R$/m² por rua, 5 anos. Decisão: `SPREAD_NORMAL_PCT = 30` (sem penalidade até o P75 das ruas), `SPREAD_WIDE_PCT = 40` (P90; acima disso a Regra 3 pode pedir avaliação formal quando a confiança é baixa), `SPREAD_VERY_WIDE_PCT = 55`. No PDF, "Precisão Alta" até 22%, "Boa" até 30%, "Moderada" até 40%. Antes: 35 / 50 / 65, valores chutados.
+
+### 10.7 Índice de preços (7.7) — CONFERIDO
+
+26 trimestres, de 2020-T1 a 2026-T2, todos com mais de 2.300 escrituras. Mediana da cidade sobe de R$ 5.521/m² (2020-T1) para R$ 7.357/m² (2026-T2), cerca de 33% em seis anos, com queda em 2022-T3 e aceleração a partir de 2024-T4. A correção temporal está ativa (`deflacionado: true`, referência 2026-T2). Uma linha de 2021 entra na amostra de hoje multiplicada por aproximadamente 1,29.
+
+### 10.8 Seeds e RPCs (7.8) — PARCIAL
+
+- `itbi_transacoes_raio`: definição exportada e versionada em `supabase/migrations/20260902160000_itbi_transacoes_raio.sql`.
+- `get_user_activity_summary`: **não existe no banco**. O hook `useUserActivityStats` a chama e cai no fallback pela view `view_user_activity_summary`, usando a chave publicável sem o token do usuário. A tela funciona só se a view for legível sem sessão. Remover a chamada à RPC inexistente e usar o cliente autenticado na view é uma correção pequena, pendente.
+- Tabelas `valuation_characteristics` (49 linhas) e `valuation_documentation_factors` (7 linhas): CSVs não recebidos; seed continua pendente.
+
+### 10.9 Pendentes desta rodada
+
+- Consulta 7.6 (gap de anúncios nas avaliações salvas): não executada. `ANUNCIO_GAP_ALERT_PCT` segue em 15.
+- CSVs de `valuation_characteristics` e `valuation_documentation_factors` para a migration de seed.
+- Correção de `useUserActivityStats` (item 10.8).
 - Aviso do linter do Supabase "Materialized View in API" para `itbi_price_index`: aceito. A view expõe apenas medianas trimestrais da cidade inteira, sem dado individual, e precisa ser legível pelo app autenticado.
-

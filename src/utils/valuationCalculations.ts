@@ -325,10 +325,13 @@ export const SAMPLE_SCORE_CAPS: ReadonlyArray<{ maxEscrituras: number; cap: numb
 ];
 export const BAIRRO_FALLBACK_PENALTY = 15;
 export const TIPOLOGIA_FALLBACK_PENALTY = 5;
-// Limiares de spread (faixa P10–P90 sem compressão). Calibrar com a base (auditoria §7).
-export const SPREAD_NORMAL_PCT = 35;
-export const SPREAD_WIDE_PCT = 50;
-export const SPREAD_VERY_WIDE_PCT = 65;
+// Limiares de spread (faixa P10–P90 sem compressão), calibrados com a base em
+// 2026-09-02 (docs/calibracao/bloco75-spread-2026-09-02.csv): entre 1.106 ruas com
+// amostra, o spread mediano é 22,4%, o P75 é 30,9% e o P90 é 40,5%.
+// Normal = até o P75 das ruas; largo = até o P90; muito largo = além disso.
+export const SPREAD_NORMAL_PCT = 30;
+export const SPREAD_WIDE_PCT = 40;
+export const SPREAD_VERY_WIDE_PCT = 55;
 
 // Calcula score de confiança (0-100) com foco na qualidade dos dados de entrada.
 // A confiança mede: tamanho e origem da amostra, dispersão do mercado, documentação,

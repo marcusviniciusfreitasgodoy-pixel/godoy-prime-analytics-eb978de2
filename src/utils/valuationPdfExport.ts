@@ -410,10 +410,11 @@ function createValuationPDF(
                                                      result.confidence_level === 'yellow_medium' ? [234, 88, 12] : [220, 38, 38];
   
   // Determine quality indicators for each metric
-  // Faixa P10–P90 sem compressão: limiares alinhados a valuationCalculations (SPREAD_*).
-  const spreadQuality = result.spread_percentage <= 35 ? 'excellent' : 
-                        result.spread_percentage <= 50 ? 'good' : 
-                        result.spread_percentage <= 65 ? 'moderate' : 'poor';
+  // Faixa P10–P90 sem compressão, calibrada com a base: spread mediano entre ruas = 22%,
+  // P75 = 31%, P90 = 40% (docs/calibracao/bloco75-spread-2026-09-02.csv).
+  const spreadQuality = result.spread_percentage <= 22 ? 'excellent' : 
+                        result.spread_percentage <= 30 ? 'good' : 
+                        result.spread_percentage <= 40 ? 'moderate' : 'poor';
   
   const scoreQuality = result.confidence_score >= 80 ? 'excellent' : 
                        result.confidence_score >= 60 ? 'good' : 
