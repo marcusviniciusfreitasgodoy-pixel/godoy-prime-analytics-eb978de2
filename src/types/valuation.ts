@@ -1,11 +1,37 @@
 // Types for Ferramenta de Avaliação - defined inline to avoid circular dependencies
 
+/**
+ * Metadados que tornam o cálculo ITBI reprodutível (persistidos em
+ * valuations.itbi_metadata). Ver docs/auditoria-motor-avaliacao.md, Fase 1.
+ */
+export interface ITBIMarketMeta {
+  engine_version: number;
+  data_source: "logradouro" | "bairro";
+  bairros_incluidos: string[];
+  janela_inicio: string;
+  janela_fim: string;
+  ano_corrente_incluido: boolean;
+  tipologia_filtro: string | null;
+  /** true quando a tipologia do imóvel era conhecida mas a amostra exigiu relaxar o filtro */
+  tipologia_fallback: boolean;
+  outlier_method: "iqr" | "percentile" | "none";
+  piso_m2: number;
+  teto_m2: number;
+  linhas_agregadas: number;
+  linhas_descartadas: number;
+  escrituras_validas: number;
+  /** true quando a consulta bateu no limite de linhas e a amostra é parcial */
+  truncado: boolean;
+  calculado_em: string;
+}
+
 export interface ITBIData {
   min_m2: number;
   med_m2: number;
   max_m2: number;
   transaction_count: number;
   avg_valor_transacao?: number; // Preço médio das transações na região
+  meta?: ITBIMarketMeta;
 }
 
 export interface AnuncioFonte {

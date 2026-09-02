@@ -42,7 +42,7 @@ bun run dev
 
 ## Continuous integration
 
-Every push to `main` and every pull request runs `.github/workflows/ci.yml`, which installs dependencies with the frozen lockfile, runs `bun run typecheck`, `bun run lint` and `bun run build`. Run the same three commands locally before pushing.
+Every push to `main` and every pull request runs `.github/workflows/ci.yml`, which installs dependencies with the frozen lockfile, runs `bun run typecheck`, `bun run lint`, `bun run test` and `bun run build`. Run the same four commands locally before pushing.
 
 **Edit a file directly in GitHub**
 

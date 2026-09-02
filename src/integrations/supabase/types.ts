@@ -3115,6 +3115,7 @@ export type Database = {
           itbi_max_m2: number
           itbi_med_m2: number
           itbi_min_m2: number
+          itbi_metadata: Json | null
           itbi_transaction_count: number | null
           logradouro: string
           nome_condominio: string | null
@@ -3181,6 +3182,7 @@ export type Database = {
           itbi_max_m2: number
           itbi_med_m2: number
           itbi_min_m2: number
+          itbi_metadata?: Json | null
           itbi_transaction_count?: number | null
           logradouro: string
           nome_condominio?: string | null
@@ -3247,6 +3249,7 @@ export type Database = {
           itbi_max_m2?: number
           itbi_med_m2?: number
           itbi_min_m2?: number
+          itbi_metadata?: Json | null
           itbi_transaction_count?: number | null
           logradouro?: string
           nome_condominio?: string | null

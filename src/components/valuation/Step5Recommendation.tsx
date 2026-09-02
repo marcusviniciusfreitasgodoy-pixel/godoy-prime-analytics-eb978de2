@@ -259,6 +259,18 @@ export function Step5Recommendation({ result, state, combined, onReset, existing
           return;
         }
 
+        // Rastreabilidade do motor (Fase 1 da auditoria). Gravado em chamada separada
+        // para que uma migration ainda não aplicada não impeça o salvamento da avaliação.
+        if (state.itbiData?.meta) {
+          const { error: metaError } = await supabase
+            .from("valuations")
+            .update({ itbi_metadata: JSON.parse(JSON.stringify(state.itbiData.meta)) })
+            .eq("id", finalValuationId);
+          if (metaError) {
+            console.warn("Não foi possível gravar itbi_metadata (migration aplicada?):", metaError.message);
+          }
+        }
+
         // Substitui as respostas (garante consistência com as 26 características)
         const responsesData = state.responses.map((r) => ({
           valuation_id: finalValuationId,
