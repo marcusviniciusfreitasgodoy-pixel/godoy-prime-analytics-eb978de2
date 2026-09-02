@@ -5,7 +5,10 @@ import {
   collectBairros,
   computeIQRBounds,
   computeMADBounds,
+  deflateRows,
   mapTipoImovelToTipologia,
+  MIN_ESCRITURAS_INDEX_QUARTER,
+  quarterOf,
   selectWindowRows,
   toWeightedItems,
   weightedMedian,
@@ -215,5 +218,51 @@ describe("collectBairros", () => {
   test("lista bairros distintos ordenados", () => {
     const rows = [row(1, 1, "2024-01-15", { bairro: "recreio dos bandeirantes" }), row(1, 1, "2024-01-15"), row(1, 1, "2024-01-15", { bairro: null })];
     expect(collectBairros(rows)).toEqual(["BARRA DA TIJUCA", "RECREIO DOS BANDEIRANTES"]);
+  });
+});
+
+describe("deflateRows (índice de preços)", () => {
+  const index = [
+    { trimestre: "2024-01-01", ln_mediana: Math.log(10000), escrituras: 100 },
+    { trimestre: "2024-04-01", ln_mediana: Math.log(11000), escrituras: 100 },
+    { trimestre: "2025-01-01", ln_mediana: Math.log(12000), escrituras: 100 },
+    { trimestre: "2025-04-01", ln_mediana: Math.log(13000), escrituras: MIN_ESCRITURAS_INDEX_QUARTER - 1 }, // fino: ignorado
+  ];
+
+  test("quarterOf devolve o primeiro dia do trimestre", () => {
+    expect(quarterOf("2024-05-15")).toBe("2024-04-01");
+    expect(quarterOf("2024-12-15")).toBe("2024-10-01");
+  });
+
+  test("corrige cada linha para o trimestre de referência mais recente com amostra suficiente", () => {
+    const rows = [row(10000, 2, "2024-02-15"), row(11000, 3, "2024-05-15"), row(12000, 1, "2025-02-15")];
+    const d = deflateRows(rows, index, new Date("2025-09-02T00:00:00Z"));
+    expect(d.aplicado).toBe(true);
+    expect(d.trimestreReferencia).toBe("2025-01-01");
+    // todas as linhas passam a valer 12.000 no trimestre de referência
+    d.rows.forEach((r) => expect(Math.round(Number(r.valor_m2))).toBe(12000));
+    expect(d.linhasCorrigidas).toBe(2);
+  });
+
+  test("linhas de trimestres sem índice ficam intactas", () => {
+    const d = deflateRows([row(9000, 1, "2020-02-15")], index, new Date("2025-09-02T00:00:00Z"));
+    expect(d.aplicado).toBe(true);
+    expect(Number(d.rows[0].valor_m2)).toBe(9000);
+    expect(d.linhasCorrigidas).toBe(0);
+  });
+
+  test("sem índice, não corrige e registra", () => {
+    const d = deflateRows([row(9000)], null);
+    expect(d.aplicado).toBe(false);
+    expect(d.trimestreReferencia).toBeNull();
+  });
+
+  test("fator limitado a [0,5; 2]", () => {
+    const extremo = [
+      { trimestre: "2024-01-01", ln_mediana: Math.log(1000), escrituras: 100 },
+      { trimestre: "2025-01-01", ln_mediana: Math.log(10000), escrituras: 100 },
+    ];
+    const d = deflateRows([row(1000, 1, "2024-02-15")], extremo, new Date("2025-09-02T00:00:00Z"));
+    expect(Number(d.rows[0].valor_m2)).toBe(2000);
   });
 });

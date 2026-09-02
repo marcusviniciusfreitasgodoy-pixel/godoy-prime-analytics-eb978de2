@@ -5,8 +5,10 @@ import {
   buildMarketWindow,
   calculateITBIData,
   collectBairros,
+  deflateRows,
   selectWindowRows,
   type MarketRow,
+  type PriceIndexPoint,
 } from "../_shared/itbiMarketStats.ts";
 import { getOutlierLimits } from "../_shared/outlierLimits.ts";
 
@@ -166,7 +168,25 @@ serve(async (req) => {
     }
 
     const selection = selectWindowRows(rows, window);
-    const stats = calculateITBIData(selection.rows, {
+
+    // Índice de preços (best effort): sem a view, calcula sem correção temporal.
+    let priceIndex: PriceIndexPoint[] | null = null;
+    const { data: indexRows, error: indexError } = await supabase
+      .from("itbi_price_index")
+      .select("trimestre, ln_mediana, escrituras")
+      .order("trimestre", { ascending: true });
+    if (indexError) {
+      console.warn("[public-itbi-stats] índice indisponível:", indexError.message);
+    } else {
+      priceIndex = (indexRows || []).map((r: any) => ({
+        trimestre: String(r.trimestre),
+        ln_mediana: Number(r.ln_mediana),
+        escrituras: Number(r.escrituras) || 0,
+      }));
+    }
+    const deflation = deflateRows(selection.rows, priceIndex);
+
+    const stats = calculateITBIData(deflation.rows, {
       method: "iqr",
       meta: {
         data_source: logradouro ? "logradouro" : "bairro",
@@ -179,6 +199,8 @@ serve(async (req) => {
         piso_m2: piso,
         teto_m2: teto,
         truncado: rows.length >= MAX_ROWS,
+        deflacionado: deflation.aplicado,
+        trimestre_referencia: deflation.trimestreReferencia,
       },
     });
 
