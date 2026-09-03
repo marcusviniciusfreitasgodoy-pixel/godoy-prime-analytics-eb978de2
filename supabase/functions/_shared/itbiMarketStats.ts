@@ -30,7 +30,7 @@ export const MAD_K_INF = 2.5;
 export const MAD_K_SUP = 3.0;
 /** Percentis reportados como mínimo e máximo da faixa. */
 export const RANGE_LOW_P = 0.1;
-export const RANGE_HIGH_P = 0.9;
+export const RANGE_HIGH_P = 0.95;
 
 export type OutlierMethod = "iqr" | "percentile" | "mad";
 
@@ -126,7 +126,7 @@ export interface ITBIStats {
   min_m2: number;
   /** Mediana ponderada dos sobreviventes (R$/m²) */
   med_m2: number;
-  /** P90 ponderado dos sobreviventes (R$/m²) */
+  /** P95 ponderado dos sobreviventes (R$/m²) */
   max_m2: number;
   /** Média ponderada dos sobreviventes (R$/m²); para exibição, não para referência */
   media_m2: number;
@@ -308,9 +308,9 @@ export interface CalculateOptions {
 }
 
 /**
- * Calcula P10, mediana e P90 de R$/m² ponderados por `total_transacoes`
+ * Calcula P10, mediana e P95 de R$/m² ponderados por `total_transacoes`
  * sobre os sobreviventes ao corte configurado, e devolve os metadados que
- * tornam o cálculo reprodutível. A faixa é sempre P10/P90, independentemente
+ * tornam o cálculo reprodutível. A faixa é sempre P10/P95, independentemente
  * do método: o método só decide o que é descartado antes.
  */
 export const calculateITBIData = (rows: MarketRow[], options: CalculateOptions): ITBIStats | null => {

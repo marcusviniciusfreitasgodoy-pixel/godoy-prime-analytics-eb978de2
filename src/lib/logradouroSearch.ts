@@ -55,6 +55,7 @@ const TITLE_VARIANT_GROUPS: string[][] = [
   ["VEREADOR", "VER"],
   ["MINISTRO", "MIN"],
   ["DESEMBARGADOR", "DES"],
+  ["DESENHISTA", "DESEN"],
   ["EMBAIXADOR", "EMBAIX", "EMB"],
   ["ENGENHEIRO", "ENG"],
   ["MARQUES", "MARQ"],
