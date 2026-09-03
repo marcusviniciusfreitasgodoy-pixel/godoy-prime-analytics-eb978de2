@@ -1,0 +1,5 @@
+bairro,tipologia,janela,piso_p1,mediana,teto_p995,escrituras,piso_aplicado,teto_aplicado
+CENTRO,Apartamento,3 anos,3824,5887,11687,1305,3250,13440
+FLAMENGO,Apartamento,3 anos,7525,9650,20480,2052,6396,23552
+SANTO CRISTO,Apartamento,3 anos,4700,7706,10306,581,3995,11852
+GLÓRIA,Apartamento,5 anos (3 anos devolveu vazio: filtro sem acento),5744,7747,17600,574,4882,20240

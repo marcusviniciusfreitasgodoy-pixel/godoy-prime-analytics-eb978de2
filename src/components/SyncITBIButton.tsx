@@ -75,7 +75,9 @@ interface MonthStatus {
 
 export const SyncITBIButton = () => {
   const [isLoading, setIsLoading] = useState(false);
-  const [clearExisting, setClearExisting] = useState(true);
+  // Desligado por padrão desde 2026-09-03: a recarga do período é a operação que
+  // reescreve a base inteira; precisa ser uma escolha consciente, não o default.
+  const [clearExisting, setClearExisting] = useState(false);
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear().toString());
   const [minMonth, setMinMonth] = useState('1');
   const [maxMonth, setMaxMonth] = useState('12');
