@@ -123,7 +123,7 @@ export default function Microbairros() {
               <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-[#0C2340]">Análise por Microregiões</h1>
             </div>
             <p className="text-sm sm:text-base text-muted-foreground">
-              Comparativo de performance regional em {selectedBairro} (2025)
+              Comparativo de performance regional em {selectedBairro} — últimos 24 meses (valores ponderados por escrituras)
             </p>
           </div>
           <div className="flex items-center gap-2">
