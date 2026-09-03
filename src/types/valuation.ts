@@ -6,7 +6,7 @@ export type { ITBIMarketMeta };
 export interface ITBIData {
   min_m2: number; // P10 ponderado (R$/m²)
   med_m2: number; // mediana ponderada (R$/m²)
-  max_m2: number; // P90 ponderado (R$/m²)
+  max_m2: number; // P95 ponderado (R$/m²)
   media_m2?: number; // média ponderada, só para exibição
   transaction_count: number;
   avg_valor_transacao?: number; // Preço médio das transações na região

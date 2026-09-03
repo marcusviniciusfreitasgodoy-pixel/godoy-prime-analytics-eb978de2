@@ -118,7 +118,7 @@ serve(async (req) => {
     // Handle stats request.
     // Mesma amostra e mesma estatística do motor interno (supabase/functions/_shared):
     // 5 anos fechados (ano corrente só quando a amostra é fina), ordenação
-    // explícita e limite de linhas, corte MAD em log e faixa P10 / mediana / P90.
+    // explícita e limite de linhas, corte MAD em log e faixa P10 / mediana / P95.
     // Piso e teto: por bairro × tipologia; com logradouro informado, calibrados
     // pela própria amostra da rua quando ela tem escrituras suficientes.
     const window = buildMarketWindow();
@@ -230,7 +230,7 @@ serve(async (req) => {
           med_m2: stats.med_m2,                 // MEDIANA ponderada (antes era a média)
           media_ponderada_m2: stats.media_m2,
           mediana_ponderada_m2: stats.med_m2,
-          max_m2: stats.max_m2,                 // P90 ponderado
+          max_m2: stats.max_m2,                 // P95 ponderado
           transaction_count: stats.transaction_count,
           meta: stats.meta,
         }

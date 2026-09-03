@@ -730,7 +730,7 @@ export function Step1Location({ state, updateState, combined, onAutoValidated }:
                 <p className="text-[10px] text-muted-foreground hidden sm:block">RECOMENDADO</p>
               </div>
               <div className="text-center p-2 sm:p-3 bg-background rounded-lg">
-                <p className="text-[10px] sm:text-xs text-muted-foreground mb-0.5 sm:mb-1">P90</p>
+                <p className="text-[10px] sm:text-xs text-muted-foreground mb-0.5 sm:mb-1">P95</p>
                 <p className="font-semibold text-emerald-600 text-xs sm:text-sm">
                   {formatCurrency(state.itbiData.max_m2)}
                 </p>

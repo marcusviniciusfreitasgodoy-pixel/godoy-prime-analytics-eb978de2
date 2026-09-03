@@ -268,7 +268,7 @@ export const calculateTotalAdjustment = (
 };
 
 // Calcula os 3 valores finais.
-// A faixa é a que os dados sustentam: P10 (pessimista), mediana (provável) e P90
+// A faixa é a que os dados sustentam: P10 (pessimista), mediana (provável) e P95
 // (otimista) de R$/m² × área × ajuste × documentação. Sem compressão de spread e
 // sem clamps: a versão anterior limitava o spread a 35% por construção, o que
 // tornava a Regra 3 (avaliação formal) inalcançável (auditoria, achado A1).
@@ -327,7 +327,7 @@ export const SAMPLE_SCORE_CAPS: ReadonlyArray<{ maxEscrituras: number; cap: numb
 ];
 export const BAIRRO_FALLBACK_PENALTY = SOURCE_PENALTY.bairro;
 export const TIPOLOGIA_FALLBACK_PENALTY = 5;
-// Limiares de spread (faixa P10–P90 sem compressão), calibrados com a base em
+// Limiares de spread (faixa P10–P95 sem compressão), calibrados com a base em
 // 2026-09-02 (docs/calibracao/bloco75-spread-2026-09-02.csv): entre 1.106 ruas com
 // amostra, o spread mediano é 22,4%, o P75 é 30,9% e o P90 é 40,5%.
 // Normal = até o P75 das ruas; largo = até o P90; muito largo = além disso.
@@ -359,7 +359,7 @@ export const calculateConfidenceScore = (
     score -= 4;
   }
 
-  // Penalidade 2: Spread da faixa P10–P90
+  // Penalidade 2: Spread da faixa P10–P95
   if (spread > SPREAD_VERY_WIDE_PCT) {
     score -= 18;
   } else if (spread > SPREAD_WIDE_PCT) {

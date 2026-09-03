@@ -291,7 +291,7 @@ export const computeMADBounds = (rows: MarketRow[]): Bounds | null => {
 export const computeBounds = (rows: MarketRow[], method: OutlierMethod): Bounds | null => {
   if (method === "iqr") return computeIQRBounds(rows);
   if (method === "mad") return computeMADBounds(rows);
-  return null; // percentile: sem corte, a faixa já é P10/P90
+  return null; // percentile: sem corte, a faixa já é P10/P95
 };
 
 // ---------------------------------------------------------------------------
