@@ -96,7 +96,7 @@ export function useMicrobairroRanking(bairro: string = 'BARRA DA TIJUCA') {
         .lte('valor_m2', outlierLimit)
         .gte('percentual_transferido', 90)
         .gte('data_transacao', startDate)
-        .limit(10000);
+        .limit(5000);
 
       if (error) throw error;
       
@@ -211,7 +211,7 @@ export function useMicrobairroDetalhado(bairro: string = 'BARRA DA TIJUCA') {
         .lte('valor_m2', outlierLimit)
         .not('logradouro', 'is', null)
         .gte('data_transacao', startDate)
-        .limit(10000);
+        .limit(5000);
 
       if (error) throw error;
 
@@ -328,7 +328,7 @@ export function useKPIStats(bairro: string = 'BARRA DA TIJUCA') {
         .not('valor_m2', 'is', null)
         .lte('valor_m2', outlierLimit)
         .gte('data_transacao', startDate12Months)
-        .limit(10000);
+        .limit(5000);
 
       if (currentError) throw currentError;
 
@@ -341,7 +341,7 @@ export function useKPIStats(bairro: string = 'BARRA DA TIJUCA') {
         .lte('valor_m2', outlierLimit)
         .gte('data_transacao', startDate24Months)
         .lt('data_transacao', startDate12Months)
-        .limit(10000);
+        .limit(5000);
 
       if (previousError) throw previousError;
 
