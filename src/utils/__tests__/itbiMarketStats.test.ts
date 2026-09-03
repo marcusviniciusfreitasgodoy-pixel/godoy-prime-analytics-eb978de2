@@ -33,6 +33,7 @@ import {
   normalizeBairro,
   PISO_MARGIN,
   TETO_MARGIN,
+  SMALL_SAMPLE_WIDTH,
 } from "../../lib/outlierLimits";
 
 const row = (valor_m2: number, total_transacoes = 1, data_transacao = "2024-06-15", extra: Partial<MarketRow> = {}): MarketRow => ({
@@ -249,7 +250,7 @@ describe("calculateITBIData", () => {
   });
 });
 
-describe("outlierLimits (calibração global móvel de 3 anos, 4ª rodada de 2026-09-03)", () => {
+describe("outlierLimits (calibração global móvel de 3 anos, 5ª rodada de 2026-09-03)", () => {
   test("par bairro × tipologia calibrado: P1 e P99.5 com margem", () => {
     const barraApto = getOutlierLimits("BARRA DA TIJUCA", "Apartamento");
     expect(barraApto.calibrado).toBe(true);
@@ -270,6 +271,19 @@ describe("outlierLimits (calibração global móvel de 3 anos, 4ª rodada de 202
   test("bairro sem tipologia informada: menor piso e maior teto entre as tipologias", () => {
     expect(getOutlierMinLimit("BARRA DA TIJUCA")).toBe(Math.round(5366 * PISO_MARGIN));
     expect(getOutlierLimit("BARRA DA TIJUCA")).toBe(Math.round(19402 * TETO_MARGIN));
+  });
+  test("amostra pequena: janela de 5 anos e largura mínima [mediana/2; mediana×2]", () => {
+    // SANTA CRUZ|Apartamento: 85 escrituras, mediana 3.068, P99,5 3.182 (é o máximo observado)
+    const santaCruz = getOutlierLimits("SANTA CRUZ", "Apartamento");
+    expect(santaCruz.teto).toBe(3068 * SMALL_SAMPLE_WIDTH); // 6.136 > 3.182 × 1,15
+    expect(santaCruz.piso).toBe(3068 / SMALL_SAMPLE_WIDTH); // 1.534 < 2.303 × 0,85
+    // GUARATIBA|Casa: mediana 1.862 → mediana/2 = 931 bate no piso global
+    expect(getOutlierLimits("GUARATIBA", "Casa").piso).toBe(DEFAULT_OUTLIER_MIN);
+    // FREGUESIA (ILHA): P1 × 0,85 (1.961) fica abaixo de mediana/2 (2.057) e prevalece
+    expect(getOutlierLimits("FREGUESIA (ILHA)", "Apartamento").piso).toBe(Math.round(2307 * PISO_MARGIN));
+  });
+  test("Barra Olímpica não existe na base (reclassificada como Barra da Tijuca) e cai nos padrões", () => {
+    expect(getOutlierLimits("BARRA OLÍMPICA", "Apartamento").calibrado).toBe(false);
   });
   test("bairro desconhecido usa os padrões e sinaliza não calibrado", () => {
     const r = getOutlierLimits("BAIRRO INEXISTENTE", "Apartamento");
