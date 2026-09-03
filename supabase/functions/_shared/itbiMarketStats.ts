@@ -12,8 +12,24 @@
 
 export const ENGINE_VERSION = 3;
 
-/** Anos fechados considerados na janela padrão (CONTEXT.md §5.1). */
+/** Anos fechados considerados na janela legada por anos fechados. */
 export const WINDOW_YEARS = 5;
+
+/**
+ * Janela móvel em meses: padrão de avaliação e pesquisa de mercado.
+ * A amostra passa a ser sempre "os últimos N meses", com N escolhido pelo
+ * usuário entre as opções abaixo. 12 meses é o padrão do produto.
+ */
+export const WINDOW_MONTHS_OPTIONS = [12, 24, 36, 48, 60] as const;
+export type WindowMonths = (typeof WINDOW_MONTHS_OPTIONS)[number];
+export const DEFAULT_WINDOW_MONTHS: WindowMonths = 12;
+export const MAX_WINDOW_MONTHS: WindowMonths = 60;
+
+/** Normaliza um valor arbitrário para uma das opções válidas de janela. */
+export const normalizeWindowMonths = (value: unknown): WindowMonths => {
+  const n = Number(value);
+  return (WINDOW_MONTHS_OPTIONS as readonly number[]).includes(n) ? (n as WindowMonths) : DEFAULT_WINDOW_MONTHS;
+};
 /** Abaixo destes mínimos nos anos fechados, o ano corrente entra na amostra. */
 export const MIN_ROWS_CLOSED_WINDOW = 30;
 export const MIN_TX_CLOSED_WINDOW = 100;
@@ -118,6 +134,12 @@ export interface ITBIMarketMeta {
   deflacionado?: boolean;
   /** trimestre de referência do índice (YYYY-MM-01) ou null */
   trimestre_referencia?: string | null;
+  /** meses da janela móvel efetivamente usados */
+  janela_meses?: number;
+  /** meses pedidos pelo usuário antes da expansão automática */
+  janela_meses_solicitada?: number;
+  /** true quando a janela foi ampliada por amostra insuficiente */
+  janela_expandida?: boolean;
   calculado_em: string;
 }
 
@@ -138,6 +160,8 @@ export interface ITBIStats {
 }
 
 export interface MarketWindow {
+  /** Tamanho da janela móvel em meses, quando aplicável. */
+  months?: number;
   /** Primeiro dia do primeiro ano fechado da janela (YYYY-MM-DD). */
   start: string;
   /** Último dia do último ano fechado (YYYY-MM-DD). */
@@ -162,6 +186,60 @@ export const buildMarketWindow = (today: Date = new Date()): MarketWindow => {
 };
 
 /**
+ * Janela móvel de N meses terminando hoje. É a janela usada para buscar a
+ * amostra (sempre no máximo de meses) e para recortá-la depois.
+ */
+export const buildRollingWindow = (
+  months: number = DEFAULT_WINDOW_MONTHS,
+  today: Date = new Date()
+): MarketWindow => {
+  const start = new Date(Date.UTC(today.getUTCFullYear(), today.getUTCMonth() - months, today.getUTCDate()));
+  const end = toIsoDate(today);
+  return { months, start: toIsoDate(start), closedEnd: end, end, currentYear: today.getUTCFullYear() };
+};
+
+/**
+ * Recorta as linhas para a janela móvel escolhida. Quando a amostra fica
+ * abaixo do mínimo estatístico, expande automaticamente para a próxima opção
+ * (24 → 36 → 48 → 60) e registra a expansão nos metadados.
+ */
+export const selectRollingWindowRows = (
+  rows: MarketRow[],
+  months: number = DEFAULT_WINDOW_MONTHS,
+  today: Date = new Date()
+): WindowSelection => {
+  const solicitada = normalizeWindowMonths(months);
+  const opcoes = WINDOW_MONTHS_OPTIONS.filter((m) => m >= solicitada);
+  let ultima: WindowSelection | null = null;
+  for (const m of opcoes) {
+    const w = buildRollingWindow(m, today);
+    const subset = rows.filter((r) => r.data_transacao >= w.start && r.data_transacao <= w.end);
+    const selection: WindowSelection = {
+      rows: subset,
+      anoCorrenteIncluido: true,
+      janelaInicio: w.start,
+      janelaFim: w.end,
+      janelaMeses: m,
+      janelaSolicitadaMeses: solicitada,
+      expandidoAutomaticamente: m !== solicitada,
+    };
+    ultima = selection;
+    if (isScopeSufficient(subset)) return selection;
+  }
+  return (
+    ultima ?? {
+      rows: [],
+      anoCorrenteIncluido: true,
+      janelaInicio: buildRollingWindow(solicitada, today).start,
+      janelaFim: toIsoDate(today),
+      janelaMeses: solicitada,
+      janelaSolicitadaMeses: solicitada,
+      expandidoAutomaticamente: false,
+    }
+  );
+};
+
+/**
  * Mapeia o tipo de imóvel escolhido no Step 0 para a tipologia gravada pelo
  * importador (`classificarTipologia` em sync-itbi-prefeitura): a Prefeitura
  * agrega coberturas junto com apartamentos.
@@ -179,6 +257,12 @@ export interface WindowSelection {
   anoCorrenteIncluido: boolean;
   janelaInicio: string;
   janelaFim: string;
+  /** Meses efetivamente usados (após eventual expansão automática). */
+  janelaMeses?: number;
+  /** Meses pedidos pelo usuário. */
+  janelaSolicitadaMeses?: number;
+  /** true quando a janela pedida era fina e o sistema ampliou a amostra. */
+  expandidoAutomaticamente?: boolean;
 }
 
 /**
