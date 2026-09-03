@@ -253,7 +253,7 @@ Registro do que foi corrigido do nosso lado, para que a comparação seja feita 
 | `useStreetComparison` | Comparativo de ruas com média simples | Média ponderada por escrituras |
 | Edge function `public-itbi-stats` | Estatísticas públicas com média simples | `media_ponderada_m2` e `mediana_ponderada_m2`; outlier por MAD; piso/teto calibrados por logradouro com fallback para bairro |
 | `useMicrobairroDetalhado` (página Microregiões) | (a) média simples por rua; (b) valor geral calculado como `(média_apartamento + média_casa) / 2`, dando 50% de peso a amostras de tamanhos muito diferentes | Média ponderada por escrituras em todas as tipologias; valor geral passa a ser a média ponderada de toda a amostra da rua |
-| Página Microregiões (subtítulo) | Exibia "(2025)" enquanto a consulta usava os últimos 24 meses | Subtítulo passa a declarar "últimos 24 meses (valores ponderados por escrituras)" |
+| Página Microregiões (subtítulo e tooltips) | Exibia "(2025)" enquanto a consulta usava os últimos 24 meses; depois a janela passou a 12 meses mas os tooltips ainda diziam 24 | Subtítulo e tooltips passam a declarar a janela real de 12 meses, com valores ponderados por escrituras |
 | Exports (`exportUtils.ts`), `SearchTools.tsx`, `PesquisasMercado.tsx`, `EmbeddedAdvancedSearch.tsx` | Colunas "Transações" / "Qtd Trans." ambíguas | Renomeadas para "Escrituras" / "Escrituras no registro" |
 
 Efeito medido na Barra da Tijuca, últimos 24 meses: a referência de bairro passou de R$ 10.376/m² (média simples) para R$ 11.190/m² (média ponderada) — cerca de 8% de diferença, que se amplia em ruas onde poucas linhas concentram muitas escrituras.
