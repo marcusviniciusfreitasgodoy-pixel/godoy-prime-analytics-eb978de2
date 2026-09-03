@@ -10,7 +10,13 @@
 // escrituras do grupo. Toda estatística abaixo pondera por `total_transacoes`
 // usando quantis ponderados (equivalentes a expandir cada linha pelo peso).
 
-export const ENGINE_VERSION = 3;
+export const ENGINE_VERSION = 4;
+/**
+ * Salvaguarda de bimodalidade: se o corte de outliers removeria mais do que
+ * esta fração das escrituras, a amostra não tem um núcleo único e o corte é
+ * ignorado (bloco 7.3 de 2026-09-03: Santo Cristo, São Conrado, Glória).
+ */
+export const MAX_OUTLIER_CUT_SHARE = 0.15;
 
 /** Anos fechados considerados na janela legada por anos fechados. */
 export const WINDOW_YEARS = 5;
@@ -123,6 +129,8 @@ export interface ITBIMarketMeta {
   /** true quando a tipologia do imóvel era conhecida mas a amostra exigiu relaxar o filtro */
   tipologia_fallback: boolean;
   outlier_method: OutlierMethod | "none";
+  /** Por que o corte configurado não foi aplicado, quando outlier_method sai como "none" com método configurado */
+  outlier_cut_skipped?: "amostra_minima" | "bimodal";
   piso_m2: number;
   teto_m2: number;
   linhas_agregadas: number;
@@ -405,13 +413,25 @@ export const calculateITBIData = (rows: MarketRow[], options: CalculateOptions):
 
   const bounds = computeBounds(valid, options.method);
   let kept = valid;
+  let cutSkipped: ITBIMarketMeta["outlier_cut_skipped"] | undefined;
   if (bounds) {
     const filtered = valid.filter((r) => {
       const v = Number(r.valor_m2);
       return v >= bounds.lower && v <= bounds.upper;
     });
-    // Nunca deixa a amostra colapsar: se o corte remover quase tudo, mantém a amostra inteira.
-    if (sumTransacoes(filtered) >= 3) kept = filtered;
+    const totalEscrituras = sumTransacoes(valid);
+    const escriturasFiltradas = sumTransacoes(filtered);
+    if (escriturasFiltradas < 3) {
+      // Nunca deixa a amostra colapsar: se o corte remover quase tudo, mantém a amostra inteira.
+      cutSkipped = "amostra_minima";
+    } else if (totalEscrituras > 0 && (totalEscrituras - escriturasFiltradas) / totalEscrituras > MAX_OUTLIER_CUT_SHARE) {
+      // Corte grande demais para ser outlier: a amostra tem dois núcleos (bairro
+      // bimodal) e o MAD/IQR eliminaria um deles inteiro. Mantém tudo; a faixa
+      // P10–P95 continua limitando as caudas.
+      cutSkipped = "bimodal";
+    } else {
+      kept = filtered;
+    }
   }
 
   const keptItems = toWeightedItems(kept);
@@ -432,7 +452,8 @@ export const calculateITBIData = (rows: MarketRow[], options: CalculateOptions):
   const meta: ITBIMarketMeta = {
     ...options.meta,
     engine_version: ENGINE_VERSION,
-    outlier_method: bounds || options.method === "percentile" ? options.method : "none",
+    outlier_method: (bounds && !cutSkipped) || options.method === "percentile" ? options.method : "none",
+    ...(cutSkipped ? { outlier_cut_skipped: cutSkipped } : {}),
     linhas_agregadas: valid.length,
     linhas_descartadas: valid.length - kept.length,
     escrituras_validas: sumTransacoes(kept),

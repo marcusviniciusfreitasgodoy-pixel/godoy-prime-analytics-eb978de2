@@ -1,0 +1,195 @@
+// Lista oficial de bairros do Rio como a Prefeitura os grava na camada ITBI
+// (código e nome, com acento). Gerada em 2026-09-03 a partir da API
+// (docs/calibracao/cobertura-api-x-base-2026-09-03.csv). Serve para resolver
+// o nome digitado (com ou sem acento, qualquer caixa) para a grafia gravada
+// em itbi_transactions.bairro, que é comparada por igualdade em várias
+// consultas. Sem dependências: roda em Deno, Bun e no navegador.
+
+export const BAIRROS_RIO: ReadonlyArray<readonly [codigo: string, nome: string]> = [
+  ['070', 'ABOLIÇÃO'],
+  ['111', 'ACARI'],
+  ['034', 'ALTO DA BOA VISTA'],
+  ['107', 'ANCHIETA'],
+  ['037', 'ANDARAÍ'],
+  ['116', 'ANIL'],
+  ['097', 'BANCÁRIOS'],
+  ['141', 'BANGU'],
+  ['128', 'BARRA DA TIJUCA'],
+  ['152', 'BARRA DE GUARATIBA'],
+  ['165', 'BARRA OLÍMPICA'],
+  ['112', 'BARROS FILHO'],
+  ['012', 'BENFICA'],
+  ['089', 'BENTO RIBEIRO'],
+  ['040', 'BONSUCESSO'],
+  ['020', 'BOTAFOGO'],
+  ['045', 'BRÁS DE PINA'],
+  ['065', 'CACHAMBI'],
+  ['093', 'CACUIA'],
+  ['004', 'CAJU'],
+  ['129', 'CAMORIM'],
+  ['078', 'CAMPINHO'],
+  ['136', 'CAMPO DOS AFONSOS'],
+  ['144', 'CAMPO GRANDE'],
+  ['082', 'CASCADURA'],
+  ['018', 'CATETE'],
+  ['006', 'CATUMBI'],
+  ['080', 'CAVALCANTI'],
+  ['005', 'CENTRO'],
+  ['118', 'CIDADE DE DEUS'],
+  ['008', 'CIDADE NOVA'],
+  ['096', 'COCOTÁ'],
+  ['110', 'COELHO NETO'],
+  ['077', 'COLÉGIO'],
+  ['156', 'COMPLEXO DO ALEMÃO'],
+  ['024', 'COPACABANA'],
+  ['046', 'CORDOVIL'],
+  ['019', 'COSME VELHO'],
+  ['147', 'COSMOS'],
+  ['113', 'COSTA BARROS'],
+  ['119', 'CURICICA'],
+  ['053', 'DEL CASTILHO'],
+  ['068', 'ENCANTADO'],
+  ['081', 'ENGENHEIRO LEAL'],
+  ['055', 'ENGENHO DA RAINHA'],
+  ['066', 'ENGENHO DE DENTRO'],
+  ['061', 'ENGENHO NOVO'],
+  ['009', 'ESTÁCIO'],
+  ['015', 'FLAMENGO'],
+  ['098', 'FREGUESIA (ILHA)'],
+  ['120', 'FREGUESIA (JACAREPAGUÁ)'],
+  ['002', 'GAMBOA'],
+  ['117', 'GARDÊNIA AZUL'],
+  ['016', 'GLÓRIA'],
+  ['038', 'GRAJAÚ'],
+  ['106', 'GUADALUPE'],
+  ['151', 'GUARATIBA'],
+  ['029', 'GÁVEA'],
+  ['050', 'HIGIENÓPOLIS'],
+  ['087', 'HONÓRIO GURGEL'],
+  ['021', 'HUMAITÁ'],
+  ['054', 'INHAÚMA'],
+  ['146', 'INHOAÍBA'],
+  ['025', 'IPANEMA'],
+  ['076', 'IRAJÁ'],
+  ['127', 'ITANHANGÁ'],
+  ['163', 'JABOUR'],
+  ['115', 'JACAREPAGUÁ'],
+  ['155', 'JACAREZINHO'],
+  ['051', 'JACARÉ'],
+  ['049', 'JARDIM AMÉRICA'],
+  ['028', 'JARDIM BOTÂNICO'],
+  ['100', 'JARDIM CARIOCA'],
+  ['099', 'JARDIM GUANABARA'],
+  ['137', 'JARDIM SULACAP'],
+  ['126', 'JOÁ'],
+  ['027', 'LAGOA'],
+  ['161', 'LAPA'],
+  ['017', 'LARANJEIRAS'],
+  ['026', 'LEBLON'],
+  ['023', 'LEME'],
+  ['062', 'LINS DE VASCONCELOS'],
+  ['083', 'MADUREIRA'],
+  ['138', 'MAGALHÃES BASTOS'],
+  ['011', 'MANGUEIRA'],
+  ['039', 'MANGUINHOS'],
+  ['035', 'MARACANÃ'],
+  ['090', 'MARECHAL HERMES'],
+  ['052', 'MARIA DA GRAÇA'],
+  ['157', 'MARÉ'],
+  ['102', 'MONERÓ'],
+  ['063', 'MÉIER'],
+  ['042', 'OLARIA'],
+  ['088', 'OSVALDO CRUZ'],
+  ['148', 'PACIÊNCIA'],
+  ['140', 'PADRE MIGUEL'],
+  ['013', 'PAQUETÁ'],
+  ['047', 'PARADA DE LUCAS'],
+  ['108', 'PARQUE ANCHIETA'],
+  ['159', 'PARQUE COLÚMBIA'],
+  ['114', 'PAVUNA'],
+  ['121', 'PECHINCHA'],
+  ['153', 'PEDRA DE GUARATIBA'],
+  ['043', 'PENHA'],
+  ['044', 'PENHA CIRCULAR'],
+  ['069', 'PIEDADE'],
+  ['071', 'PILARES'],
+  ['094', 'PITANGUEIRAS'],
+  ['103', 'PORTUGUESA'],
+  ['095', 'PRAIA DA BANDEIRA'],
+  ['032', 'PRAÇA DA BANDEIRA'],
+  ['124', 'PRAÇA SECA'],
+  ['079', 'QUINTINO BOCAIÚVA'],
+  ['041', 'RAMOS'],
+  ['139', 'REALENGO'],
+  ['132', 'RECREIO DOS BANDEIRANTES'],
+  ['059', 'RIACHUELO'],
+  ['091', 'RIBEIRA'],
+  ['109', 'RICARDO DE ALBUQUERQUE'],
+  ['007', 'RIO COMPRIDO'],
+  ['058', 'ROCHA'],
+  ['086', 'ROCHA MIRANDA'],
+  ['060', 'SAMPAIO'],
+  ['149', 'SANTA CRUZ'],
+  ['014', 'SANTA TERESA'],
+  ['003', 'SANTO CRISTO'],
+  ['143', 'SANTÍSSIMO'],
+  ['001', 'SAÚDE'],
+  ['142', 'SENADOR CAMARÁ'],
+  ['145', 'SENADOR VASCONCELOS'],
+  ['150', 'SEPETIBA'],
+  ['031', 'SÃO CONRADO'],
+  ['010', 'SÃO CRISTÓVÃO'],
+  ['057', 'SÃO FRANCISCO XAVIER'],
+  ['123', 'TANQUE'],
+  ['122', 'TAQUARA'],
+  ['101', 'TAUÁ'],
+  ['033', 'TIJUCA'],
+  ['064', 'TODOS OS SANTOS'],
+  ['056', 'TOMÁS COELHO'],
+  ['085', 'TURIAÇÚ'],
+  ['022', 'URCA'],
+  ['131', 'VARGEM GRANDE'],
+  ['130', 'VARGEM PEQUENA'],
+  ['158', 'VASCO DA GAMA'],
+  ['084', 'VAZ LOBO'],
+  ['073', 'VICENTE DE CARVALHO'],
+  ['030', 'VIDIGAL'],
+  ['048', 'VIGÁRIO GERAL'],
+  ['074', 'VILA DA PENHA'],
+  ['036', 'VILA ISABEL'],
+  ['072', 'VILA KOSMOS'],
+  ['135', 'VILA MILITAR'],
+  ['125', 'VILA VALQUEIRE'],
+  ['075', 'VISTA ALEGRE'],
+  ['092', 'ZUMBI'],
+  ['067', 'ÁGUA SANTA'],
+];
+
+/** Maiúsculas, sem acento, espaços colapsados. Igual a normalizeBairro de outlierLimits.ts. */
+export const normalizarNomeBairro = (nome: string | null | undefined): string =>
+  (nome || '')
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toUpperCase()
+    .replace(/\s+/g, ' ')
+    .trim();
+
+const POR_NOME_NORMALIZADO: ReadonlyMap<string, string> = new Map(
+  BAIRROS_RIO.map(([, nome]) => [normalizarNomeBairro(nome), nome])
+);
+
+/**
+ * Devolve a grafia gravada na base ("BARRA OLÍMPICA", "JACAREPAGUÁ") para um
+ * nome digitado de qualquer forma; se o bairro não está na lista, devolve o
+ * nome em maiúsculas sem espaços sobrando, para a consulta seguir como antes.
+ */
+export const resolverNomeBairro = (nome: string | null | undefined): string => {
+  const norm = normalizarNomeBairro(nome);
+  return POR_NOME_NORMALIZADO.get(norm) ?? (nome || '').toUpperCase().trim().replace(/\s+/g, ' ');
+};
+
+export const codigoBairro = (nome: string | null | undefined): string | null => {
+  const norm = normalizarNomeBairro(nome);
+  const hit = BAIRROS_RIO.find(([, n]) => normalizarNomeBairro(n) === norm);
+  return hit ? hit[0] : null;
+};

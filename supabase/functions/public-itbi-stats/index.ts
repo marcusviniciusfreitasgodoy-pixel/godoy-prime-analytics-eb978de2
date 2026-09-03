@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { resolverNomeBairro } from "../_shared/bairrosRio.ts";
 import {
   MAX_ROWS,
   buildRollingWindow,
@@ -85,7 +86,7 @@ serve(async (req) => {
         .from('itbi_transactions')
         .select('logradouro, total_transacoes')
         .eq('uso', 'Residencial')
-        .ilike('bairro', bairro)
+        .eq('bairro', resolverNomeBairro(bairro))
         .ilike('logradouro', `%${searchTerm}%`)
         .limit(100);
 
@@ -132,7 +133,9 @@ serve(async (req) => {
     // quando a janela pedida não tem amostra suficiente.
     const janelaMeses = normalizeWindowMonths(janela_meses);
     const window = buildRollingWindow(MAX_WINDOW_MONTHS);
-    const bairroNormalizado = bairro.toUpperCase().trim();
+    // A base grava o bairro com acento (BARRA OLÍMPICA, JACAREPAGUÁ) e a
+    // comparação abaixo é por igualdade: resolve a grafia oficial antes.
+    const bairroNormalizado = resolverNomeBairro(bairro);
     const tipologiaFiltro = tipologia && typeof tipologia === 'string' && tipologia !== "Todos" ? tipologia : null;
     const limitesBairro = getOutlierLimits(bairroNormalizado, tipologiaFiltro);
     const logradouroFiltro =
