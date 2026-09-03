@@ -260,7 +260,46 @@ Efeito medido na Barra da Tijuca, últimos 24 meses: a referência de bairro pas
 
 ---
 
-## 10. Checklist de aceite da correção
+## 10. Recalibração global do cinto de outliers
+
+A calibração foi atualizada para refletir a dinâmica mais recente do mercado em **todos os bairros cobertos pela base**, e não apenas na Barra da Tijuca. A mudança é global: o mesmo procedimento é aplicado a cada par bairro × tipologia que atende ao mínimo de amostra.
+
+### 10.1 Regra aplicada
+
+- janela móvel de **3 anos**, contada a partir da data de recalibração;
+- somente registros residenciais válidos, com `percentual_transferido >= 90`, `valor_m2` preenchido e `total_transacoes` usado como peso;
+- mínimo de **100 escrituras** para um par bairro × tipologia receber a calibração de 3 anos;
+- piso = `P1 ponderado × 0,85`;
+- teto = `P99,5 ponderado × 1,15`;
+- os percentis são calculados sobre a distribuição ponderada por escrituras, equivalente a repetir cada registro `total_transacoes` vezes;
+- pares que não atingem 100 escrituras na janela de 3 anos mantêm a calibração anterior de 5 anos como fallback, evitando faixas instáveis por amostras pequenas;
+- o limite global continua protegido por `R$ 1.000/m²` no piso e `R$ 60.000/m²` no teto.
+
+### 10.2 Abrangência e resultado da calibração
+
+A tabela global passou a conter **78 pares bairro × tipologia**: **59 pares calibrados pelos últimos 3 anos** e **19 pares em fallback de 5 anos**. Portanto, a alteração deve ser implantada no motor compartilhado e refletida em Dashboard, Microregiões, pesquisas, mapas, avaliações, relatórios, exports e funções públicas — nunca em regra específica da Barra.
+
+### 10.3 Caso Avenida do Pepe
+
+Na Barra da Tijuca | Apartamento, a janela de 3 anos resultou em **5.956 escrituras**, P1 = **R$ 6.164/m²** e P99,5 = **R$ 20.741/m²**. Com as margens, o intervalo passou a **R$ 5.239–R$ 23.852/m²**.
+
+Assim, a transação da Avenida do Pepe de **01/2026**, a **R$ 22.193/m²** e 3 escrituras, **passa a entrar** no cinto de outliers: ela fica abaixo do teto recalibrado de R$ 23.852/m². A amostra da rua deixa de perder essas 3 escrituras pelo teto histórico mais baixo; o cálculo final ainda deve aplicar o método MAD e registrar eventuais exclusões posteriores.
+
+Esse caso demonstra por que o teto precisava de atualização: um percentil calibrado em uma janela mais antiga pode envelhecer em relação ao mercado e excluir uma venda legítima de alto padrão. A recalibração de 3 anos reduz esse risco sem eliminar o controle estatístico.
+
+### 10.4 Critérios de aceite da implantação
+
+O desenvolvedor deve validar em **todos os bairros**, não somente na Barra:
+
+1. cada par com pelo menos 100 escrituras usa janela de 3 anos e P99,5 ponderado;
+2. cada par abaixo do mínimo usa o fallback de 5 anos identificado no metadado;
+3. piso e teto são reproduzíveis a partir de `total_transacoes`, sem `AVG` ou percentil por contagem de linhas;
+4. a Avenida do Pepe retorna as 3 escrituras de 01/2026 antes do corte MAD;
+5. telas, APIs e exports mostram a janela, o escopo do limite e a quantidade de escrituras antes/depois do filtro.
+
+---
+
+## 11. Checklist de aceite da correção
 
 O ajuste só pode ser considerado concluído quando, para a **mesma configuração de busca**, os dois sistemas devolverem valores idênticos em:
 
