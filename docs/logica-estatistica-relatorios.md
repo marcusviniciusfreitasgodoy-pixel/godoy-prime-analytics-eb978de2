@@ -521,7 +521,7 @@ rank por valor_m2 desc; "Alta" = top 3
 
 ### 8.1 Comparativo de ruas (`useStreetComparison.ts`)
 
-Por logradouro (`ILIKE '%nome%'`, **sem filtro de bairro**), período N meses (padrão 12) e período anterior de mesmo tamanho; `uso`, `percentual >= 90`, `valor_m2 IS NOT NULL`, só teto do bairro, `LIMIT 2000`.
+Por logradouro (`ILIKE '%nome%'`, **sem filtro de bairro**), período N meses (padrão 12; a página Microrregiões passa 60) e período anterior de mesmo tamanho; `uso`, `percentual >= 90`, `valor_m2 IS NOT NULL`, só teto do bairro, `LIMIT 2000`.
 
 ```
 media_m2   = média ponderada
@@ -674,7 +674,7 @@ Onde cada tela diverge do motor (todas usam `uso = Residencial` e `valor_m2 IS N
 | Evolução | desde 2020, semestre/ano | só teto | sim | média ponderada | nenhum | não |
 | Ranking microrregiões (painel) | 12 m | só teto | sim | média e mediana ponderadas | nenhum | não |
 | Microrregiões (tabela) | 12 m | só teto | sim | média ponderada | nenhum | não |
-| Comparativo de ruas | N meses (12), sem bairro | só teto | sim | média e mediana ponderadas | nenhum | não |
+| Comparativo de ruas | N meses (12; 60 em Microrregiões), sem bairro | só teto | sim | média e mediana ponderadas | nenhum | não |
 | Mapa | N meses (12) | só teto | sim | média ponderada | nenhum | não |
 | Análise histórica | 5 anos fechados | piso e teto do bairro (em memória) | sim | mediana e média por ano (expansão por peso) | Tukey simples por ano | não |
 | Parecer técnico | 60 m (param.) | nenhum | **não** | mediana ponderada; P10/P95 | MAD | não |
@@ -686,7 +686,7 @@ Encontradas durante a escrita deste documento e corrigidas no mesmo dia:
 
 1. **Exports do painel e resumo da Sofia truncados em 1000 linhas.** As consultas não tinham `.limit()` e o PostgREST devolve no máximo 1000 linhas por requisição; o "backup completo" e a média da cidade usavam só as 1000 primeiras. Agora paginam em blocos de 1000 até esgotar (`Dashboard.tsx`, `chat-mercado/index.ts`).
 2. **Tabela de Microrregiões sem filtro de percentual transferido.** Passou a exigir `percentual_transferido >= 90` como todas as outras telas (`useMicrobairroDetalhado`).
-3. **Ranking de microrregiões com média e mediana simples de linhas.** Passou a ponderar por escrituras (`useMicrobairroRanking`); a mediana ponderada é o valor em que a soma acumulada dos pesos atinge metade do total.
+3. **Ranking de microrregiões com média e mediana simples de linhas.** Passou a ponderar por escrituras (`useMicrobairroRanking`, helper `resumoPonderado`, aplicado em paralelo pelo Lovable no mesmo dia); a mediana ponderada é o valor em que a soma acumulada dos pesos atinge metade do total. As consultas de ranking e da tabela de Microrregiões passaram de `LIMIT 10000` para `LIMIT 5000`.
 4. **Análise histórica sem filtro de percentual transferido**, nas quatro consultas de tabela e na RPC `itbi_transacoes_raio` (migration `20260903160000`, `CREATE OR REPLACE`, precisa ser aplicada). Cache local invalidado (v17).
 
 Também foi removida uma segunda função `useKPIStats` que vivia em `useITBITransactions.ts`, sem uso, com média simples e sem filtro de percentual.
