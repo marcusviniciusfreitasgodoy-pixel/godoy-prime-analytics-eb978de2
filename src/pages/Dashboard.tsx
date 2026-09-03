@@ -97,7 +97,8 @@ export default function Dashboard() {
       .eq("uso", "Residencial")
       .gte("percentual_transferido", 90)
       .not("valor_m2", "is", null)
-      .order("data_transacao", { ascending: false });
+      .order("data_transacao", { ascending: false })
+      .limit(5000);
 
     if (error) throw error;
     return data;
@@ -205,7 +206,8 @@ export default function Dashboard() {
         .from("itbi_transactions")
         .select("*")
         .order("bairro", { ascending: true })
-        .order("data_transacao", { ascending: false });
+        .order("data_transacao", { ascending: false })
+      .limit(5000);
 
       if (error) throw error;
 
