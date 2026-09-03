@@ -315,3 +315,29 @@ O ajuste só pode ser considerado concluído quando, para a **mesma configuraç�
 - [ ] uso e tipologia considerados.
 
 Caso de teste obrigatório: **Avenida do Pepe, Barra da Tijuca, Residencial, últimos 24 meses** deve retornar 13 linhas ITBI, 42 escrituras e média ponderada de aproximadamente R$ 18.533/m².
+
+### 10.6 Segunda rodada (2026-09-03): eliminação do fallback de 5 anos
+
+Na primeira rodada, 19 pares bairro × tipologia ficaram no fallback de 5 anos por não atingirem o mínimo de 100 escrituras na janela de 3 anos. Esses pares foram recalibrados com a mesma metodologia (P1 × 0,85 para o piso, P99,5 × 1,15 para o teto, percentis ponderados por `total_transacoes`), agora aceitando a amostra disponível na janela de 3 anos, entre 55 e 114 escrituras.
+
+Pares recalibrados (piso → teto, escrituras em 3 anos):
+
+| Par | Piso | Teto | Escrituras |
+| --- | ---: | ---: | ---: |
+| BANGU \| Casa | 1.012 | 3.979 | 88 |
+| CENTRO \| Apartamento | 3.443 | 11.150 | 91 |
+| FREGUESIA (ILHA) \| Apartamento | 2.291 | 6.484 | 98 |
+| JARDIM SULACAP \| Apartamento | 1.913 | 5.440 | 102 |
+| MADUREIRA \| Apartamento | 1.624 | 5.958 | 71 |
+| MARECHAL HERMES \| Apartamento | 1.869 | 5.601 | 114 |
+| PENHA CIRCULAR \| Apartamento | 1.922 | 4.685 | 110 |
+| PIEDADE \| Apartamento | 1.791 | 5.150 | 81 |
+| RAMOS \| Apartamento | 2.028 | 5.766 | 88 |
+| RIACHUELO \| Apartamento | 1.968 | 6.130 | 86 |
+| SANTA TERESA \| Apartamento | 2.971 | 8.712 | 55 |
+| VARGEM PEQUENA \| Casa | 1.964 | 6.052 | 92 |
+| VICENTE DE CARVALHO \| Apartamento | 2.021 | 5.810 | 88 |
+
+Permanecem na calibração de 5 anos apenas 6 pares que **não têm nenhuma escritura** na janela de 3 anos: Agua Santa | Apartamento, Bras de Pina | Apartamento, Colegio | Apartamento, Freguesia (Jacarepagua) | Casa, Inhoaiba | Apartamento e Santo Cristo | Apartamento. Para esses, manter o valor de 5 anos é a única alternativa a não ter cinto de segurança.
+
+Efeito prático: tetos mais altos e alinhados ao mercado corrente nesses 13 bairros (Centro sobe de 10.105 para 11.150; Vargem Pequena Casa de 5.842 para 6.052), reduzindo o descarte indevido de transações recentes legítimas.
