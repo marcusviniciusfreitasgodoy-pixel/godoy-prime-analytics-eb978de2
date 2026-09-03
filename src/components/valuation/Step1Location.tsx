@@ -854,7 +854,7 @@ export function Step1Location({ state, updateState, combined, onAutoValidated }:
                     {m.bairros_incluidos.length > 1 ? ` (${m.bairros_incluidos.join(", ")})` : ""}
                     {" · "}Tipologia: {m.tipologia_filtro || "todas (residencial)"}
                     {" · "}Janela: últimos {m.janela_meses ?? janelaMeses} meses ({fmtData(m.janela_inicio)} a {fmtData(m.janela_fim)})
-                    {m.ano_corrente_incluido ? " (inclui ano corrente)" : ""}
+                    {!m.janela_meses && m.ano_corrente_incluido ? " (inclui ano corrente)" : ""}
                     {" · "}{m.linhas_agregadas} registros agregados
                     {m.linhas_descartadas > 0 ? `, ${m.linhas_descartadas} descartados` : ""}
                     {" · "}Corte: {corte}

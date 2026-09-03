@@ -2,11 +2,13 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import {
   MAX_ROWS,
-  buildMarketWindow,
+  buildRollingWindow,
+  MAX_WINDOW_MONTHS,
+  normalizeWindowMonths,
   calculateITBIData,
   collectBairros,
   deflateRows,
-  selectWindowRows,
+  selectRollingWindowRows,
   type MarketRow,
   type PriceIndexPoint,
 } from "../_shared/itbiMarketStats.ts";
@@ -123,7 +125,11 @@ serve(async (req) => {
     // explícita e limite de linhas, corte MAD em log e faixa P10 / mediana / P95.
     // Piso e teto: por bairro × tipologia; com logradouro informado, calibrados
     // pela própria amostra da rua quando ela tem escrituras suficientes.
-    const window = buildMarketWindow();
+    // Janela móvel: padrão 12 meses (24/36/48/60 sob demanda). A consulta traz
+    // sempre o máximo e o recorte é feito depois, com expansão automática
+    // quando a janela pedida não tem amostra suficiente.
+    const janelaMeses = normalizeWindowMonths(janela_meses);
+    const window = buildRollingWindow(MAX_WINDOW_MONTHS);
     const bairroNormalizado = bairro.toUpperCase().trim();
     const tipologiaFiltro = tipologia && typeof tipologia === 'string' && tipologia !== "Todos" ? tipologia : null;
     const limitesBairro = getOutlierLimits(bairroNormalizado, tipologiaFiltro);
@@ -192,7 +198,13 @@ serve(async (req) => {
       );
     }
 
-    const selection = selectWindowRows(rows, window);
+    const selection = selectRollingWindowRows(rows, janelaMeses);
+    if (selection.rows.length === 0) {
+      return new Response(
+        JSON.stringify({ success: true, stats: null, message: "Dados insuficientes para esta localização" }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
 
     // Índice de preços (best effort): sem a view, calcula sem correção temporal.
     let priceIndex: PriceIndexPoint[] | null = null;
@@ -229,6 +241,9 @@ serve(async (req) => {
 
         deflacionado: deflation.aplicado,
         trimestre_referencia: deflation.trimestreReferencia,
+        janela_meses: selection.janelaMeses,
+        janela_meses_solicitada: selection.janelaSolicitadaMeses,
+        janela_expandida: selection.expandidoAutomaticamente,
       },
     });
 
