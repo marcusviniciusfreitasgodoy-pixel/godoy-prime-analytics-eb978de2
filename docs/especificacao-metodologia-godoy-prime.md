@@ -702,18 +702,18 @@ Janela fixa de **12 meses**. Agregação por microbairro com `Σ(valor_m2 × w) 
 
 **Microbairros da Barra da Tijuca:** 8 regiões, classificadas por `CASE` sobre o logradouro (`classificarMicrobairroBarra`).
 
-### 5.3 Divergências abertas no Analytics (declarar ao desenvolvedor)
+### 5.3 Divergências fechadas (03/09/2026)
 
-Estes pontos existem hoje no Analytics e **não** devem ser replicados; ambos os sistemas devem convergir para a forma ponderada:
+Os pontos abaixo estavam abertos no Analytics e foram **corrigidos**. O sistema externo deve seguir a forma corrigida:
 
-| Local | Problema |
-|---|---|
-| `useITBITransactions.ts` — `useMicrobairroRanking` (linhas 126–174) | Média e mediana **simples**: empilha `valor_m2` uma vez por linha e faz `Σ/n`. `total_transacoes` é usado só no contador de liquidez. Cada agregado mensal entra com peso igual, independente de representar 1 ou 12 escrituras. |
-| `useITBITransactions.ts` — `useKPIStats` (linhas 300–447) | Segunda implementação, **código morto** (sem imports), também não ponderada. Fonte de confusão. |
-| `useKPIStats.ts` (113, 145, 170, 192) e `useITBITransactions.ts` (99, 214, 331, 344) | `.limit(10000)` em vez de `.limit(5000)`. |
-| `Microbairros.tsx:59` | `useStreetComparison(..., 72, ...)` — janela de 72 meses fora do padrão 12–60. |
-| `Dashboard.tsx:92-104` | Exportação consulta sem `.limit()` explícito. |
-| `_shared/outlierLimits.ts` | Campo `p99` armazena **P99,5**. |
+| Local | Antes | Agora |
+|---|---|---|
+| `useITBITransactions.ts` — `useMicrobairroRanking` | média e mediana **simples** por linha | média ponderada `Σ(valor_m2 × w) / Σ w` e **mediana ponderada posicional** (cache `microbairro-ranking-v7`) |
+| `useITBITransactions.ts` — `useKPIStats` duplicado | segunda implementação não ponderada, código morto | **removido**; fonte única é `src/hooks/useKPIStats.ts` |
+| `useKPIStats.ts` e `useITBITransactions.ts` | `.limit(10000)` | `.limit(5000)` em todas as consultas |
+| `Microbairros.tsx` | `useStreetComparison(..., 72, ...)` | `60` meses (dentro do padrão 12–60) |
+| `Dashboard.tsx` — exportação | consulta sem `.limit()` | `.limit(5000)` explícito |
+| `_shared/outlierLimits.ts` | campo `p99` guardava P99,5 | campo renomeado para **`p995`** |
 
 ---
 
