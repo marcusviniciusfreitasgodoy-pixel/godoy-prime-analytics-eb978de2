@@ -742,7 +742,7 @@ export function Step1Location({ state, updateState, combined, onAutoValidated }:
             {state.itbiData.meta && (() => {
               const m = state.itbiData.meta;
               const fmtData = (iso: string) => iso.split("-").reverse().join("/");
-              const corte = m.outlier_method === "iqr" ? "IQR (1,5×)" : m.outlier_method === "mad" ? "MAD em log (2,5× / 3×)" : m.outlier_method === "percentile" ? "sem corte, faixa P10/P90" : "sem corte (amostra pequena)";
+              const corte = m.outlier_method === "iqr" ? "IQR (1,5×)" : m.outlier_method === "mad" ? "MAD em log (2,5× / 3×)" : m.outlier_method === "percentile" ? "sem corte, faixa P10/P95" : "sem corte (amostra pequena)";
               const fonteLabel: Record<DataSource, string> = {
                 logradouro: "logradouro",
                 raio100: "raio de 100 m em torno do logradouro",
