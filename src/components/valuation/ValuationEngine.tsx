@@ -565,6 +565,7 @@ export function ValuationEngine({ bairro = "BARRA DA TIJUCA", vistoriaData, edit
                 state={state}
                 updateState={updateState}
                 combined={rawCombined}
+                onEditarPeriodo={() => setCurrentStep(1)}
               />
             </div>
           )}
