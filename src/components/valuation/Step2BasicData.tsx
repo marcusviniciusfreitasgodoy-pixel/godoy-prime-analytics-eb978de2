@@ -70,6 +70,26 @@ export function Step2BasicData({ state, updateState, combined, onEditarPeriodo }
         </p>
       </div>
 
+      {/* Janela da amostra usada nos preços abaixo (o seletor fica na etapa Localização) */}
+      {state.itbiData?.meta && (
+        <div className="flex flex-wrap items-center justify-between gap-2 rounded-lg border bg-muted/30 px-3 py-2">
+          <p className="text-[10px] sm:text-xs text-muted-foreground">
+            Amostra: últimos{" "}
+            <span className="font-medium text-foreground">
+              {state.itbiData.meta.janela_meses ?? state.janelaMeses ?? 12} meses
+            </span>{" "}
+            · {state.itbiData.meta.escrituras_validas} escrituras ·{" "}
+            {state.itbiData.meta.linhas_agregadas} registros ITBI
+          </p>
+          {onEditarPeriodo && (
+            <Button variant="outline" size="sm" className="h-7 text-[10px] sm:text-xs" onClick={onEditarPeriodo}>
+              <CalendarRange className="mr-1 h-3.5 w-3.5" />
+              Alterar período
+            </Button>
+          )}
+        </div>
+      )}
+
       {/* Seleção de base */}
       <div className="space-y-2 sm:space-y-3">
         <Label className="text-xs sm:text-sm">Qual base de preço usar?</Label>
