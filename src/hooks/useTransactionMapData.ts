@@ -31,7 +31,7 @@ export function useTransactionMapData(params: UseTransactionMapDataParams, enabl
   const isComercial = tipologia?.toLowerCase() === 'comercial';
 
   return useQuery({
-    queryKey: ['transaction-map-data-v3', bairro, periodoMeses, valorMin, valorMax, areaMin, areaMax, tipologia, logradouros, isDemo],
+    queryKey: ['transaction-map-data-v4', bairro, periodoMeses, valorMin, valorMax, areaMin, areaMax, tipologia, logradouros, isDemo],
     queryFn: async (): Promise<TransactionMapData[]> => {
       if (isDemo) return DEMO_MAP_DATA;
       console.log('[useTransactionMapData] Buscando dados atualizados para', bairro);
