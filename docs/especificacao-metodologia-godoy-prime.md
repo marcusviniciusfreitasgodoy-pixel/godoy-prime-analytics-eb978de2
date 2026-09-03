@@ -1,8 +1,8 @@
 # Especificação de Metodologia ITBI — Godoy Prime Analytics
 
-**Versão 2.4, consolidada (2026-09-03).** Substitui e unifica dois documentos escritos no mesmo dia: a "Especificação de Metodologia ITBI, documento de handoff" (v1.0, gerada via Lovable) e a "Especificação da lógica estatística" (gerada na auditoria). Nenhum dos dois continua válido separadamente. A v2.1 reescreveu a seção 15 como plano de ação. A v2.2 incorpora a segunda rodada de consultas (2026-09-03, 15h): recarga da base com perda da geocodificação, baselines da seção 16 reexecutados, spread P90 × P95 medido, corte do cinto de 3 anos por par, e as correções decorrentes (sync preservando geocodificação, limiares de spread recalibrados para P95). A v2.3 registra a terceira rodada: geocodificação recuperada (99,6 %), base no último mês da Prefeitura, cinto regenerado em Centro, Flamengo, Santo Cristo e Glória, trilha de auditoria da carga completa e o achado do filtro de bairro sem acento nas consultas de calibração. A v2.4 regenera o cinto inteiro (59 pares com 100 ou mais escrituras em 3 anos, consulta 7.4 sem filtro por nome) e registra a consulta 7.10, que fecha a decisão do fallback por raio.
+**Versão 2.5, consolidada (2026-09-03).** Substitui e unifica dois documentos escritos no mesmo dia: a "Especificação de Metodologia ITBI, documento de handoff" (v1.0, gerada via Lovable) e a "Especificação da lógica estatística" (gerada na auditoria). Nenhum dos dois continua válido separadamente. A v2.1 reescreveu a seção 15 como plano de ação. A v2.2 incorpora a segunda rodada de consultas (2026-09-03, 15h): recarga da base com perda da geocodificação, baselines da seção 16 reexecutados, spread P90 × P95 medido, corte do cinto de 3 anos por par, e as correções decorrentes (sync preservando geocodificação, limiares de spread recalibrados para P95). A v2.3 registra a terceira rodada: geocodificação recuperada (99,6 %), base no último mês da Prefeitura, cinto regenerado em Centro, Flamengo, Santo Cristo e Glória, trilha de auditoria da carga completa e o achado do filtro de bairro sem acento nas consultas de calibração. A v2.4 regenera o cinto inteiro (59 pares com 100 ou mais escrituras em 3 anos, consulta 7.4 sem filtro por nome) e registra a consulta 7.10, que fecha a decisão do fallback por raio. A v2.5 fecha o cinto: os 18 pares de amostra pequena regenerados com a consulta 7.4b (janela de 5 anos e regra de largura mínima), Barra Olímpica removida da tabela e a hipótese do filtro de ingestão de R$ 100 mil registrada como pendência 12.
 
-**Código descrito:** `main` após o PR #18 (2026-09-03), `ENGINE_VERSION` 3. O export "código atual" recebido em 2026-09-03 é idêntico a este commit no código-fonte; só os arquivos de documentação diferem, por ter sido gerado antes da consolidação.
+**Código descrito:** `main` após o PR #19 (2026-09-03), `ENGINE_VERSION` 3. O export "código atual" recebido em 2026-09-03 é idêntico a este commit no código-fonte; só os arquivos de documentação diferem, por ter sido gerado antes da consolidação.
 **Finalidade:** permitir que o desenvolvedor da Prime Circle reproduza, número a número, o que o Analytics calcula em consultas, avaliações e pesquisas de mercado, e localize exatamente onde os dois sistemas divergem.
 
 Como ler: as seções 1 a 13 são descritivas (o que o código faz, não o que deveria fazer). A seção 14 traz o roteiro de comparação e o checklist de aceite; a 15, as ressalvas do auditor com o plano de ação para os dois sistemas; a 16, os casos de conferência com números reais da base; os apêndices, as constantes, a tabela completa do cinto de outliers e os arquivos de referência.
@@ -146,7 +146,7 @@ Observações: o critério de suficiência da janela é **8 linhas agregadas**, 
 
 ### 2.5 Cinto de segurança de R$/m² (piso e teto)
 
-Arquivo: `supabase/functions/_shared/outlierLimits.ts` (reexportado por `src/lib/outlierLimits.ts`). Tabela estática `OUTLIER_LIMITS_TABLE` com 78 pares `"BAIRRO|Tipologia"` (bairro normalizado: maiúsculas, sem acento, espaços colapsados; tipologia `Apartamento` ou `Casa`).
+Arquivo: `supabase/functions/_shared/outlierLimits.ts` (reexportado por `src/lib/outlierLimits.ts`). Tabela estática `OUTLIER_LIMITS_TABLE` com 77 pares `"BAIRRO|Tipologia"` (bairro normalizado: maiúsculas, sem acento, espaços colapsados; tipologia `Apartamento` ou `Casa`).
 
 Calibração vigente (2026-09-03): para cada par, janela móvel de **3 anos**, linhas residenciais com `percentual_transferido >= 90` e `valor_m2` preenchido; percentis ponderados por escrituras:
 
@@ -155,7 +155,16 @@ piso = round(P1  ponderado × 0,85)
 teto = round(P99,5 ponderado × 1,15)
 ```
 
-59 pares com 100 ou mais escrituras em 3 anos regenerados em 2026-09-03 (4ª rodada, consulta 7.4 agrupando por bairro sem filtrar por nome); os 19 pares abaixo de 100 escrituras em 3 anos mantêm os valores anteriores (mistura de 3 e 5 anos, marcados em `janela`) até a mesma consulta rodar sem o mínimo. Limites globais: piso mínimo 1.000, teto máximo 60.000. A tabela completa dos 78 pares está no Apêndice B. No código o campo do percentil superior chama-se `p995` (renomeado de `p99` em 2026-09-03). A tabela é regenerada pela consulta 7.4 de `docs/calibracao-consultas.sql` quando a base muda.
+59 pares com 100 ou mais escrituras em 3 anos (`janela: "3 anos"`), regenerados em 2026-09-03 (4ª rodada, consulta 7.4 agrupando por bairro sem filtrar por nome).
+
+**Regra de amostra pequena** (18 pares com menos de `SMALL_SAMPLE_ESCRITURAS` = 100 escrituras em 3 anos; 5ª rodada, consulta 7.4b): o par usa a **janela de 5 anos** e o cinto ganha uma largura mínima em torno da mediana ponderada:
+
+```
+piso = max(1.000,  round(min(P1 × 0,85;   mediana / 2)))
+teto = min(60.000, round(max(P99,5 × 1,15; mediana × 2)))      # SMALL_SAMPLE_WIDTH = 2
+```
+
+Motivo: com 37 a 211 escrituras, o P99,5 ponderado é o próprio máximo observado (em Santa Cruz, P5, mediana e P99,5 ficam entre 3.068 e 3.182: uma amostra de um único empreendimento). `P99,5 × 1,15` nesses pares deixa de filtrar erro e passa a filtrar mercado, cortando em silêncio a primeira venda legítima de um prédio novo. A largura mínima de 2× (e 1/2×) bloqueia o erro típico de digitação (dígito a mais, 10×) e delega o restante ao corte MAD (seção 2.7), que é a segunda rede. Nos 18 pares a regra de largura mínima prevaleceu no teto em todos e no piso em 12; Guaratiba Casa bate no piso global. Barra Olímpica saiu da tabela: a migration `20260521155956` reclassificou o bairro como Barra da Tijuca e a base não tem nenhuma linha com esse nome. Limites globais: piso mínimo 1.000, teto máximo 60.000. A tabela completa dos 77 pares está no Apêndice B. No código o campo do percentil superior chama-se `p995` (renomeado de `p99` em 2026-09-03). A tabela é regenerada pelas consultas 7.4 (pares grandes) e 7.4b (pares pequenos) de `docs/calibracao-consultas.sql` quando a base muda.
 
 Resolução `getOutlierLimits(bairro, tipologia)`:
 1. par exato bairro × tipologia → `{piso, teto, calibrado: true}`;
@@ -781,6 +790,7 @@ Encontradas durante a escrita das duas especificações e corrigidas no mesmo di
 | `_shared/outlierLimits.ts`: Centro, Flamengo, Santo Cristo, Glória | tetos defasados, cortando 5,0 %, 4,6 %, 9,1 % e 17,2 % das escrituras | regenerados na 3ª rodada; na 4ª rodada a tabela inteira (59 pares ≥ 100 escrituras) foi regenerada com a consulta 7.4 sem filtro por nome (`docs/calibracao/bloco74-3anos-p995-2026-09-03.csv`) |
 | `sync-itbi-prefeitura` | sem trilha de auditoria; carga completa de 15:06 UTC sem autor identificável | grava início, fim, usuário, modo, `clearExisting`, período e contagens em `etl_log` |
 | `SyncITBIButton.tsx` | recarga do período (`clearExisting`) ligada por padrão | desligada por padrão |
+| `_shared/outlierLimits.ts`: 18 pares de amostra pequena e Barra Olímpica | valores da calibração anterior à recarga, parte com amostra parcial pelo filtro sem acento; Barra Olímpica com 411 escrituras de uma base que já não existe | regenerados com a consulta 7.4b em 5 anos e regra de largura mínima (seção 2.5); Barra Olímpica removida (bairro reclassificado como Barra da Tijuca desde a migration `20260521155956`) |
 
 ---
 
@@ -846,7 +856,7 @@ Marcar item a item. O alinhamento só é declarado quando todos estão verdes. O
 **Estatística**
 - [ ] Toda média de preço é ponderada por `total_transacoes`.
 - [ ] Mediana e percentis são ponderados, com a convenção posicional da seção 2.3.
-- [ ] Cinto de outlier por bairro × tipologia carregado com os 78 pares do Apêndice B, usando **P99,5** (não P99) no teto.
+- [ ] Cinto de outlier por bairro × tipologia carregado com os 77 pares do Apêndice B, usando **P99,5** (não P99) no teto e a regra de largura mínima nos 18 pares de amostra pequena.
 - [ ] Calibração de piso e teto por logradouro (≥ 8 linhas e ≥ 40 escrituras) **só no site público**; o motor interno usa o cinto do bairro (ver ressalva 3 da seção 15).
 - [ ] Corte MAD em log com `k_inf = 2,5` e `k_sup = 3,0`, mínimo de 8 linhas.
 - [ ] Salvaguarda anti-colapso (<3 escrituras sobreviventes ⇒ mantém amostra inteira).
@@ -900,13 +910,14 @@ Estado em 2026-09-03, 16h, depois da segunda rodada de consultas (resultados em 
 | 2 | Alta | **Site público e motor divergem no cinto** (`getStreetOutlierLimits` só no site). | Remover a calibração por rua do site público e usar `getOutlierLimits(bairro, tipologia)` como o motor. | Mesmo endereço, janela e tipologia: `piso_m2`, `teto_m2` e `med_m2` idênticos no site e na avaliação. |
 | 3 | Fechada | Migration `20260903160000` (percentual ≥ 90 na RPC de raio). | Aplicada em 2026-09-03; filtro confirmado em `pg_get_functiondef`. Com a geocodificação recuperada, a função voltou a devolver linhas. | — |
 | 4 | Média | **Janela padrão de 12 meses não foi medida.** A consulta sobre `valuations.itbi_metadata` devolveu 0 linhas: nenhuma avaliação foi salva desde que a janela móvel entrou. | Exibir "janela solicitada 12 m, usada 24 m" quando `janela_expandida = true`; repetir a consulta quando houver 30 avaliações salvas. | Distribuição de `janela_meses`; se menos de 30 % fecham em 12, o padrão deveria ser 24. |
-| 5 | Quase fechada | **Cinto regenerado inteiro (4ª rodada).** A consulta 7.4 em 3 anos, agrupando por bairro sem filtrar por nome, devolveu 59 pares com 100 ou mais escrituras; todos regenerados (`docs/calibracao/bloco74-3anos-p995-2026-09-03.csv`). Maiores mudanças de teto: Olaria +9,3 %, Copacabana −7,7 % (26.609 → 24.569), Curicica +7,5 %, Santa Teresa +7,1 % (55 → 257 escrituras: a calibração anterior tinha amostra parcial), Barra da Tijuca −6,5 %, Ipanema +5,7 %, Glória 13.511 → 20.080 (412 escrituras, antes 129). Leblon bate no teto global de 60.000. O que falta: os 19 pares abaixo de 100 escrituras em 3 anos (Água Santa, Bangu Casa, Barra Olímpica, Brás de Pina, Colégio, Freguesia Ilha, Freguesia Jacarepaguá Casa, Guaratiba, Inhoaíba, Jardim Sulacap, Madureira, Marechal Hermes, Piedade, Ramos, Recreio Casa, Riachuelo, Santa Cruz, Vargem Pequena Casa, Vicente de Carvalho) ainda têm os valores anteriores, alguns calibrados com amostra parcial pelo filtro sem acento. | Rodar a 7.4 em 3 anos e em 5 anos sem o mínimo de 100 escrituras, só para esses 19 pares; aplicar a regra (≥ 100 em 3 anos → 3 anos; senão 5 anos). | 7.3 reexecutada: nenhum par acima de 3 %; os 19 pares com `janela` coerente com a amostra. |
+| 5 | Fechada | **Cinto regenerado inteiro (4ª e 5ª rodadas).** A consulta 7.4 em 3 anos, agrupando por bairro sem filtrar por nome, devolveu 59 pares com 100 ou mais escrituras, todos regenerados (`docs/calibracao/bloco74-3anos-p995-2026-09-03.csv`); maiores mudanças de teto: Olaria +9,3 %, Copacabana −7,7 % (26.609 → 24.569), Santa Teresa +7,1 % (55 → 257 escrituras), Glória 13.511 → 20.080 (412 escrituras, antes 129); Leblon bate no teto global. Na 5ª rodada a consulta 7.4b devolveu os 18 pares restantes em 3 e 5 anos (`docs/calibracao/bloco74-19pares-3e5anos-2026-09-03.csv`), todos regenerados com a janela de 5 anos e a regra de largura mínima da seção 2.5. Barra Olímpica não existe na base (reclassificada como Barra da Tijuca em 2026-05) e saiu da tabela. | Nada. Rodar 7.4 e 7.4b de novo quando a base for recarregada. | 7.3 reexecutada sobre a tabela nova: nenhum par acima de 3 %. |
 | 6 | Fechada (decisão pendente do dono) | **Fallback por raio validado.** Consulta 7.10 em duas amostras de 30 ruas pequenas (`docs/calibracao/bloco710-spread-por-escopo-2026-09-03.csv`): raio 100 m com mediana de 12 a 13 escrituras e spread mediano de 22 a 26 %; raio 300 m com 68 a 112 escrituras e spread de 33 a 36 %; bairro com 780 a 1.816 escrituras e spread de 51 %. O degrau de 300 m fica cerca de 15 pontos abaixo do bairro com amostra razoável: acrescenta informação e deve ser mantido. O raio de 100 m é o mais homogêneo mas raramente atinge 8 linhas, o que a regra `MIN_ROWS_SCOPE` já trata. | Ligar Configurações → Amostra por Raio (decisão do dono, seção 15.3). Nenhuma mudança de código necessária: os dois degraus e o mínimo de 8 linhas já estão implementados. | Avaliações salvas com `data_source = raio100` ou `raio300` e a penalidade correspondente na confiança. |
 | 7 | Média | **Duas escalas de rótulo para a mesma confiança** (nível 85/70/55; PDF 80/60/40). | Unificar nos limiares do nível e remover a escala paralela do PDF. | Um único conjunto de constantes usado nos dois lugares. |
 | 8 | Baixa | **Alerta de gap de anúncios (15 %) sem amostra.** | Manter até 30 avaliações com 3 ou mais anúncios; recalibrar pela distribuição observada. | Consulta 7.6 com n ≥ 30. |
 | 9 | Baixa | **Estatística central varia por tela** (mediana no motor, média ponderada nos painéis). | Mostrar a mediana ponderada ao lado da média em Pesquisa de Mercado e no Dashboard. | Todas as telas de preço exibem as duas grandezas com o mesmo rótulo. |
 | 10 | Baixa | **Repositório público no GitHub.** | Decisão do dono. | — |
 | 11 | Fechada | **Recargas completas sem registro.** | `sync-itbi-prefeitura` grava em `etl_log` usuário, modo, `clearExisting`, período e contagens (PR #17); botão de sincronização nasce com a recarga desligada. Fica em aberto, como decisão do dono: quem pode disparar carga completa. | Toda execução tem uma linha em `etl_log` com `fonte = sync_itbi_prefeitura`. |
+| 12 | Alta | **Filtro de ingestão de R$ 100 mil pode estar apagando o mercado barato.** Na 5ª rodada, Guaratiba Casa, Inhoaíba e Santa Cruz devolveram a mesma amostra em 3 e em 5 anos (nenhuma escritura com mais de 3 anos), e os 18 pares pequenos ficaram com menos escrituras em 5 anos do que a calibração anterior tinha em 3 (Guaratiba 111 → 54, Inhoaíba 171 → 37, Santa Cruz 146 → 85), numa base que cresceu 7 % no total. A explicação mais simples é o filtro `valor < 100000` de `sync-itbi-prefeitura` (seção 12), que existe desde 2026-06-01 (commit `27ce7e5`) e provavelmente não valia para a carga que gerou a base da manhã: um imóvel de 40 m² a R$ 2.400/m² vale R$ 96 mil e é descartado na carga; quanto mais antigo e mais barato o bairro, mais escrituras somem. O efeito é sistemático, não aleatório: superestima o R$/m² dos bairros baratos e apaga a série histórica deles. | Rodar a consulta 7.11 (P1 e P5 de `valor_transacao` por bairro: onde encosta em 100 mil, o filtro está ativo) e pedir ao Lovable a contagem na API da Prefeitura de features residenciais entre R$ 50 mil e R$ 100 mil nos bairros da Zona Oeste e Norte. Se confirmar, baixar o filtro para R$ 30 mil (o corte de erro fica por conta de `valor_m2` entre 500 e 300.000 e do cinto) e recarregar. | Guaratiba, Inhoaíba e Santa Cruz com escrituras em 2021–2023 depois da recarga; P1 de `valor_transacao` abaixo de 100 mil nesses bairros. |
 
 ### 15.2 Referência para o Prime Circle: adotar, evitar, ajustar
 
@@ -953,7 +964,7 @@ Tudo abaixo decorre do corpo do documento. O desenvolvedor deve tratar esta list
 | Topo da faixa: P95 ou P90 | P95 (vigente) alarga o spread típico em 3,2 pontos na mediana e 7,3 no P90 das ruas (consulta 7.5, 2026-09-03); os limiares já estão recalibrados para P95 | Manter P95 com os limiares 35/50/65 até o backtest medir a cobertura da faixa; se voltar a P90, restaurar 30/40/55. A decisão fica reversível com uma constante. |
 | Janela padrão: 12 ou 24 meses | 12 expande sozinha na maioria das ruas; 24 fecha em mais casos com a mesma regra de 8 linhas | Medir (pendência 4) antes de decidir; a resposta está nos metadados das avaliações salvas. |
 | Fallback por raio | ligar com 100 m e 300 m; ligar só com 100 m; manter desligado | **Ligar com os dois degraus.** Cobertura de geocodificação 99,6 %; a consulta 7.10 mostra o raio de 300 m com spread 15 pontos abaixo do bairro e amostra razoável, e o de 100 m como o mais homogêneo quando atinge 8 linhas. Não há mais argumento de dados para manter desligado. |
-| Cinto: 3 anos com P99,5 ou 5 anos com P99 | vigente: 3 anos e P99,5 | Manter: 71 dos 78 pares cortam 1,1 % ou menos. Recalibrar os quatro pares defasados (pendência 5), que são os únicos acima de 3 %. |
+| Cinto: 3 anos com P99,5 ou 5 anos com P99 | vigente: 3 anos e P99,5 nos 59 pares grandes; 5 anos com largura mínima [mediana/2; mediana×2] nos 18 pares pequenos | Manter. A regra de largura mínima é uma decisão da auditoria (seção 2.5), reversível pela constante `SMALL_SAMPLE_WIDTH`; o backtest diz se ela deve valer também para os pares grandes de distribuição estreita (Campo dos Afonsos, Anil, Pechincha, onde P99,5 fica a menos de 25 % da mediana). |
 
 ### 15.4 Protocolo de decisão conjunta
 
@@ -1077,7 +1088,7 @@ Piso 5.189 / teto 26.609 na tabela vigente quando a consulta rodou; a 4ª rodada
 | Sem cinto | 403 | 2.416 | 11.182 |
 | Com cinto | 403 | 2.416 | 11.182 |
 
-Resultado idêntico: o cinto não corta mercado legítimo num bairro bem calibrado. É uma rede de segurança contra erro de digitação, não um filtro de mercado. Se o sistema externo obtiver números diferentes entre as duas linhas, seu cinto está mal calibrado. Contraponto na mesma rodada: em Glória, Santo Cristo, Centro e Flamengo o cinto atual corta entre 4,6 % e 17,2 % das escrituras (pendência 5 da seção 15.1); nesses bairros o teto precisa ser regenerado antes de servir de baseline.
+Resultado idêntico: o cinto não corta mercado legítimo num bairro bem calibrado. É uma rede de segurança contra erro de digitação, não um filtro de mercado. Se o sistema externo obtiver números diferentes entre as duas linhas, seu cinto está mal calibrado. Contraponto na mesma rodada: em Glória, Santo Cristo, Centro e Flamengo o cinto de então cortava entre 4,6 % e 17,2 % das escrituras; os quatro foram regenerados no mesmo dia (pendência 5 da seção 15.1, fechada), e a 7.3 precisa ser reexecutada sobre a tabela final antes de esses bairros servirem de baseline.
 
 ---
 
@@ -1121,22 +1132,21 @@ Resultado idêntico: o cinto não corta mercado legítimo num bairro bem calibra
 
 ---
 
-## Apêndice B. Cinto de outliers: tabela completa (78 pares)
+## Apêndice B. Cinto de outliers: tabela completa (77 pares)
 
-Chave = `BAIRRO|Tipologia` (normalizada: maiúsculas, sem acento). Estado de 2026-09-03, 4ª rodada: 59 pares com 100 ou mais escrituras em 3 anos regenerados de uma vez (`janela` = 3 anos); 19 pares abaixo de 100 escrituras mantêm os valores anteriores (pendência 5 da seção 15.1). A coluna P99,5 corresponde ao campo `p995` no código. Leblon atinge o teto global de 60.000. Atenção ao regenerar: a base grava os bairros com acento (`GLÓRIA`, `BARRA OLÍMPICA`, `JACAREPAGUÁ`); a consulta 7.4 deve agrupar por `bairro` sem filtrar por nome, e a normalização acontece só na chave da tabela (pendência 5 da seção 15.1).
+Chave = `BAIRRO|Tipologia` (normalizada: maiúsculas, sem acento). Estado de 2026-09-03, 5ª rodada: 59 pares com 100 ou mais escrituras em 3 anos calibrados em 3 anos com P1 × 0,85 e P99,5 × 1,15; 18 pares de amostra pequena calibrados em 5 anos com a regra de largura mínima da seção 2.5 (detalhe na segunda tabela). A coluna P99,5 corresponde ao campo `p995` no código. Leblon atinge o teto global de 60.000. Atenção ao regenerar: a base grava os bairros com acento (`GLÓRIA`, `BARRA OLÍMPICA`, `JACAREPAGUÁ`); a consulta 7.4 deve agrupar por `bairro` sem filtrar por nome, e a normalização acontece só na chave da tabela (pendência 5 da seção 15.1).
 
 | Bairro | Tipologia | Piso | Teto | P1 | P99,5 | Escrituras | Janela |
 |---|---|---:|---:|---:|---:|---:|---|
-| AGUA SANTA | Apartamento | 1.856 | 5.206 | 2.183 | 4.527 | 123 | 5 anos |
+| AGUA SANTA | Apartamento | 1.595 | 6.380 | 2.111 | 4.527 | 127 | 5 anos (largura mínima) |
 | ANDARAI | Apartamento | 2.189 | 7.737 | 2.575 | 6.728 | 573 | 3 anos |
 | ANIL | Apartamento | 3.011 | 6.790 | 3.542 | 5.904 | 387 | 3 anos |
-| BANGU | Casa | 1.012 | 3.979 | 1.191 | 3.460 | 88 | 3 anos |
+| BANGU | Casa | 1.034 | 4.134 | 1.498 | 3.460 | 56 | 5 anos (largura mínima) |
 | BARRA DA TIJUCA | Apartamento | 5.251 | 22.312 | 6.178 | 19.402 | 6.277 | 3 anos |
 | BARRA DA TIJUCA | Casa | 4.561 | 13.132 | 5.366 | 11.419 | 168 | 3 anos |
-| BARRA OLIMPICA | Apartamento | 4.814 | 11.003 | 5.663 | 9.568 | 411 | 3 anos |
 | BONSUCESSO | Apartamento | 1.821 | 6.058 | 2.142 | 5.268 | 167 | 3 anos |
 | BOTAFOGO | Apartamento | 6.079 | 22.334 | 7.152 | 19.421 | 3.036 | 3 anos |
-| BRAS DE PINA | Apartamento | 1.788 | 5.579 | 2.104 | 4.851 | 108 | 5 anos |
+| BRAS DE PINA | Apartamento | 1.726 | 7.338 | 2.030 | 4.877 | 116 | 5 anos (largura mínima) |
 | CACHAMBI | Apartamento | 2.137 | 8.059 | 2.514 | 7.008 | 864 | 3 anos |
 | CAMORIM | Apartamento | 4.232 | 11.354 | 4.979 | 9.873 | 1.712 | 3 anos |
 | CAMPO DOS AFONSOS | Apartamento | 2.435 | 5.134 | 2.865 | 4.464 | 135 | 3 anos |
@@ -1144,51 +1154,51 @@ Chave = `BAIRRO|Tipologia` (normalizada: maiúsculas, sem acento). Estado de 202
 | CAMPO GRANDE | Casa | 1.158 | 3.726 | 1.362 | 3.240 | 185 | 3 anos |
 | CATETE | Apartamento | 4.853 | 14.959 | 5.709 | 13.008 | 677 | 3 anos |
 | CENTRO | Apartamento | 3.151 | 13.440 | 3.707 | 11.687 | 1.305 | 3 anos |
-| COLEGIO | Apartamento | 2.049 | 4.717 | 2.411 | 4.102 | 174 | 5 anos |
+| COLEGIO | Apartamento | 1.734 | 6.938 | 2.516 | 4.160 | 174 | 5 anos (largura mínima) |
 | COPACABANA | Apartamento | 5.034 | 24.569 | 5.922 | 21.364 | 6.822 | 3 anos |
 | CURICICA | Apartamento | 3.057 | 9.220 | 3.596 | 8.017 | 251 | 3 anos |
 | DEL CASTILHO | Apartamento | 3.317 | 6.969 | 3.902 | 6.060 | 449 | 3 anos |
 | ENGENHO DE DENTRO | Apartamento | 1.633 | 7.076 | 1.921 | 6.153 | 520 | 3 anos |
 | ENGENHO NOVO | Apartamento | 1.998 | 5.000 | 2.350 | 4.348 | 214 | 3 anos |
 | FLAMENGO | Apartamento | 6.488 | 22.604 | 7.633 | 19.656 | 2.052 | 3 anos |
-| FREGUESIA (ILHA) | Apartamento | 2.291 | 6.484 | 2.695 | 5.638 | 98 | 3 anos |
+| FREGUESIA (ILHA) | Apartamento | 1.961 | 8.018 | 2.307 | 5.759 | 139 | 5 anos (largura mínima) |
 | FREGUESIA (JACAREPAGUA) | Apartamento | 2.819 | 7.894 | 3.316 | 6.864 | 1.659 | 3 anos |
-| FREGUESIA (JACAREPAGUA) | Casa | 1.355 | 5.757 | 1.594 | 5.006 | 112 | 5 anos |
+| FREGUESIA (JACAREPAGUA) | Casa | 1.275 | 7.110 | 1.500 | 5.168 | 117 | 5 anos (largura mínima) |
 | GAVEA | Apartamento | 7.800 | 25.878 | 9.177 | 22.503 | 503 | 3 anos |
 | GLORIA | Apartamento | 5.256 | 20.080 | 6.184 | 17.461 | 412 | 3 anos |
 | GRAJAU | Apartamento | 2.816 | 7.511 | 3.313 | 6.531 | 472 | 3 anos |
-| GUARATIBA | Casa | 1.293 | 3.051 | 1.521 | 2.653 | 111 | 3 anos |
+| GUARATIBA | Casa | 1.000 | 3.724 | 1.642 | 2.653 | 54 | 5 anos (largura mínima) |
 | HUMAITA | Apartamento | 7.585 | 22.708 | 8.924 | 19.746 | 355 | 3 anos |
-| INHOAIBA | Apartamento | 1.684 | 3.609 | 1.981 | 3.138 | 171 | 5 anos |
+| INHOAIBA | Apartamento | 1.259 | 5.036 | 1.932 | 2.816 | 37 | 5 anos (largura mínima) |
 | IPANEMA | Apartamento | 7.563 | 50.837 | 8.898 | 44.206 | 2.246 | 3 anos |
 | IRAJA | Apartamento | 2.021 | 6.664 | 2.378 | 5.795 | 600 | 3 anos |
 | JACAREPAGUA | Apartamento | 3.400 | 10.778 | 4.000 | 9.372 | 3.814 | 3 anos |
 | JARDIM BOTANICO | Apartamento | 7.006 | 23.058 | 8.242 | 20.050 | 359 | 3 anos |
 | JARDIM GUANABARA | Apartamento | 2.755 | 8.135 | 3.241 | 7.074 | 337 | 3 anos |
-| JARDIM SULACAP | Apartamento | 1.913 | 5.440 | 2.251 | 4.730 | 102 | 3 anos |
+| JARDIM SULACAP | Apartamento | 1.907 | 7.724 | 2.243 | 4.507 | 81 | 5 anos (largura mínima) |
 | LAGOA | Apartamento | 8.380 | 29.450 | 9.859 | 25.609 | 519 | 3 anos |
 | LARANJEIRAS | Apartamento | 4.374 | 18.851 | 5.146 | 16.392 | 1.381 | 3 anos |
 | LEBLON | Apartamento | 11.239 | 60.000 | 13.222 | 53.625 | 1.523 | 3 anos |
 | LEME | Apartamento | 7.571 | 20.510 | 8.907 | 17.835 | 425 | 3 anos |
 | LINS DE VASCONCELOS | Apartamento | 2.152 | 7.036 | 2.532 | 6.118 | 199 | 3 anos |
-| MADUREIRA | Apartamento | 1.624 | 5.958 | 1.911 | 5.181 | 71 | 3 anos |
+| MADUREIRA | Apartamento | 1.546 | 6.184 | 1.994 | 5.181 | 132 | 5 anos (largura mínima) |
 | MARACANA | Apartamento | 3.676 | 11.584 | 4.325 | 10.073 | 794 | 3 anos |
-| MARECHAL HERMES | Apartamento | 1.869 | 5.600 | 2.199 | 4.870 | 114 | 3 anos |
+| MARECHAL HERMES | Apartamento | 1.974 | 7.894 | 2.799 | 4.859 | 211 | 5 anos (largura mínima) |
 | MEIER | Apartamento | 2.315 | 7.545 | 2.723 | 6.561 | 648 | 3 anos |
 | OLARIA | Apartamento | 2.077 | 6.592 | 2.443 | 5.732 | 123 | 3 anos |
 | PARADA DE LUCAS | Apartamento | 1.556 | 6.106 | 1.830 | 5.310 | 136 | 3 anos |
 | PECHINCHA | Apartamento | 2.804 | 5.967 | 3.299 | 5.189 | 1.002 | 3 anos |
 | PENHA CIRCULAR | Apartamento | 1.936 | 4.486 | 2.278 | 3.901 | 108 | 3 anos |
 | PENHA | Apartamento | 1.958 | 6.918 | 2.304 | 6.016 | 210 | 3 anos |
-| PIEDADE | Apartamento | 1.791 | 5.150 | 2.107 | 4.478 | 81 | 3 anos |
+| PIEDADE | Apartamento | 1.782 | 7.426 | 2.096 | 4.478 | 165 | 5 anos (largura mínima) |
 | PRACA DA BANDEIRA | Apartamento | 3.284 | 8.211 | 3.864 | 7.140 | 110 | 3 anos |
 | PRACA SECA | Apartamento | 1.454 | 4.356 | 1.710 | 3.788 | 439 | 3 anos |
-| RAMOS | Apartamento | 2.028 | 5.766 | 2.386 | 5.014 | 88 | 3 anos |
+| RAMOS | Apartamento | 1.816 | 7.262 | 2.401 | 5.014 | 139 | 5 anos (largura mínima) |
 | RECREIO DOS BANDEIRANTES | Apartamento | 3.743 | 13.501 | 4.404 | 11.740 | 3.536 | 3 anos |
-| RECREIO DOS BANDEIRANTES | Casa | 2.550 | 7.843 | 3.000 | 6.820 | 102 | 3 anos |
-| RIACHUELO | Apartamento | 1.968 | 6.129 | 2.315 | 5.330 | 86 | 3 anos |
+| RECREIO DOS BANDEIRANTES | Casa | 2.680 | 10.718 | 4.403 | 6.820 | 200 | 5 anos (largura mínima) |
+| RIACHUELO | Apartamento | 1.633 | 6.532 | 2.231 | 5.330 | 112 | 5 anos (largura mínima) |
 | RIO COMPRIDO | Apartamento | 1.941 | 8.449 | 2.283 | 7.347 | 511 | 3 anos |
-| SANTA CRUZ | Apartamento | 1.784 | 3.724 | 2.099 | 3.238 | 146 | 3 anos |
+| SANTA CRUZ | Apartamento | 1.534 | 6.136 | 2.303 | 3.182 | 85 | 5 anos (largura mínima) |
 | SANTA TERESA | Apartamento | 2.959 | 9.329 | 3.481 | 8.112 | 257 | 3 anos |
 | SANTO CRISTO | Apartamento | 1.640 | 11.721 | 1.929 | 10.192 | 581 | 3 anos |
 | SAO CONRADO | Apartamento | 6.104 | 29.925 | 7.181 | 26.022 | 280 | 3 anos |
@@ -1200,11 +1210,37 @@ Chave = `BAIRRO|Tipologia` (normalizada: maiúsculas, sem acento). Estado de 202
 | TODOS OS SANTOS | Apartamento | 2.554 | 7.660 | 3.005 | 6.661 | 682 | 3 anos |
 | VARGEM GRANDE | Apartamento | 3.856 | 6.918 | 4.536 | 6.016 | 137 | 3 anos |
 | VARGEM PEQUENA | Apartamento | 3.393 | 7.146 | 3.992 | 6.214 | 146 | 3 anos |
-| VARGEM PEQUENA | Casa | 1.964 | 6.052 | 2.310 | 5.263 | 92 | 3 anos |
-| VICENTE DE CARVALHO | Apartamento | 2.021 | 5.810 | 2.378 | 5.052 | 88 | 3 anos |
+| VARGEM PEQUENA | Casa | 1.602 | 7.562 | 1.885 | 5.263 | 182 | 5 anos (largura mínima) |
+| VICENTE DE CARVALHO | Apartamento | 2.048 | 8.192 | 2.531 | 5.167 | 167 | 5 anos (largura mínima) |
 | VILA DA PENHA | Apartamento | 2.480 | 7.213 | 2.918 | 6.272 | 287 | 3 anos |
 | VILA ISABEL | Apartamento | 2.287 | 8.936 | 2.690 | 7.770 | 1.079 | 3 anos |
 | VILA VALQUEIRE | Apartamento | 1.827 | 6.760 | 2.149 | 5.878 | 208 | 3 anos |
+
+
+Detalhe dos 18 pares de amostra pequena (consulta 7.4b, `docs/calibracao/bloco74-19pares-3e5anos-2026-09-03.csv`). "Esc. 3a" e "Esc. 5a" são as escrituras nas duas janelas; a coluna "Regra" diz qual termo prevaleceu no teto e no piso.
+
+| Bairro | Tipologia | Mediana | Esc. 3a | Esc. 5a | Piso anterior → novo | Teto anterior → novo | Regra (piso; teto) |
+|---|---|---:|---:|---:|---|---|---|
+| AGUA SANTA | Apartamento | 3.190 | 53 | 127 | 1.856 → 1.595 | 5.206 → 6.380 | mediana/2; mediana×2 |
+| BANGU | Casa | 2.067 | 42 | 56 | 1.012 → 1.034 | 3.979 → 4.134 | mediana/2; mediana×2 |
+| BRAS DE PINA | Apartamento | 3.669 | 61 | 116 | 1.788 → 1.726 | 5.579 → 7.338 | P1×0,85; mediana×2 |
+| COLEGIO | Apartamento | 3.469 | 24 | 174 | 2.049 → 1.734 | 4.717 → 6.938 | mediana/2; mediana×2 |
+| FREGUESIA (ILHA) | Apartamento | 4.009 | 95 | 139 | 2.291 → 1.961 | 6.484 → 8.018 | P1×0,85; mediana×2 |
+| FREGUESIA (JACAREPAGUA) | Casa | 3.555 | 68 | 117 | 1.355 → 1.275 | 5.757 → 7.110 | P1×0,85; mediana×2 |
+| GUARATIBA | Casa | 1.862 | 54 | 54 | 1.293 → 1.000 | 3.051 → 3.724 | mediana/2; mediana×2 |
+| INHOAIBA | Apartamento | 2.518 | 37 | 37 | 1.684 → 1.259 | 3.609 → 5.036 | mediana/2; mediana×2 |
+| JARDIM SULACAP | Apartamento | 3.862 | 64 | 81 | 1.913 → 1.907 | 5.440 → 7.724 | P1×0,85; mediana×2 |
+| MADUREIRA | Apartamento | 3.092 | 68 | 132 | 1.624 → 1.546 | 5.958 → 6.184 | mediana/2; mediana×2 |
+| MARECHAL HERMES | Apartamento | 3.947 | 98 | 211 | 1.869 → 1.974 | 5.600 → 7.894 | mediana/2; mediana×2 |
+| PIEDADE | Apartamento | 3.713 | 82 | 165 | 1.791 → 1.782 | 5.150 → 7.426 | P1×0,85; mediana×2 |
+| RAMOS | Apartamento | 3.631 | 79 | 139 | 2.028 → 1.816 | 5.766 → 7.262 | mediana/2; mediana×2 |
+| RECREIO DOS BANDEIRANTES | Casa | 5.359 | 95 | 200 | 2.550 → 2.680 | 7.843 → 10.718 | mediana/2; mediana×2 |
+| RIACHUELO | Apartamento | 3.266 | 79 | 112 | 1.968 → 1.633 | 6.129 → 6.532 | mediana/2; mediana×2 |
+| SANTA CRUZ | Apartamento | 3.068 | 85 | 85 | 1.784 → 1.534 | 3.724 → 6.136 | mediana/2; mediana×2 |
+| VARGEM PEQUENA | Casa | 3.781 | 86 | 182 | 1.964 → 1.602 | 6.052 → 7.562 | P1×0,85; mediana×2 |
+| VICENTE DE CARVALHO | Apartamento | 4.096 | 83 | 167 | 2.021 → 2.048 | 5.810 → 8.192 | mediana/2; mediana×2 |
+
+Guaratiba Casa, Inhoaíba e Santa Cruz têm a mesma amostra nas duas janelas: nenhuma escritura com mais de 3 anos sobreviveu à carga (pendência 12 da seção 15.1).
 
 ---
 
@@ -1213,7 +1249,7 @@ Chave = `BAIRRO|Tipologia` (normalizada: maiúsculas, sem acento). Estado de 202
 | Arquivo | Papel |
 |---|---|
 | `supabase/functions/_shared/itbiMarketStats.ts` | Núcleo estatístico. Fonte única. |
-| `supabase/functions/_shared/outlierLimits.ts` | Cinto de outlier: tabela dos 78 pares + calibração por rua. |
+| `supabase/functions/_shared/outlierLimits.ts` | Cinto de outlier: tabela dos 77 pares (regra de amostra pequena incluída) + calibração por rua. |
 | `supabase/functions/_shared/priceTrend.ts` | Regressão log de tendência. |
 | `src/lib/logradouroSearch.ts` | Expansão de variantes de grafia. |
 | `src/utils/valuationCalculations.ts` | Gap, caps, valores finais, score de confiança. |
@@ -1227,4 +1263,4 @@ Chave = `BAIRRO|Tipologia` (normalizada: maiúsculas, sem acento). Estado de 202
 | `supabase/functions/parecer-nucleo/index.ts` | Parecer técnico (segunda opinião). |
 | `supabase/functions/sync-itbi-prefeitura/index.ts` | Ingestão: filtros de carga, `valor_m2`, tipologia, data. |
 
-Documentos complementares (histórico): `docs/auditoria-motor-avaliacao.md` (auditoria do motor, achados A1 a A17, calibração de 2026-09-02, fallback por raio); `docs/roteiro-alinhamento-metodologia-itbi.md` (histórico do alinhamento com a Prime Circle, caso da Avenida do Pepê, recalibração do cinto); `docs/calibracao-consultas.sql` (consultas 7.1 a 7.10; a 7.4 regenera o Apêndice B); `docs/handoff-2026-09-02.md` (mudanças de 2026-09-02 e roteiro de testes).
+Documentos complementares (histórico): `docs/auditoria-motor-avaliacao.md` (auditoria do motor, achados A1 a A17, calibração de 2026-09-02, fallback por raio); `docs/roteiro-alinhamento-metodologia-itbi.md` (histórico do alinhamento com a Prime Circle, caso da Avenida do Pepê, recalibração do cinto); `docs/calibracao-consultas.sql` (consultas 7.1 a 7.11; 7.4 e 7.4b regeneram o Apêndice B); `docs/handoff-2026-09-02.md` (mudanças de 2026-09-02 e roteiro de testes).
