@@ -1,6 +1,6 @@
 # Godoy Prime Analytics — Especificação da lógica estatística
 
-**Versão do código descrita:** `main` em `640b0e1` (2026-09-03, inclui as 47 alterações feitas via Lovable em 2026-09-03).
+**Versão do código descrita:** `main` em `640b0e1` (2026-09-03, inclui as 47 alterações feitas via Lovable em 2026-09-03), mais as quatro correções de coerência aplicadas em seguida (seção 13.1).
 **Finalidade:** permitir que o desenvolvedor da Prime Circle reproduza, número a número, o que o Analytics calcula em consultas, avaliações e pesquisas de mercado, e localize exatamente onde os dois sistemas divergem. O corpo (seções 1 a 13) é descritivo: descreve o que o código faz, não o que deveria fazer. A seção 14 traz o roteiro de comparação e a seção 15 registra ressalvas e pontos não calibrados.
 
 Convenções: referências `arquivo:linha` apontam para o commit acima. "Escrituras" = `SUM(total_transacoes)`. "Registros" ou "linhas" = `COUNT(*)`. Toda fórmula "ponderada" usa `total_transacoes` como peso, com `max(1, total_transacoes)` quando nulo.
@@ -493,17 +493,17 @@ Todas as linhas do bairro desde 2020-01-01 (paginação de 1000 em 1000), mesmos
 
 ### 6.3 Ranking de microrregiões do painel (`useMicrobairroRanking` em `useITBITransactions.ts`)
 
-Últimos 12 meses, só teto, `percentual >= 90`. Se o bairro tem `microbairros_geo`, agrupa por `microbairro` da linha ou por palavra-chave; senão por logradouro. Por grupo: **média simples e mediana simples das linhas** (não ponderadas), mínimo e máximo; `total_transacoes` = Σ escrituras; entra com ≥ 3 escrituras; ordena por média desc; bairros sem microrregiões: 10 primeiros.
+Últimos 12 meses, só teto, `percentual >= 90`. Se o bairro tem `microbairros_geo`, agrupa por `microbairro` da linha ou por palavra-chave; senão por logradouro. Por grupo: média e mediana **ponderadas por escrituras** (mediana = valor em que a soma acumulada dos pesos atinge metade do total), mínimo e máximo; `total_transacoes` = Σ escrituras; entra com ≥ 3 escrituras; ordena por média desc; bairros sem microrregiões: 10 primeiros. (Até 2026-09-03 eram média e mediana simples das linhas.)
 
 ### 6.4 Exports do painel (`Dashboard.tsx`)
 
-Consulta `bairro = X` (igualdade), `uso`, `percentual >= 90`, `valor_m2 IS NOT NULL`, **sem `.limit()`** (o PostgREST devolve no máximo 1000 linhas): totais = COUNT, Σ escrituras, Σ `valor_transacao` (não multiplicado por escrituras), média ponderada de R$/m². O backup completo tem a mesma limitação.
+Consulta `bairro = X` (igualdade), `uso`, `percentual >= 90`, `valor_m2 IS NOT NULL`, paginada em blocos de 1000 até esgotar (antes de 2026-09-03 não havia `.limit()` e o PostgREST cortava em 1000 linhas): totais = COUNT, Σ escrituras, Σ `valor_transacao` (não multiplicado por escrituras), média ponderada de R$/m². O backup completo usa a mesma paginação.
 
 ---
 
 ## 7. Microrregiões (`Microbairros.tsx`, `useMicrobairroDetalhado`, `useMicrobairroEvolutionData`)
 
-**Tabela e cards:** últimos 12 meses; `uso = 'Residencial'`, `bairro ILIKE`, `valor_m2 IS NOT NULL`, só teto, `logradouro IS NOT NULL`, **sem filtro de `percentual_transferido`**, `LIMIT 10000`. Agrupa por logradouro:
+**Tabela e cards:** últimos 12 meses; `uso = 'Residencial'`, `bairro ILIKE`, `valor_m2 IS NOT NULL`, só teto, `percentual_transferido >= 90` (adicionado em 2026-09-03), `logradouro IS NOT NULL`, `LIMIT 10000`. Agrupa por logradouro:
 
 ```
 valor_m2      = Σ valor_m2 × tt / Σ tt (todas as tipologias)
@@ -539,7 +539,7 @@ dados_mensais: por YYYY-MM, média ponderada e Σ tt
 
 Usada na Etapa 4 do Parecer (gráfico, liquidez, tendência, projeção) e no PDF. **Janela: 5 anos fechados** (`currentYear − 5` a `currentYear − 1`), diferente da janela móvel do motor. Condomínio (ruas internas) inclui o ano corrente.
 
-Escopo: `rua` (padrão), `raio100`, `raio200`, `raio300`. Rua: `OR` das variantes de `logradouroSearch`, `uso = 'Residencial'`, **sem** filtro de bairro (união cross-bairro registrada em `bairrosEncontrados`), sem filtro de `percentual_transferido` nem de `valor_m2` no SQL, `ORDER BY data ASC LIMIT 5000`. Raio: `itbi_ponto_logradouro` (média das coordenadas da rua) + `itbi_transacoes_raio(lat, lng, raio, início, fim)` (RPC; `uso = 'Residencial'`, `geom IS NOT NULL`, raio limitado a [50; 2000] m; sem filtro de percentual). Bairro inteiro só quando a rua devolve zero linhas (`dataSource = 'bairro'`).
+Escopo: `rua` (padrão), `raio100`, `raio200`, `raio300`. Rua: `OR` das variantes de `logradouroSearch`, `uso = 'Residencial'`, `percentual_transferido >= 90` (adicionado em 2026-09-03), **sem** filtro de bairro (união cross-bairro registrada em `bairrosEncontrados`), sem filtro de `valor_m2` no SQL, `ORDER BY data ASC LIMIT 5000`. Raio: `itbi_ponto_logradouro` (média das coordenadas da rua) + `itbi_transacoes_raio(lat, lng, raio, início, fim)` (RPC; `uso = 'Residencial'`, `percentual_transferido >= 90` desde a migration `20260903160000`, `geom IS NOT NULL`, raio limitado a [50; 2000] m). Bairro inteiro só quando a rua devolve zero linhas (`dataSource = 'bairro'`).
 
 Por ano:
 
@@ -626,7 +626,7 @@ O `analista-imobiliario` (IA) recebe esse núcleo e o resultado do motor e comen
 
 ## 11. Assistente de mercado (`chat-mercado`, Sofia)
 
-Dados calculados a cada pergunta e enviados ao modelo: resumo da cidade no **ano corrente (YTD)** (`uso = 'Residencial'`, `percentual >= 90`, `valor_m2 IS NOT NULL`, **sem `.limit()`, logo truncado em 1000 linhas pelo PostgREST**, sem piso/teto): escrituras totais, média ponderada de R$/m², número de bairros; ranking dos 20 bairros por escrituras e dos 10 mais caros por média ponderada (mínimo 10 escrituras); para bairros, logradouros (`ILIKE`, `LIMIT 500`) e condomínios citados na pergunta, média ponderada de R$/m² e de valor de transação e escrituras; consulta específica por ano/bairro/valor/área/tipologia (`LIMIT 5000`). Tudo por média ponderada; sem mediana, sem corte de outliers.
+Dados calculados a cada pergunta e enviados ao modelo: resumo da cidade no **ano corrente (YTD)** (`uso = 'Residencial'`, `percentual >= 90`, `valor_m2 IS NOT NULL`, paginado em blocos de 1000 desde 2026-09-03, sem piso/teto): escrituras totais, média ponderada de R$/m², número de bairros; ranking dos 20 bairros por escrituras e dos 10 mais caros por média ponderada (mínimo 10 escrituras); para bairros, logradouros (`ILIKE`, `LIMIT 500`) e condomínios citados na pergunta, média ponderada de R$/m² e de valor de transação e escrituras; consulta específica por ano/bairro/valor/área/tipologia (`LIMIT 5000`). Tudo por média ponderada; sem mediana, sem corte de outliers.
 
 ---
 
@@ -672,13 +672,24 @@ Onde cada tela diverge do motor (todas usam `uso = Residencial` e `valor_m2 IS N
 | Busca avançada | anos inteiros | só teto | sim | média ponderada; CAGR de médias anuais | nenhum | não |
 | Dashboard KPIs | YTD ou 12 m; variação 12 m × 12 m | só teto | sim | média ponderada | nenhum | não |
 | Evolução | desde 2020, semestre/ano | só teto | sim | média ponderada | nenhum | não |
-| Ranking microrregiões (painel) | 12 m | só teto | sim | média e mediana **simples de linhas** | nenhum | não |
-| Microrregiões (tabela) | 12 m | só teto | **não** | média ponderada | nenhum | não |
+| Ranking microrregiões (painel) | 12 m | só teto | sim | média e mediana ponderadas | nenhum | não |
+| Microrregiões (tabela) | 12 m | só teto | sim | média ponderada | nenhum | não |
 | Comparativo de ruas | N meses (12), sem bairro | só teto | sim | média e mediana ponderadas | nenhum | não |
 | Mapa | N meses (12) | só teto | sim | média ponderada | nenhum | não |
-| Análise histórica | 5 anos fechados | piso e teto do bairro (em memória) | **não** | mediana e média por ano (expansão por peso) | Tukey simples por ano | não |
+| Análise histórica | 5 anos fechados | piso e teto do bairro (em memória) | sim | mediana e média por ano (expansão por peso) | Tukey simples por ano | não |
 | Parecer técnico | 60 m (param.) | nenhum | **não** | mediana ponderada; P10/P95 | MAD | não |
 | Sofia (chat) | YTD | nenhum | sim | média ponderada | nenhum | não |
+
+### 13.1 Correções de coerência aplicadas em 2026-09-03
+
+Encontradas durante a escrita deste documento e corrigidas no mesmo dia:
+
+1. **Exports do painel e resumo da Sofia truncados em 1000 linhas.** As consultas não tinham `.limit()` e o PostgREST devolve no máximo 1000 linhas por requisição; o "backup completo" e a média da cidade usavam só as 1000 primeiras. Agora paginam em blocos de 1000 até esgotar (`Dashboard.tsx`, `chat-mercado/index.ts`).
+2. **Tabela de Microrregiões sem filtro de percentual transferido.** Passou a exigir `percentual_transferido >= 90` como todas as outras telas (`useMicrobairroDetalhado`).
+3. **Ranking de microrregiões com média e mediana simples de linhas.** Passou a ponderar por escrituras (`useMicrobairroRanking`); a mediana ponderada é o valor em que a soma acumulada dos pesos atinge metade do total.
+4. **Análise histórica sem filtro de percentual transferido**, nas quatro consultas de tabela e na RPC `itbi_transacoes_raio` (migration `20260903160000`, `CREATE OR REPLACE`, precisa ser aplicada). Cache local invalidado (v17).
+
+Também foi removida uma segunda função `useKPIStats` que vivia em `useITBITransactions.ts`, sem uso, com média simples e sem filtro de percentual.
 
 ---
 
@@ -741,4 +752,4 @@ Estas observações não descrevem o código; avaliam decisões. Estão aqui par
 5. **Fallback por raio está desligado e não validado.** A cobertura de geocodificação (consulta 7.9) e o spread por escopo (7.10) foram rodados pelo Lovable, mas os números não foram registrados no repositório. Não ligar sem eles.
 6. **Confiança e recomendação não foram testadas contra vendas reais.** Os pesos da tabela 3.5 são heurísticos. Só o backtest da seção 14.3 diz se "85 pontos" significa alguma coisa.
 7. **Anúncios como sinal:** o limiar de alerta de 15 % foi mantido por falta de amostra (4 avaliações com gap). A mediana observada foi negativa (anúncios abaixo do ITBI), o oposto da premissa do texto da recomendação.
-8. **Coerência entre telas.** A tabela da seção 13 mostra janelas, filtros e estatísticas diferentes por tela: 12 meses móveis nos painéis, anos inteiros na busca avançada, 5 anos fechados na análise histórica, 60 meses no parecer técnico; média ponderada na maioria das telas, mediana no motor, média simples de linhas no ranking de microrregiões. Não é erro em si, mas "o número do Analytics" depende da tela, e três telas ainda omitem o filtro de percentual transferido ou o limite de linhas.
+8. **Coerência entre telas.** A tabela da seção 13 mostra janelas, filtros e estatísticas diferentes por tela: 12 meses móveis nos painéis, anos inteiros na busca avançada, 5 anos fechados na análise histórica, 60 meses no parecer técnico; média ponderada na maioria das telas, mediana no motor, média simples de linhas no ranking de microrregiões. Não é erro em si, mas "o número do Analytics" depende da tela. As quatro incoerências de filtro e de ponderação encontradas foram corrigidas (13.1); as diferenças de janela e de estatística central entre telas permanecem por desenho.

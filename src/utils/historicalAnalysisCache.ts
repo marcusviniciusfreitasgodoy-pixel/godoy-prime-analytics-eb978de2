@@ -6,7 +6,7 @@
 import type { HistoricalAnalysis } from '@/hooks/useHistoricalTransactionAnalysis';
 
 const CACHE_KEY_PREFIX = 'historical_analysis_';
-const CACHE_VERSION = 'v16'; // Invalidate cache - mediana anual e tendência por regressão em log
+const CACHE_VERSION = 'v17'; // Invalidate cache - filtro de percentual_transferido >= 90 na análise histórica
 const CACHE_DURATION_MS = 24 * 60 * 60 * 1000; // 24 horas
 const MAX_CACHE_ENTRIES = 50; // Limitar memória do localStorage
 

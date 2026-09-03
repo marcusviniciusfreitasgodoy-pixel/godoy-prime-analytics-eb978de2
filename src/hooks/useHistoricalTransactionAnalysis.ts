@@ -71,7 +71,7 @@ export function useHistoricalTransactionAnalysis(
   const normalizedLogradouro = (logradouro || '').trim();
 
   return useQuery<HistoricalAnalysis | null>({
-    queryKey: ['historical-analysis-5y-v14', normalizedLogradouro.toUpperCase(), normalizedBairro, ruasInternas?.join(',') || '', escopo],
+    queryKey: ['historical-analysis-5y-v15', normalizedLogradouro.toUpperCase(), normalizedBairro, ruasInternas?.join(',') || '', escopo],
     queryFn: async () => {
       if (!normalizedLogradouro || !normalizedBairro) return null;
 
@@ -157,6 +157,7 @@ export function useHistoricalTransactionAnalysis(
           .or(orFilter)
           .ilike('bairro', normalizedBairro)
           .eq('uso', 'Residencial')
+          .gte('percentual_transferido', 90)
           .gte('data_transacao', startDate)
           .lte('data_transacao', condoEndDate)
            .order('data_transacao', { ascending: true })
@@ -173,6 +174,7 @@ export function useHistoricalTransactionAnalysis(
           .select('data_transacao, valor_m2, total_transacoes, bairro')
           .or(streetFilter)
           .eq('uso', 'Residencial')
+          .gte('percentual_transferido', 90)
           .gte('data_transacao', startDate)
           .lte('data_transacao', endDate)
           .order('data_transacao', { ascending: true })
@@ -222,6 +224,7 @@ export function useHistoricalTransactionAnalysis(
           .select('data_transacao, valor_m2, total_transacoes')
           .ilike('bairro', normalizedBairro)
           .eq('uso', 'Residencial')
+          .gte('percentual_transferido', 90)
           .gte('data_transacao', startDate)
           .lte('data_transacao', endDate)
            .order('data_transacao', { ascending: true })
@@ -453,6 +456,7 @@ export function useHistoricalTransactionAnalysis(
           .or(streetFilter)
           .ilike('bairro', normalizedBairro)
           .eq('uso', 'Residencial')
+          .gte('percentual_transferido', 90)
           .gte('data_transacao', currentYearStart)
           .lte('data_transacao', currentYearEnd)
           .limit(2000);

@@ -63,11 +63,34 @@ export function useITBITransactions() {
   });
 }
 
+
+/**
+ * Estatística ponderada por escrituras (total_transacoes) de um grupo de linhas
+ * agregadas: média = Σ v·w / Σ w; mediana = valor onde a soma acumulada dos
+ * pesos atinge metade do total (equivale a expandir cada linha pelo peso).
+ */
+const weightedGroupStats = (items: { valor: number; peso: number }[]) => {
+  const sorted = [...items].sort((a, b) => a.valor - b.valor);
+  const total = sorted.reduce((s, x) => s + x.peso, 0);
+  if (sorted.length === 0 || total <= 0) return { media: 0, mediana: 0, min: 0, max: 0, escrituras: 0 };
+  const media = sorted.reduce((s, x) => s + x.valor * x.peso, 0) / total;
+  let acc = 0;
+  let mediana = sorted[sorted.length - 1].valor;
+  for (const x of sorted) {
+    acc += x.peso;
+    if (acc >= total / 2) {
+      mediana = x.valor;
+      break;
+    }
+  }
+  return { media, mediana, min: sorted[0].valor, max: sorted[sorted.length - 1].valor, escrituras: total };
+};
+
 export function useMicrobairroRanking(bairro: string = 'BARRA DA TIJUCA') {
   const { isDemo } = useDemo();
   
   return useQuery<MicrobairroRanking[]>({
-    queryKey: ['microbairro-ranking-v6', bairro, isDemo],
+    queryKey: ['microbairro-ranking-v7', bairro, isDemo],
     queryFn: async () => {
       if (isDemo) return DEMO_MICROBAIRRO_RANKING;
       const outlierLimit = getOutlierLimit(bairro);
@@ -121,29 +144,23 @@ export function useMicrobairroRanking(bairro: string = 'BARRA DA TIJUCA') {
           if (!micro) return acc; // Ignorar logradouros não classificados
           
           if (!acc[micro]) {
-            acc[micro] = { valores: [], total: 0 };
+            acc[micro] = { itens: [] };
           }
-          acc[micro].valores.push(t.valor_m2!);
-          acc[micro].total += t.total_transacoes || 1;
+          acc[micro].itens.push({ valor: t.valor_m2!, peso: t.total_transacoes || 1 });
           return acc;
-        }, {} as Record<string, { valores: number[], total: number }>);
+        }, {} as Record<string, { itens: { valor: number; peso: number }[] }>);
 
+        // Média, mediana, mínimo e máximo ponderados por escrituras (antes: média e
+        // mediana simples das linhas agregadas, que davam o mesmo peso a 1 e a 30 escrituras).
         const result = Object.entries(grouped).map(([microbairro, data]) => {
-          const sorted = [...data.valores].sort((a, b) => a - b);
-          const mediana = sorted.length > 0 
-            ? sorted[Math.floor(sorted.length / 2)] 
-            : 0;
-          const media = sorted.length > 0 
-            ? sorted.reduce((a, b) => a + b, 0) / sorted.length 
-            : 0;
-          
+          const st = weightedGroupStats(data.itens);
           return {
             microbairro,
-            total_transacoes: data.total,
-            preco_medio_m2: Math.round(media),
-            preco_min_m2: Math.min(...data.valores),
-            preco_max_m2: Math.max(...data.valores),
-            mediana_m2: Math.round(mediana),
+            total_transacoes: st.escrituras,
+            preco_medio_m2: Math.round(st.media),
+            preco_min_m2: st.min,
+            preco_max_m2: st.max,
+            mediana_m2: Math.round(st.mediana),
           };
         });
 
@@ -157,29 +174,21 @@ export function useMicrobairroRanking(bairro: string = 'BARRA DA TIJUCA') {
       const grouped = (transactions || []).reduce((acc, t) => {
         const key = t.logradouro;
         if (!acc[key]) {
-          acc[key] = { valores: [], total: 0 };
+          acc[key] = { itens: [] };
         }
-        acc[key].valores.push(t.valor_m2!);
-        acc[key].total += t.total_transacoes || 1;
+        acc[key].itens.push({ valor: t.valor_m2!, peso: t.total_transacoes || 1 });
         return acc;
-      }, {} as Record<string, { valores: number[], total: number }>);
+      }, {} as Record<string, { itens: { valor: number; peso: number }[] }>);
 
       const result = Object.entries(grouped).map(([logradouro, data]) => {
-        const sorted = [...data.valores].sort((a, b) => a - b);
-        const mediana = sorted.length > 0 
-          ? sorted[Math.floor(sorted.length / 2)] 
-          : 0;
-        const media = sorted.length > 0 
-          ? sorted.reduce((a, b) => a + b, 0) / sorted.length 
-          : 0;
-        
+        const st = weightedGroupStats(data.itens);
         return {
           microbairro: logradouro,
-          total_transacoes: data.total,
-          preco_medio_m2: Math.round(media),
-          preco_min_m2: Math.min(...data.valores),
-          preco_max_m2: Math.max(...data.valores),
-          mediana_m2: Math.round(mediana),
+          total_transacoes: st.escrituras,
+          preco_medio_m2: Math.round(st.media),
+          preco_min_m2: st.min,
+          preco_max_m2: st.max,
+          mediana_m2: Math.round(st.mediana),
         };
       });
 
@@ -193,7 +202,7 @@ export function useMicrobairroRanking(bairro: string = 'BARRA DA TIJUCA') {
 
 export function useMicrobairroDetalhado(bairro: string = 'BARRA DA TIJUCA') {
   return useQuery<MicrobairroDetalhado[]>({
-    queryKey: ['microbairro-detalhado-v7', bairro],
+    queryKey: ['microbairro-detalhado-v8', bairro],
     queryFn: async () => {
       const twelveMonthsAgo = new Date();
       twelveMonthsAgo.setMonth(twelveMonthsAgo.getMonth() - 12);
@@ -209,6 +218,7 @@ export function useMicrobairroDetalhado(bairro: string = 'BARRA DA TIJUCA') {
         .ilike('bairro', bairro)
         .not('valor_m2', 'is', null)
         .lte('valor_m2', outlierLimit)
+        .gte('percentual_transferido', 90)
         .not('logradouro', 'is', null)
         .gte('data_transacao', startDate)
         .limit(10000);
@@ -293,155 +303,6 @@ export function useMicrobairroDetalhado(bairro: string = 'BARRA DA TIJUCA') {
         rank: index + 1,
         trend: index < 3 ? "high" : "stable",
       }));
-    },
-  });
-}
-
-export function useKPIStats(bairro: string = 'BARRA DA TIJUCA') {
-  return useQuery({
-    queryKey: ['kpi-stats-v5', bairro],
-    queryFn: async () => {
-      const outlierLimit = getOutlierLimit(bairro);
-      const normalizedBairro = bairro.toUpperCase();
-      
-      // Verificar se o bairro tem microbairros configurados
-      const { data: microbairrosGeo } = await supabase
-        .from('microbairros_geo')
-        .select('nome, keywords')
-        .eq('bairro', normalizedBairro);
-      
-      const hasMicrobairrosConfig = (microbairrosGeo?.length || 0) > 0;
-      
-      const twentyFourMonthsAgo = new Date();
-      twentyFourMonthsAgo.setMonth(twentyFourMonthsAgo.getMonth() - 24);
-      const startDate24Months = twentyFourMonthsAgo.toISOString().split('T')[0];
-
-      const twelveMonthsAgo = new Date();
-      twelveMonthsAgo.setMonth(twelveMonthsAgo.getMonth() - 12);
-      const startDate12Months = twelveMonthsAgo.toISOString().split('T')[0];
-
-      const { data: currentPeriodData, error: currentError } = await supabase
-        .from('itbi_transactions')
-        .select('logradouro, valor_m2, tipologia, uso, total_transacoes, microbairro')
-        .eq('uso', 'Residencial')
-        .ilike('bairro', bairro)
-        .not('valor_m2', 'is', null)
-        .lte('valor_m2', outlierLimit)
-        .gte('data_transacao', startDate12Months)
-        .limit(10000);
-
-      if (currentError) throw currentError;
-
-      const { data: previousPeriodData, error: previousError } = await supabase
-        .from('itbi_transactions')
-        .select('valor_m2')
-        .eq('uso', 'Residencial')
-        .ilike('bairro', bairro)
-        .not('valor_m2', 'is', null)
-        .lte('valor_m2', outlierLimit)
-        .gte('data_transacao', startDate24Months)
-        .lt('data_transacao', startDate12Months)
-        .limit(10000);
-
-      if (previousError) throw previousError;
-
-      const currentTransactions = currentPeriodData || [];
-      const previousTransactions = previousPeriodData || [];
-
-      const precoMedio = currentTransactions.length > 0
-        ? currentTransactions.reduce((sum, t) => sum + (t.valor_m2 || 0), 0) / currentTransactions.length
-        : 0;
-
-      const precoMedioAnterior = previousTransactions.length > 0
-        ? previousTransactions.reduce((sum, t) => sum + (t.valor_m2 || 0), 0) / previousTransactions.length
-        : 0;
-
-      const variacaoAnual = precoMedioAnterior > 0
-        ? ((precoMedio - precoMedioAnterior) / precoMedioAnterior) * 100
-        : 0;
-
-      // Calcular microbairro mais valorizado dinamicamente
-      let bairroMaisValorizado = 'N/A';
-      let precoMedioBairro = 0;
-
-      if (hasMicrobairrosConfig) {
-        // Para bairros com microbairros configurados, classificar por microbairro
-        const classifyByKeywords = (logradouro: string): string | null => {
-          const log = logradouro.toUpperCase();
-          for (const micro of microbairrosGeo || []) {
-            for (const keyword of micro.keywords || []) {
-              if (log.includes(keyword.toUpperCase())) {
-                return micro.nome;
-              }
-            }
-          }
-          return null;
-        };
-
-        const microbairroStats: Record<string, { sum: number; count: number }> = {};
-        
-        currentTransactions.forEach((t: any) => {
-          const micro = t.microbairro || classifyByKeywords(t.logradouro);
-          if (micro) {
-            if (!microbairroStats[micro]) {
-              microbairroStats[micro] = { sum: 0, count: 0 };
-            }
-            const transCount = t.total_transacoes || 1;
-            microbairroStats[micro].sum += (t.valor_m2 || 0) * transCount;
-            microbairroStats[micro].count += transCount;
-          }
-        });
-
-        // Encontrar o mais valorizado com pelo menos 3 transações
-        let maxAvg = 0;
-        Object.entries(microbairroStats).forEach(([micro, stats]) => {
-          if (stats.count >= 3) {
-            const avg = stats.sum / stats.count;
-            if (avg > maxAvg) {
-              maxAvg = avg;
-              bairroMaisValorizado = micro;
-              precoMedioBairro = Math.round(avg);
-            }
-          }
-        });
-      } else {
-        // Para outros bairros, usar o logradouro mais valorizado
-        const logradouroStats: Record<string, { sum: number; count: number }> = {};
-        
-        currentTransactions.forEach((t: any) => {
-          const log = t.logradouro;
-          if (!logradouroStats[log]) {
-            logradouroStats[log] = { sum: 0, count: 0 };
-          }
-          const transCount = t.total_transacoes || 1;
-          logradouroStats[log].sum += (t.valor_m2 || 0) * transCount;
-          logradouroStats[log].count += transCount;
-        });
-
-        let maxAvg = 0;
-        Object.entries(logradouroStats).forEach(([log, stats]) => {
-          if (stats.count >= 3) {
-            const avg = stats.sum / stats.count;
-            if (avg > maxAvg) {
-              maxAvg = avg;
-              // Simplificar nome do logradouro
-              bairroMaisValorizado = log.replace(/^(AVN?|RUA|EST|TV|PCA|AL)\s+/i, '').substring(0, 25);
-              precoMedioBairro = Math.round(avg);
-            }
-          }
-        });
-      }
-
-      // Somar total_transacoes ao invés de contar registros
-      const liquidez = currentTransactions.reduce((sum, t) => sum + ((t as any).total_transacoes || 1), 0);
-
-      return {
-        precoMedio: Math.round(precoMedio),
-        liquidez,
-        variacaoAnual: variacaoAnual.toFixed(1),
-        bairroMaisValorizado,
-        precoMedioBairro,
-      };
     },
   });
 }
