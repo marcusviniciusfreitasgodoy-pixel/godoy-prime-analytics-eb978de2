@@ -213,7 +213,7 @@ describe("calculateITBIData", () => {
     expect(r.meta.linhas_descartadas).toBe(1);
     expect(r.meta.escrituras_validas).toBe(20);
     expect(r.meta.outlier_method).toBe("iqr");
-    expect(r.meta.engine_version).toBe(3);
+    expect(r.meta.engine_version).toBe(4);
     expect(r.meta.calculado_em).toBe("2026-09-02T00:00:00.000Z");
   });
 
@@ -242,6 +242,23 @@ describe("calculateITBIData", () => {
     expect(r.meta.outlier_method).toBe("none");
   });
 
+  test("bimodal: corte que removeria mais de 15 % das escrituras é ignorado", () => {
+    // oito escrituras entre 4.800 e 5.500 e três entre 15.000 e 16.000: o MAD em log
+    // cortaria as três de cima (27 % da amostra), que são um segundo mercado, não erro.
+    const rows = [4800, 4900, 5000, 5100, 5200, 5300, 5400, 5500, 15000, 15500, 16000].map((v) => row(v, 1));
+    const r = calculateITBIData(rows, { method: "mad", meta: baseMeta })!;
+    expect(r.meta.outlier_method).toBe("none");
+    expect(r.meta.outlier_cut_skipped).toBe("bimodal");
+    expect(r.meta.linhas_descartadas).toBe(0);
+    expect(r.max_m2).toBeGreaterThan(10000);
+  });
+  test("um outlier isolado numa amostra de dez continua sendo cortado", () => {
+    const rows = [...[4800, 4900, 5000, 5100, 5200, 5300, 5400, 5500, 5600, 5700].map((v) => row(v, 1)), row(50000, 1)];
+    const r = calculateITBIData(rows, { method: "mad", meta: baseMeta })!;
+    expect(r.meta.outlier_method).toBe("mad");
+    expect(r.meta.outlier_cut_skipped).toBeUndefined();
+    expect(r.meta.linhas_descartadas).toBe(1);
+  });
   test("é determinístico para a mesma entrada", () => {
     const rows = [row(12000, 3), row(15000, 2), row(9000, 4), row(18000, 1), row(14000, 6)];
     const a = calculateITBIData(rows, { method: "iqr", meta: baseMeta, now: new Date(0) });
