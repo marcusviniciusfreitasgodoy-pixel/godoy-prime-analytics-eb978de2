@@ -30,6 +30,8 @@ interface ITBIStatsRequest {
   logradouro?: string;
   tipologia?: string;
   query?: string;
+  /** Janela móvel em meses: 12 (padrão), 24, 36, 48 ou 60. */
+  janela_meses?: number;
 }
 
 serve(async (req) => {
@@ -45,7 +47,7 @@ serve(async (req) => {
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
     const body: ITBIStatsRequest = await req.json();
-    const { action = 'stats', bairro, logradouro, tipologia, query } = body;
+    const { action = 'stats', bairro, logradouro, tipologia, query, janela_meses } = body;
 
     // Validate required fields
     if (!bairro || typeof bairro !== 'string' || bairro.length > 100) {

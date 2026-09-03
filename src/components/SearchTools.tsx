@@ -47,9 +47,11 @@ interface SearchToolsProps {
 }
 
 const PERIODO_OPTIONS = [
-  { value: '6', label: 'Últimos 6 meses' },
-  { value: '12', label: 'Últimos 12 meses' },
+  { value: '12', label: 'Últimos 12 meses (padrão)' },
   { value: '24', label: 'Últimos 24 meses' },
+  { value: '36', label: 'Últimos 36 meses' },
+  { value: '48', label: 'Últimos 48 meses' },
+  { value: '60', label: 'Últimos 60 meses' },
 ];
 
 const VALOR_OPTIONS = [
