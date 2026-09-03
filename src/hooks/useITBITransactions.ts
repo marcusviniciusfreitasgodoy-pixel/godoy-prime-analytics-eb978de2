@@ -193,11 +193,11 @@ export function useMicrobairroRanking(bairro: string = 'BARRA DA TIJUCA') {
 
 export function useMicrobairroDetalhado(bairro: string = 'BARRA DA TIJUCA') {
   return useQuery<MicrobairroDetalhado[]>({
-    queryKey: ['microbairro-detalhado-v5', bairro],
+    queryKey: ['microbairro-detalhado-v6', bairro],
     queryFn: async () => {
-      const twentyFourMonthsAgo = new Date();
-      twentyFourMonthsAgo.setMonth(twentyFourMonthsAgo.getMonth() - 24);
-      const startDate = twentyFourMonthsAgo.toISOString().split('T')[0];
+      const twelveMonthsAgo = new Date();
+      twelveMonthsAgo.setMonth(twelveMonthsAgo.getMonth() - 12);
+      const startDate = twelveMonthsAgo.toISOString().split('T')[0];
       
       const outlierLimit = getOutlierLimit(bairro);
 
