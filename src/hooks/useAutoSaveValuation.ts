@@ -164,6 +164,12 @@ export function useAutoSaveValuation({
     }
   }, [valuationId, user?.id, state, combined, enabled]);
 
+  // O callback muda a cada render (depende de `state`). Guardá-lo em um ref evita
+  // que o efeito de debounce seja recriado e o timer reiniciado a cada render —
+  // era isso que fazia o indicador "Salvando..." piscar sem parar.
+  const saveRef = useRef(saveToDatabase);
+  saveRef.current = saveToDatabase;
+
   // Debounce effect
   useEffect(() => {
     if (!enabled || !valuationId) return;
@@ -175,7 +181,7 @@ export function useAutoSaveValuation({
 
     // Agenda novo save
     timeoutRef.current = setTimeout(() => {
-      saveToDatabase();
+      saveRef.current();
     }, debounceMs);
 
     return () => {
@@ -210,7 +216,6 @@ export function useAutoSaveValuation({
     enabled,
     valuationId,
     debounceMs,
-    saveToDatabase,
   ]);
 
   const forceSave = useCallback(async () => {

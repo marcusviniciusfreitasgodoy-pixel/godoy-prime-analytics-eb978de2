@@ -225,6 +225,15 @@ export function useDraftValuation({
     }
   }, [draftId, user?.id, state, combined, enabled]);
 
+  // Mesma proteção do auto-save: os callbacks dependem do objeto `state` e mudam a
+  // cada render; sem o ref, o efeito reiniciaria o debounce indefinidamente.
+  const createRef = useRef(createDraft);
+  createRef.current = createDraft;
+  const updateRef = useRef(updateDraft);
+  updateRef.current = updateDraft;
+  const minimumRef = useRef(hasMinimumData);
+  minimumRef.current = hasMinimumData;
+
   // Debounce effect para criar ou atualizar
   useEffect(() => {
     if (!enabled) return;
@@ -234,10 +243,10 @@ export function useDraftValuation({
     }
 
     timeoutRef.current = setTimeout(() => {
-      if (!hasCreatedRef.current && hasMinimumData()) {
-        createDraft();
+      if (!hasCreatedRef.current && minimumRef.current()) {
+        createRef.current();
       } else if (draftId) {
-        updateDraft();
+        updateRef.current();
       }
     }, debounceMs);
 
@@ -273,9 +282,6 @@ export function useDraftValuation({
     enabled,
     debounceMs,
     draftId,
-    createDraft,
-    updateDraft,
-    hasMinimumData,
   ]);
 
   return { draftId, isCreating, error };
