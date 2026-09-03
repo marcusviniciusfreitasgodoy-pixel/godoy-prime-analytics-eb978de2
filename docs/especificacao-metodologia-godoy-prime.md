@@ -233,7 +233,88 @@ teto = MIN(60000, ROUND(P99,5_ponderado(3 anos) × 1,15))
 
 #### Tabela completa de calibração — 78 pares
 
-<!--TABELA_OUTLIERS-->
+Chave = `BAIRRO|Tipologia`. 72 pares calibrados em janela de 3 anos, 6 em fallback de 5 anos (sem escrituras nos últimos 3 anos). A coluna **P99,5** corresponde ao campo `p99` no código.
+
+| Bairro | Tipologia | Piso | Teto | P1 | P99,5 | Escrituras | Janela |
+|---|---|---:|---:|---:|---:|---:|---|
+| AGUA SANTA | Apartamento | 1.856 | 5.206 | 2.183 | 4.527 | 123 | 5 anos |
+| ANDARAI | Apartamento | 2.139 | 7.766 | 2.517 | 6.753 | 537 | 3 anos |
+| ANIL | Apartamento | 3.053 | 6.955 | 3.592 | 6.048 | 371 | 3 anos |
+| BANGU | Casa | 1.012 | 3.979 | 1.191 | 3.460 | 88 | 3 anos |
+| BARRA DA TIJUCA | Apartamento | 5.239 | 23.852 | 6.164 | 20.741 | 5.956 | 3 anos |
+| BARRA DA TIJUCA | Casa | 4.374 | 13.561 | 5.146 | 11.792 | 156 | 3 anos |
+| BARRA OLIMPICA | Apartamento | 4.814 | 11.003 | 5.663 | 9.568 | 411 | 3 anos |
+| BONSUCESSO | Apartamento | 1.818 | 5.779 | 2.139 | 5.025 | 137 | 3 anos |
+| BOTAFOGO | Apartamento | 6.352 | 22.770 | 7.473 | 19.800 | 2.456 | 3 anos |
+| BRAS DE PINA | Apartamento | 1.788 | 5.579 | 2.104 | 4.851 | 108 | 5 anos |
+| CACHAMBI | Apartamento | 2.458 | 8.378 | 2.892 | 7.285 | 802 | 3 anos |
+| CAMORIM | Apartamento | 4.260 | 11.520 | 5.012 | 10.017 | 1.730 | 3 anos |
+| CAMPO DOS AFONSOS | Apartamento | 2.263 | 5.134 | 2.662 | 4.464 | 154 | 3 anos |
+| CAMPO GRANDE | Apartamento | 1.870 | 5.660 | 2.200 | 4.922 | 1.228 | 3 anos |
+| CAMPO GRANDE | Casa | 1.173 | 3.748 | 1.380 | 3.259 | 311 | 3 anos |
+| CATETE | Apartamento | 4.959 | 14.537 | 5.834 | 12.641 | 538 | 3 anos |
+| CENTRO | Apartamento | 3.442 | 11.150 | 4.050 | 9.696 | 91 | 3 anos |
+| COLEGIO | Apartamento | 2.049 | 4.717 | 2.411 | 4.102 | 174 | 5 anos |
+| COPACABANA | Apartamento | 5.189 | 26.609 | 6.105 | 23.138 | 6.343 | 3 anos |
+| CURICICA | Apartamento | 3.111 | 8.580 | 3.660 | 7.461 | 243 | 3 anos |
+| DEL CASTILHO | Apartamento | 3.481 | 6.987 | 4.095 | 6.076 | 421 | 3 anos |
+| ENGENHO DE DENTRO | Apartamento | 1.635 | 7.038 | 1.923 | 6.120 | 497 | 3 anos |
+| ENGENHO NOVO | Apartamento | 2.031 | 5.265 | 2.389 | 4.578 | 200 | 3 anos |
+| FLAMENGO | Apartamento | 6.264 | 18.073 | 7.369 | 15.716 | 428 | 3 anos |
+| FREGUESIA (ILHA) | Apartamento | 2.291 | 6.484 | 2.695 | 5.638 | 98 | 3 anos |
+| FREGUESIA (JACAREPAGUA) | Apartamento | 2.958 | 7.900 | 3.480 | 6.870 | 1.537 | 3 anos |
+| FREGUESIA (JACAREPAGUA) | Casa | 1.355 | 5.757 | 1.594 | 5.006 | 112 | 5 anos |
+| GAVEA | Apartamento | 8.306 | 26.463 | 9.772 | 23.011 | 438 | 3 anos |
+| GLORIA | Apartamento | 5.250 | 13.511 | 6.176 | 11.749 | 129 | 3 anos |
+| GRAJAU | Apartamento | 1.822 | 7.492 | 2.143 | 6.515 | 432 | 3 anos |
+| GUARATIBA | Casa | 1.293 | 3.051 | 1.521 | 2.653 | 111 | 3 anos |
+| HUMAITA | Apartamento | 7.585 | 24.103 | 8.923 | 20.959 | 297 | 3 anos |
+| INHOAIBA | Apartamento | 1.684 | 3.609 | 1.981 | 3.138 | 171 | 5 anos |
+| IPANEMA | Apartamento | 7.744 | 48.073 | 9.111 | 41.803 | 2.069 | 3 anos |
+| IRAJA | Apartamento | 2.060 | 6.657 | 2.423 | 5.789 | 564 | 3 anos |
+| JACAREPAGUA | Apartamento | 4.048 | 10.770 | 4.762 | 9.365 | 3.709 | 3 anos |
+| JARDIM BOTANICO | Apartamento | 7.021 | 24.080 | 8.260 | 20.939 | 337 | 3 anos |
+| JARDIM GUANABARA | Apartamento | 2.699 | 8.264 | 3.175 | 7.186 | 310 | 3 anos |
+| JARDIM SULACAP | Apartamento | 1.913 | 5.440 | 2.251 | 4.730 | 102 | 3 anos |
+| LAGOA | Apartamento | 8.401 | 29.512 | 9.883 | 25.663 | 476 | 3 anos |
+| LARANJEIRAS | Apartamento | 4.904 | 19.724 | 5.770 | 17.151 | 888 | 3 anos |
+| LEBLON | Apartamento | 11.192 | 59.408 | 13.167 | 51.659 | 1.428 | 3 anos |
+| LEME | Apartamento | 7.597 | 20.649 | 8.938 | 17.956 | 384 | 3 anos |
+| LINS DE VASCONCELOS | Apartamento | 2.155 | 7.036 | 2.535 | 6.118 | 177 | 3 anos |
+| MADUREIRA | Apartamento | 1.624 | 5.958 | 1.911 | 5.181 | 71 | 3 anos |
+| MARACANA | Apartamento | 3.704 | 11.991 | 4.358 | 10.427 | 746 | 3 anos |
+| MARECHAL HERMES | Apartamento | 1.869 | 5.600 | 2.199 | 4.870 | 114 | 3 anos |
+| MEIER | Apartamento | 2.366 | 7.644 | 2.784 | 6.647 | 602 | 3 anos |
+| OLARIA | Apartamento | 2.077 | 6.033 | 2.443 | 5.246 | 112 | 3 anos |
+| PARADA DE LUCAS | Apartamento | 1.556 | 6.210 | 1.830 | 5.400 | 129 | 3 anos |
+| PECHINCHA | Apartamento | 2.818 | 5.929 | 3.315 | 5.156 | 918 | 3 anos |
+| PENHA | Apartamento | 1.836 | 6.918 | 2.160 | 6.016 | 188 | 3 anos |
+| PENHA CIRCULAR | Apartamento | 1.922 | 4.685 | 2.261 | 4.074 | 110 | 3 anos |
+| PIEDADE | Apartamento | 1.791 | 5.150 | 2.107 | 4.478 | 81 | 3 anos |
+| PRACA DA BANDEIRA | Apartamento | 3.268 | 8.305 | 3.845 | 7.222 | 104 | 3 anos |
+| PRACA SECA | Apartamento | 1.470 | 4.257 | 1.730 | 3.702 | 410 | 3 anos |
+| RAMOS | Apartamento | 2.028 | 5.766 | 2.386 | 5.014 | 88 | 3 anos |
+| RECREIO DOS BANDEIRANTES | Apartamento | 3.910 | 13.516 | 4.600 | 11.753 | 3.777 | 3 anos |
+| RECREIO DOS BANDEIRANTES | Casa | 2.550 | 7.843 | 3.000 | 6.820 | 102 | 3 anos |
+| RIACHUELO | Apartamento | 1.968 | 6.129 | 2.315 | 5.330 | 86 | 3 anos |
+| RIO COMPRIDO | Apartamento | 2.070 | 8.366 | 2.435 | 7.275 | 145 | 3 anos |
+| SANTA CRUZ | Apartamento | 1.784 | 3.724 | 2.099 | 3.238 | 146 | 3 anos |
+| SANTA TERESA | Apartamento | 2.971 | 8.712 | 3.495 | 7.576 | 55 | 3 anos |
+| SANTO CRISTO | Apartamento | 2.908 | 9.757 | 3.421 | 8.484 | 514 | 5 anos |
+| SAO CONRADO | Apartamento | 6.129 | 30.167 | 7.211 | 26.232 | 271 | 3 anos |
+| SAO CRISTOVAO | Apartamento | 3.654 | 9.776 | 4.299 | 8.501 | 101 | 3 anos |
+| SAO FRANCISCO XAVIER | Apartamento | 2.371 | 6.351 | 2.789 | 5.523 | 391 | 3 anos |
+| TANQUE | Apartamento | 2.153 | 5.827 | 2.533 | 5.067 | 118 | 3 anos |
+| TAQUARA | Apartamento | 2.224 | 6.612 | 2.617 | 5.750 | 969 | 3 anos |
+| TIJUCA | Apartamento | 2.626 | 11.446 | 3.089 | 9.953 | 3.663 | 3 anos |
+| TODOS OS SANTOS | Apartamento | 2.673 | 7.608 | 3.145 | 6.616 | 646 | 3 anos |
+| VARGEM GRANDE | Apartamento | 3.856 | 6.929 | 4.536 | 6.025 | 132 | 3 anos |
+| VARGEM PEQUENA | Apartamento | 3.393 | 7.185 | 3.992 | 6.248 | 139 | 3 anos |
+| VARGEM PEQUENA | Casa | 1.964 | 6.052 | 2.310 | 5.263 | 92 | 3 anos |
+| VICENTE DE CARVALHO | Apartamento | 2.021 | 5.810 | 2.378 | 5.052 | 88 | 3 anos |
+| VILA DA PENHA | Apartamento | 2.436 | 7.214 | 2.866 | 6.273 | 275 | 3 anos |
+| VILA ISABEL | Apartamento | 2.358 | 8.850 | 2.774 | 7.696 | 992 | 3 anos |
+| VILA VALQUEIRE | Apartamento | 1.805 | 6.840 | 2.123 | 5.948 | 194 | 3 anos |
 
 ### 2.4 Janela móvel
 
