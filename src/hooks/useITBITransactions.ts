@@ -119,33 +119,18 @@ export function useMicrobairroRanking(bairro: string = 'BARRA DA TIJUCA') {
           // Usar microbairro do banco se disponível, senão classificar dinamicamente por keywords
           const micro = t.microbairro || classifyByKeywords(t.logradouro);
           if (!micro) return acc; // Ignorar logradouros não classificados
-          
+
           if (!acc[micro]) {
-            acc[micro] = { valores: [], total: 0 };
+            acc[micro] = { amostra: [], total: 0 };
           }
-          acc[micro].valores.push(t.valor_m2!);
+          acc[micro].amostra.push({ valor: t.valor_m2!, peso: t.total_transacoes || 1 });
           acc[micro].total += t.total_transacoes || 1;
           return acc;
-        }, {} as Record<string, { valores: number[], total: number }>);
+        }, {} as Record<string, GrupoPonderado>);
 
-        const result = Object.entries(grouped).map(([microbairro, data]) => {
-          const sorted = [...data.valores].sort((a, b) => a - b);
-          const mediana = sorted.length > 0 
-            ? sorted[Math.floor(sorted.length / 2)] 
-            : 0;
-          const media = sorted.length > 0 
-            ? sorted.reduce((a, b) => a + b, 0) / sorted.length 
-            : 0;
-          
-          return {
-            microbairro,
-            total_transacoes: data.total,
-            preco_medio_m2: Math.round(media),
-            preco_min_m2: Math.min(...data.valores),
-            preco_max_m2: Math.max(...data.valores),
-            mediana_m2: Math.round(mediana),
-          };
-        });
+        const result = Object.entries(grouped).map(([microbairro, data]) =>
+          resumoPonderado(microbairro, data)
+        );
 
         // Mínimo de 3 transações para aparecer no ranking
         return result
@@ -157,36 +142,22 @@ export function useMicrobairroRanking(bairro: string = 'BARRA DA TIJUCA') {
       const grouped = (transactions || []).reduce((acc, t) => {
         const key = t.logradouro;
         if (!acc[key]) {
-          acc[key] = { valores: [], total: 0 };
+          acc[key] = { amostra: [], total: 0 };
         }
-        acc[key].valores.push(t.valor_m2!);
+        acc[key].amostra.push({ valor: t.valor_m2!, peso: t.total_transacoes || 1 });
         acc[key].total += t.total_transacoes || 1;
         return acc;
-      }, {} as Record<string, { valores: number[], total: number }>);
+      }, {} as Record<string, GrupoPonderado>);
 
-      const result = Object.entries(grouped).map(([logradouro, data]) => {
-        const sorted = [...data.valores].sort((a, b) => a - b);
-        const mediana = sorted.length > 0 
-          ? sorted[Math.floor(sorted.length / 2)] 
-          : 0;
-        const media = sorted.length > 0 
-          ? sorted.reduce((a, b) => a + b, 0) / sorted.length 
-          : 0;
-        
-        return {
-          microbairro: logradouro,
-          total_transacoes: data.total,
-          preco_medio_m2: Math.round(media),
-          preco_min_m2: Math.min(...data.valores),
-          preco_max_m2: Math.max(...data.valores),
-          mediana_m2: Math.round(mediana),
-        };
-      });
+      const result = Object.entries(grouped).map(([logradouro, data]) =>
+        resumoPonderado(logradouro, data)
+      );
 
       return result
         .filter(r => r.total_transacoes >= 3)
         .sort((a, b) => b.preco_medio_m2 - a.preco_medio_m2)
         .slice(0, 10);
+
     },
   });
 }
