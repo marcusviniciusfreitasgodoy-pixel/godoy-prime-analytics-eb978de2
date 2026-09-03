@@ -1,0 +1,8 @@
+bairro,tipologia,escrituras,cortadas_abaixo,cortadas_acima,pct_cortado
+GLORIA,Apartamento,412,0,71,17.23
+SANTO CRISTO,Apartamento,581,4,49,9.12
+CENTRO,Apartamento,1305,2,63,4.98
+FLAMENGO,Apartamento,2052,5,90,4.63
+SAO CRISTOVAO,Apartamento,488,13,0,2.66
+FREGUESIA (ILHA),Apartamento,95,2,0,2.11
+# demais 71 pares: <= 1.06% (55 pares em 0.00%); BARRA OLIMPICA|Apartamento sem escrituras na janela de 3 anos

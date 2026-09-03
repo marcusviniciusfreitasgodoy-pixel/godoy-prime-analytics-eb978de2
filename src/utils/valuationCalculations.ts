@@ -331,9 +331,14 @@ export const TIPOLOGIA_FALLBACK_PENALTY = 5;
 // 2026-09-02 (docs/calibracao/bloco75-spread-2026-09-02.csv): entre 1.106 ruas com
 // amostra, o spread mediano é 22,4%, o P75 é 30,9% e o P90 é 40,5%.
 // Normal = até o P75 das ruas; largo = até o P90; muito largo = além disso.
-export const SPREAD_NORMAL_PCT = 30;
-export const SPREAD_WIDE_PCT = 40;
-export const SPREAD_VERY_WIDE_PCT = 55;
+// Recalibrados em 2026-09-03 para a faixa P10–P95 (RANGE_HIGH_P = 0,95) com a
+// consulta 7.5 sobre 1.116 ruas: spread mediano 27,2%, P75 36,6%, P90 49,5%.
+// Normal até o P75 das ruas, largo até o P90, muito largo acima disso.
+// Se a faixa voltar a P10–P90, os valores calibrados são 30 / 40 / 55
+// (mediano 24,0%, P75 32,6%, P90 42,2% na mesma base).
+export const SPREAD_NORMAL_PCT = 35;
+export const SPREAD_WIDE_PCT = 50;
+export const SPREAD_VERY_WIDE_PCT = 65;
 
 // Calcula score de confiança (0-100) com foco na qualidade dos dados de entrada.
 // A confiança mede: tamanho e origem da amostra, dispersão do mercado, documentação,

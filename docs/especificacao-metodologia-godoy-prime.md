@@ -1,8 +1,8 @@
 # Especificação de Metodologia ITBI — Godoy Prime Analytics
 
-**Versão 2.1, consolidada (2026-09-03).** Substitui e unifica dois documentos escritos no mesmo dia: a "Especificação de Metodologia ITBI, documento de handoff" (v1.0, gerada via Lovable) e a "Especificação da lógica estatística" (gerada na auditoria). Nenhum dos dois continua válido separadamente. A v2.1 reescreve a seção 15 como plano de ação: pendências do Analytics, referência obrigatória para o Prime Circle, decisões abertas e protocolo de decisão.
+**Versão 2.2, consolidada (2026-09-03).** Substitui e unifica dois documentos escritos no mesmo dia: a "Especificação de Metodologia ITBI, documento de handoff" (v1.0, gerada via Lovable) e a "Especificação da lógica estatística" (gerada na auditoria). Nenhum dos dois continua válido separadamente. A v2.1 reescreveu a seção 15 como plano de ação. A v2.2 incorpora a segunda rodada de consultas (2026-09-03, 15h): recarga da base com perda da geocodificação, baselines da seção 16 reexecutados, spread P90 × P95 medido, corte do cinto de 3 anos por par, e as correções decorrentes (sync preservando geocodificação, limiares de spread recalibrados para P95).
 
-**Código descrito:** `main` em `e062fbc` (2026-09-03), `ENGINE_VERSION` 3. O export "código atual" recebido em 2026-09-03 é idêntico a este commit no código-fonte; só os arquivos de documentação diferem, por ter sido gerado antes da consolidação.
+**Código descrito:** `main` após o PR #16 (2026-09-03), `ENGINE_VERSION` 3. O export "código atual" recebido em 2026-09-03 é idêntico a este commit no código-fonte; só os arquivos de documentação diferem, por ter sido gerado antes da consolidação.
 **Finalidade:** permitir que o desenvolvedor da Prime Circle reproduza, número a número, o que o Analytics calcula em consultas, avaliações e pesquisas de mercado, e localize exatamente onde os dois sistemas divergem.
 
 Como ler: as seções 1 a 13 são descritivas (o que o código faz, não o que deveria fazer). A seção 14 traz o roteiro de comparação e o checklist de aceite; a 15, as ressalvas do auditor com o plano de ação para os dois sistemas; a 16, os casos de conferência com números reais da base; os apêndices, as constantes, a tabela completa do cinto de outliers e os arquivos de referência.
@@ -44,15 +44,15 @@ Detalhes de ingestão (fonte, filtros de carga, normalização e geocodificaçã
 
 ### 1.1 Snapshot da base usado nos casos de conferência
 
-| Métrica | Valor em 03/09/2026 |
-|---|---|
-| Linhas em `itbi_transactions` | 30.011 |
-| Escrituras (`SUM(total_transacoes)`) | 125.867 |
-| Período coberto | 15/01/2020 a 15/05/2026 |
-| Linhas com `uso = 'Residencial'` | 30.011 (100%) |
+| Métrica | 2026-09-03, manhã (v1.0) | 2026-09-03, 15h (recarga) |
+|---|---|---|
+| Linhas em `itbi_transactions` | 30.011 | **31.472** |
+| Escrituras (`SUM(total_transacoes)`) | 125.867 | **134.555** |
+| Período coberto | 15/01/2020 a 15/05/2026 | 15/01/2020 a **15/07/2026** |
+| Linhas com `uso = 'Residencial'` | 100 % | 100 % |
+| Linhas com `geom` | 30.011 | **0** |
 
-Todos os números da seção 16 foram apurados neste snapshot (consultas executadas via Lovable em 2026-09-03).
-
+**Incidente de 2026-09-03.** A tabela foi truncada e reimportada entre 15:06 e 15:08 UTC, sem registro em `etl_log`, trazendo dois meses novos de dados e apagando a geocodificação de todas as linhas (`geom`, `lat`, `lng` nulos). Causa: a sincronização completa (`sync-itbi-prefeitura` com `clearExisting`) apagava as linhas do período antes de reinserir. A função foi corrigida no mesmo dia (seção 12); a recuperação das coordenadas é operacional (seção 15.1, item 0). Os números da seção 16 foram reexecutados sobre a base recarregada e são os vigentes; os da v1.0 ficam registrados entre parênteses para rastreabilidade.
 
 ---
 
@@ -109,9 +109,7 @@ SELECT ROUND(
 FROM itbi_transactions WHERE ...;
 ```
 
-**Magnitude do erro se omitida:** Barra da Tijuca, últimos 12 meses — ponderada **R$ 12.066/m²** × simples R$ 10.950/m² (**+10,2%**). Jacarepaguá: 7.234 × 6.842 (**+5,7%**).
-
-Magnitude do erro se a ponderação for omitida (12 meses, 2026-09-03): Barra da Tijuca, ponderada R$ 12.066/m² contra simples R$ 10.950/m² (+10,2 %); Jacarepaguá, 7.234 contra 6.842 (+5,7 %).
+Magnitude do erro se a ponderação for omitida (12 meses, base recarregada de 2026-09-03): Barra da Tijuca, ponderada R$ 11.995/m² contra simples R$ 10.941/m² (+9,6 %); Jacarepaguá, 7.221 contra 6.833 (+5,7 %); Centro, 6.970 contra 6.526 (+6,8 %). Tabela completa no caso 4 da seção 16.
 
 Mediana e percentis (expansão explícita por peso):
 
@@ -344,11 +342,11 @@ Confiança (`calculateConfidenceScore`), começa em 100:
 
 | Critério | Regra |
 |---|---|
-| Magnitude do ajuste | |ajuste| > 40 % −15; > 35 % −8; > 25 % −4 |
-| Spread P10–P95 | > 55 % −18; > 40 % −10; > 30 % −4 |
+| Magnitude do ajuste | abs(ajuste) > 40 % −15; > 35 % −8; > 25 % −4 |
+| Spread P10–P95 | > 65 % −18; > 50 % −10; > 35 % −4 (recalibrado em 2026-09-03 para P95; com P90 eram 55/40/30) |
 | Documentação | fator < 0,85 −20; < 0,95 −8 |
 | Liquidez (score 0–100 da análise histórica, seção 7) | ≥ 70 +10; ≥ 50 +5; < 30 −5 |
-| Gap de anúncios | null −10; |gap| ≤ 15 +3; ≤ 25 0; ≤ 35 −3; > 35 −5 |
+| Gap de anúncios | null −10; abs(gap) ≤ 15 +3; ≤ 25 0; ≤ 35 −3; > 35 −5 |
 | Origem da amostra | rua 0; raio 100 m −5; raio 300 m −10; bairro −15; tipologia relaxada −5 |
 | Clamp | [0, 100] |
 | Teto por escrituras válidas | ≤ 2 → máx 40; ≤ 9 → máx 55; ≤ 29 → máx 75 |
@@ -360,7 +358,7 @@ Nível: ≥ 85 verde; ≥ 70 amarelo alto; ≥ 55 amarelo médio; < 55 vermelho.
 1. documentação `incompleta` → **Avaliação Bloqueada**
 2. escrituras válidas < 3 → **Amostra Insuficiente** (valor indicativo)
 3. fator de documentação < 0,80 → **Consultar Especialista Jurídico** (ganho potencial `provavel × (1 - fator)`)
-4. spread > 40 % e confiança < 55 → **Requerer Avaliação Técnica Formal**
+4. spread > `SPREAD_WIDE_PCT` (50 %) e confiança < 55 → **Requerer Avaliação Técnica Formal**
 5. gap > 15 % e confiança ≥ 70 → **Anúncios Acima do Mercado**
 6. 0,90 ≤ fator doc < 1,00 → **Regularizar Antes de Vender**
 7. gap < −5 % → **Mercado em Cautela** (anunciar 5 % abaixo)
@@ -487,7 +485,7 @@ Persistência em `valuations`: valores, spread, confiança, ajuste, recomendaç�
 
 ### 4.6 PDF do Parecer (`valuationPdfExport.ts`)
 
-Não recalcula: repete o estado. Mostra "Transações" = `transaction_count` (escrituras antes do corte), "Valor médio por m² (mediana)" = `med_m2`, os três valores, spread, confiança, gap e a tabela anual da análise histórica (transações, mínimo, médio, máximo por ano). Texto de metodologia impresso: "valores de referência (P10, mediana e P95 do R$/m², ponderados pelo número de escrituras) calculados exclusivamente com dados oficiais de transações; anúncios não entram na base". Classificação de spread no PDF: ≤ 22 % "precisão alta", ≤ 30 % "boa", ≤ 40 % "moderada", acima "baixa".
+Não recalcula: repete o estado. Mostra "Transações" = `transaction_count` (escrituras antes do corte), "Valor médio por m² (mediana)" = `med_m2`, os três valores, spread, confiança, gap e a tabela anual da análise histórica (transações, mínimo, médio, máximo por ano). Texto de metodologia impresso: "valores de referência (P10, mediana e P95 do R$/m², ponderados pelo número de escrituras) calculados exclusivamente com dados oficiais de transações; anúncios não entram na base". Classificação de spread no PDF (recalibrada em 2026-09-03 para P95): ≤ 27 % "precisão alta", ≤ 37 % "boa", ≤ 50 % "moderada", acima "baixa".
 
 ---
 
@@ -549,7 +547,7 @@ Histórico de um logradouro selecionado (`ILIKE` exato no nome, mesmo bairro, `<
 
 ### 6.1 KPIs do bairro (`useKPIStats.ts`)
 
-Cinto: **só teto** do bairro (`getOutlierLimit`, maior teto entre as tipologias), sem piso. Filtros comuns: `uso = 'Residencial'`, `bairro ILIKE`, `valor_m2 IS NOT NULL`, `percentual_transferido >= 90`, `LIMIT 10000`.
+Cinto: **só teto** do bairro (`getOutlierLimit`, maior teto entre as tipologias), sem piso. Filtros comuns: `uso = 'Residencial'`, `bairro ILIKE`, `valor_m2 IS NOT NULL`, `percentual_transferido >= 90`, `LIMIT 5000` (era 10000 até 2026-09-03).
 
 Período "atual":
 - ano corrente (YTD, `data_transacao >= 01/01`); se tiver menos de 30 linhas **e** menos de 100 escrituras, usa os últimos 12 meses (`usandoDadosHistoricos = true`).
@@ -586,7 +584,7 @@ Consulta `bairro = X` (igualdade), `uso`, `percentual >= 90`, `valor_m2 IS NOT N
 
 ## 7. Microrregiões (`Microbairros.tsx`, `useMicrobairroDetalhado`, `useMicrobairroEvolutionData`)
 
-**Tabela e cards:** últimos 12 meses; `uso = 'Residencial'`, `bairro ILIKE`, `valor_m2 IS NOT NULL`, só teto, `percentual_transferido >= 90` (adicionado em 2026-09-03), `logradouro IS NOT NULL`, `LIMIT 10000`. Agrupa por logradouro:
+**Tabela e cards:** últimos 12 meses; `uso = 'Residencial'`, `bairro ILIKE`, `valor_m2 IS NOT NULL`, só teto, `percentual_transferido >= 90` (adicionado em 2026-09-03), `logradouro IS NOT NULL`, `LIMIT 5000`. Agrupa por logradouro:
 
 ```
 valor_m2      = Σ valor_m2 × tt / Σ tt (todas as tipologias)
@@ -647,7 +645,7 @@ liquidityScore    = min(100, média de escrituras por ano × 3) (+10 crescente, 
 liquidityLevel    = >= 70 alta; >= 40 média; senão baixa
 ```
 
-Cache local (`historicalAnalysisCache.ts`, chave versão v16) só no escopo rua; não cacheia se houver 2 ou mais anos recentes zerados numa série com mais de 200 escrituras.
+Cache local (`historicalAnalysisCache.ts`, chave versão v17) só no escopo rua; não cacheia se houver 2 ou mais anos recentes zerados numa série com mais de 200 escrituras.
 
 ### 8.4 Tendência e projeção (`priceTrend.ts`, `calculateFutureProjection`)
 
@@ -729,7 +727,7 @@ uso = 'Comercial' se o texto contém "não residencial"/"comercial", senão 'Res
 tipologia = Apartamento (apartamento|apto|flat|cobertura) | Casa (casa|sobrado|residencia) | Terreno | Comercial (sala|loja|escritório) | padrão Apartamento
 ```
 
-`sync-itbi-daily` reimporta o mês corrente e o anterior e chama `refresh_itbi_price_index()`. Geocodificação (`lat`, `lng`, `geom`) e `microbairro` são preenchidos por funções separadas, depois da carga; `logradouro_norm` pela função SQL da seção 2.9.
+`sync-itbi-daily` reimporta o mês corrente e o anterior por upsert na chave natural (`logradouro, bairro, data_transacao, uso, tipologia`) e chama `refresh_itbi_price_index()`. `sync-itbi-prefeitura` (carga completa por bairro ou de toda a cidade) também faz upsert na chave natural; com `clearExisting`, **desde 2026-09-03** não apaga nada antes de inserir: as linhas existentes são atualizadas preservando `lat`, `lng`, `geom`, `microbairro` e `geocodificado_via`, e só depois as linhas do período que a Prefeitura deixou de publicar (não tocadas pela sincronização, `updated_at` anterior ao início) são removidas. Antes dessa data a função apagava o período inteiro e reinseria, o que perdia a geocodificação (incidente da seção 1.1). Geocodificação (`lat`, `lng`, `geom`) e `microbairro` são preenchidos por funções separadas, depois da carga; `logradouro_norm` pela função SQL da seção 2.9.
 
 Consequência para a comparação: como `data_transacao` é sempre dia 15, uma janela "últimos 12 meses" iniciada em 2025-09-03 inclui setembro/2025 inteiro (dia 15 ≥ dia 3) mas uma janela iniciada em 2025-09-20 exclui. A Prime Circle precisa usar a mesma convenção de data.
 
@@ -778,6 +776,8 @@ Encontradas durante a escrita das duas especificações e corrigidas no mesmo di
 | Análise histórica (`useHistoricalTransactionAnalysis`) | sem filtro de `percentual_transferido` nas quatro consultas e na RPC de raio | `percentual_transferido >= 90` em todas; RPC `itbi_transacoes_raio` reescrita na migration `20260903160000` (`CREATE OR REPLACE`, precisa ser aplicada); cache local `v17` |
 | `Microbairros.tsx` comparativo de ruas | 72 meses | 60 meses (dentro do conjunto padrão) |
 | `_shared/outlierLimits.ts` | campo `p99` guardava o P99,5 | campo renomeado para `p995` |
+| `sync-itbi-prefeitura` com `clearExisting` | apagava o período antes de reinserir; geocodificação perdida a cada recarga | upsert preservando colunas de geocodificação; varredura posterior de linhas obsoletas por `updated_at` |
+| `valuationCalculations.ts`, `valuationPdfExport.ts` | limiares de spread 30/40/55 calibrados para P10–P90, com a faixa já em P10–P95 | 35/50/65 e rótulos do PDF 27/37/50, calibrados com a consulta 7.5 em P95 (`docs/calibracao/bloco75-spread-2026-09-03.csv`) |
 
 ---
 
@@ -837,7 +837,7 @@ Marcar item a item. O alinhamento só é declarado quando todos estão verdes. O
 - [ ] `LIMIT 5000` explícito, com `ORDER BY` determinístico.
 - [ ] Bairro normalizado (maiúsculas, sem acento, espaços colapsados) antes de comparar.
 - [ ] Busca por logradouro expande tipo de via, títulos/patentes e variantes de grafia (seção 2.9).
-- [ ] Caso 2a reproduz 27 registros / 69 escrituras buscando por "Desenhista Luiz Guimarães".
+- [ ] Caso 2a reproduz 28 registros / 71 escrituras buscando por "Desenhista Luiz Guimarães" (base de 2026-09-03, 15h).
 - [ ] Caso 3 reproduz 5 registros / 12 escrituras buscando por "Avenida General Olyntho Pilar".
 
 **Estatística**
@@ -868,8 +868,8 @@ Marcar item a item. O alinhamento só é declarado quando todos estão verdes. O
 
 **Baselines**
 - [ ] Caso 1 (Av. do Pepê) reproduz as 5 janelas dentro de ±1%.
-- [ ] Caso 2c (série anual) reproduz os 7 anos dentro de ±1%.
-- [ ] Caso 4 reproduz as 10 médias ponderadas dentro de ±1%.
+- [ ] Caso 2c (série anual) reproduz os 7 anos dentro de ±1% (2026 com 3 registros / 6 escrituras).
+- [ ] Caso 4 reproduz as 12 médias ponderadas dentro de ±1%.
 - [ ] Caso 5 reproduz resultado idêntico com e sem cinto.
 
 **Transparência**
@@ -888,18 +888,22 @@ Esta seção não descreve o código; avalia decisões e diz o que fazer com ela
 
 ### 15.1 Pendências no Analytics, por prioridade
 
+Estado em 2026-09-03, 16h, depois da segunda rodada de consultas (resultados em `docs/calibracao/`).
+
 | # | Prioridade | Problema | O que fazer | Como validar |
 |---|---|---|---|---|
-| 1 | Alta | **Limiares de spread calibrados para P10–P90, faixa agora é P10–P95.** Os cortes 30/40/55 % vieram da distribuição P10–P90 de 1.106 ruas (2026-09-02). P95 alarga a faixa por construção: mais avaliações caem em "spread largo" e perdem confiança sem que o mercado tenha mudado. | Rodar a consulta 7.5 de `docs/calibracao-consultas.sql` com P95 no lugar de P90 e redefinir `SPREAD_NORMAL/WIDE/VERY_WIDE_PCT` pelos novos P75 e P90 das ruas; ou voltar `RANGE_HIGH_P` a 0,90. Uma das duas, não as duas. | Distribuição do `spread_percentage` das avaliações salvas antes e depois; a fração em "spread largo" deve voltar ao patamar de antes da mudança. |
-| 2 | Alta | **Site público e motor divergem no cinto.** `public-itbi-stats` calibra piso e teto pela amostra da própria rua (≥ 8 linhas, ≥ 40 escrituras); o motor usa o cinto do bairro. Com 8 linhas, P1 é o mínimo e P99 o máximo: o filtro ou não corta nada ou corta dado real. Dois números diferentes para o mesmo endereço, na mesma empresa. | Remover `getStreetOutlierLimits` do site público e usar `getOutlierLimits(bairro, tipologia)` como o motor. Se o caso José Higino / Iposeira exigir tratamento, a solução é um par bairro × tipologia mais fino (microrregião), não a rua se autocalibrando. | O mesmo endereço, janela e tipologia devolve `piso_m2`, `teto_m2` e `med_m2` idênticos no site e na avaliação. |
-| 3 | Alta | **Migration `20260903160000` (percentual ≥ 90 na RPC de raio da análise histórica) ainda não aplicada.** Sem ela, a análise histórica por raio continua sem o filtro que todas as outras telas aplicam. | Pedir a aplicação no Lovable (`CREATE OR REPLACE`, idempotente). | `select pg_get_functiondef('public.itbi_transacoes_raio'::regproc)` contém `percentual_transferido >= 90`. |
-| 4 | Média | **Janela padrão de 12 meses não foi medida.** Com mediana de 3 escrituras por linha, a maioria das ruas não chega a 8 linhas em 12 meses e a janela expande sozinha; "12 meses" na tela é, na prática, "o menor período com 8 linhas". Correto, mas invisível. | Exibir na linha de rastreabilidade e no PDF "janela solicitada 12 m, usada 24 m" sempre que `janela_expandida = true` (o metadado já existe). Medir, sobre as avaliações salvas, a fração que fecha em 12, 24, 36, 48 e 60 meses. | Relatório com a distribuição de `janela_meses` nas avaliações; se menos de 30 % fecham em 12, o padrão do produto deveria ser 24. |
-| 5 | Média | **Cinto recalibrado em 3 anos com P99,5 para resolver um caso** (Avenida do Pepê) e aplicado aos 78 pares sem medir o efeito nos outros 77. | Rodar a consulta 7.3 (percentual de escrituras cortadas por par) com o cinto novo e comparar com a rodada de 2026-09-02. Pares em que o corte mudou mais de 2 pontos percentuais merecem inspeção. | Tabela por par: escrituras cortadas antes e depois. |
-| 6 | Média | **Fallback por raio desligado e não validado.** As consultas 7.9 (cobertura de geocodificação) e 7.10 (spread por escopo) foram executadas pelo Lovable; os resultados não estão no repositório. | Registrar os resultados em `docs/calibracao/` e decidir: cobertura ≥ 80 % liga o fallback; spread do raio 300 m parecido com o do bairro remove o degrau de 300 m. | Ressalva fechada quando os dois CSVs estiverem versionados e a decisão escrita na seção 11 do relatório de auditoria. |
-| 7 | Média | **Duas escalas de rótulo para a mesma confiança.** O nível (`mapScoreToLevel`) usa 85/70/55; o PDF classifica o score em 80/60/40. O mesmo laudo pode dizer "média-alta" e "bom" para o mesmo número. | Unificar nos limiares do nível (85/70/55) e remover a escala paralela do PDF. | Um único conjunto de constantes exportado e usado nos dois lugares. |
-| 8 | Baixa | **Alerta de gap de anúncios (15 %) sem amostra.** Só 4 avaliações com gap; mediana negativa (anúncios abaixo do ITBI), o oposto da premissa do texto da recomendação. | Manter 15 % até haver 30 avaliações com 3 ou mais anúncios; então recalibrar pela distribuição observada e reescrever o texto da Regra 4 se a mediana continuar negativa. | Consulta 7.6 com n ≥ 30. |
-| 9 | Baixa | **Estatística central varia por tela.** Mediana no motor e no comparativo; média ponderada nos painéis, na pesquisa e na Sofia. Não é erro, mas o usuário lê "preço médio" e "valor de referência" como se fossem a mesma coisa. | Mostrar a mediana ponderada ao lado da média em Pesquisa de Mercado e no Dashboard, com rótulo explícito. | Todas as telas de preço exibem as duas grandezas com o mesmo rótulo. |
-| 10 | Baixa | **Repositório público no GitHub** com pesos comerciais do questionário e a tabela do cinto. | Decisão do dono; se for para manter público, saber que é. | — |
+| 0 | **Máxima** | **Geocodificação perdida na recarga de 2026-09-03.** `geom`, `lat` e `lng` nulos em 100 % das 31.472 linhas. Mapa, fallback por raio e análise histórica por raio devolvem vazio, em silêncio. A causa (sync apagando o período) está corrigida no código, mas as coordenadas não voltam sozinhas. | (a) Rodar `geocodificar-itbi-logradouros` com `somente_backfill: true` (RPC `backfill_itbi_geom_from_logradouros`, sem custo: usa `logradouros_geo`, que não foi afetada); (b) rodar a etapa Google para as ruas que sobrarem; (c) registrar o incidente em `etl_log` e descobrir quem disparou a carga completa às 15:06 UTC. | `select count(*) filter (where geom is not null) from itbi_transactions` volta a ≥ 30.011; consulta 7.9 ≥ 0,80. |
+| 1 | Fechada | Limiares de spread calibrados para P10–P90 com a faixa em P10–P95. | Feito em 2026-09-03: consulta 7.5 nas duas versões (P10–P90: mediana 24,0 %, P75 32,6 %, P90 42,2 %; P10–P95: 27,2 %, 36,6 %, 49,5 %). Limiares passam a 35/50/65 e os rótulos do PDF a 27/37/50. Se a decisão 15.3 voltar a P90, os valores são 30/40/55. | Fração de avaliações em "spread largo" volta ao patamar anterior à troca para P95. |
+| 2 | Alta | **Site público e motor divergem no cinto** (`getStreetOutlierLimits` só no site). | Remover a calibração por rua do site público e usar `getOutlierLimits(bairro, tipologia)` como o motor. | Mesmo endereço, janela e tipologia: `piso_m2`, `teto_m2` e `med_m2` idênticos no site e na avaliação. |
+| 3 | Fechada | Migration `20260903160000` (percentual ≥ 90 na RPC de raio). | Aplicada em 2026-09-03; filtro confirmado em `pg_get_functiondef`. Sem efeito prático até o item 0, porque a função depende de `geom`. | — |
+| 4 | Média | **Janela padrão de 12 meses não foi medida.** A consulta sobre `valuations.itbi_metadata` devolveu 0 linhas: nenhuma avaliação foi salva desde que a janela móvel entrou. | Exibir "janela solicitada 12 m, usada 24 m" quando `janela_expandida = true`; repetir a consulta quando houver 30 avaliações salvas. | Distribuição de `janela_meses`; se menos de 30 % fecham em 12, o padrão deveria ser 24. |
+| 5 | Alta | **Cinto de 3 anos / P99,5: quatro pares com teto defasado.** Consulta 7.3 sobre a base recarregada: Glória 17,2 % das escrituras cortadas (71 acima do teto), Santo Cristo 9,1 %, Centro 5,0 %, Flamengo 4,6 %; os outros 71 pares ficam em 1,1 % ou menos (55 em zero). Barra Olímpica não tem escrituras em 3 anos. | Regenerar com a consulta 7.4 (P1 e P99,5 ponderados, 3 anos) os pares Glória, Santo Cristo, Centro e Flamengo e atualizar o Apêndice B e `outlierLimits.ts`; mover Barra Olímpica para o fallback de 5 anos. | 7.3 reexecutada: nenhum par acima de 3 %. |
+| 6 | Bloqueada | **Fallback por raio.** As consultas 7.9, 7.9b e 7.10 não são executáveis sem `geom`. | Depende do item 0. Só depois: cobertura ≥ 80 % liga o fallback; spread do raio 300 m parecido com o do bairro remove o degrau de 300 m. | CSVs 7.9 e 7.10 versionados e decisão escrita. |
+| 7 | Média | **Duas escalas de rótulo para a mesma confiança** (nível 85/70/55; PDF 80/60/40). | Unificar nos limiares do nível e remover a escala paralela do PDF. | Um único conjunto de constantes usado nos dois lugares. |
+| 8 | Baixa | **Alerta de gap de anúncios (15 %) sem amostra.** | Manter até 30 avaliações com 3 ou mais anúncios; recalibrar pela distribuição observada. | Consulta 7.6 com n ≥ 30. |
+| 9 | Baixa | **Estatística central varia por tela** (mediana no motor, média ponderada nos painéis). | Mostrar a mediana ponderada ao lado da média em Pesquisa de Mercado e no Dashboard. | Todas as telas de preço exibem as duas grandezas com o mesmo rótulo. |
+| 10 | Baixa | **Repositório público no GitHub.** | Decisão do dono. | — |
+| 11 | Média | **Recargas completas sem registro.** A carga de 15:06 UTC não deixou linha em `etl_log`; sem isso, incidentes como o item 0 só aparecem quando alguém percebe o mapa vazio. | Fazer `sync-itbi-prefeitura` gravar início, fim, contagens e `registros_obsoletos_removidos` em `etl_log`; alertar quando `count(geom is not null)` cair. | Toda carga completa tem uma linha em `etl_log`. |
 
 ### 15.2 Referência para o Prime Circle: adotar, evitar, ajustar
 
@@ -923,7 +927,7 @@ Tudo abaixo decorre do corpo do documento. O desenvolvedor deve tratar esta list
 **Evitar (erros já encontrados na comparação):**
 
 - contar linhas da série inteira e apresentar como vendas (caso 1 da seção 16: "39" eram 115 escrituras em seis anos);
-- média simples de linhas (caso 4: erro de −1,8 % a +10,2 % por bairro, sem sinal previsível);
+- média simples de linhas (caso 4: erro de −1,1 % a +9,6 % por bairro, sem sinal previsível);
 - série completa sem janela para precificar hoje (Avenida do Pepê: R$ 15.673/m² em seis anos contra R$ 18.533/m² em 24 meses);
 - teto fixo de R$/m² igual para Leblon e Santa Cruz;
 - usar a amostra da rua para calibrar o cinto da própria rua (pendência 2 de 15.1: o Analytics também vai deixar de fazer isso no site público);
@@ -943,10 +947,10 @@ Tudo abaixo decorre do corpo do documento. O desenvolvedor deve tratar esta list
 
 | Decisão | Opções | Recomendação da auditoria |
 |---|---|---|
-| Topo da faixa: P95 ou P90 | P95 (vigente desde 2026-09-03) alarga a faixa e exige recalibrar o spread; P90 mantém a calibração de 2026-09-02 | P90 até o backtest dizer que a cobertura da faixa está baixa; P95 só com os limiares de spread recalibrados (pendência 1). |
+| Topo da faixa: P95 ou P90 | P95 (vigente) alarga o spread típico em 3,2 pontos na mediana e 7,3 no P90 das ruas (consulta 7.5, 2026-09-03); os limiares já estão recalibrados para P95 | Manter P95 com os limiares 35/50/65 até o backtest medir a cobertura da faixa; se voltar a P90, restaurar 30/40/55. A decisão fica reversível com uma constante. |
 | Janela padrão: 12 ou 24 meses | 12 expande sozinha na maioria das ruas; 24 fecha em mais casos com a mesma regra de 8 linhas | Medir (pendência 4) antes de decidir; a resposta está nos metadados das avaliações salvas. |
-| Fallback por raio | ligar com 100 m e 300 m; ligar só com 100 m; manter desligado | Depende das consultas 7.9 e 7.10 (pendência 6). Sem cobertura de geocodificação ≥ 80 %, manter desligado. |
-| Cinto: 3 anos com P99,5 ou 5 anos com P99 | vigente: 3 anos e P99,5 | Manter, desde que a pendência 5 mostre que o corte por par ficou entre 0 e 8 % como na calibração original. |
+| Fallback por raio | ligar com 100 m e 300 m; ligar só com 100 m; manter desligado | Manter desligado até a geocodificação ser recuperada (pendência 0) e as consultas 7.9 e 7.10 rodarem. |
+| Cinto: 3 anos com P99,5 ou 5 anos com P99 | vigente: 3 anos e P99,5 | Manter: 71 dos 78 pares cortam 1,1 % ou menos. Recalibrar os quatro pares defasados (pendência 5), que são os únicos acima de 3 %. |
 
 ### 15.4 Protocolo de decisão conjunta
 
@@ -963,11 +967,11 @@ Sem o passo 3, o que existe é uma comparação de métodos defensáveis, e mét
 
 ## 16. Casos de conferência (baseline de aceite)
 
-Todos apurados em 2026-09-03, via consultas executadas pelo Lovable sobre a base descrita na seção 1.1 (os números não foram reexecutados pela auditoria; servem como baseline a confirmar na primeira rodada de comparação). Filtros comuns a todas as consultas: `uso = 'Residencial' AND percentual_transferido >= 90 AND valor_m2 IS NOT NULL`. Percentis calculados por expansão de peso (`generate_series`). Tolerância de aceite: **±1%** em médias e medianas, **exato** em contagens.
+Apurados em 2026-09-03 sobre a base recarregada às 15h (seção 1.1), via consultas executadas pelo Lovable; entre parênteses, o valor da v1.0 (base da manhã), para rastreabilidade. Filtros comuns: `uso = 'Residencial' AND percentual_transferido >= 90 AND valor_m2 IS NOT NULL`. Percentis por expansão de peso (`generate_series`). Tolerância de aceite: ±1 % em médias e medianas, exato em contagens. Quando a base for recarregada de novo, os números mudam e a baseline precisa ser reapurada antes de qualquer comparação.
 
 ### Caso 1 — Avenida do Pepê (Barra da Tijuca), 5 janelas
 
-Este é o caso que explicou a divergência histórica entre os dois sistemas: o "39" reportado externamente era **contagem de linhas da série inteira** (2020–2026), enquanto o Analytics contava **escrituras** em outra janela. A coincidência numérica era acidental.
+Este caso explicou a divergência histórica entre os dois sistemas: o "39" reportado pela Prime Circle era contagem de linhas da série inteira (2020–2026), enquanto o Analytics contava escrituras em outra janela. A coincidência numérica era acidental.
 
 ```sql
 WITH base AS (
@@ -990,28 +994,29 @@ FROM expandida GROUP BY jan ORDER BY jan;
 
 | Janela | Registros | Escrituras | Média pond. | Mediana | P10 | P95 | Mín. bruto | Máx. bruto |
 |---:|---:|---:|---:|---:|---:|---:|---:|---:|
-| 12 m | 5 | 12 | 19.771 | 19.404 | 17.695 | 22.193 | 17.695 | 22.193 |
-| 24 m | 13 | 42 | 18.533 | 19.361 | 14.182 | 22.099 | 13.040 | 22.193 |
-| 36 m | 20 | 62 | 17.837 | 17.768 | 14.587 | 20.320 | 13.040 | 22.193 |
-| 48 m | 24 | 75 | 17.322 | 17.480 | 13.919 | 20.320 | 12.595 | 22.193 |
-| 60 m | 29 | 89 | 16.746 | 16.548 | 13.595 | 20.320 | 12.595 | 22.193 |
+| 12 m | 7 (5) | 18 (12) | 19.775 (19.771) | 19.361 (19.404) | 17.695 | 22.193 | 17.695 | 22.193 |
+| 24 m | 15 (13) | 48 (42) | 18.689 (18.533) | 19.319 (19.361) | 15.760 | 22.143 | 13.040 | 22.193 |
+| 36 m | 22 (20) | 68 (62) | 18.009 (17.837) | 17.995 (17.768) | 14.587 | 22.051 | 13.040 | 22.193 |
+| 48 m | 26 (24) | 81 (75) | 17.505 (17.322) | 17.695 (17.480) | 13.919 | 22.051 | 12.595 | 22.193 |
+| 60 m | 31 (29) | 95 (89) | 16.938 (16.746) | 17.175 (16.548) | 13.734 | 20.839 | 12.595 | 22.193 |
 
-Leitura: a média ponderada cai monotonicamente conforme a janela abre — comportamento esperado num mercado em alta. **Um sistema que reporta "39" para esta rua está contando linhas de 60+ meses e chamando de transações.**
+Leitura: a média ponderada cai monotonicamente conforme a janela abre, comportamento esperado num mercado em alta. Um sistema que reporta "39" para esta rua está contando linhas de 60 ou mais meses e chamando de transações.
 
 ### Caso 2 — Rua Desenhista Luiz Guimarães (Barra da Tijuca)
 
-**2a. Grafia na base** — prova de que a expansão de variantes é obrigatória:
+**2a. Grafia na base**, prova de que a expansão de variantes é obrigatória:
 
 | Grafia gravada | Registros | Escrituras |
 |---|---:|---:|
-| `RUA DESEN LUIZ GUIMARAES` | 27 | 69 |
+| `RUA DESEN LUIZ GUIMARAES` | 28 (27) | 71 (69) |
 
-Buscar por "Desenhista Luiz Guimarães" ou "Desenhista Luis Guimarães" **sem** as regras `DESENHISTA↔DESEN` e `LUIZ↔LUIS` retorna **zero linhas**.
+Buscar por "Desenhista Luiz Guimarães" ou "Desenhista Luis Guimarães" sem as regras `DESENHISTA↔DESEN` e `LUIZ↔LUIS` retorna zero linhas.
 
-**2b. Últimos 12 meses, Apartamento:** 4 registros, 8 escrituras.
+**2b. Últimos 12 meses, Apartamento:** 5 registros, 10 escrituras (era 4 / 8).
 
 | Mês | Escrituras | R$/m² | Valor |
 |---|---:|---:|---:|
+| 07/2026 | 2 | 9.880 | 1.304.210 |
 | 05/2026 | 2 | 9.360 | 1.235.568 |
 | 01/2026 | 2 | 8.811 | 969.260 |
 | 10/2025 | 2 | 9.362 | 1.235.817 |
@@ -1019,44 +1024,46 @@ Buscar por "Desenhista Luiz Guimarães" ou "Desenhista Luis Guimarães" **sem** 
 
 **2c. Série anual completa (média ponderada):**
 
-| Ano | Registros | Escrituras | Média ponderada |
-|---|---:|---:|---:|
-| 2020 | 3 | 10 | 7.592 |
-| 2021 | 7 | 20 | 7.839 |
-| 2022 | 4 | 11 | 8.156 |
-| 2023 | 5 | 11 | 8.152 |
-| 2024 | 3 | 7 | 7.914 |
-| 2025 | 3 | 6 | 8.766 |
-| 2026 | 2 | 4 | 9.086 |
+| Ano | Média ponderada |
+|---|---:|
+| 2020 | 7.592 |
+| 2021 | 7.839 |
+| 2022 | 8.156 |
+| 2023 | 8.152 |
+| 2024 | 7.914 |
+| 2025 | 8.766 |
+| 2026 | 9.351 (3 registros, 6 escrituras; era 9.086) |
 
-**Maior R$/m² já registrado nesta rua em 7 anos: R$ 9.362.** Nenhuma escritura acima de 9.400, em nenhum ano e em nenhuma janela. Uma faixa P10 8.450 / mediana 9.086 / P95 9.800 é exatamente o que a amostra sustenta — o P95 fica ligeiramente acima do maior bruto por efeito da deflação (seção 2.6). Qualquer sistema que apresente R$ 14.000/m² para esta rua **não está usando valor de escritura**.
+Maior R$/m² já registrado nesta rua em sete anos: R$ 9.880 (era 9.362). Nenhuma escritura acima de 9.900, em nenhum ano e em nenhuma janela. Qualquer sistema que apresente R$ 14.000/m² para esta rua não está usando valor de escritura. O P95 pode ficar ligeiramente acima do maior valor bruto por efeito da correção temporal (seção 2.6).
 
 ### Caso 3 — General Olyntho Pilar (variantes de grafia)
 
 | Grafia gravada | Bairro | Registros | Escrituras | Média pond. | Período |
 |---|---|---:|---:|---:|---|
-| `AVN GAL OLYNTHO PILLAR` | BARRA DA TIJUCA | 5 | 12 | 8.486 | 07/2021 – 08/2025 |
+| `AVN GAL OLYNTHO PILLAR` | BARRA DA TIJUCA | 5 | 12 | 8.486 | 07/2021 a 08/2025 |
 
-Requer simultaneamente `AVENIDA↔AVN`, `GENERAL↔GAL` e `PILAR↔PILLAR`. Nos últimos 12 meses esta rua **não tem transações** — o volume agregado que aparecia antes vinha do fallback para o bairro inteiro. Nesse caso o relatório deve declarar a origem `bairro` e aplicar a penalidade de −15 no score.
+Idêntico nas duas bases. Requer simultaneamente `AVENIDA↔AVN`, `GENERAL↔GAL` e `PILAR↔PILLAR`. Nos últimos 12 meses esta rua não tem transações: o volume que aparecia antes vinha do fallback para o bairro inteiro. Nesse caso o relatório deve declarar a origem `bairro` e aplicar a penalidade de −15 no score.
 
-### Caso 4 — Controle global (fora da Barra), últimos 12 meses
+### Caso 4 — Controle global (fora da Barra), últimos 12 meses, bairros com 400 ou mais escrituras
 
 Prova de que as regras são globais, não específicas da Barra da Tijuca.
 
-| Bairro | Registros | Escrituras | Média **ponderada** | Média simples (errada) | Erro |
+| Bairro | Registros | Escrituras | Média ponderada | Média simples (errada) | Erro |
 |---|---:|---:|---:|---:|---:|
-| Copacabana | 328 | 1.958 | **11.123** | 11.195 | −0,6% |
-| Barra da Tijuca | 323 | 1.616 | **12.066** | 10.950 | **+10,2%** |
-| Recreio dos Bandeirantes | 281 | 1.160 | **6.893** | 6.832 | +0,9% |
-| Tijuca | 262 | 1.050 | **6.096** | 6.156 | −1,0% |
-| Jacarepaguá | 94 | 842 | **7.234** | 6.842 | **+5,7%** |
-| Ipanema | 100 | 692 | **21.511** | 21.445 | +0,3% |
-| Camorim | 40 | 578 | **6.916** | 6.849 | +1,0% |
-| Botafogo | 137 | 562 | **11.493** | 11.704 | −1,8% |
-| Campo Grande | 155 | 482 | **3.380** | 3.267 | +3,5% |
-| Leblon | 134 | 426 | **23.032** | 23.249 | −0,9% |
+| Copacabana | 411 | 2.439 | **11.135** | 11.253 | −1,1 % |
+| Barra da Tijuca | 392 | 1.949 | **11.995** | 10.941 | **+9,6 %** |
+| Tijuca | 339 | 1.357 | **6.179** | 6.187 | −0,1 % |
+| Botafogo | 248 | 1.116 | **11.825** | 11.646 | +1,5 % |
+| Recreio dos Bandeirantes | 264 | 1.060 | **6.893** | 6.820 | +1,1 % |
+| Jacarepaguá | 108 | 952 | **7.221** | 6.833 | **+5,7 %** |
+| Ipanema | 127 | 871 | **21.810** | 21.481 | +1,5 % |
+| Flamengo | 138 | 748 | **11.718** | 11.150 | **+5,1 %** |
+| Camorim | 42 | 560 | **6.859** | 6.804 | +0,8 % |
+| Freguesia (Jacarepaguá) | 132 | 523 | **5.735** | 5.477 | **+4,7 %** |
+| Leblon | 167 | 521 | **23.280** | 23.506 | −1,0 % |
+| Centro | 100 | 455 | **6.970** | 6.526 | **+6,8 %** |
 
-O erro da média simples não é constante nem tem sinal previsível: depende de como as escrituras se distribuem entre agregados grandes e pequenos. Em Barra e Jacarepaguá é grande porque poucos agregados concentram muitas escrituras de alto valor.
+O erro da média simples não é constante nem tem sinal previsível: depende de como as escrituras se distribuem entre agregados grandes e pequenos. É grande onde poucos agregados concentram muitas escrituras de alto valor.
 
 ### Caso 5 — Cinto de outlier, Copacabana | Apartamento, 12 meses
 
@@ -1064,12 +1071,10 @@ Piso 5.189 / teto 26.609 (Apêndice B).
 
 | Escopo | Registros | Escrituras | Média pond. |
 |---|---:|---:|---:|
-| Sem cinto | 321 | 1.937 | 11.177 |
-| Com cinto | 321 | 1.937 | 11.177 |
+| Sem cinto | 403 | 2.416 | 11.182 |
+| Com cinto | 403 | 2.416 | 11.182 |
 
-Resultado idêntico — o cinto **não corta mercado legítimo** num bairro bem calibrado. É uma rede de segurança contra erro de digitação, não um filtro de mercado. Se o sistema externo obtiver números diferentes entre as duas linhas, seu cinto está mal calibrado.
-
----
+Resultado idêntico: o cinto não corta mercado legítimo num bairro bem calibrado. É uma rede de segurança contra erro de digitação, não um filtro de mercado. Se o sistema externo obtiver números diferentes entre as duas linhas, seu cinto está mal calibrado. Contraponto na mesma rodada: em Glória, Santo Cristo, Centro e Flamengo o cinto atual corta entre 4,6 % e 17,2 % das escrituras (pendência 5 da seção 15.1); nesses bairros o teto precisa ser regenerado antes de servir de baseline.
 
 ---
 
@@ -1103,7 +1108,7 @@ Resultado idêntico — o cinto **não corta mercado legítimo** num bairro bem 
 | `MARKET_GAP_CAP` | 35 | valuationCalculations.ts |
 | `ANUNCIO_GAP_ALERT_PCT` | 15 | valuationCalculations.ts |
 | `GLOBAL_CAPS` | ±0,35 | valuationCalculations.ts |
-| `SPREAD_NORMAL/WIDE/VERY_WIDE_PCT` | 30 / 40 / 55 | valuationCalculations.ts |
+| `SPREAD_NORMAL/WIDE/VERY_WIDE_PCT` | 35 / 50 / 65 (P95; com P90: 30 / 40 / 55) | valuationCalculations.ts |
 | `SAMPLE_SCORE_CAPS` | ≤2→40, ≤9→55, ≤29→75 | valuationCalculations.ts |
 | `MIN_ESCRITURAS_PARECER` | 3 | valuationCalculations.ts |
 | `BAIRRO_FALLBACK_PENALTY` | 15 | valuationCalculations.ts |
