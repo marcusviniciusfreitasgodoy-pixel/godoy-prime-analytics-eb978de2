@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.86.0";
+import { LIMITES_INGESTAO, validarFeatureItbi } from "../_shared/itbiIngestion.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -274,6 +275,7 @@ serve(async (req) => {
           clear_existing: clearExisting,
           periodo_inicio: periodoInicio,
           periodo_fim: periodoFim,
+          limites_ingestao: LIMITES_INGESTAO,
         },
       })
       .select('id')
@@ -318,8 +320,6 @@ serve(async (req) => {
       // Extrair dados nativos JSON (números já vêm corretos da API!)
       const valor = extractNumber(attrs['média_valor_transação']);
       const area = extractNumber(attrs['média_área_construída']);
-      const totalTransacoes = extractNumber(attrs['total_transações']) ?? 1;
-      const percentualTransferido = extractNumber(attrs['média_percentual_transferido']) ?? 100;
       const logradouro = extractString(attrs['logradouro']);
       const ano = extractNumber(attrs['ano_transação']);
       const mes = extractNumber(attrs['mês_transação']);
@@ -328,37 +328,19 @@ serve(async (req) => {
       const bairroApi = extractString(attrs['bairro']);
       const codbairroApi = extractString(attrs['codbairro']);
 
-      // Validar dados obrigatórios
-      if (!logradouro || valor === null || area === null || valor <= 0 || area <= 0) {
-        skippedInvalidData++;
+      // Regras de aceitação compartilhadas com sync-itbi-daily (_shared/itbiIngestion.ts)
+      const validacao = validarFeatureItbi({
+        valor, area, logradouro,
+        totalTransacoes: extractNumber(attrs['total_transações']),
+        percentualTransferido: extractNumber(attrs['média_percentual_transferido']),
+      });
+      if (!validacao.ok) {
+        if (validacao.motivo === 'dados_invalidos') skippedInvalidData++;
+        else if (validacao.motivo === 'percentual') skippedPercentual++;
+        else skippedOutliers++;
         continue;
       }
-
-      // Filtrar por percentual transferido >= 90%
-      if (percentualTransferido < 90) {
-        skippedPercentual++;
-        continue;
-      }
-
-      // Calcular valor/m²
-      const valorM2 = valor / area;
-
-      // Validar ranges razoáveis (menos restritivos)
-      // Área: 20 a 5000 m²
-      // Valor: R$ 100.000 a R$ 200.000.000
-      // Valor/m²: R$ 500 a R$ 300.000
-      if (area < 20 || area > 5000) {
-        skippedOutliers++;
-        continue;
-      }
-      if (valor < 100000 || valor > 200000000) {
-        skippedOutliers++;
-        continue;
-      }
-      if (valorM2 < 500 || valorM2 > 300000) {
-        skippedOutliers++;
-        continue;
-      }
+      const { valor: valorOk, area: areaOk, totalTransacoes, percentualTransferido } = validacao.feature;
 
       // Montar data
       let dataTransacao: string;
@@ -372,12 +354,12 @@ serve(async (req) => {
       const bairroFinal = bairroApi?.toUpperCase() || BAIRRO_CODES[codbairroApi || ''] || 'DESCONHECIDO';
 
       transacoes.push({
-        logradouro: logradouro.toUpperCase(),
+        logradouro: logradouro!.toUpperCase(),
         numero: null,
         complemento: null,
         bairro: bairroFinal,
-        valor_transacao: Math.round(valor * 100) / 100,
-        area_m2: Math.round(area * 100) / 100,
+        valor_transacao: Math.round(valorOk * 100) / 100,
+        area_m2: Math.round(areaOk * 100) / 100,
         data_transacao: dataTransacao,
         uso: classificarUso(uso),
         tipologia: classificarTipologia(tipologia),
