@@ -67,11 +67,11 @@ const PRICE_RANGES = [
 
 // Períodos disponíveis
 const PERIOD_OPTIONS = [
-  { value: 3, label: 'Últimos 3 meses' },
-  { value: 6, label: 'Últimos 6 meses' },
-  { value: 12, label: 'Último ano' },
-  { value: 24, label: 'Últimos 2 anos' },
-  { value: 36, label: 'Últimos 3 anos' },
+  { value: 12, label: 'Últimos 12 meses' },
+  { value: 24, label: 'Últimos 24 meses' },
+  { value: 36, label: 'Últimos 36 meses' },
+  { value: 48, label: 'Últimos 48 meses' },
+  { value: 60, label: 'Últimos 60 meses' },
 ];
 
 // Cores por faixa de preço/m²
