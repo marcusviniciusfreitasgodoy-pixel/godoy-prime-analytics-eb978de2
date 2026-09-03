@@ -800,11 +800,11 @@ export function EmbeddedAdvancedSearch({ defaultBairro = "" }: EmbeddedAdvancedS
               </div>
             </div>
 
-            {/* Card 2: Transações no Período */}
+            {/* Card 2: Escrituras e registros ITBI */}
             <div className="p-3 rounded-lg border bg-card">
               <div className="flex items-center gap-2 mb-2">
                 <BarChart3 className="h-4 w-4 text-primary" />
-                <span className="text-xs font-medium text-muted-foreground">Transações no Período</span>
+                <span className="text-xs font-medium text-muted-foreground">Escrituras e registros ITBI</span>
               </div>
               <div className="space-y-1.5">
                 <div className="flex items-center justify-between">
