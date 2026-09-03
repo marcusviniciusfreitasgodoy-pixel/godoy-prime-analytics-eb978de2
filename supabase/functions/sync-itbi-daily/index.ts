@@ -1,4 +1,5 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
+import { validarFeatureItbi } from '../_shared/itbiIngestion.ts'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -157,7 +158,12 @@ Deno.serve(async (req) => {
 
     console.log(`[CRON] Registros recentes (últimos 2 meses): ${recentRecords.length}`)
 
-    // Transformar registros
+    // Transformar registros com as MESMAS regras de aceitação da carga
+    // completa (_shared/itbiIngestion.ts): percentual >= 90, faixas de área,
+    // valor e R$/m², e peso (total_transacoes) gravado. Até 2026-09-03 esta
+    // função não filtrava nada e não gravava peso nem percentual, então os
+    // dois meses mais recentes entravam com total_transacoes = 1.
+    const rejeitados: Record<string, number> = { dados_invalidos: 0, percentual: 0, fora_da_faixa: 0 }
     const validRecords = recentRecords
       .map((feature: any) => {
         const attrs = feature.attributes || {}
@@ -171,10 +177,16 @@ Deno.serve(async (req) => {
         const uso = extractString(attrs['uso'])
         const tipologia = extractString(attrs['principais_tipologias'])
 
-        // Validar dados essenciais
-        if (!valor || !area || valor <= 0 || area <= 0 || !logradouro) {
+        const validacao = validarFeatureItbi({
+          valor, area, logradouro,
+          totalTransacoes: extractNumber(attrs['total_transações']),
+          percentualTransferido: extractNumber(attrs['média_percentual_transferido']),
+        })
+        if (!validacao.ok) {
+          rejeitados[validacao.motivo]++
           return null
         }
+        const { valor: valorOk, area: areaOk, totalTransacoes, percentualTransferido } = validacao.feature
 
         // Construir data da transação
         let dataTransacao = new Date().toISOString().split('T')[0]
@@ -184,20 +196,22 @@ Deno.serve(async (req) => {
 
         // NÃO incluir valor_m2 - é coluna gerada automaticamente
         return {
-          logradouro: logradouro.toUpperCase().substring(0, 500),
+          logradouro: logradouro!.toUpperCase().substring(0, 500),
           numero: null,
           complemento: null,
           bairro: bairro ? bairro.trim().toUpperCase().substring(0, 100) : null,
-          valor_transacao: Math.round(valor * 100) / 100,
-          area_m2: Math.round(area * 100) / 100,
+          valor_transacao: Math.round(valorOk * 100) / 100,
+          area_m2: Math.round(areaOk * 100) / 100,
           data_transacao: dataTransacao,
           uso: classificarUso(uso),
-          tipologia: classificarTipologia(tipologia)
+          tipologia: classificarTipologia(tipologia),
+          total_transacoes: totalTransacoes,
+          percentual_transferido: Math.round(percentualTransferido * 100) / 100,
         }
       })
       .filter(Boolean)
 
-    console.log(`[CRON] Registros válidos: ${validRecords.length}`)
+    console.log(`[CRON] Registros válidos: ${validRecords.length}; rejeitados: ${JSON.stringify(rejeitados)}`)
 
     if (validRecords.length === 0) {
       return new Response(JSON.stringify({
