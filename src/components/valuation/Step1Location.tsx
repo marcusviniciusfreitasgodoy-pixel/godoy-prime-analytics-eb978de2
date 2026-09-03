@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { MapPin, TrendingUp, TrendingDown, Minus, Search, Building2, Plus, X, Calculator, CheckCircle2, Database, Loader2, AlertTriangle, Info, ExternalLink, HelpCircle, BarChart3 } from "lucide-react";
 import {
   Tooltip,
@@ -774,9 +775,31 @@ export function Step1Location({ state, updateState, combined, onAutoValidated }:
       {state.itbiData && (
         <Card className="bg-muted/30">
           <CardContent className="pt-4 sm:pt-5 px-3 sm:px-6 space-y-3 sm:space-y-4">
-            <div className="flex items-center gap-2">
-              <Calculator className="h-4 w-4 text-muted-foreground" />
-              <Label className="text-xs sm:text-sm">Faixa de Preços por m²</Label>
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <div className="flex items-center gap-2">
+                <Calculator className="h-4 w-4 text-muted-foreground" />
+                <Label className="text-xs sm:text-sm">Faixa de Preços por m²</Label>
+              </div>
+              {/* Janela de análise: padrão 12 meses, ampliável até 60 meses. */}
+              <div className="flex items-center gap-1.5">
+                <Label className="text-[10px] sm:text-xs text-muted-foreground">Período</Label>
+                <Select
+                  value={String(janelaMeses)}
+                  onValueChange={(v) => handleJanelaChange(Number(v) as WindowMonths)}
+                  disabled={autoFetchLoading}
+                >
+                  <SelectTrigger className="h-8 w-[150px] text-xs">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {WINDOW_MONTHS_OPTIONS.map((m) => (
+                      <SelectItem key={m} value={String(m)} className="text-xs">
+                        Últimos {m} meses{m === DEFAULT_WINDOW_MONTHS ? " (padrão)" : ""}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
 
             {/* Grid de preços - responsivo */}
@@ -819,6 +842,10 @@ export function Step1Location({ state, updateState, combined, onAutoValidated }:
               if (m.data_source === "bairro") avisos.push("Sem transações na rua nem nas proximidades: amostra do bairro inteiro.");
               if (m.data_source === "raio100" || m.data_source === "raio300") avisos.push(`Rua com menos de ${MIN_ROWS_SCOPE} registros: amostra ampliada para ${m.raio_m} m em torno do logradouro.`);
               if (m.tipologia_fallback) avisos.push("Poucas transações da tipologia do imóvel: amostra inclui casas e apartamentos.");
+              if (m.janela_expandida && m.janela_meses)
+                avisos.push(
+                  `Poucas transações em ${m.janela_meses_solicitada} meses: janela ampliada automaticamente para ${m.janela_meses} meses.`
+                );
               if (m.truncado) avisos.push("Amostra parcial: a consulta atingiu o limite de registros e considerou os mais recentes.");
               return (
                 <div className="text-[10px] sm:text-xs text-muted-foreground space-y-1">
@@ -826,7 +853,7 @@ export function Step1Location({ state, updateState, combined, onAutoValidated }:
                     Fonte: {fonteLabel[m.data_source] ?? m.data_source}
                     {m.bairros_incluidos.length > 1 ? ` (${m.bairros_incluidos.join(", ")})` : ""}
                     {" · "}Tipologia: {m.tipologia_filtro || "todas (residencial)"}
-                    {" · "}Janela: {fmtData(m.janela_inicio)} a {fmtData(m.janela_fim)}
+                    {" · "}Janela: últimos {m.janela_meses ?? janelaMeses} meses ({fmtData(m.janela_inicio)} a {fmtData(m.janela_fim)})
                     {m.ano_corrente_incluido ? " (inclui ano corrente)" : ""}
                     {" · "}{m.linhas_agregadas} registros agregados
                     {m.linhas_descartadas > 0 ? `, ${m.linhas_descartadas} descartados` : ""}
