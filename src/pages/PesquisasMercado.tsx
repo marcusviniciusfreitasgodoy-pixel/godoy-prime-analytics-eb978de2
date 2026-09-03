@@ -177,7 +177,7 @@ export default function PesquisasMercado() {
 
   const transactionExportSummary = [
     { label: 'Total de Logradouros', value: totalTransactionRows },
-    { label: 'Total de Transações', value: totalTransactions },
+    { label: 'Escrituras Reais (transações)', value: totalTransactions },
   ];
 
   const exportTransactionResults = () => {
@@ -225,8 +225,8 @@ export default function PesquisasMercado() {
       data: transactionResult,
       columns: [
         { key: 'microbairro', header: 'Logradouro', width: 40, format: 'text' },
-        { key: 'total_transacoes', header: 'Total Transações', width: 18, format: 'number' },
-        { key: 'preco_medio_m2', header: 'Preço Médio R$/m²', width: 20, format: 'currency' },
+         { key: 'total_transacoes', header: 'Escrituras', width: 18, format: 'number' },
+         { key: 'preco_medio_m2', header: 'Preço Médio R$/m²', width: 20, format: 'currency' },
       ],
       summary: transactionExportSummary,
     });
@@ -255,9 +255,9 @@ export default function PesquisasMercado() {
       filters: transactionExportFilters,
       data: transactionResult,
       columns: [
-        { key: 'microbairro', header: 'Logradouro', format: 'text' },
-        { key: 'total_transacoes', header: 'Transações', format: 'number' },
-        { key: 'preco_medio_m2', header: 'Preço Médio/m²', format: 'currency' },
+         { key: 'microbairro', header: 'Logradouro', format: 'text' },
+         { key: 'total_transacoes', header: 'Escrituras', format: 'number' },
+         { key: 'preco_medio_m2', header: 'Preço Médio/m²', format: 'currency' },
       ],
       summary: [
         ...transactionExportSummary,
@@ -691,8 +691,8 @@ export default function PesquisasMercado() {
                       {viewMode === 'list' 
                         ? `Exibindo ${Math.min(visibleCount, transactionResult.length)} de ${(transactionResult as any).__totalLogradouros || transactionResult.length} logradouros.`
                         : viewMode === 'chart'
-                        ? `Top 15 logradouros por ${chartMetric === 'transacoes' ? 'número de transações' : 'preço médio/m²'}.`
-                        : `Visualização geográfica das transações em ${transacaoBairro}.`
+                         ? `Top 15 logradouros por ${chartMetric === 'transacoes' ? 'número de escrituras' : 'preço médio/m²'}.`
+                         : `Visualização geográfica dos registros ITBI em ${transacaoBairro}.`
                       }
                     </p>
                   </div>
@@ -769,8 +769,8 @@ export default function PesquisasMercado() {
                                   return (
                                     <div className="bg-popover border border-border rounded-lg p-3 shadow-lg">
                                       <p className="font-medium text-foreground text-sm">{data.fullName}</p>
-                                      <p className="text-xs text-muted-foreground">{data.transacoes} transações</p>
-                                      <p className="text-xs text-accent">R$ {data.precoM2?.toLocaleString('pt-BR')}/m²</p>
+                                       <p className="text-xs text-muted-foreground">{data.transacoes} escrituras</p>
+                                       <p className="text-xs text-accent">R$ {data.precoM2?.toLocaleString('pt-BR')}/m²</p>
                                     </div>
                                   );
                                 }
@@ -808,11 +808,11 @@ export default function PesquisasMercado() {
                                 <p className="font-medium text-foreground text-sm">{item.microbairro}</p>
                                 <div className="flex items-center gap-1.5">
                                   <p className="text-xs text-muted-foreground">
-                                    {item.total_transacoes} transações
-                                  </p>
-                                  {item.total_transacoes > 1 && (
-                                    <Badge variant="outline" className="text-[10px] px-1.5 py-0 h-4 bg-amber-500/10 text-amber-600 border-amber-500/30">
-                                      média agregada
+                                     {item.total_transacoes} escrituras
+                                   </p>
+                                   {item.total_transacoes > 1 && (
+                                     <Badge variant="outline" className="text-[10px] px-1.5 py-0 h-4 bg-amber-500/10 text-amber-600 border-amber-500/30">
+                                       média agregada
                                     </Badge>
                                   )}
                                 </div>

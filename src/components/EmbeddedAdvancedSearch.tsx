@@ -400,8 +400,8 @@ export function EmbeddedAdvancedSearch({ defaultBairro = "" }: EmbeddedAdvancedS
   if (fuzzyCorrection) locationExportFilters['Busca Corrigida'] = `${fuzzyCorrection.original} → ${fuzzyCorrection.corrected}`;
 
   const locationExportSummary = [
-    { label: 'Total de Registros Agregados', value: realTotalRegistros.toLocaleString('pt-BR') },
-    { label: 'Total de Transações Reais', value: realTotalTransacoes.toLocaleString('pt-BR') },
+    { label: 'Registros ITBI (agregações mensais)', value: realTotalRegistros.toLocaleString('pt-BR') },
+    { label: 'Escrituras Reais (transações)', value: realTotalTransacoes.toLocaleString('pt-BR') },
     { label: 'Registros Exibidos na Tabela', value: `${results?.length.toLocaleString('pt-BR') || '0'} de ${realTotalRegistros.toLocaleString('pt-BR')}` },
     { label: 'Média do Período (R$/m²)', value: formatCurrency(avgValueM2) },
     { label: 'R$/m² Atual (últimos 3 meses)', value: currentValueM2 != null ? formatCurrency(currentValueM2) : 'Sem dados recentes' },
@@ -431,7 +431,7 @@ export function EmbeddedAdvancedSearch({ defaultBairro = "" }: EmbeddedAdvancedS
         { key: 'valor_transacao', header: 'Valor Médio', width: 18, format: 'currency' },
         { key: 'area_m2', header: 'Área (m²)', width: 12, format: 'number' },
         { key: 'valor_m2', header: 'R$/m²', width: 15, format: 'currency' },
-        { key: 'total_transacoes', header: 'Transações', width: 12, format: 'number' },
+        { key: 'total_transacoes', header: 'Escrituras', width: 12, format: 'number' },
       ],
       summary: locationExportSummary,
     });
@@ -458,7 +458,7 @@ export function EmbeddedAdvancedSearch({ defaultBairro = "" }: EmbeddedAdvancedS
         { key: 'data_transacao', header: 'Data', format: 'text' },
         { key: 'valor_transacao', header: 'Valor Médio', format: 'currency' },
         { key: 'valor_m2', header: 'R$/m²', format: 'currency' },
-        { key: 'total_transacoes', header: 'Transações', format: 'number' },
+        { key: 'total_transacoes', header: 'Escrituras', format: 'number' },
       ],
       summary: locationExportSummary,
     });
@@ -800,19 +800,19 @@ export function EmbeddedAdvancedSearch({ defaultBairro = "" }: EmbeddedAdvancedS
               </div>
             </div>
 
-            {/* Card 2: Transações no Período */}
+            {/* Card 2: Escrituras e registros ITBI */}
             <div className="p-3 rounded-lg border bg-card">
               <div className="flex items-center gap-2 mb-2">
                 <BarChart3 className="h-4 w-4 text-primary" />
-                <span className="text-xs font-medium text-muted-foreground">Transações no Período</span>
+                <span className="text-xs font-medium text-muted-foreground">Escrituras e registros ITBI</span>
               </div>
               <div className="space-y-1.5">
                 <div className="flex items-center justify-between">
-                  <span className="text-xs text-muted-foreground">Total Transações</span>
+                  <span className="text-xs text-muted-foreground">Escrituras Reais</span>
                   <span className="font-semibold text-sm">{realTotalTransacoes.toLocaleString('pt-BR')}</span>
                 </div>
                 <div className="flex items-center justify-between">
-                  <span className="text-xs text-muted-foreground">Registros Agregados</span>
+                  <span className="text-xs text-muted-foreground">Registros ITBI (agregações)</span>
                   <span className="text-sm text-muted-foreground">{realTotalRegistros.toLocaleString('pt-BR')}</span>
                 </div>
                 <div className="flex items-center justify-between">
@@ -902,7 +902,7 @@ export function EmbeddedAdvancedSearch({ defaultBairro = "" }: EmbeddedAdvancedS
                   <TableHead className="text-xs">Valor Médio</TableHead>
                   <TableHead className="text-xs hidden sm:table-cell">Área</TableHead>
                   <TableHead className="text-xs">R$/m²</TableHead>
-                  <TableHead className="text-xs text-center">Trans.</TableHead>
+                  <TableHead className="text-xs text-center">Escrit.</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -942,7 +942,7 @@ export function EmbeddedAdvancedSearch({ defaultBairro = "" }: EmbeddedAdvancedS
           <div className="flex items-start gap-2 mt-3 p-3 rounded-md bg-muted/50">
             <Info className="h-4 w-4 text-muted-foreground mt-0.5 flex-shrink-0" />
             <p className="text-xs text-muted-foreground leading-relaxed">
-              <strong>Como interpretar os resultados:</strong> Cada linha representa um registro mensal agregado da Prefeitura, não uma transação individual. O mesmo logradouro pode aparecer múltiplas vezes quando há registros em meses distintos ou com tipologias/áreas diferentes. A coluna "Trans." indica quantas escrituras reais compõem cada registro.
+              <strong>Como interpretar os resultados:</strong> Cada linha representa um registro mensal agregado da Prefeitura, não uma transação individual. O mesmo logradouro pode aparecer múltiplas vezes quando há registros em meses distintos ou com tipologias/áreas diferentes. A coluna "Escrit." indica quantas escrituras reais compõem cada registro.
             </p>
           </div>
         </div>
@@ -981,7 +981,7 @@ export function EmbeddedAdvancedSearch({ defaultBairro = "" }: EmbeddedAdvancedS
               <div className="p-3 bg-blue-50 dark:bg-blue-950/30 rounded-lg border border-blue-200 dark:border-blue-800">
                 <div className="text-xs text-blue-800 dark:text-blue-200">
                   <strong>ℹ️ Como interpretar:</strong> Os dados oficiais são consolidados mensalmente. 
-                  O campo "<strong>Qtd Trans.</strong>" indica quantas escrituras compõem cada registro agregado. 
+                  O campo "<strong>Escrituras</strong>" indica quantas escrituras compõem cada registro agregado. 
                   Os valores de R$/m², Área e Valor são <strong>médias ponderadas</strong> das transações daquele período.
                 </div>
               </div>
@@ -995,7 +995,7 @@ export function EmbeddedAdvancedSearch({ defaultBairro = "" }: EmbeddedAdvancedS
                   </div>
                 </div>
                 <div className="text-center">
-                  <div className="text-xs text-muted-foreground">Qtd. Transações</div>
+                  <div className="text-xs text-muted-foreground">Escrituras no registro</div>
                   <div className="font-semibold text-sm text-blue-600">{selectedTransaction.total_transacoes}</div>
                 </div>
                 <div className="text-center">
@@ -1035,7 +1035,7 @@ export function EmbeddedAdvancedSearch({ defaultBairro = "" }: EmbeddedAdvancedS
                       <TableHeader className="sticky top-0 bg-background">
                         <TableRow>
                           <TableHead className="text-xs">Data</TableHead>
-                          <TableHead className="text-xs text-center">Qtd Trans.</TableHead>
+                          <TableHead className="text-xs text-center">Escrituras</TableHead>
                           <TableHead className="text-xs">Valor Médio</TableHead>
                           <TableHead className="text-xs">Área Média</TableHead>
                           <TableHead className="text-xs">R$/m²</TableHead>

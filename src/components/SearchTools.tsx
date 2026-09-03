@@ -175,12 +175,12 @@ export function SearchTools({ bairro = "BARRA DA TIJUCA", vistoriaData }: Search
       data: transactionResult,
       columns: [
         { key: 'microbairro', header: 'Logradouro', width: 40, format: 'text' },
-        { key: 'total_transacoes', header: 'Total Transações', width: 18, format: 'number' },
-        { key: 'preco_medio_m2', header: 'Preço Médio R$/m²', width: 20, format: 'currency' },
-      ],
-      summary: [
-        { label: 'Total de Logradouros', value: transactionResult.length },
-        { label: 'Total de Transações', value: transactionResult.reduce((sum, r) => sum + r.total_transacoes, 0) },
+         { key: 'total_transacoes', header: 'Escrituras', width: 18, format: 'number' },
+         { key: 'preco_medio_m2', header: 'Preço Médio R$/m²', width: 20, format: 'currency' },
+       ],
+       summary: [
+         { label: 'Total de Logradouros', value: transactionResult.length },
+         { label: 'Escrituras Reais (transações)', value: transactionResult.reduce((sum, r) => sum + r.total_transacoes, 0) },
       ],
     });
 

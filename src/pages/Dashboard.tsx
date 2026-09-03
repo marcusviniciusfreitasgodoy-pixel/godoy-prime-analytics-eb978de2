@@ -138,16 +138,16 @@ export default function Dashboard() {
             { key: 'valor_m2', header: 'R$/m²', width: 15, format: 'currency' },
           ],
           summary: [
-            { label: 'Total de Registros', value: data.length },
-            { label: 'Total de Escrituras', value: data.reduce((s, r) => s + (r.total_transacoes || 1), 0) },
-            { label: 'Valor Total', value: totalValue },
-            { label: 'Média Ponderada R$/m²', value: avgValueM2 },
-          ],
-        });
-        trackExport('dashboard_xlsx');
-        toast({
-          title: "Exportação concluída",
-          description: `${data.length} transações exportadas para Excel.`,
+             { label: 'Registros ITBI (agregações mensais)', value: data.length },
+             { label: 'Escrituras Reais (transações)', value: data.reduce((s, r) => s + (r.total_transacoes || 1), 0) },
+             { label: 'Valor Total', value: totalValue },
+             { label: 'Média Ponderada R$/m²', value: avgValueM2 },
+           ],
+         });
+         trackExport('dashboard_xlsx');
+         toast({
+           title: "Exportação concluída",
+           description: `${data.length} registros ITBI exportados para Excel`,
         });
       } else {
         toast({
@@ -218,10 +218,10 @@ export default function Dashboard() {
           title: 'Backup Completo - Base Oficial Prefeitura RJ',
           subtitle: `Godoy Prime Analytics - Exportado em ${new Date().toLocaleDateString('pt-BR')}`,
           filters: {
-            'Total de Registros': data.length.toLocaleString('pt-BR'),
-            'Total de Transações': totalTransacoes.toLocaleString('pt-BR'),
-            'Bairros': bairrosUnicos.toLocaleString('pt-BR'),
-            'Período': `${data[data.length - 1]?.data_transacao || 'N/A'} a ${data[0]?.data_transacao || 'N/A'}`,
+             'Registros ITBI (agregações mensais)': data.length.toLocaleString('pt-BR'),
+             'Escrituras Reais (transações)': totalTransacoes.toLocaleString('pt-BR'),
+             'Bairros': bairrosUnicos.toLocaleString('pt-BR'),
+             'Período': `${data[data.length - 1]?.data_transacao || 'N/A'} a ${data[0]?.data_transacao || 'N/A'}`,
           },
           data,
           columns: [
@@ -235,12 +235,12 @@ export default function Dashboard() {
             { key: 'valor_transacao', header: 'Valor Total', width: 18, format: 'currency' },
             { key: 'area_m2', header: 'Área (m²)', width: 12, format: 'number' },
             { key: 'valor_m2', header: 'R$/m²', width: 15, format: 'currency' },
-            { key: 'total_transacoes', header: 'Qtd Trans.', width: 10, format: 'number' },
+            { key: 'total_transacoes', header: 'Escrituras', width: 10, format: 'number' },
             { key: 'percentual_transferido', header: '% Transf.', width: 10, format: 'number' },
           ],
           summary: [
-            { label: 'Total de Registros Agregados', value: data.length },
-            { label: 'Total de Transações Reais', value: totalTransacoes },
+            { label: 'Registros ITBI (agregações mensais)', value: data.length },
+            { label: 'Escrituras Reais (transações)', value: totalTransacoes },
             { label: 'Total de Bairros', value: bairrosUnicos },
           ],
         });

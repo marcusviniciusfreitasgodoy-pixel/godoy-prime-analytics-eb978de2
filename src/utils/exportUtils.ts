@@ -88,11 +88,11 @@ export function exportToXLSX(options: ExportXLSXOptions) {
     summaryRows.push([]);
   }
   
-  // Info do relatório
-  summaryRows.push(['INFORMAÇÕES DO RELATÓRIO']);
-  summaryRows.push(['Total de Registros', data.length.toString()]);
-  summaryRows.push(['Fonte de Dados', 'Transações Oficiais - Prefeitura do Rio de Janeiro']);
-  summaryRows.push(['Data de Geração', new Date().toLocaleString('pt-BR')]);
+   // Info do relatório
+   summaryRows.push(['INFORMAÇÕES DO RELATÓRIO']);
+   summaryRows.push(['Registros ITBI (agregações mensais)', data.length.toString()]);
+   summaryRows.push(['Fonte de Dados', 'Transações Oficiais - Prefeitura do Rio de Janeiro']);
+   summaryRows.push(['Data de Geração', new Date().toLocaleString('pt-BR')]);
   summaryRows.push([]);
   summaryRows.push(['CONTATO']);
   summaryRows.push([`Godoy Prime Realty - ${CONTACT_INFO.creci}`]);
@@ -142,8 +142,8 @@ export function exportToXLSX(options: ExportXLSXOptions) {
     [],
     ['IMPORTANTE: Dados Agregados'],
     ['Cada registro (linha) representa dados AGREGADOS por logradouro e período mensal, NÃO transações individuais.'],
-    ['A coluna "Transações" indica quantas transações reais compõem cada agregação.'],
-    ['Exemplo: Um registro com "12" na coluna Transações representa a média de 12 transações reais naquele logradouro/mês.'],
+    ['A coluna "Escrituras" indica quantas escrituras reais compõem cada registro agregado.'],
+    ['Exemplo: um registro com "12" na coluna Escrituras representa a média de 12 escrituras reais naquele logradouro/mês.'],
     [],
     ['Critérios de Filtragem'],
     ['• Percentual de transferência ≥ 90%'],
@@ -152,7 +152,7 @@ export function exportToXLSX(options: ExportXLSXOptions) {
     [],
     ['Metodologia de Cálculo'],
     ['• Valor Médio: Média dos valores de transação por agregação'],
-    ['• Total de Transações Reais: Soma da coluna "Transações" (representa o número real de transações)'],
+    ['• Escrituras Reais (transações): soma da coluna "Escrituras" — este é o número real de negócios. A contagem de linhas NÃO é o número de transações.'],
     ['• Média R$/m²: Média ponderada do valor por metro quadrado'],
     [],
     ['Limitações'],
