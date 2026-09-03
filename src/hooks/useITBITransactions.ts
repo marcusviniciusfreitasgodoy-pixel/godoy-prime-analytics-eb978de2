@@ -228,52 +228,46 @@ export function useMicrobairroDetalhado(bairro: string = 'BARRA DA TIJUCA') {
         }
       });
 
+      type Acc = { valor: number; peso: number };
+      const novoAcc = (): Acc => ({ valor: 0, peso: 0 });
+      const somar = (a: Acc, valor: number, peso: number) => {
+        a.valor += valor * peso;
+        a.peso += peso;
+      };
+      const media = (a: Acc) => (a.peso > 0 ? Math.round(a.valor / a.peso) : 0);
+
       const grouped = (transactions || []).reduce((acc, t) => {
         const micro = t.logradouro;
         const transCount = t.total_transacoes || 1;
-        
+
         if (!acc[micro]) {
           acc[micro] = {
-            total: [],
-            apartamentos: [],
-            casas: [],
+            total: novoAcc(),
+            apartamentos: novoAcc(),
+            casas: novoAcc(),
             totalTransacoes: 0,
           };
         }
-        
-        acc[micro].total.push(t.valor_m2!);
+
+        somar(acc[micro].total, t.valor_m2!, transCount);
         acc[micro].totalTransacoes += transCount;
-        
+
         if (t.tipologia?.toLowerCase().includes('apartamento')) {
-          acc[micro].apartamentos.push(t.valor_m2!);
+          somar(acc[micro].apartamentos, t.valor_m2!, transCount);
         } else if (t.tipologia?.toLowerCase().includes('casa')) {
-          acc[micro].casas.push(t.valor_m2!);
+          somar(acc[micro].casas, t.valor_m2!, transCount);
         }
-        
+
         return acc;
-      }, {} as Record<string, { total: number[], apartamentos: number[], casas: number[], totalTransacoes: number }>);
+      }, {} as Record<string, { total: Acc; apartamentos: Acc; casas: Acc; totalTransacoes: number }>);
 
       const result = Object.entries(grouped).map(([microbairro, dados]) => {
-        const valor_m2_apt = dados.apartamentos.length > 0
-          ? Math.round(dados.apartamentos.reduce((sum, v) => sum + v, 0) / dados.apartamentos.length)
-          : 0;
-        
-        const valor_m2_casa = dados.casas.length > 0
-          ? Math.round(dados.casas.reduce((sum, v) => sum + v, 0) / dados.casas.length)
-          : 0;
+        const valor_m2_apt = media(dados.apartamentos);
+        const valor_m2_casa = media(dados.casas);
 
-        let valor_m2: number;
-        if (valor_m2_apt > 0 && valor_m2_casa > 0) {
-          valor_m2 = Math.round((valor_m2_apt + valor_m2_casa) / 2);
-        } else if (valor_m2_apt > 0) {
-          valor_m2 = valor_m2_apt;
-        } else if (valor_m2_casa > 0) {
-          valor_m2 = valor_m2_casa;
-        } else {
-          valor_m2 = Math.round(
-            dados.total.reduce((sum, v) => sum + v, 0) / dados.total.length
-          );
-        }
+        // Valor geral: média ponderada por escrituras de TODAS as tipologias
+        // (nunca a média aritmética entre apartamento e casa, que ignora o peso de cada amostra)
+        const valor_m2 = media(dados.total);
 
         // Verificar se é código técnico e buscar nome do condomínio
         const isTechCode = isTechnicalCode(microbairro);
