@@ -99,6 +99,7 @@ export function useITBITransactions() {
   });
 }
 
+
 export function useMicrobairroRanking(bairro: string = 'BARRA DA TIJUCA') {
   const { isDemo } = useDemo();
   
@@ -200,7 +201,7 @@ export function useMicrobairroRanking(bairro: string = 'BARRA DA TIJUCA') {
 
 export function useMicrobairroDetalhado(bairro: string = 'BARRA DA TIJUCA') {
   return useQuery<MicrobairroDetalhado[]>({
-    queryKey: ['microbairro-detalhado-v7', bairro],
+    queryKey: ['microbairro-detalhado-v8', bairro],
     queryFn: async () => {
       const twelveMonthsAgo = new Date();
       twelveMonthsAgo.setMonth(twelveMonthsAgo.getMonth() - 12);
@@ -216,6 +217,7 @@ export function useMicrobairroDetalhado(bairro: string = 'BARRA DA TIJUCA') {
         .ilike('bairro', bairro)
         .not('valor_m2', 'is', null)
         .lte('valor_m2', outlierLimit)
+        .gte('percentual_transferido', 90)
         .not('logradouro', 'is', null)
         .gte('data_transacao', startDate)
         .limit(5000);

@@ -29,6 +29,7 @@ import { BairroSelector } from "@/components/BairroSelector";
 import { useBairro } from "@/contexts/BairroContext";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { supabase } from "@/integrations/supabase/client";
+import type { Database as SupabaseSchema } from "@/integrations/supabase/types";
 import { exportToCSV, exportToXLSX } from "@/utils/exportUtils";
 import { exportDashboardPDF, exportDashboardXLSX } from "@/utils/dashboardExport";
 import { exportVideoScriptPdf } from "@/utils/videoScriptPdfExport";
@@ -89,20 +90,37 @@ export default function Dashboard() {
   const { data: evolutionData } = useEvolutionData(selectedBairro, 'semester');
   
 
-  const fetchExportData = async () => {
-    const { data, error } = await supabase
-      .from("itbi_transactions")
-      .select("*")
-      .eq("bairro", selectedBairro)
-      .eq("uso", "Residencial")
-      .gte("percentual_transferido", 90)
-      .not("valor_m2", "is", null)
-      .order("data_transacao", { ascending: false })
-      .limit(5000);
-
-    if (error) throw error;
-    return data;
+  // O PostgREST devolve no máximo 1000 linhas por requisição; sem paginação o
+  // export vinha truncado em silêncio. Busca em páginas de 1000 até esgotar.
+  type ItbiRow = SupabaseSchema["public"]["Tables"]["itbi_transactions"]["Row"];
+  const fetchAllRows = async (
+    build: (from: number, to: number) => PromiseLike<{ data: ItbiRow[] | null; error: { message: string } | null }>
+  ): Promise<ItbiRow[]> => {
+    const pageSize = 1000;
+    const all: ItbiRow[] = [];
+    for (let from = 0; ; from += pageSize) {
+      const { data, error } = await build(from, from + pageSize - 1);
+      if (error) throw error;
+      if (!data || data.length === 0) break;
+      all.push(...data);
+      if (data.length < pageSize) break;
+    }
+    return all;
   };
+
+  const fetchExportData = async () =>
+    fetchAllRows((from, to) =>
+      supabase
+        .from("itbi_transactions")
+        .select("*")
+        .eq("bairro", selectedBairro)
+        .eq("uso", "Residencial")
+        .gte("percentual_transferido", 90)
+        .not("valor_m2", "is", null)
+        .order("data_transacao", { ascending: false })
+        .order("id", { ascending: true })
+        .range(from, to)
+    );
 
   const handleExportXLSX = async () => {
     setIsExporting(true);
@@ -201,15 +219,16 @@ export default function Dashboard() {
   const handleBackupCompleto = async () => {
     setIsExporting(true);
     try {
-      // Fetch ALL data from all neighborhoods
-      const { data, error } = await supabase
-        .from("itbi_transactions")
-        .select("*")
-        .order("bairro", { ascending: true })
-        .order("data_transacao", { ascending: false })
-      .limit(5000);
-
-      if (error) throw error;
+      // Fetch ALL data from all neighborhoods (paginado; ver fetchAllRows)
+      const data = await fetchAllRows((from, to) =>
+        supabase
+          .from("itbi_transactions")
+          .select("*")
+          .order("bairro", { ascending: true })
+          .order("data_transacao", { ascending: false })
+          .order("id", { ascending: true })
+          .range(from, to)
+      );
 
       if (data && data.length > 0) {
         const totalTransacoes = data.reduce((sum, r) => sum + r.total_transacoes, 0);

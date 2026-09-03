@@ -178,6 +178,27 @@ serve(async (req) => {
     const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabase = createClient(supabaseUrl, supabaseKey);
 
+    // O PostgREST devolve no máximo 1000 linhas por requisição. As consultas de
+    // resumo (cidade inteira e bairro no ano) passam de 1000 linhas com folga e
+    // vinham truncadas em silêncio: busca em páginas de 1000 até esgotar.
+    const fetchAllRows = async <T,>(
+      build: (from: number, to: number) => PromiseLike<{ data: T[] | null; error: { message: string } | null }>,
+    ): Promise<T[]> => {
+      const pageSize = 1000;
+      const all: T[] = [];
+      for (let from = 0; ; from += pageSize) {
+        const { data, error } = await build(from, from + pageSize - 1);
+        if (error) {
+          console.warn('[chat-mercado] paginação interrompida:', error.message);
+          break;
+        }
+        if (!data || data.length === 0) break;
+        all.push(...data);
+        if (data.length < pageSize) break;
+      }
+      return all;
+    };
+
     // Rate limiting: 15 requests per minute per IP
     const forwardedFor = req.headers.get("x-forwarded-for");
     const realIp = req.headers.get("x-real-ip");
@@ -362,13 +383,17 @@ serve(async (req) => {
     }
 
     // 1. Get global Rio de Janeiro summary (ano atual YTD)
-    const { data: globalData } = await supabase
-      .from('itbi_transactions')
-      .select('valor_m2, total_transacoes, bairro, valor_transacao, tipologia')
-      .eq('uso', 'Residencial')
-      .gte('percentual_transferido', 90)
-      .gte('data_transacao', currentYearStart)
-      .not('valor_m2', 'is', null);
+    const globalData = await fetchAllRows((from, to) =>
+      supabase
+        .from('itbi_transactions')
+        .select('valor_m2, total_transacoes, bairro, valor_transacao, tipologia')
+        .eq('uso', 'Residencial')
+        .gte('percentual_transferido', 90)
+        .gte('data_transacao', currentYearStart)
+        .not('valor_m2', 'is', null)
+        .order('id', { ascending: true })
+        .range(from, to)
+    );
 
     // Calculate global stats using WEIGHTED AVERAGES
     const globalStats = {
@@ -426,14 +451,18 @@ serve(async (req) => {
       .slice(0, 10);
 
     // 4. Get data for selected bairro (ano atual YTD)
-    const { data: selectedBairroData } = await supabase
-      .from('itbi_transactions')
-      .select('valor_m2, total_transacoes, tipologia, valor_transacao')
-      .eq('bairro', selectedBairro)
-      .eq('uso', 'Residencial')
-      .gte('percentual_transferido', 90)
-      .gte('data_transacao', currentYearStart)
-      .not('valor_m2', 'is', null);
+    const selectedBairroData = await fetchAllRows((from, to) =>
+      supabase
+        .from('itbi_transactions')
+        .select('valor_m2, total_transacoes, tipologia, valor_transacao')
+        .eq('bairro', selectedBairro)
+        .eq('uso', 'Residencial')
+        .gte('percentual_transferido', 90)
+        .gte('data_transacao', currentYearStart)
+        .not('valor_m2', 'is', null)
+        .order('id', { ascending: true })
+        .range(from, to)
+    );
 
     // 5. Query específica para a pergunta do usuário (com filtros de ano, valor e tipologia)
     let specificQuery = supabase
