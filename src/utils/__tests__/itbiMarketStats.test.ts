@@ -250,40 +250,49 @@ describe("calculateITBIData", () => {
   });
 });
 
-describe("outlierLimits (calibração global móvel de 3 anos, 5ª rodada de 2026-09-03)", () => {
+describe("outlierLimits (tabela gerada por bun run cinto a partir da 7.4 unificada de 2026-09-03)", () => {
   test("par bairro × tipologia calibrado: P1 e P99.5 com margem", () => {
     const barraApto = getOutlierLimits("BARRA DA TIJUCA", "Apartamento");
     expect(barraApto.calibrado).toBe(true);
-    expect(barraApto.piso).toBe(Math.round(6178 * PISO_MARGIN));
-    expect(barraApto.teto).toBe(Math.round(19402 * TETO_MARGIN));
+    expect(barraApto.piso).toBe(Math.round(6168 * PISO_MARGIN));
+    expect(barraApto.teto).toBe(Math.round(20320 * TETO_MARGIN));
     const barraCasa = getOutlierLimits("BARRA DA TIJUCA", "Casa em Condomínio");
-    expect(barraCasa.teto).toBe(Math.round(11419 * TETO_MARGIN));
+    expect(barraCasa.teto).toBe(Math.round(11792 * TETO_MARGIN));
     expect(barraCasa.teto).toBeLessThan(barraApto.teto);
   });
   test("cobertura usa a calibração de apartamento, como o importador", () => {
-    expect(getOutlierLimits("LEBLON", "Cobertura Duplex").teto).toBe(60000); // P99,5 de 53.625 × 1,15 passa do teto global
+    expect(getOutlierLimits("LEBLON", "Cobertura Duplex").teto).toBe(Math.round(51659 * TETO_MARGIN)); // 59.408, logo abaixo do teto global
   });
   test("tipologia sem calibração no bairro cai na faixa mais larga do bairro", () => {
     const leblonCasa = getOutlierLimits("LEBLON", "Casa");
     expect(leblonCasa.calibrado).toBe(true);
-    expect(leblonCasa.piso).toBe(Math.round(13222 * PISO_MARGIN));
+    expect(leblonCasa.piso).toBe(Math.round(13185 * PISO_MARGIN));
   });
   test("bairro sem tipologia informada: menor piso e maior teto entre as tipologias", () => {
-    expect(getOutlierMinLimit("BARRA DA TIJUCA")).toBe(Math.round(5366 * PISO_MARGIN));
-    expect(getOutlierLimit("BARRA DA TIJUCA")).toBe(Math.round(19402 * TETO_MARGIN));
+    expect(getOutlierMinLimit("BARRA DA TIJUCA")).toBe(Math.round(5278 * PISO_MARGIN));
+    expect(getOutlierLimit("BARRA DA TIJUCA")).toBe(Math.round(20320 * TETO_MARGIN));
   });
   test("amostra pequena: janela de 5 anos e largura mínima [mediana/2; mediana×2]", () => {
-    // SANTA CRUZ|Apartamento: 85 escrituras, mediana 3.068, P99,5 3.182 (é o máximo observado)
-    const santaCruz = getOutlierLimits("SANTA CRUZ", "Apartamento");
-    expect(santaCruz.teto).toBe(3068 * SMALL_SAMPLE_WIDTH); // 6.136 > 3.182 × 1,15
-    expect(santaCruz.piso).toBe(3068 / SMALL_SAMPLE_WIDTH); // 1.534 < 2.303 × 0,85
-    // GUARATIBA|Casa: mediana 1.862 → mediana/2 = 931 bate no piso global
-    expect(getOutlierLimits("GUARATIBA", "Casa").piso).toBe(DEFAULT_OUTLIER_MIN);
-    // FREGUESIA (ILHA): P1 × 0,85 (1.961) fica abaixo de mediana/2 (2.057) e prevalece
-    expect(getOutlierLimits("FREGUESIA (ILHA)", "Apartamento").piso).toBe(Math.round(2307 * PISO_MARGIN));
+    // FREGUESIA (ILHA)|Apartamento: 95 escrituras em 3 anos, 139 em 5; mediana 4.009, P99,5 5.759
+    const ilha = getOutlierLimits("FREGUESIA (ILHA)", "Apartamento");
+    expect(ilha.teto).toBe(4009 * SMALL_SAMPLE_WIDTH); // 8.018 > 5.759 × 1,15
+    expect(ilha.piso).toBe(Math.round(2307 * PISO_MARGIN)); // 1.961 < 4.009 / 2
+    // GRAJAU|Casa: 40 escrituras em 5 anos, mediana 3.391 → piso 1.696 (mediana/2 < P1 × 0,85)
+    expect(getOutlierLimits("GRAJAÚ", "Casa").piso).toBe(Math.round(3391 / SMALL_SAMPLE_WIDTH));
   });
-  test("Barra Olímpica não existe na base (reclassificada como Barra da Tijuca) e cai nos padrões", () => {
-    expect(getOutlierLimits("BARRA OLÍMPICA", "Apartamento").calibrado).toBe(false);
+  test("par que cresceu com a recarga de 2026-09-03 volta à regra padrão de 3 anos", () => {
+    // SANTA CRUZ|Apartamento: 85 → 309 escrituras em 3 anos (piso de R$ 30 mil na ingestão)
+    const sc = getOutlierLimits("SANTA CRUZ", "Apartamento");
+    expect(sc.piso).toBe(Math.round(1631 * PISO_MARGIN));
+    expect(sc.teto).toBe(Math.round(3238 * TETO_MARGIN));
+  });
+  test("par com menos de 30 escrituras em 5 anos fica fora e cai na faixa do bairro", () => {
+    // COPACABANA|Casa: 2 escrituras → usa o par de apartamento do bairro
+    const casa = getOutlierLimits("COPACABANA", "Casa");
+    expect(casa).toEqual(getOutlierLimits("COPACABANA", "Apartamento"));
+  });
+  test("Barra Olímpica voltou à base na recarga de 2026-09-03 e tem par próprio", () => {
+    expect(getOutlierLimits("BARRA OLÍMPICA", "Apartamento")).toMatchObject({ calibrado: true, piso: 4837, teto: 11003 });
   });
   test("bairro desconhecido usa os padrões e sinaliza não calibrado", () => {
     const r = getOutlierLimits("BAIRRO INEXISTENTE", "Apartamento");
@@ -291,9 +300,9 @@ describe("outlierLimits (calibração global móvel de 3 anos, 5ª rodada de 202
   });
   test("ignora acentos e caixa", () => {
     expect(normalizeBairro("Jardim Botânico")).toBe("JARDIM BOTANICO");
-    expect(getOutlierLimit("jardim botânico")).toBe(Math.round(20050 * TETO_MARGIN));
-    expect(getOutlierLimit("Grajaú")).toBe(Math.round(6531 * TETO_MARGIN));
-    expect(getOutlierLimit("Freguesia (Jacarepaguá)")).toBe(Math.round(6864 * TETO_MARGIN));
+    expect(getOutlierLimit("jardim botânico")).toBe(Math.round(20939 * TETO_MARGIN));
+    expect(getOutlierLimit("Grajaú")).toBe(Math.round(6553 * TETO_MARGIN));
+    expect(getOutlierLimit("Freguesia (Jacarepaguá)")).toBe(Math.round(6870 * TETO_MARGIN));
   });
 });
 
