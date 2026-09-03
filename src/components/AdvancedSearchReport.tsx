@@ -188,11 +188,11 @@ export function AdvancedSearchReport() {
         { key: 'valor_transacao', header: 'Valor Médio', width: 18, format: 'currency' },
         { key: 'area_m2', header: 'Área (m²)', width: 12, format: 'number' },
         { key: 'valor_m2', header: 'R$/m²', width: 15, format: 'currency' },
-        { key: 'total_transacoes', header: 'Transações', width: 12, format: 'number' },
+        { key: 'total_transacoes', header: 'Escrituras', width: 12, format: 'number' },
       ],
       summary: [
-        { label: 'Total de Registros (Agregações)', value: results.length },
-        { label: 'Total de Transações Reais', value: totalTransacoes },
+        { label: 'Registros ITBI (agregações mensais)', value: results.length },
+        { label: 'Escrituras Reais (transações)', value: totalTransacoes },
         { label: 'Valor Médio Total', value: totalValue },
         { label: 'Média Ponderada R$/m²', value: avgValueM2 },
       ],
@@ -269,11 +269,11 @@ export function AdvancedSearchReport() {
         { key: 'data_transacao', header: 'Data', format: 'text' },
         { key: 'valor_transacao', header: 'Valor', format: 'currency' },
         { key: 'valor_m2', header: 'R$/m²', format: 'currency' },
-        { key: 'total_transacoes', header: 'Trans.', format: 'number' },
+        { key: 'total_transacoes', header: 'Escrituras', format: 'number' },
       ],
       summary: [
-        { label: 'Total de Registros (Agregações)', value: results.length, format: 'number' },
-        { label: 'Total de Transações Reais', value: totalTransacoes, format: 'number' },
+        { label: 'Registros ITBI (agregações mensais)', value: results.length, format: 'number' },
+        { label: 'Escrituras Reais (transações)', value: totalTransacoes, format: 'number' },
         { label: 'Valor Médio Total', value: totalValue, format: 'currency' },
         { label: 'Média Ponderada R$/m²', value: avgValueM2, format: 'currency' },
       ],
@@ -559,7 +559,7 @@ export function AdvancedSearchReport() {
                 <TooltipTrigger asChild>
                   <Badge variant="secondary" className="text-xs cursor-help gap-1">
                     <Info className="h-3 w-3" />
-                    {results.length} registros (agregações)
+                    {results.length} registros ITBI (agregações)
                   </Badge>
                 </TooltipTrigger>
                 <TooltipContent className="max-w-[280px]">
@@ -572,12 +572,12 @@ export function AdvancedSearchReport() {
                 <TooltipTrigger asChild>
                   <Badge variant="default" className="text-xs cursor-help gap-1">
                     <Info className="h-3 w-3" />
-                    {totalTransacoes.toLocaleString('pt-BR')} transações reais
+                    {totalTransacoes.toLocaleString('pt-BR')} escrituras reais
                   </Badge>
                 </TooltipTrigger>
                 <TooltipContent className="max-w-[280px]">
-                  <p className="font-medium mb-1">Transações Reais</p>
-                  <p className="text-xs">Soma de todas as transações individuais que compõem os registros agregados. Este é o número real de vendas/transferências.</p>
+                  <p className="font-medium mb-1">Escrituras Reais</p>
+                  <p className="text-xs">Soma do campo total_transacoes de cada registro: é o número real de escrituras (vendas/transferências) registradas. Use este número, nunca a contagem de linhas.</p>
                 </TooltipContent>
               </Tooltip>
               
@@ -620,7 +620,7 @@ export function AdvancedSearchReport() {
                   <TableHead className="text-right">Valor Médio</TableHead>
                   <TableHead className="text-right">Área</TableHead>
                   <TableHead className="text-right">R$/m²</TableHead>
-                  <TableHead className="text-right">Trans.</TableHead>
+                  <TableHead className="text-right">Escrituras</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>

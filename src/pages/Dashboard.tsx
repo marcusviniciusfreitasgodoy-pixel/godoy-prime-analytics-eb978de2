@@ -235,12 +235,12 @@ export default function Dashboard() {
             { key: 'valor_transacao', header: 'Valor Total', width: 18, format: 'currency' },
             { key: 'area_m2', header: 'Área (m²)', width: 12, format: 'number' },
             { key: 'valor_m2', header: 'R$/m²', width: 15, format: 'currency' },
-            { key: 'total_transacoes', header: 'Qtd Trans.', width: 10, format: 'number' },
+            { key: 'total_transacoes', header: 'Escrituras', width: 10, format: 'number' },
             { key: 'percentual_transferido', header: '% Transf.', width: 10, format: 'number' },
           ],
           summary: [
-            { label: 'Total de Registros Agregados', value: data.length },
-            { label: 'Total de Transações Reais', value: totalTransacoes },
+            { label: 'Registros ITBI (agregações mensais)', value: data.length },
+            { label: 'Escrituras Reais (transações)', value: totalTransacoes },
             { label: 'Total de Bairros', value: bairrosUnicos },
           ],
         });

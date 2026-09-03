@@ -400,8 +400,8 @@ export function EmbeddedAdvancedSearch({ defaultBairro = "" }: EmbeddedAdvancedS
   if (fuzzyCorrection) locationExportFilters['Busca Corrigida'] = `${fuzzyCorrection.original} → ${fuzzyCorrection.corrected}`;
 
   const locationExportSummary = [
-    { label: 'Total de Registros Agregados', value: realTotalRegistros.toLocaleString('pt-BR') },
-    { label: 'Total de Transações Reais', value: realTotalTransacoes.toLocaleString('pt-BR') },
+    { label: 'Registros ITBI (agregações mensais)', value: realTotalRegistros.toLocaleString('pt-BR') },
+    { label: 'Escrituras Reais (transações)', value: realTotalTransacoes.toLocaleString('pt-BR') },
     { label: 'Registros Exibidos na Tabela', value: `${results?.length.toLocaleString('pt-BR') || '0'} de ${realTotalRegistros.toLocaleString('pt-BR')}` },
     { label: 'Média do Período (R$/m²)', value: formatCurrency(avgValueM2) },
     { label: 'R$/m² Atual (últimos 3 meses)', value: currentValueM2 != null ? formatCurrency(currentValueM2) : 'Sem dados recentes' },
@@ -431,7 +431,7 @@ export function EmbeddedAdvancedSearch({ defaultBairro = "" }: EmbeddedAdvancedS
         { key: 'valor_transacao', header: 'Valor Médio', width: 18, format: 'currency' },
         { key: 'area_m2', header: 'Área (m²)', width: 12, format: 'number' },
         { key: 'valor_m2', header: 'R$/m²', width: 15, format: 'currency' },
-        { key: 'total_transacoes', header: 'Transações', width: 12, format: 'number' },
+        { key: 'total_transacoes', header: 'Escrituras', width: 12, format: 'number' },
       ],
       summary: locationExportSummary,
     });
@@ -458,7 +458,7 @@ export function EmbeddedAdvancedSearch({ defaultBairro = "" }: EmbeddedAdvancedS
         { key: 'data_transacao', header: 'Data', format: 'text' },
         { key: 'valor_transacao', header: 'Valor Médio', format: 'currency' },
         { key: 'valor_m2', header: 'R$/m²', format: 'currency' },
-        { key: 'total_transacoes', header: 'Transações', format: 'number' },
+        { key: 'total_transacoes', header: 'Escrituras', format: 'number' },
       ],
       summary: locationExportSummary,
     });
@@ -808,11 +808,11 @@ export function EmbeddedAdvancedSearch({ defaultBairro = "" }: EmbeddedAdvancedS
               </div>
               <div className="space-y-1.5">
                 <div className="flex items-center justify-between">
-                  <span className="text-xs text-muted-foreground">Total Transações</span>
+                  <span className="text-xs text-muted-foreground">Escrituras Reais</span>
                   <span className="font-semibold text-sm">{realTotalTransacoes.toLocaleString('pt-BR')}</span>
                 </div>
                 <div className="flex items-center justify-between">
-                  <span className="text-xs text-muted-foreground">Registros Agregados</span>
+                  <span className="text-xs text-muted-foreground">Registros ITBI (agregações)</span>
                   <span className="text-sm text-muted-foreground">{realTotalRegistros.toLocaleString('pt-BR')}</span>
                 </div>
                 <div className="flex items-center justify-between">
@@ -902,7 +902,7 @@ export function EmbeddedAdvancedSearch({ defaultBairro = "" }: EmbeddedAdvancedS
                   <TableHead className="text-xs">Valor Médio</TableHead>
                   <TableHead className="text-xs hidden sm:table-cell">Área</TableHead>
                   <TableHead className="text-xs">R$/m²</TableHead>
-                  <TableHead className="text-xs text-center">Trans.</TableHead>
+                  <TableHead className="text-xs text-center">Escrit.</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -942,7 +942,7 @@ export function EmbeddedAdvancedSearch({ defaultBairro = "" }: EmbeddedAdvancedS
           <div className="flex items-start gap-2 mt-3 p-3 rounded-md bg-muted/50">
             <Info className="h-4 w-4 text-muted-foreground mt-0.5 flex-shrink-0" />
             <p className="text-xs text-muted-foreground leading-relaxed">
-              <strong>Como interpretar os resultados:</strong> Cada linha representa um registro mensal agregado da Prefeitura, não uma transação individual. O mesmo logradouro pode aparecer múltiplas vezes quando há registros em meses distintos ou com tipologias/áreas diferentes. A coluna "Trans." indica quantas escrituras reais compõem cada registro.
+              <strong>Como interpretar os resultados:</strong> Cada linha representa um registro mensal agregado da Prefeitura, não uma transação individual. O mesmo logradouro pode aparecer múltiplas vezes quando há registros em meses distintos ou com tipologias/áreas diferentes. A coluna "Escrit." indica quantas escrituras reais compõem cada registro.
             </p>
           </div>
         </div>
