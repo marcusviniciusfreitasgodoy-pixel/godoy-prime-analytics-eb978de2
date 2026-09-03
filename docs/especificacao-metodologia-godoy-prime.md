@@ -109,9 +109,7 @@ SELECT ROUND(
 FROM itbi_transactions WHERE ...;
 ```
 
-**Magnitude do erro se omitida:** Barra da Tijuca, últimos 12 meses — ponderada **R$ 12.066/m²** × simples R$ 10.950/m² (**+10,2%**). Jacarepaguá: 7.234 × 6.842 (**+5,7%**).
-
-Magnitude do erro se a ponderação for omitida (12 meses, 2026-09-03): Barra da Tijuca, ponderada R$ 12.066/m² contra simples R$ 10.950/m² (+10,2 %); Jacarepaguá, 7.234 contra 6.842 (+5,7 %).
+Magnitude do erro se a ponderação for omitida (12 meses, base recarregada de 2026-09-03): Barra da Tijuca, ponderada R$ 11.995/m² contra simples R$ 10.941/m² (+9,6 %); Jacarepaguá, 7.221 contra 6.833 (+5,7 %); Centro, 6.970 contra 6.526 (+6,8 %). Tabela completa no caso 4 da seção 16.
 
 Mediana e percentis (expansão explícita por peso):
 
@@ -344,11 +342,11 @@ Confiança (`calculateConfidenceScore`), começa em 100:
 
 | Critério | Regra |
 |---|---|
-| Magnitude do ajuste | |ajuste| > 40 % −15; > 35 % −8; > 25 % −4 |
+| Magnitude do ajuste | abs(ajuste) > 40 % −15; > 35 % −8; > 25 % −4 |
 | Spread P10–P95 | > 65 % −18; > 50 % −10; > 35 % −4 (recalibrado em 2026-09-03 para P95; com P90 eram 55/40/30) |
 | Documentação | fator < 0,85 −20; < 0,95 −8 |
 | Liquidez (score 0–100 da análise histórica, seção 7) | ≥ 70 +10; ≥ 50 +5; < 30 −5 |
-| Gap de anúncios | null −10; |gap| ≤ 15 +3; ≤ 25 0; ≤ 35 −3; > 35 −5 |
+| Gap de anúncios | null −10; abs(gap) ≤ 15 +3; ≤ 25 0; ≤ 35 −3; > 35 −5 |
 | Origem da amostra | rua 0; raio 100 m −5; raio 300 m −10; bairro −15; tipologia relaxada −5 |
 | Clamp | [0, 100] |
 | Teto por escrituras válidas | ≤ 2 → máx 40; ≤ 9 → máx 55; ≤ 29 → máx 75 |
@@ -549,7 +547,7 @@ Histórico de um logradouro selecionado (`ILIKE` exato no nome, mesmo bairro, `<
 
 ### 6.1 KPIs do bairro (`useKPIStats.ts`)
 
-Cinto: **só teto** do bairro (`getOutlierLimit`, maior teto entre as tipologias), sem piso. Filtros comuns: `uso = 'Residencial'`, `bairro ILIKE`, `valor_m2 IS NOT NULL`, `percentual_transferido >= 90`, `LIMIT 10000`.
+Cinto: **só teto** do bairro (`getOutlierLimit`, maior teto entre as tipologias), sem piso. Filtros comuns: `uso = 'Residencial'`, `bairro ILIKE`, `valor_m2 IS NOT NULL`, `percentual_transferido >= 90`, `LIMIT 5000` (era 10000 até 2026-09-03).
 
 Período "atual":
 - ano corrente (YTD, `data_transacao >= 01/01`); se tiver menos de 30 linhas **e** menos de 100 escrituras, usa os últimos 12 meses (`usandoDadosHistoricos = true`).
@@ -586,7 +584,7 @@ Consulta `bairro = X` (igualdade), `uso`, `percentual >= 90`, `valor_m2 IS NOT N
 
 ## 7. Microrregiões (`Microbairros.tsx`, `useMicrobairroDetalhado`, `useMicrobairroEvolutionData`)
 
-**Tabela e cards:** últimos 12 meses; `uso = 'Residencial'`, `bairro ILIKE`, `valor_m2 IS NOT NULL`, só teto, `percentual_transferido >= 90` (adicionado em 2026-09-03), `logradouro IS NOT NULL`, `LIMIT 10000`. Agrupa por logradouro:
+**Tabela e cards:** últimos 12 meses; `uso = 'Residencial'`, `bairro ILIKE`, `valor_m2 IS NOT NULL`, só teto, `percentual_transferido >= 90` (adicionado em 2026-09-03), `logradouro IS NOT NULL`, `LIMIT 5000`. Agrupa por logradouro:
 
 ```
 valor_m2      = Σ valor_m2 × tt / Σ tt (todas as tipologias)
@@ -647,7 +645,7 @@ liquidityScore    = min(100, média de escrituras por ano × 3) (+10 crescente, 
 liquidityLevel    = >= 70 alta; >= 40 média; senão baixa
 ```
 
-Cache local (`historicalAnalysisCache.ts`, chave versão v16) só no escopo rua; não cacheia se houver 2 ou mais anos recentes zerados numa série com mais de 200 escrituras.
+Cache local (`historicalAnalysisCache.ts`, chave versão v17) só no escopo rua; não cacheia se houver 2 ou mais anos recentes zerados numa série com mais de 200 escrituras.
 
 ### 8.4 Tendência e projeção (`priceTrend.ts`, `calculateFutureProjection`)
 
@@ -839,7 +837,7 @@ Marcar item a item. O alinhamento só é declarado quando todos estão verdes. O
 - [ ] `LIMIT 5000` explícito, com `ORDER BY` determinístico.
 - [ ] Bairro normalizado (maiúsculas, sem acento, espaços colapsados) antes de comparar.
 - [ ] Busca por logradouro expande tipo de via, títulos/patentes e variantes de grafia (seção 2.9).
-- [ ] Caso 2a reproduz 27 registros / 69 escrituras buscando por "Desenhista Luiz Guimarães".
+- [ ] Caso 2a reproduz 28 registros / 71 escrituras buscando por "Desenhista Luiz Guimarães" (base de 2026-09-03, 15h).
 - [ ] Caso 3 reproduz 5 registros / 12 escrituras buscando por "Avenida General Olyntho Pilar".
 
 **Estatística**
@@ -870,8 +868,8 @@ Marcar item a item. O alinhamento só é declarado quando todos estão verdes. O
 
 **Baselines**
 - [ ] Caso 1 (Av. do Pepê) reproduz as 5 janelas dentro de ±1%.
-- [ ] Caso 2c (série anual) reproduz os 7 anos dentro de ±1%.
-- [ ] Caso 4 reproduz as 10 médias ponderadas dentro de ±1%.
+- [ ] Caso 2c (série anual) reproduz os 7 anos dentro de ±1% (2026 com 3 registros / 6 escrituras).
+- [ ] Caso 4 reproduz as 12 médias ponderadas dentro de ±1%.
 - [ ] Caso 5 reproduz resultado idêntico com e sem cinto.
 
 **Transparência**
@@ -929,7 +927,7 @@ Tudo abaixo decorre do corpo do documento. O desenvolvedor deve tratar esta list
 **Evitar (erros já encontrados na comparação):**
 
 - contar linhas da série inteira e apresentar como vendas (caso 1 da seção 16: "39" eram 115 escrituras em seis anos);
-- média simples de linhas (caso 4: erro de −1,8 % a +10,2 % por bairro, sem sinal previsível);
+- média simples de linhas (caso 4: erro de −1,1 % a +9,6 % por bairro, sem sinal previsível);
 - série completa sem janela para precificar hoje (Avenida do Pepê: R$ 15.673/m² em seis anos contra R$ 18.533/m² em 24 meses);
 - teto fixo de R$/m² igual para Leblon e Santa Cruz;
 - usar a amostra da rua para calibrar o cinto da própria rua (pendência 2 de 15.1: o Analytics também vai deixar de fazer isso no site público);
