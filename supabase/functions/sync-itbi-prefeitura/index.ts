@@ -248,44 +248,15 @@ serve(async (req) => {
       );
     }
 
-    // Limpar dados existentes do período se solicitado
-    if (clearExisting) {
-      // Calcular datas com base nos meses selecionados
-      const startDate = `${minYear}-${String(minMonth).padStart(2, '0')}-01`;
-      const endDate = `${maxYear}-${String(maxMonth).padStart(2, '0')}-28`; // 28 para cobrir todos os meses
-      
-      if (syncAllBairros) {
-        console.log(`Limpando dados existentes de TODOS os bairros (${startDate} a ${endDate})...`);
-        
-        const { error: deleteError } = await supabase
-          .from('itbi_transactions')
-          .delete()
-          .gte('data_transacao', startDate)
-          .lte('data_transacao', endDate);
-        
-        if (deleteError) {
-          console.error('Erro ao limpar:', deleteError.message);
-        } else {
-          console.log('Dados anteriores de todos os bairros removidos');
-        }
-      } else {
-        const bairroNome = BAIRRO_CODES[codbairro!] || codbairro;
-        console.log(`Limpando dados existentes de ${bairroNome} (${startDate} a ${endDate})...`);
-        
-        const { error: deleteError } = await supabase
-          .from('itbi_transactions')
-          .delete()
-          .eq('bairro', bairroNome)
-          .gte('data_transacao', startDate)
-          .lte('data_transacao', endDate);
-        
-        if (deleteError) {
-          console.error('Erro ao limpar:', deleteError.message);
-        } else {
-          console.log('Dados anteriores removidos');
-        }
-      }
-    }
+    // Recarga do período (clearExisting): NÃO apaga antes de inserir. Apagar e
+    // reinserir perdia lat/lng/geom/microbairro de todas as linhas (incidente de
+    // 2026-09-03, base inteira sem geocodificação). O upsert pela chave natural
+    // atualiza as linhas existentes preservando essas colunas; as linhas do
+    // período que a Prefeitura deixou de publicar são removidas DEPOIS, pelo
+    // updated_at anterior ao início desta sincronização (ver "varredura" abaixo).
+    const syncStartedAt = new Date().toISOString();
+    const periodoInicio = `${minYear}-${String(minMonth).padStart(2, '0')}-01`;
+    const periodoFim = `${maxYear}-${String(maxMonth).padStart(2, '0')}-28`; // 28 para cobrir todos os meses
 
     // Transformar e validar dados
     const transacoes: Array<{
@@ -412,6 +383,29 @@ serve(async (req) => {
       }
     }
 
+    // Varredura: remove do período só o que esta sincronização não tocou.
+    let registrosRemovidos = 0;
+    if (clearExisting && erros.length === 0) {
+      let sweep = supabase
+        .from('itbi_transactions')
+        .delete({ count: 'exact' })
+        .gte('data_transacao', periodoInicio)
+        .lte('data_transacao', periodoFim)
+        .lt('updated_at', syncStartedAt);
+      if (!syncAllBairros) {
+        sweep = sweep.eq('bairro', BAIRRO_CODES[codbairro!] || codbairro!);
+      }
+      const { error: sweepError, count } = await sweep;
+      if (sweepError) {
+        console.error('Erro na varredura de registros obsoletos:', sweepError.message);
+      } else {
+        registrosRemovidos = count ?? 0;
+        console.log(`Registros obsoletos removidos do período: ${registrosRemovidos}`);
+      }
+    } else if (clearExisting) {
+      console.warn('Varredura de obsoletos pulada: houve erro em algum lote do upsert.');
+    }
+
     const summary = {
       success: true,
       message: syncAllBairros ? 'Sincronização de TODOS os bairros concluída' : 'Sincronização via API concluída',
@@ -421,6 +415,8 @@ serve(async (req) => {
       api_registros_agregados: allFeatures.length,
       registros_validos: transacoes.length,
       registros_inseridos: totalInseridas,
+      registros_obsoletos_removidos: registrosRemovidos,
+      geocodificacao_preservada: true,
       total_transacoes_reais: totalTransacoesReais,
       ignorados: {
         dados_invalidos: skippedInvalidData,
