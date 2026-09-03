@@ -1,11 +1,11 @@
 # Especificação de Metodologia ITBI — Godoy Prime Analytics
 
-**Versão 2.0, consolidada (2026-09-03).** Substitui e unifica dois documentos escritos no mesmo dia: a "Especificação de Metodologia ITBI, documento de handoff" (v1.0, gerada via Lovable) e a "Especificação da lógica estatística" (gerada na auditoria). Nenhum dos dois continua válido separadamente.
+**Versão 2.1, consolidada (2026-09-03).** Substitui e unifica dois documentos escritos no mesmo dia: a "Especificação de Metodologia ITBI, documento de handoff" (v1.0, gerada via Lovable) e a "Especificação da lógica estatística" (gerada na auditoria). Nenhum dos dois continua válido separadamente. A v2.1 reescreve a seção 15 como plano de ação: pendências do Analytics, referência obrigatória para o Prime Circle, decisões abertas e protocolo de decisão.
 
-**Código descrito:** `main` em `d780b57` (2026-09-03), `ENGINE_VERSION` 3.
+**Código descrito:** `main` em `e062fbc` (2026-09-03), `ENGINE_VERSION` 3. O export "código atual" recebido em 2026-09-03 é idêntico a este commit no código-fonte; só os arquivos de documentação diferem, por ter sido gerado antes da consolidação.
 **Finalidade:** permitir que o desenvolvedor da Prime Circle reproduza, número a número, o que o Analytics calcula em consultas, avaliações e pesquisas de mercado, e localize exatamente onde os dois sistemas divergem.
 
-Como ler: as seções 1 a 13 são descritivas (o que o código faz, não o que deveria fazer). A seção 14 traz o roteiro de comparação e o checklist de aceite; a 15, as ressalvas do auditor; a 16, os casos de conferência com números reais da base; os apêndices, as constantes, a tabela completa do cinto de outliers e os arquivos de referência.
+Como ler: as seções 1 a 13 são descritivas (o que o código faz, não o que deveria fazer). A seção 14 traz o roteiro de comparação e o checklist de aceite; a 15, as ressalvas do auditor com o plano de ação para os dois sistemas; a 16, os casos de conferência com números reais da base; os apêndices, as constantes, a tabela completa do cinto de outliers e os arquivos de referência.
 
 Convenções: referências `arquivo:linha` apontam para o commit acima. "Escrituras" = `SUM(total_transacoes)`. "Registros" ou "linhas" = `COUNT(*)`. Toda fórmula "ponderada" usa `total_transacoes` como peso, com `max(1, total_transacoes)` quando nulo.
 
@@ -882,18 +882,82 @@ Marcar item a item. O alinhamento só é declarado quando todos estão verdes. O
 
 ---
 
-## 15. Ressalvas (opinião do auditor, separada do corpo descritivo)
+## 15. Ressalvas e plano de ação (auditoria)
 
-Estas observações não descrevem o código; avaliam decisões. Estão aqui para que a comparação com a Prime Circle não trate como calibrado o que não foi.
+Esta seção não descreve o código; avalia decisões e diz o que fazer com elas. Está separada do corpo para que a comparação com a Prime Circle não trate como calibrado o que não foi. Tem quatro partes: o que ainda precisa ser corrigido no Analytics (15.1), o que o Prime Circle deve adotar, evitar e ajustar tomando este documento como referência (15.2), as decisões que continuam abertas e são do dono do produto (15.3) e o protocolo que decide entre os dois sistemas (15.4).
 
-1. **Janela padrão de 12 meses (mudada em 2026-09-03) não foi calibrada.** A calibração de 2026-09-02 (seção 10 do relatório de auditoria) mediu spread, k do MAD e limites em 5 anos fechados. Com 12 meses e mediana de 3 escrituras por linha, a maioria das ruas cai abaixo de 8 linhas e a janela expande sozinha para 24, 36 ou mais; o "12 meses" da tela é, na prática, "o menor período com 8 linhas". Isso é razoável, mas precisa ser dito ao usuário e medido: quantas avaliações realmente fecham em 12 meses.
-2. **Faixa P10–P95 (mudada em 2026-09-03) com limiares de spread calibrados para P10–P90.** Os cortes 30/40/55 % de spread vieram da distribuição P10–P90 das ruas. P95 alarga a faixa por construção, então mais avaliações caem em "spread largo" e perdem confiança sem que o mercado tenha mudado. Recalibrar os limiares com a consulta 7.5 usando P95, ou voltar a P90.
-3. **Piso e teto por logradouro no site público** (`getStreetOutlierLimits`) usam a amostra da rua para filtrar a amostra da rua. Com 8 linhas, P1 é o mínimo e P99 é o máximo: o filtro ou não corta nada ou corta dado real. O motor interno não faz isso; o site faz. Os dois deveriam ser iguais.
-4. **Cinto recalibrado em 3 anos com P99,5.** Decisão defensável (tetos envelhecem), mas tomada para resolver um caso (Avenida do Pepe) e aplicada globalmente sem medir o efeito nos outros 77 pares. O metadado `janela` na tabela permite auditar.
-5. **Fallback por raio está desligado e não validado.** A cobertura de geocodificação (consulta 7.9) e o spread por escopo (7.10) foram rodados pelo Lovable, mas os números não foram registrados no repositório. Não ligar sem eles.
-6. **Confiança e recomendação não foram testadas contra vendas reais.** Os pesos da tabela 3.5 são heurísticos. Só o backtest da seção 14.3 diz se "85 pontos" significa alguma coisa.
-7. **Anúncios como sinal:** o limiar de alerta de 15 % foi mantido por falta de amostra (4 avaliações com gap). A mediana observada foi negativa (anúncios abaixo do ITBI), o oposto da premissa do texto da recomendação.
-8. **Coerência entre telas.** A tabela da seção 13 mostra janelas, filtros e estatísticas diferentes por tela: 12 meses móveis nos painéis, anos inteiros na busca avançada, 5 anos fechados na análise histórica, 60 meses no parecer técnico; média ponderada na maioria das telas, mediana no motor, média simples de linhas no ranking de microrregiões. Não é erro em si, mas "o número do Analytics" depende da tela. As quatro incoerências de filtro e de ponderação encontradas foram corrigidas (13.1); as diferenças de janela e de estatística central entre telas permanecem por desenho.
+### 15.1 Pendências no Analytics, por prioridade
+
+| # | Prioridade | Problema | O que fazer | Como validar |
+|---|---|---|---|---|
+| 1 | Alta | **Limiares de spread calibrados para P10–P90, faixa agora é P10–P95.** Os cortes 30/40/55 % vieram da distribuição P10–P90 de 1.106 ruas (2026-09-02). P95 alarga a faixa por construção: mais avaliações caem em "spread largo" e perdem confiança sem que o mercado tenha mudado. | Rodar a consulta 7.5 de `docs/calibracao-consultas.sql` com P95 no lugar de P90 e redefinir `SPREAD_NORMAL/WIDE/VERY_WIDE_PCT` pelos novos P75 e P90 das ruas; ou voltar `RANGE_HIGH_P` a 0,90. Uma das duas, não as duas. | Distribuição do `spread_percentage` das avaliações salvas antes e depois; a fração em "spread largo" deve voltar ao patamar de antes da mudança. |
+| 2 | Alta | **Site público e motor divergem no cinto.** `public-itbi-stats` calibra piso e teto pela amostra da própria rua (≥ 8 linhas, ≥ 40 escrituras); o motor usa o cinto do bairro. Com 8 linhas, P1 é o mínimo e P99 o máximo: o filtro ou não corta nada ou corta dado real. Dois números diferentes para o mesmo endereço, na mesma empresa. | Remover `getStreetOutlierLimits` do site público e usar `getOutlierLimits(bairro, tipologia)` como o motor. Se o caso José Higino / Iposeira exigir tratamento, a solução é um par bairro × tipologia mais fino (microrregião), não a rua se autocalibrando. | O mesmo endereço, janela e tipologia devolve `piso_m2`, `teto_m2` e `med_m2` idênticos no site e na avaliação. |
+| 3 | Alta | **Migration `20260903160000` (percentual ≥ 90 na RPC de raio da análise histórica) ainda não aplicada.** Sem ela, a análise histórica por raio continua sem o filtro que todas as outras telas aplicam. | Pedir a aplicação no Lovable (`CREATE OR REPLACE`, idempotente). | `select pg_get_functiondef('public.itbi_transacoes_raio'::regproc)` contém `percentual_transferido >= 90`. |
+| 4 | Média | **Janela padrão de 12 meses não foi medida.** Com mediana de 3 escrituras por linha, a maioria das ruas não chega a 8 linhas em 12 meses e a janela expande sozinha; "12 meses" na tela é, na prática, "o menor período com 8 linhas". Correto, mas invisível. | Exibir na linha de rastreabilidade e no PDF "janela solicitada 12 m, usada 24 m" sempre que `janela_expandida = true` (o metadado já existe). Medir, sobre as avaliações salvas, a fração que fecha em 12, 24, 36, 48 e 60 meses. | Relatório com a distribuição de `janela_meses` nas avaliações; se menos de 30 % fecham em 12, o padrão do produto deveria ser 24. |
+| 5 | Média | **Cinto recalibrado em 3 anos com P99,5 para resolver um caso** (Avenida do Pepê) e aplicado aos 78 pares sem medir o efeito nos outros 77. | Rodar a consulta 7.3 (percentual de escrituras cortadas por par) com o cinto novo e comparar com a rodada de 2026-09-02. Pares em que o corte mudou mais de 2 pontos percentuais merecem inspeção. | Tabela por par: escrituras cortadas antes e depois. |
+| 6 | Média | **Fallback por raio desligado e não validado.** As consultas 7.9 (cobertura de geocodificação) e 7.10 (spread por escopo) foram executadas pelo Lovable; os resultados não estão no repositório. | Registrar os resultados em `docs/calibracao/` e decidir: cobertura ≥ 80 % liga o fallback; spread do raio 300 m parecido com o do bairro remove o degrau de 300 m. | Ressalva fechada quando os dois CSVs estiverem versionados e a decisão escrita na seção 11 do relatório de auditoria. |
+| 7 | Média | **Duas escalas de rótulo para a mesma confiança.** O nível (`mapScoreToLevel`) usa 85/70/55; o PDF classifica o score em 80/60/40. O mesmo laudo pode dizer "média-alta" e "bom" para o mesmo número. | Unificar nos limiares do nível (85/70/55) e remover a escala paralela do PDF. | Um único conjunto de constantes exportado e usado nos dois lugares. |
+| 8 | Baixa | **Alerta de gap de anúncios (15 %) sem amostra.** Só 4 avaliações com gap; mediana negativa (anúncios abaixo do ITBI), o oposto da premissa do texto da recomendação. | Manter 15 % até haver 30 avaliações com 3 ou mais anúncios; então recalibrar pela distribuição observada e reescrever o texto da Regra 4 se a mediana continuar negativa. | Consulta 7.6 com n ≥ 30. |
+| 9 | Baixa | **Estatística central varia por tela.** Mediana no motor e no comparativo; média ponderada nos painéis, na pesquisa e na Sofia. Não é erro, mas o usuário lê "preço médio" e "valor de referência" como se fossem a mesma coisa. | Mostrar a mediana ponderada ao lado da média em Pesquisa de Mercado e no Dashboard, com rótulo explícito. | Todas as telas de preço exibem as duas grandezas com o mesmo rótulo. |
+| 10 | Baixa | **Repositório público no GitHub** com pesos comerciais do questionário e a tabela do cinto. | Decisão do dono; se for para manter público, saber que é. | — |
+
+### 15.2 Referência para o Prime Circle: adotar, evitar, ajustar
+
+Tudo abaixo decorre do corpo do documento. O desenvolvedor deve tratar esta lista como especificação mínima, não como sugestão.
+
+**Adotar (obrigatório para os números baterem):**
+
+1. **Semântica da linha.** Uma linha de `itbi_transactions` é um agregado mensal; `total_transacoes` é o peso. Exibir sempre dois números: registros (`COUNT(*)`) e escrituras (`SUM(total_transacoes)`). Nunca chamar contagem de linhas de "vendas" ou "transações".
+2. **Filtros mínimos em toda consulta:** `uso = 'Residencial'`, `percentual_transferido >= 90`, `valor_m2 IS NOT NULL`. Bairro normalizado (maiúsculas, sem acento, espaços colapsados). Logradouro com as variantes da seção 2.9, não `ILIKE` do texto digitado.
+3. **Limite explícito e ordenação determinística** (`ORDER BY data_transacao DESC, logradouro, tipologia LIMIT 5000`) ou paginação até esgotar. O PostgREST trunca em 1000 sem erro; qualquer consulta sem limite está errada por construção.
+4. **Toda estatística de preço ponderada por escrituras:** média `Σ v·w / Σ w`; mediana e percentis pela convenção posicional da seção 2.3 (expandir cada linha `w` vezes). `AVG(valor_m2)` e `percentile_cont` sobre linhas não batem com o Analytics.
+5. **Cinto de outliers por bairro × tipologia** com a tabela do Apêndice B aplicada no `WHERE`, antes de qualquer estatística. Não usar teto fixo global.
+6. **Corte estatístico MAD em escala log** (k 2,5 abaixo, 3,0 acima, mínimo 8 linhas, salvaguarda de 3 escrituras) sobre a amostra já dentro do cinto. Se o Prime Circle usar outro corte, a comparação de preço só vale depois de os dois relatarem linhas e escrituras descartadas.
+7. **Faixa = P10 / mediana / P95 ponderados dos sobreviventes** (ver decisão aberta em 15.3 sobre P90). Valor de referência é a mediana, nunca a média.
+8. **Janela explícita, exibida com as datas efetivas** (início e fim), com a regra de expansão da seção 2.4 quando a amostra é fina. Um relatório que mostra só "12 meses" ou nenhum período não é comparável.
+9. **Origem da amostra declarada** (rua, raio ou bairro) com a cadeia rua → bairro e a penalidade de confiança correspondente. Bairro inteiro só quando a rua não tem nenhuma ocorrência.
+10. **Anúncios nunca na base.** Preço pedido entra como sinal (gap), com mínimo de 3 anúncios e limite de ±35 %.
+11. **Metadados de reprodutibilidade** persistidos com cada avaliação (lista da seção 2.8). Sem eles não há auditoria linha a linha.
+12. **"Dados insuficientes" em vez de número frágil:** menos de 3 escrituras não sustenta parecer; menos de 8 linhas não sustenta corte de outlier.
+
+**Evitar (erros já encontrados na comparação):**
+
+- contar linhas da série inteira e apresentar como vendas (caso 1 da seção 16: "39" eram 115 escrituras em seis anos);
+- média simples de linhas (caso 4: erro de −1,8 % a +10,2 % por bairro, sem sinal previsível);
+- série completa sem janela para precificar hoje (Avenida do Pepê: R$ 15.673/m² em seis anos contra R$ 18.533/m² em 24 meses);
+- teto fixo de R$/m² igual para Leblon e Santa Cruz;
+- usar a amostra da rua para calibrar o cinto da própria rua (pendência 2 de 15.1: o Analytics também vai deixar de fazer isso no site público);
+- misturar anúncio com escritura na base de valor;
+- média aritmética entre a média de apartamentos e a de casas como "valor geral".
+
+**Ajustar na forma de pesquisar:**
+
+- busca por rua com expansão de grafia (seção 2.9) e busca por condomínio pelas ruas internas com filtro de bairro mantido;
+- opções de período em meses (12, 24, 36, 48, 60), nunca "ano selecionado" sem data efetiva;
+- convenção de data: `data_transacao` é sempre dia 15 do mês; janelas "hoje − N meses" precisam da mesma convenção nos dois sistemas;
+- correção temporal pelo índice trimestral (seção 2.6) é opcional para a comparação, mas precisa ser declarada: com ela ligada de um lado e desligada do outro, janelas longas divergem por construção.
+
+**O que este documento não decide:** se o método da Prime Circle é melhor ou pior. Ele fixa o que o Analytics faz, com precisão suficiente para o Prime Circle reproduzir e para as diferenças restantes serem diferenças de método, não de amostra. A decisão entre métodos é a seção 15.4.
+
+### 15.3 Decisões abertas, que são do dono do produto
+
+| Decisão | Opções | Recomendação da auditoria |
+|---|---|---|
+| Topo da faixa: P95 ou P90 | P95 (vigente desde 2026-09-03) alarga a faixa e exige recalibrar o spread; P90 mantém a calibração de 2026-09-02 | P90 até o backtest dizer que a cobertura da faixa está baixa; P95 só com os limiares de spread recalibrados (pendência 1). |
+| Janela padrão: 12 ou 24 meses | 12 expande sozinha na maioria das ruas; 24 fecha em mais casos com a mesma regra de 8 linhas | Medir (pendência 4) antes de decidir; a resposta está nos metadados das avaliações salvas. |
+| Fallback por raio | ligar com 100 m e 300 m; ligar só com 100 m; manter desligado | Depende das consultas 7.9 e 7.10 (pendência 6). Sem cobertura de geocodificação ≥ 80 %, manter desligado. |
+| Cinto: 3 anos com P99,5 ou 5 anos com P99 | vigente: 3 anos e P99,5 | Manter, desde que a pendência 5 mostre que o corte por par ficou entre 0 e 8 % como na calibração original. |
+
+### 15.4 Protocolo de decisão conjunta
+
+A escolha entre as duas metodologias não se resolve por argumento nem por leitura dos documentos. Resolve-se assim:
+
+1. **Igualar a amostra** (seção 14.1): para os casos da seção 16, os dois sistemas devolvem os mesmos registros e escrituras. Enquanto não baterem, não se compara preço.
+2. **Comparar as fórmulas** (seções 14.2 e 14.4): item a item do checklist, com o desenvolvedor marcando o que a Prime Circle faz igual, diferente ou não faz.
+3. **Backtest** (seção 14.3): 20 ou mais vendas reais fechadas pela Godoy Prime (endereço, tipologia, área, data, preço), avaliadas pelos dois sistemas na data da venda, medindo erro mediano absoluto, viés e cobertura da faixa. Quem fornece as vendas é a Godoy Prime; quem roda os dois sistemas é o desenvolvedor; quem lê o resultado são os dois lados juntos.
+4. **Decisão:** o método com menor erro e cobertura mais próxima de 80 a 90 % com a faixa mais estreita passa a ser a referência dos dois sistemas. O outro se ajusta. As decisões de 15.3 são tomadas com esse resultado, não antes.
+
+Sem o passo 3, o que existe é uma comparação de métodos defensáveis, e métodos defensáveis se defendem indefinidamente.
 
 ---
 
