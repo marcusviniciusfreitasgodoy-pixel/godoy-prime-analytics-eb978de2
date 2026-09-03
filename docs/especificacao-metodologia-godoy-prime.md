@@ -1,8 +1,8 @@
 # Especificação de Metodologia ITBI — Godoy Prime Analytics
 
-**Versão 2.2, consolidada (2026-09-03).** Substitui e unifica dois documentos escritos no mesmo dia: a "Especificação de Metodologia ITBI, documento de handoff" (v1.0, gerada via Lovable) e a "Especificação da lógica estatística" (gerada na auditoria). Nenhum dos dois continua válido separadamente. A v2.1 reescreveu a seção 15 como plano de ação. A v2.2 incorpora a segunda rodada de consultas (2026-09-03, 15h): recarga da base com perda da geocodificação, baselines da seção 16 reexecutados, spread P90 × P95 medido, corte do cinto de 3 anos por par, e as correções decorrentes (sync preservando geocodificação, limiares de spread recalibrados para P95).
+**Versão 2.3, consolidada (2026-09-03).** Substitui e unifica dois documentos escritos no mesmo dia: a "Especificação de Metodologia ITBI, documento de handoff" (v1.0, gerada via Lovable) e a "Especificação da lógica estatística" (gerada na auditoria). Nenhum dos dois continua válido separadamente. A v2.1 reescreveu a seção 15 como plano de ação. A v2.2 incorpora a segunda rodada de consultas (2026-09-03, 15h): recarga da base com perda da geocodificação, baselines da seção 16 reexecutados, spread P90 × P95 medido, corte do cinto de 3 anos por par, e as correções decorrentes (sync preservando geocodificação, limiares de spread recalibrados para P95). A v2.3 registra a terceira rodada: geocodificação recuperada (99,6 %), base no último mês da Prefeitura, cinto regenerado em Centro, Flamengo, Santo Cristo e Glória, trilha de auditoria da carga completa e o achado do filtro de bairro sem acento nas consultas de calibração.
 
-**Código descrito:** `main` após o PR #16 (2026-09-03), `ENGINE_VERSION` 3. O export "código atual" recebido em 2026-09-03 é idêntico a este commit no código-fonte; só os arquivos de documentação diferem, por ter sido gerado antes da consolidação.
+**Código descrito:** `main` após o PR #17 (2026-09-03), `ENGINE_VERSION` 3. O export "código atual" recebido em 2026-09-03 é idêntico a este commit no código-fonte; só os arquivos de documentação diferem, por ter sido gerado antes da consolidação.
 **Finalidade:** permitir que o desenvolvedor da Prime Circle reproduza, número a número, o que o Analytics calcula em consultas, avaliações e pesquisas de mercado, e localize exatamente onde os dois sistemas divergem.
 
 Como ler: as seções 1 a 13 são descritivas (o que o código faz, não o que deveria fazer). A seção 14 traz o roteiro de comparação e o checklist de aceite; a 15, as ressalvas do auditor com o plano de ação para os dois sistemas; a 16, os casos de conferência com números reais da base; os apêndices, as constantes, a tabela completa do cinto de outliers e os arquivos de referência.
@@ -50,9 +50,9 @@ Detalhes de ingestão (fonte, filtros de carga, normalização e geocodificaçã
 | Escrituras (`SUM(total_transacoes)`) | 125.867 | **134.555** |
 | Período coberto | 15/01/2020 a 15/05/2026 | 15/01/2020 a **15/07/2026** |
 | Linhas com `uso = 'Residencial'` | 100 % | 100 % |
-| Linhas com `geom` | 30.011 | **0** |
+| Linhas com `geom` | 30.011 | **0** na recarga; **31.369 (99,6 %)** após o backfill das 15:59 (30.137 por `logradouros_geo`, 1.232 por fallback de logradouro sem bairro, 131 nulas em ruas de volume marginal) |
 
-**Incidente de 2026-09-03.** A tabela foi truncada e reimportada entre 15:06 e 15:08 UTC, sem registro em `etl_log`, trazendo dois meses novos de dados e apagando a geocodificação de todas as linhas (`geom`, `lat`, `lng` nulos). Causa: a sincronização completa (`sync-itbi-prefeitura` com `clearExisting`) apagava as linhas do período antes de reinserir. A função foi corrigida no mesmo dia (seção 12); a recuperação das coordenadas é operacional (seção 15.1, item 0). Os números da seção 16 foram reexecutados sobre a base recarregada e são os vigentes; os da v1.0 ficam registrados entre parênteses para rastreabilidade.
+**Incidente de 2026-09-03.** A tabela foi truncada e reimportada entre 15:06 e 15:08 UTC, sem registro em `etl_log`, trazendo dois meses novos de dados e apagando a geocodificação de todas as linhas (`geom`, `lat`, `lng` nulos). Causa: a sincronização completa (`sync-itbi-prefeitura` com `clearExisting`) apagava as linhas do período antes de reinserir. A função foi corrigida no mesmo dia (seção 12) e reimplantada; as coordenadas foram recuperadas pelo backfill a partir de `logradouros_geo` (99,6 %). Último mês na base e na Prefeitura: 07/2026 (`detect-latest-itbi-month`, `isOutdated: false`). Quem disparou a carga não pôde ser determinado: a função não gravava em `etl_log` e os logs de edge function do período já tinham expirado; desde o PR #17 toda execução grava usuário, modo, `clearExisting` e período em `etl_log`, e o botão de sincronização nasce com a recarga desligada. Os números da seção 16 foram reexecutados sobre a base recarregada e são os vigentes; os da v1.0 ficam registrados entre parênteses para rastreabilidade.
 
 ---
 
@@ -727,7 +727,7 @@ uso = 'Comercial' se o texto contém "não residencial"/"comercial", senão 'Res
 tipologia = Apartamento (apartamento|apto|flat|cobertura) | Casa (casa|sobrado|residencia) | Terreno | Comercial (sala|loja|escritório) | padrão Apartamento
 ```
 
-`sync-itbi-daily` reimporta o mês corrente e o anterior por upsert na chave natural (`logradouro, bairro, data_transacao, uso, tipologia`) e chama `refresh_itbi_price_index()`. `sync-itbi-prefeitura` (carga completa por bairro ou de toda a cidade) também faz upsert na chave natural; com `clearExisting`, **desde 2026-09-03** não apaga nada antes de inserir: as linhas existentes são atualizadas preservando `lat`, `lng`, `geom`, `microbairro` e `geocodificado_via`, e só depois as linhas do período que a Prefeitura deixou de publicar (não tocadas pela sincronização, `updated_at` anterior ao início) são removidas. Antes dessa data a função apagava o período inteiro e reinseria, o que perdia a geocodificação (incidente da seção 1.1). Geocodificação (`lat`, `lng`, `geom`) e `microbairro` são preenchidos por funções separadas, depois da carga; `logradouro_norm` pela função SQL da seção 2.9.
+`sync-itbi-daily` reimporta o mês corrente e o anterior por upsert na chave natural (`logradouro, bairro, data_transacao, uso, tipologia`) e chama `refresh_itbi_price_index()`. `sync-itbi-prefeitura` (carga completa por bairro ou de toda a cidade) também faz upsert na chave natural; com `clearExisting`, **desde 2026-09-03** não apaga nada antes de inserir: as linhas existentes são atualizadas preservando `lat`, `lng`, `geom`, `microbairro` e `geocodificado_via`, e só depois as linhas do período que a Prefeitura deixou de publicar (não tocadas pela sincronização, `updated_at` anterior ao início) são removidas. Antes dessa data a função apagava o período inteiro e reinseria, o que perdia a geocodificação (incidente da seção 1.1). Toda execução grava em `etl_log` (`fonte = sync_itbi_prefeitura`): usuário e e-mail do JWT, modo (bairro ou todos), `clear_existing`, período, contagens da API, registros válidos, inseridos, obsoletos removidos e status final. Geocodificação (`lat`, `lng`, `geom`) e `microbairro` são preenchidos por funções separadas, depois da carga; `logradouro_norm` pela função SQL da seção 2.9.
 
 Consequência para a comparação: como `data_transacao` é sempre dia 15, uma janela "últimos 12 meses" iniciada em 2025-09-03 inclui setembro/2025 inteiro (dia 15 ≥ dia 3) mas uma janela iniciada em 2025-09-20 exclui. A Prime Circle precisa usar a mesma convenção de data.
 
@@ -778,6 +778,9 @@ Encontradas durante a escrita das duas especificações e corrigidas no mesmo di
 | `_shared/outlierLimits.ts` | campo `p99` guardava o P99,5 | campo renomeado para `p995` |
 | `sync-itbi-prefeitura` com `clearExisting` | apagava o período antes de reinserir; geocodificação perdida a cada recarga | upsert preservando colunas de geocodificação; varredura posterior de linhas obsoletas por `updated_at` |
 | `valuationCalculations.ts`, `valuationPdfExport.ts` | limiares de spread 30/40/55 calibrados para P10–P90, com a faixa já em P10–P95 | 35/50/65 e rótulos do PDF 27/37/50, calibrados com a consulta 7.5 em P95 (`docs/calibracao/bloco75-spread-2026-09-03.csv`) |
+| `_shared/outlierLimits.ts`: Centro, Flamengo, Santo Cristo, Glória | tetos defasados, cortando 5,0 %, 4,6 %, 9,1 % e 17,2 % das escrituras | regenerados (3 anos / P99,5; Glória em 5 anos, ver 15.1 item 5); `docs/calibracao/bloco74-quatro-pares-2026-09-03.csv` |
+| `sync-itbi-prefeitura` | sem trilha de auditoria; carga completa de 15:06 UTC sem autor identificável | grava início, fim, usuário, modo, `clearExisting`, período e contagens em `etl_log` |
+| `SyncITBIButton.tsx` | recarga do período (`clearExisting`) ligada por padrão | desligada por padrão |
 
 ---
 
@@ -892,18 +895,18 @@ Estado em 2026-09-03, 16h, depois da segunda rodada de consultas (resultados em 
 
 | # | Prioridade | Problema | O que fazer | Como validar |
 |---|---|---|---|---|
-| 0 | **Máxima** | **Geocodificação perdida na recarga de 2026-09-03.** `geom`, `lat` e `lng` nulos em 100 % das 31.472 linhas. Mapa, fallback por raio e análise histórica por raio devolvem vazio, em silêncio. A causa (sync apagando o período) está corrigida no código, mas as coordenadas não voltam sozinhas. | (a) Rodar `geocodificar-itbi-logradouros` com `somente_backfill: true` (RPC `backfill_itbi_geom_from_logradouros`, sem custo: usa `logradouros_geo`, que não foi afetada); (b) rodar a etapa Google para as ruas que sobrarem; (c) registrar o incidente em `etl_log` e descobrir quem disparou a carga completa às 15:06 UTC. | `select count(*) filter (where geom is not null) from itbi_transactions` volta a ≥ 30.011; consulta 7.9 ≥ 0,80. |
+| 0 | Fechada | Geocodificação perdida na recarga de 2026-09-03. | Backfill a partir de `logradouros_geo` executado às 15:59: 31.369 de 31.500 linhas (99,6 %); 131 restantes em cerca de 104 ruas de volume marginal, etapa Google dispensada. Causa corrigida no código e função reimplantada. Autor da carga não identificável (sem `etl_log`, logs expirados); trilha de auditoria adicionada. | Consulta 7.9 = 0,996. |
 | 1 | Fechada | Limiares de spread calibrados para P10–P90 com a faixa em P10–P95. | Feito em 2026-09-03: consulta 7.5 nas duas versões (P10–P90: mediana 24,0 %, P75 32,6 %, P90 42,2 %; P10–P95: 27,2 %, 36,6 %, 49,5 %). Limiares passam a 35/50/65 e os rótulos do PDF a 27/37/50. Se a decisão 15.3 voltar a P90, os valores são 30/40/55. | Fração de avaliações em "spread largo" volta ao patamar anterior à troca para P95. |
 | 2 | Alta | **Site público e motor divergem no cinto** (`getStreetOutlierLimits` só no site). | Remover a calibração por rua do site público e usar `getOutlierLimits(bairro, tipologia)` como o motor. | Mesmo endereço, janela e tipologia: `piso_m2`, `teto_m2` e `med_m2` idênticos no site e na avaliação. |
-| 3 | Fechada | Migration `20260903160000` (percentual ≥ 90 na RPC de raio). | Aplicada em 2026-09-03; filtro confirmado em `pg_get_functiondef`. Sem efeito prático até o item 0, porque a função depende de `geom`. | — |
+| 3 | Fechada | Migration `20260903160000` (percentual ≥ 90 na RPC de raio). | Aplicada em 2026-09-03; filtro confirmado em `pg_get_functiondef`. Com a geocodificação recuperada, a função voltou a devolver linhas. | — |
 | 4 | Média | **Janela padrão de 12 meses não foi medida.** A consulta sobre `valuations.itbi_metadata` devolveu 0 linhas: nenhuma avaliação foi salva desde que a janela móvel entrou. | Exibir "janela solicitada 12 m, usada 24 m" quando `janela_expandida = true`; repetir a consulta quando houver 30 avaliações salvas. | Distribuição de `janela_meses`; se menos de 30 % fecham em 12, o padrão deveria ser 24. |
-| 5 | Alta | **Cinto de 3 anos / P99,5: quatro pares com teto defasado.** Consulta 7.3 sobre a base recarregada: Glória 17,2 % das escrituras cortadas (71 acima do teto), Santo Cristo 9,1 %, Centro 5,0 %, Flamengo 4,6 %; os outros 71 pares ficam em 1,1 % ou menos (55 em zero). Barra Olímpica não tem escrituras em 3 anos. | Regenerar com a consulta 7.4 (P1 e P99,5 ponderados, 3 anos) os pares Glória, Santo Cristo, Centro e Flamengo e atualizar o Apêndice B e `outlierLimits.ts`; mover Barra Olímpica para o fallback de 5 anos. | 7.3 reexecutada: nenhum par acima de 3 %. |
-| 6 | Bloqueada | **Fallback por raio.** As consultas 7.9, 7.9b e 7.10 não são executáveis sem `geom`. | Depende do item 0. Só depois: cobertura ≥ 80 % liga o fallback; spread do raio 300 m parecido com o do bairro remove o degrau de 300 m. | CSVs 7.9 e 7.10 versionados e decisão escrita. |
+| 5 | Média | **Cinto: quatro pares regenerados; consultas de calibração filtravam bairro sem acento.** Centro, Flamengo e Santo Cristo regenerados em 3 anos / P99,5 (tetos 13.440, 23.552 e 11.852). Glória: a consulta de 3 anos devolveu vazio porque filtrou `GLORIA` e a base grava `GLÓRIA`; regenerada com a janela de 5 anos (574 escrituras, teto 20.240) até a consulta de 3 anos ser refeita. O mesmo filtro sem acento explica "Barra Olímpica sem escrituras em 3 anos" na consulta 7.3, e lança dúvida sobre qualquer par acentuado calibrado por consulta que filtre pelo nome. | Rodar a consulta 7.4 inteira, em 3 anos, agrupando por `bairro` sem filtrar por nome (a base grava com acento; a chave da tabela é normalizada na leitura), e comparar par a par com o Apêndice B. Regenerar o que divergir. | 7.3 reexecutada com o mesmo cuidado: nenhum par acima de 3 %; Barra Olímpica e Glória com escrituras em 3 anos. |
+| 6 | Média | **Fallback por raio: cobertura de geocodificação atingida (99,6 %), falta o spread por escopo.** | Rodar a consulta 7.10 (30 ruas pequenas, spread rua × raio 100 × raio 300 × bairro, duas vezes por ser amostra aleatória). Se o raio 300 m tiver spread parecido com o bairro, remover o degrau de 300 m; então ligar a configuração. | CSV 7.10 versionado e decisão escrita na seção 11 do relatório de auditoria. |
 | 7 | Média | **Duas escalas de rótulo para a mesma confiança** (nível 85/70/55; PDF 80/60/40). | Unificar nos limiares do nível e remover a escala paralela do PDF. | Um único conjunto de constantes usado nos dois lugares. |
 | 8 | Baixa | **Alerta de gap de anúncios (15 %) sem amostra.** | Manter até 30 avaliações com 3 ou mais anúncios; recalibrar pela distribuição observada. | Consulta 7.6 com n ≥ 30. |
 | 9 | Baixa | **Estatística central varia por tela** (mediana no motor, média ponderada nos painéis). | Mostrar a mediana ponderada ao lado da média em Pesquisa de Mercado e no Dashboard. | Todas as telas de preço exibem as duas grandezas com o mesmo rótulo. |
 | 10 | Baixa | **Repositório público no GitHub.** | Decisão do dono. | — |
-| 11 | Média | **Recargas completas sem registro.** A carga de 15:06 UTC não deixou linha em `etl_log`; sem isso, incidentes como o item 0 só aparecem quando alguém percebe o mapa vazio. | Fazer `sync-itbi-prefeitura` gravar início, fim, contagens e `registros_obsoletos_removidos` em `etl_log`; alertar quando `count(geom is not null)` cair. | Toda carga completa tem uma linha em `etl_log`. |
+| 11 | Fechada | **Recargas completas sem registro.** | `sync-itbi-prefeitura` grava em `etl_log` usuário, modo, `clearExisting`, período e contagens (PR #17); botão de sincronização nasce com a recarga desligada. Fica em aberto, como decisão do dono: quem pode disparar carga completa. | Toda execução tem uma linha em `etl_log` com `fonte = sync_itbi_prefeitura`. |
 
 ### 15.2 Referência para o Prime Circle: adotar, evitar, ajustar
 
@@ -949,7 +952,7 @@ Tudo abaixo decorre do corpo do documento. O desenvolvedor deve tratar esta list
 |---|---|---|
 | Topo da faixa: P95 ou P90 | P95 (vigente) alarga o spread típico em 3,2 pontos na mediana e 7,3 no P90 das ruas (consulta 7.5, 2026-09-03); os limiares já estão recalibrados para P95 | Manter P95 com os limiares 35/50/65 até o backtest medir a cobertura da faixa; se voltar a P90, restaurar 30/40/55. A decisão fica reversível com uma constante. |
 | Janela padrão: 12 ou 24 meses | 12 expande sozinha na maioria das ruas; 24 fecha em mais casos com a mesma regra de 8 linhas | Medir (pendência 4) antes de decidir; a resposta está nos metadados das avaliações salvas. |
-| Fallback por raio | ligar com 100 m e 300 m; ligar só com 100 m; manter desligado | Manter desligado até a geocodificação ser recuperada (pendência 0) e as consultas 7.9 e 7.10 rodarem. |
+| Fallback por raio | ligar com 100 m e 300 m; ligar só com 100 m; manter desligado | Geocodificação recuperada (99,6 %); manter desligado só até a consulta 7.10 decidir se o degrau de 300 m fica (pendência 6). |
 | Cinto: 3 anos com P99,5 ou 5 anos com P99 | vigente: 3 anos e P99,5 | Manter: 71 dos 78 pares cortam 1,1 % ou menos. Recalibrar os quatro pares defasados (pendência 5), que são os únicos acima de 3 %. |
 
 ### 15.4 Protocolo de decisão conjunta
@@ -1120,7 +1123,7 @@ Resultado idêntico: o cinto não corta mercado legítimo num bairro bem calibra
 
 ## Apêndice B. Cinto de outliers: tabela completa (78 pares)
 
-Chave = `BAIRRO|Tipologia`. 72 pares calibrados em janela de 3 anos, 6 em fallback de 5 anos (sem escrituras nos últimos 3 anos). A coluna P99,5 corresponde ao campo `p995` no código.
+Chave = `BAIRRO|Tipologia` (normalizada: maiúsculas, sem acento). 72 pares calibrados em janela de 3 anos, 6 em fallback de 5 anos. A coluna P99,5 corresponde ao campo `p995` no código. Atenção ao regenerar: a base grava os bairros com acento (`GLÓRIA`, `BARRA OLÍMPICA`, `JACAREPAGUÁ`); a consulta 7.4 deve agrupar por `bairro` sem filtrar por nome, e a normalização acontece só na chave da tabela (pendência 5 da seção 15.1).
 
 | Bairro | Tipologia | Piso | Teto | P1 | P99,5 | Escrituras | Janela |
 |---|---|---:|---:|---:|---:|---:|---|
@@ -1140,19 +1143,19 @@ Chave = `BAIRRO|Tipologia`. 72 pares calibrados em janela de 3 anos, 6 em fallba
 | CAMPO GRANDE | Apartamento | 1.870 | 5.660 | 2.200 | 4.922 | 1.228 | 3 anos |
 | CAMPO GRANDE | Casa | 1.173 | 3.748 | 1.380 | 3.259 | 311 | 3 anos |
 | CATETE | Apartamento | 4.959 | 14.537 | 5.834 | 12.641 | 538 | 3 anos |
-| CENTRO | Apartamento | 3.442 | 11.150 | 4.050 | 9.696 | 91 | 3 anos |
+| CENTRO | Apartamento | 3.250 | 13.440 | 3.824 | 11.687 | 1.305 | 3 anos (regenerado 2026-09-03, 3ª rodada) |
 | COLEGIO | Apartamento | 2.049 | 4.717 | 2.411 | 4.102 | 174 | 5 anos |
 | COPACABANA | Apartamento | 5.189 | 26.609 | 6.105 | 23.138 | 6.343 | 3 anos |
 | CURICICA | Apartamento | 3.111 | 8.580 | 3.660 | 7.461 | 243 | 3 anos |
 | DEL CASTILHO | Apartamento | 3.481 | 6.987 | 4.095 | 6.076 | 421 | 3 anos |
 | ENGENHO DE DENTRO | Apartamento | 1.635 | 7.038 | 1.923 | 6.120 | 497 | 3 anos |
 | ENGENHO NOVO | Apartamento | 2.031 | 5.265 | 2.389 | 4.578 | 200 | 3 anos |
-| FLAMENGO | Apartamento | 6.264 | 18.073 | 7.369 | 15.716 | 428 | 3 anos |
+| FLAMENGO | Apartamento | 6.396 | 23.552 | 7.525 | 20.480 | 2.052 | 3 anos (regenerado 2026-09-03, 3ª rodada) |
 | FREGUESIA (ILHA) | Apartamento | 2.291 | 6.484 | 2.695 | 5.638 | 98 | 3 anos |
 | FREGUESIA (JACAREPAGUA) | Apartamento | 2.958 | 7.900 | 3.480 | 6.870 | 1.537 | 3 anos |
 | FREGUESIA (JACAREPAGUA) | Casa | 1.355 | 5.757 | 1.594 | 5.006 | 112 | 5 anos |
 | GAVEA | Apartamento | 8.306 | 26.463 | 9.772 | 23.011 | 438 | 3 anos |
-| GLORIA | Apartamento | 5.250 | 13.511 | 6.176 | 11.749 | 129 | 3 anos |
+| GLORIA | Apartamento | 4.882 | 20.240 | 5.744 | 17.600 | 574 | 5 anos (regenerado 2026-09-03; refazer em 3 anos com a chave acentuada) |
 | GRAJAU | Apartamento | 1.822 | 7.492 | 2.143 | 6.515 | 432 | 3 anos |
 | GUARATIBA | Casa | 1.293 | 3.051 | 1.521 | 2.653 | 111 | 3 anos |
 | HUMAITA | Apartamento | 7.585 | 24.103 | 8.923 | 20.959 | 297 | 3 anos |
@@ -1187,7 +1190,7 @@ Chave = `BAIRRO|Tipologia`. 72 pares calibrados em janela de 3 anos, 6 em fallba
 | RIO COMPRIDO | Apartamento | 2.070 | 8.366 | 2.435 | 7.275 | 145 | 3 anos |
 | SANTA CRUZ | Apartamento | 1.784 | 3.724 | 2.099 | 3.238 | 146 | 3 anos |
 | SANTA TERESA | Apartamento | 2.971 | 8.712 | 3.495 | 7.576 | 55 | 3 anos |
-| SANTO CRISTO | Apartamento | 2.908 | 9.757 | 3.421 | 8.484 | 514 | 5 anos |
+| SANTO CRISTO | Apartamento | 3.995 | 11.852 | 4.700 | 10.306 | 581 | 3 anos (regenerado 2026-09-03, 3ª rodada) |
 | SAO CONRADO | Apartamento | 6.129 | 30.167 | 7.211 | 26.232 | 271 | 3 anos |
 | SAO CRISTOVAO | Apartamento | 3.654 | 9.776 | 4.299 | 8.501 | 101 | 3 anos |
 | SAO FRANCISCO XAVIER | Apartamento | 2.371 | 6.351 | 2.789 | 5.523 | 391 | 3 anos |

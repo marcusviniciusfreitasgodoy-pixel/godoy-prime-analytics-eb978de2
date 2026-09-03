@@ -258,6 +258,41 @@ serve(async (req) => {
     const periodoInicio = `${minYear}-${String(minMonth).padStart(2, '0')}-01`;
     const periodoFim = `${maxYear}-${String(maxMonth).padStart(2, '0')}-28`; // 28 para cobrir todos os meses
 
+    // Trilha de auditoria (incidente de 2026-09-03: uma carga completa sem autor
+    // conhecido). Toda execução grava quem, quando, modo e período em etl_log.
+    const { data: logEntry } = await supabase
+      .from('etl_log')
+      .insert({
+        fonte: 'sync_itbi_prefeitura',
+        bairro: syncAllBairros ? 'TODOS' : (BAIRRO_CODES[codbairro!] || codbairro),
+        status: 'running',
+        iniciado_em: syncStartedAt,
+        detalhes: {
+          usuario_id: user.id,
+          usuario_email: user.email,
+          modo: syncAllBairros ? 'todos_os_bairros' : 'bairro',
+          clear_existing: clearExisting,
+          periodo_inicio: periodoInicio,
+          periodo_fim: periodoFim,
+        },
+      })
+      .select('id')
+      .single();
+    const etlLogId = logEntry?.id as string | undefined;
+    const finalizarLog = async (status: string, extra: Record<string, unknown>, erro?: string) => {
+      if (!etlLogId) return;
+      const { error: logError } = await supabase
+        .from('etl_log')
+        .update({
+          status,
+          finalizado_em: new Date().toISOString(),
+          erro_mensagem: erro ?? null,
+          ...extra,
+        })
+        .eq('id', etlLogId);
+      if (logError) console.warn('etl_log não atualizado:', logError.message);
+    };
+
     // Transformar e validar dados
     const transacoes: Array<{
       logradouro: string;
@@ -428,6 +463,24 @@ serve(async (req) => {
 
     console.log('=== SINCRONIZAÇÃO FINALIZADA ===');
     console.log(JSON.stringify(summary));
+
+    await finalizarLog(erros.length > 0 ? 'concluido_com_erros' : 'concluido', {
+      registros_importados: totalInseridas,
+      registros_com_erro: erros.length,
+      detalhes: {
+        usuario_id: user.id,
+        usuario_email: user.email,
+        modo: syncAllBairros ? 'todos_os_bairros' : 'bairro',
+        clear_existing: clearExisting,
+        periodo_inicio: periodoInicio,
+        periodo_fim: periodoFim,
+        api_registros_agregados: allFeatures.length,
+        registros_validos: transacoes.length,
+        registros_obsoletos_removidos: registrosRemovidos,
+        total_transacoes_reais: totalTransacoesReais,
+        geocodificacao_preservada: true,
+      },
+    });
 
     return new Response(JSON.stringify(summary), { 
       headers: { ...corsHeaders, 'Content-Type': 'application/json' } 

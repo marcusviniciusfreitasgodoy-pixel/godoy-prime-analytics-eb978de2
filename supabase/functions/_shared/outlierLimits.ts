@@ -12,6 +12,12 @@
 // de 3 anos (Agua Santa, Bras de Pina, Colegio, Freguesia (Jacarepagua) Casa,
 // Inhoaiba e Santo Cristo).
 // Regenerar com a consulta 7.4 de docs/calibracao-consultas.sql quando a base mudar.
+// 2026-09-03 (3ª rodada, base recarregada): CENTRO, FLAMENGO e SANTO CRISTO
+// regenerados em 3 anos / P99,5 depois de a consulta 7.3 mostrar corte de 5,0%,
+// 4,6% e 9,1%; GLORIA regenerada com a janela de 5 anos (574 escrituras) porque a
+// consulta de 3 anos filtrou o bairro sem acento e devolveu vazio. Ao regenerar,
+// agrupar por bairro sem filtrar por nome: a base grava GLÓRIA, BARRA OLÍMPICA
+// etc. com acento.
 
 //
 // Sem dependências: precisa rodar em Deno e no navegador.
@@ -49,19 +55,19 @@ export const OUTLIER_LIMITS_TABLE: Record<string, OutlierLimitEntry> = {
   "CAMPO GRANDE|Apartamento": { piso: 1870, teto: 5660, p1: 2200, p995: 4922, escrituras: 1228, janela: "3 anos" },
   "CAMPO GRANDE|Casa": { piso: 1173, teto: 3748, p1: 1380, p995: 3259, escrituras: 311, janela: "3 anos" },
   "CATETE|Apartamento": { piso: 4959, teto: 14537, p1: 5834, p995: 12641, escrituras: 538, janela: "3 anos" },
-  "CENTRO|Apartamento": { piso: 3442, teto: 11150, p1: 4050, p995: 9696, escrituras: 91, janela: "3 anos" },
+  "CENTRO|Apartamento": { piso: 3250, teto: 13440, p1: 3824, p995: 11687, escrituras: 1305, janela: "3 anos" },
   "COLEGIO|Apartamento": { piso: 2049, teto: 4717, p1: 2411, p995: 4102, escrituras: 174, janela: "5 anos" },
   "COPACABANA|Apartamento": { piso: 5189, teto: 26609, p1: 6105, p995: 23138, escrituras: 6343, janela: "3 anos" },
   "CURICICA|Apartamento": { piso: 3111, teto: 8580, p1: 3660, p995: 7461, escrituras: 243, janela: "3 anos" },
   "DEL CASTILHO|Apartamento": { piso: 3481, teto: 6987, p1: 4095, p995: 6076, escrituras: 421, janela: "3 anos" },
   "ENGENHO DE DENTRO|Apartamento": { piso: 1635, teto: 7038, p1: 1923, p995: 6120, escrituras: 497, janela: "3 anos" },
   "ENGENHO NOVO|Apartamento": { piso: 2031, teto: 5265, p1: 2389, p995: 4578, escrituras: 200, janela: "3 anos" },
-  "FLAMENGO|Apartamento": { piso: 6264, teto: 18073, p1: 7369, p995: 15716, escrituras: 428, janela: "3 anos" },
+  "FLAMENGO|Apartamento": { piso: 6396, teto: 23552, p1: 7525, p995: 20480, escrituras: 2052, janela: "3 anos" },
   "FREGUESIA (ILHA)|Apartamento": { piso: 2291, teto: 6484, p1: 2695, p995: 5638, escrituras: 98, janela: "3 anos" },
   "FREGUESIA (JACAREPAGUA)|Apartamento": { piso: 2958, teto: 7900, p1: 3480, p995: 6870, escrituras: 1537, janela: "3 anos" },
   "FREGUESIA (JACAREPAGUA)|Casa": { piso: 1355, teto: 5757, p1: 1594, p995: 5006, escrituras: 112, janela: "5 anos" },
   "GAVEA|Apartamento": { piso: 8306, teto: 26463, p1: 9772, p995: 23011, escrituras: 438, janela: "3 anos" },
-  "GLORIA|Apartamento": { piso: 5250, teto: 13511, p1: 6176, p995: 11749, escrituras: 129, janela: "3 anos" },
+  "GLORIA|Apartamento": { piso: 4882, teto: 20240, p1: 5744, p995: 17600, escrituras: 574, janela: "5 anos" },
   "GRAJAU|Apartamento": { piso: 1822, teto: 7492, p1: 2143, p995: 6515, escrituras: 432, janela: "3 anos" },
   "GUARATIBA|Casa": { piso: 1293, teto: 3051, p1: 1521, p995: 2653, escrituras: 111, janela: "3 anos" },
   "HUMAITA|Apartamento": { piso: 7585, teto: 24103, p1: 8923, p995: 20959, escrituras: 297, janela: "3 anos" },
@@ -96,7 +102,7 @@ export const OUTLIER_LIMITS_TABLE: Record<string, OutlierLimitEntry> = {
   "RIO COMPRIDO|Apartamento": { piso: 2070, teto: 8366, p1: 2435, p995: 7275, escrituras: 145, janela: "3 anos" },
   "SANTA CRUZ|Apartamento": { piso: 1784, teto: 3724, p1: 2099, p995: 3238, escrituras: 146, janela: "3 anos" },
   "SANTA TERESA|Apartamento": { piso: 2971, teto: 8712, p1: 3495, p995: 7576, escrituras: 55, janela: "3 anos" },
-  "SANTO CRISTO|Apartamento": { piso: 2908, teto: 9757, p1: 3421, p995: 8484, escrituras: 514, janela: "5 anos" },
+  "SANTO CRISTO|Apartamento": { piso: 3995, teto: 11852, p1: 4700, p995: 10306, escrituras: 581, janela: "3 anos" },
   "SAO CONRADO|Apartamento": { piso: 6129, teto: 30167, p1: 7211, p995: 26232, escrituras: 271, janela: "3 anos" },
   "SAO CRISTOVAO|Apartamento": { piso: 3654, teto: 9776, p1: 4299, p995: 8501, escrituras: 101, janela: "3 anos" },
   "SAO FRANCISCO XAVIER|Apartamento": { piso: 2371, teto: 6351, p1: 2789, p995: 5523, escrituras: 391, janela: "3 anos" },
