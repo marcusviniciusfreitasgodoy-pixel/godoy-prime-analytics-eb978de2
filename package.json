@@ -10,6 +10,7 @@
     "lint": "eslint .",
     "typecheck": "tsc --noEmit -p tsconfig.app.json",
     "test": "bun test",
+    "cinto": "bun scripts/gerar-cinto-outliers.ts",
     "preview": "vite preview"
   },
   "dependencies": {
