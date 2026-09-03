@@ -88,11 +88,11 @@ export function exportToXLSX(options: ExportXLSXOptions) {
     summaryRows.push([]);
   }
   
-  // Info do relatório
-  summaryRows.push(['INFORMAÇÕES DO RELATÓRIO']);
-  summaryRows.push(['Total de Registros', data.length.toString()]);
-  summaryRows.push(['Fonte de Dados', 'Transações Oficiais - Prefeitura do Rio de Janeiro']);
-  summaryRows.push(['Data de Geração', new Date().toLocaleString('pt-BR')]);
+   // Info do relatório
+   summaryRows.push(['INFORMAÇÕES DO RELATÓRIO']);
+   summaryRows.push(['Registros ITBI (agregações mensais)', data.length.toString()]);
+   summaryRows.push(['Fonte de Dados', 'Transações Oficiais - Prefeitura do Rio de Janeiro']);
+   summaryRows.push(['Data de Geração', new Date().toLocaleString('pt-BR')]);
   summaryRows.push([]);
   summaryRows.push(['CONTATO']);
   summaryRows.push([`Godoy Prime Realty - ${CONTACT_INFO.creci}`]);

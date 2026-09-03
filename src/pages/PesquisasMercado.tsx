@@ -177,7 +177,7 @@ export default function PesquisasMercado() {
 
   const transactionExportSummary = [
     { label: 'Total de Logradouros', value: totalTransactionRows },
-    { label: 'Total de Transações', value: totalTransactions },
+    { label: 'Escrituras Reais (transações)', value: totalTransactions },
   ];
 
   const exportTransactionResults = () => {
@@ -225,8 +225,8 @@ export default function PesquisasMercado() {
       data: transactionResult,
       columns: [
         { key: 'microbairro', header: 'Logradouro', width: 40, format: 'text' },
-        { key: 'total_transacoes', header: 'Total Transações', width: 18, format: 'number' },
-        { key: 'preco_medio_m2', header: 'Preço Médio R$/m²', width: 20, format: 'currency' },
+         { key: 'total_transacoes', header: 'Escrituras', width: 18, format: 'number' },
+         { key: 'preco_medio_m2', header: 'Preço Médio R$/m²', width: 20, format: 'currency' },
       ],
       summary: transactionExportSummary,
     });
@@ -255,9 +255,9 @@ export default function PesquisasMercado() {
       filters: transactionExportFilters,
       data: transactionResult,
       columns: [
-        { key: 'microbairro', header: 'Logradouro', format: 'text' },
-        { key: 'total_transacoes', header: 'Transações', format: 'number' },
-        { key: 'preco_medio_m2', header: 'Preço Médio/m²', format: 'currency' },
+         { key: 'microbairro', header: 'Logradouro', format: 'text' },
+         { key: 'total_transacoes', header: 'Escrituras', format: 'number' },
+         { key: 'preco_medio_m2', header: 'Preço Médio/m²', format: 'currency' },
       ],
       summary: [
         ...transactionExportSummary,

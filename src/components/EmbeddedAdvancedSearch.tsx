@@ -995,7 +995,7 @@ export function EmbeddedAdvancedSearch({ defaultBairro = "" }: EmbeddedAdvancedS
                   </div>
                 </div>
                 <div className="text-center">
-                  <div className="text-xs text-muted-foreground">Qtd. Transações</div>
+                  <div className="text-xs text-muted-foreground">Escrituras no registro</div>
                   <div className="font-semibold text-sm text-blue-600">{selectedTransaction.total_transacoes}</div>
                 </div>
                 <div className="text-center">
