@@ -240,7 +240,7 @@ export default function Microbairros() {
                           </span>
                         </TooltipTrigger>
                         <TooltipContent className="max-w-xs">
-                          Número total de transações ITBI residenciais registradas neste logradouro nos últimos 24 meses (com percentual transferido ≥ 90%).
+                          Número total de escrituras ITBI residenciais registradas neste logradouro nos últimos 12 meses (com percentual transferido ≥ 90%), após o cinto de outliers do bairro.
                         </TooltipContent>
                       </Tooltip>
                     </TooltipProvider>
@@ -257,7 +257,7 @@ export default function Microbairros() {
                           </span>
                         </TooltipTrigger>
                         <TooltipContent className="max-w-xs">
-                          Classificação de desempenho do logradouro com base na sua posição no ranking de preço/m² dos últimos 24 meses. "Alta" indica top 3 do bairro; "Estável" indica desempenho consistente fora do top 3.
+                          Classificação de desempenho do logradouro com base na sua posição no ranking de preço/m² dos últimos 12 meses. "Alta" indica top 3 do bairro; "Estável" indica desempenho consistente fora do top 3.
                         </TooltipContent>
                       </Tooltip>
                     </TooltipProvider>
