@@ -1,6 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.86.0";
-import { LIMITES_INGESTAO, validarFeatureItbi } from "../_shared/itbiIngestion.ts";
+import { LIMITES_INGESTAO, mesclarDuplicatasItbi, validarFeatureItbi } from "../_shared/itbiIngestion.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -377,13 +377,18 @@ serve(async (req) => {
     const totalTransacoesReais = transacoes.reduce((sum, t) => sum + t.total_transacoes, 0);
     console.log(`Total de transações reais (soma): ${totalTransacoesReais}`);
 
+    // A API repete a chave natural (tipologias distintas que viram a mesma
+    // classe); um lote com a chave repetida derruba o upsert inteiro.
+    const { registros: transacoesUnicas, duplicatasMescladas } = mesclarDuplicatasItbi(transacoes);
+    console.log(`Duplicatas de chave natural mescladas: ${duplicatasMescladas}`);
+
     // Inserir em lotes
     let totalInseridas = 0;
     const erros: string[] = [];
     const batchSize = 500;
 
-    for (let i = 0; i < transacoes.length; i += batchSize) {
-      const batch = transacoes.slice(i, i + batchSize);
+    for (let i = 0; i < transacoesUnicas.length; i += batchSize) {
+      const batch = transacoesUnicas.slice(i, i + batchSize);
       const { error } = await supabase
         .from('itbi_transactions')
         .upsert(batch, {
@@ -396,7 +401,7 @@ serve(async (req) => {
         erros.push(`Lote ${i}: ${error.message}`);
       } else {
         totalInseridas += batch.length;
-        console.log(`Inseridas ${totalInseridas}/${transacoes.length}`);
+        console.log(`Inseridas ${totalInseridas}/${transacoesUnicas.length}`);
       }
     }
 
@@ -435,6 +440,7 @@ serve(async (req) => {
       registros_obsoletos_removidos: registrosRemovidos,
       geocodificacao_preservada: true,
       total_transacoes_reais: totalTransacoesReais,
+      duplicatas_mescladas: duplicatasMescladas,
       ignorados: {
         dados_invalidos: skippedInvalidData,
         outliers: skippedOutliers,
@@ -456,8 +462,11 @@ serve(async (req) => {
         clear_existing: clearExisting,
         periodo_inicio: periodoInicio,
         periodo_fim: periodoFim,
+        limites_ingestao: LIMITES_INGESTAO,
         api_registros_agregados: allFeatures.length,
         registros_validos: transacoes.length,
+        registros_unicos: transacoesUnicas.length,
+        duplicatas_mescladas: duplicatasMescladas,
         registros_obsoletos_removidos: registrosRemovidos,
         total_transacoes_reais: totalTransacoesReais,
         geocodificacao_preservada: true,

@@ -36,3 +36,30 @@ describe("validarFeatureItbi (regras de aceitação da carga)", () => {
     expect(b.ok && b.feature.totalTransacoes).toBe(3);
   });
 });
+
+import { mesclarDuplicatasItbi } from "../../../supabase/functions/_shared/itbiIngestion.ts";
+
+describe("mesclarDuplicatasItbi (chave natural repetida no mesmo lote)", () => {
+  const base = { logradouro: "RUA X", bairro: "TIJUCA", data_transacao: "2026-07-15", uso: "Residencial", tipologia: "Apartamento" };
+  test("soma escrituras e pondera valor, área e percentual", () => {
+    const { registros, duplicatasMescladas } = mesclarDuplicatasItbi([
+      { ...base, valor_transacao: 600000, area_m2: 60, total_transacoes: 3, percentual_transferido: 100 },
+      { ...base, valor_transacao: 1200000, area_m2: 120, total_transacoes: 1, percentual_transferido: 90 }, // cobertura → Apartamento
+    ]);
+    expect(duplicatasMescladas).toBe(1);
+    expect(registros).toHaveLength(1);
+    expect(registros[0].total_transacoes).toBe(4);
+    expect(registros[0].valor_transacao).toBe(750000);
+    expect(registros[0].area_m2).toBe(75);
+    expect(registros[0].percentual_transferido).toBe(97.5);
+  });
+  test("chaves diferentes não se misturam e a ordem de entrada é preservada", () => {
+    const { registros, duplicatasMescladas } = mesclarDuplicatasItbi([
+      { ...base, valor_transacao: 1, area_m2: 1, total_transacoes: 1, percentual_transferido: 100 },
+      { ...base, tipologia: "Casa", valor_transacao: 2, area_m2: 1, total_transacoes: 1, percentual_transferido: 100 },
+      { ...base, bairro: null, valor_transacao: 3, area_m2: 1, total_transacoes: 1, percentual_transferido: 100 },
+    ]);
+    expect(duplicatasMescladas).toBe(0);
+    expect(registros.map((r) => r.valor_transacao)).toEqual([1, 2, 3]);
+  });
+});

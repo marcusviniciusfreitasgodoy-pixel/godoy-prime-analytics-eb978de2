@@ -1,5 +1,5 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
-import { validarFeatureItbi } from '../_shared/itbiIngestion.ts'
+import { mesclarDuplicatasItbi, validarFeatureItbi } from '../_shared/itbiIngestion.ts'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -209,9 +209,11 @@ Deno.serve(async (req) => {
           percentual_transferido: Math.round(percentualTransferido * 100) / 100,
         }
       })
-      .filter(Boolean)
+      .filter((r): r is NonNullable<typeof r> => r !== null)
 
-    console.log(`[CRON] Registros válidos: ${validRecords.length}; rejeitados: ${JSON.stringify(rejeitados)}`)
+    // Mesma chave natural repetida no lote derruba o upsert: mescla antes.
+    const { registros: registrosUnicos, duplicatasMescladas } = mesclarDuplicatasItbi(validRecords)
+    console.log(`[CRON] Registros válidos: ${validRecords.length} (${registrosUnicos.length} chaves únicas, ${duplicatasMescladas} mescladas); rejeitados: ${JSON.stringify(rejeitados)}`)
 
     if (validRecords.length === 0) {
       return new Response(JSON.stringify({
@@ -229,8 +231,8 @@ Deno.serve(async (req) => {
     let errors = 0
     const insertBatchSize = 100
 
-    for (let i = 0; i < validRecords.length; i += insertBatchSize) {
-      const batch = validRecords.slice(i, i + insertBatchSize)
+    for (let i = 0; i < registrosUnicos.length; i += insertBatchSize) {
+      const batch = registrosUnicos.slice(i, i + insertBatchSize)
       
       // Upsert idempotente: atualiza versão mais recente em vez de duplicar
       const { error } = await supabase

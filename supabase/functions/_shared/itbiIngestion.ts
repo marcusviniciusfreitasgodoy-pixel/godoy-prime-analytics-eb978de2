@@ -76,3 +76,57 @@ export const validarFeatureItbi = (
   const totalTransacoes = Math.max(1, Math.round(f.totalTransacoes ?? 1));
   return { ok: true, feature: { valor, area, valorM2, totalTransacoes, percentualTransferido } };
 };
+
+/** Campos que formam a chave natural de itbi_transactions e os que se somam ao mesclar. */
+export interface RegistroItbiMesclavel {
+  logradouro: string;
+  bairro: string | null;
+  data_transacao: string;
+  uso: string;
+  tipologia: string;
+  valor_transacao: number;
+  area_m2: number;
+  total_transacoes: number;
+  percentual_transferido: number;
+}
+
+export const chaveNaturalItbi = (r: RegistroItbiMesclavel): string =>
+  [r.logradouro, r.bairro ?? '', r.data_transacao, r.uso, r.tipologia].join('\u0001');
+
+/**
+ * A API da Prefeitura devolve mais de um agregado para a mesma chave natural
+ * (ex.: "Apartamento" e "Cobertura" viram a mesma tipologia depois de
+ * classificarTipologia). Um upsert com duas linhas da mesma chave no mesmo
+ * lote falha no Postgres ("ON CONFLICT DO UPDATE command cannot affect row a
+ * second time") e o lote inteiro é perdido (carga de 2026-09-03, 17:12 UTC:
+ * 10 lotes, cerca de 5.000 linhas). Aqui os duplicados são somados como o
+ * agregado que a chave representa: escrituras somadas e valor, área e
+ * percentual como médias ponderadas pelas escrituras.
+ */
+export const mesclarDuplicatasItbi = <T extends RegistroItbiMesclavel>(
+  registros: T[]
+): { registros: T[]; duplicatasMescladas: number } => {
+  const porChave = new Map<string, T>();
+  let duplicatas = 0;
+  for (const r of registros) {
+    const k = chaveNaturalItbi(r);
+    const atual = porChave.get(k);
+    if (!atual) {
+      porChave.set(k, { ...r });
+      continue;
+    }
+    duplicatas++;
+    const wA = Math.max(1, atual.total_transacoes);
+    const wB = Math.max(1, r.total_transacoes);
+    const w = wA + wB;
+    const pond = (a: number, b: number) => Math.round(((a * wA + b * wB) / w) * 100) / 100;
+    porChave.set(k, {
+      ...atual,
+      valor_transacao: pond(atual.valor_transacao, r.valor_transacao),
+      area_m2: pond(atual.area_m2, r.area_m2),
+      percentual_transferido: pond(atual.percentual_transferido, r.percentual_transferido),
+      total_transacoes: wA + wB,
+    });
+  }
+  return { registros: [...porChave.values()], duplicatasMescladas: duplicatas };
+};
