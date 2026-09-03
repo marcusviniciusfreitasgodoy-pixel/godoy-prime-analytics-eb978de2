@@ -1035,7 +1035,7 @@ export function EmbeddedAdvancedSearch({ defaultBairro = "" }: EmbeddedAdvancedS
                       <TableHeader className="sticky top-0 bg-background">
                         <TableRow>
                           <TableHead className="text-xs">Data</TableHead>
-                          <TableHead className="text-xs text-center">Qtd Trans.</TableHead>
+                          <TableHead className="text-xs text-center">Escrituras</TableHead>
                           <TableHead className="text-xs">Valor Médio</TableHead>
                           <TableHead className="text-xs">Área Média</TableHead>
                           <TableHead className="text-xs">R$/m²</TableHead>
