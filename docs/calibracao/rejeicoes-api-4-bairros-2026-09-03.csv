@@ -1,0 +1,29 @@
+bairro,motivo,agregados,escrituras
+PAVUNA,aceitos,46,101
+PAVUNA,dados_invalidos,0,0
+PAVUNA,percentual,8,132
+PAVUNA,faixa_area,1,3
+PAVUNA,faixa_valor,0,0
+PAVUNA,faixa_valor_m2,0,0
+PAVUNA,TOTAL_API,55,236
+BANGU,aceitos,192,465
+BANGU,dados_invalidos,0,0
+BANGU,percentual,27,344
+BANGU,faixa_area,1,3
+BANGU,faixa_valor,0,0
+BANGU,faixa_valor_m2,0,0
+BANGU,TOTAL_API,220,812
+MADUREIRA,aceitos,158,444
+MADUREIRA,dados_invalidos,0,0
+MADUREIRA,percentual,33,86
+MADUREIRA,faixa_area,44,177
+MADUREIRA,faixa_valor,0,0
+MADUREIRA,faixa_valor_m2,0,0
+MADUREIRA,TOTAL_API,235,707
+DEL CASTILHO,aceitos,282,1513
+DEL CASTILHO,dados_invalidos,0,0
+DEL CASTILHO,percentual,21,717
+DEL CASTILHO,faixa_area,0,0
+DEL CASTILHO,faixa_valor,0,0
+DEL CASTILHO,faixa_valor_m2,0,0
+DEL CASTILHO,TOTAL_API,303,2230
