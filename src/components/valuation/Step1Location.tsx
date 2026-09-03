@@ -28,7 +28,6 @@ import {
   buildMarketWindow,
   calculateITBIData as computeITBIData,
   collectBairros,
-  deflateRows,
   isScopeSufficient,
   mapTipoImovelToTipologia,
   pickFallbackSample,
@@ -36,10 +35,8 @@ import {
   selectWindowRows,
   type DataSource,
   type MarketRow,
-  type PriceIndexPoint,
   type RadiusStep,
 } from "@/utils/itbiMarketStats";
-import { fetchPriceIndex } from "@/utils/priceIndex";
 
 interface Props {
   state: ValuationState;
@@ -321,10 +318,7 @@ export function Step1Location({ state, updateState, combined, onAutoValidated }:
       setAutoFetchLoading(true);
       try {
         const ruasInternas = state.condominioSelecionado?.ruas_internas;
-        const [market, priceIndex] = await Promise.all([
-          fetchMarketRows(state.bairro, state.logradouro, state.tipoImovel, ruasInternas),
-          fetchPriceIndex(),
-        ]);
+        const market = await fetchMarketRows(state.bairro, state.logradouro, state.tipoImovel, ruasInternas);
 
         console.log(
           "[Step1] Auto-fetch ITBI para:",
@@ -339,7 +333,7 @@ export function Step1Location({ state, updateState, combined, onAutoValidated }:
           market.tipologiaFiltro
         );
 
-        const itbiData = calculateITBIData(market, priceIndex);
+        const itbiData = calculateITBIData(market);
         if (itbiData) {
           updateState({ itbiData });
           onAutoValidated?.();
@@ -416,13 +410,11 @@ export function Step1Location({ state, updateState, combined, onAutoValidated }:
    * amostra é fina) e calcula a estatística ponderada com os metadados de rastreabilidade.
    * A matemática vive em src/utils/itbiMarketStats.ts, coberta por testes.
    */
-  const calculateITBIData = (market: MarketFetchResult, priceIndex: PriceIndexPoint[] | null): ITBIData | null => {
+  const calculateITBIData = (market: MarketFetchResult): ITBIData | null => {
     if (!market.rows || market.rows.length === 0) return null;
     const selection = selectWindowRows(market.rows, buildMarketWindow());
-    // Correção temporal: cada linha é trazida ao trimestre de referência pelo índice próprio
-    // (Fase 3). Sem índice disponível, calcula sem correção e registra nos metadados.
-    const deflation = deflateRows(selection.rows, priceIndex);
-    return computeITBIData(deflation.rows, {
+    // Sem correção monetária: avaliação imobiliária usa valores nominais das escrituras.
+    return computeITBIData(selection.rows, {
       method: settings.outlier_filter_method,
       meta: {
         data_source: market.source,
@@ -437,8 +429,8 @@ export function Step1Location({ state, updateState, combined, onAutoValidated }:
         piso_m2: market.piso,
         teto_m2: market.teto,
         truncado: market.rows.length >= MAX_ROWS,
-        deflacionado: deflation.aplicado,
-        trimestre_referencia: deflation.trimestreReferencia,
+        deflacionado: false,
+        trimestre_referencia: null,
       },
     });
   };
@@ -455,10 +447,7 @@ export function Step1Location({ state, updateState, combined, onAutoValidated }:
     
     // Buscar dados ITBI para o logradouro selecionado (com fallback automático para dados do bairro)
     try {
-      const [market, priceIndex] = await Promise.all([
-        fetchMarketRows(targetBairro, logradouroParaBusca, state.tipoImovel),
-        fetchPriceIndex(),
-      ]);
+      const market = await fetchMarketRows(targetBairro, logradouroParaBusca, state.tipoImovel);
 
       console.log(
         "[Step1] handleSelectStreet ITBI para:",
@@ -475,7 +464,7 @@ export function Step1Location({ state, updateState, combined, onAutoValidated }:
 
       updateState({
         logradouro: suggestion.logradouro,
-        itbiData: calculateITBIData(market, priceIndex),
+        itbiData: calculateITBIData(market),
       });
     } catch (error) {
       console.error("Erro ao buscar dados ITBI:", error);
@@ -741,7 +730,7 @@ export function Step1Location({ state, updateState, combined, onAutoValidated }:
                 <p className="text-[10px] text-muted-foreground hidden sm:block">RECOMENDADO</p>
               </div>
               <div className="text-center p-2 sm:p-3 bg-background rounded-lg">
-                <p className="text-[10px] sm:text-xs text-muted-foreground mb-0.5 sm:mb-1">P90</p>
+                <p className="text-[10px] sm:text-xs text-muted-foreground mb-0.5 sm:mb-1">P95</p>
                 <p className="font-semibold text-emerald-600 text-xs sm:text-sm">
                   {formatCurrency(state.itbiData.max_m2)}
                 </p>
@@ -753,7 +742,7 @@ export function Step1Location({ state, updateState, combined, onAutoValidated }:
             {state.itbiData.meta && (() => {
               const m = state.itbiData.meta;
               const fmtData = (iso: string) => iso.split("-").reverse().join("/");
-              const corte = m.outlier_method === "iqr" ? "IQR (1,5×)" : m.outlier_method === "mad" ? "MAD em log (2,5× / 3×)" : m.outlier_method === "percentile" ? "sem corte, faixa P10/P90" : "sem corte (amostra pequena)";
+              const corte = m.outlier_method === "iqr" ? "IQR (1,5×)" : m.outlier_method === "mad" ? "MAD em log (2,5× / 3×)" : m.outlier_method === "percentile" ? "sem corte, faixa P10/P95" : "sem corte (amostra pequena)";
               const fonteLabel: Record<DataSource, string> = {
                 logradouro: "logradouro",
                 raio100: "raio de 100 m em torno do logradouro",
@@ -777,7 +766,7 @@ export function Step1Location({ state, updateState, combined, onAutoValidated }:
                     {m.linhas_descartadas > 0 ? `, ${m.linhas_descartadas} descartados` : ""}
                     {" · "}Corte: {corte}
                     {" · "}Faixa aceita: {formatCurrency(m.piso_m2)} a {formatCurrency(m.teto_m2)}/m²
-                    {" · "}{m.deflacionado && m.trimestre_referencia ? `Corrigido pelo índice para ${fmtData(m.trimestre_referencia).slice(3)}` : "Sem correção temporal"}
+                    {" · "}{"Valores nominais (sem correção monetária)"}
                   </p>
                   {avisos.length > 0 && (
                     <p className="text-amber-600">{avisos.join(" ")}</p>

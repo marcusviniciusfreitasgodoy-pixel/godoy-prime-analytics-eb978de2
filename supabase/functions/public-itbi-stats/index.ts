@@ -5,10 +5,8 @@ import {
   buildMarketWindow,
   calculateITBIData,
   collectBairros,
-  deflateRows,
   selectWindowRows,
   type MarketRow,
-  type PriceIndexPoint,
 } from "../_shared/itbiMarketStats.ts";
 import {
   DEFAULT_OUTLIER_MAX,
@@ -120,7 +118,7 @@ serve(async (req) => {
     // Handle stats request.
     // Mesma amostra e mesma estatística do motor interno (supabase/functions/_shared):
     // 5 anos fechados (ano corrente só quando a amostra é fina), ordenação
-    // explícita e limite de linhas, corte MAD em log e faixa P10 / mediana / P90.
+    // explícita e limite de linhas, corte MAD em log e faixa P10 / mediana / P95.
     // Piso e teto: por bairro × tipologia; com logradouro informado, calibrados
     // pela própria amostra da rua quando ela tem escrituras suficientes.
     const window = buildMarketWindow();
@@ -194,24 +192,9 @@ serve(async (req) => {
 
     const selection = selectWindowRows(rows, window);
 
-    // Índice de preços (best effort): sem a view, calcula sem correção temporal.
-    let priceIndex: PriceIndexPoint[] | null = null;
-    const { data: indexRows, error: indexError } = await supabase
-      .from("itbi_price_index")
-      .select("trimestre, ln_mediana, escrituras")
-      .order("trimestre", { ascending: true });
-    if (indexError) {
-      console.warn("[public-itbi-stats] índice indisponível:", indexError.message);
-    } else {
-      priceIndex = (indexRows || []).map((r: any) => ({
-        trimestre: String(r.trimestre),
-        ln_mediana: Number(r.ln_mediana),
-        escrituras: Number(r.escrituras) || 0,
-      }));
-    }
-    const deflation = deflateRows(selection.rows, priceIndex);
+    // Sem correção monetária: a avaliação usa os valores nominais das escrituras.
 
-    const stats = calculateITBIData(deflation.rows, {
+    const stats = calculateITBIData(selection.rows, {
       method: "mad", // mesmo padrão do motor interno (calibrado em 2026-09-02)
       meta: {
         data_source: logradouro ? "logradouro" : "bairro",
@@ -227,8 +210,8 @@ serve(async (req) => {
         limites_bairro: { piso: limitesBairro.piso, teto: limitesBairro.teto },
         truncado: rowsBrutas.length >= MAX_ROWS,
 
-        deflacionado: deflation.aplicado,
-        trimestre_referencia: deflation.trimestreReferencia,
+        deflacionado: false,
+        trimestre_referencia: null,
       },
     });
 
@@ -247,7 +230,7 @@ serve(async (req) => {
           med_m2: stats.med_m2,                 // MEDIANA ponderada (antes era a média)
           media_ponderada_m2: stats.media_m2,
           mediana_ponderada_m2: stats.med_m2,
-          max_m2: stats.max_m2,                 // P90 ponderado
+          max_m2: stats.max_m2,                 // P95 ponderado
           transaction_count: stats.transaction_count,
           meta: stats.meta,
         }

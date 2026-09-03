@@ -407,7 +407,7 @@ export function ValuationEngine({ bairro = "BARRA DA TIJUCA", vistoriaData, edit
                           <li><strong>Fonte:</strong> Transações oficiais da Prefeitura do Rio</li>
                           <li><strong>Filtro:</strong> Apenas imóveis com ≥90% de transferência</li>
                           <li><strong>Amostra:</strong> 5 anos fechados, tipologia do imóvel, piso e teto por bairro; abaixo de 3 escrituras a confiança é limitada</li>
-                          <li><strong>Faixa:</strong> P10, mediana e P90 do R$/m² ponderados por escrituras, sem compressão</li>
+                          <li><strong>Faixa:</strong> P10, mediana e P95 do R$/m² ponderados por escrituras, sem compressão</li>
                           <li><strong>Atualização:</strong> Diária automática às 02:00</li>
                         </ul>
                         <p className="text-muted-foreground italic pt-1 border-t border-border">

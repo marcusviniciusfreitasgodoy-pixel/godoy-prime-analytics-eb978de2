@@ -292,8 +292,8 @@ function createValuationPDF(
     doc.setTextColor(...BRAND_COLORS.gray);
     
     const metodologiaTexto = temAnuncios
-      ? 'Metodologia: Os valores de referência (P10, mediana e P90 do R$/m², ponderados pelo número de escrituras) são calculados exclusivamente com dados oficiais de transações. Os anúncios de mercado informados não entram na base: eles medem o gap entre preço pedido e preço fechado, usado na recomendação.'
-      : 'Metodologia: Os valores de referência (P10, mediana e P90 do R$/m², ponderados pelo número de escrituras) são calculados exclusivamente com base em dados oficiais de transações (100%), garantindo máxima objetividade baseada em negócios efetivamente realizados.';
+      ? 'Metodologia: Os valores de referência (P10, mediana e P95 do R$/m², ponderados pelo número de escrituras) são calculados exclusivamente com dados oficiais de transações. Os anúncios de mercado informados não entram na base: eles medem o gap entre preço pedido e preço fechado, usado na recomendação.'
+      : 'Metodologia: Os valores de referência (P10, mediana e P95 do R$/m², ponderados pelo número de escrituras) são calculados exclusivamente com base em dados oficiais de transações (100%), garantindo máxima objetividade baseada em negócios efetivamente realizados.';
     
     const splitMetodologia = doc.splitTextToSize(metodologiaTexto, contentWidth);
     doc.text(splitMetodologia, marginLeft, yPos);
@@ -410,7 +410,7 @@ function createValuationPDF(
                                                      result.confidence_level === 'yellow_medium' ? [234, 88, 12] : [220, 38, 38];
   
   // Determine quality indicators for each metric
-  // Faixa P10–P90 sem compressão, calibrada com a base: spread mediano entre ruas = 22%,
+  // Faixa P10–P95 sem compressão, calibrada com a base: spread mediano entre ruas = 22%,
   // P75 = 31%, P90 = 40% (docs/calibracao/bloco75-spread-2026-09-02.csv).
   const spreadQuality = result.spread_percentage <= 22 ? 'excellent' : 
                         result.spread_percentage <= 30 ? 'good' : 
@@ -1587,7 +1587,7 @@ function createValuationPDF(
     },
     {
       term: 'Spread',
-      definition: 'Diferença percentual entre o valor pessimista (P10) e o otimista (P90), relativa ao provável. Mede a dispersão real dos preços na região; quanto menor, mais homogêneo o mercado.'
+      definition: 'Diferença percentual entre o valor pessimista (P10) e o otimista (P95), relativa ao provável. Mede a dispersão real dos preços na região; quanto menor, mais homogêneo o mercado.'
     },
     {
       term: 'Score de Confiança (0-100)',

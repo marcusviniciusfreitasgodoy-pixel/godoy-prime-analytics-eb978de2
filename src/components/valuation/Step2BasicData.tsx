@@ -115,7 +115,7 @@ export function Step2BasicData({ state, updateState, combined }: Props) {
             <SimpleRadioItem value="max" id="max" className="mt-0.5 sm:mt-1 h-5 w-5 sm:h-4 sm:w-4" />
             <div className="flex-1 min-w-0">
               <Label htmlFor="max" className="cursor-pointer text-xs sm:text-sm">
-                <span className="font-medium text-emerald-600">Preço Máximo (P90)</span>
+                <span className="font-medium text-emerald-600">Preço Máximo (P95)</span>
                 <span className="ml-1 sm:ml-2 text-muted-foreground text-xs sm:text-sm">
                   {formatCurrency(prices.max_m2)}/m²
                 </span>

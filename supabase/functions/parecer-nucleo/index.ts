@@ -103,7 +103,7 @@ function weightedItbiStats(
     valor_m2_medio_ponderado: stats.media_m2,
     valor_m2_mediana_ponderada: stats.med_m2,
     valor_m2_min: stats.min_m2, // P10 ponderado dos sobreviventes
-    valor_m2_max: stats.max_m2, // P90 ponderado dos sobreviventes
+    valor_m2_max: stats.max_m2, // P95 ponderado dos sobreviventes
     q1,
     q3,
     iqr,
@@ -263,7 +263,7 @@ Deno.serve(async (req) => {
         tipologia_filtro: input.tipologia ?? null,
         ...stats,
         metodo:
-          "Mediana/média ponderadas por total_transacoes com corte MAD em log (2,5×/3×, implementação compartilhada com o motor); mín/máx = P10/P90; q1/q3/iqr informativos",
+          "Mediana/média ponderadas por total_transacoes com corte MAD em log (2,5×/3×, implementação compartilhada com o motor); mín/máx = P10/P95; q1/q3/iqr informativos",
         fonte:
           "Prefeitura RJ — ITBI (base agregada mensal por logradouro/tipologia)",
       };

@@ -507,7 +507,7 @@ export default function Configuracoes() {
               <p className="text-xs sm:text-sm text-muted-foreground leading-relaxed mt-2">
                 <strong className="text-foreground">Qual escolher?</strong> Na dúvida, use o <span className="font-medium text-primary">MAD em escala log</span>: 
                 foi calibrado com a base ITBI da cidade e descarta entre 1% e 8% das escrituras por bairro, sem cortar o topo do mercado. 
-                Em qualquer método, a faixa exibida é sempre P10, mediana e P90 dos valores que sobreviveram ao corte.
+                Em qualquer método, a faixa exibida é sempre P10, mediana e P95 dos valores que sobreviveram ao corte.
               </p>
             </div>
 
@@ -538,13 +538,13 @@ export default function Configuracoes() {
                 <SimpleRadioItem value="percentile" id="percentile" className="mt-1" />
                 <div className="flex-1">
                   <Label htmlFor="percentile" className="cursor-pointer text-sm font-medium">
-                    Percentis P10/P90
+                    Percentis P10/P95
                   </Label>
                   <p className="text-xs text-muted-foreground mt-1">
                     <strong>Melhor para:</strong> Bases de dados menores ou quando você quer um corte mais previsível.
                   </p>
                   <p className="text-xs text-muted-foreground mt-0.5">
-                    Não descarta nada; a faixa P10/P90 já ignora os 10% mais baratos e os 10% mais caros.
+                    Não descarta nada; a faixa P10/P95 já ignora os 10% mais baratos e os 5% mais caros.
                   </p>
                 </div>
               </div>
