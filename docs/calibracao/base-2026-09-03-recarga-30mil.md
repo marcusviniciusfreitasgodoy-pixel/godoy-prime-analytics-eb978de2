@@ -30,8 +30,15 @@ O corte de R$ 100 mil sumiu; mínimos vão a R$ 30 mil. Cauda barata de volta: I
 
 Com 2,0 / 2,5, Copacabana Apartamento perde 7,0 % + 5,7 % da amostra. Decisão: manter 2,5 / 3,0 (ver seção 15.3 da especificação). O CSV par a par ainda não foi anexado.
 
+## Segunda carga (17h40, `etl_log` `34f03d7c`, PR #21 em `4cae228`)
+
+- `registros_com_erro: 0`, `duplicatas_mescladas: 291`, `limites_ingestao.valorMin: 30000`, `clear_existing: false`, usuário marcus@godoyprime.com.br.
+- Base: 38.197 linhas, 163.015 escrituras, geom em 37.402 (97,9 %), índice atualizado. Degrau do fim do arquivo sumiu (Barra Olímpica, Lapa, Jabour, Acari presentes).
+- Cobertura contra a API: `cobertura-api-x-base-2026-09-03.md`.
+- CSVs devolvidos: `bloco74-3anos-p99-2026-09-03-1740.csv` (veio com P99, não P99,5: não serve para o teto), `bloco74b-3e5anos-2026-09-03-1740.csv` (pares abaixo de 100 escrituras, com P99,5). O 7.3 par a par não foi anexado.
+
 ## O que falta
 
-1. Implantar o PR #21 e repetir a carga completa (idempotente; só os lotes perdidos mudam).
-2. Backfill de `geom` de novo para as linhas novas; `refresh_itbi_price_index()`.
-3. 7.4, 7.4b e 7.3 em CSV sobre a base completa; só então regenerar o Apêndice B.
+1. Consulta 7.4 unificada (0.995, duas janelas, sem HAVING) em CSV; `bun run cinto` regenera a tabela e o Apêndice B.
+2. 7.3 par a par sobre a tabela nova.
+3. Decisão sobre Barra Olímpica (pendência 17 da especificação).

@@ -69,21 +69,32 @@ group by b.bairro, b.tipologia, k.k_inf, k.k_sup, med, escala
 having sum(w) >= 50
 order by escrituras desc, b.bairro, b.tipologia, k.k_inf;
 
--- 7.4 Piso e teto por bairro × tipologia (P1 e P99 de 5 anos): substitui as
--- tabelas hardcoded em supabase/functions/_shared/outlierLimits.ts.
+-- 7.4 Piso e teto por bairro × tipologia (CONSULTA UNIFICADA, 2026-09-03):
+-- todos os pares, nas duas janelas, percentis PONDERADOS por escrituras
+-- (expansao por generate_series), sem HAVING. O CSV desta consulta e a unica
+-- entrada de scripts/gerar-cinto-outliers.ts, que aplica as regras da secao
+-- 2.5 da especificacao (>= 100 escrituras em 3 anos: janela de 3 anos;
+-- senao >= 30 em 5 anos: janela de 5 anos com largura minima; senao fora).
+-- ATENCAO: o teto e o P99,5 (0.995), nao o P99. Agrupar por bairro SEM
+-- filtrar por nome (a base grava com acento; a chave e normalizada no script).
 select bairro, tipologia,
-  round(percentile_cont(0.01) within group (order by valor_m2)::numeric, 0) as piso_p1,
-  round(percentile_cont(0.05) within group (order by valor_m2)::numeric, 0) as p5,
-  round(percentile_cont(0.50) within group (order by valor_m2)::numeric, 0) as mediana,
-  round(percentile_cont(0.95) within group (order by valor_m2)::numeric, 0) as p95,
-  round(percentile_cont(0.99) within group (order by valor_m2)::numeric, 0) as teto_p99,
-  sum(total_transacoes)                                                     as escrituras
-from itbi_transactions
-where uso = 'Residencial' and percentual_transferido >= 90 and valor_m2 > 0
-  and data_transacao >= current_date - interval '5 years'
-group by bairro, tipologia
-having sum(total_transacoes) >= 100
-order by bairro, tipologia;
+  round(percentile_cont(0.01)  within group (order by valor_m2)::numeric, 0) as piso_p1,
+  round(percentile_cont(0.05)  within group (order by valor_m2)::numeric, 0) as p5,
+  round(percentile_cont(0.50)  within group (order by valor_m2)::numeric, 0) as mediana,
+  round(percentile_cont(0.95)  within group (order by valor_m2)::numeric, 0) as p95,
+  round(percentile_cont(0.995) within group (order by valor_m2)::numeric, 0) as teto_p995,
+  count(*)                                                                    as escrituras,
+  j.rotulo                                                                    as janela
+from (values ('3 anos', interval '3 years'), ('5 anos', interval '5 years')) j(rotulo, tam)
+cross join lateral (
+  select bairro, tipologia, valor_m2
+  from itbi_transactions, generate_series(1, greatest(coalesce(total_transacoes, 1), 1))
+  where uso = 'Residencial' and percentual_transferido >= 90 and valor_m2 > 0
+    and tipologia in ('Apartamento', 'Casa')
+    and data_transacao >= current_date - j.tam
+) t
+group by j.rotulo, bairro, tipologia
+order by bairro, tipologia, j.rotulo;
 
 -- 7.5 Spread real P10–P90 por rua (calibra SPREAD_NORMAL/WIDE/VERY_WIDE em
 -- valuationCalculations.ts): distribuição do spread entre ruas com amostra.
@@ -194,31 +205,9 @@ select escopo,
        round(percentile_cont(0.75) within group (order by (p90 - p10) / med) * 100, 1) as spread_p75_pct
 from q group by escopo order by escopo;
 
--- 7.4b Pares de amostra pequena (menos de 100 escrituras em 3 anos): a mesma
--- consulta 7.4 sem o HAVING, nas duas janelas, para aplicar a regra de largura
--- minima de outlierLimits.ts (piso = min(P1 x 0,85; mediana / 2), teto =
--- max(P99,5 x 1,15; mediana x 2)). Agrupar por bairro SEM filtrar por nome:
--- a base grava com acento e a normalizacao acontece so na chave da tabela.
--- Resultado de 2026-09-03: docs/calibracao/bloco74-19pares-3e5anos-2026-09-03.csv.
-select bairro, tipologia,
-  round(percentile_cont(0.01)  within group (order by valor_m2)::numeric, 0) as piso_p1,
-  round(percentile_cont(0.05)  within group (order by valor_m2)::numeric, 0) as p5,
-  round(percentile_cont(0.50)  within group (order by valor_m2)::numeric, 0) as mediana,
-  round(percentile_cont(0.95)  within group (order by valor_m2)::numeric, 0) as p95,
-  round(percentile_cont(0.995) within group (order by valor_m2)::numeric, 0) as teto_p995,
-  count(*)                                                                    as escrituras,
-  j.rotulo                                                                    as janela
-from (values ('3 anos', interval '3 years'), ('5 anos', interval '5 years')) j(rotulo, tam)
-cross join lateral (
-  select bairro, tipologia, valor_m2
-  from itbi_transactions, generate_series(1, greatest(coalesce(total_transacoes, 1), 1))
-  where uso = 'Residencial' and percentual_transferido >= 90 and valor_m2 > 0
-    and tipologia in ('Apartamento', 'Casa')
-    and data_transacao >= current_date - j.tam
-) t
-group by j.rotulo, bairro, tipologia
-having count(*) < 100
-order by bairro, tipologia, j.rotulo;
+-- 7.4b (historico) Pares de amostra pequena: absorvida pela 7.4 unificada em
+-- 2026-09-03. Resultados anteriores em docs/calibracao/bloco74-19pares-*.csv
+-- e bloco74b-3e5anos-*.csv.
 
 -- 7.11 Filtro de ingestao "valor >= R$ 100 mil" (sync-itbi-prefeitura):
 -- hipotese levantada em 2026-09-03 quando GUARATIBA|Casa, INHOAIBA|Apartamento e
