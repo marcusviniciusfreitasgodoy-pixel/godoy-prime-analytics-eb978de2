@@ -3,7 +3,8 @@ import { CurrencyInput } from "@/components/ui/currency-input";
 import { Label } from "@/components/ui/label";
 import { SimpleRadioGroup, SimpleRadioItem } from "@/components/ui/simple-radio";
 import { Card, CardContent } from "@/components/ui/card";
-import { Ruler, Calculator } from "lucide-react";
+import { Ruler, Calculator, CalendarRange } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import type { ValuationState } from "@/types/valuation";
 import type { CombinedPrices } from "@/utils/valuationCalculations";
 
