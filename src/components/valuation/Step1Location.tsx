@@ -25,7 +25,11 @@ import {
   MIN_ROWS_FOR_TIPOLOGIA,
   MIN_ROWS_SCOPE,
   RADIUS_STEPS_M,
-  buildMarketWindow,
+  MAX_WINDOW_MONTHS,
+  WINDOW_MONTHS_OPTIONS,
+  DEFAULT_WINDOW_MONTHS,
+  buildRollingWindow,
+  selectRollingWindowRows,
   calculateITBIData as computeITBIData,
   collectBairros,
   deflateRows,
@@ -33,11 +37,11 @@ import {
   mapTipoImovelToTipologia,
   pickFallbackSample,
   radiusSource,
-  selectWindowRows,
   type DataSource,
   type MarketRow,
   type PriceIndexPoint,
   type RadiusStep,
+  type WindowMonths,
 } from "@/utils/itbiMarketStats";
 import { fetchPriceIndex } from "@/utils/priceIndex";
 
@@ -88,6 +92,14 @@ export function Step1Location({ state, updateState, combined, onAutoValidated }:
   });
   const [anunciosInitialized, setAnunciosInitialized] = useState(false);
   const [autoFetchLoading, setAutoFetchLoading] = useState(false);
+  // Janela de análise: padrão 12 meses, com opção de ampliar até 60 meses.
+  const [janelaMeses, setJanelaMeses] = useState<WindowMonths>(
+    (state.janelaMeses as WindowMonths) || DEFAULT_WINDOW_MONTHS
+  );
+  // Última amostra bruta (sempre buscada no máximo de meses) para recortar a
+  // janela sem precisar refazer a consulta.
+  const [lastMarket, setLastMarket] = useState<MarketFetchResult | null>(null);
+  const [lastPriceIndex, setLastPriceIndex] = useState<PriceIndexPoint[] | null>(null);
 
   const buildStreetSearchTerms = (logradouro: string): string[] => {
     const sanitize = (value: string) =>
@@ -166,7 +178,9 @@ export function Step1Location({ state, updateState, combined, onAutoValidated }:
     tipoImovel: string,
     ruasInternas?: string[]
   ): Promise<MarketFetchResult> => {
-    const window = buildMarketWindow();
+    // A consulta sempre traz o máximo de meses; o recorte da janela escolhida
+    // é feito depois, em calculateITBIData.
+    const window = buildRollingWindow(MAX_WINDOW_MONTHS);
     const tipologiaDesejada = mapTipoImovelToTipologia(tipoImovel);
     // Piso e teto calibrados por bairro × tipologia (P1/P99 da base, com margem).
     const { piso, teto } = getOutlierLimits(bairro, tipologiaDesejada);
@@ -339,6 +353,8 @@ export function Step1Location({ state, updateState, combined, onAutoValidated }:
           market.tipologiaFiltro
         );
 
+        setLastMarket(market);
+        setLastPriceIndex(priceIndex);
         const itbiData = calculateITBIData(market, priceIndex);
         if (itbiData) {
           updateState({ itbiData });
@@ -416,9 +432,14 @@ export function Step1Location({ state, updateState, combined, onAutoValidated }:
    * amostra é fina) e calcula a estatística ponderada com os metadados de rastreabilidade.
    * A matemática vive em src/utils/itbiMarketStats.ts, coberta por testes.
    */
-  const calculateITBIData = (market: MarketFetchResult, priceIndex: PriceIndexPoint[] | null): ITBIData | null => {
+  const calculateITBIData = (
+    market: MarketFetchResult,
+    priceIndex: PriceIndexPoint[] | null,
+    meses: WindowMonths = janelaMeses
+  ): ITBIData | null => {
     if (!market.rows || market.rows.length === 0) return null;
-    const selection = selectWindowRows(market.rows, buildMarketWindow());
+    const selection = selectRollingWindowRows(market.rows, meses);
+    if (selection.rows.length === 0) return null;
     // Correção temporal: cada linha é trazida ao trimestre de referência pelo índice
     // próprio. Sem índice disponível, calcula sem correção e registra nos metadados.
     const deflation = deflateRows(selection.rows, priceIndex);
@@ -439,6 +460,9 @@ export function Step1Location({ state, updateState, combined, onAutoValidated }:
         truncado: market.rows.length >= MAX_ROWS,
         deflacionado: deflation.aplicado,
         trimestre_referencia: deflation.trimestreReferencia,
+        janela_meses: selection.janelaMeses,
+        janela_meses_solicitada: selection.janelaSolicitadaMeses,
+        janela_expandida: selection.expandidoAutomaticamente,
       },
     });
   };
@@ -473,6 +497,8 @@ export function Step1Location({ state, updateState, combined, onAutoValidated }:
         market.tipologiaFiltro
       );
 
+      setLastMarket(market);
+      setLastPriceIndex(priceIndex);
       updateState({
         logradouro: suggestion.logradouro,
         itbiData: calculateITBIData(market, priceIndex),
@@ -487,6 +513,35 @@ export function Step1Location({ state, updateState, combined, onAutoValidated }:
     
     setSearchTerm(suggestion.logradouro);
     setShowSuggestions(false);
+  };
+
+  /** Troca a janela de análise e recalcula a estatística com a mesma amostra. */
+  const handleJanelaChange = async (meses: WindowMonths) => {
+    setJanelaMeses(meses);
+    updateState({ janelaMeses: meses });
+
+    let market = lastMarket;
+    let priceIndex = lastPriceIndex;
+    if (!market) {
+      if (!state.bairro || !state.logradouro) return;
+      setAutoFetchLoading(true);
+      try {
+        const [fetched, index] = await Promise.all([
+          fetchMarketRows(state.bairro, state.logradouro, state.tipoImovel, state.condominioSelecionado?.ruas_internas),
+          fetchPriceIndex(),
+        ]);
+        market = fetched;
+        priceIndex = index;
+        setLastMarket(fetched);
+        setLastPriceIndex(index);
+      } catch (error) {
+        console.error("Erro ao recalcular janela ITBI:", error);
+        setAutoFetchLoading(false);
+        return;
+      }
+      setAutoFetchLoading(false);
+    }
+    updateState({ itbiData: calculateITBIData(market, priceIndex, meses) });
   };
 
   const addAnuncio = () => {
