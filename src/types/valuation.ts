@@ -136,6 +136,8 @@ export interface ValuationState {
   bairro: string;
   itbiData: ITBIData | null;
   anuncioData: AnuncioData | null;
+  /** Janela de análise em meses (12 padrão; 24/36/48/60 opcionais). */
+  janelaMeses?: number;
   
   // Step 2: Basic Data
   area_m2: number;

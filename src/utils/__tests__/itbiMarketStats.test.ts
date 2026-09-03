@@ -15,6 +15,10 @@ import {
   MIN_ESCRITURAS_INDEX_QUARTER,
   quarterOf,
   selectWindowRows,
+  buildRollingWindow,
+  selectRollingWindowRows,
+  normalizeWindowMonths,
+  DEFAULT_WINDOW_MONTHS,
   toWeightedItems,
   weightedMedian,
   weightedQuantile,
@@ -103,6 +107,37 @@ describe("selectWindowRows", () => {
   test("não marca expansão quando não há linhas do ano corrente", () => {
     const sel = selectWindowRows([row(10000, 2, "2024-03-15")], w);
     expect(sel.anoCorrenteIncluido).toBe(false);
+  });
+});
+
+describe("janela móvel em meses", () => {
+  const hoje = new Date("2026-09-02T12:00:00Z");
+
+  test("padrão é 12 meses e opções inválidas caem no padrão", () => {
+    expect(DEFAULT_WINDOW_MONTHS).toBe(12);
+    expect(normalizeWindowMonths(24)).toBe(24);
+    expect(normalizeWindowMonths(7)).toBe(12);
+    expect(normalizeWindowMonths(undefined)).toBe(12);
+    expect(buildRollingWindow(12, hoje).start).toBe("2025-09-02");
+    expect(buildRollingWindow(60, hoje).start).toBe("2021-09-02");
+  });
+
+  test("recorta a amostra na janela pedida quando há dados suficientes", () => {
+    const recentes = Array.from({ length: 10 }, (_, i) => row(10000 + i, 3, "2026-03-15"));
+    const antigas = Array.from({ length: 10 }, (_, i) => row(8000 + i, 3, "2023-03-15"));
+    const sel = selectRollingWindowRows([...recentes, ...antigas], 12, hoje);
+    expect(sel.janelaMeses).toBe(12);
+    expect(sel.expandidoAutomaticamente).toBe(false);
+    expect(sel.rows).toHaveLength(10);
+  });
+
+  test("expande automaticamente quando a janela pedida é fina", () => {
+    const rows = [row(10000, 3, "2026-03-15"), ...Array.from({ length: 10 }, (_, i) => row(9000 + i, 2, "2025-01-15"))];
+    const sel = selectRollingWindowRows(rows, 12, hoje);
+    expect(sel.expandidoAutomaticamente).toBe(true);
+    expect(sel.janelaMeses).toBe(24);
+    expect(sel.janelaSolicitadaMeses).toBe(12);
+    expect(sel.rows).toHaveLength(11);
   });
 });
 
