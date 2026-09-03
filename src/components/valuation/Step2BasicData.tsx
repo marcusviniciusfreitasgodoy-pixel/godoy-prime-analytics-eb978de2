@@ -11,9 +11,11 @@ interface Props {
   state: ValuationState;
   updateState: (updates: Partial<ValuationState>) => void;
   combined: CombinedPrices | null;
+  /** Volta para a etapa de Localização, onde fica o seletor de período da amostra. */
+  onEditarPeriodo?: () => void;
 }
 
-export function Step2BasicData({ state, updateState, combined }: Props) {
+export function Step2BasicData({ state, updateState, combined, onEditarPeriodo }: Props) {
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat("pt-BR", {
       style: "currency",
