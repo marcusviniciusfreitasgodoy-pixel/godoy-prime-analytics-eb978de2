@@ -31,6 +31,42 @@ export interface MicrobairroRanking {
   mediana_m2: number;
 }
 
+/**
+ * Agregação ponderada por escrituras (total_transacoes).
+ * Cada linha do ITBI representa N escrituras: contar linhas subestima o mercado.
+ */
+type GrupoPonderado = { amostra: { valor: number; peso: number }[]; total: number };
+
+function medianaPonderada(amostra: { valor: number; peso: number }[]): number {
+  if (amostra.length === 0) return 0;
+  const ordenada = [...amostra].sort((a, b) => a.valor - b.valor);
+  const pesoTotal = ordenada.reduce((s, i) => s + i.peso, 0);
+  let acumulado = 0;
+  for (const item of ordenada) {
+    acumulado += item.peso;
+    if (acumulado >= pesoTotal / 2) return item.valor;
+  }
+  return ordenada[ordenada.length - 1].valor;
+}
+
+function resumoPonderado(nome: string, data: GrupoPonderado): MicrobairroRanking {
+  const pesoTotal = data.amostra.reduce((s, i) => s + i.peso, 0);
+  const media = pesoTotal > 0
+    ? data.amostra.reduce((s, i) => s + i.valor * i.peso, 0) / pesoTotal
+    : 0;
+  const valores = data.amostra.map(i => i.valor);
+
+  return {
+    microbairro: nome,
+    total_transacoes: data.total,
+    preco_medio_m2: Math.round(media),
+    preco_min_m2: valores.length ? Math.min(...valores) : 0,
+    preco_max_m2: valores.length ? Math.max(...valores) : 0,
+    mediana_m2: Math.round(medianaPonderada(data.amostra)),
+  };
+}
+
+
 export interface MicrobairroDetalhado {
   microbairro: string;
   valor_m2: number;
