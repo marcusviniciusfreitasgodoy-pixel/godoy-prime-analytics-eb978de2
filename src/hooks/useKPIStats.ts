@@ -110,7 +110,7 @@ export function useKPIStats(bairro: string = 'BARRA DA TIJUCA') {
         .lte('valor_m2', outlierLimit)
         .gte('percentual_transferido', 90)
         .gte('data_transacao', startOfYear)
-        .limit(10000);
+        .limit(5000);
 
       if (currentYearError) throw currentYearError;
 
@@ -142,7 +142,7 @@ export function useKPIStats(bairro: string = 'BARRA DA TIJUCA') {
           .lte('valor_m2', outlierLimit)
           .gte('percentual_transferido', 90)
           .gte('data_transacao', startDate12Months)
-          .limit(10000);
+          .limit(5000);
 
         if (extendedError) throw extendedError;
         currentTransactions = extendedData || [];
@@ -167,7 +167,7 @@ export function useKPIStats(bairro: string = 'BARRA DA TIJUCA') {
         .gte('percentual_transferido', 90)
         .gte('data_transacao', startDate24Months)
         .lt('data_transacao', startDate12Months)
-        .limit(10000);
+        .limit(5000);
 
       if (previousError) throw previousError;
 
@@ -189,7 +189,7 @@ export function useKPIStats(bairro: string = 'BARRA DA TIJUCA') {
           .lte('valor_m2', outlierLimit)
           .gte('percentual_transferido', 90)
           .gte('data_transacao', startDate12Months)
-          .limit(10000);
+          .limit(5000);
 
         if (rolling12mError) throw rolling12mError;
         rolling12mTransactions = rolling12mData || [];

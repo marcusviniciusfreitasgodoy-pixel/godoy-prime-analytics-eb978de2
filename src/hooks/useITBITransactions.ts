@@ -31,6 +31,42 @@ export interface MicrobairroRanking {
   mediana_m2: number;
 }
 
+/**
+ * Agregação ponderada por escrituras (total_transacoes).
+ * Cada linha do ITBI representa N escrituras: contar linhas subestima o mercado.
+ */
+type GrupoPonderado = { amostra: { valor: number; peso: number }[]; total: number };
+
+function medianaPonderada(amostra: { valor: number; peso: number }[]): number {
+  if (amostra.length === 0) return 0;
+  const ordenada = [...amostra].sort((a, b) => a.valor - b.valor);
+  const pesoTotal = ordenada.reduce((s, i) => s + i.peso, 0);
+  let acumulado = 0;
+  for (const item of ordenada) {
+    acumulado += item.peso;
+    if (acumulado >= pesoTotal / 2) return item.valor;
+  }
+  return ordenada[ordenada.length - 1].valor;
+}
+
+function resumoPonderado(nome: string, data: GrupoPonderado): MicrobairroRanking {
+  const pesoTotal = data.amostra.reduce((s, i) => s + i.peso, 0);
+  const media = pesoTotal > 0
+    ? data.amostra.reduce((s, i) => s + i.valor * i.peso, 0) / pesoTotal
+    : 0;
+  const valores = data.amostra.map(i => i.valor);
+
+  return {
+    microbairro: nome,
+    total_transacoes: data.total,
+    preco_medio_m2: Math.round(media),
+    preco_min_m2: valores.length ? Math.min(...valores) : 0,
+    preco_max_m2: valores.length ? Math.max(...valores) : 0,
+    mediana_m2: Math.round(medianaPonderada(data.amostra)),
+  };
+}
+
+
 export interface MicrobairroDetalhado {
   microbairro: string;
   valor_m2: number;
@@ -63,28 +99,6 @@ export function useITBITransactions() {
   });
 }
 
-
-/**
- * Estatística ponderada por escrituras (total_transacoes) de um grupo de linhas
- * agregadas: média = Σ v·w / Σ w; mediana = valor onde a soma acumulada dos
- * pesos atinge metade do total (equivale a expandir cada linha pelo peso).
- */
-const weightedGroupStats = (items: { valor: number; peso: number }[]) => {
-  const sorted = [...items].sort((a, b) => a.valor - b.valor);
-  const total = sorted.reduce((s, x) => s + x.peso, 0);
-  if (sorted.length === 0 || total <= 0) return { media: 0, mediana: 0, min: 0, max: 0, escrituras: 0 };
-  const media = sorted.reduce((s, x) => s + x.valor * x.peso, 0) / total;
-  let acc = 0;
-  let mediana = sorted[sorted.length - 1].valor;
-  for (const x of sorted) {
-    acc += x.peso;
-    if (acc >= total / 2) {
-      mediana = x.valor;
-      break;
-    }
-  }
-  return { media, mediana, min: sorted[0].valor, max: sorted[sorted.length - 1].valor, escrituras: total };
-};
 
 export function useMicrobairroRanking(bairro: string = 'BARRA DA TIJUCA') {
   const { isDemo } = useDemo();
@@ -119,7 +133,7 @@ export function useMicrobairroRanking(bairro: string = 'BARRA DA TIJUCA') {
         .lte('valor_m2', outlierLimit)
         .gte('percentual_transferido', 90)
         .gte('data_transacao', startDate)
-        .limit(10000);
+        .limit(5000);
 
       if (error) throw error;
       
@@ -142,27 +156,18 @@ export function useMicrobairroRanking(bairro: string = 'BARRA DA TIJUCA') {
           // Usar microbairro do banco se disponível, senão classificar dinamicamente por keywords
           const micro = t.microbairro || classifyByKeywords(t.logradouro);
           if (!micro) return acc; // Ignorar logradouros não classificados
-          
-          if (!acc[micro]) {
-            acc[micro] = { itens: [] };
-          }
-          acc[micro].itens.push({ valor: t.valor_m2!, peso: t.total_transacoes || 1 });
-          return acc;
-        }, {} as Record<string, { itens: { valor: number; peso: number }[] }>);
 
-        // Média, mediana, mínimo e máximo ponderados por escrituras (antes: média e
-        // mediana simples das linhas agregadas, que davam o mesmo peso a 1 e a 30 escrituras).
-        const result = Object.entries(grouped).map(([microbairro, data]) => {
-          const st = weightedGroupStats(data.itens);
-          return {
-            microbairro,
-            total_transacoes: st.escrituras,
-            preco_medio_m2: Math.round(st.media),
-            preco_min_m2: st.min,
-            preco_max_m2: st.max,
-            mediana_m2: Math.round(st.mediana),
-          };
-        });
+          if (!acc[micro]) {
+            acc[micro] = { amostra: [], total: 0 };
+          }
+          acc[micro].amostra.push({ valor: t.valor_m2!, peso: t.total_transacoes || 1 });
+          acc[micro].total += t.total_transacoes || 1;
+          return acc;
+        }, {} as Record<string, GrupoPonderado>);
+
+        const result = Object.entries(grouped).map(([microbairro, data]) =>
+          resumoPonderado(microbairro, data)
+        );
 
         // Mínimo de 3 transações para aparecer no ranking
         return result
@@ -174,28 +179,22 @@ export function useMicrobairroRanking(bairro: string = 'BARRA DA TIJUCA') {
       const grouped = (transactions || []).reduce((acc, t) => {
         const key = t.logradouro;
         if (!acc[key]) {
-          acc[key] = { itens: [] };
+          acc[key] = { amostra: [], total: 0 };
         }
-        acc[key].itens.push({ valor: t.valor_m2!, peso: t.total_transacoes || 1 });
+        acc[key].amostra.push({ valor: t.valor_m2!, peso: t.total_transacoes || 1 });
+        acc[key].total += t.total_transacoes || 1;
         return acc;
-      }, {} as Record<string, { itens: { valor: number; peso: number }[] }>);
+      }, {} as Record<string, GrupoPonderado>);
 
-      const result = Object.entries(grouped).map(([logradouro, data]) => {
-        const st = weightedGroupStats(data.itens);
-        return {
-          microbairro: logradouro,
-          total_transacoes: st.escrituras,
-          preco_medio_m2: Math.round(st.media),
-          preco_min_m2: st.min,
-          preco_max_m2: st.max,
-          mediana_m2: Math.round(st.mediana),
-        };
-      });
+      const result = Object.entries(grouped).map(([logradouro, data]) =>
+        resumoPonderado(logradouro, data)
+      );
 
       return result
         .filter(r => r.total_transacoes >= 3)
         .sort((a, b) => b.preco_medio_m2 - a.preco_medio_m2)
         .slice(0, 10);
+
     },
   });
 }
@@ -221,7 +220,7 @@ export function useMicrobairroDetalhado(bairro: string = 'BARRA DA TIJUCA') {
         .gte('percentual_transferido', 90)
         .not('logradouro', 'is', null)
         .gte('data_transacao', startDate)
-        .limit(10000);
+        .limit(5000);
 
       if (error) throw error;
 
