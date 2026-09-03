@@ -406,6 +406,8 @@ Em 2026-09-02, após o merge dos PRs #6 a #8, `public-itbi-stats` e `parecer-nuc
 
 Metadados novos em `valuations.itbi_metadata`: `raio_m` e `ponto_referencia` (lat, lng, fonte). A linha de rastreabilidade na tela mostra a origem e o raio.
 
+**Atualização de 2026-09-03 (tarde):** cobertura de geocodificação 99,6 % (consulta 7.9, após o backfill que se seguiu à recarga da base); consulta 7.10 em duas amostras de 30 ruas: raio 100 m com 12 a 13 escrituras medianas e spread 22 a 26 %, raio 300 m com 68 a 112 escrituras e spread 33 a 36 %, bairro com spread 51 %. Os dois degraus acrescentam informação; a recomendação é ligar a configuração. Detalhes na seção 15 da especificação de metodologia.
+
 **Estado: implementado, desligado por padrão.** A configuração `radius_fallback_enabled` (Configurações → Amostra por Raio) nasce em `false`. Com ela desligada, o comportamento é idêntico ao anterior. Com ela ligada mas sem a RPC no banco, o código registra `console.warn` e segue rua → bairro.
 
 **Pré-condições para ligar:**
