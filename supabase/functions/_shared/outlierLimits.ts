@@ -2,12 +2,17 @@
 // segurança antes da estatística do motor. FONTE ÚNICA para o app
 // (src/lib/outlierLimits.ts reexporta este arquivo) e para as edge functions.
 //
-// CALIBRAÇÃO GLOBAL ATUALIZADA EM 2026-09-03: janela móvel de 3 anos,
-// percentis ponderados por total_transacoes e pares com >= 100 escrituras.
-// Para preservar transações legítimas no extremo superior, o teto usa P99,5
-// ponderado × 1,15; o piso continua P1 ponderado × 0,85. Os 19 pares sem
-// amostra mínima em 3 anos permanecem no fallback documentado de 5 anos.
+// CALIBRAÇÃO GLOBAL ATUALIZADA EM 2026-09-03: janela móvel de 3 anos e
+// percentis ponderados por total_transacoes. Para preservar transações
+// legítimas no extremo superior, o teto usa P99,5 ponderado × 1,15; o piso
+// continua P1 ponderado × 0,85. Em 2026-09-03 (2ª rodada) os pares que antes
+// estavam no fallback de 5 anos por não atingirem 100 escrituras foram
+// recalibrados em 3 anos com a amostra disponível (55 a 114 escrituras).
+// Permanecem em 5 anos apenas os 6 pares sem NENHUMA escritura na janela
+// de 3 anos (Agua Santa, Bras de Pina, Colegio, Freguesia (Jacarepagua) Casa,
+// Inhoaiba e Santo Cristo).
 // Regenerar com a consulta 7.4 de docs/calibracao-consultas.sql quando a base mudar.
+
 //
 // Sem dependências: precisa rodar em Deno e no navegador.
 
