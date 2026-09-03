@@ -127,12 +127,6 @@ export function Step1Location({ state, updateState, combined, onAutoValidated }:
     ponto?: PontoReferencia | null;
   }
 
-  /** Linha devolvida pela RPC itbi_amostra_raio (ainda fora de types.ts; ver CLAUDE.md §7). */
-  interface RadiusRow extends MarketRow {
-    logradouro?: string | null;
-    distancia_m?: number | null;
-  }
-
   /**
    * Ponto de referência do imóvel para o raio: média das coordenadas do
    * logradouro (RPC itbi_ponto_logradouro, fonte ITBI ou logradouros_geo).
@@ -217,20 +211,14 @@ export function Step1Location({ state, updateState, combined, onAutoValidated }:
       return query;
     };
 
-    // A RPC de raio ainda não está em types.ts (CLAUDE.md §7): cast localizado.
-    const rpcRaio = supabase.rpc as unknown as (
-      fn: string,
-      args: Record<string, unknown>
-    ) => PromiseLike<{ data: RadiusRow[] | null; error: { message: string } | null }>;
-
     const queryRadius = async (ponto: PontoReferencia, raio: RadiusStep, tipologia: string | null): Promise<MarketRow[]> => {
-      const { data, error } = await rpcRaio("itbi_amostra_raio", {
+      const { data, error } = await supabase.rpc("itbi_amostra_raio", {
         p_lat: ponto.lat,
         p_lng: ponto.lng,
         p_raio_m: raio,
         p_inicio: window.start,
         p_fim: window.end,
-        p_tipologia: tipologia,
+        p_tipologia: tipologia ?? undefined,
         p_piso: piso,
         p_teto: teto,
         p_limite: MAX_ROWS,
