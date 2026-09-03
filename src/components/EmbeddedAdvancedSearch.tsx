@@ -981,7 +981,7 @@ export function EmbeddedAdvancedSearch({ defaultBairro = "" }: EmbeddedAdvancedS
               <div className="p-3 bg-blue-50 dark:bg-blue-950/30 rounded-lg border border-blue-200 dark:border-blue-800">
                 <div className="text-xs text-blue-800 dark:text-blue-200">
                   <strong>ℹ️ Como interpretar:</strong> Os dados oficiais são consolidados mensalmente. 
-                  O campo "<strong>Qtd Trans.</strong>" indica quantas escrituras compõem cada registro agregado. 
+                  O campo "<strong>Escrituras</strong>" indica quantas escrituras compõem cada registro agregado. 
                   Os valores de R$/m², Área e Valor são <strong>médias ponderadas</strong> das transações daquele período.
                 </div>
               </div>
