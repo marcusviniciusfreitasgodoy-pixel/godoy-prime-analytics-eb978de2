@@ -69,3 +69,10 @@ O backend roda em Lovable Cloud (Supabase gerenciado). Não há dashboard, servi
 ## 7. Tipos ainda não gerados
 
 Quando uma migration ainda não foi aplicada, `types.ts` não conhece a coluna/view nova. Nesses casos use um cast localizado (`as never` no update, ou um cast tipado do client para a view) e trate o erro em runtime com `console.warn`, para que o fluxo principal continue funcionando. Veja `src/utils/priceIndex.ts` como referência.
+
+## 8. Metodologia estatística: onde está e como mudar
+
+- Referência do que o produto calcula: `docs/especificacao-metodologia-godoy-prime.md` (v3.0) e o resumo para terceiros em `docs/relatorio-final-desenvolvedor-2026-09-04.md`. Estado e pendências na última nota de passagem em `docs/handoff-*.md`.
+- Motor único em `supabase/functions/_shared/itbiMarketStats.ts` (`ENGINE_VERSION`); regras de carga em `_shared/itbiIngestion.ts`; bairros oficiais em `_shared/bairrosRio.ts`.
+- **Cinto de outliers (`_shared/outlierLimits.ts`) é gerado, nunca editado à mão:** consulta 7.4 de `docs/calibracao-consultas.sql` → CSV em `docs/calibracao/` → `bun run cinto <csv>` → `bun run test` → Apêndice B da especificação.
+- Toda mudança de metodologia vem com: constante ou regra no código, consulta de calibração que a sustenta, CSV versionado, teste, e a linha correspondente na especificação (seção 15 registra pendências e decisões).
