@@ -1,14 +1,34 @@
-import { defineConfig } from "vite";
+import { defineConfig, loadEnv } from "vite";
 import react from "@vitejs/plugin-react-swc";
 import path from "path";
 import { componentTagger } from "lovable-tagger";
 import { VitePWA } from "vite-plugin-pwa";
 
+// Valores públicos do backend (URL + chave publishable/anon).
+// Ficam versionados como fallback porque o `.env` não vai para o repositório,
+// e sem eles o build publicado quebra ("supabaseUrl is required").
+const FALLBACK_SUPABASE_URL = "https://ldiadiezzooivgittjvj.supabase.co";
+const FALLBACK_SUPABASE_PUBLISHABLE_KEY =
+  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxkaWFkaWV6em9vaXZnaXR0anZqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjQ2MjM4NzUsImV4cCI6MjA4MDE5OTg3NX0.TlZ0nV6uR9BAYW7VVvSSgiUwqviUAPlWJSDeAG1x7pk";
+const FALLBACK_SUPABASE_PROJECT_ID = "ldiadiezzooivgittjvj";
+
 // https://vitejs.dev/config/
-export default defineConfig(({ mode }) => ({
+export default defineConfig(({ mode }) => {
+  const env = loadEnv(mode, process.cwd(), "");
+
+  return {
   define: {
     __BUILD_TIMESTAMP__: JSON.stringify(
       new Date().toISOString().slice(0, 16).replace("T", " ")
+    ),
+    "import.meta.env.VITE_SUPABASE_URL": JSON.stringify(
+      env.VITE_SUPABASE_URL || FALLBACK_SUPABASE_URL
+    ),
+    "import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY": JSON.stringify(
+      env.VITE_SUPABASE_PUBLISHABLE_KEY || FALLBACK_SUPABASE_PUBLISHABLE_KEY
+    ),
+    "import.meta.env.VITE_SUPABASE_PROJECT_ID": JSON.stringify(
+      env.VITE_SUPABASE_PROJECT_ID || FALLBACK_SUPABASE_PROJECT_ID
     ),
   },
   server: {
