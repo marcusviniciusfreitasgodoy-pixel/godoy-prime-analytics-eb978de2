@@ -8,7 +8,7 @@ const corsHeaders = {
 
 interface WhatsAppRequest {
   telefone: string;
-  tipo: 'confirmacao' | 'lembrete' | 'cancelamento' | 'reagendamento' | 'pos_visita';
+  tipo: 'confirmacao' | 'lembrete' | 'cancelamento' | 'reagendamento' | 'pos_visita' | 'nova_visita_responsavel' | 'novo_lead';
   dados: {
     nome_visitante: string;
     endereco_imovel: string;
@@ -24,6 +24,9 @@ interface WhatsAppRequest {
     nome_proprietario?: string;
     link_feedback?: string;
     link_ficha?: string;
+    telefone_cliente?: string;
+    interesse?: string;
+    link_painel?: string;
   };
 }
 
@@ -136,6 +139,28 @@ ${dados.link_assinatura ? `📝 Confirmar presença (assinatura):\n${dados.link_
 
 _Godoy Prime Analytics_
 📞 (21) 96407-5124`;
+
+    case 'nova_visita_responsavel':
+      return `📌 *Nova Visita Agendada*
+
+Olá${dados.nome_corretor ? ` *${dados.nome_corretor}*` : ''}! Uma nova visita foi registrada:
+
+👤 *Cliente:* ${dados.nome_visitante}${dados.telefone_cliente ? `\n📞 *Telefone:* ${dados.telefone_cliente}` : ''}
+📍 *Imóvel:* ${dados.endereco_imovel}${dados.codigo_imovel ? `\n🏠 *Código:* ${dados.codigo_imovel}` : ''}
+📅 *Data e Hora:* ${dataFormatada}
+${dados.link_ficha ? `\n📋 *Ver ficha da visita:*\n${dados.link_ficha}\n` : ''}
+_Godoy Prime Analytics_`;
+
+    case 'novo_lead':
+      return `🔔 *Novo Lead Recebido*
+
+👤 *Nome:* ${dados.nome_visitante}${dados.telefone_cliente ? `\n📞 *Telefone:* ${dados.telefone_cliente}` : ''}
+🏠 *Interesse:* ${dados.interesse || dados.endereco_imovel || 'Não informado'}
+📅 *Recebido em:* ${dataFormatada}
+${dados.link_painel ? `\n📊 *Abrir no painel:*\n${dados.link_painel}\n` : ''}
+Recomendamos contato em até 15 minutos. ⏱️
+
+_Godoy Prime Analytics_`;
 
     default:
       return `Mensagem do Godoy Prime Analytics sobre seu agendamento.`;
