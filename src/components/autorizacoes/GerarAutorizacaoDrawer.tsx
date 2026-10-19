@@ -480,7 +480,7 @@ export function GerarAutorizacaoDrawer({ open, onOpenChange, state, valuationId,
             <TabsContent value="preview" className="pr-3">
               <AutorizacaoDocumentoPreview
                 data={previewData}
-                corretorNome={(user?.user_metadata as any)?.full_name || user?.email || null}
+                corretorNome={corretorNome || (user?.user_metadata as any)?.full_name || user?.email || null}
                 corretorCreci={organization?.creci || null}
               />
             </TabsContent>
