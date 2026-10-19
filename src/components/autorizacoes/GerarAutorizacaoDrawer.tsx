@@ -57,6 +57,22 @@ export function GerarAutorizacaoDrawer({ open, onOpenChange, state, valuationId,
   const [pendingAction, setPendingAction] = useState<"rascunho" | "enviar" | null>(null);
   const fieldRefs = useRef<Record<string, HTMLElement | null>>({});
 
+  useEffect(() => {
+    if (!user?.id) return;
+    let cancelled = false;
+    supabase
+      .from("profiles")
+      .select("full_name")
+      .eq("id", user.id)
+      .maybeSingle()
+      .then(({ data }) => {
+        if (!cancelled) setCorretorNome(data?.full_name || null);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [user?.id]);
+
   const [form, setForm] = useState<AutorizacaoFormData>(() => ({
     proprietario_nome: state.proprietario || "",
     proprietario_cpf: state.proprietario_cpf || "",
