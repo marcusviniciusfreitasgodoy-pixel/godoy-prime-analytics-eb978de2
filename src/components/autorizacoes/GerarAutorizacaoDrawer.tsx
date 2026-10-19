@@ -177,7 +177,7 @@ export function GerarAutorizacaoDrawer({ open, onOpenChange, state, valuationId,
     tipo_gestao: form.tipo_gestao,
     prazo_dias: form.prazo_dias,
     percentual_honorarios: form.percentual_honorarios,
-    corretor_nome: (user?.user_metadata as any)?.full_name || user?.email || null,
+    corretor_nome: corretorNome || (user?.user_metadata as any)?.full_name || user?.email || null,
     corretor_creci: organization?.creci || null,
     status: "rascunho" as const,
   });
