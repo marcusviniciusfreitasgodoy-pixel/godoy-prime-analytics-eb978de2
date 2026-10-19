@@ -48,6 +48,7 @@ export function GerarAutorizacaoDrawer({ open, onOpenChange, state, valuationId,
   const createMut = useCreateAutorizacao();
   const enviarMut = useEnviarAutorizacao();
   const [submitting, setSubmitting] = useState(false);
+  const [corretorNome, setCorretorNome] = useState<string | null>(null);
   const [tabValue, setTabValue] = useState<"dados" | "preview">("dados");
   const [attemptedSubmit, setAttemptedSubmit] = useState(false);
   const [isentoCondominio, setIsentoCondominio] = useState(false);
