@@ -1,0 +1,13 @@
+{
+  "version": "7",
+  "dialect": "postgresql",
+  "entries": [
+    {
+      "idx": 0,
+      "version": "7",
+      "when": 1792442893188,
+      "tag": "0000_protect_spatial_reference_catalog_writes",
+      "breakpoints": true
+    }
+  ]
+}
