@@ -8,6 +8,13 @@
       "when": 1792442893188,
       "tag": "0000_protect_spatial_reference_catalog_writes",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1792443168617,
+      "tag": "0001_revoke_spatial_ref_sys_writes",
+      "breakpoints": true
     }
   ]
 }

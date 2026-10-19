@@ -1,4 +1,4 @@
-import { useState, useMemo, useRef } from "react";
+import { useState, useMemo, useRef, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet";
 import { Input } from "@/components/ui/input";
@@ -48,6 +48,7 @@ export function GerarAutorizacaoDrawer({ open, onOpenChange, state, valuationId,
   const createMut = useCreateAutorizacao();
   const enviarMut = useEnviarAutorizacao();
   const [submitting, setSubmitting] = useState(false);
+  const [corretorNome, setCorretorNome] = useState<string | null>(null);
   const [tabValue, setTabValue] = useState<"dados" | "preview">("dados");
   const [attemptedSubmit, setAttemptedSubmit] = useState(false);
   const [isentoCondominio, setIsentoCondominio] = useState(false);
@@ -55,6 +56,22 @@ export function GerarAutorizacaoDrawer({ open, onOpenChange, state, valuationId,
   const [optionalDialogOpen, setOptionalDialogOpen] = useState(false);
   const [pendingAction, setPendingAction] = useState<"rascunho" | "enviar" | null>(null);
   const fieldRefs = useRef<Record<string, HTMLElement | null>>({});
+
+  useEffect(() => {
+    if (!user?.id) return;
+    let cancelled = false;
+    supabase
+      .from("profiles")
+      .select("full_name")
+      .eq("id", user.id)
+      .maybeSingle()
+      .then(({ data }) => {
+        if (!cancelled) setCorretorNome(data?.full_name || null);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [user?.id]);
 
   const [form, setForm] = useState<AutorizacaoFormData>(() => ({
     proprietario_nome: state.proprietario || "",
@@ -160,7 +177,7 @@ export function GerarAutorizacaoDrawer({ open, onOpenChange, state, valuationId,
     tipo_gestao: form.tipo_gestao,
     prazo_dias: form.prazo_dias,
     percentual_honorarios: form.percentual_honorarios,
-    corretor_nome: (user?.user_metadata as any)?.full_name || user?.email || null,
+    corretor_nome: corretorNome || (user?.user_metadata as any)?.full_name || user?.email || null,
     corretor_creci: organization?.creci || null,
     status: "rascunho" as const,
   });
@@ -463,7 +480,7 @@ export function GerarAutorizacaoDrawer({ open, onOpenChange, state, valuationId,
             <TabsContent value="preview" className="pr-3">
               <AutorizacaoDocumentoPreview
                 data={previewData}
-                corretorNome={(user?.user_metadata as any)?.full_name || user?.email || null}
+                corretorNome={corretorNome || (user?.user_metadata as any)?.full_name || user?.email || null}
                 corretorCreci={organization?.creci || null}
               />
             </TabsContent>
