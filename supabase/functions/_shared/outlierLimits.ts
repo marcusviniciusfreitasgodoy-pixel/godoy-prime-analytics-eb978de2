@@ -63,6 +63,56 @@ export const SMALL_SAMPLE_ESCRITURAS = 200;
 /** Largura mínima do cinto em amostra pequena: [mediana / 2; mediana × 2]. */
 export const SMALL_SAMPLE_WIDTH = 2;
 
+/**
+ * Regras por prédio aplicadas no banco por itbi_aplicar_cinto
+ * (supabase/migrations/20261021230000_itbi_cinto_regras_predio.sql).
+ * Prédio = mesmo cl, número, bairro e tipologia. Referências = outras
+ * escrituras do prédio, de qualquer data, com preço corrigido dentro do cinto.
+ *   - fora de mercado: com MIN_REFERENCIAS ou mais referências de área parecida
+ *     (área ÷ TOLERANCIA_AREA a área × TOLERANCIA_AREA), R$/m² de no máximo
+ *     FATOR_FORA_MERCADO × a mediana delas;
+ *   - exceção: escritura acima do teto com MIN_REFERENCIAS ou mais referências
+ *     e R$/m² entre EXCECAO_MIN e EXCECAO_MAX × a mediana delas não é cortada.
+ * O teste regraPredio.test.ts confere que a migration usa estes valores.
+ */
+export const REGRA_PREDIO = {
+  FATOR_FORA_MERCADO: 0.5,
+  TOLERANCIA_AREA: 1.25,
+  MIN_REFERENCIAS: 2,
+  EXCECAO_MIN: 0.67,
+  EXCECAO_MAX: 1.5,
+} as const;
+
+export type SituacaoEscritura = "aceita" | "fora_do_cinto" | "fora_de_mercado";
+
+export interface ReferenciasPredio {
+  /** Quantidade de referências. */
+  n: number;
+  /** Mediana do R$/m² corrigido das referências (null sem referências). */
+  mediana: number | null;
+}
+
+/**
+ * Mesma decisão de itbi_aplicar_cinto para uma escritura, com preços já
+ * corrigidos ao último trimestre. `refsArea` são as referências de área
+ * parecida; `refsTodas`, as referências de qualquer área.
+ */
+export const classificarEscritura = (
+  vc: number,
+  faixa: { piso: number; teto: number },
+  refsArea: ReferenciasPredio,
+  refsTodas: ReferenciasPredio,
+): { situacao: SituacaoEscritura; excecaoPredio: boolean } => {
+  const { FATOR_FORA_MERCADO, MIN_REFERENCIAS, EXCECAO_MIN, EXCECAO_MAX } = REGRA_PREDIO;
+  const foraMercado = refsArea.n >= MIN_REFERENCIAS && refsArea.mediana !== null && vc <= FATOR_FORA_MERCADO * refsArea.mediana;
+  if (foraMercado) return { situacao: "fora_de_mercado", excecaoPredio: false };
+  const dentro = vc >= faixa.piso && vc <= faixa.teto;
+  if (dentro) return { situacao: "aceita", excecaoPredio: false };
+  const excecao = vc > faixa.teto && refsTodas.n >= MIN_REFERENCIAS && refsTodas.mediana !== null
+    && vc >= EXCECAO_MIN * refsTodas.mediana && vc <= EXCECAO_MAX * refsTodas.mediana;
+  return excecao ? { situacao: "aceita", excecaoPredio: true } : { situacao: "fora_do_cinto", excecaoPredio: false };
+};
+
 /** Chave: "BAIRRO NORMALIZADO|Tipologia" (Apartamento | Casa | Comercial). Valores em preço do último trimestre do índice. */
 export const OUTLIER_LIMITS_TABLE: Record<string, OutlierLimitEntry> = {
   "ABOLICAO|Apartamento": { piso: 1131, teto: 7240, p05: 1330, p1: 1333, p995: 6296, mediana: 3322, escrituras: 207, janela: "5 anos" },

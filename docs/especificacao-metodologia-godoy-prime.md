@@ -176,11 +176,21 @@ Com isso o app nunca corta uma linha que o banco aceitou. A faixa fica um pouco 
 
 **Onde o cinto é aplicado:**
 
-1. **No banco, por escritura, antes da agregação.** `itbi_consolidar_smf()` chama `itbi_aplicar_cinto`, que marca `motivo_rejeicao = 'fora_do_cinto'`. Par exato; senão a faixa da cidade. Sem a linha `CIDADE|*` em `itbi_cinto`, a consolidação para com erro.
+1. **No banco, por escritura, antes da agregação.** `itbi_consolidar_smf()` chama `itbi_aplicar_cinto`, que marca `motivo_rejeicao = 'fora_do_cinto'`. Par exato; senão a faixa da cidade. Sem a linha `CIDADE|*` em `itbi_cinto`, a consolidação para com erro. A mesma função aplica as duas regras por prédio descritas abaixo.
 2. **No app, sobre `itbi_transactions`.** `getOutlierLimits(bairro, tipologia)`: par exato (Apartamento, Casa ou Comercial; cobertura e flat contam como Apartamento; sala, loja e escritório como Comercial); senão, menor piso e maior teto entre Apartamento e Casa do bairro, nunca Comercial; senão, a faixa da cidade (`DEFAULT_OUTLIER_MIN` e `FAIXA_SEM_CALIBRACAO_TETO` convertido) com `calibrado: false`.
 3. **Busca sem bairro.** `DEFAULT_OUTLIER_MIN` = piso da cidade ÷ maior fator (hoje 774). `DEFAULT_OUTLIER_MAX` = maior teto de Apartamento/Casa da faixa padrão de 3 anos (84.363, Ipanema) ÷ menor fator, hoje 87.269. Pares de 5 anos ficam fora desse máximo, porque uma amostra pequena com cauda gorda (Copacabana/Casa, 60 escrituras, teto 90.965) não pode definir o teto da cidade inteira.
 
 O fallback do banco (cidade) e o do app (residencial do bairro) diferem quando falta o par. Medido em 2026-10-21 sobre os 12 meses: 414 vendas sem par; a faixa da cidade corta 14 e a residencial do bairro cortaria 21. Diferença pequena, sem mudança no banco.
+
+**Regras por prédio (desde 2026-10-22).** A faixa é uma só por bairro e tipologia e não enxerga o prédio. Duas regras em `itbi_aplicar_cinto` (migration `20261021230000_itbi_cinto_regras_predio.sql`) comparam cada escritura com o próprio prédio:
+
+- **Prédio** = mesmo `cl`, mesmo número de porta, mesmo bairro e mesma tipologia. Exige `cl` conhecido e número válido.
+- **Referências** = as outras escrituras do prédio, de qualquer data, com preço corrigido dentro do cinto do par. Uma escritura fora do cinto nunca serve de referência.
+- **Fora de mercado** (`motivo_rejeicao = 'fora_de_mercado'`): com 2 ou mais referências de área parecida (área ÷ 1,25 a área × 1,25), a escritura com R$/m² corrigido de no máximo 50% da mediana delas sai da consolidação, dentro ou fora do cinto. Pega vendas por uma fração do valor do resto do prédio, com a mesma área: transferência entre parentes, partilha, doação e unidades subsidiadas de conjuntos habitacionais. A SMF não informa a causa, e nenhuma delas é preço de mercado.
+- **Exceção** (só acima do teto): com 2 ou mais referências e R$/m² entre 0,67 e 1,5 vez a mediana delas, a escritura não é cortada. Recupera vendas reais de prédios caros para o bairro. Abaixo do piso não há exceção, para um prédio com várias vendas fora de mercado não abonar as outras.
+- **Ordem:** fora de mercado vence; depois vale o cinto com a exceção. A marcação é refeita a cada consolidação, e nada é apagado.
+
+Constantes espelhadas em `REGRA_PREDIO` (`_shared/outlierLimits.ts`), com a mesma decisão em `classificarEscritura`. O teste `regraPredio.test.ts` falha se a migration e o código divergirem. Simulação de leitura por ano: `docs/calibracao/bloco74d-simulacao-regras-predio.sql`. Como as consultas 7.4 e 7.4b usam `aceita OR motivo_rejeicao = 'fora_do_cinto'`, as escrituras fora de mercado ficam fora da calibração do cinto.
 
 **Fluxo de recalibração:** consultas 7.4 e 7.4b → dois CSVs em `docs/calibracao/` → `bun run cinto <csv 7.4> <csv 7.4b>` (aceita `--dry-run` e `--candidate=<arquivo>`) → `bun run test` → aceite da seção 15.0 → carga de `docs/calibracao/cinto-<data>.sql` no banco → reconsolidação pelo painel /admin → Apêndice B. Cadência trimestral ou depois de carga relevante, não a cada carga mensal. O motor estatístico e o MAD da seção 2.7 não mudam.
 
@@ -1029,6 +1039,31 @@ Controles: Santa Cruz/Apartamento 0/659; Vargem Pequena/Casa 0/80; Ipanema/Comer
 1. Carregar `itbi_cinto` com o SQL gerado. Enquanto a tabela estiver vazia, `itbi_consolidar_smf()` para com erro e a carga mensal não consolida.
 2. Simular com `itbi_aplicar_cinto('2019-01-01', current_date, null, false)` e conferir por bairro.
 3. Depois do merge e da publicação, reconsolidar a cidade pelo painel /admin.
+
+#### Decisão de 2026-10-22: regras por prédio (fora de mercado e exceção)
+
+A auditoria das 1.375 escrituras cortadas (`AUDITORIA-CINTO-2026-10-21.md`, fora do repositório) mostrou dois problemas que a faixa por bairro não resolve. Cerca de 240 vendas reais foram cortadas porque o prédio é caro para o bairro. E vendas por uma fração do valor do resto do prédio, com a mesma área, passavam pelo cinto e entravam nas avaliações. O dono do produto pediu que essas transações (partilha, doação, venda entre parentes) fossem expurgadas da base. A seção 2.5 descreve as duas regras.
+
+**Simulação antes de aplicar** (`bloco74d-simulacao-regras-predio.sql`, 2019 a setembro de 2026, 314.620 escrituras):
+
+| Ano | Avaliadas | Fora de mercado (50%) | Das quais aceitas hoje | Fora de mercado com 40% | Exceções por prédio | Fora do cinto depois |
+|---|---:|---:|---:|---:|---:|---:|
+| 2019 | 28.685 | 254 | 228 | 99 | 20 | 152 |
+| 2020 | 31.452 | 160 | 147 | 42 | 16 | 135 |
+| 2021 | 43.393 | 400 | 378 | 116 | 14 | 130 |
+| 2022 | 38.768 | 361 | 338 | 104 | 15 | 104 |
+| 2023 | 41.158 | 513 | 462 | 149 | 26 | 138 |
+| 2024 | 47.838 | 682 | 646 | 211 | 16 | 143 |
+| 2025 | 46.602 | 977 | 934 | 406 | 11 | 117 |
+| 2026 até set. | 36.724 | 1.020 | 978 | 453 | 1 | 94 |
+| **Total** | **314.620** | **4.367** | **4.111** | **1.580** | **119** | **1.013** |
+
+Resultado na base: aceitas de 313.245 para 309.240.
+
+- **Onde pesa:** apartamentos de 2025 em Santa Cruz (13,4% das vendas), Campo Grande (10,1%), Bonsucesso (7,7%) e Guaratiba (5,2%). Nos outros bairros com 200 ou mais vendas, abaixo de 4%, com a mediana mudando menos de 2%. Em Bonsucesso a mediana sobe 14,4%: dois conjuntos com mais de 160 vendas cada têm unidades de 40 m² escrituradas por R$ 88 a 130 mil, enquanto o mesmo conjunto vende a cerca de R$ 230 mil.
+- **Por que 50% e não 40%:** a leitura de 30 casos mostrou quase só preço fora de mercado abaixo de 40% e cerca de 6 em 10 entre 40% e 50%. Os conjuntos subsidiados ficam justamente entre 38% e 47% do próprio prédio. Com 40% eles continuariam na base.
+- **Exceção e filtro do app:** das escrituras poupadas pela exceção, nenhuma cai numa linha de `itbi_transactions` que o filtro secundário do app cortaria (teto ÷ 0,9667).
+- **Limitação:** a regra só age onde o prédio tem 2 ou mais referências de área parecida dentro do cinto. Casas isoladas e prédios com poucas vendas continuam dependendo só do cinto e do MAD.
 
 ### 15.1 Pendências no Analytics, por prioridade
 
