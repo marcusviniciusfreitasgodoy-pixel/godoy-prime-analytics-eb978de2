@@ -36,6 +36,13 @@
       "when": 1792612338188,
       "tag": "0004_itbi_cinto_pre_agregacao",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1792618490958,
+      "tag": "0005_itbi_cinto_authenticated_reference_read",
+      "breakpoints": true
     }
   ]
 }
