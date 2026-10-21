@@ -974,6 +974,10 @@ Consulta reproduzível: `docs/calibracao/bloco74-investigacao-2026-10-21.sql`. C
 
 ### 15.1 Pendências no Analytics, por prioridade
 
+**Proteção pré-agregação (2026-10-21):** `public.itbi_cinto` guarda bairro normalizado, tipologia, piso, teto, janela, escrituras e calibrado_em; autenticados têm apenas SELECT. `CIDADE|*` contém a faixa geral, sem usar o maior teto residencial. `bun run cinto <csv 7.4> <csv 7.4b> --candidate=<temporário>` também gera `docs/calibracao/cinto-AAAA-MM-DD.sql`, transacional com TRUNCATE/INSERT, sem executar a carga. Aceite pendente continua impedindo ativação da tabela candidata.
+
+`itbi_aplicar_cinto(inicio,fim,bairro,false)` demonstra as contagens por bairro sem modificar dados; `true` apenas marca as escrituras, sem consolidar a cidade. Preços individuais são corrigidos com o mesmo índice trimestral da consulta 7.4 antes do teste inclusivo piso/teto. Falta de índice ou faixa da cidade interrompe o processamento, sem filtro nominal silencioso. Reavalia somente aceitas ou rejeitadas por fora_do_cinto: outros motivos permanecem intactos, e rejeições pelo cinto podem ser revertidas numa carga aprovada posterior. `itbi_consolidar_smf` executa a marcação antes de agregar e retorna o resumo por bairro. Nenhuma reconstrução da base real foi feita nesta etapa. Teste transacional reproduzível: `docs/calibracao/teste-cinto-pre-agregacao.sql` (venda boa de 12.000/m² preservada, erro de 300.000/m² removido antes da média).
+
 Estado em 2026-09-03, 16h, depois da segunda rodada de consultas (resultados em `docs/calibracao/`).
 
 | # | Prioridade | Problema | O que fazer | Como validar |
