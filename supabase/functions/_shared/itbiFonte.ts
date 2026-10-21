@@ -27,6 +27,28 @@ export const fimDoMes = (ano: number, mes: number): string => {
   return `${ano}-${String(mes).padStart(2, "0")}-${String(ultimo).padStart(2, "0")}`;
 };
 
+/**
+ * Janelas trimestrais de consolidação, do início de `anoMin` até o fim do mês
+ * `ate`. A consolidação de um ano inteiro da cidade passou de 150 s depois das
+ * regras por prédio do cinto (itbi_aplicar_cinto), acima do limite de tempo das
+ * funções do backend; um trimestre leva de 30 s a 60 s.
+ */
+export const janelasTrimestrais = (
+  anoMin: number,
+  ate: { ano: number; mes: number },
+): { inicio: string; fim: string; rotulo: string }[] => {
+  const janelas: { inicio: string; fim: string; rotulo: string }[] = [];
+  for (let ano = anoMin; ano <= ate.ano; ano++) {
+    for (let t = 0; t < 4; t++) {
+      const mesInicio = t * 3 + 1;
+      if (ano === ate.ano && mesInicio > ate.mes) break;
+      const mesFim = ano === ate.ano ? Math.min(mesInicio + 2, ate.mes) : mesInicio + 2;
+      janelas.push({ inicio: inicioDoMes(ano, mesInicio), fim: fimDoMes(ano, mesFim), rotulo: `${t + 1}º trimestre de ${ano}` });
+    }
+  }
+  return janelas;
+};
+
 export interface DecisaoCarga {
   bloquear: boolean;
   motivo: string | null;
