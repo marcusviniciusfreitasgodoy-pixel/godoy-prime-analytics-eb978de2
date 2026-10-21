@@ -164,11 +164,17 @@ serve(async (req) => {
 
     // Sem logradouro: corte direto no banco pelos limites do bairro.
     // Com logradouro: busca na faixa ampla e recorta com os limites da rua.
-    const statsQuery = logradouroFiltro
+    const statsQuery = () => logradouroFiltro
       ? baseQuery().gte("valor_m2", DEFAULT_OUTLIER_MIN).lte("valor_m2", DEFAULT_OUTLIER_MAX)
       : baseQuery().gte("valor_m2", limitesBairro.piso).lte("valor_m2", limitesBairro.teto);
 
-    const { data, error } = await statsQuery;
+    let data: any[] | null = null;
+    let error: unknown = null;
+    try {
+      data = await fetchPaged((from, to) => statsQuery().order("id", { ascending: true }).range(from, to), MAX_ROWS);
+    } catch (e) {
+      error = e;
+    }
 
     if (error) {
       console.error("Database error:", error);

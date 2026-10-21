@@ -282,13 +282,12 @@ export function Step1Location({ state, updateState, combined, onAutoValidated }:
 
     const runTable = (scope: "logradouro" | "bairro") => async (tipologia: string | null): Promise<MarketRow[]> => {
       // Condomínio mantém o filtro de bairro (rua interna é genérica); logradouro busca cross-bairro.
-      const query =
+      const build = () =>
         scope === "logradouro"
           ? applyStreetFilter(createBaseQuery(isCondominio, tipologia))
           : createBaseQuery(true, tipologia);
-      const { data, error } = await query;
-      if (error) throw error;
-      return (data || []) as MarketRow[];
+      const rows = await fetchPaged((from, to) => build().order("id", { ascending: true }).range(from, to), MAX_ROWS);
+      return rows as MarketRow[];
     };
 
     const streetResult = await searchWith("logradouro", runTable("logradouro"));
