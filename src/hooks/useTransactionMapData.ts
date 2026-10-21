@@ -1,4 +1,3 @@
-import { fetchPaged } from '../../supabase/functions/_shared/fetchPaged.ts';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useDemo } from '@/contexts/DemoContext';
