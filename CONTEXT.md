@@ -58,7 +58,7 @@
 ## 5. Regras Duras de Dados
 
 ### 5.1 ITBI (Prefeitura do Rio)
-- Fonte (desde 2026-10-21): planilhas de ITBI por escritura da Secretaria Municipal de Fazenda, carregadas em `itbi_escrituras` e consolidadas em `itbi_transactions` por `itbi_consolidar_smf()` (`fonte = 'smf'`). A camada 8 do ArcGIS (`fonte = 'arcgis'`) entrega só 55% a 65% das escrituras e não pode sobrescrever períodos consolidados. Detalhe por escritura (número, complemento) existe só em `itbi_escrituras`, protegido por RLS, e nunca aparece individualmente no produto.
+- Fonte (desde 2026-10-21): planilhas de ITBI por escritura da Secretaria Municipal de Fazenda, carregadas em `itbi_escrituras` e consolidadas em `itbi_transactions` por `itbi_consolidar_smf()` (`fonte = 'smf'`). A camada 8 do ArcGIS (`fonte = 'arcgis'`) entrega só 55% a 65% das escrituras e não pode sobrescrever períodos consolidados. Valores e datas individuais de `itbi_escrituras` podem ser disponibilizados em consultas autenticadas, preservando token e RLS, sem nomes das partes, CPF ou outros dados pessoais. Não atribuir valores médios de `itbi_transactions` a escrituras individuais. A autorização de produto não constitui validação jurídica de conformidade integral com a LGPD; outros campos combinados exigem avaliação do risco de reidentificação.
 - Base agregada: **sempre ponderar por `total_transacoes`** em médias/medianas.
 - Janela histórica padrão: 5 anos, excluindo ano corrente salvo expansão explícita.
 - Fallback ano corrente: usar ano anterior se < 30 registros / < 100 transações reais.
