@@ -73,6 +73,25 @@ interface MonthStatus {
   transactions: number;
 }
 
+/**
+ * O supabase-js devolve só "non-2xx status code" quando a função responde com
+ * erro. sync-itbi-prefeitura responde 409 com o motivo no corpo quando o
+ * período já foi consolidado a partir da SMF (_shared/itbiFonte.ts); aqui o
+ * motivo é extraído para aparecer no toast.
+ */
+const erroDaFuncao = async (error: unknown): Promise<Error> => {
+  const contexto = (error as { context?: Response })?.context;
+  if (contexto && typeof contexto.clone === "function") {
+    try {
+      const corpo = await contexto.clone().json();
+      if (corpo?.error) return new Error(String(corpo.error));
+    } catch {
+      // corpo não é JSON: cai na mensagem original
+    }
+  }
+  return error instanceof Error ? error : new Error("Falha ao chamar a sincronização.");
+};
+
 export const SyncITBIButton = () => {
   const [isLoading, setIsLoading] = useState(false);
   // Desligado por padrão desde 2026-09-03: a recarga do período é a operação que
@@ -232,7 +251,7 @@ export const SyncITBIButton = () => {
       if (error) {
         console.error("Erro ao sincronizar:", error);
         setStage('error');
-        throw error;
+        throw await erroDaFuncao(error);
       }
 
       console.log("Resposta da sincronização:", data);
@@ -315,7 +334,7 @@ export const SyncITBIButton = () => {
       },
       headers: { Authorization: `Bearer ${accessToken}` },
     });
-    if (error) throw error;
+    if (error) throw await erroDaFuncao(error);
     if (!data?.success) throw new Error(data?.error || `Falha em ${year}`);
     return {
       inseridos: Number(data.registros_inseridos || 0),

@@ -1,0 +1,74 @@
+name: ITBI SMF mensal
+
+# Carga mensal do ITBI por escritura (planilhas da SMF) e consolidação em
+# itbi_transactions. Ver scripts/itbi-smf/README.md.
+#
+# Secrets necessários no repositório: SUPABASE_URL e SUPABASE_SERVICE_ROLE_KEY
+# (a chave de serviço do backend; nunca a publicável).
+
+on:
+  schedule:
+    - cron: "0 9 5 * *"   # dia 5 de cada mês, 06:00 em Brasília
+  workflow_dispatch:
+    inputs:
+      bairro:
+        description: "Bairro (vazio = cidade inteira)"
+        required: false
+        default: ""
+      desde:
+        description: "Ano mínimo"
+        required: false
+        default: "2019"
+      dry_run:
+        description: "Só gerar o CSV, sem gravar"
+        type: boolean
+        default: false
+
+concurrency:
+  group: itbi-smf
+  cancel-in-progress: false
+
+jobs:
+  carregar:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    defaults:
+      run:
+        working-directory: scripts/itbi-smf
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Instalar openpyxl
+        run: pip install openpyxl==3.1.5
+
+      - name: Cache de portas e traçados (ArcGIS)
+        uses: actions/cache@v4
+        with:
+          path: scripts/itbi-smf/cache_smf
+          key: itbi-smf-cache-${{ github.run_id }}
+          restore-keys: itbi-smf-cache-
+
+      - name: Carregar
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          ENTRADA_BAIRRO: ${{ github.event.inputs.bairro }}
+          ENTRADA_DESDE: ${{ github.event.inputs.desde || '2019' }}
+          ENTRADA_DRY_RUN: ${{ github.event.inputs.dry_run }}
+        run: |
+          args=(--desde "$ENTRADA_DESDE" --cache-dir ./cache_smf)
+          if [ -n "$ENTRADA_BAIRRO" ]; then args+=(--bairro "$ENTRADA_BAIRRO"); fi
+          if [ "$ENTRADA_DRY_RUN" = "true" ]; then args+=(--dry-run --saida dryrun.csv); fi
+          python3 -I carregar_itbi_smf.py "${args[@]}"
+
+      - name: Guardar CSV do dry-run
+        if: ${{ github.event.inputs.dry_run == 'true' }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: itbi-smf-dryrun
+          path: scripts/itbi-smf/dryrun.csv
+          retention-days: 7

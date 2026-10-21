@@ -1,6 +1,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.86.0";
 import { LIMITES_INGESTAO, mesclarDuplicatasItbi, validarFeatureItbi } from "../_shared/itbiIngestion.ts";
+import { decidirCargaArcgis, fimDoMes, inicioDoMes, periodoCobertoPelaSmf } from "../_shared/itbiFonte.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -137,7 +138,8 @@ serve(async (req) => {
     let minMonth = 1;
     let maxMonth = 12;
     let onlyResidencial = false;
-    
+    let force = false;
+
     try {
       const body = await req.json();
       if (body.clearExisting !== undefined) clearExisting = body.clearExisting;
@@ -147,8 +149,25 @@ serve(async (req) => {
       if (body.minMonth) minMonth = body.minMonth;
       if (body.maxMonth) maxMonth = body.maxMonth;
       if (body.onlyResidencial !== undefined) onlyResidencial = body.onlyResidencial;
+      if (body.force !== undefined) force = Boolean(body.force);
     } catch {
       console.log('Usando parâmetros padrão');
+    }
+
+    // Guarda da fonte: um período já consolidado a partir da SMF (itbi_consolidar_smf)
+    // não pode ser sobrescrito pela camada 8, que é menos completa. Ver _shared/itbiFonte.ts.
+    const linhasSmf = await periodoCobertoPelaSmf(
+      supabase,
+      inicioDoMes(minYear, minMonth),
+      fimDoMes(maxYear, maxMonth)
+    );
+    const decisao = decidirCargaArcgis(linhasSmf, force);
+    if (decisao.bloquear) {
+      console.warn('Carga da camada 8 recusada:', decisao.motivo);
+      return new Response(
+        JSON.stringify({ success: false, skipped: true, error: decisao.motivo, linhas_smf: linhasSmf }),
+        { status: 409, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
     }
 
     const syncAllBairros = !codbairro;

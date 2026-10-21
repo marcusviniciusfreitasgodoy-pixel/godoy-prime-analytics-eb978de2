@@ -1,5 +1,6 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 import { mesclarDuplicatasItbi, validarFeatureItbi } from '../_shared/itbiIngestion.ts'
+import { decidirCargaArcgis, fimDoMes, inicioDoMes, periodoCobertoPelaSmf } from '../_shared/itbiFonte.ts'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -81,6 +82,23 @@ Deno.serve(async (req) => {
     const prevYear = currentMonth === 1 ? currentYear - 1 : currentYear
 
     console.log(`[CRON] Buscando transações de ${prevYear}-${prevMonth} a ${currentYear}-${currentMonth}`)
+
+    // Guarda da fonte: se os dois meses já foram consolidados a partir da SMF
+    // (itbi_consolidar_smf), a camada 8 não pode sobrescrevê-los. O cron então
+    // encerra sem gravar; a carga mensal passa a ser scripts/itbi-smf.
+    const linhasSmf = await periodoCobertoPelaSmf(
+      supabase,
+      inicioDoMes(prevYear, prevMonth),
+      fimDoMes(currentYear, currentMonth)
+    )
+    const decisao = decidirCargaArcgis(linhasSmf, false)
+    if (decisao.bloquear) {
+      console.log('[CRON] Carga da camada 8 recusada:', decisao.motivo)
+      return new Response(
+        JSON.stringify({ success: true, skipped: true, message: decisao.motivo, linhas_smf: linhasSmf }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      )
+    }
 
     // Buscar dados da API com where=1=1 (filtrar no código)
     const allRecords: any[] = []
