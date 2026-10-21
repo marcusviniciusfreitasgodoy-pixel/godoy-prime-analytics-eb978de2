@@ -948,6 +948,30 @@ Controles atendidos: Santa Cruz/Apartamento **0,00%** fora, piso 890/teto 7.337;
 
 Arquivos em `docs/calibracao/`: `bloco74-escrituras-2026-10-21.csv`, `bloco74b-cidade-2026-10-21.csv`, `bloco74-aceite-2026-10-21.csv`, `bloco74-candidatos-2026-10-21.csv`. Gerador executado em modo candidato e **123 testes passaram, nenhum falhou**. Decisão: não aplicar novos limites, não reimplantar funções e não substituir o Apêndice B vigente até o usuário avaliar as cinco exceções. Resolução Comercial/fallback e testes de integração aguardam essa liberação. Critério de aceite não foi flexibilizado automaticamente.
 
+#### Investigação das exceções (2026-10-21, antes de aplicar)
+
+O usuário escolheu investigar, não aceitar exceções. Nenhum limite de produção foi substituído.
+
+**Dois problemas de comparabilidade encontrados na consulta de aceite fornecida:**
+1. A calibração corrige preços ao trimestre de referência; o aceite original compara preços nominais. Em Jacarepaguá/Apartamento, 23/1.002 fora (22 baixos + 1 alto), 2,2954%, passa a 20/1.002 (19 baixos + 1 alto), **1,9960%** na base corrigida, arredondado a 2,00%.
+2. A calibração exige uso Comercial para tipologia Comercial, mas o aceite original não filtra uso. Em Ipanema/Comercial a amostra de 12 meses passa de 83 a 75 ao alinhar uso; ambos os cortes baixos desaparecem e o resultado é **0/75, 0,00%**. Há registros com tipologia Comercial e uso diferente de Comercial; não devem ser avaliados pelo cinto calibrado só sobre uso Comercial.
+
+Restam três exceções mesmo comparando valores corrigidos e usos iguais à calibração:
+
+| Par | n 12 meses | Abaixo | Acima | Fora | Fora nos 3 anos (mesmo cinto) |
+|---|---:|---:|---:|---:|---:|
+| Vargem Pequena / Casa | 80 | 3 | 0 | 3,75% | 5/283 = 1,767% |
+| Anil / Casa | 85 | 2 | 0 | 2,35% | 2/242 = 0,826% |
+| Penha Circular / Apartamento | 133 | 3 | 0 | 2,26% | 4/373 = 1,072% |
+
+Os mesmos cortes baixos concentram-se nos últimos 12 meses: Anil no trimestre 2026-07; Penha Circular nos trimestres 2025-10 e 2026-01; Vargem Pequena em 2025-10, 2026-01 e 2026-07. Não são cortes do teto nem explicados pela correção temporal. Nas cinco amostras de 12 meses, nenhum registro elegível está fora das travas nominais de ingestão 500/300.000. Isso não prova que cada escritura barata é mercado válido: a origem deve ser conferida de forma privada, sem exposição de endereço/apartamento/valor individual. Amostra total >=200 em 3 anos não garante que os cortes recentes fiquem <=2% em uma subjanela menor.
+
+**Impacto ainda não aplicado:** o app filtra preço nominal antes de corrigir (`Step1Location.tsx`, `public-itbi-stats`); uma tabela calibrada em preços corrigidos não pode ser inserida nessa posição sem alinhar a base temporal. O motor estatístico e MAD não foram alterados. Precisará ser corrigida a coleta/aplicação dos limites, não os métodos do motor, após a decisão sobre o aceite.
+
+Consulta reproduzível: `docs/calibracao/bloco74-investigacao-2026-10-21.sql`. CSVs: `bloco74-investigacao-nominal-corrigido-2026-10-21.csv`, `bloco74-investigacao-trimestres-2026-10-21.csv`, `bloco74-investigacao-janelas-2026-10-21.csv`, `bloco74-investigacao-mesmo-uso-2026-10-21.csv`. O CSV de janelas preserva o uso irrestrito do aceite original para demonstrar a diferença de população; não é calibração nova.
+
+**Conclusão:** os cinco alertas originais eram dois problemas de comparação e três concentrações reais de cortes baixos recentes. Aceite original continua não atendido; mesmo o alinhado deixa três exceções. Não reduzir pisos, aumentar margens, reclassificar escrituras ou dispensar aceite automaticamente. A tabela e o Apêndice B vigentes ficam preservados.
+
 ### 15.1 Pendências no Analytics, por prioridade
 
 Estado em 2026-09-03, 16h, depois da segunda rodada de consultas (resultados em `docs/calibracao/`).
