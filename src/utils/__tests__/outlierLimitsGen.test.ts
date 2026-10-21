@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { calcularTabelaCinto, calcularDefaultsCinto, parseCsvCidade, parseCsvCalibracao, renderizarTabela } from "../../../supabase/functions/_shared/outlierLimitsGen.ts";
+import { calcularTabelaCinto, calcularDefaultsCinto, parseCsvCidade, parseCsvCalibracao, renderizarTabela, renderizarSqlCinto } from "../../../supabase/functions/_shared/outlierLimitsGen.ts";
 
 const csv = `bairro,tipologia,piso_p1,p5,mediana,p95,teto_p995,escrituras,janela
 COPACABANA,Apartamento,5922,8229,10589,13384,21364,4500,3 anos
@@ -15,6 +15,11 @@ CENTRO,Comercial,1000,1000,3000,5000,6000,900,3 anos
 
 describe("geração da tabela do cinto (consulta 7.4)", () => {
   const { tabela, excluidos } = calcularTabelaCinto(parseCsvCalibracao(csv));
+  test("carga preserva limites por par e faixa da cidade, sem trocar pelo teto máximo", () => {
+    const sql = renderizarSqlCinto(tabela, { piso: 1072, teto: 42000, escrituras: 126446 }, "2026-10-21");
+    expect(sql).toContain("('CIDADE', '*', 1072, 42000, '3 anos', 126446, '2026-10-21'::timestamptz)");
+    expect(sql).toContain("('COPACABANA', 'Apartamento', 5034, 24569, '3 anos', 4500");
+  });
   test("par grande: janela de 3 anos com P1 × 0,85 e P99,5 × 1,15", () => {
     expect(tabela["COPACABANA|Apartamento"]).toMatchObject({ piso: 5034, teto: 24569, escrituras: 4500, janela: "3 anos", mediana: 10589 });
   });

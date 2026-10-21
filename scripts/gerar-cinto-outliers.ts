@@ -2,9 +2,9 @@
 // a partir do CSV da consulta 7.4 (docs/calibracao-consultas.sql).
 //   bun scripts/gerar-cinto-outliers.ts docs/calibracao/<arquivo>.csv [--dry-run]
 // Imprime os pares excluídos e as maiores mudanças de piso e teto.
-import { readFileSync, writeFileSync } from "node:fs";
+import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { OUTLIER_LIMITS_TABLE } from "../supabase/functions/_shared/outlierLimits.ts";
-import { calcularTabelaCinto, calcularDefaultsCinto, parseCsvCidade, parseCsvCalibracao, renderizarTabela } from "../supabase/functions/_shared/outlierLimitsGen.ts";
+import { calcularTabelaCinto, calcularDefaultsCinto, parseCsvCidade, parseCsvCalibracao, renderizarTabela, renderizarSqlCinto } from "../supabase/functions/_shared/outlierLimitsGen.ts";
 
 const [csvPath, cidadePath, ...flags] = process.argv.slice(2);
 if (!csvPath || !cidadePath) {
@@ -16,7 +16,8 @@ const alvo = new URL("../supabase/functions/_shared/outlierLimits.ts", import.me
 
 const linhas = parseCsvCalibracao(readFileSync(csvPath, "utf8"));
 const { tabela, excluidos } = calcularTabelaCinto(linhas);
-const defaults = calcularDefaultsCinto(tabela, parseCsvCidade(readFileSync(cidadePath, "utf8")));
+const cidade = parseCsvCidade(readFileSync(cidadePath, "utf8"));
+const defaults = calcularDefaultsCinto(tabela, cidade);
 const candidate = flags.find((x) => x.startsWith("--candidate="))?.slice("--candidate=".length);
 
 const pct = (a: number, b: number) => (b === 0 ? "n/d" : `${(((a - b) / b) * 100).toFixed(1)} %`);
@@ -37,6 +38,11 @@ for (const m of mudancas.filter((x) => x.antes).slice(0, 15)) {
 console.log("\nExcluídos (escrituras 3 anos / 5 anos):", excluidos.map((x) => `${x.chave} ${x.escrituras3}/${x.escrituras5}`).join("; ") || "nenhum");
 
 if (dryRun) process.exit(0);
+const data = new Date().toISOString().slice(0, 10);
+mkdirSync(new URL("../docs/calibracao/", import.meta.url), { recursive: true });
+const sqlPath = new URL(`../docs/calibracao/cinto-${data}.sql`, import.meta.url);
+writeFileSync(sqlPath, renderizarSqlCinto(tabela, cidade, data));
+console.log(`\nSQL de carga (não executado): ${sqlPath.pathname}`);
 const fonte = readFileSync(alvo, "utf8");
 const inicio = fonte.indexOf("export const OUTLIER_LIMITS_TABLE: Record<string, OutlierLimitEntry> = {\n");
 const fim = fonte.indexOf("\n};\n", inicio);
