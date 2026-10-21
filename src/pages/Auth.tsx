@@ -8,6 +8,7 @@ import { Card, CardContent, CardDescription, CardHeader } from "@/components/ui/
 import { useToast } from "@/hooks/use-toast";
 import { Loader2, ArrowLeft, Eye } from "lucide-react";
 import godoyLogo from "@/assets/godoy-logo-pdf.png";
+import { oauthReturnPath } from "@/lib/oauth-return-path";
 
 export default function Auth() {
   const [isLoading, setIsLoading] = useState(false);
@@ -47,7 +48,7 @@ export default function Auth() {
       }
       if (data?.user?.id) trackLogin(data.user.id);
       toast({ title: "Login realizado!", description: "Bem-vindo à plataforma." });
-      navigate("/");
+      navigate(oauthReturnPath(new URLSearchParams(window.location.search).get("next")));
     } catch {
       toast({ title: "Erro", description: "Ocorreu um erro ao fazer login.", variant: "destructive" });
     } finally {
