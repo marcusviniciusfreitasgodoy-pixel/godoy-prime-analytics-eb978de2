@@ -1,5 +1,5 @@
 import { defineTool, ToolError } from "@lovable.dev/mcp-js";
-import { consultarPagina } from "../pagination";
+import { paginationSchema } from "../pagination";
 import { readOnlyAnnotations } from "../read-list";
 import { supabaseForUser } from "../supabase";
 import {
@@ -22,8 +22,8 @@ export default defineTool({
     logradouro: logradouroSchema,
     tipologia: tipologiaSchema,
     ...periodoSchema,
-    pagina: z_pagination().pagina,
-    limite: z_pagination().limite,
+    pagina: paginationSchema.pagina,
+    limite: paginationSchema.limite,
   },
   annotations: readOnlyAnnotations,
   handler: async ({ bairro, logradouro, tipologia, ano, data_inicio, data_fim, pagina, limite }, ctx) => {
@@ -53,21 +53,3 @@ export default defineTool({
     return { content: [{ type: "text" as const, text: JSON.stringify(payload) }] };
   },
 });
-
-function z_pagination() {
-  // Reaproveita o schema de paginação sem import circular: mesmos limites (1-100).
-  return {
-    pagina: z_pagina(),
-    limite: z_limite(),
-  };
-}
-
-import { z } from "zod";
-function z_pagina() {
-  return z.number().int().min(1).max(Number.MAX_SAFE_INTEGER / 100).optional()
-    .describe("Página a consultar, começando em 1 (padrão 1).");
-}
-function z_limite() {
-  return z.number().int().min(1).max(100).optional()
-    .describe("Registros por página, de 1 a 100 (padrão 20).");
-}
