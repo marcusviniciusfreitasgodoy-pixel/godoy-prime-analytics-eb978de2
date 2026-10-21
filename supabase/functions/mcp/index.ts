@@ -174,9 +174,296 @@ var listar_leads_default = defineTool4({
   )
 });
 
+// src/lib/mcp/tools/listar-transacoes-mercado.ts
+import { defineTool as defineTool5, ToolError as ToolError5 } from "npm:@lovable.dev/mcp-js@3.1.1";
+
+// src/lib/mcp/mercado.ts
+import { ToolError as ToolError4 } from "npm:@lovable.dev/mcp-js@3.1.1";
+import { z as z3 } from "npm:zod@^3.25.76";
+
+// supabase/functions/_shared/bairrosRio.ts
+var BAIRROS_RIO = [
+  ["070", "ABOLI\xC7\xC3O"],
+  ["111", "ACARI"],
+  ["034", "ALTO DA BOA VISTA"],
+  ["107", "ANCHIETA"],
+  ["037", "ANDARA\xCD"],
+  ["116", "ANIL"],
+  ["097", "BANC\xC1RIOS"],
+  ["141", "BANGU"],
+  ["128", "BARRA DA TIJUCA"],
+  ["152", "BARRA DE GUARATIBA"],
+  ["165", "BARRA OL\xCDMPICA"],
+  ["112", "BARROS FILHO"],
+  ["012", "BENFICA"],
+  ["089", "BENTO RIBEIRO"],
+  ["040", "BONSUCESSO"],
+  ["020", "BOTAFOGO"],
+  ["045", "BR\xC1S DE PINA"],
+  ["065", "CACHAMBI"],
+  ["093", "CACUIA"],
+  ["004", "CAJU"],
+  ["129", "CAMORIM"],
+  ["078", "CAMPINHO"],
+  ["136", "CAMPO DOS AFONSOS"],
+  ["144", "CAMPO GRANDE"],
+  ["082", "CASCADURA"],
+  ["018", "CATETE"],
+  ["006", "CATUMBI"],
+  ["080", "CAVALCANTI"],
+  ["005", "CENTRO"],
+  ["118", "CIDADE DE DEUS"],
+  ["008", "CIDADE NOVA"],
+  ["096", "COCOT\xC1"],
+  ["110", "COELHO NETO"],
+  ["077", "COL\xC9GIO"],
+  ["156", "COMPLEXO DO ALEM\xC3O"],
+  ["024", "COPACABANA"],
+  ["046", "CORDOVIL"],
+  ["019", "COSME VELHO"],
+  ["147", "COSMOS"],
+  ["113", "COSTA BARROS"],
+  ["119", "CURICICA"],
+  ["053", "DEL CASTILHO"],
+  ["068", "ENCANTADO"],
+  ["081", "ENGENHEIRO LEAL"],
+  ["055", "ENGENHO DA RAINHA"],
+  ["066", "ENGENHO DE DENTRO"],
+  ["061", "ENGENHO NOVO"],
+  ["009", "EST\xC1CIO"],
+  ["015", "FLAMENGO"],
+  ["098", "FREGUESIA (ILHA)"],
+  ["120", "FREGUESIA (JACAREPAGU\xC1)"],
+  ["002", "GAMBOA"],
+  ["117", "GARD\xCANIA AZUL"],
+  ["016", "GL\xD3RIA"],
+  ["038", "GRAJA\xDA"],
+  ["106", "GUADALUPE"],
+  ["151", "GUARATIBA"],
+  ["029", "G\xC1VEA"],
+  ["050", "HIGIEN\xD3POLIS"],
+  ["087", "HON\xD3RIO GURGEL"],
+  ["021", "HUMAIT\xC1"],
+  ["054", "INHA\xDAMA"],
+  ["146", "INHOA\xCDBA"],
+  ["025", "IPANEMA"],
+  ["076", "IRAJ\xC1"],
+  ["127", "ITANHANG\xC1"],
+  ["163", "JABOUR"],
+  ["115", "JACAREPAGU\xC1"],
+  ["155", "JACAREZINHO"],
+  ["051", "JACAR\xC9"],
+  ["049", "JARDIM AM\xC9RICA"],
+  ["028", "JARDIM BOT\xC2NICO"],
+  ["100", "JARDIM CARIOCA"],
+  ["099", "JARDIM GUANABARA"],
+  ["137", "JARDIM SULACAP"],
+  ["126", "JO\xC1"],
+  ["027", "LAGOA"],
+  ["161", "LAPA"],
+  ["017", "LARANJEIRAS"],
+  ["026", "LEBLON"],
+  ["023", "LEME"],
+  ["062", "LINS DE VASCONCELOS"],
+  ["083", "MADUREIRA"],
+  ["138", "MAGALH\xC3ES BASTOS"],
+  ["011", "MANGUEIRA"],
+  ["039", "MANGUINHOS"],
+  ["035", "MARACAN\xC3"],
+  ["090", "MARECHAL HERMES"],
+  ["052", "MARIA DA GRA\xC7A"],
+  ["157", "MAR\xC9"],
+  ["102", "MONER\xD3"],
+  ["063", "M\xC9IER"],
+  ["042", "OLARIA"],
+  ["088", "OSVALDO CRUZ"],
+  ["148", "PACI\xCANCIA"],
+  ["140", "PADRE MIGUEL"],
+  ["013", "PAQUET\xC1"],
+  ["047", "PARADA DE LUCAS"],
+  ["108", "PARQUE ANCHIETA"],
+  ["159", "PARQUE COL\xDAMBIA"],
+  ["114", "PAVUNA"],
+  ["121", "PECHINCHA"],
+  ["153", "PEDRA DE GUARATIBA"],
+  ["043", "PENHA"],
+  ["044", "PENHA CIRCULAR"],
+  ["069", "PIEDADE"],
+  ["071", "PILARES"],
+  ["094", "PITANGUEIRAS"],
+  ["103", "PORTUGUESA"],
+  ["095", "PRAIA DA BANDEIRA"],
+  ["032", "PRA\xC7A DA BANDEIRA"],
+  ["124", "PRA\xC7A SECA"],
+  ["079", "QUINTINO BOCAI\xDAVA"],
+  ["041", "RAMOS"],
+  ["139", "REALENGO"],
+  ["132", "RECREIO DOS BANDEIRANTES"],
+  ["059", "RIACHUELO"],
+  ["091", "RIBEIRA"],
+  ["109", "RICARDO DE ALBUQUERQUE"],
+  ["007", "RIO COMPRIDO"],
+  ["058", "ROCHA"],
+  ["086", "ROCHA MIRANDA"],
+  ["060", "SAMPAIO"],
+  ["149", "SANTA CRUZ"],
+  ["014", "SANTA TERESA"],
+  ["003", "SANTO CRISTO"],
+  ["143", "SANT\xCDSSIMO"],
+  ["001", "SA\xDADE"],
+  ["142", "SENADOR CAMAR\xC1"],
+  ["145", "SENADOR VASCONCELOS"],
+  ["150", "SEPETIBA"],
+  ["031", "S\xC3O CONRADO"],
+  ["010", "S\xC3O CRIST\xD3V\xC3O"],
+  ["057", "S\xC3O FRANCISCO XAVIER"],
+  ["123", "TANQUE"],
+  ["122", "TAQUARA"],
+  ["101", "TAU\xC1"],
+  ["033", "TIJUCA"],
+  ["064", "TODOS OS SANTOS"],
+  ["056", "TOM\xC1S COELHO"],
+  ["085", "TURIA\xC7\xDA"],
+  ["022", "URCA"],
+  ["131", "VARGEM GRANDE"],
+  ["130", "VARGEM PEQUENA"],
+  ["158", "VASCO DA GAMA"],
+  ["084", "VAZ LOBO"],
+  ["073", "VICENTE DE CARVALHO"],
+  ["030", "VIDIGAL"],
+  ["048", "VIG\xC1RIO GERAL"],
+  ["074", "VILA DA PENHA"],
+  ["036", "VILA ISABEL"],
+  ["072", "VILA KOSMOS"],
+  ["135", "VILA MILITAR"],
+  ["125", "VILA VALQUEIRE"],
+  ["075", "VISTA ALEGRE"],
+  ["092", "ZUMBI"],
+  ["067", "\xC1GUA SANTA"]
+];
+var normalizarNomeBairro = (nome) => (nome || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toUpperCase().replace(/\s+/g, " ").trim();
+var POR_NOME_NORMALIZADO = new Map(
+  BAIRROS_RIO.map(([, nome]) => [normalizarNomeBairro(nome), nome])
+);
+var resolverNomeBairro = (nome) => {
+  const norm = normalizarNomeBairro(nome);
+  return POR_NOME_NORMALIZADO.get(norm) ?? (nome || "").toUpperCase().trim().replace(/\s+/g, " ");
+};
+
+// src/lib/mcp/mercado.ts
+var bairroSchema = z3.string().min(2).max(100).describe("Bairro do Rio de Janeiro, ex.: 'Barra da Tijuca'.");
+var logradouroSchema = z3.string().min(3).max(200).optional().describe("Rua/avenida, ex.: 'Avenida L\xFAcio Costa'.");
+var tipologiaSchema = z3.enum(["Apartamento", "Casa", "Comercial"]).optional().describe("Tipo de im\xF3vel.");
+var ANO_MIN = 2015;
+var periodoSchema = {
+  ano: z3.number().int().min(ANO_MIN).max(2100).optional().describe("Ano da transa\xE7\xE3o (padr\xE3o: ano corrente)."),
+  data_inicio: z3.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Use o formato YYYY-MM-DD.").optional().describe("Data inicial (YYYY-MM-DD), inclusive."),
+  data_fim: z3.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Use o formato YYYY-MM-DD.").optional().describe("Data final (YYYY-MM-DD), inclusive.")
+};
+function resolverBairro(bairro) {
+  const normalizado = resolverNomeBairro(bairro);
+  if (!normalizado) throw new ToolError4("Informe o bairro.");
+  return normalizado;
+}
+function janelaDePeriodo(ano, dataInicio, dataFim) {
+  const anoCorrente = (/* @__PURE__ */ new Date()).getUTCFullYear();
+  const anoEfetivo = z3.number().int().min(ANO_MIN).max(anoCorrente + 1).default(anoCorrente).catch(() => anoCorrente).parse(ano);
+  let inicio = `${anoEfetivo}-01-01`;
+  let fim = `${anoEfetivo}-12-31`;
+  if (dataInicio) {
+    if (!dataFim) throw new ToolError4("Informe data_inicio e data_fim juntas, ou apenas o ano.");
+    if (dataInicio > inicio) inicio = dataInicio;
+  }
+  if (dataFim) {
+    if (!dataInicio) throw new ToolError4("Informe data_inicio e data_fim juntas, ou apenas o ano.");
+    if (dataFim < fim) fim = dataFim;
+  }
+  if (inicio > fim) throw new ToolError4("Per\xEDodo inv\xE1lido: data_inicio \xE9 posterior a data_fim.");
+  return { inicio, fim };
+}
+var numero = (v) => {
+  const n = Number(v);
+  return Number.isFinite(n) ? n : null;
+};
+function mapearRegistro(r) {
+  return {
+    data_transacao: r.data_transacao,
+    logradouro: r.logradouro,
+    numero: r.numero ?? null,
+    tipologia: r.tipologia,
+    area_m2: numero(r.area_m2),
+    valor: numero(r.valor_transacao),
+    valor_m2: numero(r.valor_m2)
+  };
+}
+function mediana(valores) {
+  const validos = valores.filter((v) => Number.isFinite(v)).sort((a, b) => a - b);
+  if (validos.length === 0) return null;
+  const meio = Math.floor(validos.length / 2);
+  return validos.length % 2 === 1 ? validos[meio] : Math.round((validos[meio - 1] + validos[meio]) / 2 * 100) / 100;
+}
+var arredondar2 = (v) => Math.round(v * 100) / 100;
+function serieMensal(rows, ano) {
+  const porMes = /* @__PURE__ */ new Map();
+  for (const r of rows) {
+    const mes = String(r.data_transacao).slice(0, 7);
+    if (!mes.startsWith(`${ano}-`)) continue;
+    const lista = porMes.get(mes) ?? [];
+    lista.push(r);
+    porMes.set(mes, lista);
+  }
+  return [...porMes.keys()].sort().map((mes) => {
+    const lista = porMes.get(mes);
+    const valorTotal = lista.reduce((s, r) => s + (numero(r.valor_transacao) ?? 0), 0);
+    const areaTotal = lista.reduce((s, r) => s + (numero(r.area_m2) ?? 0), 0);
+    return {
+      mes,
+      transaction_count: lista.length,
+      med_m2: mediana(lista.map((r) => numero(r.valor_m2) ?? Number.NaN)),
+      media_ponderada_m2: areaTotal > 0 ? arredondar2(valorTotal / areaTotal) : null,
+      valor_total: arredondar2(valorTotal),
+      valor_medio: lista.length > 0 ? arredondar2(valorTotal / lista.length) : null
+    };
+  });
+}
+
+// src/lib/mcp/tools/listar-transacoes-mercado.ts
+var listar_transacoes_mercado_default = defineTool5({
+  name: "listar_transacoes_mercado",
+  title: "Listar transa\xE7\xF5es de mercado (ITBI)",
+  description: "Escrituras individuais do ITBI em p\xE1ginas, das mais recentes \xE0s mais antigas, com total exato de registros. Cada registro traz s\xF3 dados do im\xF3vel e da transa\xE7\xE3o (data, logradouro, n\xFAmero, tipologia, \xE1rea e valor) \u2014 sem nomes das partes nem dados pessoais. Valores nominais (pre\xE7o da \xE9poca), deflacionado: false. Use proxima_pagina at\xE9 null para consultar todo o per\xEDodo.",
+  inputSchema: {
+    bairro: bairroSchema,
+    logradouro: logradouroSchema,
+    tipologia: tipologiaSchema,
+    ...periodoSchema,
+    pagina: paginationSchema.pagina,
+    limite: paginationSchema.limite
+  },
+  annotations: readOnlyAnnotations,
+  handler: async ({ bairro, logradouro, tipologia, ano, data_inicio, data_fim, pagina, limite }, ctx) => {
+    if (!ctx.isAuthenticated()) throw new ToolError5("Autentica\xE7\xE3o necess\xE1ria.");
+    const { inicio, fim } = janelaDePeriodo(ano, data_inicio, data_fim);
+    const client = supabaseForUser(ctx);
+    const result = await consultarPagina((from, to) => {
+      let q = client.from("itbi_escrituras_mercado").select("id, data_transacao, logradouro, numero, tipologia, area_m2, valor_transacao, valor_m2", { count: "exact" }).eq("bairro", resolverBairro(bairro)).gte("data_transacao", inicio).lte("data_transacao", fim).order("data_transacao", { ascending: false }).order("id", { ascending: false }).range(from, to);
+      if (logradouro && logradouro.trim()) q = q.ilike("logradouro", `%${logradouro.trim()}%`);
+      if (tipologia) q = q.eq("tipologia", tipologia);
+      return q;
+    }, pagina, limite);
+    const payload = {
+      ...result,
+      registros: result.registros.map(mapearRegistro),
+      deflacionado: false,
+      preco: "valores nominais da \xE9poca de cada escritura"
+    };
+    return { content: [{ type: "text", text: JSON.stringify(payload) }] };
+  }
+});
+
 // src/lib/mcp/tools/listar-visitas.ts
-import { defineTool as defineTool5 } from "npm:@lovable.dev/mcp-js@3.1.1";
-var listar_visitas_default = defineTool5({
+import { defineTool as defineTool6 } from "npm:@lovable.dev/mcp-js@3.1.1";
+var listar_visitas_default = defineTool6({
   name: "listar_visitas",
   title: "Listar visitas",
   description: "Fichas de visita em p\xE1ginas, das mais recentes \xE0s mais antigas, com total exato de registros permitidos \xE0 conta conectada. Percorra proxima_pagina at\xE9 null para consultar todo o hist\xF3rico.",
@@ -192,18 +479,84 @@ var listar_visitas_default = defineTool5({
   )
 });
 
+// src/lib/mcp/tools/serie-mensal-mercado.ts
+import { defineTool as defineTool7, ToolError as ToolError6 } from "npm:@lovable.dev/mcp-js@3.1.1";
+import { z as z4 } from "npm:zod@^3.25.76";
+
+// supabase/functions/_shared/fetchPaged.ts
+var PAGE_SIZE = 1e3;
+async function fetchPaged(build, max, pageSize = PAGE_SIZE) {
+  const out = [];
+  for (let from = 0; from < max; from += pageSize) {
+    const to = Math.min(from + pageSize, max) - 1;
+    const { data, error } = await build(from, to);
+    if (error) throw error;
+    const rows = data ?? [];
+    out.push(...rows);
+    if (rows.length < to - from + 1) break;
+  }
+  return out;
+}
+
+// src/lib/mcp/tools/serie-mensal-mercado.ts
+var MAX_ESCRITURAS = 3e4;
+var serie_mensal_mercado_default = defineTool7({
+  name: "serie_mensal_mercado",
+  title: "S\xE9rie mensal de mercado (ITBI)",
+  description: "Agregado m\xEAs a m\xEAs das escrituras do ITBI de um ano, a partir das mesmas escrituras individuais de listar_transacoes_mercado e da mesma fonte de estatisticas_mercado: transa\xE7\xF5es, mediana e m\xE9dia ponderada de R$/m\xB2, valor total e valor m\xE9dio por m\xEAs. Valores nominais (pre\xE7o da \xE9poca), deflacionado: false \u2014 n\xE3o comparar diretamente com a estat\xEDstica corrigida no tempo.",
+  inputSchema: {
+    bairro: bairroSchema,
+    logradouro: logradouroSchema,
+    tipologia: tipologiaSchema,
+    ano: z4.number().int().min(2015).max((/* @__PURE__ */ new Date()).getUTCFullYear() + 1).optional().describe("Ano da s\xE9rie (padr\xE3o: ano corrente).")
+  },
+  annotations: readOnlyAnnotations,
+  handler: async ({ bairro, logradouro, tipologia, ano }, ctx) => {
+    if (!ctx.isAuthenticated()) throw new ToolError6("Autentica\xE7\xE3o necess\xE1ria.");
+    const anoCorrente = (/* @__PURE__ */ new Date()).getUTCFullYear();
+    const anoEfetivo = typeof ano === "number" && Number.isInteger(ano) && ano >= 2015 && ano <= anoCorrente + 1 ? ano : anoCorrente;
+    const inicio = `${anoEfetivo}-01-01`;
+    const fim = `${anoEfetivo}-12-31`;
+    const client = supabaseForUser(ctx);
+    let rows;
+    try {
+      rows = await fetchPaged((from, to) => {
+        let q = client.from("itbi_escrituras_mercado").select("id, data_transacao, logradouro, numero, tipologia, area_m2, valor_transacao, valor_m2").eq("bairro", resolverBairro(bairro)).gte("data_transacao", inicio).lte("data_transacao", fim).order("data_transacao", { ascending: false }).order("id", { ascending: false }).range(from, to);
+        if (logradouro && logradouro.trim()) q = q.ilike("logradouro", `%${logradouro.trim()}%`);
+        if (tipologia) q = q.eq("tipologia", tipologia);
+        return q;
+      }, MAX_ESCRITURAS);
+    } catch {
+      throw new ToolError6("N\xE3o foi poss\xEDvel consultar as escrituras agora.");
+    }
+    const meses = serieMensal(rows, anoEfetivo);
+    const payload = {
+      bairro: resolverBairro(bairro),
+      ...logradouro && logradouro.trim() ? { logradouro: logradouro.trim() } : {},
+      ...tipologia ? { tipologia } : {},
+      ano: anoEfetivo,
+      deflacionado: false,
+      preco: "valores nominais da \xE9poca de cada escritura",
+      total_escrituras: meses.reduce((s, m) => s + m.transaction_count, 0),
+      meses,
+      ...meses.length === 0 ? { mensagem: "Dados insuficientes para esta localiza\xE7\xE3o e per\xEDodo." } : {}
+    };
+    return { content: [{ type: "text", text: JSON.stringify(payload) }] };
+  }
+});
+
 // src/lib/mcp/index.ts
 var projectRef = "ldiadiezzooivgittjvj";
 var mcp_default = defineMcp({
   name: "godoy-prime-analytics",
   title: "Godoy Prime Analytics",
-  version: "0.2.0",
-  instructions: "Ferramentas de consulta da Godoy Prime Analytics (mercado imobili\xE1rio do Rio de Janeiro). Responda em pt-BR. Estat\xEDsticas de ITBI v\xEAm de escrituras agregadas e j\xE1 ponderadas; quando a ferramenta disser 'Dados insuficientes', n\xE3o invente n\xFAmeros. Visitas, leads, autoriza\xE7\xF5es e avalia\xE7\xF5es mostram s\xF3 o que o usu\xE1rio conectado pode ver. As listas retornam registros, total_registros permitido, pagina e proxima_pagina. Para consultar o hist\xF3rico completo, use proxima_pagina at\xE9 null; nunca apresente uma \xFAnica p\xE1gina como resumo completo. Limite \xE9 o tamanho da p\xE1gina, n\xE3o um teto do hist\xF3rico. Dados podem mudar durante a consulta de v\xE1rias p\xE1ginas.",
+  version: "0.3.0",
+  instructions: "Ferramentas de consulta da Godoy Prime Analytics (mercado imobili\xE1rio do Rio de Janeiro). Responda em pt-BR. Estat\xEDsticas de ITBI v\xEAm de escrituras agregadas e j\xE1 ponderadas; quando a ferramenta disser 'Dados insuficientes', n\xE3o invente n\xFAmeros. listar_transacoes_mercado traz cada escritura individual (s\xF3 im\xF3vel, data e valor, sem dados pessoais) e serie_mensal_mercado agrega m\xEAs a m\xEAs; ambas devolvem valores nominais da \xE9poca (deflacionado: false), que n\xE3o devem ser comparados diretamente com a estat\xEDstica corrigida no tempo de estatisticas_mercado. Visitas, leads, autoriza\xE7\xF5es e avalia\xE7\xF5es mostram s\xF3 o que o usu\xE1rio conectado pode ver. As listas retornam registros, total_registros permitido, pagina e proxima_pagina. Para consultar o hist\xF3rico completo, use proxima_pagina at\xE9 null; nunca apresente uma \xFAnica p\xE1gina como resumo completo. Limite \xE9 o tamanho da p\xE1gina, n\xE3o um teto do hist\xF3rico. Dados podem mudar durante a consulta de v\xE1rias p\xE1ginas.",
   auth: auth.oauth.issuer({
     issuer: `https://${projectRef}.supabase.co/auth/v1`,
     acceptedAudiences: "authenticated"
   }),
-  tools: [estatisticas_mercado_default, listar_visitas_default, listar_leads_default, listar_autorizacoes_default, listar_avaliacoes_default]
+  tools: [estatisticas_mercado_default, listar_transacoes_mercado_default, serie_mensal_mercado_default, listar_visitas_default, listar_leads_default, listar_autorizacoes_default, listar_avaliacoes_default]
 });
 
 // lovable-mcp-supabase-entry.ts
