@@ -2,58 +2,79 @@
 
 Desde 2026-10-21 a fonte de ITBI do app é a planilha da Secretaria Municipal de Fazenda, uma linha por escritura, no lugar da camada 8 do ArcGIS (agregado por rua e mês que omite ruas com uma só transação no ano e entrega entre 55% e 65% das escrituras da cidade).
 
+Página da SMF: https://fazenda.prefeitura.rio/itbi-valores-medios-por-m2-de-transacoes-imobiliarias-por-trecho-de-logradouro (os nomes dos arquivos mudam a cada republicação; em 2026-10-21 o recente passou de `ITBI_TRANSACOES_2025_diante-6.xlsx` para `-7-1.xlsx`).
+
 | Peça | Onde |
 |---|---|
-| Tabela crua `itbi_escrituras`, coluna `itbi_transactions.fonte`, view `itbi_transactions_smf` e função `itbi_consolidar_smf()` | `supabase/migrations/20261021120000_itbi_escrituras_smf.sql` |
-| Carregador mensal | `scripts/itbi-smf/carregar_itbi_smf.py` |
-| Nomes de rua na grafia da camada 8, por código `cl` | `scripts/itbi-smf/data/cl_nomes_arcgis.json` |
-| Agendamento | `.github/workflows/itbi-smf-mensal.yml` |
-| Guarda que impede a camada 8 de sobrescrever meses da SMF | `supabase/functions/_shared/itbiFonte.ts`, usada por `sync-itbi-prefeitura` e `sync-itbi-daily` |
+| Tabela `itbi_escrituras`, coluna `itbi_transactions.fonte`, view `itbi_transactions_smf`, função `itbi_consolidar_smf()` | `supabase/migrations/20261021120000_itbi_escrituras_smf.sql` (+ `20261021130000_itbi_smf_sem_terreno.sql`) |
+| Leitura da planilha, normalização, validação e geocodificação (TS, roda em Deno e no navegador) | `supabase/functions/_shared/itbiSmf.ts`, nomes em `_shared/itbiSmfNomes.ts` |
+| Edge function de carga | `supabase/functions/ingest-itbi-smf/index.ts` |
+| **Painel de carga (caminho oficial)** | `/admin`, cartão "ITBI por escritura (SMF)": `src/components/admin/CargaItbiSmf.tsx` |
+| Guarda que impede a camada 8 de sobrescrever meses da SMF | `supabase/functions/_shared/itbiFonte.ts` |
+| Carregador Python (dry-run e conferência local) | `scripts/itbi-smf/carregar_itbi_smf.py` |
+| Nomes de rua e bairro na grafia da camada 8 | `data/cl_nomes_arcgis.json` → `python3 -I scripts/itbi-smf/gerar_nomes_ts.py` gera `itbiSmfNomes.ts` |
 
-## Como funciona
+## Por que o painel roda no navegador
 
-1. O carregador raspa a página da SMF, baixa os xlsx `ITBI_TRANSACOES_*`, lê as escrituras, classifica tipologia e uso com as regras do app, aplica `LIMITES_INGESTAO` e geocodifica pelo Número de porta da Prefeitura (gratuito, com cache).
-2. Grava em `itbi_escrituras` por upsert (chave = hash da linha; rodar de novo não duplica).
-3. Chama `itbi_consolidar_smf(inicio, fim[, bairro])`, que apaga as linhas de `itbi_transactions` do período e insere o agregado das escrituras na mesma chave natural (rua, bairro, mês, uso, tipologia), com `total_transacoes` = contagem, `fonte = 'smf'`, preservando `microbairro`, `lat`, `lng` e `geom` das linhas antigas por rua e usando o centroide das escrituras onde não havia coordenada. No fim atualiza `itbi_price_index`.
-4. Registra em `etl_log` com `fonte = 'smf'`.
+Edge functions têm ~2 s de CPU e 256 MB de memória por chamada. Medido em 2026-10-21 (Mac M-series, Deno):
 
-O motor, as RPCs de raio, os hooks e a view materializada continuam lendo `itbi_transactions` sem nenhuma mudança: só passam a ver o mercado inteiro. A regra de ponderar por `total_transacoes` continua valendo.
+| Trabalho | CPU |
+|---|---|
+| Só descompactar a planilha 2019-2024 (180 MB de XML) | 0,6 s |
+| Ler e filtrar a Barra na planilha 2019-2024 | 1,6 s |
+| Ler, filtrar, normalizar e geocodificar a Barra na planilha recente, lendo da SMF | 0,9 s |
 
-## Primeira carga (roteiro)
+Servidores de função costumam ser 2 a 3 vezes mais lentos. Então:
 
-1. Aplicar a migration pelo chat da Lovable (ela só cria coisas novas e uma coluna com default).
-2. Rodar o workflow `ITBI SMF mensal` à mão com `bairro = BARRA DA TIJUCA` e `dry_run = true`; baixar o CSV do artifact e olhar.
-3. Rodar de novo sem dry-run, ainda só a Barra. Conferir no chat da Lovable:
+- **Painel do admin (oficial)**: o navegador descompacta e lê as planilhas (sem teto); a função só entrega os bytes da SMF (`acao: faixa`, o site da SMF não libera CORS) e grava (`acao: gravar`, com o login do admin). Geocodificação direto no ArcGIS da Prefeitura, que libera CORS.
+- **`acao: processar` na função**: faz tudo no servidor, para até 10 bairros por chamada no arquivo recente. Serve para bairros pequenos e testes; a Barra fica perto do teto de CPU.
+
+Nada é aberto para a chave pública: a função exige admin logado ou o cabeçalho `x-cron-secret` (mesmo `CRON_SECRET` de `sync-itbi-daily`).
+
+## Como funciona a consolidação
+
+`itbi_consolidar_smf(inicio, fim[, bairro])` apaga as linhas de `itbi_transactions` do período (e do bairro) e insere o agregado das escrituras na mesma chave natural (rua, bairro, mês, uso, tipologia), com `total_transacoes` = contagem e `fonte = 'smf'`. Preserva `microbairro`, `lat`, `lng` e `geom` das linhas antigas por rua, usa o centroide das escrituras onde não havia coordenada e atualiza `itbi_price_index`. Só entram Apartamento, Casa e Comercial com uso Residencial ou Comercial (terrenos e "Outro" ficam só em `itbi_escrituras`).
+
+O motor, as RPCs de raio, os hooks e a view materializada continuam lendo `itbi_transactions`: só passam a ver o mercado inteiro. A regra de ponderar por `total_transacoes` continua valendo.
+
+## Roteiro da primeira carga
+
+1. Migrations aplicadas (feito em 2026-10-21, com backup em `itbi_transactions_backup_pre_smf`).
+2. Em `/admin`, cartão "ITBI por escritura (SMF)": abrangência **Barra da Tijuca**, a partir de **2019**, **Só simular** marcado. Conferir o resumo no registro.
+3. Desmarcar "Só simular" e rodar. Conferir:
 
 ```sql
 select extract(year from data_transacao) ano, fonte, sum(total_transacoes) escrituras
 from public.itbi_transactions where bairro = 'BARRA DA TIJUCA' and uso = 'Residencial'
 group by 1, 2 order by 1, 2;
--- Lúcio Costa residencial 2025: ~448 esperadas (a camada 8 tinha ~302)
+-- Lúcio Costa residencial 2025: 448 esperadas (a camada 8 tinha 302)
 ```
 
 4. Abrir o painel da Barra no app e conferir ranking de microbairros, evolução e uma avaliação.
-5. Rodar o workflow sem bairro (cidade inteira, cerca de 330 mil escrituras, uns 10 minutos). Depois disso `sync-itbi-daily` passa a encerrar sozinho com `skipped: true`, e o botão de sincronização da camada 8 devolve 409 para períodos já consolidados.
-6. Rodar `classify-microbairros` para as ruas novas (as antigas mantêm o microbairro) e, se quiser, `geocodificar-itbi-transactions` para as linhas sem `geom`.
+5. Abrangência **Cidade inteira**, sem simular. Leva de 15 a 30 minutos no navegador (cerca de 330 mil escrituras, geocodificação de ~9.500 ruas).
+6. Depois: `classify-microbairros` para ruas novas (as antigas mantêm o microbairro) e, se quiser, `geocodificar-itbi-transactions` para linhas sem `geom`.
 
-## Rodar local
+## Atualização mensal
+
+A SMF republica sem data fixa. Uma vez por mês, no painel: **Cidade inteira**, a partir do **ano corrente**. Só o arquivo recente é lido e os meses do ano são substituídos. `sync-itbi-daily`, que puxa a camada 8, encerra sozinho com `skipped: true` nos meses já cobertos pela SMF e só preenche meses que a SMF ainda não publicou.
+
+## Rodar o carregador Python (local, só conferência)
 
 ```sh
 cd scripts/itbi-smf
 pip install openpyxl
 python3 -I carregar_itbi_smf.py --bairro "BARRA DA TIJUCA" --desde 2019 --dry-run
-SUPABASE_URL=... SUPABASE_SERVICE_ROLE_KEY=... python3 -I carregar_itbi_smf.py --bairro "BARRA DA TIJUCA" --desde 2019
 ```
+
+Os ids gerados pelo Python seguem outro formato: não gravar com ele em produção, para não duplicar escrituras.
 
 ## Decisões embutidas
 
-- **Só transferências de 100%**: as planilhas da SMF não têm outra coisa (conferido em 327.528 linhas). `percentual_transferido` entra como 100; os filtros `>= 90` do app seguem valendo.
-- **Chave por `cl`** para agrupar escrituras da mesma rua; o nome gravado em `itbi_transactions.logradouro` segue a grafia da camada 8 (`data/cl_nomes_arcgis.json`, 5.149 ruas), para não quebrar `condominios_mapeamento`, `logradouroSearch` e as linhas que já existem. Ruas fora desse mapa usam o nome da SMF 2025+ ou o nome antigo normalizado (maiúsculas, sem acento, tipo de via abreviado).
-- **Tipologia** segue `classificarTipologia` mais a classe `Outro` (vaga, galpão, clube, hotel, colégio, hospital, unidade hoteleira, "especial"), que fica fora de `itbi_transactions`. APART-HOTEL vira Apartamento, como antes.
-- **Uso**: Residencial, Comercial, Territorial e Outro em `itbi_escrituras`; só Residencial e Comercial entram em `itbi_transactions` (o enum `uso_imovel` não tem outros valores).
-- **Data** `ano-mes-15`, como sempre.
-- **Linhas idênticas** na SMF (cerca de 1.200 na cidade) entram como escrituras distintas, com sufixo de ocorrência no hash.
-- **Rejeitadas** pelos limites ficam em `itbi_escrituras` com `aceita = false` e `motivo_rejeicao`, fora da consolidação.
+- **Só transferências de 100%**: as planilhas não têm outra coisa (conferido em 327.528 linhas).
+- **Nomes**: `logradouro` segue a grafia da camada 8 por código `cl`; `bairro` segue o nome da camada 8 por `CD_BAIRRO` (mesmo código; 150 de 158 iguais, 5 só com grafia diferente, 3 sem par: Rocinha, Ilha de Guaratiba e o código 0, que ficam com o nome da SMF).
+- **Tipologia**: `classificarTipologia` do app mais a classe `Outro`. APART-HOTEL vira Apartamento.
+- **Id**: SHA-1 de ano, mês, cl, trecho, número, complemento, tipologia, valor e área (com 2 casas), mais a ocorrência. Linhas idênticas recebem ids diferentes; recarregar não duplica.
+- **Geocodificação**: `exata` (número existe no Número de porta), `aproximada (nº X)` (porta mais próxima na mesma rua, até 300 números), `aproximada (centro da rua)` e `sem`.
 
 ## LGPD
 

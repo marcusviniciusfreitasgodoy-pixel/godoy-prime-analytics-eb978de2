@@ -44,3 +44,11 @@ Nada do motor estatístico mudou. O motor, as RPCs de raio, `itbi_price_index` e
 ## Verificação feita aqui
 
 `bun run typecheck`, `bun run lint`, `bun run test` e dry-run do carregador para a Barra com os arquivos da SMF de out/2026 (31.443 escrituras; 1.843 rejeitadas pelos limites; 448 residenciais aceitas na Lúcio Costa em 2025). Sem acesso ao banco: a migration e a função não foram executadas contra produção.
+
+## Atualização 2026-10-21 (tarde): migrations aplicadas e carregador no backend
+
+- Backup `itbi_transactions_backup_pre_smf` (38.197 linhas, 163.015 escrituras, jan/2020 a jul/2026) e as migrations `20261021120000` e `20261021130000` aplicadas em produção e registradas em `supabase_migrations.schema_migrations`.
+- A segunda migration deixa terrenos fora de `itbi_transactions`: a base de produção só tinha Apartamento, Casa e Comercial.
+- O workflow do GitHub virou só manual: a Lovable Cloud não expõe a chave de serviço. A carga oficial passa a ser o painel em `/admin` com a edge function `ingest-itbi-smf` (ver `scripts/itbi-smf/README.md`, inclusive as medições de CPU que levaram o processamento pesado para o navegador).
+- Bairros: `itbi_transactions` grava bairro em maiúsculas com acento; a carga traduz o `CD_BAIRRO` da SMF para esse nome.
+- A SMF republicou o arquivo recente em 2026-10-21 (`-7-1.xlsx`): a Barra passou de 7.605 para 8.002 escrituras de 2025 em diante.
