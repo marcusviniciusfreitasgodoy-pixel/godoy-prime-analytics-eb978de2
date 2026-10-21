@@ -382,6 +382,7 @@ function janelaDePeriodo(ano, dataInicio, dataFim) {
   return { inicio, fim };
 }
 var numero = (v) => {
+  if (v === null || v === void 0 || v === "") return null;
   const n = Number(v);
   return Number.isFinite(n) ? n : null;
 };
