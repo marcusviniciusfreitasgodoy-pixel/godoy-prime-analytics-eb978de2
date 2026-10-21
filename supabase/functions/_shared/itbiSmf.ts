@@ -326,11 +326,13 @@ export const streamEntrada = (ler: LerFaixa, e: EntradaZip, bloco = 2 << 20): Re
       pos += n;
     },
   });
-  if (e.metodo === 0) return bruto.pipeThrough(new TextDecoderStream());
+  // cast: as tipagens de TextDecoderStream divergem entre Deno/TS e o navegador
+  const decodificar = new TextDecoderStream() as unknown as TransformStream<Uint8Array, string>;
+  if (e.metodo === 0) return bruto.pipeThrough(decodificar);
   if (e.metodo !== 8) throw new Error(`método de compressão ${e.metodo} não suportado`);
   // cast: as tipagens de Deno/TS 5.7 (Uint8Array<ArrayBuffer>) e do navegador divergem aqui
   const inflar = new DecompressionStream("deflate-raw") as unknown as TransformStream<Uint8Array, Uint8Array>;
-  return bruto.pipeThrough(inflar).pipeThrough(new TextDecoderStream());
+  return bruto.pipeThrough(inflar).pipeThrough(decodificar);
 };
 
 async function* pedacos(s: ReadableStream<string>): AsyncGenerator<string> {

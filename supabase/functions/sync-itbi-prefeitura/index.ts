@@ -156,8 +156,10 @@ serve(async (req) => {
 
     // Guarda da fonte: um período já consolidado a partir da SMF (itbi_consolidar_smf)
     // não pode ser sobrescrito pela camada 8, que é menos completa. Ver _shared/itbiFonte.ts.
+    // cast: ClienteContagem em _shared/itbiFonte.ts é um subconjunto mínimo,
+    // sem arrastar os tipos gerados do supabase-js para lá.
     const linhasSmf = await periodoCobertoPelaSmf(
-      supabase,
+      supabase as unknown as Parameters<typeof periodoCobertoPelaSmf>[0],
       inicioDoMes(minYear, minMonth),
       fimDoMes(maxYear, maxMonth)
     );
