@@ -1,3 +1,4 @@
+import { fetchPaged } from "../../../supabase/functions/_shared/fetchPaged.ts";
 import { useState, useEffect } from "react";
 import { Input } from "@/components/ui/input";
 import { CurrencyInput } from "@/components/ui/currency-input";
