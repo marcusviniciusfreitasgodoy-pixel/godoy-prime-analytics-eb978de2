@@ -5,7 +5,7 @@
 - [x] Exportar calibração, faixa da cidade e limites candidatos; medir aceite.
 - [x] Atualizar testes e especificação; 123 testes passam.
 - [x] Investigar cinco exceções: dois problemas de comparação (uso/tempo), três exceções de cortes baixos recentes; consultas e CSVs registrados.
-- [ ] Criar itbi_cinto com leitura autenticada e gerar SQL de carga pelo script.
-- [ ] Filtrar escrituras antes da consolidação e demonstrar impacto por bairro sem reconstruir cidade.
+- [x] Criar itbi_cinto com leitura autenticada e gerar SQL de carga pelo script (318 pares + cidade; candidato não carregado).
+- [x] Filtrar escrituras antes da consolidação e demonstrar impacto por bairro sem reconstruir cidade (teste SQL transacional e 14 testes do gerador passaram; simulação 1.943/312.788 em 161 bairros).
 - [ ] Aplicar limites, alinhar preço corrigido na coleta, resolução Comercial/fallback, testes de integração, Apêndice B e funções — bloqueado pelo aceite: três exceções reais mesmo após alinhar uso/tempo; regra original mantém cinco alertas.
 - [ ] Proteger tabela de coordenadas — tentativa recusada porque pertence ao proprietário gerenciado; nenhuma alteração aplicada.

@@ -978,6 +978,8 @@ Consulta reproduzível: `docs/calibracao/bloco74-investigacao-2026-10-21.sql`. C
 
 `itbi_aplicar_cinto(inicio,fim,bairro,false)` demonstra as contagens por bairro sem modificar dados; `true` apenas marca as escrituras, sem consolidar a cidade. Preços individuais são corrigidos com o mesmo índice trimestral da consulta 7.4 antes do teste inclusivo piso/teto. Falta de índice ou faixa da cidade interrompe o processamento, sem filtro nominal silencioso. Reavalia somente aceitas ou rejeitadas por fora_do_cinto: outros motivos permanecem intactos, e rejeições pelo cinto podem ser revertidas numa carga aprovada posterior. `itbi_consolidar_smf` executa a marcação antes de agregar e retorna o resumo por bairro. Nenhuma reconstrução da base real foi feita nesta etapa. Teste transacional reproduzível: `docs/calibracao/teste-cinto-pre-agregacao.sql` (venda boa de 12.000/m² preservada, erro de 300.000/m² removido antes da média).
 
+Simulação sobre toda a base elegível com uso alinhado à calibração: **1.943 de 312.788 escrituras** seriam rejeitadas, em 161 bairros avaliados. Resultado completo: `docs/calibracao/cinto-impacto-por-bairro-2026-10-21.csv`. São contagens simuladas, não escrituras efetivamente marcadas. A tabela permanece vazia enquanto o aceite estiver pendente; novas consolidações interrompem com mensagem explícita de carga aprovada necessária. Relatórios atuais não foram reconstruídos. O teste transacional no banco passou com uma escritura agregada a 12.000/m²; 14 testes do gerador passaram.
+
 Estado em 2026-09-03, 16h, depois da segunda rodada de consultas (resultados em `docs/calibracao/`).
 
 | # | Prioridade | Problema | O que fazer | Como validar |
