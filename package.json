@@ -21,6 +21,7 @@
     "@fontsource/jetbrains-mono": "^5.2.8",
     "@fontsource/lato": "^5.2.7",
     "@hookform/resolvers": "^3.10.0",
+    "@lovable.dev/mcp-js": "^3.1.1",
     "@radix-ui/react-accordion": "^1.2.11",
     "@radix-ui/react-alert-dialog": "^1.1.14",
     "@radix-ui/react-aspect-ratio": "^1.1.7",

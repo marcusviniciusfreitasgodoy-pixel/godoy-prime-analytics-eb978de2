@@ -10,6 +10,7 @@ import { BairroProvider } from "@/contexts/BairroContext";
 import { OrganizationProvider } from "@/contexts/OrganizationContext";
 import { AppSidebar } from "@/components/AppSidebar";
 import { Header } from "@/components/Header";
+import OAuthConsent from "@/pages/OAuthConsent";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { UpdateIndicator } from "@/components/UpdateIndicator";
 import { PWAUpdateBanner } from "@/components/PWAUpdateBanner";
@@ -89,6 +90,7 @@ const App = () => (
             <BrowserRouter>
               <Routes>
                 <Route path="/auth" element={<Auth />} />
+                <Route path="/.lovable/oauth/consent" element={<OAuthConsent />} />
                 <Route path="/reset-password" element={<ResetPassword />} />
                 <Route path="/politica-privacidade" element={<PoliticaPrivacidade />} />
                 <Route path="/avaliacao" element={<AvaliacaoPublica />} />
