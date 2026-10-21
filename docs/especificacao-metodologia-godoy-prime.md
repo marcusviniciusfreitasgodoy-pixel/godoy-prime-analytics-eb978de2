@@ -80,7 +80,7 @@ Arquivo: `supabase/functions/_shared/itbiMarketStats.ts`, reexportado para o app
 | `MAD_K_INF` / `MAD_K_SUP` | 2,5 / 3,0 | cercas do MAD em escala log (inferior mais rigorosa) |
 | `MIN_VALUES_FOR_IQR` | 4 | mínimo de escrituras para aplicar Tukey |
 | `RANGE_LOW_P` / `RANGE_HIGH_P` | 0,10 / **0,95** | percentis da faixa exibida (mínimo e máximo) |
-| `MAX_ROWS` | 5000 | limite de toda consulta (o PostgREST trunca em 1000 sem `limit`) |
+| `MAX_ROWS` | 30000 | teto da amostra, lida em páginas de 1.000 por `_shared/fetchPaged.ts` (desde 2026-10-21) |
 | `MIN_ESCRITURAS_INDEX_QUARTER` | 30 | trimestres do índice com menos escrituras são ignorados |
 | `MAX_DEFLATION_FACTOR` | 2 | fator de correção temporal limitado a [0,5; 2] |
 | `SOURCE_PENALTY` | rua 0, raio 100 m 5, raio 300 m 10, bairro 15 | penalidade de confiança por origem da amostra |
@@ -1134,7 +1134,7 @@ Resultado idêntico: o cinto não corta mercado legítimo num bairro bem calibra
 |---|---|---|
 | `ENGINE_VERSION` | 4 | itbiMarketStats.ts |
 | `MAX_OUTLIER_CUT_SHARE` | 0,15 | itbiMarketStats.ts |
-| `MAX_ROWS` | 5000 | itbiMarketStats.ts |
+| `MAX_ROWS` | 30000 | itbiMarketStats.ts |
 | `WINDOW_MONTHS_OPTIONS` | 12, 24, 36, 48, 60 | itbiMarketStats.ts |
 | `DEFAULT_WINDOW_MONTHS` | 12 | itbiMarketStats.ts |
 | `MAX_WINDOW_MONTHS` | 60 | itbiMarketStats.ts |

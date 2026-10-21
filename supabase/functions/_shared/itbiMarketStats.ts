@@ -41,8 +41,9 @@ export const MIN_ROWS_CLOSED_WINDOW = 30;
 export const MIN_TX_CLOSED_WINDOW = 100;
 /** Abaixo deste número de linhas, o filtro de tipologia é relaxado. */
 export const MIN_ROWS_FOR_TIPOLOGIA = 8;
-/** Limite de linhas por consulta (CONTEXT.md §6). */
-export const MAX_ROWS = 5000;
+/** Teto de linhas por amostra, lido em páginas de 1.000 (fetchPaged). Era 5.000
+ * até a base SMF (2026-10-21), quando a Barra passou de 5.700 linhas em 60 meses. */
+export const MAX_ROWS = 30000;
 /** Mínimo de valores (escrituras) para aplicar cercas de Tukey. */
 export const MIN_VALUES_FOR_IQR = 4;
 /** Mínimo de linhas agregadas para aplicar o corte por MAD. */
