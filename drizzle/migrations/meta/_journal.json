@@ -29,6 +29,13 @@
       "when": 1792608792987,
       "tag": "0003_condominios_itbi_ponderado",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1792612338188,
+      "tag": "0004_itbi_cinto_pre_agregacao",
+      "breakpoints": true
     }
   ]
 }

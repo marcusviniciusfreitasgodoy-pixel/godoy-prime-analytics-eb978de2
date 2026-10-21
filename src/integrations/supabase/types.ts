@@ -1479,6 +1479,36 @@ export type Database = {
         }
         Relationships: []
       }
+      itbi_cinto: {
+        Row: {
+          bairro: string
+          calibrado_em: string
+          escrituras: number
+          janela: string
+          piso: number
+          teto: number
+          tipologia: string
+        }
+        Insert: {
+          bairro: string
+          calibrado_em?: string
+          escrituras: number
+          janela: string
+          piso: number
+          teto: number
+          tipologia: string
+        }
+        Update: {
+          bairro?: string
+          calibrado_em?: string
+          escrituras?: number
+          janela?: string
+          piso?: number
+          teto?: number
+          tipologia?: string
+        }
+        Relationships: []
+      }
       itbi_escrituras: {
         Row: {
           aceita: boolean
@@ -4366,6 +4396,15 @@ export type Database = {
           valor_transacao: number
         }[]
       }
+      itbi_aplicar_cinto: {
+        Args: {
+          p_aplicar?: boolean
+          p_bairro?: string
+          p_fim: string
+          p_inicio: string
+        }
+        Returns: Json
+      }
       itbi_consolidar_smf: {
         Args: { p_bairro?: string; p_fim: string; p_inicio: string }
         Returns: Json
@@ -4378,6 +4417,10 @@ export type Database = {
           logradouro: string
           registros: number
         }[]
+      }
+      itbi_normalizar_bairro_cinto: {
+        Args: { p_bairro: string }
+        Returns: string
       }
       itbi_ponto_logradouro: {
         Args: { p_bairro?: string; p_logradouro: string }
