@@ -19,8 +19,8 @@ function classificarUso(uso: string | null): 'Residencial' | 'Comercial' {
   return 'Residencial'
 }
 
-function classificarTipologia(tipologia: string | null): string | null {
-  if (!tipologia) return null
+function classificarTipologia(tipologia: string | null): string {
+  if (!tipologia) return 'Apartamento'
   const tipo = tipologia.toLowerCase().trim()
   if (tipo.includes('apartamento') || tipo.includes('apto') || tipo.includes('flat') || tipo.includes('cobertura')) {
     return 'Apartamento'
