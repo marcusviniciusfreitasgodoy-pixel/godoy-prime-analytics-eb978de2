@@ -1,5 +1,5 @@
 import { defineTool, ToolError } from "@lovable.dev/mcp-js";
-import { paginationSchema } from "../pagination";
+import { consultarPagina, paginationSchema } from "../pagination";
 import { readOnlyAnnotations } from "../read-list";
 import { supabaseForUser } from "../supabase";
 import {

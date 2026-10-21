@@ -1,6 +1,6 @@
 import { ToolError } from "@lovable.dev/mcp-js";
 import { z } from "zod";
-import { resolverNomeBairro } from "../../../../supabase/functions/_shared/bairrosRio.ts";
+import { resolverNomeBairro } from "../../../supabase/functions/_shared/bairrosRio.ts";
 
 // Helpers compartilhados pelas ferramentas de mercado por escritura individual.
 // Mesma fonte de estatisticas_mercado: itbi_escrituras via a view
