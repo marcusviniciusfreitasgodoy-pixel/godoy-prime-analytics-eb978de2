@@ -1,0 +1,168 @@
+{
+  "version": 1,
+  "sdk_version": "3.1.1",
+  "path": "/functions/v1/mcp",
+  "auth": {
+    "type": "oauth",
+    "issuer": "https://ldiadiezzooivgittjvj.supabase.co/auth/v1",
+    "accepted_audiences": [
+      "authenticated"
+    ]
+  },
+  "mcp": {
+    "server": {
+      "name": "godoy-prime-analytics",
+      "version": "0.1.0",
+      "title": "Godoy Prime Analytics"
+    },
+    "tools": [
+      {
+        "name": "estatisticas_mercado",
+        "title": "Estatísticas de mercado (ITBI)",
+        "description": "Mediana, média e faixa de R$/m² de escrituras do ITBI para um bairro (e opcionalmente uma rua), com o mesmo motor da plataforma: ponderado por escrituras, sem outliers e corrigido no tempo.",
+        "annotations": {
+          "readOnlyHint": true,
+          "idempotentHint": true,
+          "openWorldHint": false
+        },
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "bairro": {
+              "type": "string",
+              "minLength": 2,
+              "description": "Bairro do Rio de Janeiro, ex.: 'Barra da Tijuca'."
+            },
+            "logradouro": {
+              "type": "string",
+              "minLength": 3,
+              "description": "Rua/avenida, ex.: 'Rua Desenhista Luiz Guimarães'."
+            },
+            "tipologia": {
+              "type": "string",
+              "enum": [
+                "Apartamento",
+                "Casa",
+                "Comercial"
+              ],
+              "description": "Tipo de imóvel."
+            },
+            "janela_meses": {
+              "type": "number",
+              "enum": [
+                12,
+                24,
+                36,
+                48,
+                60
+              ],
+              "description": "Período em meses (padrão 12)."
+            }
+          },
+          "required": [
+            "bairro"
+          ],
+          "additionalProperties": false,
+          "$schema": "http://json-schema.org/draft-07/schema#"
+        },
+        "outputSchema": null
+      },
+      {
+        "name": "listar_visitas",
+        "title": "Listar visitas",
+        "description": "Fichas de visita mais recentes (data, imóvel, visitante, corretor, status).",
+        "annotations": {
+          "readOnlyHint": true,
+          "idempotentHint": true,
+          "openWorldHint": false
+        },
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "limite": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100,
+              "description": "Quantidade máxima (padrão 20)."
+            }
+          },
+          "additionalProperties": false,
+          "$schema": "http://json-schema.org/draft-07/schema#"
+        },
+        "outputSchema": null
+      },
+      {
+        "name": "listar_leads",
+        "title": "Listar leads",
+        "description": "Leads mais recentes com estágio no funil, interesse e responsável.",
+        "annotations": {
+          "readOnlyHint": true,
+          "idempotentHint": true,
+          "openWorldHint": false
+        },
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "limite": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100,
+              "description": "Quantidade máxima (padrão 20)."
+            }
+          },
+          "additionalProperties": false,
+          "$schema": "http://json-schema.org/draft-07/schema#"
+        },
+        "outputSchema": null
+      },
+      {
+        "name": "listar_autorizacoes",
+        "title": "Listar autorizações de captação",
+        "description": "Autorizações de captação e venda com status de assinatura.",
+        "annotations": {
+          "readOnlyHint": true,
+          "idempotentHint": true,
+          "openWorldHint": false
+        },
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "limite": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100,
+              "description": "Quantidade máxima (padrão 20)."
+            }
+          },
+          "additionalProperties": false,
+          "$schema": "http://json-schema.org/draft-07/schema#"
+        },
+        "outputSchema": null
+      },
+      {
+        "name": "listar_avaliacoes",
+        "title": "Listar avaliações",
+        "description": "Avaliações de imóveis realizadas, com faixa de valor e quantidade de escrituras usadas.",
+        "annotations": {
+          "readOnlyHint": true,
+          "idempotentHint": true,
+          "openWorldHint": false
+        },
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "limite": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100,
+              "description": "Quantidade máxima (padrão 20)."
+            }
+          },
+          "additionalProperties": false,
+          "$schema": "http://json-schema.org/draft-07/schema#"
+        },
+        "outputSchema": null
+      }
+    ]
+  }
+}
