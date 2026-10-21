@@ -152,36 +152,22 @@ Observações: o critério de suficiência da janela é **8 linhas agregadas**, 
 
 ### 2.5 Cinto de segurança de R$/m² (piso e teto)
 
-Arquivo: `supabase/functions/_shared/outlierLimits.ts` (reexportado por `src/lib/outlierLimits.ts`). Tabela estática `OUTLIER_LIMITS_TABLE` com 144 pares `"BAIRRO|Tipologia"` (bairro normalizado: maiúsculas, sem acento, espaços colapsados; tipologia `Apartamento` ou `Casa`).
+**Método corrigido em 2026-10-21; aplicação bloqueada pelo critério de aceite.** A tabela vigente de 2026-09-03 permanece no código e no Apêndice B. Os novos limites são candidatos, não filtros em produção.
 
-Calibração vigente (2026-09-03): para cada par, janela móvel de **3 anos**, linhas residenciais com `percentual_transferido >= 90` e `valor_m2` preenchido; percentis ponderados por escrituras:
+A consulta 7.4 usa `itbi_escrituras`: uma linha é uma escritura, sem expansão por peso. Inclui `aceita OR motivo_rejeicao = 'fora_do_cinto'` para evitar encolhimento recursivo. Uso Residencial para Apartamento/Casa; uso Comercial para Comercial. Corrige cada valor ao último trimestre de `itbi_price_index`: `valor_m2 * exp(ln_mediana_referencia - ln_mediana_trimestre)`. Referência atual: 2026-07-01, sem escrituras elegíveis sem índice.
 
-```
-piso = round(P1  ponderado × 0,85)
-teto = round(P99,5 ponderado × 1,15)
-```
+Percentis individuais contínuos P1 e P99,5 por bairro × tipologia, sem HAVING, nas duas janelas móveis. Repetir médias de grupos por total_transacoes achata as pontas e não reconstitui a distribuição individual. A ponderação do motor sobre agregados continua obrigatória e não foi alterada.
 
-66 pares com 100 ou mais escrituras em 3 anos (`janela: "3 anos"`), gerados em 2026-09-03 às 18h a partir da consulta 7.4 unificada sobre a base completa (`docs/calibracao/bloco74-unificada-2026-09-03.csv`).
+- >=200 escrituras em 3 anos: piso = round(P1×0,85), teto = round(P99,5×1,15).
+- Menos de 200 em 3 anos e >=30 em 5 anos: piso = round(min(P1×0,85; mediana/2)); teto = round(max(P99,5×1,15; mediana×2)).
+- Menos de 30 em 5 anos: fora da tabela. Não substituir a janela de 5 anos ausente por amostra de 3 anos.
+- Pares calibrados: únicas travas são as de ingestão, 500 e 300.000/m²; removem-se 1.000/60.000 quando a aplicação for aprovada.
 
-**Regra de amostra pequena** (78 pares com menos de `SMALL_SAMPLE_ESCRITURAS` = 100 escrituras em 3 anos e 30 ou mais em 5 anos): o par usa a **janela de 5 anos** e o cinto ganha uma largura mínima em torno da mediana ponderada:
+7.4b: faixa residencial da cidade, escrituras corrigidas em 3 anos: **1.072 / 42.000**, 126.446 escrituras. O gerador recebe os dois CSVs e gera constantes: piso sem bairro = piso da cidade; teto sem bairro = maior teto Apartamento/Casa calibrado. Bairro informado sem calibração usa a faixa da cidade. Par exato tem prioridade; fallback do bairro combina somente Apartamento/Casa, nunca Comercial. Sala, loja, sobreloja, escritório e comercial deverão resolver para Comercial. `getStreetOutlierLimits` deverá trocar travas fixas pelos limites do bairro. **Resolução e filtros de produção aguardam aceite; ainda não foram alterados.**
 
-```
-piso = max(1.000,  round(min(P1 × 0,85;   mediana / 2)))
-teto = min(60.000, round(max(P99,5 × 1,15; mediana × 2)))      # SMALL_SAMPLE_WIDTH = 2
-```
+Fluxo: consulta → CSV versionado → `bun run cinto <csv 7.4> <csv 7.4b> --candidate=/tmp/cinto/outlierLimits.ts` → testes → aceite → aplicação pelo gerador → Apêndice B. Nunca editar tabela manualmente. Cadência trimestral ou depois de carga relevante, não a cada carga mensal. Motor estatístico e MAD da seção 2.7 preservados.
 
-Motivo: com 37 a 211 escrituras, o P99,5 ponderado é o próprio máximo observado (em Santa Cruz, P5, mediana e P99,5 ficam entre 3.068 e 3.182: uma amostra de um único empreendimento). `P99,5 × 1,15` nesses pares deixa de filtrar erro e passa a filtrar mercado, cortando em silêncio a primeira venda legítima de um prédio novo. A largura mínima de 2× (e 1/2×) bloqueia o erro típico de digitação (dígito a mais, 10×) e delega o restante ao corte MAD (seção 2.7), que é a segunda rede. Barra Olímpica tem par próprio desde a recarga de 17h40 (581 escrituras em 3 anos; decisão pendente na 15.3). Limites globais: piso mínimo 1.000, teto máximo 60.000. A tabela completa dos 144 pares está no Apêndice B; os 132 pares excluídos por amostra estão listados na saída do script e em `docs/calibracao/bloco74-unificada-2026-09-03.csv`. No código o campo do percentil superior chama-se `p995` (renomeado de `p99` em 2026-09-03). **Geração da tabela (desde 2026-09-03, 17h40):** a consulta 7.4 unificada de `docs/calibracao-consultas.sql` devolve todos os pares nas duas janelas, com percentis ponderados e P99,5; o script `bun run cinto docs/calibracao/<csv>` (`scripts/gerar-cinto-outliers.ts`, regras em `supabase/functions/_shared/outlierLimitsGen.ts`) aplica as regras acima e reescreve `OUTLIER_LIMITS_TABLE`. Terceira regra, do script: par com menos de `MIN_ESCRITURAS_CINTO` = 30 escrituras em 5 anos fica **fora da tabela** (cai na faixa do bairro ou nos padrões), porque a mediana de meia dúzia de escrituras não sustenta cinto: Copacabana Casa tem 2 escrituras a 8.020/m², e um cinto [4.010; 16.040] cortaria a primeira casa de verdade vendida no bairro. O script recusa CSV com `teto_p99` no lugar de `teto_p995` e imprime pares novos, pares que saíram, maiores mudanças e excluídos. Ninguém edita a tabela à mão.
-
-Resolução `getOutlierLimits(bairro, tipologia)`:
-1. par exato bairro × tipologia → `{piso, teto, calibrado: true}`;
-2. senão, se o bairro tem algum par: `piso = min(pisos do bairro)`, `teto = max(tetos do bairro)`;
-3. senão `{1000, 60000, calibrado: false}`.
-
-Mapeamento de tipologia: contém "casa" → `Casa`; contém "apartamento", "cobertura" ou "flat" → `Apartamento`; outro → sem tipologia (cai no passo 2).
-
-**Piso e teto por logradouro** (`getStreetOutlierLimits`, usado **apenas** pelo site público, seção 9): com a amostra bruta da rua (60 meses, entre 1.000 e 60.000), se houver ≥ 8 linhas e ≥ 40 escrituras, `piso = max(1000, round(P1 ponderado × 0,85))`, `teto = min(60000, round(P99 ponderado × 1,15))`; senão usa os limites do bairro. O percentil aqui é calculado por soma acumulada de pesos `>= N·p` (ligeiramente diferente do `floor(N·p)` da seção 2.3).
-
-O cinto é aplicado **na consulta SQL** (`valor_m2 >= piso AND valor_m2 <= teto`), antes de qualquer estatística.
+Em 2026-10-21 as datas SQL são 2023-10-21 e 2021-10-21. Como as observações mensais estão no dia 15, a primeira observação elegível em 5 anos é novembro/2021. As janelas não incluem 2019/2020.
 
 ### 2.6 Correção temporal pelo índice de preços
 
@@ -921,6 +907,46 @@ Marcar item a item. O alinhamento só é declarado quando todos estão verdes. O
 ## 15. Ressalvas e plano de ação (auditoria)
 
 Esta seção não descreve o código; avalia decisões e diz o que fazer com elas. Está separada do corpo para que a comparação com a Prime Circle não trate como calibrado o que não foi. Tem quatro partes: o que ainda precisa ser corrigido no Analytics (15.1), o que o Prime Circle deve adotar, evitar e ajustar tomando este documento como referência (15.2), as decisões que continuam abertas e são do dono do produto (15.3) e o protocolo que decide entre os dois sistemas (15.4).
+
+### 15.0 Recalibração SMF em 2026-10-21: aceite não atendido
+
+Correção dos denominadores informados: 163.015 → 314.620 escrituras consolidadas (**1,93×**, não quase quatro vezes); 38.197 → 140.861 linhas, devido ao agrupamento mais fino rua × mês × tipologia. Snapshot atual da tabela individual: 330.854 linhas brutas, 320.627 aceitas, nenhuma rejeitada por fora_do_cinto. Esses denominadores são diferentes.
+
+**Diagnóstico fornecido pelo usuário, medido anteriormente e não reexecutado nesta rodada:**
+
+| Par | Acima do teto vigente | Abaixo do piso vigente |
+|---|---:|---:|
+| Santa Cruz / Apartamento | 77,8% | 8,0% |
+| Anil / Casa | 14,1% | 3,5% |
+| Bangu / Casa | 11,2% | 5,3% |
+| Ipanema / Apartamento | 5,1% | 0,5% |
+| Barra da Tijuca / Apartamento | 2,8% | 0,6% |
+| Copacabana / Apartamento | 1,8% | 0,7% |
+
+Santa Cruz: teto vigente 3.724 e mediana real informada 3.716. Comparação informada de limites nominais em 3 anos, Apartamento:
+
+| Bairro | Sobre médias de grupos | Sobre escrituras |
+|---|---:|---:|
+| Barra da Tijuca | 5.358 / 28.111 | 4.213 / 34.461 |
+| Copacabana | 5.231 / 31.209 | 4.003 / 39.272 |
+| Botafogo | 5.176 / 22.816 | 4.276 / 25.186 |
+| Ipanema | 8.552 / 60.000 (travado) | 6.831 / 83.561 (sem trava) |
+
+Demais diagnósticos informados: mediana do apartamento na Barra 9.217 (2021) → 12.855 (2026), +39%; 62 escrituras acima de 60.000/m² em 3 anos (Ipanema 36, Leblon 16); Bangu/Casa P1 631; 49 pares entre 100 e 199 escrituras. Comercial na Barra: sala mediana 7.231/P99,5 26.759; loja mediana 7.516/P99,5 40.388. Cercas IQR em log descartadas: cortam 12–19% em Santa Cruz, contra 0,1–0,8% de percentis com margem nos bairros testados pelo usuário. Manter percentis; não mudar MAD.
+
+**Medição desta rodada:** 903 linhas no CSV 7.4; uma linha na 7.4b. Tabela candidata: 318 pares. Aceite nominal individual nos últimos 12 meses, conforme consulta solicitada: 316 pares com observações; cinco pares padrão acima de 2%.
+
+| Par | Escrituras 3 anos | n 12 meses | Piso | Teto | Fora |
+|---|---:|---:|---:|---:|---:|
+| VARGEM PEQUENA / Casa | 283 | 80 | 1193 | 16271 | 3.75% |
+| IPANEMA / Comercial | 235 | 83 | 6844 | 155930 | 2.41% |
+| ANIL / Casa | 242 | 85 | 789 | 9686 | 2.35% |
+| JACAREPAGUA / Apartamento | 4635 | 1002 | 2046 | 15742 | 2.30% |
+| PENHA CIRCULAR / Apartamento | 373 | 133 | 1105 | 9911 | 2.26% |
+
+Controles atendidos: Santa Cruz/Apartamento **0,00%** fora, piso 890/teto 7.337; Ipanema/Apartamento teto **84.363**; Leblon/Apartamento teto **71.100**; Bangu/Casa piso **560**. Limites em R$/m².
+
+Arquivos em `docs/calibracao/`: `bloco74-escrituras-2026-10-21.csv`, `bloco74b-cidade-2026-10-21.csv`, `bloco74-aceite-2026-10-21.csv`, `bloco74-candidatos-2026-10-21.csv`. Gerador executado em modo candidato e **123 testes passaram, nenhum falhou**. Decisão: não aplicar novos limites, não reimplantar funções e não substituir o Apêndice B vigente até o usuário avaliar as cinco exceções. Resolução Comercial/fallback e testes de integração aguardam essa liberação. Critério de aceite não foi flexibilizado automaticamente.
 
 ### 15.1 Pendências no Analytics, por prioridade
 

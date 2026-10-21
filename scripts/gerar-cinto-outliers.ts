@@ -4,11 +4,11 @@
 // Imprime os pares excluídos e as maiores mudanças de piso e teto.
 import { readFileSync, writeFileSync } from "node:fs";
 import { OUTLIER_LIMITS_TABLE } from "../supabase/functions/_shared/outlierLimits.ts";
-import { calcularTabelaCinto, parseCsvCalibracao, renderizarTabela } from "../supabase/functions/_shared/outlierLimitsGen.ts";
+import { calcularTabelaCinto, calcularDefaultsCinto, parseCsvCidade, parseCsvCalibracao, renderizarTabela } from "../supabase/functions/_shared/outlierLimitsGen.ts";
 
-const [csvPath, ...flags] = process.argv.slice(2);
-if (!csvPath) {
-  console.error("uso: bun scripts/gerar-cinto-outliers.ts <csv da consulta 7.4> [--dry-run]");
+const [csvPath, cidadePath, ...flags] = process.argv.slice(2);
+if (!csvPath || !cidadePath) {
+  console.error("uso: bun run cinto <csv 7.4> <csv 7.4b> [--dry-run | --candidate=<arquivo temporário>]");
   process.exit(1);
 }
 const dryRun = flags.includes("--dry-run");
@@ -16,6 +16,8 @@ const alvo = new URL("../supabase/functions/_shared/outlierLimits.ts", import.me
 
 const linhas = parseCsvCalibracao(readFileSync(csvPath, "utf8"));
 const { tabela, excluidos } = calcularTabelaCinto(linhas);
+const defaults = calcularDefaultsCinto(tabela, parseCsvCidade(readFileSync(cidadePath, "utf8")));
+const candidate = flags.find((x) => x.startsWith("--candidate="))?.slice("--candidate=".length);
 
 const pct = (a: number, b: number) => (b === 0 ? "n/d" : `${(((a - b) / b) * 100).toFixed(1)} %`);
 const mudancas = Object.entries(tabela).map(([k, e]) => {
@@ -29,7 +31,8 @@ console.log("\nPares novos:", mudancas.filter((m) => !m.antes).map((m) => m.k).j
 console.log("Pares que saíram:", Object.keys(OUTLIER_LIMITS_TABLE).filter((k) => !tabela[k]).join(", ") || "nenhum");
 console.log("\nMaiores mudanças de teto:");
 for (const m of mudancas.filter((x) => x.antes).slice(0, 15)) {
-  console.log(`  ${m.k.padEnd(40)} piso ${m.antes!.piso} → ${m.e.piso} (${pct(m.e.piso, m.antes!.piso)}); teto ${m.antes!.teto} → ${m.e.teto} (${pct(m.e.teto, m.antes!.teto)}); ${m.e.escrituras} esc., ${m.e.janela}`);
+  if (!m.antes) continue;
+  console.log(`  ${m.k.padEnd(40)} piso ${m.antes.piso} → ${m.e.piso} (${pct(m.e.piso, m.antes.piso)}); teto ${m.antes.teto} → ${m.e.teto} (${pct(m.e.teto, m.antes.teto)}); ${m.e.escrituras} esc., ${m.e.janela}`);
 }
 console.log("\nExcluídos (escrituras 3 anos / 5 anos):", excluidos.map((x) => `${x.chave} ${x.escrituras3}/${x.escrituras5}`).join("; ") || "nenhum");
 
@@ -39,5 +42,15 @@ const inicio = fonte.indexOf("export const OUTLIER_LIMITS_TABLE: Record<string, 
 const fim = fonte.indexOf("\n};\n", inicio);
 if (inicio < 0 || fim < 0) throw new Error("bloco OUTLIER_LIMITS_TABLE não encontrado em outlierLimits.ts");
 const cabecalho = "export const OUTLIER_LIMITS_TABLE: Record<string, OutlierLimitEntry> = {\n";
-writeFileSync(alvo, fonte.slice(0, inicio) + cabecalho + renderizarTabela(tabela) + fonte.slice(fim));
-console.log(`\n${alvo} reescrito. Rode bun run test e regenere o Apêndice B da especificação.`);
+let novaFonte = fonte.slice(0, inicio) + cabecalho + renderizarTabela(tabela) + fonte.slice(fim);
+novaFonte = novaFonte.replace(/export const DEFAULT_OUTLIER_MIN = \d+;/,
+  `export const FAIXA_SEM_CALIBRACAO_PISO = ${defaults.pisoCidade};\nexport const DEFAULT_OUTLIER_MIN = FAIXA_SEM_CALIBRACAO_PISO;`)
+  .replace(/export const DEFAULT_OUTLIER_MAX = \d+;/,
+    `${fonte.includes("export const FAIXA_SEM_CALIBRACAO_TETO") ? "" : `export const FAIXA_SEM_CALIBRACAO_TETO = ${defaults.tetoCidade};\n`}export const DEFAULT_OUTLIER_MAX = ${defaults.maximo};`)
+  .replace(/export const SMALL_SAMPLE_ESCRITURAS = \d+;/, "export const SMALL_SAMPLE_ESCRITURAS = 200;");
+// Regerações posteriores substituem também as constantes já criadas.
+novaFonte = novaFonte.replace(/export const FAIXA_SEM_CALIBRACAO_PISO = \d+;/g, `export const FAIXA_SEM_CALIBRACAO_PISO = ${defaults.pisoCidade};`)
+  .replace(/export const FAIXA_SEM_CALIBRACAO_TETO = \d+;/g, `export const FAIXA_SEM_CALIBRACAO_TETO = ${defaults.tetoCidade};`);
+const destino = candidate || alvo;
+writeFileSync(destino, novaFonte);
+console.log(`\n${candidate ? "Candidato (não aplicado)" : "Tabela aplicada"}: ${destino}; cidade ${defaults.pisoCidade}/${defaults.tetoCidade}; teto sem bairro ${defaults.maximo}.`);

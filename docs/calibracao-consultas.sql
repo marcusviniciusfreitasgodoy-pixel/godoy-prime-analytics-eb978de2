@@ -69,32 +69,46 @@ group by b.bairro, b.tipologia, k.k_inf, k.k_sup, med, escala
 having sum(w) >= 50
 order by escrituras desc, b.bairro, b.tipologia, k.k_inf;
 
--- 7.4 Piso e teto por bairro × tipologia (CONSULTA UNIFICADA, 2026-09-03):
--- todos os pares, nas duas janelas, percentis PONDERADOS por escrituras
--- (expansao por generate_series), sem HAVING. O CSV desta consulta e a unica
--- entrada de scripts/gerar-cinto-outliers.ts, que aplica as regras da secao
--- 2.5 da especificacao (>= 100 escrituras em 3 anos: janela de 3 anos;
--- senao >= 30 em 5 anos: janela de 5 anos com largura minima; senao fora).
--- ATENCAO: o teto e o P99,5 (0.995), nao o P99. Agrupar por bairro SEM
--- filtrar por nome (a base grava com acento; a chave e normalizada no script).
-select bairro, tipologia,
-  round(percentile_cont(0.01)  within group (order by valor_m2)::numeric, 0) as piso_p1,
-  round(percentile_cont(0.05)  within group (order by valor_m2)::numeric, 0) as p5,
-  round(percentile_cont(0.50)  within group (order by valor_m2)::numeric, 0) as mediana,
-  round(percentile_cont(0.95)  within group (order by valor_m2)::numeric, 0) as p95,
-  round(percentile_cont(0.995) within group (order by valor_m2)::numeric, 0) as teto_p995,
-  count(*)                                                                    as escrituras,
-  j.rotulo                                                                    as janela
+-- 7.4 Piso e teto por bairro × tipologia (2026-10-21): escrituras individuais,
+-- corrigidas ao último trimestre do índice. Inclui fora_do_cinto para evitar
+-- encolhimento recursivo. Sem HAVING; amostra padrão >=200 em 3 anos,
+-- pequena >=30 em 5 anos. Não expõe endereços nem valores individuais.
+with ref as (
+  select ln_mediana from public.itbi_price_index order by trimestre desc limit 1
+), base as (
+  select e.bairro, e.tipologia, e.data_transacao,
+         e.valor_m2 * exp((select ln_mediana from ref) - i.ln_mediana) as vm2
+  from public.itbi_escrituras e
+  join public.itbi_price_index i on i.trimestre = date_trunc('quarter', e.data_transacao)::date
+  where (e.aceita or e.motivo_rejeicao = 'fora_do_cinto')
+    and ((e.uso = 'Residencial' and e.tipologia in ('Apartamento', 'Casa'))
+      or (e.uso = 'Comercial' and e.tipologia = 'Comercial'))
+)
+select b.bairro, b.tipologia,
+  round(percentile_cont(0.01) within group (order by b.vm2)::numeric, 0) as piso_p1,
+  round(percentile_cont(0.05) within group (order by b.vm2)::numeric, 0) as p5,
+  round(percentile_cont(0.50) within group (order by b.vm2)::numeric, 0) as mediana,
+  round(percentile_cont(0.95) within group (order by b.vm2)::numeric, 0) as p95,
+  round(percentile_cont(0.995) within group (order by b.vm2)::numeric, 0) as teto_p995,
+  count(*) as escrituras, j.rotulo as janela
 from (values ('3 anos', interval '3 years'), ('5 anos', interval '5 years')) j(rotulo, tam)
-cross join lateral (
-  select bairro, tipologia, valor_m2
-  from itbi_transactions, generate_series(1, greatest(coalesce(total_transacoes, 1), 1))
-  where uso = 'Residencial' and percentual_transferido >= 90 and valor_m2 > 0
-    and tipologia in ('Apartamento', 'Casa')
-    and data_transacao >= current_date - j.tam
-) t
-group by j.rotulo, bairro, tipologia
-order by bairro, tipologia, j.rotulo;
+join base b on b.data_transacao >= current_date - j.tam
+group by j.rotulo, b.bairro, b.tipologia
+order by b.bairro, b.tipologia, j.rotulo;
+
+-- 7.4b Faixa geral da cidade (residencial, 3 anos, escrituras corrigidas).
+with ref as (select ln_mediana from public.itbi_price_index order by trimestre desc limit 1)
+select round(percentile_cont(0.01) within group (order by vm2) * 0.85) as piso_cidade,
+       round(percentile_cont(0.995) within group (order by vm2) * 1.15) as teto_cidade,
+       count(*) as escrituras
+from (
+  select e.valor_m2 * exp((select ln_mediana from ref) - i.ln_mediana) as vm2
+  from public.itbi_escrituras e
+  join public.itbi_price_index i on i.trimestre = date_trunc('quarter', e.data_transacao)::date
+  where (e.aceita or e.motivo_rejeicao = 'fora_do_cinto')
+    and e.uso = 'Residencial' and e.tipologia in ('Apartamento', 'Casa')
+    and e.data_transacao >= current_date - interval '3 years'
+) x;
 
 -- 7.5 Spread real P10–P90 por rua (calibra SPREAD_NORMAL/WIDE/VERY_WIDE em
 -- valuationCalculations.ts): distribuição do spread entre ruas com amostra.
