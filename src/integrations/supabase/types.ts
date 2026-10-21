@@ -1479,6 +1479,120 @@ export type Database = {
         }
         Relationships: []
       }
+      itbi_escrituras: {
+        Row: {
+          aceita: boolean
+          ano: number
+          area_m2: number
+          arquivo_fonte: string | null
+          bairro: string
+          carregado_em: string
+          cep: string | null
+          cl: string
+          cod_bairro: string | null
+          cod_lote: string | null
+          cod_quadra: string | null
+          cod_tipologia: string | null
+          complemento: string | null
+          data_transacao: string
+          geo_precisao: string | null
+          geom: unknown
+          id: string
+          lat: number | null
+          logradouro: string
+          logradouro_smf: string
+          lon: number | null
+          mes: number
+          motivo_rejeicao: string | null
+          np_usado: string | null
+          num_pavimentos: number | null
+          numero: string | null
+          percentual_transferido: number
+          regiao_fiscal: string | null
+          tipologia: string
+          tipologia_smf: string | null
+          trecho: number | null
+          uso: string
+          uso_smf: string | null
+          valor_m2: number | null
+          valor_transacao: number
+        }
+        Insert: {
+          aceita?: boolean
+          ano: number
+          area_m2: number
+          arquivo_fonte?: string | null
+          bairro: string
+          carregado_em?: string
+          cep?: string | null
+          cl: string
+          cod_bairro?: string | null
+          cod_lote?: string | null
+          cod_quadra?: string | null
+          cod_tipologia?: string | null
+          complemento?: string | null
+          data_transacao: string
+          geo_precisao?: string | null
+          geom?: unknown
+          id: string
+          lat?: number | null
+          logradouro: string
+          logradouro_smf: string
+          lon?: number | null
+          mes: number
+          motivo_rejeicao?: string | null
+          np_usado?: string | null
+          num_pavimentos?: number | null
+          numero?: string | null
+          percentual_transferido?: number
+          regiao_fiscal?: string | null
+          tipologia: string
+          tipologia_smf?: string | null
+          trecho?: number | null
+          uso: string
+          uso_smf?: string | null
+          valor_m2?: number | null
+          valor_transacao: number
+        }
+        Update: {
+          aceita?: boolean
+          ano?: number
+          area_m2?: number
+          arquivo_fonte?: string | null
+          bairro?: string
+          carregado_em?: string
+          cep?: string | null
+          cl?: string
+          cod_bairro?: string | null
+          cod_lote?: string | null
+          cod_quadra?: string | null
+          cod_tipologia?: string | null
+          complemento?: string | null
+          data_transacao?: string
+          geo_precisao?: string | null
+          geom?: unknown
+          id?: string
+          lat?: number | null
+          logradouro?: string
+          logradouro_smf?: string
+          lon?: number | null
+          mes?: number
+          motivo_rejeicao?: string | null
+          np_usado?: string | null
+          num_pavimentos?: number | null
+          numero?: string | null
+          percentual_transferido?: number
+          regiao_fiscal?: string | null
+          tipologia?: string
+          tipologia_smf?: string | null
+          trecho?: number | null
+          uso?: string
+          uso_smf?: string | null
+          valor_m2?: number | null
+          valor_transacao?: number
+        }
+        Relationships: []
+      }
       itbi_transactions: {
         Row: {
           area_m2: number
@@ -1486,6 +1600,7 @@ export type Database = {
           complemento: string | null
           created_at: string | null
           data_transacao: string
+          fonte: string
           geocodificado_via: string | null
           geom: unknown
           id: string
@@ -1509,6 +1624,7 @@ export type Database = {
           complemento?: string | null
           created_at?: string | null
           data_transacao: string
+          fonte?: string
           geocodificado_via?: string | null
           geom?: unknown
           id?: string
@@ -1532,6 +1648,7 @@ export type Database = {
           complemento?: string | null
           created_at?: string | null
           data_transacao?: string
+          fonte?: string
           geocodificado_via?: string | null
           geom?: unknown
           id?: string
@@ -1552,6 +1669,78 @@ export type Database = {
         Relationships: []
       }
       itbi_transactions_backup_pre_dedupe: {
+        Row: {
+          area_m2: number | null
+          bairro: string | null
+          complemento: string | null
+          created_at: string | null
+          data_transacao: string | null
+          geocodificado_via: string | null
+          geom: unknown
+          id: string | null
+          lat: number | null
+          lng: number | null
+          logradouro: string | null
+          logradouro_norm: string | null
+          microbairro: string | null
+          numero: string | null
+          percentual_transferido: number | null
+          tipologia: string | null
+          total_transacoes: number | null
+          updated_at: string | null
+          uso: Database["public"]["Enums"]["uso_imovel"] | null
+          valor_m2: number | null
+          valor_transacao: number | null
+        }
+        Insert: {
+          area_m2?: number | null
+          bairro?: string | null
+          complemento?: string | null
+          created_at?: string | null
+          data_transacao?: string | null
+          geocodificado_via?: string | null
+          geom?: unknown
+          id?: string | null
+          lat?: number | null
+          lng?: number | null
+          logradouro?: string | null
+          logradouro_norm?: string | null
+          microbairro?: string | null
+          numero?: string | null
+          percentual_transferido?: number | null
+          tipologia?: string | null
+          total_transacoes?: number | null
+          updated_at?: string | null
+          uso?: Database["public"]["Enums"]["uso_imovel"] | null
+          valor_m2?: number | null
+          valor_transacao?: number | null
+        }
+        Update: {
+          area_m2?: number | null
+          bairro?: string | null
+          complemento?: string | null
+          created_at?: string | null
+          data_transacao?: string | null
+          geocodificado_via?: string | null
+          geom?: unknown
+          id?: string | null
+          lat?: number | null
+          lng?: number | null
+          logradouro?: string | null
+          logradouro_norm?: string | null
+          microbairro?: string | null
+          numero?: string | null
+          percentual_transferido?: number | null
+          tipologia?: string | null
+          total_transacoes?: number | null
+          updated_at?: string | null
+          uso?: Database["public"]["Enums"]["uso_imovel"] | null
+          valor_m2?: number | null
+          valor_transacao?: number | null
+        }
+        Relationships: []
+      }
+      itbi_transactions_backup_pre_smf: {
         Row: {
           area_m2: number | null
           bairro: string | null
@@ -3655,6 +3844,28 @@ export type Database = {
         }
         Relationships: []
       }
+      itbi_transactions_smf: {
+        Row: {
+          area_m2: number | null
+          bairro: string | null
+          cl: string | null
+          complemento: string | null
+          data_transacao: string | null
+          fonte: string | null
+          geom: unknown
+          id: string | null
+          logradouro: string | null
+          microbairro: string | null
+          numero: string | null
+          percentual_transferido: number | null
+          tipologia: string | null
+          total_transacoes: number | null
+          uso: Database["public"]["Enums"]["uso_imovel"] | null
+          valor_m2: number | null
+          valor_transacao: number | null
+        }
+        Relationships: []
+      }
       view_ranking_microbairros: {
         Row: {
           mediana_m2: number | null
@@ -4154,6 +4365,10 @@ export type Database = {
           valor_m2: number
           valor_transacao: number
         }[]
+      }
+      itbi_consolidar_smf: {
+        Args: { p_bairro?: string; p_fim: string; p_inicio: string }
+        Returns: Json
       }
       itbi_geocoding_status: { Args: never; Returns: Json }
       itbi_logradouros_pendentes: {
