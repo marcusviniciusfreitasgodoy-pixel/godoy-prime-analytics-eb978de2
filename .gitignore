@@ -27,3 +27,7 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# ITBI SMF: downloads, cache de geocodificação e CSVs de dry-run
+scripts/itbi-smf/cache_smf/
+scripts/itbi-smf/*.csv

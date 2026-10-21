@@ -31,6 +31,7 @@ Rode os quatro últimos antes de abrir PR — é exatamente o que `.github/workf
 ## 3. Regras duras de dados (quebrar isso gera número errado no produto)
 
 - **ITBI é base agregada**: cada linha soma várias escrituras. Toda média/mediana precisa ser **ponderada por `total_transacoes`**. Contar linhas subestima o mercado em ~4x.
+- **Fonte do ITBI (desde 2026-10-21)**: `itbi_transactions` é consolidada a partir de `itbi_escrituras` (uma linha por escritura, planilhas da SMF) pela função `itbi_consolidar_smf()`; a coluna `fonte` diz se a linha veio de `smf` ou da camada 8 do ArcGIS (`arcgis`, incompleta). Carga mensal em `scripts/itbi-smf/`; `sync-itbi-prefeitura` e `sync-itbi-daily` recusam períodos já consolidados. **Nunca** exibir uma linha de `itbi_escrituras` individualmente (endereço + apto + valor): só agregados com piso de 5 escrituras.
 - **Sempre** encerrar queries com `.limit(5000)` — o PostgREST trunca em 1000 linhas silenciosamente.
 - Janela histórica padrão: 5 anos, excluindo o ano corrente salvo expansão explícita.
 - Busca por logradouro passa por `src/lib/logradouroSearch.ts` (variantes de grafia: GENERAL/GAL, OLYNTHO/OLINTO, PILLAR/PILAR, AVN/AV). Não reimplementar normalização ad hoc.
@@ -73,6 +74,6 @@ Quando uma migration ainda não foi aplicada, `types.ts` não conhece a coluna/v
 ## 8. Metodologia estatística: onde está e como mudar
 
 - Referência do que o produto calcula: `docs/especificacao-metodologia-godoy-prime.md` (v3.0) e o resumo para terceiros em `docs/relatorio-final-desenvolvedor-2026-09-04.md`. Estado e pendências na última nota de passagem em `docs/handoff-*.md`.
-- Motor único em `supabase/functions/_shared/itbiMarketStats.ts` (`ENGINE_VERSION`); regras de carga em `_shared/itbiIngestion.ts`; bairros oficiais em `_shared/bairrosRio.ts`.
+- Motor único em `supabase/functions/_shared/itbiMarketStats.ts` (`ENGINE_VERSION`); regras de carga em `_shared/itbiIngestion.ts` (o carregador Python em `scripts/itbi-smf/` replica `LIMITES_INGESTAO`: mudou lá, muda aqui); guarda de fonte em `_shared/itbiFonte.ts`; bairros oficiais em `_shared/bairrosRio.ts`.
 - **Cinto de outliers (`_shared/outlierLimits.ts`) é gerado, nunca editado à mão:** consulta 7.4 de `docs/calibracao-consultas.sql` → CSV em `docs/calibracao/` → `bun run cinto <csv>` → `bun run test` → Apêndice B da especificação.
 - Toda mudança de metodologia vem com: constante ou regra no código, consulta de calibração que a sustenta, CSV versionado, teste, e a linha correspondente na especificação (seção 15 registra pendências e decisões).
