@@ -9,4 +9,4 @@
 - [x] Filtrar escrituras antes da consolidação e demonstrar impacto por bairro sem reconstruir cidade (teste SQL transacional e 14 testes do gerador passaram; simulação 1.943/312.788 em 161 bairros).
 - [ ] Aplicar limites, alinhar preço corrigido na coleta, resolução Comercial/fallback, testes de integração, Apêndice B e funções — bloqueado pelo aceite: três exceções reais mesmo após alinhar uso/tempo; regra original mantém cinco alertas.
 - [ ] Proteger tabela de coordenadas — tentativa recusada porque pertence ao proprietário gerenciado; nenhuma alteração aplicada.
-- [ ] Paginar as quatro listas MCP e retornar total exato permitido, preservando OAuth e regras de acesso.
+- [x] Paginar as quatro listas MCP e retornar total exato permitido, preservando OAuth e regras de acesso (7 testes; páginas 1/2 conferidas na conta conectada; manifesto gerado; exige republicação).
