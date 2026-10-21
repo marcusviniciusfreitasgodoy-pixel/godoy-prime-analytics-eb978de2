@@ -4,5 +4,6 @@
 - [x] Corrigir consulta e gerador do cinto com escrituras individuais corrigidas e Comercial.
 - [x] Exportar calibração, faixa da cidade e limites candidatos; medir aceite.
 - [x] Atualizar testes e especificação; 123 testes passam.
-- [ ] Aplicar limites, resolução Comercial/fallback, testes de integração, Apêndice B e funções — bloqueado pela decisão sobre cinco pares padrão acima de 2% fora.
+- [x] Investigar cinco exceções: dois problemas de comparação (uso/tempo), três exceções de cortes baixos recentes; consultas e CSVs registrados.
+- [ ] Aplicar limites, alinhar preço corrigido na coleta, resolução Comercial/fallback, testes de integração, Apêndice B e funções — bloqueado pelo aceite: três exceções reais mesmo após alinhar uso/tempo; regra original mantém cinco alertas.
 - [ ] Proteger tabela de coordenadas — tentativa recusada porque pertence ao proprietário gerenciado; nenhuma alteração aplicada.
