@@ -46,7 +46,7 @@ let novaFonte = fonte.slice(0, inicio) + cabecalho + renderizarTabela(tabela) + 
 novaFonte = novaFonte.replace(/export const DEFAULT_OUTLIER_MIN = \d+;/,
   `export const FAIXA_SEM_CALIBRACAO_PISO = ${defaults.pisoCidade};\nexport const DEFAULT_OUTLIER_MIN = FAIXA_SEM_CALIBRACAO_PISO;`)
   .replace(/export const DEFAULT_OUTLIER_MAX = \d+;/,
-    `export const FAIXA_SEM_CALIBRACAO_TETO = ${defaults.tetoCidade};\nexport const DEFAULT_OUTLIER_MAX = ${defaults.maximo};`)
+    `${fonte.includes("export const FAIXA_SEM_CALIBRACAO_TETO") ? "" : `export const FAIXA_SEM_CALIBRACAO_TETO = ${defaults.tetoCidade};\n`}export const DEFAULT_OUTLIER_MAX = ${defaults.maximo};`)
   .replace(/export const SMALL_SAMPLE_ESCRITURAS = \d+;/, "export const SMALL_SAMPLE_ESCRITURAS = 200;");
 // Regerações posteriores substituem também as constantes já criadas.
 novaFonte = novaFonte.replace(/export const FAIXA_SEM_CALIBRACAO_PISO = \d+;/g, `export const FAIXA_SEM_CALIBRACAO_PISO = ${defaults.pisoCidade};`)
