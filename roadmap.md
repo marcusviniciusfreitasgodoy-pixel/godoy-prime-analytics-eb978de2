@@ -10,3 +10,4 @@
 - [ ] Aplicar limites, alinhar preço corrigido na coleta, resolução Comercial/fallback, testes de integração, Apêndice B e funções — bloqueado pelo aceite: três exceções reais mesmo após alinhar uso/tempo; regra original mantém cinco alertas.
 - [ ] Proteger tabela de coordenadas — tentativa recusada porque pertence ao proprietário gerenciado; nenhuma alteração aplicada.
 - [x] Paginar as quatro listas MCP e retornar total exato permitido, preservando OAuth e regras de acesso (7 testes; páginas 1/2 conferidas na conta conectada; manifesto gerado; exige republicação).
+- [x] Adicionar listar_transacoes_mercado e serie_mensal_mercado ao MCP: escrituras individuais (só imóvel, data e valor) via view itbi_escrituras_mercado (GRANT autenticado, migração 0006); valores nominais com deflacionado:false; 6 testes novos; exige republicação e reautorização do agente.
