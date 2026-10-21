@@ -69,10 +69,15 @@ group by b.bairro, b.tipologia, k.k_inf, k.k_sup, med, escala
 having sum(w) >= 50
 order by escrituras desc, b.bairro, b.tipologia, k.k_inf;
 
--- 7.4 Piso e teto por bairro × tipologia (2026-10-21): escrituras individuais,
--- corrigidas ao último trimestre do índice. Inclui fora_do_cinto para evitar
--- encolhimento recursivo. Sem HAVING; amostra padrão >=200 em 3 anos,
--- pequena >=30 em 5 anos. Não expõe endereços nem valores individuais.
+-- 7.4 Piso e teto por bairro × tipologia (2026-10-22): escrituras individuais
+-- de itbi_escrituras, corrigidas ao último trimestre do itbi_price_index.
+-- Piso pelo P0,5 (piso_p05): com o P1, todas as reprovações do aceite de
+-- 2026-10-21 foram vendas reais baratas abaixo do piso; com o P0,5 o corte é
+-- simétrico (0,5% de cada lado) e nenhum par reprova. piso_p1 fica no CSV só
+-- como referência. Inclui fora_do_cinto para o cinto não encolher a cada
+-- recalibração; exclui o bairro DESCONHECIDO (escrituras sem bairro na SMF).
+-- Sem HAVING: as regras (>= 200 em 3 anos; senão >= 30 em 5 anos) ficam no
+-- gerador. Não expõe endereços nem valores individuais.
 with ref as (
   select ln_mediana from public.itbi_price_index order by trimestre desc limit 1
 ), base as (
@@ -81,10 +86,12 @@ with ref as (
   from public.itbi_escrituras e
   join public.itbi_price_index i on i.trimestre = date_trunc('quarter', e.data_transacao)::date
   where (e.aceita or e.motivo_rejeicao = 'fora_do_cinto')
+    and e.bairro <> 'DESCONHECIDO'
     and ((e.uso = 'Residencial' and e.tipologia in ('Apartamento', 'Casa'))
       or (e.uso = 'Comercial' and e.tipologia = 'Comercial'))
 )
 select b.bairro, b.tipologia,
+  round(percentile_cont(0.005) within group (order by b.vm2)::numeric, 0) as piso_p05,
   round(percentile_cont(0.01) within group (order by b.vm2)::numeric, 0) as piso_p1,
   round(percentile_cont(0.05) within group (order by b.vm2)::numeric, 0) as p5,
   round(percentile_cont(0.50) within group (order by b.vm2)::numeric, 0) as mediana,
@@ -96,16 +103,30 @@ join base b on b.data_transacao >= current_date - j.tam
 group by j.rotulo, b.bairro, b.tipologia
 order by b.bairro, b.tipologia, j.rotulo;
 
--- 7.4b Faixa geral da cidade (residencial, 3 anos, escrituras corrigidas).
-with ref as (select ln_mediana from public.itbi_price_index order by trimestre desc limit 1)
-select round(percentile_cont(0.01) within group (order by vm2) * 0.85) as piso_cidade,
+-- 7.4b Faixa geral da cidade (residencial, 3 anos, escrituras corrigidas) e
+-- fatores do índice na janela de 5 anos. A faixa vale para bairro sem
+-- calibração. Fator = índice do último trimestre ÷ índice do trimestre.
+-- O maior (trimestre mais barato) converte o piso, que está em preço de hoje,
+-- para os filtros do app sobre itbi_transactions, que estão em preço da época;
+-- o menor (trimestre mais caro, pode ficar abaixo de 1) converte o teto.
+with ref as (select ln_mediana from public.itbi_price_index order by trimestre desc limit 1),
+fator as (
+  select max(exp((select ln_mediana from ref) - i.ln_mediana)) as f,
+         min(exp((select ln_mediana from ref) - i.ln_mediana)) as fmin
+  from public.itbi_price_index i
+  where i.trimestre >= date_trunc('quarter', current_date - interval '5 years')::date
+)
+select round(percentile_cont(0.005) within group (order by vm2) * 0.85) as piso_cidade,
        round(percentile_cont(0.995) within group (order by vm2) * 1.15) as teto_cidade,
-       count(*) as escrituras
+       count(*) as escrituras,
+       round((select f from fator)::numeric, 4) as fator_indice_5_anos,
+       round((select fmin from fator)::numeric, 4) as fator_min_indice_5_anos
 from (
   select e.valor_m2 * exp((select ln_mediana from ref) - i.ln_mediana) as vm2
   from public.itbi_escrituras e
   join public.itbi_price_index i on i.trimestre = date_trunc('quarter', e.data_transacao)::date
   where (e.aceita or e.motivo_rejeicao = 'fora_do_cinto')
+    and e.bairro <> 'DESCONHECIDO'
     and e.uso = 'Residencial' and e.tipologia in ('Apartamento', 'Casa')
     and e.data_transacao >= current_date - interval '3 years'
 ) x;
