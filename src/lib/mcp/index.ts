@@ -3,7 +3,9 @@ import estatisticasMercado from "./tools/estatisticas-mercado";
 import listarAutorizacoes from "./tools/listar-autorizacoes";
 import listarAvaliacoes from "./tools/listar-avaliacoes";
 import listarLeads from "./tools/listar-leads";
+import listarTransacoesMercado from "./tools/listar-transacoes-mercado";
 import listarVisitas from "./tools/listar-visitas";
+import serieMensalMercado from "./tools/serie-mensal-mercado";
 
 const projectRef = import.meta.env["VITE_SUPABASE_PROJECT_ID"] ?? "project-ref-unset";
 
