@@ -15,6 +15,13 @@
       "when": 1792443168617,
       "tag": "0001_revoke_spatial_ref_sys_writes",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1792607938703,
+      "tag": "0002_restrict_public_reference_reads",
+      "breakpoints": true
     }
   ]
 }
