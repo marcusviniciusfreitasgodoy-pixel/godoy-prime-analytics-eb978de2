@@ -4,6 +4,7 @@ import { useDemo } from '@/contexts/DemoContext';
 import { DEMO_MAP_DATA } from '@/data/demoData';
 import { buildLogradouroOrConditions } from '@/lib/logradouroSearch';
 import { getOutlierLimit } from '@/lib/outlierLimits';
+import { fetchPaged } from '../../supabase/functions/_shared/fetchPaged.ts';
 
 interface TransactionMapData {
   microbairro: string;

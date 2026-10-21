@@ -1,3 +1,4 @@
+import { fetchPaged } from '../../supabase/functions/_shared/fetchPaged.ts';
 import { useState } from "react";
 import { Input } from "./ui/input";
 import { CondominioSelector } from "./valuation/CondominioSelector";
@@ -181,11 +182,11 @@ export function EmbeddedAdvancedSearch({ defaultBairro = "" }: EmbeddedAdvancedS
       }
 
       // Query 1: Get all records (no limit) to calculate correct totals
-      let totalQuery = buildBaseQuery();
-      if (orConditions) totalQuery = totalQuery.or(orConditions);
-      
-      const { data: allData, error: totalError } = await totalQuery.limit(5000);
-      if (totalError) throw totalError;
+      const buildTotal = () => {
+        const q = buildBaseQuery();
+        return orConditions ? q.or(orConditions) : q;
+      };
+      const allData = await fetchPaged((from, to) => buildTotal().order('id', { ascending: true }).range(from, to), 30000);
 
       // Calculate real totals from ALL matching records
       const totalRegistros = allData?.length || 0;

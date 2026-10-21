@@ -45,6 +45,7 @@ import {
   type WindowMonths,
 } from "@/utils/itbiMarketStats";
 import { fetchPriceIndex } from "@/utils/priceIndex";
+import { fetchPaged } from "../../../supabase/functions/_shared/fetchPaged.ts";
 
 interface Props {
   state: ValuationState;

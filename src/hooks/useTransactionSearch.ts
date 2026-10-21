@@ -1,3 +1,4 @@
+import { fetchPaged } from '../../supabase/functions/_shared/fetchPaged.ts';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { buildLogradouroOrConditions } from '@/lib/logradouroSearch';
@@ -37,6 +38,7 @@ export function useTransactionSearch(params: TransactionSearchParams, enabled: b
       // Determina o uso baseado na tipologia selecionada
       const isComercial = params.tipologia?.toLowerCase() === 'comercial';
       
+      const build = () => {
       let query = supabase
         .from('itbi_transactions')
         .select('logradouro, valor_transacao, valor_m2, total_transacoes, data_transacao, tipologia')
@@ -91,9 +93,9 @@ export function useTransactionSearch(params: TransactionSearchParams, enabled: b
         query = query.lte('valor_m2', params.valorM2Max);
       }
 
-      const { data, error } = await query.limit(5000);
-
-      if (error) throw error;
+      return query;
+      };
+      const data = await fetchPaged((from, to) => build().order('id', { ascending: true }).range(from, to), 30000);
 
       const grouped = (data || []).reduce((acc, t) => {
         const micro = t.logradouro;

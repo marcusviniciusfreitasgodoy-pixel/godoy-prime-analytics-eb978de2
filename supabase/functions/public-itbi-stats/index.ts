@@ -1,6 +1,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { resolverNomeBairro } from "../_shared/bairrosRio.ts";
+import { fetchPaged } from "../_shared/fetchPaged.ts";
 import {
   MAX_ROWS,
   buildRollingWindow,
