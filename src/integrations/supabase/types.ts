@@ -3866,6 +3866,42 @@ export type Database = {
         }
         Relationships: []
       }
+      itbi_escrituras_mercado: {
+        Row: {
+          area_m2: number | null
+          bairro: string | null
+          data_transacao: string | null
+          id: string | null
+          logradouro: string | null
+          numero: string | null
+          tipologia: string | null
+          valor_m2: number | null
+          valor_transacao: number | null
+        }
+        Insert: {
+          area_m2?: number | null
+          bairro?: string | null
+          data_transacao?: string | null
+          id?: string | null
+          logradouro?: string | null
+          numero?: string | null
+          tipologia?: string | null
+          valor_m2?: number | null
+          valor_transacao?: number | null
+        }
+        Update: {
+          area_m2?: number | null
+          bairro?: string | null
+          data_transacao?: string | null
+          id?: string | null
+          logradouro?: string | null
+          numero?: string | null
+          tipologia?: string | null
+          valor_m2?: number | null
+          valor_transacao?: number | null
+        }
+        Relationships: []
+      }
       itbi_price_index: {
         Row: {
           escrituras: number | null

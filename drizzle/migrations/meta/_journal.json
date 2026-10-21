@@ -43,6 +43,13 @@
       "when": 1792618490958,
       "tag": "0005_itbi_cinto_authenticated_reference_read",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1792625608471,
+      "tag": "0006_itbi_escrituras_mercado_view",
+      "breakpoints": true
     }
   ]
 }
