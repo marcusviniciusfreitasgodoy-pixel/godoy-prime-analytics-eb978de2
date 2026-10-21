@@ -12,7 +12,7 @@
   "mcp": {
     "server": {
       "name": "godoy-prime-analytics",
-      "version": "0.1.0",
+      "version": "0.2.0",
       "title": "Godoy Prime Analytics"
     },
     "tools": [
@@ -70,7 +70,7 @@
       {
         "name": "listar_visitas",
         "title": "Listar visitas",
-        "description": "Fichas de visita mais recentes (data, imóvel, visitante, corretor, status).",
+        "description": "Fichas de visita em páginas, das mais recentes às mais antigas, com total exato de registros permitidos à conta conectada. Percorra proxima_pagina até null para consultar todo o histórico.",
         "annotations": {
           "readOnlyHint": true,
           "idempotentHint": true,
@@ -79,11 +79,17 @@
         "inputSchema": {
           "type": "object",
           "properties": {
+            "pagina": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 90071992547409.9,
+              "description": "Página a consultar, começando em 1 (padrão 1)."
+            },
             "limite": {
               "type": "integer",
               "minimum": 1,
               "maximum": 100,
-              "description": "Quantidade máxima (padrão 20)."
+              "description": "Registros por página, de 1 a 100 (padrão 20)."
             }
           },
           "additionalProperties": false,
@@ -94,7 +100,7 @@
       {
         "name": "listar_leads",
         "title": "Listar leads",
-        "description": "Leads mais recentes com estágio no funil, interesse e responsável.",
+        "description": "Leads em páginas, dos mais recentes aos mais antigos, com total exato de registros permitidos à conta conectada. Percorra proxima_pagina até null para consultar todo o histórico.",
         "annotations": {
           "readOnlyHint": true,
           "idempotentHint": true,
@@ -103,11 +109,17 @@
         "inputSchema": {
           "type": "object",
           "properties": {
+            "pagina": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 90071992547409.9,
+              "description": "Página a consultar, começando em 1 (padrão 1)."
+            },
             "limite": {
               "type": "integer",
               "minimum": 1,
               "maximum": 100,
-              "description": "Quantidade máxima (padrão 20)."
+              "description": "Registros por página, de 1 a 100 (padrão 20)."
             }
           },
           "additionalProperties": false,
@@ -118,7 +130,7 @@
       {
         "name": "listar_autorizacoes",
         "title": "Listar autorizações de captação",
-        "description": "Autorizações de captação e venda com status de assinatura.",
+        "description": "Autorizações de captação em páginas, das mais recentes às mais antigas, com total exato de registros permitidos à conta conectada. Percorra proxima_pagina até null para consultar todo o histórico.",
         "annotations": {
           "readOnlyHint": true,
           "idempotentHint": true,
@@ -127,11 +139,17 @@
         "inputSchema": {
           "type": "object",
           "properties": {
+            "pagina": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 90071992547409.9,
+              "description": "Página a consultar, começando em 1 (padrão 1)."
+            },
             "limite": {
               "type": "integer",
               "minimum": 1,
               "maximum": 100,
-              "description": "Quantidade máxima (padrão 20)."
+              "description": "Registros por página, de 1 a 100 (padrão 20)."
             }
           },
           "additionalProperties": false,
@@ -142,7 +160,7 @@
       {
         "name": "listar_avaliacoes",
         "title": "Listar avaliações",
-        "description": "Avaliações de imóveis realizadas, com faixa de valor e quantidade de escrituras usadas.",
+        "description": "Avaliações em páginas, das mais recentes às mais antigas, com total exato de registros permitidos à conta conectada. Percorra proxima_pagina até null para consultar todo o histórico.",
         "annotations": {
           "readOnlyHint": true,
           "idempotentHint": true,
@@ -151,11 +169,17 @@
         "inputSchema": {
           "type": "object",
           "properties": {
+            "pagina": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 90071992547409.9,
+              "description": "Página a consultar, começando em 1 (padrão 1)."
+            },
             "limite": {
               "type": "integer",
               "minimum": 1,
               "maximum": 100,
-              "description": "Quantidade máxima (padrão 20)."
+              "description": "Registros por página, de 1 a 100 (padrão 20)."
             }
           },
           "additionalProperties": false,

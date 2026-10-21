@@ -4,3 +4,4 @@
 - The belt table is in latest-quarter prices while `itbi_transactions` rows are in period prices. Always filter through `getOutlierLimits`, which divides the floor by `FATOR_INDICE_5_ANOS` and the ceiling by `FATOR_MIN_INDICE_5_ANOS`; raw table numbers would cut valid older sales.
 - Store calibrated pairs and the CIDADE|* fallback in itbi_cinto; filter individual corrected prices before SMF aggregation and audit by neighborhood separately, because aggregated filtering can discard good sales with a bad one. SQL loads remain explicit and acceptance-gated.
 - App MCP server lives in src/lib/mcp (one tool per file, OAuth via managed auth, caller-scoped client); supabase/functions/mcp is SDK-generated, never hand-edited, and ships only on publish.
+- MCP history lists use bounded pages with exact counts from the same caller-scoped query and a date-plus-id ordering; counts must never bypass RLS, and multi-page reads are not a frozen snapshot.
