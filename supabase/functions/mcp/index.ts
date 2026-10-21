@@ -81,71 +81,114 @@ var estatisticas_mercado_default = defineTool({
   }
 });
 
-// src/lib/mcp/tools/listas.ts
-import { defineTool as defineTool2, ToolError as ToolError2 } from "npm:@lovable.dev/mcp-js@3.1.1";
+// src/lib/mcp/tools/listar-autorizacoes.ts
+import { defineTool as defineTool2 } from "npm:@lovable.dev/mcp-js@3.1.1";
+
+// src/lib/mcp/pagination.ts
+import { ToolError as ToolError2 } from "npm:@lovable.dev/mcp-js@3.1.1";
 import { z as z2 } from "npm:zod@^3.25.76";
-async function ler(ctx, tabela, colunas, ordem, limite2) {
-  if (!ctx.isAuthenticated()) throw new ToolError2("Autentica\xE7\xE3o necess\xE1ria.");
-  const { data, error } = await supabaseForUser(ctx).from(tabela).select(colunas).order(ordem, { ascending: false }).limit(limite2);
-  if (error) throw new ToolError2("N\xE3o foi poss\xEDvel ler os dados agora.");
-  return { content: [{ type: "text", text: JSON.stringify(data ?? []) }] };
+var paginationSchema = {
+  pagina: z2.number().int().min(1).max(Number.MAX_SAFE_INTEGER / 100).optional().describe("P\xE1gina a consultar, come\xE7ando em 1 (padr\xE3o 1)."),
+  limite: z2.number().int().min(1).max(100).optional().describe("Registros por p\xE1gina, de 1 a 100 (padr\xE3o 20).")
+};
+async function consultarPagina(build, pagina = 1, limite = 20) {
+  const parsed = z2.object(paginationSchema).parse({ pagina, limite });
+  const page = parsed.pagina ?? 1;
+  const size = parsed.limite ?? 20;
+  const from = (page - 1) * size;
+  const { data, count, error } = await build(from, from + size - 1);
+  if (error || count === null) throw new ToolError2("N\xE3o foi poss\xEDvel consultar a p\xE1gina e o total de registros agora.");
+  const registros = data ?? [];
+  const totalPaginas = Math.ceil(count / size);
+  return {
+    registros,
+    pagina: page,
+    limite: size,
+    total_registros: count,
+    total_paginas: totalPaginas,
+    tem_proxima_pagina: page < totalPaginas,
+    proxima_pagina: page < totalPaginas ? page + 1 : null
+  };
 }
-var limite = z2.number().int().min(1).max(100).optional().describe("Quantidade m\xE1xima (padr\xE3o 20).");
-var ro = { readOnlyHint: true, idempotentHint: true, openWorldHint: false };
-var listarVisitas = defineTool2({
-  name: "listar_visitas",
-  title: "Listar visitas",
-  description: "Fichas de visita mais recentes (data, im\xF3vel, visitante, corretor, status).",
-  inputSchema: { limite },
-  annotations: ro,
-  handler: ({ limite: n }, ctx) => ler(
-    ctx,
-    "fichas_visita",
-    "id, codigo, data_visita, status, endereco_imovel, condominio_edificio, nome_visitante, nome_corretor, valor_imovel",
-    "data_visita",
-    n ?? 20
-  )
-});
-var listarLeads = defineTool2({
-  name: "listar_leads",
-  title: "Listar leads",
-  description: "Leads mais recentes com est\xE1gio no funil, interesse e respons\xE1vel.",
-  inputSchema: { limite },
-  annotations: ro,
-  handler: ({ limite: n }, ctx) => ler(
-    ctx,
-    "leads",
-    "id, nome, estagio_pipeline, interesse, bairro_interesse, valor_interesse, urgencia, origem, responsavel_nome, ultimo_contato, created_at",
-    "created_at",
-    n ?? 20
-  )
-});
-var listarAutorizacoes = defineTool2({
+
+// src/lib/mcp/read-list.ts
+import { ToolError as ToolError3 } from "npm:@lovable.dev/mcp-js@3.1.1";
+var readOnlyAnnotations = { readOnlyHint: true, idempotentHint: true, openWorldHint: false };
+async function lerLista(ctx, tabela, colunas, ordem, pagina = 1, limite = 20) {
+  if (!ctx.isAuthenticated()) throw new ToolError3("Autentica\xE7\xE3o necess\xE1ria.");
+  const client = supabaseForUser(ctx);
+  const result = await consultarPagina((from, to) => client.from(tabela).select(colunas, { count: "exact" }).order(ordem, { ascending: false, nullsFirst: false }).order("id", { ascending: false }).range(from, to), pagina, limite);
+  return { content: [{ type: "text", text: JSON.stringify(result) }] };
+}
+
+// src/lib/mcp/tools/listar-autorizacoes.ts
+var listar_autorizacoes_default = defineTool2({
   name: "listar_autorizacoes",
   title: "Listar autoriza\xE7\xF5es de capta\xE7\xE3o",
-  description: "Autoriza\xE7\xF5es de capta\xE7\xE3o e venda com status de assinatura.",
-  inputSchema: { limite },
-  annotations: ro,
-  handler: ({ limite: n }, ctx) => ler(
+  description: "Autoriza\xE7\xF5es de capta\xE7\xE3o em p\xE1ginas, das mais recentes \xE0s mais antigas, com total exato de registros permitidos \xE0 conta conectada. Percorra proxima_pagina at\xE9 null para consultar todo o hist\xF3rico.",
+  inputSchema: paginationSchema,
+  annotations: readOnlyAnnotations,
+  handler: ({ pagina, limite }, ctx) => lerLista(
     ctx,
     "autorizacoes_captacao",
     "id, codigo, status, proprietario_nome, endereco, numero, bairro, valor_venda, data_envio, data_assinatura_proprietario, data_vencimento",
     "created_at",
-    n ?? 20
+    pagina,
+    limite
   )
 });
-var listarAvaliacoes = defineTool2({
+
+// src/lib/mcp/tools/listar-avaliacoes.ts
+import { defineTool as defineTool3 } from "npm:@lovable.dev/mcp-js@3.1.1";
+var listar_avaliacoes_default = defineTool3({
   name: "listar_avaliacoes",
   title: "Listar avalia\xE7\xF5es",
-  description: "Avalia\xE7\xF5es de im\xF3veis realizadas, com faixa de valor e quantidade de escrituras usadas.",
-  inputSchema: { limite },
-  annotations: ro,
-  handler: ({ limite: n }, ctx) => ler(
+  description: "Avalia\xE7\xF5es em p\xE1ginas, das mais recentes \xE0s mais antigas, com total exato de registros permitidos \xE0 conta conectada. Percorra proxima_pagina at\xE9 null para consultar todo o hist\xF3rico.",
+  inputSchema: paginationSchema,
+  annotations: readOnlyAnnotations,
+  handler: ({ pagina, limite }, ctx) => lerLista(
     ctx,
     "valuations",
     "id, created_at, logradouro, numero, bairro, nome_condominio, property_type, property_area_m2, quartos, final_value_min, final_value_med, final_value_max, itbi_med_m2, itbi_transaction_count, confidence_level",
     "created_at",
-    n ?? 20
+    pagina,
+    limite
+  )
+});
+
+// src/lib/mcp/tools/listar-leads.ts
+import { defineTool as defineTool4 } from "npm:@lovable.dev/mcp-js@3.1.1";
+var listar_leads_default = defineTool4({
+  name: "listar_leads",
+  title: "Listar leads",
+  description: "Leads em p\xE1ginas, dos mais recentes aos mais antigos, com total exato de registros permitidos \xE0 conta conectada. Percorra proxima_pagina at\xE9 null para consultar todo o hist\xF3rico.",
+  inputSchema: paginationSchema,
+  annotations: readOnlyAnnotations,
+  handler: ({ pagina, limite }, ctx) => lerLista(
+    ctx,
+    "leads",
+    "id, nome, estagio_pipeline, interesse, bairro_interesse, valor_interesse, urgencia, origem, responsavel_nome, ultimo_contato, created_at",
+    "created_at",
+    pagina,
+    limite
+  )
+});
+
+// src/lib/mcp/tools/listar-visitas.ts
+import { defineTool as defineTool5 } from "npm:@lovable.dev/mcp-js@3.1.1";
+var listar_visitas_default = defineTool5({
+  name: "listar_visitas",
+  title: "Listar visitas",
+  description: "Fichas de visita em p\xE1ginas, das mais recentes \xE0s mais antigas, com total exato de registros permitidos \xE0 conta conectada. Percorra proxima_pagina at\xE9 null para consultar todo o hist\xF3rico.",
+  inputSchema: paginationSchema,
+  annotations: readOnlyAnnotations,
+  handler: ({ pagina, limite }, ctx) => lerLista(
+    ctx,
+    "fichas_visita",
+    "id, codigo, data_visita, status, endereco_imovel, condominio_edificio, nome_visitante, nome_corretor, valor_imovel",
+    "data_visita",
+    pagina,
+    limite
   )
 });
 
@@ -154,13 +197,13 @@ var projectRef = "ldiadiezzooivgittjvj";
 var mcp_default = defineMcp({
   name: "godoy-prime-analytics",
   title: "Godoy Prime Analytics",
-  version: "0.1.0",
-  instructions: "Ferramentas de consulta da Godoy Prime Analytics (mercado imobili\xE1rio do Rio de Janeiro). Responda em pt-BR. Estat\xEDsticas de ITBI v\xEAm de escrituras agregadas e j\xE1 ponderadas; quando a ferramenta disser 'Dados insuficientes', n\xE3o invente n\xFAmeros. Visitas, leads, autoriza\xE7\xF5es e avalia\xE7\xF5es mostram s\xF3 o que o usu\xE1rio conectado pode ver.",
+  version: "0.2.0",
+  instructions: "Ferramentas de consulta da Godoy Prime Analytics (mercado imobili\xE1rio do Rio de Janeiro). Responda em pt-BR. Estat\xEDsticas de ITBI v\xEAm de escrituras agregadas e j\xE1 ponderadas; quando a ferramenta disser 'Dados insuficientes', n\xE3o invente n\xFAmeros. Visitas, leads, autoriza\xE7\xF5es e avalia\xE7\xF5es mostram s\xF3 o que o usu\xE1rio conectado pode ver. As listas retornam registros, total_registros permitido, pagina e proxima_pagina. Para consultar o hist\xF3rico completo, use proxima_pagina at\xE9 null; nunca apresente uma \xFAnica p\xE1gina como resumo completo. Limite \xE9 o tamanho da p\xE1gina, n\xE3o um teto do hist\xF3rico. Dados podem mudar durante a consulta de v\xE1rias p\xE1ginas.",
   auth: auth.oauth.issuer({
     issuer: `https://${projectRef}.supabase.co/auth/v1`,
     acceptedAudiences: "authenticated"
   }),
-  tools: [estatisticas_mercado_default, listarVisitas, listarLeads, listarAutorizacoes, listarAvaliacoes]
+  tools: [estatisticas_mercado_default, listar_visitas_default, listar_leads_default, listar_autorizacoes_default, listar_avaliacoes_default]
 });
 
 // lovable-mcp-supabase-entry.ts
