@@ -1,4 +1,5 @@
 import { defineTool, ToolError } from "@lovable.dev/mcp-js";
+import { z } from "zod";
 import { fetchPaged } from "../../../../supabase/functions/_shared/fetchPaged.ts";
 import {
   bairroSchema,
@@ -22,7 +23,8 @@ export default defineTool({
     bairro: bairroSchema,
     logradouro: logradouroSchema,
     tipologia: tipologiaSchema,
-    ano: z_ano(),
+    ano: z.number().int().min(2015).max(new Date().getUTCFullYear() + 1).optional()
+      .describe("Ano da série (padrão: ano corrente)."),
   },
   annotations: readOnlyAnnotations,
   handler: async ({ bairro, logradouro, tipologia, ano }, ctx) => {
@@ -68,13 +70,3 @@ export default defineTool({
     return { content: [{ type: "text" as const, text: JSON.stringify(payload) }] };
   },
 });
-
-function z_ano() {
-  return z_anoSchema();
-}
-
-import { z } from "zod";
-function z_anoSchema() {
-  return z.number().int().min(2015).max(new Date().getUTCFullYear() + 1).optional()
-    .describe("Ano da série (padrão: ano corrente).");
-}
