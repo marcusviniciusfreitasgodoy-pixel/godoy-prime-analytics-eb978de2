@@ -19,8 +19,8 @@ function classificarUso(uso: string | null): 'Residencial' | 'Comercial' {
   return 'Residencial'
 }
 
-function classificarTipologia(tipologia: string | null): string | null {
-  if (!tipologia) return null
+function classificarTipologia(tipologia: string | null): string {
+  if (!tipologia) return 'Apartamento'
   const tipo = tipologia.toLowerCase().trim()
   if (tipo.includes('apartamento') || tipo.includes('apto') || tipo.includes('flat') || tipo.includes('cobertura')) {
     return 'Apartamento'
@@ -86,8 +86,10 @@ Deno.serve(async (req) => {
     // Guarda da fonte: se os dois meses já foram consolidados a partir da SMF
     // (itbi_consolidar_smf), a camada 8 não pode sobrescrevê-los. O cron então
     // encerra sem gravar; a carga mensal passa a ser scripts/itbi-smf.
+    // cast: ClienteContagem em _shared/itbiFonte.ts é um subconjunto mínimo,
+    // sem arrastar os tipos gerados do supabase-js para lá.
     const linhasSmf = await periodoCobertoPelaSmf(
-      supabase,
+      supabase as unknown as Parameters<typeof periodoCobertoPelaSmf>[0],
       inicioDoMes(prevYear, prevMonth),
       fimDoMes(currentYear, currentMonth)
     )
