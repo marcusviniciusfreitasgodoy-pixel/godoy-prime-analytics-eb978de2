@@ -4,7 +4,7 @@
 // Imprime os pares excluídos e as maiores mudanças de piso e teto.
 import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { OUTLIER_LIMITS_TABLE } from "../supabase/functions/_shared/outlierLimits.ts";
-import { calcularTabelaCinto, calcularDefaultsCinto, parseCsvCidade, parseCsvCalibracao, renderizarTabela, renderizarSqlCinto } from "../supabase/functions/_shared/outlierLimitsGen.ts";
+import { calcularTabelaCinto, calcularDefaultsCinto, parseCsvCidade, parseCsvCalibracao, renderizarConstantes, renderizarTabela, renderizarSqlCinto } from "../supabase/functions/_shared/outlierLimitsGen.ts";
 
 const [csvPath, cidadePath, ...flags] = process.argv.slice(2);
 if (!csvPath || !cidadePath) {
@@ -37,26 +37,32 @@ for (const m of mudancas.filter((x) => x.antes).slice(0, 15)) {
 }
 console.log("\nExcluídos (escrituras 3 anos / 5 anos):", excluidos.map((x) => `${x.chave} ${x.escrituras3}/${x.escrituras5}`).join("; ") || "nenhum");
 
+console.log(`\nFaixa da cidade ${defaults.pisoCidade} / ${defaults.tetoCidade}; fatores do índice em 5 anos ${defaults.fator} (piso) e ${defaults.fatorMin} (teto); sem bairro, em preço da época: piso ${defaults.minimo}, teto ${defaults.maximo} (${defaults.tetoResidencial} em preço de hoje).`);
+
 if (dryRun) process.exit(0);
 const data = new Date().toISOString().slice(0, 10);
 mkdirSync(new URL("../docs/calibracao/", import.meta.url), { recursive: true });
 const sqlPath = new URL(`../docs/calibracao/cinto-${data}.sql`, import.meta.url);
 writeFileSync(sqlPath, renderizarSqlCinto(tabela, cidade, data));
-console.log(`\nSQL de carga (não executado): ${sqlPath.pathname}`);
+console.log(`SQL de carga da itbi_cinto (não executado): ${sqlPath.pathname}`);
+
 const fonte = readFileSync(alvo, "utf8");
 const inicio = fonte.indexOf("export const OUTLIER_LIMITS_TABLE: Record<string, OutlierLimitEntry> = {\n");
 const fim = fonte.indexOf("\n};\n", inicio);
 if (inicio < 0 || fim < 0) throw new Error("bloco OUTLIER_LIMITS_TABLE não encontrado em outlierLimits.ts");
 const cabecalho = "export const OUTLIER_LIMITS_TABLE: Record<string, OutlierLimitEntry> = {\n";
 let novaFonte = fonte.slice(0, inicio) + cabecalho + renderizarTabela(tabela) + fonte.slice(fim);
-novaFonte = novaFonte.replace(/export const DEFAULT_OUTLIER_MIN = \d+;/,
-  `export const FAIXA_SEM_CALIBRACAO_PISO = ${defaults.pisoCidade};\nexport const DEFAULT_OUTLIER_MIN = FAIXA_SEM_CALIBRACAO_PISO;`)
-  .replace(/export const DEFAULT_OUTLIER_MAX = \d+;/,
-    `${fonte.includes("export const FAIXA_SEM_CALIBRACAO_TETO") ? "" : `export const FAIXA_SEM_CALIBRACAO_TETO = ${defaults.tetoCidade};\n`}export const DEFAULT_OUTLIER_MAX = ${defaults.maximo};`)
-  .replace(/export const SMALL_SAMPLE_ESCRITURAS = \d+;/, "export const SMALL_SAMPLE_ESCRITURAS = 200;");
-// Regerações posteriores substituem também as constantes já criadas.
-novaFonte = novaFonte.replace(/export const FAIXA_SEM_CALIBRACAO_PISO = \d+;/g, `export const FAIXA_SEM_CALIBRACAO_PISO = ${defaults.pisoCidade};`)
-  .replace(/export const FAIXA_SEM_CALIBRACAO_TETO = \d+;/g, `export const FAIXA_SEM_CALIBRACAO_TETO = ${defaults.tetoCidade};`);
+
+const marcaIni = "// <cinto:constantes> (gerado por bun run cinto; não editar)\n";
+const marcaFim = "// </cinto:constantes>";
+const i0 = novaFonte.indexOf(marcaIni), i1 = novaFonte.indexOf(marcaFim);
+if (i0 < 0 || i1 < 0) throw new Error("marcadores <cinto:constantes> não encontrados em outlierLimits.ts");
+const nome = (u: string) => u.split("/").pop() ?? u;
+novaFonte = novaFonte.slice(0, i0 + marcaIni.length) + renderizarConstantes(defaults, {
+  data, pares: Object.keys(tabela).length, excluidos: excluidos.length,
+  csv74: nome(csvPath), csv74b: nome(cidadePath), escrituras: cidade.escrituras,
+}) + "\n" + novaFonte.slice(i1);
+
 const destino = candidate || alvo;
 writeFileSync(destino, novaFonte);
-console.log(`\n${candidate ? "Candidato (não aplicado)" : "Tabela aplicada"}: ${destino}; cidade ${defaults.pisoCidade}/${defaults.tetoCidade}; teto sem bairro ${defaults.maximo}.`);
+console.log(`${candidate ? "Candidato (não aplicado)" : "Tabela e constantes aplicadas"}: ${destino}. Rode bun run test e atualize o Apêndice B.`);
