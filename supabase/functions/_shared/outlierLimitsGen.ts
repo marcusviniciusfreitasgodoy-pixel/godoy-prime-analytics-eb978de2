@@ -129,3 +129,24 @@ export const renderizarTabela = (tabela: Record<string, OutlierLimitEntry>): str
       `  "${k}": { piso: ${e.piso}, teto: ${e.teto}, p1: ${e.p1}, p995: ${e.p995}, mediana: ${e.mediana}, escrituras: ${e.escrituras}, janela: "${e.janela}" },`
     )
     .join("\n");
+
+/** SQL de carga separado: nunca executa nem altera o cinto ativo. CIDADE|* é o fallback. */
+export const renderizarSqlCinto = (
+  tabela: Record<string, OutlierLimitEntry>,
+  cidade: { piso: number; teto: number; escrituras: number },
+  calibradoEm: string,
+): string => {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(calibradoEm)) throw new Error("Data de calibração inválida");
+  const quote = (v: string) => `'${v.replace(/'/g, "''")}'`;
+  const entries = Object.entries(tabela).sort(([a], [b]) => a.localeCompare(b)).map(([key, e]) => {
+    const [bairro, tipologia] = key.split("|");
+    return { bairro, tipologia, piso: e.piso, teto: e.teto, escrituras: e.escrituras, janela: e.janela ?? "3 anos" };
+  });
+  entries.push({ bairro: "CIDADE", tipologia: "*", ...cidade, janela: "3 anos" });
+  const rows = entries.map(e => {
+    if (![e.piso, e.teto, e.escrituras].every(Number.isFinite) || e.piso <= 0 || e.teto <= e.piso || e.escrituras < 30)
+      throw new Error("Limites ou amostra inválidos para carga do cinto");
+    return `(${quote(e.bairro)}, ${quote(e.tipologia)}, ${e.piso}, ${e.teto}, ${quote(e.janela)}, ${e.escrituras}, ${quote(calibradoEm)}::timestamptz)`;
+  });
+  return `-- Candidato: aplicar somente após aceite. Preços corrigidos pelo índice trimestral.\nBEGIN;\nTRUNCATE TABLE public.itbi_cinto;\nINSERT INTO public.itbi_cinto (bairro, tipologia, piso, teto, janela, escrituras, calibrado_em) VALUES\n${rows.join(",\n")};\nCOMMIT;\n`;
+};
