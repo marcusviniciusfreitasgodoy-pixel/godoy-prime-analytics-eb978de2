@@ -7,19 +7,17 @@
 //   - senão, fora da tabela (cai na faixa do bairro ou nos padrões).
 // Sem dependências além de outlierLimits.ts: roda em Bun, Deno e no navegador.
 import {
-  DEFAULT_OUTLIER_MAX,
-  DEFAULT_OUTLIER_MIN,
   normalizeBairro,
   type OutlierLimitEntry,
   PISO_MARGIN,
-  SMALL_SAMPLE_ESCRITURAS,
   SMALL_SAMPLE_WIDTH,
   TETO_MARGIN,
 } from "./outlierLimits.ts";
+import { LIMITES_INGESTAO } from "./itbiIngestion.ts";
 
 /** Abaixo disso em 5 anos o par não entra na tabela: a mediana de meia dúzia de escrituras não sustenta cinto. */
 export const MIN_ESCRITURAS_CINTO = 30;
-export const MIN_ESCRITURAS_3_ANOS = SMALL_SAMPLE_ESCRITURAS;
+export const MIN_ESCRITURAS_3_ANOS = 200;
 
 export interface LinhaCalibracao {
   bairro: string;
@@ -37,7 +35,8 @@ export interface ParExcluido {
   escrituras5: number;
 }
 
-const tipologiaValida = (t: string): t is "Apartamento" | "Casa" => t === "Apartamento" || t === "Casa";
+const tipologiaValida = (t: string): t is "Apartamento" | "Casa" | "Comercial" =>
+  t === "Apartamento" || t === "Casa" || t === "Comercial";
 
 export const parseCsvCalibracao = (csv: string): LinhaCalibracao[] => {
   const linhas = csv.trim().split(/\r?\n/);
@@ -60,8 +59,8 @@ export const parseCsvCalibracao = (csv: string): LinhaCalibracao[] => {
   });
 };
 
-const clampPiso = (v: number) => Math.max(DEFAULT_OUTLIER_MIN, Math.round(v));
-const clampTeto = (v: number) => Math.min(DEFAULT_OUTLIER_MAX, Math.round(v));
+const clampPiso = (v: number) => Math.max(LIMITES_INGESTAO.valorM2Min, Math.round(v));
+const clampTeto = (v: number) => Math.min(LIMITES_INGESTAO.valorM2Max, Math.round(v));
 
 export const entradaPadrao = (r: LinhaCalibracao): OutlierLimitEntry => ({
   piso: clampPiso(r.piso_p1 * PISO_MARGIN),
@@ -89,13 +88,38 @@ export const calcularTabelaCinto = (
   const tabela: Record<string, OutlierLimitEntry> = {};
   const excluidos: ParExcluido[] = [];
   for (const chave of [...porPar.keys()].sort()) {
-    const { r3, r5 } = porPar.get(chave)!;
+    const par = porPar.get(chave);
+    if (!par) continue;
+    const { r3, r5 } = par;
     if (r3 && r3.escrituras >= MIN_ESCRITURAS_3_ANOS) tabela[chave] = entradaPadrao(r3);
     else if (r5 && r5.escrituras >= MIN_ESCRITURAS_CINTO) tabela[chave] = entradaAmostraPequena(r5);
-    else if (!r5 && r3 && r3.escrituras >= MIN_ESCRITURAS_CINTO) tabela[chave] = { ...entradaAmostraPequena(r3), janela: "3 anos" };
     else excluidos.push({ chave, escrituras3: r3?.escrituras ?? 0, escrituras5: r5?.escrituras ?? 0 });
   }
   return { tabela, excluidos };
+};
+
+/** Faixa de fallback obtida exclusivamente do CSV da consulta 7.4b. */
+export const parseCsvCidade = (csv: string): { piso: number; teto: number; escrituras: number } => {
+  const [cabecalho, linha, ...extras] = csv.trim().split(/\r?\n/);
+  if (!linha || extras.some((x) => x.trim())) throw new Error("CSV da cidade deve ter exatamente uma linha");
+  const nomes = cabecalho.split(",").map((x) => x.trim());
+  const valores = linha.split(",").map((x) => x.trim());
+  const ler = (nome: string) => {
+    const idx = nomes.indexOf(nome);
+    const valor = idx < 0 ? NaN : Number(valores[idx]);
+    if (!Number.isFinite(valor) || valor <= 0) throw new Error(`CSV da cidade inválido: ${nome}`);
+    return valor;
+  };
+  const piso = ler("piso_cidade"), teto = ler("teto_cidade"), escrituras = ler("escrituras");
+  if (teto <= piso || escrituras < MIN_ESCRITURAS_3_ANOS) throw new Error("Faixa da cidade sem amostra ou limites válidos");
+  return { piso, teto, escrituras };
+};
+
+export const calcularDefaultsCinto = (tabela: Record<string, OutlierLimitEntry>, cidade: { piso: number; teto: number }) => {
+  const residenciais = Object.entries(tabela).filter(([k]) => /\|(Apartamento|Casa)$/.test(k));
+  if (!residenciais.length) throw new Error("Sem pares residenciais calibrados para gerar teto padrão");
+  return { pisoCidade: cidade.piso, tetoCidade: cidade.teto, minimo: cidade.piso,
+    maximo: Math.max(...residenciais.map(([, e]) => e.teto)) };
 };
 
 /** Corpo do literal `OUTLIER_LIMITS_TABLE`, uma linha por par, na ordem das chaves. */
