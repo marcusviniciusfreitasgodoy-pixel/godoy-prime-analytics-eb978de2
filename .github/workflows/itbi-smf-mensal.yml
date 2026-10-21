@@ -3,12 +3,14 @@ name: ITBI SMF mensal
 # Carga mensal do ITBI por escritura (planilhas da SMF) e consolidação em
 # itbi_transactions. Ver scripts/itbi-smf/README.md.
 #
-# Secrets necessários no repositório: SUPABASE_URL e SUPABASE_SERVICE_ROLE_KEY
-# (a chave de serviço do backend; nunca a publicável).
+# Para gravar (dry_run = false) seriam necessários os secrets SUPABASE_URL e
+# SUPABASE_SERVICE_ROLE_KEY, que a Lovable Cloud não fornece.
 
+# Só disparo manual: o backend roda na Lovable Cloud, que não expõe a chave de
+# serviço. A carga oficial é o painel "ITBI por escritura (SMF)" em /admin
+# (edge function ingest-itbi-smf). Este workflow serve para dry-run do
+# carregador Python (dry_run = true dispensa secrets).
 on:
-  schedule:
-    - cron: "0 9 5 * *"   # dia 5 de cada mês, 06:00 em Brasília
   workflow_dispatch:
     inputs:
       bairro:

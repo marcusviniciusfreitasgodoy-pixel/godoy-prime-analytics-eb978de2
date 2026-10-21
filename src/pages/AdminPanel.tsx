@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Loader2, Building2, Users, DollarSign, Search, Shield } from "lucide-react";
 import { format } from "date-fns";
+import { CargaItbiSmf } from "@/components/admin/CargaItbiSmf";
 import { ptBR } from "date-fns/locale";
 
 const PLAN_LABELS: Record<string, string> = {
@@ -120,6 +121,8 @@ export default function AdminPanel() {
             </CardContent>
           </Card>
         </div>
+
+        <CargaItbiSmf />
 
         <Card>
           <CardHeader>
