@@ -273,7 +273,7 @@ describe("calculateITBIData", () => {
   });
 });
 
-describe("outlierLimits (tabela gerada por bun run cinto a partir da 7.4 com P0,5 de 2026-10-22)", () => {
+describe("outlierLimits (tabela gerada por bun run cinto a partir da 7.4 com P0,5, sem vendas fora de mercado, de 2026-10-22)", () => {
   /** Piso e teto da tabela (preço do último trimestre) convertidos para preço da época, como getOutlierLimits devolve. */
   const nominal = (piso: number) => Math.round(piso / FATOR_INDICE_5_ANOS);
   const nominalTeto = (teto: number) => Math.round(teto / FATOR_MIN_INDICE_5_ANOS);
@@ -297,47 +297,47 @@ describe("outlierLimits (tabela gerada por bun run cinto a partir da 7.4 com P0,
     }
   });
   test("par bairro × tipologia calibrado: piso e teto convertidos para preço da época", () => {
-    expect(OUTLIER_LIMITS_TABLE["BARRA DA TIJUCA|Apartamento"]).toMatchObject({ piso: 3909, teto: 35346, janela: "3 anos" });
+    expect(OUTLIER_LIMITS_TABLE["BARRA DA TIJUCA|Apartamento"]).toMatchObject({ piso: 4411, teto: 35720, janela: "3 anos" });
     const barraApto = getOutlierLimits("BARRA DA TIJUCA", "Apartamento");
-    expect(barraApto).toEqual({ piso: nominal(3909), teto: nominalTeto(35346), calibrado: true });
+    expect(barraApto).toEqual({ piso: nominal(4411), teto: nominalTeto(35720), calibrado: true });
     // Piso cai (trimestre mais barato da janela); teto sobe (trimestre mais caro que o último).
-    expect(barraApto.piso).toBeLessThan(3909);
-    expect(barraApto.teto).toBeGreaterThanOrEqual(35346);
-    expect(getOutlierLimits("BARRA DA TIJUCA", "Casa em Condomínio").teto).toBe(nominalTeto(45856));
+    expect(barraApto.piso).toBeLessThan(4411);
+    expect(barraApto.teto).toBeGreaterThanOrEqual(35720);
+    expect(getOutlierLimits("BARRA DA TIJUCA", "Casa em Condomínio").teto).toBe(nominalTeto(46992));
   });
   test("cobertura usa a calibração de apartamento, como o importador", () => {
-    expect(getOutlierLimits("LEBLON", "Cobertura Duplex").teto).toBe(nominalTeto(71100));
+    expect(getOutlierLimits("LEBLON", "Cobertura Duplex").teto).toBe(nominalTeto(72765));
   });
   test("sala, loja e escritório usam o par Comercial do bairro", () => {
-    expect(getOutlierLimits("BARRA DA TIJUCA", "Sala Comercial")).toEqual({ piso: nominal(2258), teto: nominalTeto(49643), calibrado: true });
-    expect(getOutlierLimits("BARRA DA TIJUCA", "Loja").teto).toBe(nominalTeto(49643));
-    expect(getOutlierLimits("BARRA DA TIJUCA", "Escritório").teto).toBe(nominalTeto(49643));
+    expect(getOutlierLimits("BARRA DA TIJUCA", "Sala Comercial")).toEqual({ piso: nominal(2957), teto: nominalTeto(50237), calibrado: true });
+    expect(getOutlierLimits("BARRA DA TIJUCA", "Loja").teto).toBe(nominalTeto(50237));
+    expect(getOutlierLimits("BARRA DA TIJUCA", "Escritório").teto).toBe(nominalTeto(50237));
   });
   test("tipologia sem par no bairro cai na faixa residencial do bairro, sem o Comercial", () => {
-    // IPANEMA|Casa ficou fora (28 escrituras em 5 anos); o Comercial de Ipanema tem teto 155.930
+    // IPANEMA|Casa ficou fora (menos de 30 escrituras em 5 anos); o Comercial de Ipanema tem teto 157.829
     expect(OUTLIER_LIMITS_TABLE["IPANEMA|Casa"]).toBeUndefined();
-    expect(getOutlierLimits("IPANEMA", "Casa")).toEqual({ piso: nominal(6413), teto: nominalTeto(84363), calibrado: true });
+    expect(getOutlierLimits("IPANEMA", "Casa")).toEqual({ piso: nominal(6899), teto: nominalTeto(84397), calibrado: true });
   });
   test("bairro sem tipologia informada: menor piso e maior teto entre Apartamento e Casa", () => {
-    expect(getOutlierMinLimit("BARRA DA TIJUCA")).toBe(nominal(2020));
-    expect(getOutlierLimit("BARRA DA TIJUCA")).toBe(nominalTeto(45856)); // Casa; o Comercial (49.643) não entra
+    expect(getOutlierMinLimit("BARRA DA TIJUCA")).toBe(nominal(2065));
+    expect(getOutlierLimit("BARRA DA TIJUCA")).toBe(nominalTeto(46992)); // Casa; o Comercial (50.237) não entra
   });
   test("amostra pequena: janela de 5 anos e largura mínima [mediana/2; mediana×2]", () => {
-    // COELHO NETO|Apartamento: 31 escrituras, mediana 2.189 → piso 1.095 (mediana/2 < P0,5 × 0,85 = 1.294)
-    expect(OUTLIER_LIMITS_TABLE["COELHO NETO|Apartamento"]).toMatchObject({ piso: 1095, janela: "5 anos" });
-    // CIDADE NOVA|Apartamento: mediana 4.740 → teto 9.480 (mediana × 2 > P99,5 × 1,15 = 8.830)
-    expect(OUTLIER_LIMITS_TABLE["CIDADE NOVA|Apartamento"]).toMatchObject({ teto: 9480, janela: "5 anos" });
-    expect(getOutlierLimits("CIDADE NOVA", "Apartamento").teto).toBe(nominalTeto(9480));
+    // COELHO NETO|Apartamento: 30 escrituras, mediana 2.296 → piso 1.148 (mediana/2 < P0,5 × 0,85 = 1.345)
+    expect(OUTLIER_LIMITS_TABLE["COELHO NETO|Apartamento"]).toMatchObject({ piso: 1148, janela: "5 anos" });
+    // CIDADE NOVA|Apartamento: mediana 4.869 → teto 9.738 (mediana × 2 > P99,5 × 1,15 = 9.006)
+    expect(OUTLIER_LIMITS_TABLE["CIDADE NOVA|Apartamento"]).toMatchObject({ teto: 9738, janela: "5 anos" });
+    expect(getOutlierLimits("CIDADE NOVA", "Apartamento").teto).toBe(nominalTeto(9738));
   });
   test("Santa Cruz deixa de perder vendas: piso P0,5 em vez de P1", () => {
     const sc = OUTLIER_LIMITS_TABLE["SANTA CRUZ|Apartamento"];
-    expect(sc).toMatchObject({ piso: 827, teto: 7337, janela: "3 anos" });
+    expect(sc).toMatchObject({ piso: 1173, teto: 7365, janela: "3 anos" });
     expect(sc.piso).toBeLessThan(Math.round(sc.p1 * PISO_MARGIN));
-    expect(getOutlierLimits("SANTA CRUZ", "Apartamento").piso).toBe(nominal(827));
+    expect(getOutlierLimits("SANTA CRUZ", "Apartamento").piso).toBe(nominal(1173));
   });
   test("par de amostra pequena tem limites próprios em vez de herdar o apartamento", () => {
     const casa = getOutlierLimits("COPACABANA", "Casa");
-    expect(casa).toMatchObject({ calibrado: true, teto: nominalTeto(90965) });
+    expect(casa).toMatchObject({ calibrado: true, teto: nominalTeto(92308) });
     expect(casa).not.toEqual(getOutlierLimits("COPACABANA", "Apartamento"));
   });
   test("bairro sem calibração usa a faixa da cidade e sinaliza não calibrado", () => {
@@ -350,7 +350,7 @@ describe("outlierLimits (tabela gerada por bun run cinto a partir da 7.4 com P0,
       .filter(([k, e]) => /\|(Apartamento|Casa)$/.test(k) && e.janela === "3 anos")
       .map(([, e]) => e.teto);
     expect(DEFAULT_OUTLIER_MAX).toBe(nominalTeto(Math.max(...tetos)));
-    expect(Math.max(...tetos)).toBe(84363); // IPANEMA|Apartamento
+    expect(Math.max(...tetos)).toBe(84397); // IPANEMA|Apartamento
   });
   test("fatores do índice ficam numa faixa plausível", () => {
     expect(FATOR_INDICE_5_ANOS).toBeGreaterThanOrEqual(1);
@@ -360,9 +360,9 @@ describe("outlierLimits (tabela gerada por bun run cinto a partir da 7.4 com P0,
   });
   test("ignora acentos e caixa", () => {
     expect(normalizeBairro("Jardim Botânico")).toBe("JARDIM BOTANICO");
-    expect(getOutlierLimit("jardim botânico")).toBe(nominalTeto(55064));
-    expect(getOutlierLimit("Grajaú")).toBe(nominalTeto(14242));
-    expect(getOutlierLimit("Freguesia (Jacarepaguá)")).toBe(nominalTeto(11443));
+    expect(getOutlierLimit("jardim botânico")).toBe(nominalTeto(55746));
+    expect(getOutlierLimit("Grajaú")).toBe(nominalTeto(14381));
+    expect(getOutlierLimit("Freguesia (Jacarepaguá)")).toBe(nominalTeto(11699));
   });
 });
 
