@@ -165,12 +165,12 @@ Observações: o critério de suficiência da janela é **8 linhas agregadas**, 
 
 O piso usa P0,5, não P1. Com P1, a primeira proposta deixava cinco pares acima de 2% de corte, sempre por vendas baratas recentes. Com P0,5 nenhum par reprova (seção 15.0). P1 continua na tabela só como referência.
 
-**Faixa da cidade (consulta 7.4b).** Escrituras residenciais corrigidas em 3 anos, sem `DESCONHECIDO`: piso = P0,5 × 0,85, teto = P99,5 × 1,15. Hoje **907 / 42.013**, sobre 126.381 escrituras. Vai para `itbi_cinto` como a linha `CIDADE|*`.
+**Faixa da cidade (consulta 7.4b).** Escrituras residenciais corrigidas em 3 anos, sem `DESCONHECIDO`: piso = P0,5 × 0,85, teto = P99,5 × 1,15. Hoje **973 / 42.601**, sobre 124.035 escrituras. Vai para `itbi_cinto` como a linha `CIDADE|*`.
 
 **Unidade de preço.** A tabela está em preço do último trimestre do índice. As linhas de `itbi_transactions` estão em preço da época, com até 5 anos. Fator de um trimestre = índice do último trimestre ÷ índice daquele trimestre (consulta 7.4b). O app converte os limites antes de filtrar:
 
-- piso ÷ `FATOR_INDICE_5_ANOS`, o maior fator da janela (hoje **1,1721**, trimestre mais barato);
-- teto ÷ `FATOR_MIN_INDICE_5_ANOS`, o menor fator da janela (hoje **0,9667**: o trimestre de 2026-04 custou 3,4% mais que o de 2026-07).
+- piso ÷ `FATOR_INDICE_5_ANOS`, o maior fator da janela (hoje **1,2050**, trimestre mais barato);
+- teto ÷ `FATOR_MIN_INDICE_5_ANOS`, o menor fator da janela (hoje **0,9705**: o trimestre de 2026-04 custou 3,0% mais que o de 2026-07).
 
 Com isso o app nunca corta uma linha que o banco aceitou. A faixa fica um pouco mais larga que a do banco, o que é seguro: o banco já filtrou cada escritura. No banco, `itbi_aplicar_cinto` corrige cada escritura antes de comparar, então usa os limites sem conversão.
 
@@ -178,7 +178,7 @@ Com isso o app nunca corta uma linha que o banco aceitou. A faixa fica um pouco 
 
 1. **No banco, por escritura, antes da agregação.** `itbi_consolidar_smf()` chama `itbi_aplicar_cinto`, que marca `motivo_rejeicao = 'fora_do_cinto'`. Par exato; senão a faixa da cidade. Sem a linha `CIDADE|*` em `itbi_cinto`, a consolidação para com erro. A mesma função aplica as duas regras por prédio descritas abaixo.
 2. **No app, sobre `itbi_transactions`.** `getOutlierLimits(bairro, tipologia)`: par exato (Apartamento, Casa ou Comercial; cobertura e flat contam como Apartamento; sala, loja e escritório como Comercial); senão, menor piso e maior teto entre Apartamento e Casa do bairro, nunca Comercial; senão, a faixa da cidade (`DEFAULT_OUTLIER_MIN` e `FAIXA_SEM_CALIBRACAO_TETO` convertido) com `calibrado: false`.
-3. **Busca sem bairro.** `DEFAULT_OUTLIER_MIN` = piso da cidade ÷ maior fator (hoje 774). `DEFAULT_OUTLIER_MAX` = maior teto de Apartamento/Casa da faixa padrão de 3 anos (84.363, Ipanema) ÷ menor fator, hoje 87.269. Pares de 5 anos ficam fora desse máximo, porque uma amostra pequena com cauda gorda (Copacabana/Casa, 60 escrituras, teto 90.965) não pode definir o teto da cidade inteira.
+3. **Busca sem bairro.** `DEFAULT_OUTLIER_MIN` = piso da cidade ÷ maior fator (hoje 807). `DEFAULT_OUTLIER_MAX` = maior teto de Apartamento/Casa da faixa padrão de 3 anos (84.397, Ipanema) ÷ menor fator, hoje 86.962. Pares de 5 anos ficam fora desse máximo, porque uma amostra pequena com cauda gorda (Copacabana/Casa, 60 escrituras, teto 92.308) não pode definir o teto da cidade inteira.
 
 O fallback do banco (cidade) e o do app (residencial do bairro) diferem quando falta o par. Medido em 2026-10-21 sobre os 12 meses: 414 vendas sem par; a faixa da cidade corta 14 e a residencial do bairro cortaria 21. Diferença pequena, sem mudança no banco.
 
@@ -190,7 +190,7 @@ O fallback do banco (cidade) e o do app (residencial do bairro) diferem quando f
 - **Exceção** (só acima do teto): com 2 ou mais referências e R$/m² entre 0,67 e 1,5 vez a mediana delas, a escritura não é cortada. Recupera vendas reais de prédios caros para o bairro. Abaixo do piso não há exceção, para um prédio com várias vendas fora de mercado não abonar as outras.
 - **Ordem:** fora de mercado vence; depois vale o cinto com a exceção. A marcação é refeita a cada consolidação, e nada é apagado.
 
-Constantes espelhadas em `REGRA_PREDIO` (`_shared/outlierLimits.ts`), com a mesma decisão em `classificarEscritura`. O teste `regraPredio.test.ts` falha se a migration e o código divergirem. Simulação de leitura por ano: `docs/calibracao/bloco74d-simulacao-regras-predio.sql`. Como as consultas 7.4 e 7.4b usam `aceita OR motivo_rejeicao = 'fora_do_cinto'`, as escrituras fora de mercado ficam fora da calibração do cinto.
+Constantes espelhadas em `REGRA_PREDIO` (`_shared/outlierLimits.ts`), com a mesma decisão em `classificarEscritura`. O teste `regraPredio.test.ts` falha se a migration e o código divergirem. Simulação de leitura por ano: `docs/calibracao/bloco74d-simulacao-regras-predio.sql`. Como as consultas 7.4 e 7.4b usam `aceita OR motivo_rejeicao = 'fora_do_cinto'`, as escrituras fora de mercado ficam fora da calibração do cinto. A tabela vigente já foi calibrada assim (recalibração de 2026-10-22, seção 15.0).
 
 **Fluxo de recalibração:** consultas 7.4 e 7.4b → dois CSVs em `docs/calibracao/` → `bun run cinto <csv 7.4> <csv 7.4b>` (aceita `--dry-run` e `--candidate=<arquivo>`) → `bun run test` → aceite da seção 15.0 → carga de `docs/calibracao/cinto-<data>.sql` no banco → reconsolidação pelo painel /admin → Apêndice B. Cadência trimestral ou depois de carga relevante, não a cada carga mensal. O motor estatístico e o MAD da seção 2.7 não mudam.
 
@@ -1065,6 +1065,31 @@ Resultado na base: aceitas de 313.245 para 309.240.
 - **Exceção e filtro do app:** das escrituras poupadas pela exceção, nenhuma cai numa linha de `itbi_transactions` que o filtro secundário do app cortaria (teto ÷ 0,9667).
 - **Limitação:** a regra só age onde o prédio tem 2 ou mais referências de área parecida dentro do cinto. Casas isoladas e prédios com poucas vendas continuam dependendo só do cinto e do MAD.
 
+#### Recalibração de 2026-10-22, sem as vendas fora de mercado
+
+A tabela de 2026-10-21 foi calibrada com as 4.303 escrituras que a regra por prédio passou a marcar como fora de mercado. Elas engrossavam a ponta barata e puxavam o piso para baixo. As consultas 7.4 e 7.4b foram rodadas de novo depois da reconsolidação (`bloco74-escrituras-sem-fora-de-mercado-2026-10-22.csv`, `bloco74b-cidade-sem-fora-de-mercado-2026-10-22.csv`), e o índice de preços já estava recalculado sem elas.
+
+- **Tabela:** 313 pares (4 saem por amostra: Estácio/Casa, Jardim Carioca/Comercial, Laranjeiras/Comercial, Magalhães Bastos/Apartamento). Realengo/Apartamento e Cosmos/Casa passam para a janela de 5 anos.
+- **Mudança típica:** piso e teto sobem cerca de 2% (efeito do índice recalculado).
+- **Pisos que mais sobem**, porque a ponta barata era feita de vendas fora de mercado: Glória/Apartamento de 1.324 para 3.686; Jardim Carioca/Apartamento de 719 para 1.405; Vaz Lobo/Apartamento de 550 para 1.026; São Conrado/Apartamento de 2.741 para 4.595.
+- **Cidade e constantes:** faixa 973 / 42.601 (era 907 / 42.013); fatores 1,2050 e 0,9705; padrões sem bairro 807 / 86.962.
+
+**Aceite** (vendas dos últimos 12 meses, mesma regra da seção 15.0):
+
+| Faixa | Pares | Vendas | Cortado | Reprovados |
+|---|---:|---:|---:|---:|
+| Padrão (3 anos) | 100 | 37.793 | 0,27% | 0 |
+| Amostra pequena (5 anos) | 213 | 5.194 | 0,37% | 0 |
+
+Glória/Apartamento: 0 de 303 vendas recentes abaixo do piso novo.
+
+**Efeito na base inteira (2019 a set/2026), só do cinto:**
+- **Cortadas a mais:** 198 vendas hoje aceitas cairiam abaixo do piso novo, sem bairro concentrando o corte (o maior é a Barra, com 23).
+- **Acima do teto novo:** 137 vendas aceitas, quase todas já salvas pela exceção por prédio.
+- **Recuperadas:** 17 vendas hoje fora do cinto voltam.
+
+O número exato sai da função `itbi_aplicar_cinto` em modo simulação, depois da carga da `itbi_cinto` e antes da reconsolidação.
+
 ### 15.1 Pendências no Analytics, por prioridade
 
 **Proteção pré-agregação (2026-10-21):** `public.itbi_cinto` guarda bairro normalizado, tipologia, piso, teto, janela, escrituras e calibrado_em; autenticados têm apenas SELECT. `CIDADE|*` contém a faixa geral, sem usar o maior teto residencial. `bun run cinto <csv 7.4> <csv 7.4b> --candidate=<temporário>` também gera `docs/calibracao/cinto-AAAA-MM-DD.sql`, transacional com TRUNCATE/INSERT, sem executar a carga. Aceite pendente continua impedindo ativação da tabela candidata.
@@ -1300,9 +1325,9 @@ Resultado idêntico: o cinto não corta mercado legítimo num bairro bem calibra
 | `SOURCE_PENALTY` | 0 / 5 / 10 / 15 | itbiMarketStats.ts |
 | `MIN_ESCRITURAS_INDEX_QUARTER` | 30 | itbiMarketStats.ts |
 | `MAX_DEFLATION_FACTOR` | 2 | itbiMarketStats.ts |
-| `DEFAULT_OUTLIER_MIN` / `MAX` | 774 / 87.269 (gerados, preço da época) | outlierLimits.ts |
-| `FAIXA_SEM_CALIBRACAO_PISO` / `TETO` | 907 / 42.013 (preço de hoje) | outlierLimits.ts |
-| `FATOR_INDICE_5_ANOS` / `FATOR_MIN_INDICE_5_ANOS` | 1,1721 / 0,9667 | outlierLimits.ts |
+| `DEFAULT_OUTLIER_MIN` / `MAX` | 807 / 86.962 (gerados, preço da época) | outlierLimits.ts |
+| `FAIXA_SEM_CALIBRACAO_PISO` / `TETO` | 973 / 42.601 (preço de hoje) | outlierLimits.ts |
+| `FATOR_INDICE_5_ANOS` / `FATOR_MIN_INDICE_5_ANOS` | 1,2050 / 0,9705 | outlierLimits.ts |
 | `MIN_ESCRITURAS_3_ANOS` / `MIN_ESCRITURAS_CINTO` | 200 / 30 | outlierLimitsGen.ts |
 | `PISO_MARGIN` / `TETO_MARGIN` | 0,85 / 1,15 | outlierLimits.ts |
 | `STREET_CALIBRATION_MIN_LINHAS` | 8 | outlierLimits.ts |
@@ -1321,9 +1346,9 @@ Resultado idêntico: o cinto não corta mercado legítimo num bairro bem calibra
 
 ---
 
-## Apêndice B. Cinto de outliers: tabela completa (317 pares)
+## Apêndice B. Cinto de outliers: tabela completa (313 pares)
 
-Chave = `BAIRRO|Tipologia` (normalizada: maiúsculas, sem acento). Gerada em 2026-10-22 por `bun run cinto docs/calibracao/bloco74-escrituras-p05-2026-10-22.csv docs/calibracao/bloco74b-cidade-p05-2026-10-22.csv` sobre as escrituras individuais da SMF: 102 pares na faixa padrão de 3 anos (P0,5 × 0,85 e P99,5 × 1,15) e 215 na faixa de 5 anos com a regra de largura mínima da seção 2.5. 138 pares com menos de 30 escrituras em 5 anos ficam fora e caem na faixa residencial do bairro (app) ou na faixa da cidade (banco).
+Chave = `BAIRRO|Tipologia` (normalizada: maiúsculas, sem acento). Gerada em 2026-10-22 por `bun run cinto docs/calibracao/bloco74-escrituras-sem-fora-de-mercado-2026-10-22.csv docs/calibracao/bloco74b-cidade-sem-fora-de-mercado-2026-10-22.csv` sobre as escrituras individuais da SMF, já sem as vendas fora de mercado: 100 pares na faixa padrão de 3 anos (P0,5 × 0,85 e P99,5 × 1,15) e 213 na faixa de 5 anos com a regra de largura mínima da seção 2.5. Os pares com menos de 30 escrituras em 5 anos ficam fora e caem na faixa residencial do bairro (app) ou na faixa da cidade (banco).
 
 Valores em R$/m², em preço do último trimestre do índice (2026-07). O app converte para preço da época antes de filtrar (seção 2.5). Mediana, P0,5, P1 e P99,5 são percentis de escrituras individuais corrigidas, na janela indicada. Escrituras é a contagem da janela. P1 fica só como referência.
 
@@ -1331,323 +1356,319 @@ Para regenerar: consultas 7.4 e 7.4b, CSVs em `docs/calibracao/`, `bun run cinto
 
 | Bairro | Tipologia | Piso | Teto | P0,5 | P1 | Mediana | P99,5 | Escrituras | Janela |
 |---|---|---:|---:|---:|---:|---:|---:|---:|---|
-| ABOLICAO | Apartamento | 1.131 | 7.240 | 1.330 | 1.333 | 3.322 | 6.296 | 207 | 5 anos |
-| ABOLICAO | Casa | 674 | 7.918 | 793 | 903 | 2.852 | 6.885 | 77 | 5 anos |
-| AGUA SANTA | Apartamento | 1.021 | 9.883 | 1.201 | 1.250 | 4.969 | 8.594 | 230 | 3 anos |
-| AGUA SANTA | Casa | 621 | 8.239 | 730 | 785 | 3.191 | 7.164 | 43 | 5 anos |
-| ALTO DA BOA VISTA | Apartamento | 1.476 | 13.487 | 1.736 | 1.736 | 4.630 | 11.728 | 69 | 5 anos |
-| ALTO DA BOA VISTA | Casa | 1.558 | 12.091 | 1.833 | 1.842 | 3.398 | 10.514 | 42 | 5 anos |
-| ANCHIETA | Apartamento | 734 | 8.275 | 864 | 867 | 3.401 | 7.196 | 70 | 5 anos |
-| ANCHIETA | Casa | 662 | 18.509 | 779 | 976 | 2.112 | 16.095 | 95 | 5 anos |
-| ANDARAI | Apartamento | 1.618 | 11.846 | 1.904 | 2.137 | 5.088 | 10.301 | 953 | 3 anos |
-| ANDARAI | Casa | 910 | 22.806 | 1.070 | 1.484 | 3.914 | 19.831 | 148 | 5 anos |
-| ANDARAI | Comercial | 1.879 | 15.841 | 2.210 | 2.333 | 4.028 | 13.775 | 31 | 5 anos |
-| ANIL | Apartamento | 1.833 | 10.475 | 2.157 | 2.403 | 5.577 | 9.109 | 585 | 3 anos |
-| ANIL | Casa | 623 | 9.686 | 733 | 928 | 3.509 | 8.423 | 242 | 3 anos |
-| BANCARIOS | Apartamento | 1.257 | 7.766 | 1.479 | 1.625 | 3.737 | 6.753 | 90 | 5 anos |
-| BANCARIOS | Casa | 870 | 7.484 | 1.024 | 1.029 | 2.346 | 6.508 | 74 | 5 anos |
-| BANGU | Apartamento | 893 | 8.511 | 1.051 | 1.110 | 3.254 | 7.401 | 265 | 3 anos |
-| BANGU | Casa | 501 | 10.480 | 589 | 659 | 2.317 | 9.113 | 467 | 3 anos |
-| BANGU | Comercial | 978 | 39.734 | 1.150 | 1.280 | 4.298 | 34.551 | 142 | 5 anos |
-| BARRA DA TIJUCA | Apartamento | 3.909 | 35.346 | 4.599 | 5.272 | 12.499 | 30.736 | 9.017 | 3 anos |
-| BARRA DA TIJUCA | Casa | 2.020 | 45.856 | 2.376 | 3.048 | 8.700 | 39.875 | 820 | 3 anos |
-| BARRA DA TIJUCA | Comercial | 2.258 | 49.643 | 2.656 | 3.221 | 7.760 | 43.168 | 2.181 | 3 anos |
-| BARRA OLIMPICA | Apartamento | 3.199 | 15.476 | 3.764 | 3.939 | 8.707 | 13.457 | 935 | 3 anos |
-| BARRA OLIMPICA | Comercial | 1.699 | 14.787 | 1.999 | 2.079 | 5.238 | 12.858 | 121 | 5 anos |
-| BENFICA | Apartamento | 1.104 | 10.629 | 1.299 | 1.368 | 3.346 | 9.243 | 125 | 5 anos |
-| BENFICA | Casa | 783 | 14.484 | 921 | 1.044 | 2.563 | 12.595 | 74 | 5 anos |
-| BENFICA | Comercial | 853 | 9.593 | 1.003 | 1.201 | 2.858 | 8.342 | 127 | 5 anos |
-| BENTO RIBEIRO | Apartamento | 980 | 10.623 | 1.153 | 1.230 | 3.512 | 9.237 | 202 | 5 anos |
-| BENTO RIBEIRO | Casa | 796 | 16.216 | 936 | 1.082 | 3.204 | 14.101 | 257 | 5 anos |
-| BONSUCESSO | Apartamento | 1.389 | 11.148 | 1.634 | 1.756 | 5.848 | 9.694 | 860 | 3 anos |
-| BONSUCESSO | Casa | 825 | 12.905 | 970 | 987 | 2.934 | 11.222 | 124 | 5 anos |
-| BONSUCESSO | Comercial | 940 | 35.294 | 1.106 | 1.138 | 2.582 | 30.690 | 119 | 5 anos |
-| BOTAFOGO | Apartamento | 3.717 | 26.088 | 4.373 | 5.162 | 11.808 | 22.685 | 4.097 | 3 anos |
-| BOTAFOGO | Casa | 2.366 | 23.892 | 2.784 | 2.985 | 8.051 | 20.776 | 175 | 5 anos |
-| BOTAFOGO | Comercial | 1.201 | 51.613 | 1.413 | 1.511 | 11.903 | 44.881 | 291 | 5 anos |
-| BRAS DE PINA | Apartamento | 575 | 8.967 | 677 | 1.094 | 4.367 | 7.797 | 357 | 3 anos |
-| BRAS DE PINA | Casa | 623 | 18.647 | 733 | 873 | 3.267 | 16.215 | 255 | 5 anos |
-| BRAS DE PINA | Comercial | 1.093 | 15.561 | 1.286 | 1.359 | 2.911 | 13.531 | 41 | 5 anos |
-| CACHAMBI | Apartamento | 1.455 | 12.339 | 1.712 | 1.968 | 5.406 | 10.730 | 1.460 | 3 anos |
-| CACHAMBI | Casa | 1.012 | 16.437 | 1.190 | 1.247 | 4.041 | 14.293 | 244 | 5 anos |
-| CACHAMBI | Comercial | 1.236 | 61.556 | 1.454 | 1.528 | 4.531 | 53.527 | 71 | 5 anos |
-| CACUIA | Apartamento | 1.725 | 10.451 | 2.029 | 2.172 | 4.600 | 9.088 | 75 | 5 anos |
-| CACUIA | Casa | 794 | 9.392 | 934 | 1.099 | 3.451 | 8.167 | 40 | 5 anos |
-| CAJU | Apartamento | 978 | 7.012 | 1.151 | 1.264 | 3.161 | 6.097 | 38 | 5 anos |
-| CAMORIM | Apartamento | 2.818 | 13.432 | 3.315 | 3.816 | 8.487 | 11.680 | 3.008 | 3 anos |
-| CAMORIM | Comercial | 2.304 | 12.073 | 3.737 | 3.737 | 4.607 | 10.498 | 40 | 5 anos |
-| CAMPINHO | Apartamento | 1.148 | 6.945 | 1.351 | 1.411 | 3.466 | 6.039 | 141 | 5 anos |
-| CAMPINHO | Casa | 622 | 11.861 | 732 | 784 | 2.550 | 10.314 | 56 | 5 anos |
-| CAMPO DOS AFONSOS | Apartamento | 2.304 | 6.050 | 2.711 | 2.799 | 4.152 | 5.261 | 243 | 3 anos |
-| CAMPO GRANDE | Apartamento | 1.068 | 11.108 | 1.256 | 1.338 | 4.241 | 9.659 | 3.441 | 3 anos |
-| CAMPO GRANDE | Casa | 649 | 17.539 | 763 | 859 | 3.000 | 15.251 | 1.917 | 3 anos |
-| CAMPO GRANDE | Comercial | 1.222 | 39.447 | 1.438 | 1.523 | 4.998 | 34.302 | 318 | 3 anos |
-| CASCADURA | Apartamento | 791 | 8.571 | 930 | 1.167 | 2.972 | 7.453 | 230 | 3 anos |
-| CASCADURA | Casa | 604 | 8.722 | 710 | 781 | 2.500 | 7.584 | 139 | 5 anos |
-| CASCADURA | Comercial | 1.052 | 18.284 | 1.238 | 1.252 | 3.077 | 15.899 | 41 | 5 anos |
-| CATETE | Apartamento | 3.583 | 22.075 | 4.215 | 4.781 | 9.704 | 19.196 | 890 | 3 anos |
-| CATETE | Casa | 2.295 | 16.846 | 2.700 | 2.701 | 5.034 | 14.649 | 45 | 5 anos |
-| CATETE | Comercial | 1.675 | 32.282 | 1.971 | 2.520 | 9.603 | 28.071 | 142 | 5 anos |
-| CATUMBI | Apartamento | 821 | 8.824 | 966 | 1.250 | 3.524 | 7.673 | 141 | 5 anos |
-| CATUMBI | Casa | 937 | 6.518 | 1.102 | 1.105 | 2.641 | 5.668 | 36 | 5 anos |
-| CAVALCANTI | Apartamento | 649 | 6.656 | 764 | 791 | 3.328 | 5.690 | 109 | 5 anos |
-| CAVALCANTI | Casa | 533 | 11.475 | 627 | 661 | 2.228 | 9.978 | 67 | 5 anos |
-| CENTRO | Apartamento | 2.147 | 18.669 | 2.526 | 2.725 | 6.939 | 16.234 | 2.050 | 3 anos |
-| CENTRO | Comercial | 678 | 22.691 | 798 | 983 | 3.498 | 19.731 | 2.095 | 3 anos |
-| CIDADE DE DEUS | Casa | 609 | 7.501 | 717 | 778 | 2.657 | 6.523 | 40 | 5 anos |
-| CIDADE NOVA | Apartamento | 1.611 | 9.480 | 1.895 | 1.985 | 4.740 | 7.678 | 89 | 5 anos |
-| COCOTA | Apartamento | 1.785 | 10.728 | 2.100 | 2.248 | 4.000 | 9.329 | 117 | 5 anos |
-| COCOTA | Casa | 797 | 9.100 | 938 | 1.029 | 2.922 | 7.913 | 48 | 5 anos |
-| COELHO NETO | Apartamento | 1.095 | 5.674 | 1.522 | 1.528 | 2.189 | 4.934 | 31 | 5 anos |
-| COELHO NETO | Casa | 813 | 9.156 | 957 | 957 | 1.970 | 7.962 | 60 | 5 anos |
-| COELHO NETO | Comercial | 848 | 4.000 | 1.077 | 1.085 | 1.695 | 3.478 | 31 | 5 anos |
-| COLEGIO | Apartamento | 1.201 | 11.604 | 1.413 | 1.809 | 5.802 | 8.695 | 340 | 5 anos |
-| COLEGIO | Casa | 780 | 35.576 | 918 | 959 | 3.569 | 30.936 | 65 | 5 anos |
-| COPACABANA | Apartamento | 3.622 | 40.863 | 4.261 | 4.956 | 11.313 | 35.533 | 8.386 | 3 anos |
-| COPACABANA | Casa | 1.035 | 90.965 | 1.218 | 1.800 | 11.661 | 79.100 | 60 | 5 anos |
-| COPACABANA | Comercial | 988 | 84.116 | 1.162 | 3.830 | 8.526 | 73.144 | 574 | 3 anos |
-| CORDOVIL | Apartamento | 671 | 7.216 | 789 | 877 | 3.076 | 6.275 | 148 | 5 anos |
-| CORDOVIL | Casa | 646 | 27.831 | 760 | 835 | 2.714 | 24.201 | 81 | 5 anos |
-| COSME VELHO | Apartamento | 4.084 | 19.490 | 4.805 | 5.019 | 9.745 | 16.311 | 198 | 5 anos |
-| COSME VELHO | Casa | 1.691 | 14.431 | 1.989 | 2.134 | 5.429 | 12.549 | 37 | 5 anos |
-| COSMOS | Apartamento | 881 | 7.357 | 1.037 | 1.098 | 4.276 | 6.397 | 619 | 3 anos |
-| COSMOS | Casa | 542 | 7.733 | 638 | 665 | 3.701 | 6.724 | 207 | 3 anos |
-| CURICICA | Apartamento | 1.743 | 11.083 | 2.050 | 2.326 | 7.782 | 9.637 | 379 | 3 anos |
-| CURICICA | Casa | 746 | 9.677 | 878 | 952 | 2.995 | 8.415 | 194 | 5 anos |
-| DEL CASTILHO | Apartamento | 1.806 | 9.752 | 2.125 | 2.506 | 6.136 | 8.480 | 612 | 3 anos |
-| DEL CASTILHO | Casa | 1.392 | 12.837 | 1.638 | 1.659 | 2.977 | 11.163 | 42 | 5 anos |
-| DEL CASTILHO | Comercial | 1.703 | 14.514 | 2.004 | 2.134 | 5.514 | 12.621 | 198 | 5 anos |
-| ENCANTADO | Apartamento | 1.116 | 8.819 | 1.313 | 1.459 | 3.442 | 7.669 | 255 | 5 anos |
-| ENCANTADO | Casa | 841 | 10.333 | 989 | 1.018 | 2.791 | 8.985 | 113 | 5 anos |
-| ENGENHO DA RAINHA | Apartamento | 1.009 | 9.144 | 1.187 | 1.434 | 3.442 | 7.951 | 137 | 5 anos |
-| ENGENHO DA RAINHA | Casa | 581 | 13.833 | 684 | 706 | 3.143 | 12.029 | 52 | 5 anos |
-| ENGENHO DE DENTRO | Apartamento | 1.100 | 10.136 | 1.294 | 1.502 | 4.710 | 8.814 | 1.086 | 3 anos |
-| ENGENHO DE DENTRO | Casa | 785 | 12.302 | 923 | 949 | 3.098 | 10.697 | 242 | 5 anos |
-| ENGENHO DE DENTRO | Comercial | 925 | 55.524 | 1.088 | 1.285 | 4.474 | 48.282 | 46 | 5 anos |
-| ENGENHO NOVO | Apartamento | 999 | 7.229 | 1.175 | 1.320 | 3.028 | 6.286 | 626 | 3 anos |
-| ENGENHO NOVO | Casa | 660 | 8.584 | 777 | 832 | 2.626 | 7.464 | 210 | 5 anos |
-| ESTACIO | Apartamento | 1.450 | 9.583 | 1.706 | 1.771 | 4.169 | 8.333 | 260 | 5 anos |
-| ESTACIO | Casa | 517 | 6.934 | 608 | 637 | 1.841 | 6.030 | 31 | 5 anos |
-| FLAMENGO | Apartamento | 3.801 | 29.604 | 4.472 | 4.853 | 10.712 | 25.743 | 2.570 | 3 anos |
-| FLAMENGO | Comercial | 3.563 | 58.751 | 4.192 | 4.257 | 10.667 | 51.088 | 130 | 5 anos |
-| FREGUESIA (ILHA) | Apartamento | 1.085 | 8.466 | 1.277 | 1.438 | 3.849 | 7.362 | 216 | 3 anos |
-| FREGUESIA (ILHA) | Casa | 811 | 12.619 | 954 | 1.127 | 3.041 | 10.973 | 119 | 5 anos |
-| FREGUESIA (JACAREPAGUA) | Apartamento | 1.877 | 11.089 | 2.208 | 2.427 | 5.531 | 9.643 | 2.211 | 3 anos |
-| FREGUESIA (JACAREPAGUA) | Casa | 904 | 11.443 | 1.064 | 1.294 | 4.183 | 9.950 | 424 | 3 anos |
-| FREGUESIA (JACAREPAGUA) | Comercial | 1.429 | 33.801 | 1.681 | 1.885 | 4.090 | 29.392 | 365 | 3 anos |
-| GAMBOA | Apartamento | 1.002 | 14.023 | 1.179 | 1.240 | 3.287 | 12.194 | 86 | 5 anos |
-| GARDENIA AZUL | Apartamento | 1.145 | 10.970 | 1.347 | 1.619 | 5.485 | 7.302 | 141 | 5 anos |
-| GARDENIA AZUL | Casa | 502 | 9.823 | 591 | 614 | 2.638 | 8.542 | 53 | 5 anos |
-| GAVEA | Apartamento | 4.837 | 41.115 | 5.691 | 6.477 | 16.581 | 35.752 | 762 | 3 anos |
-| GAVEA | Casa | 1.950 | 31.088 | 2.294 | 3.334 | 11.441 | 27.033 | 80 | 5 anos |
-| GAVEA | Comercial | 4.259 | 39.030 | 5.011 | 5.297 | 15.783 | 33.939 | 51 | 5 anos |
-| GLORIA | Apartamento | 1.324 | 33.858 | 1.558 | 3.999 | 9.696 | 29.442 | 629 | 3 anos |
-| GLORIA | Comercial | 1.733 | 19.065 | 2.039 | 2.272 | 4.461 | 16.578 | 39 | 5 anos |
-| GRAJAU | Apartamento | 1.623 | 12.528 | 1.909 | 2.173 | 4.875 | 10.894 | 976 | 3 anos |
-| GRAJAU | Casa | 820 | 14.242 | 965 | 1.090 | 3.900 | 12.384 | 232 | 5 anos |
-| GUADALUPE | Apartamento | 859 | 8.543 | 1.010 | 1.117 | 3.841 | 7.429 | 127 | 5 anos |
-| GUADALUPE | Casa | 745 | 13.956 | 877 | 925 | 2.676 | 12.136 | 152 | 5 anos |
-| GUARATIBA | Apartamento | 939 | 7.399 | 1.105 | 1.165 | 4.110 | 6.434 | 999 | 3 anos |
-| GUARATIBA | Casa | 570 | 8.995 | 670 | 791 | 4.152 | 7.822 | 573 | 3 anos |
-| HIGIENOPOLIS | Apartamento | 1.185 | 6.833 | 1.394 | 1.421 | 3.076 | 5.942 | 253 | 3 anos |
-| HIGIENOPOLIS | Casa | 1.035 | 13.874 | 1.218 | 1.374 | 3.400 | 12.064 | 89 | 5 anos |
-| HIGIENOPOLIS | Comercial | 1.203 | 10.802 | 1.415 | 1.433 | 2.564 | 9.393 | 44 | 5 anos |
-| HONORIO GURGEL | Apartamento | 602 | 10.468 | 708 | 748 | 2.142 | 9.103 | 32 | 5 anos |
-| HONORIO GURGEL | Casa | 607 | 9.535 | 714 | 764 | 2.207 | 8.291 | 76 | 5 anos |
-| HUMAITA | Apartamento | 4.238 | 23.293 | 4.986 | 5.792 | 11.167 | 20.255 | 669 | 3 anos |
-| HUMAITA | Casa | 2.732 | 34.126 | 3.214 | 3.773 | 9.190 | 29.675 | 70 | 5 anos |
-| INHAUMA | Apartamento | 1.481 | 10.220 | 1.742 | 1.902 | 6.760 | 8.887 | 220 | 3 anos |
-| INHAUMA | Casa | 649 | 12.377 | 764 | 850 | 3.069 | 10.763 | 143 | 5 anos |
-| INHOAIBA | Apartamento | 1.242 | 7.102 | 1.461 | 1.490 | 4.742 | 6.176 | 331 | 3 anos |
-| INHOAIBA | Casa | 509 | 15.010 | 599 | 664 | 2.882 | 13.052 | 81 | 5 anos |
-| IPANEMA | Apartamento | 6.413 | 84.363 | 7.545 | 8.453 | 20.946 | 73.359 | 2.919 | 3 anos |
-| IPANEMA | Comercial | 6.639 | 155.930 | 7.810 | 8.052 | 20.588 | 135.591 | 235 | 3 anos |
-| IRAJA | Apartamento | 1.368 | 11.536 | 1.609 | 1.789 | 5.731 | 10.031 | 1.448 | 3 anos |
-| IRAJA | Casa | 808 | 18.251 | 950 | 984 | 3.473 | 15.870 | 327 | 3 anos |
-| IRAJA | Comercial | 1.066 | 10.808 | 1.254 | 1.290 | 3.208 | 9.398 | 37 | 5 anos |
-| ITANHANGA | Apartamento | 1.650 | 18.034 | 1.941 | 1.984 | 5.378 | 15.682 | 221 | 5 anos |
-| ITANHANGA | Casa | 599 | 16.836 | 705 | 723 | 4.799 | 14.640 | 177 | 5 anos |
-| JACAREPAGUA | Apartamento | 1.697 | 15.742 | 1.996 | 2.407 | 7.723 | 13.689 | 4.635 | 3 anos |
-| JACAREPAGUA | Casa | 632 | 15.254 | 743 | 882 | 3.843 | 13.264 | 327 | 5 anos |
-| JACAREPAGUA | Comercial | 1.531 | 19.430 | 1.801 | 2.402 | 5.626 | 16.896 | 315 | 3 anos |
-| JACARE | Apartamento | 581 | 7.836 | 683 | 683 | 3.173 | 6.814 | 121 | 5 anos |
-| JACARE | Casa | 646 | 6.047 | 760 | 779 | 1.990 | 5.258 | 49 | 5 anos |
-| JARDIM AMERICA | Apartamento | 1.070 | 7.552 | 1.259 | 1.357 | 2.571 | 6.567 | 120 | 5 anos |
-| JARDIM AMERICA | Casa | 755 | 12.955 | 888 | 926 | 2.589 | 11.265 | 164 | 5 anos |
-| JARDIM BOTANICO | Apartamento | 3.885 | 32.789 | 4.570 | 5.919 | 13.904 | 28.512 | 673 | 3 anos |
-| JARDIM BOTANICO | Casa | 2.975 | 55.064 | 3.500 | 4.237 | 14.857 | 47.882 | 171 | 5 anos |
-| JARDIM BOTANICO | Comercial | 2.941 | 33.486 | 3.460 | 3.723 | 13.863 | 29.118 | 116 | 5 anos |
-| JARDIM CARIOCA | Apartamento | 719 | 11.086 | 846 | 1.636 | 4.872 | 9.640 | 208 | 5 anos |
-| JARDIM CARIOCA | Casa | 742 | 13.695 | 873 | 936 | 2.649 | 11.909 | 102 | 5 anos |
-| JARDIM CARIOCA | Comercial | 1.688 | 42.927 | 1.986 | 2.038 | 5.741 | 37.328 | 30 | 5 anos |
-| JARDIM GUANABARA | Apartamento | 1.683 | 15.303 | 1.980 | 2.225 | 5.693 | 13.307 | 926 | 3 anos |
-| JARDIM GUANABARA | Casa | 1.279 | 13.618 | 1.505 | 1.605 | 4.076 | 11.842 | 230 | 3 anos |
-| JARDIM GUANABARA | Comercial | 1.263 | 30.667 | 1.486 | 1.705 | 5.719 | 26.667 | 82 | 5 anos |
-| JARDIM SULACAP | Apartamento | 1.723 | 9.422 | 2.027 | 2.049 | 4.589 | 8.193 | 302 | 5 anos |
-| JARDIM SULACAP | Casa | 893 | 9.885 | 1.050 | 1.104 | 3.200 | 8.596 | 162 | 5 anos |
-| JOA | Casa | 1.565 | 35.781 | 1.841 | 1.931 | 8.078 | 31.114 | 39 | 5 anos |
-| LAGOA | Apartamento | 6.014 | 47.685 | 7.075 | 7.429 | 15.162 | 41.465 | 938 | 3 anos |
-| LARANJEIRAS | Apartamento | 3.566 | 23.842 | 4.195 | 4.781 | 9.746 | 20.732 | 1.959 | 3 anos |
-| LARANJEIRAS | Casa | 1.658 | 18.669 | 1.950 | 2.269 | 6.951 | 16.234 | 94 | 5 anos |
-| LARANJEIRAS | Comercial | 823 | 36.812 | 968 | 968 | 8.075 | 32.010 | 30 | 5 anos |
-| LEBLON | Apartamento | 8.520 | 71.100 | 10.023 | 11.120 | 21.958 | 61.826 | 2.400 | 3 anos |
-| LEBLON | Comercial | 7.549 | 94.544 | 8.881 | 9.526 | 27.754 | 82.212 | 200 | 5 anos |
-| LEME | Apartamento | 3.619 | 40.214 | 4.258 | 5.034 | 12.214 | 34.969 | 596 | 3 anos |
-| LINS DE VASCONCELOS | Apartamento | 886 | 8.677 | 1.042 | 1.185 | 3.026 | 7.545 | 403 | 3 anos |
-| LINS DE VASCONCELOS | Casa | 828 | 14.376 | 974 | 1.044 | 3.373 | 12.501 | 146 | 5 anos |
-| MADUREIRA | Apartamento | 811 | 7.289 | 954 | 1.063 | 3.207 | 6.338 | 372 | 3 anos |
-| MADUREIRA | Casa | 699 | 13.247 | 822 | 890 | 2.471 | 11.519 | 206 | 5 anos |
-| MADUREIRA | Comercial | 1.595 | 48.981 | 1.876 | 1.899 | 4.768 | 42.592 | 213 | 5 anos |
-| MAGALHAES BASTOS | Apartamento | 1.229 | 6.947 | 1.446 | 1.447 | 2.693 | 6.041 | 30 | 5 anos |
-| MAGALHAES BASTOS | Casa | 709 | 6.695 | 834 | 853 | 2.135 | 5.822 | 70 | 5 anos |
-| MARACANA | Apartamento | 2.226 | 16.711 | 2.619 | 2.879 | 6.638 | 14.531 | 1.161 | 3 anos |
-| MARACANA | Casa | 1.873 | 16.064 | 2.204 | 2.270 | 3.913 | 13.969 | 94 | 5 anos |
-| MARACANA | Comercial | 1.887 | 16.811 | 3.050 | 3.053 | 3.773 | 14.618 | 35 | 5 anos |
-| MARECHAL HERMES | Apartamento | 765 | 12.003 | 900 | 900 | 5.455 | 10.437 | 327 | 5 anos |
-| MARECHAL HERMES | Casa | 774 | 13.409 | 911 | 980 | 3.222 | 11.660 | 190 | 5 anos |
-| MARIA DA GRACA | Apartamento | 1.359 | 9.222 | 1.599 | 1.733 | 3.526 | 8.019 | 216 | 5 anos |
-| MARIA DA GRACA | Casa | 836 | 12.236 | 983 | 1.064 | 2.497 | 10.640 | 70 | 5 anos |
-| MEIER | Apartamento | 1.549 | 10.002 | 1.822 | 1.992 | 4.070 | 8.697 | 1.249 | 3 anos |
-| MEIER | Casa | 981 | 16.819 | 1.154 | 1.349 | 4.155 | 14.625 | 321 | 5 anos |
-| MEIER | Comercial | 1.720 | 30.715 | 2.024 | 2.067 | 4.426 | 26.709 | 241 | 5 anos |
-| MONERO | Apartamento | 2.004 | 13.716 | 2.358 | 2.397 | 4.916 | 11.927 | 189 | 5 anos |
-| MONERO | Casa | 1.518 | 15.137 | 1.786 | 1.789 | 4.154 | 13.163 | 47 | 5 anos |
-| OLARIA | Apartamento | 1.168 | 10.685 | 1.374 | 1.544 | 3.671 | 9.291 | 386 | 3 anos |
-| OLARIA | Casa | 929 | 16.416 | 1.093 | 1.252 | 3.433 | 14.275 | 282 | 5 anos |
-| OLARIA | Comercial | 998 | 7.820 | 1.174 | 1.261 | 2.717 | 6.800 | 47 | 5 anos |
-| OSVALDO CRUZ | Apartamento | 947 | 9.206 | 1.114 | 1.274 | 3.238 | 8.005 | 137 | 5 anos |
-| OSVALDO CRUZ | Casa | 830 | 20.073 | 976 | 1.000 | 3.262 | 17.455 | 159 | 5 anos |
-| PACIENCIA | Apartamento | 753 | 7.362 | 886 | 932 | 3.681 | 4.514 | 256 | 5 anos |
-| PACIENCIA | Casa | 608 | 6.749 | 715 | 778 | 2.122 | 5.869 | 83 | 5 anos |
-| PADRE MIGUEL | Apartamento | 961 | 6.410 | 1.130 | 1.131 | 2.727 | 5.574 | 87 | 5 anos |
-| PADRE MIGUEL | Casa | 731 | 7.518 | 860 | 902 | 2.191 | 6.537 | 178 | 5 anos |
-| PADRE MIGUEL | Comercial | 772 | 8.947 | 908 | 911 | 1.639 | 7.780 | 33 | 5 anos |
-| PAQUETA | Apartamento | 1.437 | 12.628 | 1.691 | 1.838 | 4.982 | 10.981 | 85 | 5 anos |
-| PAQUETA | Casa | 1.278 | 14.684 | 1.504 | 1.587 | 4.851 | 12.769 | 80 | 5 anos |
-| PARADA DE LUCAS | Apartamento | 786 | 10.957 | 925 | 925 | 5.462 | 9.528 | 244 | 3 anos |
-| PARQUE ANCHIETA | Apartamento | 963 | 13.196 | 1.133 | 1.165 | 2.790 | 11.475 | 43 | 5 anos |
-| PARQUE ANCHIETA | Casa | 736 | 10.490 | 866 | 908 | 2.149 | 9.122 | 110 | 5 anos |
-| PARQUE COLUMBIA | Apartamento | 653 | 10.164 | 768 | 877 | 5.082 | 6.202 | 69 | 5 anos |
-| PAVUNA | Apartamento | 780 | 9.796 | 918 | 981 | 3.957 | 8.518 | 255 | 5 anos |
-| PAVUNA | Casa | 589 | 10.480 | 693 | 733 | 2.553 | 9.113 | 266 | 5 anos |
-| PECHINCHA | Apartamento | 1.684 | 9.583 | 1.981 | 2.135 | 4.780 | 8.333 | 1.620 | 3 anos |
-| PECHINCHA | Casa | 580 | 11.254 | 682 | 872 | 3.504 | 9.786 | 254 | 3 anos |
-| PECHINCHA | Comercial | 1.243 | 12.706 | 1.462 | 1.787 | 3.805 | 11.049 | 203 | 5 anos |
-| PEDRA DE GUARATIBA | Casa | 554 | 7.443 | 652 | 730 | 2.985 | 6.472 | 167 | 5 anos |
-| PENHA CIRCULAR | Apartamento | 861 | 9.911 | 1.013 | 1.300 | 3.003 | 8.618 | 373 | 3 anos |
-| PENHA CIRCULAR | Casa | 693 | 9.126 | 815 | 960 | 2.670 | 7.936 | 214 | 5 anos |
-| PENHA CIRCULAR | Comercial | 622 | 12.610 | 732 | 786 | 1.780 | 10.965 | 73 | 5 anos |
-| PENHA | Apartamento | 1.012 | 10.773 | 1.190 | 1.249 | 4.090 | 9.368 | 553 | 3 anos |
-| PENHA | Casa | 709 | 8.860 | 834 | 955 | 2.538 | 7.704 | 251 | 5 anos |
-| PENHA | Comercial | 1.029 | 21.092 | 1.210 | 1.250 | 4.703 | 18.341 | 183 | 5 anos |
-| PIEDADE | Apartamento | 1.004 | 9.626 | 1.181 | 1.228 | 3.640 | 8.370 | 382 | 3 anos |
-| PIEDADE | Casa | 681 | 8.415 | 801 | 818 | 2.441 | 7.317 | 209 | 3 anos |
-| PILARES | Apartamento | 1.053 | 8.451 | 1.239 | 1.410 | 3.155 | 7.349 | 219 | 5 anos |
-| PILARES | Casa | 728 | 11.935 | 857 | 904 | 3.394 | 10.378 | 118 | 5 anos |
-| PILARES | Comercial | 1.195 | 17.233 | 1.406 | 1.672 | 4.076 | 14.985 | 120 | 5 anos |
-| PITANGUEIRAS | Apartamento | 2.259 | 10.134 | 2.658 | 2.687 | 5.067 | 8.255 | 74 | 5 anos |
-| PITANGUEIRAS | Casa | 848 | 10.044 | 998 | 1.016 | 2.903 | 8.734 | 46 | 5 anos |
-| PORTUGUESA | Apartamento | 1.531 | 10.957 | 1.801 | 2.104 | 4.838 | 9.528 | 247 | 5 anos |
-| PORTUGUESA | Casa | 980 | 12.872 | 1.153 | 1.172 | 3.892 | 11.193 | 163 | 5 anos |
-| PRACA DA BANDEIRA | Apartamento | 1.880 | 11.894 | 2.212 | 2.371 | 5.647 | 10.343 | 245 | 3 anos |
-| PRACA DA BANDEIRA | Casa | 1.301 | 14.045 | 1.530 | 1.552 | 4.129 | 12.213 | 40 | 5 anos |
-| PRACA DA BANDEIRA | Comercial | 1.165 | 13.691 | 1.371 | 1.423 | 2.686 | 11.905 | 38 | 5 anos |
-| PRACA SECA | Apartamento | 895 | 9.827 | 1.053 | 1.129 | 2.679 | 8.545 | 740 | 3 anos |
-| PRACA SECA | Casa | 581 | 6.243 | 684 | 739 | 2.221 | 5.429 | 241 | 3 anos |
-| PRAIA DA BANDEIRA | Apartamento | 1.588 | 9.428 | 1.868 | 1.915 | 4.714 | 7.623 | 93 | 5 anos |
-| QUINTINO BOCAIUVA | Apartamento | 940 | 7.480 | 1.106 | 1.249 | 3.289 | 6.504 | 311 | 5 anos |
-| QUINTINO BOCAIUVA | Casa | 742 | 8.649 | 873 | 892 | 2.316 | 7.521 | 229 | 5 anos |
-| RAMOS | Apartamento | 1.111 | 9.436 | 1.307 | 1.371 | 4.176 | 8.205 | 415 | 3 anos |
-| RAMOS | Casa | 847 | 17.276 | 997 | 1.193 | 3.335 | 15.023 | 234 | 5 anos |
-| RAMOS | Comercial | 729 | 27.429 | 858 | 955 | 2.416 | 23.851 | 50 | 5 anos |
-| REALENGO | Apartamento | 740 | 6.932 | 871 | 915 | 3.572 | 6.028 | 223 | 3 anos |
-| REALENGO | Casa | 636 | 8.823 | 748 | 806 | 1.907 | 7.672 | 206 | 3 anos |
-| RECREIO DOS BANDEIRANTES | Apartamento | 2.381 | 16.927 | 2.801 | 3.220 | 7.134 | 14.719 | 6.633 | 3 anos |
-| RECREIO DOS BANDEIRANTES | Casa | 1.516 | 19.204 | 1.783 | 2.567 | 6.828 | 16.699 | 700 | 3 anos |
-| RECREIO DOS BANDEIRANTES | Comercial | 2.032 | 17.765 | 2.391 | 2.434 | 5.372 | 15.448 | 541 | 3 anos |
-| RIACHUELO | Apartamento | 1.127 | 9.819 | 1.326 | 1.464 | 3.700 | 8.538 | 297 | 3 anos |
-| RIACHUELO | Casa | 927 | 10.382 | 1.091 | 1.099 | 2.435 | 9.028 | 102 | 5 anos |
-| RIBEIRA | Apartamento | 1.850 | 11.883 | 2.177 | 2.298 | 5.496 | 10.333 | 195 | 5 anos |
-| RICARDO DE ALBUQUERQUE | Casa | 502 | 11.625 | 591 | 592 | 2.421 | 10.109 | 67 | 5 anos |
-| RIO COMPRIDO | Apartamento | 1.248 | 12.180 | 1.468 | 1.585 | 5.663 | 10.591 | 1.066 | 3 anos |
-| RIO COMPRIDO | Casa | 711 | 14.324 | 837 | 894 | 2.520 | 12.456 | 108 | 5 anos |
-| RIO COMPRIDO | Comercial | 814 | 7.994 | 958 | 1.135 | 3.997 | 6.018 | 77 | 5 anos |
-| ROCHA MIRANDA | Apartamento | 963 | 8.055 | 1.133 | 1.155 | 3.329 | 7.004 | 140 | 5 anos |
-| ROCHA MIRANDA | Casa | 506 | 20.038 | 595 | 634 | 2.753 | 17.424 | 137 | 5 anos |
-| ROCHA | Apartamento | 1.142 | 8.084 | 1.343 | 1.385 | 3.207 | 7.030 | 258 | 5 anos |
-| ROCHA | Casa | 713 | 10.672 | 839 | 895 | 2.485 | 9.280 | 76 | 5 anos |
-| SAMPAIO | Apartamento | 996 | 7.744 | 1.172 | 1.233 | 2.832 | 6.734 | 124 | 5 anos |
-| SAMPAIO | Casa | 735 | 6.611 | 865 | 876 | 2.381 | 5.749 | 46 | 5 anos |
-| SANTA CRUZ | Apartamento | 827 | 7.337 | 973 | 1.047 | 3.885 | 6.380 | 2.271 | 3 anos |
-| SANTA CRUZ | Casa | 599 | 37.844 | 705 | 709 | 2.715 | 32.908 | 135 | 5 anos |
-| SANTA CRUZ | Comercial | 1.282 | 28.569 | 1.508 | 1.524 | 3.282 | 24.843 | 46 | 5 anos |
-| SANTA TERESA | Apartamento | 1.802 | 19.551 | 2.120 | 2.257 | 6.082 | 17.001 | 556 | 3 anos |
-| SANTA TERESA | Casa | 949 | 31.670 | 1.116 | 1.272 | 4.400 | 27.539 | 168 | 5 anos |
-| SANTISSIMO | Apartamento | 1.055 | 5.878 | 1.241 | 1.313 | 3.913 | 5.111 | 335 | 3 anos |
-| SANTISSIMO | Casa | 661 | 8.435 | 778 | 839 | 3.902 | 7.335 | 177 | 5 anos |
-| SANTO CRISTO | Apartamento | 2.665 | 18.083 | 3.135 | 4.769 | 9.820 | 15.724 | 2.742 | 3 anos |
-| SANTO CRISTO | Casa | 626 | 7.246 | 736 | 776 | 2.002 | 6.301 | 50 | 5 anos |
-| SANTO CRISTO | Comercial | 997 | 21.257 | 1.173 | 1.216 | 8.816 | 18.484 | 41 | 5 anos |
-| SAO CONRADO | Apartamento | 2.741 | 46.118 | 3.225 | 4.251 | 12.077 | 40.103 | 434 | 3 anos |
-| SAO CONRADO | Casa | 863 | 45.217 | 1.015 | 1.408 | 7.856 | 39.319 | 64 | 5 anos |
-| SAO CONRADO | Comercial | 2.635 | 28.875 | 3.100 | 3.148 | 8.466 | 25.109 | 55 | 5 anos |
-| SAO CRISTOVAO | Apartamento | 1.796 | 13.227 | 2.113 | 2.332 | 7.939 | 11.502 | 1.582 | 3 anos |
-| SAO CRISTOVAO | Casa | 841 | 13.074 | 989 | 1.071 | 3.277 | 11.369 | 136 | 5 anos |
-| SAO CRISTOVAO | Comercial | 1.018 | 14.239 | 1.198 | 1.198 | 5.059 | 12.382 | 178 | 5 anos |
-| SAO FRANCISCO XAVIER | Apartamento | 1.412 | 10.224 | 1.661 | 1.900 | 7.256 | 8.890 | 477 | 3 anos |
-| SAUDE | Comercial | 1.054 | 17.778 | 1.240 | 1.272 | 2.544 | 15.459 | 80 | 5 anos |
-| SENADOR CAMARA | Apartamento | 745 | 5.816 | 876 | 995 | 2.447 | 5.057 | 195 | 5 anos |
-| SENADOR CAMARA | Casa | 630 | 8.156 | 741 | 781 | 2.396 | 7.092 | 146 | 5 anos |
-| SENADOR VASCONCELOS | Apartamento | 870 | 5.148 | 1.023 | 1.135 | 2.574 | 3.862 | 46 | 5 anos |
-| SENADOR VASCONCELOS | Casa | 648 | 6.733 | 762 | 817 | 2.537 | 5.855 | 106 | 5 anos |
-| TANQUE | Apartamento | 1.360 | 11.208 | 1.600 | 1.671 | 3.885 | 9.746 | 333 | 3 anos |
-| TANQUE | Casa | 614 | 13.187 | 722 | 880 | 2.766 | 11.467 | 177 | 5 anos |
-| TANQUE | Comercial | 1.162 | 18.766 | 1.367 | 1.534 | 4.005 | 16.318 | 64 | 5 anos |
-| TAQUARA | Apartamento | 1.559 | 11.753 | 1.834 | 1.945 | 4.679 | 10.220 | 2.149 | 3 anos |
-| TAQUARA | Casa | 750 | 12.481 | 882 | 1.071 | 3.200 | 10.853 | 425 | 3 anos |
-| TAQUARA | Comercial | 1.199 | 22.762 | 1.411 | 1.645 | 4.446 | 19.793 | 311 | 5 anos |
-| TAUA | Apartamento | 1.408 | 10.440 | 1.657 | 1.810 | 3.793 | 9.078 | 222 | 3 anos |
-| TAUA | Casa | 590 | 12.191 | 694 | 725 | 2.847 | 10.601 | 101 | 5 anos |
-| TIJUCA | Apartamento | 1.854 | 15.076 | 2.181 | 2.521 | 6.077 | 13.110 | 5.707 | 3 anos |
-| TIJUCA | Casa | 1.193 | 18.694 | 1.404 | 1.475 | 5.108 | 16.256 | 251 | 3 anos |
-| TIJUCA | Comercial | 1.736 | 29.256 | 2.042 | 2.119 | 5.609 | 25.440 | 509 | 3 anos |
-| TODOS OS SANTOS | Apartamento | 1.439 | 10.827 | 1.693 | 1.905 | 5.469 | 9.415 | 1.006 | 3 anos |
-| TODOS OS SANTOS | Casa | 1.182 | 16.201 | 1.390 | 1.447 | 3.499 | 14.088 | 163 | 5 anos |
-| TODOS OS SANTOS | Comercial | 1.574 | 18.063 | 1.852 | 2.077 | 4.668 | 15.707 | 249 | 5 anos |
-| TOMAS COELHO | Apartamento | 991 | 8.674 | 1.166 | 1.274 | 4.337 | 5.095 | 144 | 5 anos |
-| TOMAS COELHO | Casa | 522 | 8.815 | 614 | 635 | 2.290 | 7.665 | 55 | 5 anos |
-| TURIACU | Apartamento | 1.034 | 6.990 | 1.216 | 1.238 | 2.542 | 6.078 | 57 | 5 anos |
-| TURIACU | Casa | 592 | 9.358 | 696 | 746 | 2.341 | 8.137 | 42 | 5 anos |
-| URCA | Apartamento | 6.690 | 31.027 | 7.871 | 8.327 | 13.838 | 26.980 | 216 | 5 anos |
-| URCA | Casa | 4.644 | 32.885 | 5.464 | 5.497 | 12.225 | 28.596 | 36 | 5 anos |
-| VARGEM GRANDE | Apartamento | 2.303 | 9.396 | 2.709 | 2.816 | 5.542 | 8.170 | 373 | 3 anos |
-| VARGEM GRANDE | Casa | 936 | 11.356 | 1.101 | 1.433 | 5.646 | 9.875 | 224 | 5 anos |
-| VARGEM PEQUENA | Apartamento | 1.988 | 8.937 | 2.339 | 2.359 | 4.833 | 7.771 | 330 | 3 anos |
-| VARGEM PEQUENA | Casa | 932 | 16.271 | 1.097 | 1.403 | 4.745 | 14.149 | 283 | 3 anos |
-| VASCO DA GAMA | Apartamento | 1.142 | 9.864 | 1.343 | 1.741 | 4.932 | 8.104 | 131 | 5 anos |
-| VASCO DA GAMA | Casa | 742 | 15.128 | 873 | 1.070 | 3.667 | 13.155 | 43 | 5 anos |
-| VAZ LOBO | Apartamento | 550 | 8.715 | 647 | 1.145 | 3.141 | 7.578 | 236 | 5 anos |
-| VAZ LOBO | Casa | 693 | 10.940 | 815 | 854 | 2.815 | 9.513 | 60 | 5 anos |
-| VICENTE DE CARVALHO | Apartamento | 1.097 | 9.944 | 1.291 | 1.328 | 4.900 | 8.647 | 287 | 5 anos |
-| VICENTE DE CARVALHO | Casa | 1.131 | 18.685 | 1.331 | 1.373 | 2.846 | 16.248 | 100 | 5 anos |
-| VICENTE DE CARVALHO | Comercial | 1.782 | 16.511 | 2.097 | 2.251 | 6.208 | 14.357 | 137 | 5 anos |
-| VIDIGAL | Apartamento | 2.271 | 55.721 | 2.672 | 2.720 | 6.973 | 48.453 | 48 | 5 anos |
-| VIGARIO GERAL | Apartamento | 913 | 5.357 | 1.074 | 1.095 | 2.127 | 4.658 | 48 | 5 anos |
-| VIGARIO GERAL | Casa | 774 | 17.463 | 911 | 915 | 2.784 | 15.185 | 55 | 5 anos |
-| VILA DA PENHA | Apartamento | 1.466 | 10.527 | 1.725 | 1.795 | 4.456 | 9.154 | 610 | 3 anos |
-| VILA DA PENHA | Casa | 1.045 | 12.273 | 1.229 | 1.397 | 3.407 | 10.672 | 187 | 5 anos |
-| VILA DA PENHA | Comercial | 867 | 13.036 | 1.020 | 1.057 | 5.269 | 11.336 | 97 | 5 anos |
-| VILA ISABEL | Apartamento | 1.221 | 13.072 | 1.436 | 1.609 | 4.782 | 11.367 | 1.893 | 3 anos |
-| VILA ISABEL | Casa | 930 | 13.579 | 1.094 | 1.241 | 3.961 | 11.808 | 291 | 5 anos |
-| VILA ISABEL | Comercial | 1.574 | 21.298 | 1.852 | 1.859 | 4.356 | 18.520 | 191 | 5 anos |
-| VILA KOSMOS | Apartamento | 1.274 | 9.324 | 1.499 | 1.512 | 3.442 | 8.108 | 102 | 5 anos |
-| VILA KOSMOS | Casa | 795 | 22.476 | 935 | 1.004 | 3.171 | 19.544 | 119 | 5 anos |
-| VILA VALQUEIRE | Apartamento | 1.294 | 11.407 | 1.522 | 1.737 | 4.404 | 9.919 | 564 | 3 anos |
-| VILA VALQUEIRE | Casa | 583 | 17.837 | 686 | 905 | 3.590 | 15.510 | 345 | 5 anos |
-| VILA VALQUEIRE | Comercial | 2.371 | 16.333 | 2.789 | 3.035 | 5.193 | 14.203 | 38 | 5 anos |
-| VISTA ALEGRE | Apartamento | 1.524 | 11.627 | 1.793 | 1.859 | 4.309 | 10.110 | 134 | 5 anos |
-| VISTA ALEGRE | Casa | 1.050 | 18.694 | 1.235 | 1.294 | 3.879 | 16.256 | 70 | 5 anos |
-| ZUMBI | Apartamento | 2.035 | 10.702 | 2.394 | 2.723 | 5.351 | 8.309 | 92 | 5 anos |
+| ABOLICAO | Apartamento | 1.197 | 7.430 | 1.408 | 1.415 | 3.389 | 6.461 | 200 | 5 anos |
+| ABOLICAO | Casa | 684 | 8.122 | 805 | 913 | 2.905 | 7.063 | 77 | 5 anos |
+| AGUA SANTA | Apartamento | 1.736 | 10.089 | 2.042 | 2.067 | 5.194 | 8.773 | 203 | 3 anos |
+| AGUA SANTA | Casa | 868 | 8.439 | 1.021 | 1.081 | 3.243 | 7.338 | 42 | 5 anos |
+| ALTO DA BOA VISTA | Apartamento | 2.360 | 13.496 | 2.966 | 3.020 | 4.720 | 11.736 | 67 | 5 anos |
+| ALTO DA BOA VISTA | Casa | 1.564 | 12.243 | 1.840 | 1.856 | 3.432 | 10.646 | 42 | 5 anos |
+| ANCHIETA | Apartamento | 745 | 8.439 | 876 | 880 | 3.767 | 7.338 | 68 | 5 anos |
+| ANCHIETA | Casa | 677 | 18.866 | 796 | 997 | 2.159 | 16.405 | 94 | 5 anos |
+| ANDARAI | Apartamento | 1.825 | 12.045 | 2.147 | 2.254 | 5.156 | 10.474 | 943 | 3 anos |
+| ANDARAI | Casa | 910 | 23.696 | 1.070 | 1.484 | 4.013 | 20.605 | 145 | 5 anos |
+| ANDARAI | Comercial | 1.891 | 16.235 | 2.225 | 2.354 | 4.169 | 14.117 | 30 | 5 anos |
+| ANIL | Apartamento | 2.083 | 10.693 | 2.450 | 2.653 | 5.687 | 9.298 | 577 | 3 anos |
+| ANIL | Casa | 781 | 9.808 | 919 | 1.030 | 3.536 | 8.529 | 239 | 3 anos |
+| BANCARIOS | Apartamento | 1.270 | 7.956 | 1.494 | 1.656 | 3.797 | 6.918 | 89 | 5 anos |
+| BANCARIOS | Casa | 888 | 7.608 | 1.045 | 1.046 | 2.380 | 6.616 | 74 | 5 anos |
+| BANGU | Apartamento | 992 | 8.608 | 1.167 | 1.297 | 3.353 | 7.485 | 251 | 3 anos |
+| BANGU | Casa | 508 | 10.697 | 598 | 659 | 2.367 | 9.302 | 461 | 3 anos |
+| BANGU | Comercial | 997 | 40.306 | 1.173 | 1.299 | 4.368 | 35.049 | 141 | 5 anos |
+| BARRA DA TIJUCA | Apartamento | 4.411 | 35.720 | 5.189 | 5.655 | 12.644 | 31.061 | 8.952 | 3 anos |
+| BARRA DA TIJUCA | Casa | 2.065 | 46.992 | 2.429 | 3.083 | 8.832 | 40.863 | 817 | 3 anos |
+| BARRA DA TIJUCA | Comercial | 2.957 | 50.237 | 3.479 | 3.669 | 7.992 | 43.684 | 2.091 | 3 anos |
+| BARRA OLIMPICA | Apartamento | 3.239 | 15.439 | 3.810 | 4.108 | 8.698 | 13.425 | 931 | 3 anos |
+| BARRA OLIMPICA | Comercial | 1.699 | 14.790 | 1.999 | 2.078 | 5.224 | 12.861 | 120 | 5 anos |
+| BENFICA | Apartamento | 1.117 | 10.891 | 1.314 | 1.383 | 3.430 | 9.470 | 123 | 5 anos |
+| BENFICA | Casa | 801 | 14.857 | 942 | 1.065 | 2.644 | 12.919 | 73 | 5 anos |
+| BENFICA | Comercial | 851 | 9.830 | 1.001 | 1.238 | 2.944 | 8.548 | 125 | 5 anos |
+| BENTO RIBEIRO | Apartamento | 1.171 | 10.960 | 1.378 | 1.412 | 3.617 | 9.530 | 195 | 5 anos |
+| BENTO RIBEIRO | Casa | 810 | 16.626 | 953 | 1.080 | 3.268 | 14.457 | 252 | 5 anos |
+| BONSUCESSO | Apartamento | 1.382 | 11.411 | 1.626 | 1.783 | 6.121 | 9.923 | 812 | 3 anos |
+| BONSUCESSO | Casa | 845 | 13.141 | 994 | 1.006 | 3.012 | 11.427 | 123 | 5 anos |
+| BONSUCESSO | Comercial | 946 | 37.042 | 1.113 | 1.158 | 2.609 | 32.210 | 115 | 5 anos |
+| BOTAFOGO | Apartamento | 4.383 | 26.478 | 5.156 | 5.574 | 11.958 | 23.024 | 4.067 | 3 anos |
+| BOTAFOGO | Casa | 2.407 | 24.513 | 2.832 | 3.007 | 8.221 | 21.316 | 173 | 5 anos |
+| BOTAFOGO | Comercial | 1.737 | 52.577 | 2.043 | 3.060 | 12.295 | 45.719 | 283 | 5 anos |
+| BRAS DE PINA | Apartamento | 937 | 9.001 | 1.102 | 1.136 | 4.480 | 7.827 | 350 | 3 anos |
+| BRAS DE PINA | Casa | 632 | 19.072 | 744 | 888 | 3.328 | 16.584 | 249 | 5 anos |
+| BRAS DE PINA | Comercial | 1.100 | 15.612 | 1.294 | 1.374 | 2.979 | 13.576 | 41 | 5 anos |
+| CACHAMBI | Apartamento | 1.698 | 12.629 | 1.998 | 2.083 | 5.487 | 10.982 | 1.444 | 3 anos |
+| CACHAMBI | Casa | 1.033 | 16.856 | 1.215 | 1.265 | 4.111 | 14.657 | 242 | 5 anos |
+| CACHAMBI | Comercial | 1.261 | 62.765 | 1.484 | 1.556 | 4.613 | 54.578 | 71 | 5 anos |
+| CACUIA | Apartamento | 1.756 | 10.570 | 2.066 | 2.192 | 4.662 | 9.191 | 75 | 5 anos |
+| CACUIA | Casa | 804 | 9.601 | 946 | 1.116 | 3.532 | 8.349 | 40 | 5 anos |
+| CAJU | Apartamento | 1.524 | 7.192 | 1.793 | 1.860 | 3.241 | 6.254 | 36 | 5 anos |
+| CAMORIM | Apartamento | 3.064 | 13.575 | 3.605 | 4.340 | 8.563 | 11.804 | 2.996 | 3 anos |
+| CAMORIM | Comercial | 2.329 | 12.374 | 3.781 | 3.793 | 4.658 | 10.760 | 40 | 5 anos |
+| CAMPINHO | Apartamento | 1.154 | 7.194 | 1.358 | 1.424 | 3.597 | 6.186 | 135 | 5 anos |
+| CAMPINHO | Casa | 633 | 12.175 | 745 | 794 | 2.683 | 10.587 | 55 | 5 anos |
+| CAMPO DOS AFONSOS | Apartamento | 2.340 | 6.069 | 2.753 | 2.818 | 4.204 | 5.277 | 243 | 3 anos |
+| CAMPO GRANDE | Apartamento | 1.538 | 11.344 | 1.809 | 1.899 | 4.399 | 9.864 | 3.130 | 3 anos |
+| CAMPO GRANDE | Casa | 667 | 17.707 | 785 | 894 | 3.079 | 15.397 | 1.854 | 3 anos |
+| CAMPO GRANDE | Comercial | 1.219 | 40.045 | 1.434 | 1.557 | 5.071 | 34.822 | 306 | 3 anos |
+| CASCADURA | Apartamento | 1.004 | 8.628 | 1.181 | 1.204 | 3.107 | 7.503 | 219 | 3 anos |
+| CASCADURA | Casa | 607 | 8.975 | 714 | 787 | 2.564 | 7.804 | 137 | 5 anos |
+| CASCADURA | Comercial | 1.130 | 18.747 | 1.329 | 1.330 | 3.162 | 16.302 | 40 | 5 anos |
+| CATETE | Apartamento | 3.797 | 22.227 | 4.467 | 4.937 | 9.783 | 19.328 | 888 | 3 anos |
+| CATETE | Casa | 2.306 | 17.275 | 2.713 | 2.716 | 5.210 | 15.022 | 44 | 5 anos |
+| CATETE | Comercial | 1.691 | 33.084 | 1.989 | 2.799 | 9.808 | 28.769 | 140 | 5 anos |
+| CATUMBI | Apartamento | 828 | 9.065 | 974 | 1.256 | 3.608 | 7.883 | 139 | 5 anos |
+| CATUMBI | Casa | 961 | 6.507 | 1.130 | 1.132 | 2.734 | 5.658 | 34 | 5 anos |
+| CAVALCANTI | Apartamento | 650 | 7.648 | 765 | 786 | 3.824 | 5.778 | 98 | 5 anos |
+| CAVALCANTI | Casa | 530 | 11.721 | 624 | 661 | 2.342 | 10.192 | 66 | 5 anos |
+| CENTRO | Apartamento | 2.227 | 18.796 | 2.620 | 2.810 | 7.027 | 16.344 | 2.036 | 3 anos |
+| CENTRO | Comercial | 844 | 23.320 | 993 | 1.021 | 3.603 | 20.278 | 1.995 | 3 anos |
+| CIDADE DE DEUS | Casa | 621 | 7.675 | 731 | 789 | 2.699 | 6.674 | 40 | 5 anos |
+| CIDADE NOVA | Apartamento | 1.646 | 9.738 | 1.937 | 2.020 | 4.869 | 7.831 | 87 | 5 anos |
+| COCOTA | Apartamento | 1.947 | 10.994 | 2.290 | 2.317 | 4.026 | 9.560 | 116 | 5 anos |
+| COCOTA | Casa | 816 | 9.179 | 960 | 1.053 | 2.953 | 7.982 | 48 | 5 anos |
+| COELHO NETO | Apartamento | 1.148 | 5.817 | 1.582 | 1.602 | 2.296 | 5.058 | 30 | 5 anos |
+| COELHO NETO | Casa | 829 | 9.260 | 975 | 975 | 2.114 | 8.052 | 58 | 5 anos |
+| COELHO NETO | Comercial | 864 | 4.015 | 1.086 | 1.094 | 1.728 | 3.491 | 31 | 5 anos |
+| COLEGIO | Apartamento | 1.401 | 11.894 | 1.648 | 1.899 | 5.947 | 8.895 | 338 | 5 anos |
+| COLEGIO | Casa | 798 | 36.338 | 939 | 983 | 3.666 | 31.598 | 65 | 5 anos |
+| COPACABANA | Apartamento | 4.072 | 41.078 | 4.791 | 5.291 | 11.480 | 35.720 | 8.333 | 3 anos |
+| COPACABANA | Casa | 1.056 | 92.308 | 1.242 | 1.839 | 11.880 | 80.268 | 60 | 5 anos |
+| COPACABANA | Comercial | 1.007 | 85.345 | 1.185 | 3.863 | 8.610 | 74.213 | 567 | 3 anos |
+| CORDOVIL | Apartamento | 853 | 7.454 | 1.003 | 1.041 | 3.307 | 6.482 | 136 | 5 anos |
+| CORDOVIL | Casa | 656 | 28.301 | 772 | 844 | 2.697 | 24.610 | 81 | 5 anos |
+| COSME VELHO | Apartamento | 4.101 | 19.672 | 4.825 | 5.148 | 9.836 | 16.644 | 197 | 5 anos |
+| COSME VELHO | Casa | 1.709 | 14.776 | 2.011 | 2.154 | 5.418 | 12.849 | 37 | 5 anos |
+| COSMOS | Apartamento | 1.060 | 7.401 | 1.247 | 1.526 | 4.452 | 6.436 | 538 | 3 anos |
+| COSMOS | Casa | 566 | 8.320 | 666 | 720 | 4.160 | 7.159 | 374 | 5 anos |
+| CURICICA | Apartamento | 1.779 | 11.246 | 2.093 | 2.332 | 7.955 | 9.779 | 361 | 3 anos |
+| CURICICA | Casa | 765 | 9.958 | 900 | 964 | 3.071 | 8.659 | 192 | 5 anos |
+| DEL CASTILHO | Apartamento | 2.059 | 9.937 | 2.422 | 2.623 | 6.211 | 8.641 | 607 | 3 anos |
+| DEL CASTILHO | Casa | 1.440 | 12.944 | 1.694 | 1.734 | 3.146 | 11.256 | 39 | 5 anos |
+| DEL CASTILHO | Comercial | 1.732 | 14.875 | 2.038 | 2.163 | 5.645 | 12.935 | 195 | 5 anos |
+| ENCANTADO | Apartamento | 1.287 | 9.084 | 1.514 | 1.540 | 3.578 | 7.899 | 239 | 5 anos |
+| ENCANTADO | Casa | 849 | 10.609 | 999 | 1.024 | 2.829 | 9.225 | 112 | 5 anos |
+| ENGENHO DA RAINHA | Apartamento | 1.030 | 9.167 | 1.212 | 1.465 | 3.500 | 7.971 | 137 | 5 anos |
+| ENGENHO DA RAINHA | Casa | 596 | 14.219 | 701 | 722 | 3.267 | 12.364 | 50 | 5 anos |
+| ENGENHO DE DENTRO | Apartamento | 1.194 | 10.182 | 1.405 | 1.619 | 4.852 | 8.854 | 1.066 | 3 anos |
+| ENGENHO DE DENTRO | Casa | 803 | 12.655 | 945 | 970 | 3.164 | 11.004 | 240 | 5 anos |
+| ENGENHO DE DENTRO | Comercial | 932 | 57.027 | 1.096 | 1.298 | 4.564 | 49.589 | 46 | 5 anos |
+| ENGENHO NOVO | Apartamento | 1.161 | 7.335 | 1.366 | 1.459 | 3.091 | 6.378 | 610 | 3 anos |
+| ENGENHO NOVO | Casa | 655 | 8.793 | 771 | 838 | 2.719 | 7.646 | 206 | 5 anos |
+| ESTACIO | Apartamento | 1.482 | 9.838 | 1.744 | 1.842 | 4.266 | 8.555 | 256 | 5 anos |
+| FLAMENGO | Apartamento | 4.210 | 30.143 | 4.953 | 5.326 | 10.839 | 26.211 | 2.549 | 3 anos |
+| FLAMENGO | Comercial | 3.684 | 60.472 | 4.334 | 4.440 | 10.913 | 52.584 | 127 | 5 anos |
+| FREGUESIA (ILHA) | Apartamento | 1.221 | 8.665 | 1.436 | 1.503 | 3.921 | 7.535 | 212 | 3 anos |
+| FREGUESIA (ILHA) | Casa | 806 | 12.986 | 948 | 1.133 | 3.275 | 11.292 | 115 | 5 anos |
+| FREGUESIA (JACAREPAGUA) | Apartamento | 1.969 | 11.303 | 2.316 | 2.541 | 5.588 | 9.829 | 2.202 | 3 anos |
+| FREGUESIA (JACAREPAGUA) | Casa | 1.000 | 11.699 | 1.177 | 1.321 | 4.223 | 10.173 | 418 | 3 anos |
+| FREGUESIA (JACAREPAGUA) | Comercial | 1.673 | 33.831 | 1.968 | 2.002 | 4.237 | 29.418 | 346 | 3 anos |
+| GAMBOA | Apartamento | 1.022 | 14.028 | 1.202 | 1.263 | 3.372 | 12.198 | 85 | 5 anos |
+| GARDENIA AZUL | Apartamento | 1.418 | 11.334 | 1.668 | 2.039 | 5.667 | 7.501 | 136 | 5 anos |
+| GARDENIA AZUL | Casa | 516 | 10.010 | 607 | 631 | 2.674 | 8.704 | 53 | 5 anos |
+| GAVEA | Apartamento | 4.925 | 41.096 | 5.794 | 6.515 | 16.724 | 35.736 | 760 | 3 anos |
+| GAVEA | Casa | 1.975 | 31.656 | 2.323 | 3.392 | 11.585 | 27.527 | 80 | 5 anos |
+| GAVEA | Comercial | 4.361 | 39.638 | 5.130 | 5.423 | 15.827 | 34.468 | 51 | 5 anos |
+| GLORIA | Apartamento | 3.686 | 34.165 | 4.336 | 4.542 | 9.844 | 29.709 | 621 | 3 anos |
+| GLORIA | Comercial | 1.771 | 19.598 | 2.083 | 2.325 | 4.577 | 17.042 | 39 | 5 anos |
+| GRAJAU | Apartamento | 1.669 | 12.805 | 1.963 | 2.204 | 4.946 | 11.135 | 971 | 3 anos |
+| GRAJAU | Casa | 823 | 14.381 | 968 | 1.091 | 3.986 | 12.505 | 231 | 5 anos |
+| GUADALUPE | Apartamento | 878 | 8.646 | 1.033 | 1.141 | 4.065 | 7.518 | 124 | 5 anos |
+| GUADALUPE | Casa | 763 | 14.162 | 898 | 943 | 2.756 | 12.315 | 151 | 5 anos |
+| GUARATIBA | Apartamento | 1.352 | 7.555 | 1.591 | 1.593 | 4.300 | 6.570 | 918 | 3 anos |
+| GUARATIBA | Casa | 568 | 9.047 | 668 | 806 | 4.216 | 7.867 | 558 | 3 anos |
+| HIGIENOPOLIS | Apartamento | 1.195 | 6.851 | 1.406 | 1.470 | 3.132 | 5.957 | 248 | 3 anos |
+| HIGIENOPOLIS | Casa | 1.053 | 13.984 | 1.239 | 1.392 | 3.457 | 12.160 | 88 | 5 anos |
+| HIGIENOPOLIS | Comercial | 1.233 | 11.043 | 1.450 | 1.466 | 2.620 | 9.603 | 44 | 5 anos |
+| HONORIO GURGEL | Apartamento | 606 | 10.740 | 713 | 752 | 2.305 | 9.339 | 30 | 5 anos |
+| HONORIO GURGEL | Casa | 620 | 9.784 | 729 | 779 | 2.271 | 8.508 | 75 | 5 anos |
+| HUMAITA | Apartamento | 4.472 | 23.696 | 5.261 | 5.999 | 11.289 | 20.605 | 667 | 3 anos |
+| HUMAITA | Casa | 2.796 | 34.497 | 3.289 | 3.869 | 9.358 | 29.997 | 70 | 5 anos |
+| INHAUMA | Apartamento | 1.636 | 10.456 | 1.925 | 1.947 | 6.789 | 9.092 | 217 | 3 anos |
+| INHAUMA | Casa | 755 | 12.618 | 888 | 935 | 3.262 | 10.972 | 139 | 5 anos |
+| INHOAIBA | Apartamento | 1.232 | 7.325 | 1.449 | 1.602 | 4.917 | 6.370 | 266 | 3 anos |
+| INHOAIBA | Casa | 514 | 15.352 | 605 | 673 | 2.965 | 13.350 | 79 | 5 anos |
+| IPANEMA | Apartamento | 6.899 | 84.397 | 8.116 | 8.897 | 21.213 | 73.389 | 2.906 | 3 anos |
+| IPANEMA | Comercial | 6.773 | 157.829 | 7.968 | 8.120 | 20.626 | 137.243 | 234 | 3 anos |
+| IRAJA | Apartamento | 1.431 | 11.605 | 1.684 | 1.927 | 5.875 | 10.091 | 1.430 | 3 anos |
+| IRAJA | Casa | 827 | 18.206 | 973 | 1.067 | 3.514 | 15.831 | 325 | 3 anos |
+| IRAJA | Comercial | 1.065 | 10.886 | 1.253 | 1.297 | 3.226 | 9.466 | 37 | 5 anos |
+| ITANHANGA | Apartamento | 2.345 | 18.489 | 2.759 | 2.947 | 5.512 | 16.077 | 205 | 5 anos |
+| ITANHANGA | Casa | 594 | 17.043 | 699 | 731 | 4.882 | 14.820 | 175 | 5 anos |
+| JACAREPAGUA | Apartamento | 1.756 | 15.818 | 2.066 | 2.624 | 7.820 | 13.755 | 4.601 | 3 anos |
+| JACAREPAGUA | Casa | 645 | 15.432 | 759 | 886 | 3.952 | 13.419 | 321 | 5 anos |
+| JACAREPAGUA | Comercial | 1.930 | 19.767 | 2.270 | 2.873 | 5.754 | 17.189 | 305 | 3 anos |
+| JACARE | Apartamento | 593 | 7.950 | 698 | 698 | 3.313 | 6.913 | 118 | 5 anos |
+| JACARE | Casa | 648 | 6.019 | 762 | 780 | 2.121 | 5.234 | 48 | 5 anos |
+| JARDIM AMERICA | Apartamento | 1.081 | 7.746 | 1.272 | 1.366 | 2.605 | 6.736 | 120 | 5 anos |
+| JARDIM AMERICA | Casa | 769 | 13.277 | 905 | 944 | 2.609 | 11.545 | 163 | 5 anos |
+| JARDIM BOTANICO | Apartamento | 5.177 | 33.388 | 6.090 | 6.746 | 14.054 | 29.033 | 669 | 3 anos |
+| JARDIM BOTANICO | Casa | 3.004 | 55.746 | 3.534 | 4.323 | 15.244 | 48.475 | 169 | 5 anos |
+| JARDIM BOTANICO | Comercial | 5.224 | 34.328 | 6.146 | 6.791 | 14.322 | 29.850 | 114 | 5 anos |
+| JARDIM CARIOCA | Apartamento | 1.405 | 11.229 | 1.653 | 1.676 | 5.105 | 9.764 | 205 | 5 anos |
+| JARDIM CARIOCA | Casa | 761 | 14.060 | 895 | 957 | 2.685 | 12.226 | 100 | 5 anos |
+| JARDIM GUANABARA | Apartamento | 1.841 | 15.458 | 2.166 | 2.343 | 5.770 | 13.442 | 912 | 3 anos |
+| JARDIM GUANABARA | Casa | 1.281 | 13.887 | 1.507 | 1.609 | 4.117 | 12.076 | 230 | 3 anos |
+| JARDIM GUANABARA | Comercial | 1.285 | 31.373 | 1.512 | 1.728 | 5.846 | 27.281 | 79 | 5 anos |
+| JARDIM SULACAP | Apartamento | 1.749 | 9.695 | 2.058 | 2.097 | 4.646 | 8.430 | 298 | 5 anos |
+| JARDIM SULACAP | Casa | 899 | 10.130 | 1.058 | 1.123 | 3.270 | 8.809 | 160 | 5 anos |
+| JOA | Casa | 1.597 | 35.604 | 1.879 | 1.964 | 8.149 | 30.960 | 39 | 5 anos |
+| LAGOA | Apartamento | 6.226 | 48.017 | 7.325 | 7.666 | 15.462 | 41.754 | 929 | 3 anos |
+| LARANJEIRAS | Apartamento | 3.746 | 24.014 | 4.407 | 4.908 | 9.879 | 20.882 | 1.947 | 3 anos |
+| LARANJEIRAS | Casa | 1.663 | 18.853 | 1.956 | 2.277 | 6.941 | 16.394 | 94 | 5 anos |
+| LEBLON | Apartamento | 9.085 | 72.765 | 10.688 | 11.438 | 22.198 | 63.274 | 2.390 | 3 anos |
+| LEBLON | Comercial | 9.358 | 96.459 | 11.009 | 11.792 | 28.420 | 83.877 | 197 | 5 anos |
+| LEME | Apartamento | 4.323 | 40.416 | 5.086 | 5.622 | 12.374 | 35.144 | 587 | 3 anos |
+| LINS DE VASCONCELOS | Apartamento | 1.160 | 8.855 | 1.365 | 1.428 | 3.097 | 7.700 | 389 | 3 anos |
+| LINS DE VASCONCELOS | Casa | 843 | 14.783 | 992 | 1.069 | 3.468 | 12.855 | 144 | 5 anos |
+| MADUREIRA | Apartamento | 945 | 7.461 | 1.112 | 1.232 | 3.295 | 6.488 | 361 | 3 anos |
+| MADUREIRA | Casa | 705 | 13.351 | 829 | 905 | 2.604 | 11.610 | 201 | 5 anos |
+| MADUREIRA | Comercial | 1.635 | 50.598 | 1.923 | 1.928 | 5.110 | 43.998 | 197 | 5 anos |
+| MAGALHAES BASTOS | Casa | 717 | 6.756 | 843 | 867 | 2.177 | 5.875 | 70 | 5 anos |
+| MARACANA | Apartamento | 2.258 | 17.040 | 2.656 | 2.917 | 6.712 | 14.817 | 1.158 | 3 anos |
+| MARACANA | Casa | 1.921 | 16.291 | 2.260 | 2.330 | 3.978 | 14.166 | 93 | 5 anos |
+| MARACANA | Comercial | 1.894 | 17.230 | 3.123 | 3.127 | 3.787 | 14.983 | 35 | 5 anos |
+| MARECHAL HERMES | Apartamento | 785 | 12.299 | 924 | 924 | 5.574 | 10.695 | 325 | 5 anos |
+| MARECHAL HERMES | Casa | 793 | 13.341 | 933 | 986 | 3.257 | 11.601 | 190 | 5 anos |
+| MARIA DA GRACA | Apartamento | 1.379 | 9.419 | 1.622 | 1.777 | 3.594 | 8.190 | 215 | 5 anos |
+| MARIA DA GRACA | Casa | 847 | 12.530 | 997 | 1.084 | 2.556 | 10.896 | 70 | 5 anos |
+| MEIER | Apartamento | 1.684 | 10.184 | 1.981 | 2.058 | 4.106 | 8.856 | 1.233 | 3 anos |
+| MEIER | Casa | 993 | 17.347 | 1.168 | 1.341 | 4.200 | 15.084 | 313 | 5 anos |
+| MEIER | Comercial | 1.797 | 31.539 | 2.114 | 2.185 | 4.637 | 27.425 | 232 | 5 anos |
+| MONERO | Apartamento | 2.052 | 14.035 | 2.414 | 2.423 | 5.013 | 12.204 | 189 | 5 anos |
+| MONERO | Casa | 1.531 | 15.101 | 1.801 | 1.806 | 4.194 | 13.131 | 47 | 5 anos |
+| OLARIA | Apartamento | 1.176 | 10.685 | 1.383 | 1.550 | 3.695 | 9.291 | 384 | 3 anos |
+| OLARIA | Casa | 939 | 16.866 | 1.105 | 1.279 | 3.460 | 14.666 | 281 | 5 anos |
+| OLARIA | Comercial | 1.020 | 7.913 | 1.200 | 1.292 | 2.793 | 6.881 | 47 | 5 anos |
+| OSVALDO CRUZ | Apartamento | 944 | 9.416 | 1.110 | 1.277 | 3.332 | 8.188 | 133 | 5 anos |
+| OSVALDO CRUZ | Casa | 846 | 20.517 | 995 | 1.028 | 3.332 | 17.841 | 158 | 5 anos |
+| PACIENCIA | Apartamento | 763 | 7.692 | 898 | 950 | 3.846 | 4.623 | 232 | 5 anos |
+| PACIENCIA | Casa | 704 | 6.834 | 828 | 848 | 2.170 | 5.943 | 81 | 5 anos |
+| PADRE MIGUEL | Apartamento | 968 | 6.572 | 1.139 | 1.148 | 2.807 | 5.715 | 84 | 5 anos |
+| PADRE MIGUEL | Casa | 746 | 7.598 | 878 | 920 | 2.241 | 6.607 | 178 | 5 anos |
+| PADRE MIGUEL | Comercial | 792 | 9.121 | 932 | 936 | 1.672 | 7.931 | 33 | 5 anos |
+| PAQUETA | Apartamento | 1.476 | 12.821 | 1.736 | 1.888 | 5.083 | 11.149 | 85 | 5 anos |
+| PAQUETA | Casa | 1.293 | 15.037 | 1.521 | 1.622 | 4.876 | 13.076 | 80 | 5 anos |
+| PARADA DE LUCAS | Apartamento | 797 | 11.183 | 938 | 938 | 5.564 | 9.724 | 240 | 3 anos |
+| PARQUE ANCHIETA | Apartamento | 1.023 | 13.541 | 1.203 | 1.302 | 2.929 | 11.775 | 42 | 5 anos |
+| PARQUE ANCHIETA | Casa | 754 | 10.558 | 887 | 928 | 2.216 | 9.181 | 109 | 5 anos |
+| PARQUE COLUMBIA | Apartamento | 660 | 10.118 | 776 | 887 | 5.059 | 6.226 | 67 | 5 anos |
+| PAVUNA | Apartamento | 917 | 9.828 | 1.079 | 1.187 | 4.043 | 8.546 | 247 | 5 anos |
+| PAVUNA | Casa | 598 | 10.677 | 704 | 748 | 2.683 | 9.284 | 257 | 5 anos |
+| PECHINCHA | Apartamento | 1.782 | 9.631 | 2.097 | 2.217 | 4.845 | 8.375 | 1.607 | 3 anos |
+| PECHINCHA | Casa | 588 | 11.393 | 692 | 861 | 3.599 | 9.907 | 247 | 3 anos |
+| PECHINCHA | Comercial | 1.269 | 13.139 | 1.493 | 1.817 | 3.922 | 11.425 | 198 | 5 anos |
+| PEDRA DE GUARATIBA | Casa | 570 | 7.570 | 670 | 727 | 3.286 | 6.583 | 151 | 5 anos |
+| PENHA CIRCULAR | Apartamento | 1.119 | 10.253 | 1.316 | 1.451 | 3.104 | 8.916 | 359 | 3 anos |
+| PENHA CIRCULAR | Casa | 708 | 9.164 | 833 | 979 | 2.725 | 7.969 | 213 | 5 anos |
+| PENHA CIRCULAR | Comercial | 626 | 12.628 | 737 | 790 | 1.807 | 10.981 | 71 | 5 anos |
+| PENHA | Apartamento | 1.119 | 10.846 | 1.316 | 1.455 | 4.198 | 9.431 | 547 | 3 anos |
+| PENHA | Casa | 808 | 8.996 | 950 | 1.000 | 2.577 | 7.823 | 250 | 5 anos |
+| PENHA | Comercial | 1.030 | 21.605 | 1.212 | 1.244 | 5.091 | 18.787 | 168 | 5 anos |
+| PIEDADE | Apartamento | 1.051 | 9.914 | 1.237 | 1.285 | 3.884 | 8.621 | 358 | 3 anos |
+| PIEDADE | Casa | 676 | 8.557 | 795 | 830 | 2.477 | 7.441 | 204 | 3 anos |
+| PILARES | Apartamento | 1.215 | 8.616 | 1.429 | 1.462 | 3.290 | 7.492 | 212 | 5 anos |
+| PILARES | Casa | 826 | 12.247 | 972 | 1.034 | 3.542 | 10.650 | 115 | 5 anos |
+| PILARES | Comercial | 1.199 | 17.580 | 1.411 | 1.675 | 4.103 | 15.287 | 120 | 5 anos |
+| PITANGUEIRAS | Apartamento | 2.294 | 10.284 | 2.699 | 2.709 | 5.142 | 8.343 | 74 | 5 anos |
+| PITANGUEIRAS | Casa | 854 | 10.136 | 1.005 | 1.029 | 3.057 | 8.814 | 45 | 5 anos |
+| PORTUGUESA | Apartamento | 1.773 | 11.268 | 2.086 | 2.234 | 4.958 | 9.798 | 245 | 5 anos |
+| PORTUGUESA | Casa | 1.004 | 13.189 | 1.181 | 1.203 | 3.952 | 11.469 | 163 | 5 anos |
+| PRACA DA BANDEIRA | Apartamento | 1.885 | 12.174 | 2.218 | 2.373 | 5.761 | 10.586 | 244 | 3 anos |
+| PRACA DA BANDEIRA | Casa | 1.329 | 14.342 | 1.564 | 1.579 | 4.175 | 12.471 | 39 | 5 anos |
+| PRACA DA BANDEIRA | Comercial | 1.181 | 14.044 | 1.389 | 1.442 | 2.710 | 12.212 | 38 | 5 anos |
+| PRACA SECA | Apartamento | 955 | 9.979 | 1.123 | 1.248 | 2.735 | 8.677 | 717 | 3 anos |
+| PRACA SECA | Casa | 584 | 6.250 | 687 | 734 | 2.277 | 5.435 | 237 | 3 anos |
+| PRAIA DA BANDEIRA | Apartamento | 1.774 | 9.690 | 2.087 | 2.347 | 4.845 | 7.800 | 88 | 5 anos |
+| QUINTINO BOCAIUVA | Apartamento | 957 | 7.645 | 1.126 | 1.288 | 3.364 | 6.648 | 306 | 5 anos |
+| QUINTINO BOCAIUVA | Casa | 793 | 8.769 | 933 | 940 | 2.393 | 7.625 | 224 | 5 anos |
+| RAMOS | Apartamento | 1.147 | 9.519 | 1.349 | 1.398 | 4.260 | 8.277 | 405 | 3 anos |
+| RAMOS | Casa | 1.015 | 17.772 | 1.194 | 1.211 | 3.410 | 15.454 | 232 | 5 anos |
+| RAMOS | Comercial | 732 | 27.508 | 861 | 958 | 2.454 | 23.920 | 50 | 5 anos |
+| REALENGO | Apartamento | 1.145 | 7.864 | 1.347 | 1.420 | 3.932 | 6.043 | 371 | 5 anos |
+| REALENGO | Casa | 641 | 8.883 | 754 | 822 | 1.941 | 7.724 | 203 | 3 anos |
+| RECREIO DOS BANDEIRANTES | Apartamento | 2.611 | 17.035 | 3.072 | 3.387 | 7.209 | 14.813 | 6.583 | 3 anos |
+| RECREIO DOS BANDEIRANTES | Casa | 2.057 | 19.435 | 2.420 | 2.841 | 6.949 | 16.900 | 691 | 3 anos |
+| RECREIO DOS BANDEIRANTES | Comercial | 2.060 | 18.290 | 2.423 | 2.517 | 5.418 | 15.904 | 532 | 3 anos |
+| RIACHUELO | Apartamento | 1.215 | 9.896 | 1.429 | 1.590 | 3.806 | 8.605 | 289 | 3 anos |
+| RIACHUELO | Casa | 984 | 10.704 | 1.158 | 1.205 | 2.520 | 9.308 | 100 | 5 anos |
+| RIBEIRA | Apartamento | 2.017 | 12.098 | 2.373 | 2.426 | 5.609 | 10.520 | 190 | 5 anos |
+| RICARDO DE ALBUQUERQUE | Casa | 511 | 11.870 | 601 | 601 | 2.492 | 10.322 | 66 | 5 anos |
+| RIO COMPRIDO | Apartamento | 1.330 | 12.465 | 1.565 | 1.730 | 5.755 | 10.839 | 1.058 | 3 anos |
+| RIO COMPRIDO | Casa | 779 | 14.535 | 916 | 922 | 2.601 | 12.639 | 106 | 5 anos |
+| RIO COMPRIDO | Comercial | 818 | 8.188 | 962 | 1.128 | 4.094 | 6.123 | 76 | 5 anos |
+| ROCHA MIRANDA | Apartamento | 998 | 8.202 | 1.174 | 1.205 | 3.445 | 7.132 | 136 | 5 anos |
+| ROCHA MIRANDA | Casa | 570 | 20.703 | 671 | 736 | 2.882 | 18.003 | 132 | 5 anos |
+| ROCHA | Apartamento | 1.182 | 8.176 | 1.391 | 1.437 | 3.338 | 7.110 | 252 | 5 anos |
+| ROCHA | Casa | 722 | 10.770 | 849 | 914 | 2.545 | 9.365 | 76 | 5 anos |
+| SAMPAIO | Apartamento | 1.085 | 7.941 | 1.277 | 1.327 | 2.912 | 6.905 | 121 | 5 anos |
+| SAMPAIO | Casa | 756 | 6.746 | 889 | 900 | 2.389 | 5.866 | 46 | 5 anos |
+| SANTA CRUZ | Apartamento | 1.173 | 7.365 | 1.380 | 1.835 | 3.990 | 6.404 | 2.047 | 3 anos |
+| SANTA CRUZ | Casa | 613 | 38.407 | 721 | 734 | 2.791 | 33.397 | 133 | 5 anos |
+| SANTA CRUZ | Comercial | 1.304 | 29.032 | 1.534 | 1.554 | 3.277 | 25.245 | 46 | 5 anos |
+| SANTA TERESA | Apartamento | 1.826 | 19.688 | 2.148 | 2.358 | 6.190 | 17.120 | 543 | 3 anos |
+| SANTA TERESA | Casa | 972 | 32.428 | 1.143 | 1.286 | 4.487 | 28.198 | 167 | 5 anos |
+| SANTISSIMO | Apartamento | 1.432 | 6.439 | 1.685 | 1.752 | 4.113 | 5.599 | 263 | 3 anos |
+| SANTISSIMO | Casa | 833 | 8.535 | 980 | 1.023 | 4.006 | 7.422 | 172 | 5 anos |
+| SANTO CRISTO | Apartamento | 2.668 | 18.449 | 3.139 | 5.117 | 10.002 | 16.043 | 2.738 | 3 anos |
+| SANTO CRISTO | Casa | 642 | 7.251 | 755 | 795 | 2.046 | 6.305 | 50 | 5 anos |
+| SANTO CRISTO | Comercial | 1.015 | 21.756 | 1.194 | 1.230 | 9.055 | 18.918 | 36 | 5 anos |
+| SAO CONRADO | Apartamento | 4.595 | 46.338 | 5.406 | 5.775 | 12.296 | 40.294 | 428 | 3 anos |
+| SAO CONRADO | Casa | 879 | 46.251 | 1.034 | 1.430 | 8.073 | 40.218 | 64 | 5 anos |
+| SAO CONRADO | Comercial | 3.621 | 29.418 | 4.260 | 4.316 | 9.597 | 25.581 | 52 | 5 anos |
+| SAO CRISTOVAO | Apartamento | 1.833 | 13.300 | 2.156 | 2.356 | 8.090 | 11.565 | 1.571 | 3 anos |
+| SAO CRISTOVAO | Casa | 938 | 13.277 | 1.103 | 1.199 | 3.429 | 11.545 | 131 | 5 anos |
+| SAO CRISTOVAO | Comercial | 1.027 | 14.246 | 1.208 | 1.208 | 5.138 | 12.388 | 178 | 5 anos |
+| SAO FRANCISCO XAVIER | Apartamento | 1.536 | 10.394 | 1.807 | 1.939 | 7.414 | 9.038 | 475 | 3 anos |
+| SAUDE | Comercial | 1.053 | 18.207 | 1.239 | 1.265 | 2.526 | 15.832 | 78 | 5 anos |
+| SENADOR CAMARA | Apartamento | 992 | 5.791 | 1.167 | 1.189 | 2.506 | 5.036 | 191 | 5 anos |
+| SENADOR CAMARA | Casa | 644 | 8.311 | 758 | 798 | 2.510 | 7.227 | 144 | 5 anos |
+| SENADOR VASCONCELOS | Apartamento | 1.238 | 5.268 | 1.456 | 1.471 | 2.634 | 3.897 | 43 | 5 anos |
+| SENADOR VASCONCELOS | Casa | 660 | 6.833 | 777 | 838 | 2.607 | 5.942 | 104 | 5 anos |
+| TANQUE | Apartamento | 1.527 | 11.239 | 1.797 | 1.854 | 3.954 | 9.773 | 328 | 3 anos |
+| TANQUE | Casa | 626 | 13.340 | 736 | 897 | 2.820 | 11.600 | 175 | 5 anos |
+| TANQUE | Comercial | 1.175 | 19.323 | 1.382 | 1.559 | 4.158 | 16.803 | 63 | 5 anos |
+| TAQUARA | Apartamento | 1.694 | 11.906 | 1.993 | 2.157 | 4.755 | 10.353 | 2.120 | 3 anos |
+| TAQUARA | Casa | 917 | 12.621 | 1.079 | 1.130 | 3.299 | 10.975 | 414 | 3 anos |
+| TAQUARA | Comercial | 1.324 | 23.258 | 1.558 | 1.970 | 4.547 | 20.224 | 299 | 5 anos |
+| TAUA | Apartamento | 1.549 | 10.670 | 1.822 | 1.911 | 3.827 | 9.278 | 220 | 3 anos |
+| TAUA | Casa | 603 | 12.482 | 709 | 742 | 2.890 | 10.854 | 101 | 5 anos |
+| TIJUCA | Apartamento | 1.975 | 15.197 | 2.324 | 2.670 | 6.154 | 13.215 | 5.656 | 3 anos |
+| TIJUCA | Casa | 1.201 | 19.121 | 1.413 | 1.485 | 5.164 | 16.627 | 250 | 3 anos |
+| TIJUCA | Comercial | 1.751 | 29.868 | 2.060 | 2.112 | 5.741 | 25.972 | 484 | 3 anos |
+| TODOS OS SANTOS | Apartamento | 1.614 | 11.081 | 1.899 | 2.044 | 5.569 | 9.636 | 995 | 3 anos |
+| TODOS OS SANTOS | Casa | 1.208 | 16.614 | 1.421 | 1.459 | 3.588 | 14.447 | 162 | 5 anos |
+| TODOS OS SANTOS | Comercial | 1.574 | 18.553 | 1.852 | 2.077 | 4.780 | 16.133 | 249 | 5 anos |
+| TOMAS COELHO | Apartamento | 1.261 | 9.068 | 1.483 | 1.507 | 4.534 | 5.247 | 135 | 5 anos |
+| TOMAS COELHO | Casa | 535 | 8.842 | 629 | 650 | 2.296 | 7.689 | 55 | 5 anos |
+| TURIACU | Apartamento | 1.059 | 7.085 | 1.246 | 1.276 | 2.610 | 6.161 | 56 | 5 anos |
+| TURIACU | Casa | 602 | 9.515 | 708 | 758 | 2.505 | 8.274 | 41 | 5 anos |
+| URCA | Apartamento | 6.876 | 31.566 | 8.089 | 8.517 | 14.100 | 27.449 | 216 | 5 anos |
+| URCA | Casa | 4.670 | 33.674 | 5.494 | 5.537 | 12.450 | 29.282 | 36 | 5 anos |
+| VARGEM GRANDE | Apartamento | 2.458 | 9.482 | 2.892 | 2.930 | 5.592 | 8.245 | 367 | 3 anos |
+| VARGEM GRANDE | Casa | 1.200 | 11.583 | 1.412 | 1.762 | 5.782 | 10.072 | 219 | 5 anos |
+| VARGEM PEQUENA | Apartamento | 2.047 | 9.008 | 2.408 | 2.447 | 4.906 | 7.833 | 322 | 3 anos |
+| VARGEM PEQUENA | Casa | 1.067 | 16.601 | 1.255 | 1.703 | 4.938 | 14.436 | 274 | 3 anos |
+| VASCO DA GAMA | Apartamento | 1.165 | 10.128 | 1.370 | 1.782 | 5.064 | 8.297 | 130 | 5 anos |
+| VASCO DA GAMA | Casa | 756 | 15.129 | 889 | 1.086 | 3.714 | 13.156 | 42 | 5 anos |
+| VAZ LOBO | Apartamento | 1.026 | 8.973 | 1.207 | 1.315 | 3.248 | 7.803 | 224 | 5 anos |
+| VAZ LOBO | Casa | 705 | 11.216 | 829 | 868 | 2.885 | 9.753 | 58 | 5 anos |
+| VICENTE DE CARVALHO | Apartamento | 1.146 | 10.250 | 1.348 | 1.497 | 5.125 | 8.843 | 272 | 5 anos |
+| VICENTE DE CARVALHO | Casa | 1.134 | 19.183 | 1.334 | 1.373 | 2.899 | 16.681 | 100 | 5 anos |
+| VICENTE DE CARVALHO | Comercial | 1.818 | 16.826 | 2.139 | 2.277 | 6.289 | 14.631 | 137 | 5 anos |
+| VIDIGAL | Apartamento | 2.299 | 56.767 | 2.705 | 2.763 | 7.001 | 49.363 | 48 | 5 anos |
+| VIGARIO GERAL | Apartamento | 990 | 5.481 | 1.165 | 1.169 | 2.214 | 4.766 | 47 | 5 anos |
+| VIGARIO GERAL | Casa | 794 | 17.460 | 934 | 938 | 2.765 | 15.183 | 55 | 5 anos |
+| VILA DA PENHA | Apartamento | 1.556 | 10.742 | 1.830 | 1.937 | 4.564 | 9.341 | 599 | 3 anos |
+| VILA DA PENHA | Casa | 1.065 | 12.398 | 1.253 | 1.419 | 3.481 | 10.781 | 187 | 5 anos |
+| VILA DA PENHA | Comercial | 1.230 | 13.216 | 1.447 | 1.917 | 5.551 | 11.492 | 95 | 5 anos |
+| VILA ISABEL | Apartamento | 1.360 | 13.187 | 1.600 | 1.699 | 4.859 | 11.467 | 1.865 | 3 anos |
+| VILA ISABEL | Casa | 943 | 13.645 | 1.109 | 1.269 | 4.051 | 11.865 | 288 | 5 anos |
+| VILA ISABEL | Comercial | 1.781 | 21.840 | 2.095 | 2.177 | 4.479 | 18.991 | 187 | 5 anos |
+| VILA KOSMOS | Apartamento | 1.284 | 9.479 | 1.510 | 1.545 | 3.526 | 8.243 | 100 | 5 anos |
+| VILA KOSMOS | Casa | 910 | 23.006 | 1.070 | 1.131 | 3.241 | 20.005 | 118 | 5 anos |
+| VILA VALQUEIRE | Apartamento | 1.424 | 11.560 | 1.675 | 1.782 | 4.477 | 10.052 | 551 | 3 anos |
+| VILA VALQUEIRE | Casa | 590 | 18.260 | 694 | 923 | 3.680 | 15.878 | 339 | 5 anos |
+| VILA VALQUEIRE | Comercial | 2.373 | 16.712 | 2.792 | 3.058 | 5.268 | 14.532 | 38 | 5 anos |
+| VISTA ALEGRE | Apartamento | 1.617 | 11.957 | 1.902 | 1.955 | 4.419 | 10.397 | 132 | 5 anos |
+| VISTA ALEGRE | Casa | 1.068 | 19.111 | 1.256 | 1.305 | 4.061 | 16.618 | 69 | 5 anos |
+| ZUMBI | Apartamento | 2.050 | 10.968 | 2.412 | 2.710 | 5.484 | 8.435 | 92 | 5 anos |
 
 ---
 
@@ -1656,7 +1677,7 @@ Para regenerar: consultas 7.4 e 7.4b, CSVs em `docs/calibracao/`, `bun run cinto
 | Arquivo | Papel |
 |---|---|
 | `supabase/functions/_shared/itbiMarketStats.ts` | Núcleo estatístico. Fonte única. |
-| `supabase/functions/_shared/outlierLimits.ts` | Cinto de outlier: tabela gerada de 317 pares, constantes da cidade e dos fatores do índice, conversão para preço da época, calibração por rua. |
+| `supabase/functions/_shared/outlierLimits.ts` | Cinto de outlier: tabela gerada de 313 pares, constantes da cidade e dos fatores do índice, conversão para preço da época, calibração por rua. |
 | `supabase/functions/_shared/priceTrend.ts` | Regressão log de tendência. |
 | `src/lib/logradouroSearch.ts` | Expansão de variantes de grafia. |
 | `src/utils/valuationCalculations.ts` | Gap, caps, valores finais, score de confiança. |

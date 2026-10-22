@@ -75,7 +75,9 @@ order by escrituras desc, b.bairro, b.tipologia, k.k_inf;
 -- 2026-10-21 foram vendas reais baratas abaixo do piso; com o P0,5 o corte é
 -- simétrico (0,5% de cada lado) e nenhum par reprova. piso_p1 fica no CSV só
 -- como referência. Inclui fora_do_cinto para o cinto não encolher a cada
--- recalibração; exclui o bairro DESCONHECIDO (escrituras sem bairro na SMF).
+-- recalibração; exclui o bairro DESCONHECIDO (escrituras sem bairro na SMF)
+-- e, por não citar o motivo, as escrituras fora_de_mercado (regra por prédio
+-- de itbi_aplicar_cinto, desde 2026-10-22).
 -- Sem HAVING: as regras (>= 200 em 3 anos; senão >= 30 em 5 anos) ficam no
 -- gerador. Não expõe endereços nem valores individuais.
 with ref as (
