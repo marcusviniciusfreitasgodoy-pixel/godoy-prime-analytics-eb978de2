@@ -8,10 +8,12 @@ Página da SMF: https://fazenda.prefeitura.rio/itbi-valores-medios-por-m2-de-tra
 |---|---|
 | Tabela `itbi_escrituras`, coluna `itbi_transactions.fonte`, view `itbi_transactions_smf`, função `itbi_consolidar_smf()` | `supabase/migrations/20261021120000_itbi_escrituras_smf.sql` (+ `20261021130000_itbi_smf_sem_terreno.sql`) |
 | Leitura da planilha, normalização, validação e geocodificação (TS, roda em Deno e no navegador) | `supabase/functions/_shared/itbiSmf.ts`, nomes em `_shared/itbiSmfNomes.ts` |
+| Etapas da carga comuns ao painel e à carga agendada (agrupamento por bairro que define os ids) | `supabase/functions/_shared/itbiSmfCarga.ts` |
 | Edge function de carga | `supabase/functions/ingest-itbi-smf/index.ts` |
-| **Painel de carga (caminho oficial)** | `/admin`, cartão "ITBI por escritura (SMF)": `src/components/admin/CargaItbiSmf.tsx` |
+| **Carga agendada (caminho oficial da atualização mensal)** | `scripts/itbi-smf/carga-mensal.ts`, rodado por `.github/workflows/itbi-smf-mensal.yml` toda segunda às 8h |
+| **Painel de carga (manual)** | `/admin`, cartão "ITBI por escritura (SMF)": `src/components/admin/CargaItbiSmf.tsx` |
 | Guarda que impede a camada 8 de sobrescrever meses da SMF | `supabase/functions/_shared/itbiFonte.ts` |
-| Carregador Python (dry-run e conferência local) | `scripts/itbi-smf/carregar_itbi_smf.py` |
+| Carregador Python (só dry-run e conferência local; ids em outro formato) | `scripts/itbi-smf/carregar_itbi_smf.py` |
 | Nomes de rua e bairro na grafia da camada 8 | `data/cl_nomes_arcgis.json` → `python3 -I scripts/itbi-smf/gerar_nomes_ts.py` gera `itbiSmfNomes.ts` |
 
 ## Por que o painel roda no navegador
@@ -29,7 +31,7 @@ Servidores de função costumam ser 2 a 3 vezes mais lentos. Então:
 - **Painel do admin (oficial)**: o navegador descompacta e lê as planilhas (sem teto); a função só entrega os bytes da SMF (`acao: faixa`, o site da SMF não libera CORS) e grava (`acao: gravar`, com o login do admin). Geocodificação direto no ArcGIS da Prefeitura, que libera CORS.
 - **`acao: processar` na função**: faz tudo no servidor, para até 10 bairros por chamada no arquivo recente. Serve para bairros pequenos e testes; a Barra fica perto do teto de CPU.
 
-Nada é aberto para a chave pública: a função exige admin logado ou o cabeçalho `x-cron-secret` (mesmo `CRON_SECRET` de `sync-itbi-daily`).
+Nada é aberto para a chave pública: a função exige admin logado ou o cabeçalho `x-cron-secret` (o `CRON_SECRET` de `sync-itbi-daily` ou o `ITBI_CARGA_SECRET` da carga agendada). Por isso `verify_jwt = false` em `supabase/config.toml`: a carga agendada não tem JWT, e a autorização é feita na própria função.
 
 ## Como funciona a consolidação
 
@@ -54,9 +56,40 @@ group by 1, 2 order by 1, 2;
 5. Abrangência **Cidade inteira**, sem simular. Leva de 15 a 30 minutos no navegador (cerca de 330 mil escrituras, geocodificação de ~9.500 ruas).
 6. Depois: `classify-microbairros` para ruas novas (as antigas mantêm o microbairro) e, se quiser, `geocodificar-itbi-transactions` para linhas sem `geom`.
 
-## Atualização mensal
+## Atualização mensal (agendada)
 
-A SMF republica sem data fixa. Uma vez por mês, no painel: **Cidade inteira**, a partir do **ano corrente**. Só o arquivo recente é lido e os meses do ano são substituídos. `sync-itbi-daily`, que puxa a camada 8, encerra sozinho com `skipped: true` nos meses já cobertos pela SMF e só preenche meses que a SMF ainda não publicou.
+A SMF republica sem data fixa e muda o nome da planilha recente a cada vez (`..._2025_diante-6.xlsx`, `-7-1.xlsx`). A carga é automática:
+
+1. Toda segunda às 8h (Brasília) o workflow **ITBI SMF mensal** roda `bun scripts/itbi-smf/carga-mensal.ts`.
+2. O script lê a página da SMF e pergunta à função (`acao: status`) qual o último arquivo recente carregado (`arquivo_fonte` da escritura mais nova).
+3. Nome igual: a SMF não republicou; o job termina em segundos, sem gravar.
+4. Nome diferente: lê as planilhas a partir do ano da última escritura da base, com as mesmas etapas do painel (`_shared/itbiSmfCarga.ts`), grava pela função (`acao: gravar`, lotes de 1.000) e consolida **um trimestre por chamada** (`acao: consolidar`).
+5. O resumo fica na página da execução, em Actions. Falha manda e-mail do GitHub para quem mantém o workflow.
+
+Disparo manual, em Actions > ITBI SMF mensal > Run workflow:
+
+| Modo | Efeito |
+|---|---|
+| `verificar` | o mesmo do agendamento: carrega só se houver planilha nova |
+| `forcar` | carrega mesmo sem planilha nova (ex.: depois de mudar uma regra de validação) |
+| `simular` | lê, normaliza e geocodifica; não grava nada (dispensa o segredo) |
+
+Localmente, o mesmo script: `bun scripts/itbi-smf/carga-mensal.ts --simular --desde=2026 [--bairro=128] [--saida=arquivo.jsonl]`.
+
+### Configuração (uma vez)
+
+1. Gerar um valor aleatório, por exemplo com `openssl rand -hex 32`.
+2. Na Lovable Cloud, criar o secret `ITBI_CARGA_SECRET` com esse valor (a função `ingest-itbi-smf` lê dele).
+3. No GitHub, em Settings > Secrets and variables > Actions, criar o secret `ITBI_CARGA_SECRET` com o mesmo valor.
+4. Rodar o workflow uma vez em modo `verificar` e conferir o resumo.
+
+Se o segredo vazar, trocar o valor nos dois lugares. O GitHub desativa agendamentos de repositórios sem commits por 60 dias; nesse caso, reativar o workflow em Actions.
+
+### Pelo painel (manual)
+
+Continua disponível: **Cidade inteira**, a partir do **ano corrente**, desmarcar "Simular". Usa as mesmas etapas e gera os mesmos ids da carga agendada; não rodar os dois ao mesmo tempo.
+
+O agendamento antigo `sync-itbi-monthly`, que puxava a camada 8 do ArcGIS por `sync-itbi-daily`, foi desativado em 2026-10-22 (`cron.alter_job(..., active := false)`): ele gravaria linhas da camada 8 em meses que a SMF ainda não publicou.
 
 ## Rodar o carregador Python (local, só conferência)
 

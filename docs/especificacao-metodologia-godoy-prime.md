@@ -754,6 +754,8 @@ Dados calculados a cada pergunta e enviados ao modelo: resumo da cidade no **ano
 
 ## 12. Ingestão (`sync-itbi-prefeitura`, `sync-itbi-daily`)
 
+**Desde 2026-10-21 a fonte de `itbi_transactions` é a planilha da SMF, uma linha por escritura** (`itbi_escrituras`, consolidada por `itbi_consolidar_smf`, seções 2.5 e 15.0). A atualização mensal é automática desde 2026-10-22: o workflow "ITBI SMF mensal" (`scripts/itbi-smf/carga-mensal.ts`) roda toda segunda, compara o nome da planilha recente publicada pela SMF com o último arquivo carregado e, se houver planilha nova, grava pela função `ingest-itbi-smf` e consolida um trimestre por chamada. O painel `/admin` faz o mesmo à mão. Os dois usam as etapas de `_shared/itbiSmfCarga.ts`, que definem os ids das escrituras. Roteiro e configuração em `scripts/itbi-smf/README.md`. O agendamento `sync-itbi-monthly` (camada 8) está desativado desde 2026-10-22. O texto abaixo descreve a carga da camada 8 do ArcGIS, que ficou só como histórico e como guarda: as duas funções recusam períodos já consolidados a partir da SMF.
+
 Fonte: API ArcGIS da Prefeitura do Rio (camada de ITBI agregado), por código de bairro. Por feature:
 
 ```

@@ -9,7 +9,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { Database, Loader2 } from "lucide-react";
-import type { EscrituraSmf, LinhaSmf } from "@/utils/itbiSmf";
+import type { EscrituraSmf } from "@/utils/itbiSmf";
 import { janelasTrimestrais } from "../../../supabase/functions/_shared/itbiFonte";
 
 // Carga do ITBI por escritura (planilhas da SMF), feita a partir do navegador
@@ -21,20 +21,9 @@ import { janelasTrimestrais } from "../../../supabase/functions/_shared/itbiFont
 const FUNCAO = "ingest-itbi-smf";
 const BAIRRO_BARRA = "128";
 const BLOCO = 4 * 1024 * 1024; // mesmo teto de faixa da função
-const LOTE = 1000;
-const BAIRROS_POR_GRUPO = 12;
 
 interface ArquivoSmf { url: string; nome: string; tamanho: number; recente: boolean }
 interface Status { escrituras: number; ultima_escritura: string | null; transacoes_smf: number; transacoes_arcgis: number }
-
-/** Anos cobertos pelo arquivo, pelo nome (PERIODO_2019_2024, 2025_diante). */
-const anosDoArquivo = (nome: string): [number, number] => {
-  const p = nome.match(/PERIODO_(\d{4})_(\d{4})/i);
-  if (p) return [Number(p[1]), Number(p[2])];
-  const d = nome.match(/(\d{4})_diante/i);
-  if (d) return [Number(d[1]), 9999];
-  return [0, 9999];
-};
 
 /** Corpo de erro que a função devolve (o supabase-js só diz "non-2xx"). */
 const erroDaFuncao = async (error: unknown): Promise<Error> => {
@@ -90,11 +79,13 @@ export function CargaItbiSmf() {
     const anoMin = Number(desde) || 2019;
     const somenteBarra = escopo === "barra";
     try {
-      const m = await import("@/utils/itbiSmf");
+      // Mesmas etapas da carga agendada (scripts/itbi-smf/carga-mensal.ts):
+      // o agrupamento por bairro define os ids das escrituras.
+      const c = await import("@/utils/itbiSmfCarga");
 
       setEtapa("Consultando a página da SMF");
       const { arquivos } = await chamar<{ arquivos: ArquivoSmf[] }>({ acao: "arquivos" });
-      const usar = arquivos.filter((a) => anosDoArquivo(a.nome)[1] >= anoMin);
+      const usar = arquivos.filter((a) => c.anosDoArquivo(a.nome)[1] >= anoMin);
       anotar(`Arquivos da SMF: ${usar.map((a) => `${a.nome} (${(a.tamanho / 1e6).toFixed(1)} MB)`).join(", ")}`);
 
       const totalBytes = usar.reduce((s, a) => s + a.tamanho, 0);
@@ -117,46 +108,41 @@ export function CargaItbiSmf() {
         };
 
         // 1. Ler a planilha uma vez, separando as linhas por bairro.
-        const porBairro = new Map<string, LinhaSmf[]>();
-        let lidas = 0;
-        for await (const l of m.lerPlanilhaSmf(ler, arq.tamanho, {
-          bairros: somenteBarra ? new Set([BAIRRO_BARRA]) : undefined,
-          desde: anoMin,
-        })) {
-          const cod = String(parseInt(l.CD_BAIRRO, 10) || 0);
-          if (!porBairro.has(cod)) porBairro.set(cod, []);
-          porBairro.get(cod)!.push(l);
-          lidas++;
-          if (lidas % 20000 === 0) setEtapa(`Lendo ${arq.nome}: ${lidas.toLocaleString("pt-BR")} escrituras`);
-        }
+        const porBairro = await c.lerPorBairro(
+          ler,
+          arq.tamanho,
+          { bairros: somenteBarra ? new Set([BAIRRO_BARRA]) : undefined, desde: anoMin },
+          (lidas) => setEtapa(`Lendo ${arq.nome}: ${lidas.toLocaleString("pt-BR")} escrituras`),
+        );
+        const lidas = [...porBairro.values()].reduce((s, v) => s + v.length, 0);
         anotar(`${arq.nome}: ${lidas.toLocaleString("pt-BR")} escrituras em ${porBairro.size} bairros`);
 
         // 2. Por grupo de bairros: normalizar, geocodificar, gravar.
-        const codigos = [...porBairro.keys()].sort((a, b) => Number(a) - Number(b));
-        for (let g = 0; g < codigos.length; g += BAIRROS_POR_GRUPO) {
+        const grupos = c.gruposDeBairros(porBairro.keys());
+        const totalBairros = porBairro.size;
+        let bairrosFeitos = 0;
+        for (const grupo of grupos) {
           if (cancelar.current) throw new Error("Carga cancelada.");
-          const grupo = codigos.slice(g, g + BAIRROS_POR_GRUPO);
-          const linhas = grupo.flatMap((c) => porBairro.get(c) ?? []);
-          let esc: EscrituraSmf[] = await m.normalizarEscrituras(linhas, arq.nome);
-          setEtapa(`Geocodificando ${arq.nome}: bairros ${g + 1} a ${Math.min(g + grupo.length, codigos.length)} de ${codigos.length}`);
-          esc = await m.geocodificarEscrituras(esc, async (u) => (await fetch(u)).json());
+          setEtapa(`Geocodificando ${arq.nome}: bairros ${bairrosFeitos + 1} a ${bairrosFeitos + grupo.length} de ${totalBairros}`);
+          const esc: EscrituraSmf[] = await c.prepararGrupo(porBairro, grupo, arq.nome, async (u) => (await fetch(u)).json());
           for (const e of esc) {
             const k = (e.geo_precisao ?? "sem").split(" (")[0];
             geoContagem[k] = (geoContagem[k] ?? 0) + 1;
             if (!e.aceita) rejeitadasTotal++;
-            if (e.ano > ultimoMes.ano || (e.ano === ultimoMes.ano && e.mes > ultimoMes.mes)) ultimoMes = { ano: e.ano, mes: e.mes };
           }
+          ultimoMes = c.ultimoMesDe(esc, ultimoMes);
           if (!simular) {
-            for (let i = 0; i < esc.length; i += LOTE) {
+            for (let i = 0; i < esc.length; i += c.LOTE_GRAVACAO) {
               if (cancelar.current) throw new Error("Carga cancelada.");
-              await chamar({ acao: "gravar", escrituras: esc.slice(i, i + LOTE) });
-              gravadasTotal += Math.min(LOTE, esc.length - i);
+              await chamar({ acao: "gravar", escrituras: esc.slice(i, i + c.LOTE_GRAVACAO) });
+              gravadasTotal += Math.min(c.LOTE_GRAVACAO, esc.length - i);
             }
           } else {
             gravadasTotal += esc.length;
           }
-          grupo.forEach((c) => porBairro.delete(c));
-          setProgresso(60 + Math.round(((g + grupo.length) / codigos.length) * 25 * (usar.indexOf(arq) + 1) / usar.length));
+          grupo.forEach((cod) => porBairro.delete(cod));
+          bairrosFeitos += grupo.length;
+          setProgresso(60 + Math.round((bairrosFeitos / totalBairros) * 25 * (usar.indexOf(arq) + 1) / usar.length));
         }
       }
 

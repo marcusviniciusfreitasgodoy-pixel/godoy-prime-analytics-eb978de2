@@ -15,6 +15,11 @@ verify_jwt = true
 [functions.sync-itbi-daily]
 verify_jwt = false
 
+# Autorização feita na própria função (admin logado ou x-cron-secret); a carga
+# agendada do GitHub não tem JWT. Ver supabase/functions/ingest-itbi-smf.
+[functions.ingest-itbi-smf]
+verify_jwt = false
+
 [functions.import-csv-itbi]
 verify_jwt = true
 

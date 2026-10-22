@@ -1,76 +1,61 @@
 name: ITBI SMF mensal
 
-# Carga mensal do ITBI por escritura (planilhas da SMF) e consolidação em
-# itbi_transactions. Ver scripts/itbi-smf/README.md.
+# Carga agendada do ITBI por escritura (planilhas da SMF).
 #
-# Para gravar (dry_run = false) seriam necessários os secrets SUPABASE_URL e
-# SUPABASE_SERVICE_ROLE_KEY, que a Lovable Cloud não fornece.
+# Toda segunda-feira às 8h (Brasília) o job lê a página da SMF e compara o nome
+# da planilha recente com o último arquivo carregado na base. Se a SMF publicou
+# planilha nova, carrega o ano da última escritura em diante, com as mesmas
+# etapas do painel /admin, e consolida um trimestre por chamada. Se não
+# publicou, termina em segundos sem gravar nada. Ver scripts/itbi-smf/README.md.
+#
+# Requer o secret ITBI_CARGA_SECRET, com o MESMO valor do secret de mesmo nome
+# na Lovable Cloud: a função ingest-itbi-smf confere o cabeçalho x-cron-secret.
+# O job nunca usa a chave de serviço do banco.
+#
+# O GitHub desativa agendamentos de repositórios sem commits por 60 dias; se
+# isso acontecer, reativar em Actions > ITBI SMF mensal > Enable workflow.
 
-# Só disparo manual: o backend roda na Lovable Cloud, que não expõe a chave de
-# serviço. A carga oficial é o painel "ITBI por escritura (SMF)" em /admin
-# (edge function ingest-itbi-smf). Este workflow serve para dry-run do
-# carregador Python (dry_run = true dispensa secrets).
 on:
+  schedule:
+    - cron: "0 11 * * 1"
   workflow_dispatch:
     inputs:
-      bairro:
-        description: "Bairro (vazio = cidade inteira)"
+      modo:
+        description: "verificar = carrega só se houver planilha nova; forcar = carrega mesmo sem novidade; simular = lê e prepara, não grava"
+        type: choice
+        options: [verificar, forcar, simular]
+        default: verificar
+      desde:
+        description: "Ano inicial (vazio = ano da última escritura da base)"
         required: false
         default: ""
-      desde:
-        description: "Ano mínimo"
-        required: false
-        default: "2019"
-      dry_run:
-        description: "Só gerar o CSV, sem gravar"
-        type: boolean
-        default: false
 
 concurrency:
   group: itbi-smf
   cancel-in-progress: false
 
+permissions:
+  contents: read
+
 jobs:
   carregar:
     runs-on: ubuntu-latest
-    timeout-minutes: 90
-    defaults:
-      run:
-        working-directory: scripts/itbi-smf
+    timeout-minutes: 120
     steps:
       - uses: actions/checkout@v4
 
-      - uses: actions/setup-python@v5
+      - uses: oven-sh/setup-bun@v2
         with:
-          python-version: "3.12"
+          bun-version: "1.4.3"
 
-      - name: Instalar openpyxl
-        run: pip install openpyxl==3.1.5
-
-      - name: Cache de portas e traçados (ArcGIS)
-        uses: actions/cache@v4
-        with:
-          path: scripts/itbi-smf/cache_smf
-          key: itbi-smf-cache-${{ github.run_id }}
-          restore-keys: itbi-smf-cache-
-
-      - name: Carregar
+      - name: Verificar e carregar
         env:
-          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
-          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
-          ENTRADA_BAIRRO: ${{ github.event.inputs.bairro }}
-          ENTRADA_DESDE: ${{ github.event.inputs.desde || '2019' }}
-          ENTRADA_DRY_RUN: ${{ github.event.inputs.dry_run }}
+          ITBI_CARGA_SECRET: ${{ secrets.ITBI_CARGA_SECRET }}
+          MODO: ${{ github.event.inputs.modo || 'verificar' }}
+          DESDE: ${{ github.event.inputs.desde }}
         run: |
-          args=(--desde "$ENTRADA_DESDE" --cache-dir ./cache_smf)
-          if [ -n "$ENTRADA_BAIRRO" ]; then args+=(--bairro "$ENTRADA_BAIRRO"); fi
-          if [ "$ENTRADA_DRY_RUN" = "true" ]; then args+=(--dry-run --saida dryrun.csv); fi
-          python3 -I carregar_itbi_smf.py "${args[@]}"
-
-      - name: Guardar CSV do dry-run
-        if: ${{ github.event.inputs.dry_run == 'true' }}
-        uses: actions/upload-artifact@v4
-        with:
-          name: itbi-smf-dryrun
-          path: scripts/itbi-smf/dryrun.csv
-          retention-days: 7
+          args=()
+          if [ "$MODO" = "forcar" ]; then args+=(--forcar); fi
+          if [ "$MODO" = "simular" ]; then args+=(--simular); fi
+          if [ -n "$DESDE" ]; then args+=(--desde="$DESDE"); fi
+          bun scripts/itbi-smf/carga-mensal.ts "${args[@]}"
