@@ -10,6 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useToast } from "@/hooks/use-toast";
 import { Database, Loader2 } from "lucide-react";
 import type { EscrituraSmf, LinhaSmf } from "@/utils/itbiSmf";
+import { janelasTrimestrais } from "../../../supabase/functions/_shared/itbiFonte";
 
 // Carga do ITBI por escritura (planilhas da SMF), feita a partir do navegador
 // do administrador. O processamento pesado (descompactar e ler a planilha, que
@@ -34,9 +35,6 @@ const anosDoArquivo = (nome: string): [number, number] => {
   if (d) return [Number(d[1]), 9999];
   return [0, 9999];
 };
-
-const fimDoMes = (ano: number, mes: number) =>
-  `${ano}-${String(mes).padStart(2, "0")}-${String(new Date(Date.UTC(ano, mes, 0)).getUTCDate()).padStart(2, "0")}`;
 
 /** Corpo de erro que a função devolve (o supabase-js só diz "non-2xx"). */
 const erroDaFuncao = async (error: unknown): Promise<Error> => {
@@ -166,24 +164,23 @@ export function CargaItbiSmf() {
         `(${rejeitadasTotal.toLocaleString("pt-BR")} fora dos limites do app, guardadas mas fora da consolidação).`);
       anotar(`Geocodificação: ${Object.entries(geoContagem).map(([k, v]) => `${k} ${v.toLocaleString("pt-BR")}`).join(", ")}.`);
 
-      // 3. Consolidar em itbi_transactions.
+      // 3. Consolidar em itbi_transactions, um trimestre por chamada: com as
+      // regras por prédio do cinto, um ano inteiro da cidade passa do limite
+      // de tempo da função.
       if (!simular) {
-        const fim = fimDoMes(ultimoMes.ano, ultimoMes.mes);
-        if (somenteBarra) {
-          setEtapa("Consolidando a Barra da Tijuca");
-          const r = await chamar<{ resultado: Record<string, unknown> }>({ acao: "consolidar", inicio: `${anoMin}-01-01`, fim, bairro: "BARRA DA TIJUCA" });
-          anotar(`Consolidação Barra: ${JSON.stringify(r.resultado)}`);
-        } else {
-          for (let ano = anoMin; ano <= ultimoMes.ano; ano++) {
-            if (cancelar.current) throw new Error("Carga cancelada.");
-            setEtapa(`Consolidando ${ano}`);
-            const r = await chamar<{ resultado: Record<string, unknown> }>({
-              acao: "consolidar", inicio: `${ano}-01-01`, fim: ano === ultimoMes.ano ? fim : `${ano}-12-31`,
-            });
-            anotar(`Consolidação ${ano}: ${r.resultado?.escrituras_consideradas} escrituras, ` +
-              `${r.resultado?.linhas_removidas} linhas antigas trocadas por ${r.resultado?.linhas_inseridas}.`);
-            setProgresso(85 + Math.round(((ano - anoMin + 1) / (ultimoMes.ano - anoMin + 1)) * 15));
-          }
+        const janelas = janelasTrimestrais(anoMin, ultimoMes);
+        for (let i = 0; i < janelas.length; i++) {
+          if (cancelar.current) throw new Error("Carga cancelada.");
+          const j = janelas[i];
+          setEtapa(`Consolidando ${somenteBarra ? "a Barra da Tijuca, " : ""}${j.rotulo}`);
+          const r = await chamar<{ resultado: Record<string, unknown> }>({
+            acao: "consolidar", inicio: j.inicio, fim: j.fim, ...(somenteBarra ? { bairro: "BARRA DA TIJUCA" } : {}),
+          });
+          const cinto = r.resultado?.cinto as { alteradas?: number } | undefined;
+          anotar(`Consolidação ${j.rotulo}: ${r.resultado?.escrituras_consideradas} escrituras, ` +
+            `${r.resultado?.linhas_removidas} linhas antigas trocadas por ${r.resultado?.linhas_inseridas}; ` +
+            `${cinto?.alteradas ?? 0} marcações do cinto alteradas.`);
+          setProgresso(85 + Math.round(((i + 1) / janelas.length) * 15));
         }
         await queryClient.invalidateQueries();
       }
