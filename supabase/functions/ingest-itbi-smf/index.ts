@@ -1,10 +1,13 @@
 // ingest-itbi-smf: carga do ITBI por escritura (planilhas da SMF) em
 // public.itbi_escrituras e consolidação em itbi_transactions.
 //
-// Quem pode chamar: administrador logado (JWT + has_role admin) ou o
-// agendador do banco (cabeçalho x-cron-secret = CRON_SECRET), o mesmo padrão
-// de sync-itbi-daily. A escrita no banco é sempre feita aqui, com a chave de
-// serviço; nada é aberto para a chave pública.
+// Quem pode chamar: administrador logado (JWT + has_role admin), o agendador
+// do banco (cabeçalho x-cron-secret = CRON_SECRET, o mesmo padrão de
+// sync-itbi-daily) ou a carga agendada do GitHub (x-cron-secret =
+// ITBI_CARGA_SECRET, scripts/itbi-smf/carga-mensal.ts). A escrita no banco é
+// sempre feita aqui, com a chave de serviço; nada é aberto para a chave
+// pública. verify_jwt = false em supabase/config.toml porque a carga agendada
+// não tem JWT; a autorização acima vale para todas as ações.
 //
 // Ações (POST JSON { acao, ... }):
 //   arquivos    lista os xlsx publicados na página da SMF, com tamanho.
@@ -18,7 +21,9 @@
 //               bairros, normaliza, geocodifica, grava e consolida. Pensado
 //               para o arquivo recente (2025 em diante) e poucos bairros por
 //               chamada: edge functions têm ~2 s de CPU (ver _shared/itbiSmf.ts).
-//   status      contagens de itbi_escrituras e de itbi_transactions por fonte.
+//   status      contagens de itbi_escrituras e de itbi_transactions por fonte,
+//               data da última escritura e nome do último arquivo recente
+//               carregado (a carga agendada compara com a página da SMF).
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.86.0";
 import {
@@ -96,9 +101,10 @@ Deno.serve(async (req) => {
   const supabase = createClient(supabaseUrl, serviceKey);
 
   // ---------- autorização: cron com segredo ou admin logado ----------
-  const cronSecret = Deno.env.get("CRON_SECRET");
+  const segredos = [Deno.env.get("CRON_SECRET"), Deno.env.get("ITBI_CARGA_SECRET")].filter((s): s is string => !!s);
+  const segredoRecebido = req.headers.get("x-cron-secret");
   let quem = "";
-  if (cronSecret && req.headers.get("x-cron-secret") === cronSecret) {
+  if (segredoRecebido && segredos.includes(segredoRecebido)) {
     quem = "cron";
   } else {
     const auth = req.headers.get("Authorization") ?? "";
@@ -222,10 +228,15 @@ Deno.serve(async (req) => {
       };
       const { data: ultima } = await supabase.from("itbi_escrituras").select("data_transacao")
         .order("data_transacao", { ascending: false }).limit(1).maybeSingle();
+      // Cada carga regrava as escrituras do arquivo recente com o nome dele;
+      // a SMF muda o nome a cada republicação (ex.: ..._2025_diante-7-1.xlsx).
+      const { data: recente } = await supabase.from("itbi_escrituras").select("arquivo_fonte")
+        .ilike("arquivo_fonte", "%diante%").order("data_transacao", { ascending: false }).limit(1).maybeSingle();
       return json({
         success: true,
         escrituras: await conta("itbi_escrituras"),
         ultima_escritura: ultima?.data_transacao ?? null,
+        ultimo_arquivo_recente: recente?.arquivo_fonte ?? null,
         transacoes_smf: await conta("itbi_transactions", ["fonte", "smf"]),
         transacoes_arcgis: await conta("itbi_transactions", ["fonte", "arcgis"]),
       });
