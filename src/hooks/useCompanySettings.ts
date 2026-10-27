@@ -86,9 +86,12 @@ export function useCompanySettings() {
 
   const uploadLogo = async (file: File): Promise<string | null> => {
     try {
+      const organization_id = await getOrgId();
+      if (!organization_id) throw new Error('Organização não encontrada');
+
       const fileExt = file.name.split('.').pop();
       const fileName = `company-logo-${Date.now()}.${fileExt}`;
-      const filePath = `logos/${fileName}`;
+      const filePath = `${organization_id}/logos/${fileName}`;
 
       const { error: uploadError } = await supabase.storage
         .from('company-assets')
@@ -101,9 +104,6 @@ export function useCompanySettings() {
         .getPublicUrl(filePath);
 
       const logoUrl = urlData.publicUrl;
-
-      const organization_id = await getOrgId();
-      if (!organization_id) throw new Error('Organização não encontrada');
       const { error: settingsError } = await supabase
         .from('company_settings')
         .upsert({
