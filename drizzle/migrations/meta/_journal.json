@@ -50,6 +50,13 @@
       "when": 1792625608471,
       "tag": "0006_itbi_escrituras_mercado_view",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1793122629133,
+      "tag": "0007_restrict_iptu_lotes_logos",
+      "breakpoints": true
     }
   ]
 }
